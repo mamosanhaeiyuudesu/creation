@@ -23,7 +23,12 @@
 
       <div v-if="transcript" class="result">
         <h2>文字起こし結果</h2>
-        <p class="transcript-text">{{ transcript }}</p>
+        <div class="transcript-section">
+          <p class="transcript-text">{{ transcript }}</p>
+          <button @click="copyTranscript" class="copy-button" :title="copied ? 'コピーしました!' : 'コピー'">
+            {{ copied ? '✓ コピー済み' : '📋 コピー' }}
+          </button>
+        </div>
         <button @click="resetRecording" class="reset-button">新しく録音</button>
       </div>
 
@@ -43,6 +48,7 @@ const isProcessing = ref(false)
 const duration = ref(0)
 const transcript = ref('')
 const error = ref('')
+const copied = ref(false)
 
 let mediaRecorder: MediaRecorder | null = null
 let audioChunks: Blob[] = []
@@ -108,12 +114,13 @@ const stopRecording = async () => {
   mediaRecorder.onstop = async () => {
     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
     isProcessing.value = true
+    const recordingDuration = duration.value
 
     try {
       const formData = new FormData()
       formData.append('audio', audioBlob, 'recording.webm')
 
-      const response = await fetch('/api/whisper/index', {
+      const response = await fetch('/api/whisper', {
         method: 'POST',
         body: formData,
       })
@@ -139,45 +146,63 @@ const resetRecording = () => {
   transcript.value = ''
   duration.value = 0
 }
+
+const copyTranscript = async () => {
+  if (!transcript.value) return
+  try {
+    await navigator.clipboard.writeText(transcript.value)
+    copied.value = true
+    setTimeout(() => {
+      copied.value = false
+    }, 2000)
+  } catch (err) {
+    console.error('Copy failed:', err)
+  }
+}
 </script>
 
 <style scoped>
 .page {
-  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 32px 16px;
+  min-height: 100vh;
+}
+
+@media (max-width: 1023px) {
+  .page {
+    padding: 12px 16px;
+    align-items: flex-start;
+    padding-top: 16px;
+  }
 }
 
 .container {
   width: 100%;
   max-width: 600px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
 }
 
 .header {
   text-align: center;
-  margin-bottom: 48px;
+  margin-bottom: 32px;
 }
 
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: #38bdf8;
-  text-decoration: none;
-  font-size: 14px;
-  margin-bottom: 16px;
-  transition: color 0.2s;
-}
-
-.back-link:hover {
-  color: #0ea5e9;
+@media (max-width: 1023px) {
+  .header {
+    margin-bottom: 16px;
+  }
 }
 
 .header h1 {
   margin: 0;
-  font-size: 48px;
+  font-size: clamp(24px, 4vw, 32px);
   color: #f8fafc;
   background: linear-gradient(135deg, #38bdf8, #6366f1);
   -webkit-background-clip: text;
@@ -196,7 +221,13 @@ const resetRecording = () => {
   flex-direction: column;
   align-items: center;
   gap: 24px;
-  margin-bottom: 48px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 1023px) {
+  .recorder {
+    margin-bottom: 16px;
+  }
 }
 
 .record-button {
@@ -214,6 +245,14 @@ const resetRecording = () => {
   justify-content: center;
   gap: 8px;
   transition: all 0.2s ease;
+}
+
+@media (max-width: 1023px) {
+  .record-button {
+    width: 140px;
+    height: 140px;
+    font-size: 42px;
+  }
 }
 
 .record-button:hover:not(:disabled) {
@@ -260,26 +299,54 @@ const resetRecording = () => {
 }
 
 .result {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.3);
   border-radius: 16px;
-  padding: 32px;
-  margin-bottom: 24px;
+  padding: 20px;
+  margin-bottom: 16px;
 }
 
 .result h2 {
-  margin: 0 0 16px;
-  font-size: 20px;
+  margin: 0 0 12px;
+  font-size: 18px;
   color: #f8fafc;
 }
 
 .transcript-text {
-  margin: 0 0 24px;
+  margin: 0 0 16px;
   font-size: 16px;
   line-height: 1.6;
   color: #e2e8f0;
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+.transcript-section {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.copy-button {
+  background: none;
+  border: 1px solid rgba(74, 222, 128, 0.5);
+  color: #4ade80;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.copy-button:hover {
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.8);
+  color: #86efac;
 }
 
 .reset-button {
@@ -303,12 +370,12 @@ const resetRecording = () => {
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: 16px;
-  padding: 16px 24px;
-  margin-bottom: 24px;
+  padding: 16px;
+  margin-bottom: 16px;
 }
 
 .error p {
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   color: #fca5a5;
   font-size: 14px;
 }

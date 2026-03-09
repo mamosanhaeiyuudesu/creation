@@ -48,10 +48,13 @@
       </div>
     </nav>
 
-    <!-- コンテンツ -->
-    <main class="main">
-      <NuxtPage />
-    </main>
+    <!-- メインレイアウト -->
+    <div class="layout">
+      <!-- コンテンツ -->
+      <main class="main">
+        <NuxtPage />
+      </main>
+    </div>
   </div>
 </template>
 
@@ -97,6 +100,19 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+
+.layout {
+  display: flex;
+  flex: 1;
+  position: relative;
+}
+
+/* PC向けサイドバー */
+
+.main {
+  flex: 1;
+  overflow-y: auto;
 }
 
 /* PC向けヘッダー */
@@ -200,6 +216,20 @@ body {
   background-clip: text;
 }
 
+.history-toggle--mobile {
+  background: none;
+  border: none;
+  color: #f8fafc;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.2s;
+}
+
+.history-toggle--mobile:hover {
+  color: #38bdf8;
+}
+
 /* モバイルメニュー */
 .mobile-menu {
   position: fixed;
@@ -276,8 +306,9 @@ body {
   font-weight: 500;
 }
 
-/* メインコンテンツ */
-.main {
-  flex: 1;
+@media (max-width: 1023px) {
+  .layout {
+    flex-direction: column;
+  }
 }
 </style>
