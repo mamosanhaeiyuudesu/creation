@@ -112,6 +112,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+;
 
 type ChatMessage = {
   role: 'user' | 'assistant';
@@ -367,6 +368,14 @@ const reset = () => {
   padding: 32px 16px;
 }
 
+@media (max-width: 1023px) {
+  .page {
+    padding: 12px 16px;
+    align-items: flex-start;
+    padding-top: 16px;
+  }
+}
+
 .card {
   width: min(960px, 100%);
   background: rgba(255, 255, 255, 0.04);
@@ -377,6 +386,13 @@ const reset = () => {
   backdrop-filter: blur(10px);
   display: grid;
   gap: 16px;
+}
+
+@media (max-width: 1023px) {
+  .card {
+    padding: 20px;
+    gap: 12px;
+  }
 }
 
 .card__header h1 {
@@ -433,6 +449,12 @@ const reset = () => {
   max-height: 360px;
 }
 
+@media (max-width: 1023px) {
+  .preview img {
+    max-height: 280px;
+  }
+}
+
 .actions {
   display: flex;
   gap: 10px;
@@ -483,6 +505,7 @@ button:disabled {
 
 .summary-text {
   white-space: pre-wrap;
+  margin: 0;
 }
 
 .status--success {
@@ -503,6 +526,43 @@ button:disabled {
 .chat {
   display: grid;
   gap: 12px;
+}
+
+.chat__log {
+  display: grid;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.chat__bubble {
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.chat__bubble p {
+  margin: 0;
+}
+
+.chat__bubble--user {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #e0f2fe;
+}
+
+.chat__bubble--assistant {
+  background: rgba(165, 243, 252, 0.05);
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  color: #cffafe;
+}
+
+.chat__empty {
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
 }
 
 .chat__suggestions {
@@ -555,72 +615,38 @@ button:disabled {
   color: #fca5a5;
 }
 
-.chat__log {
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(15, 23, 42, 0.35);
-  max-height: 320px;
-  overflow-y: auto;
-}
-
-.chat__bubble {
-  max-width: 88%;
-  padding: 10px 12px;
-  border-radius: 12px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
-.chat__bubble--user {
-  justify-self: end;
-  background: rgba(56, 189, 248, 0.18);
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  color: #e0f2fe;
-}
-
-.chat__bubble--assistant {
-  justify-self: start;
-  background: rgba(148, 163, 184, 0.14);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  color: #f1f5f9;
-}
-
-.chat__empty {
-  margin: 0;
-  color: #94a3b8;
-  font-size: 14px;
-}
-
 .chat__form {
-  display: flex;
-  gap: 10px;
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
 }
 
 .chat__input {
-  flex: 1;
-  min-height: 48px;
-  resize: vertical;
-  padding: 10px 12px;
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 10px 12px;
   color: #e2e8f0;
-  font-size: 14px;
   font-family: inherit;
+  font-size: 14px;
+  resize: none;
+  max-height: 100px;
+  transition: border-color 0.2s ease;
 }
 
 .chat__input:focus {
-  outline: 2px solid rgba(56, 189, 248, 0.6);
-  outline-offset: 1px;
+  outline: none;
+  border-color: rgba(56, 189, 248, 0.5);
 }
 
-@media (max-width: 640px) {
+.chat__input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1023px) {
   .card {
-    padding: 22px;
+    padding: 20px;
   }
 
   .actions {
@@ -629,10 +655,6 @@ button:disabled {
 
   .chat__form {
     flex-direction: column;
-  }
-
-  .chat__bubble--user {
-    max-width: 70%;
   }
 
   button {
