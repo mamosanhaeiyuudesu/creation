@@ -22,6 +22,14 @@
             <p class="tool-card__desc">音声を文字に自動変換</p>
           </div>
         </NuxtLink>
+
+        <NuxtLink class="tool-card" to="/tasks">
+          <div class="tool-card__icon">📋</div>
+          <div>
+            <h2 class="tool-card__title">Tasks</h2>
+            <p class="tool-card__desc">TODO / DOING / DONE でタスク管理</p>
+          </div>
+        </NuxtLink>
       </div>
     </main>
   </div>
