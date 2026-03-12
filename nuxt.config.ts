@@ -17,6 +17,6 @@ export default defineNuxtConfig({
     openaiApiKey: '', // 値は入れない
   },
   nitro: {
-    preset: 'cloudflare',
+    preset: 'cloudflare_module',
   },
 });
