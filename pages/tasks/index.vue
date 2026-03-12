@@ -50,7 +50,14 @@
                   </div>
                 </div>
                 <p v-if="task.description" class="card__desc">{{ task.description }}</p>
-                <div class="card__meta">更新: {{ formatDate(task.updated_at) }}</div>
+                <div class="card__meta">
+                  <span>更新: {{ formatDate(task.updated_at) }}</span>
+                  <span
+                    v-if="formatDue(task.due_at)"
+                    class="due-badge"
+                    :class="{ 'due-badge--urgent': formatDue(task.due_at)!.urgent }"
+                  >{{ formatDue(task.due_at)!.text }}</span>
+                </div>
               </div>
               <div class="card__actions">
                 <button
@@ -148,6 +155,15 @@
               </div>
             </div>
 
+            <div class="field">
+              <label class="field__label">期限</label>
+              <input
+                v-model="form.due_at_local"
+                type="datetime-local"
+                class="input"
+              />
+            </div>
+
             <div v-if="editingTask" class="field">
               <label class="field__label">ステータス</label>
               <select v-model="form.status" class="input">
@@ -185,22 +201,7 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
 import draggable from 'vuedraggable'
-
-interface Tag {
-  label: string
-  color: string
-}
-
-interface Task {
-  id: string
-  title: string
-  description: string
-  status: 'todo' | 'doing' | 'done'
-  tags: Tag[]
-  order_index: number
-  created_at: number
-  updated_at: number
-}
+import type { Task, Tag } from '~/composables/useTasks'
 
 type Status = 'todo' | 'doing' | 'done'
 
@@ -221,6 +222,8 @@ const TAG_COLORS = [
   { name: 'グレー', value: '#64748b' },
 ]
 
+const { loadTasks: fetchTasks, createTask, updateTask, deleteTask, reorderTasks } = useTasks()
+
 const loading = ref(true)
 const submitting = ref(false)
 const board = ref<Record<Status, Task[]>>({ todo: [], doing: [], done: [] })
@@ -234,6 +237,7 @@ const form = ref({
   description: '',
   tags: [] as Tag[],
   status: 'todo' as Status,
+  due_at_local: '',
 })
 
 // Tag editor
@@ -251,19 +255,40 @@ function formatDate(ts: number) {
   return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
 }
 
+function formatDue(due_at: number | null): { text: string; urgent: boolean } | null {
+  if (!due_at) return null
+  const diff = due_at - Date.now()
+  if (diff < 0) {
+    return { text: '期限切れ', urgent: true }
+  }
+  const hours = diff / (1000 * 60 * 60)
+  if (hours < 24) {
+    const h = Math.ceil(hours)
+    return { text: `残${h}時間`, urgent: true }
+  }
+  const days = Math.ceil(hours / 24)
+  return { text: `残${days}日`, urgent: false }
+}
+
+function tsToLocal(ts: number | null): string {
+  if (!ts) return ''
+  const d = new Date(ts)
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function localToTs(local: string): number | null {
+  if (!local) return null
+  return new Date(local).getTime()
+}
+
 async function loadTasks() {
   loading.value = true
   try {
-    const data = await $fetch<{ tasks: Task[] }>('/api/tasks')
-    board.value.todo = data.tasks
-      .filter((t) => t.status === 'todo')
-      .sort((a, b) => a.order_index - b.order_index)
-    board.value.doing = data.tasks
-      .filter((t) => t.status === 'doing')
-      .sort((a, b) => a.order_index - b.order_index)
-    board.value.done = data.tasks
-      .filter((t) => t.status === 'done')
-      .sort((a, b) => a.order_index - b.order_index)
+    const tasks = await fetchTasks()
+    board.value.todo = tasks.filter((t) => t.status === 'todo').sort((a, b) => a.order_index - b.order_index)
+    board.value.doing = tasks.filter((t) => t.status === 'doing').sort((a, b) => a.order_index - b.order_index)
+    board.value.done = tasks.filter((t) => t.status === 'done').sort((a, b) => a.order_index - b.order_index)
   } finally {
     loading.value = false
   }
@@ -277,7 +302,7 @@ function onDragEnd() {
       ...board.value.doing.map((t, i) => ({ id: t.id, status: 'doing', order_index: i })),
       ...board.value.done.map((t, i) => ({ id: t.id, status: 'done', order_index: i })),
     ]
-    $fetch('/api/tasks/reorder', { method: 'POST', body: { updates } }).catch(console.error)
+    reorderTasks(updates).catch(console.error)
   }, 200)
 }
 
@@ -294,15 +319,15 @@ async function moveTask(task: Task, direction: 'prev' | 'next') {
   task.status = newStatus
   board.value[newStatus] = [...board.value[newStatus], task]
 
-  await $fetch(`/api/tasks/${task.id}`, {
-    method: 'PUT',
-    body: { status: newStatus, order_index: board.value[newStatus].length - 1 },
+  await updateTask(task.id, {
+    status: newStatus,
+    order_index: board.value[newStatus].length - 1,
   }).catch(console.error)
 }
 
 function openCreate(status: Status) {
   editingTask.value = null
-  form.value = { title: '', description: '', tags: [], status }
+  form.value = { title: '', description: '', tags: [], status, due_at_local: '' }
   tagInput.value = ''
   tagColor.value = TAG_COLORS[4].value
   modalOpen.value = true
@@ -316,6 +341,7 @@ function openEdit(task: Task) {
     description: task.description,
     tags: task.tags.map((t) => ({ ...t })),
     status: task.status,
+    due_at_local: tsToLocal(task.due_at),
   }
   tagInput.value = ''
   tagColor.value = TAG_COLORS[4].value
@@ -344,19 +370,15 @@ async function submitTask() {
   submitting.value = true
   try {
     if (editingTask.value) {
-      const { task } = await $fetch<{ task: Task }>(`/api/tasks/${editingTask.value.id}`, {
-        method: 'PUT',
-        body: {
-          title: form.value.title,
-          description: form.value.description,
-          tags: form.value.tags,
-          status: form.value.status,
-        },
+      const task = await updateTask(editingTask.value.id, {
+        title: form.value.title,
+        description: form.value.description,
+        tags: form.value.tags,
+        status: form.value.status,
+        due_at: localToTs(form.value.due_at_local),
       })
-      // Remove from old column
       const oldStatus = editingTask.value.status
       board.value[oldStatus] = board.value[oldStatus].filter((t) => t.id !== task.id)
-      // Add to new column (update or append)
       const col = board.value[task.status]
       const existing = col.findIndex((t) => t.id === task.id)
       if (existing >= 0) {
@@ -365,14 +387,12 @@ async function submitTask() {
         col.push(task)
       }
     } else {
-      const { task } = await $fetch<{ task: Task }>('/api/tasks', {
-        method: 'POST',
-        body: {
-          title: form.value.title,
-          description: form.value.description,
-          tags: form.value.tags,
-          status: form.value.status,
-        },
+      const task = await createTask({
+        title: form.value.title,
+        description: form.value.description,
+        tags: form.value.tags,
+        status: form.value.status,
+        due_at: localToTs(form.value.due_at_local),
       })
       board.value[task.status].push(task)
     }
@@ -391,7 +411,7 @@ async function doDelete() {
   submitting.value = true
   try {
     const task = deleteTarget.value
-    await $fetch(`/api/tasks/${task.id}`, { method: 'DELETE' })
+    await deleteTask(task.id)
     board.value[task.status] = board.value[task.status].filter((t) => t.id !== task.id)
     deleteTarget.value = null
   } finally {
@@ -579,6 +599,20 @@ onMounted(loadTasks)
   margin-top: 8px;
   font-size: 11px;
   color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.due-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.due-badge--urgent {
+  color: #ef4444;
 }
 
 .card__actions {
@@ -750,6 +784,10 @@ onMounted(loadTasks)
 .input--sm {
   flex: 1;
   min-width: 0;
+}
+
+input[type='datetime-local'].input {
+  color-scheme: dark;
 }
 
 select.input {

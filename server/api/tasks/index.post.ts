@@ -4,6 +4,7 @@ export default defineEventHandler(async (event) => {
     description?: string
     status?: string
     tags?: { label: string; color: string }[]
+    due_at?: number | null
   }>(event)
 
   if (!body?.title?.trim()) {
@@ -24,7 +25,7 @@ export default defineEventHandler(async (event) => {
 
   await db
     .prepare(
-      'INSERT INTO tasks (id, title, description, status, tags, order_index, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO tasks (id, title, description, status, tags, order_index, due_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     )
     .bind(
       id,
@@ -33,6 +34,7 @@ export default defineEventHandler(async (event) => {
       status,
       JSON.stringify(body.tags || []),
       maxOrder + 1,
+      body.due_at ?? null,
       now,
       now,
     )

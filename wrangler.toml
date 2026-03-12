@@ -8,7 +8,7 @@ compatibility_date = "2025-12-31"
 [[d1_databases]]
 binding = "DB"
 database_name = "tasks-db"
-database_id = "YOUR_DATABASE_ID_HERE"
+database_id = "379f07c2-e5f1-4406-bd8d-3f7587a5bdc6"
 # Run: wrangler d1 create tasks-db  to get the database_id
 
 [build]

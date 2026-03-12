@@ -6,6 +6,7 @@ export default defineEventHandler(async (event) => {
     status?: string
     tags?: { label: string; color: string }[]
     order_index?: number
+    due_at?: number | null
   }>(event)
 
   const { cloudflare } = event.context as any
@@ -34,6 +35,10 @@ export default defineEventHandler(async (event) => {
   if (body.order_index !== undefined) {
     setClauses.push('order_index = ?')
     values.push(body.order_index)
+  }
+  if ('due_at' in body) {
+    setClauses.push('due_at = ?')
+    values.push(body.due_at ?? null)
   }
 
   if (setClauses.length === 0) {
