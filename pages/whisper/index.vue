@@ -7,62 +7,178 @@
       </header>
 
       <div class="recorder">
-        <button 
-          :class="['record-button', { recording: isRecording, processing: isProcessing }]"
-          @click="toggleRecording"
-          :disabled="isProcessing"
-        >
-          <span class="button-icon">{{ buttonIcon }}</span>
-          <span class="button-text">{{ buttonText }}</span>
-        </button>
+        <div class="buttons-row">
+          <!-- 録音中: 一時停止ボタンのみ -->
+          <template v-if="isRecording">
+            <button class="record-button recording" @click="pauseRecording">
+              <span class="button-icon">⏸️</span>
+              <span class="button-text">一時停止</span>
+            </button>
+          </template>
+
+          <!-- 一時停止中: 再開 + 文字起こし -->
+          <template v-else-if="isPaused">
+            <div class="split-button">
+              <button class="split-half resume-half" @click="resumeRecording">
+                <span class="button-icon">▶</span>
+                <span class="button-text">再開</span>
+              </button>
+              <div class="split-divider" />
+              <button class="split-half transcribe-half" @click="transcribeRecording" :disabled="isProcessing">
+                <span class="button-icon">{{ isProcessing ? '⏳' : '✍️' }}</span>
+                <span class="button-text">{{ isProcessing ? '処理中...' : '文字起こし' }}</span>
+              </button>
+            </div>
+          </template>
+
+          <!-- 初期状態: 録音 + ファイル -->
+          <template v-else>
+            <button
+              class="record-button"
+              @click="startRecording"
+              :disabled="isProcessing || isUploading"
+            >
+              <span class="button-icon">🎙️</span>
+              <span class="button-text">録音開始</span>
+            </button>
+
+            <button
+              class="record-button upload-button"
+              @click="triggerUpload"
+              :disabled="isProcessing || isUploading"
+            >
+              <span class="button-icon">{{ isUploading ? '⏳' : '📂' }}</span>
+              <span class="button-text">{{ isUploading ? '処理中...' : 'ファイル' }}</span>
+            </button>
+          </template>
+
+          <input
+            ref="fileInput"
+            type="file"
+            accept="audio/*,video/*"
+            class="file-input-hidden"
+            @change="onFileSelected"
+          />
+        </div>
 
         <div v-if="isRecording || duration > 0" class="timer">
           {{ formatTime(duration) }}
         </div>
       </div>
 
-      <div v-if="transcript" class="result">
-        <h2>文字起こし結果</h2>
-        <div class="transcript-section">
-          <p class="transcript-text">{{ transcript }}</p>
-          <button @click="copyTranscript" class="copy-button" :title="copied ? 'コピーしました!' : 'コピー'">
-            {{ copied ? '✓ コピー済み' : '📋 コピー' }}
-          </button>
-        </div>
-        <button @click="resetRecording" class="reset-button">新しく録音</button>
-      </div>
 
       <div v-if="error" class="error">
         <p>{{ error }}</p>
         <button @click="error = ''" class="reset-button">閉じる</button>
+      </div>
+
+      <div v-if="history.length > 0" class="history">
+        <h2>履歴</h2>
+        <div class="history-table-wrapper">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th class="col-date">日時</th>
+                <th class="col-copy">コピー</th>
+                <th class="col-delete">削除</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in history" :key="item.id">
+                <td class="col-date">{{ formatDate(item.timestamp) }}</td>
+                <td class="col-copy">
+                  <button @click="copyHistory(item)" class="action-button copy" :title="item.id === copiedHistoryId ? 'コピーしました!' : 'コピー'">
+                    {{ item.id === copiedHistoryId ? '✓' : '📋' }}
+                  </button>
+                </td>
+                <td class="col-delete">
+                  <button @click="deleteHistory(item.id)" class="action-button delete" title="削除">🗑️</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
+
+interface HistoryItem {
+  id: string
+  timestamp: string
+  text: string
+}
+
+const STORAGE_KEY = 'whisper-history'
 
 const isRecording = ref(false)
+const isPaused = ref(false)
 const isProcessing = ref(false)
+const isUploading = ref(false)
 const duration = ref(0)
-const transcript = ref('')
 const error = ref('')
-const copied = ref(false)
+const copiedHistoryId = ref<string | null>(null)
+const history = ref<HistoryItem[]>([])
+const fileInput = ref<HTMLInputElement | null>(null)
 
 let mediaRecorder: MediaRecorder | null = null
 let audioChunks: Blob[] = []
 let timerInterval: NodeJS.Timeout | null = null
 
-const buttonIcon = computed(() => {
-  if (isProcessing.value) return '⏳'
-  return isRecording.value ? '⏹️' : '🎙️'
+onMounted(() => {
+  const stored = localStorage.getItem(STORAGE_KEY)
+  if (stored) {
+    try {
+      history.value = JSON.parse(stored)
+    } catch {
+      history.value = []
+    }
+  }
 })
 
-const buttonText = computed(() => {
-  if (isProcessing.value) return '処理中...'
-  return isRecording.value ? '文字起こしする' : '録音開始'
-})
+const saveHistory = () => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(history.value))
+}
+
+const addHistory = (text: string) => {
+  const item: HistoryItem = {
+    id: Date.now().toString(),
+    timestamp: new Date().toISOString(),
+    text,
+  }
+  history.value.unshift(item)
+  saveHistory()
+}
+
+const deleteHistory = (id: string) => {
+  history.value = history.value.filter(item => item.id !== id)
+  saveHistory()
+}
+
+const copyHistory = async (item: HistoryItem) => {
+  try {
+    await navigator.clipboard.writeText(item.text)
+    copiedHistoryId.value = item.id
+    setTimeout(() => {
+      copiedHistoryId.value = null
+    }, 2000)
+  } catch (err) {
+    console.error('Copy failed:', err)
+  }
+}
+
+const formatDate = (iso: string): string => {
+  const d = new Date(iso)
+  const y = String(d.getFullYear()).slice(-2)
+  const mo = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const h = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  return `${y}/${mo}/${day} ${h}:${mi}`
+}
 
 const formatTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60)
@@ -70,13 +186,6 @@ const formatTime = (seconds: number): string => {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-const toggleRecording = async () => {
-  if (isRecording.value) {
-    await stopRecording()
-  } else {
-    await startRecording()
-  }
-}
 
 const startRecording = async () => {
   try {
@@ -90,6 +199,7 @@ const startRecording = async () => {
 
     mediaRecorder.start()
     isRecording.value = true
+    isPaused.value = false
     duration.value = 0
 
     timerInterval = setInterval(() => {
@@ -101,20 +211,41 @@ const startRecording = async () => {
   }
 }
 
-const stopRecording = async () => {
+const pauseRecording = () => {
+  if (!mediaRecorder) return
+  mediaRecorder.pause()
+  isRecording.value = false
+  isPaused.value = true
+  if (timerInterval) {
+    clearInterval(timerInterval)
+    timerInterval = null
+  }
+}
+
+const resumeRecording = () => {
+  if (!mediaRecorder) return
+  mediaRecorder.resume()
+  isRecording.value = true
+  isPaused.value = false
+  timerInterval = setInterval(() => {
+    duration.value++
+  }, 1000)
+}
+
+const transcribeRecording = () => {
   if (!mediaRecorder) return
 
   mediaRecorder.stop()
-  isRecording.value = false
+  isPaused.value = false
 
   if (timerInterval) {
     clearInterval(timerInterval)
+    timerInterval = null
   }
 
   mediaRecorder.onstop = async () => {
     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
     isProcessing.value = true
-    const recordingDuration = duration.value
 
     try {
       const formData = new FormData()
@@ -131,34 +262,52 @@ const stopRecording = async () => {
       }
 
       const data = await response.json()
-      transcript.value = data.text
+      addHistory(data.text)
     } catch (err) {
       error.value = err instanceof Error ? err.message : '予期しないエラーが発生しました'
       console.error('Transcription error:', err)
     } finally {
       isProcessing.value = false
+      duration.value = 0
       mediaRecorder!.stream.getTracks().forEach(track => track.stop())
     }
   }
 }
 
-const resetRecording = () => {
-  transcript.value = ''
-  duration.value = 0
+const triggerUpload = () => {
+  fileInput.value?.click()
 }
 
-const copyTranscript = async () => {
-  if (!transcript.value) return
+const onFileSelected = async (event: Event) => {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  ;(event.target as HTMLInputElement).value = ''
+
+  isUploading.value = true
   try {
-    await navigator.clipboard.writeText(transcript.value)
-    copied.value = true
-    setTimeout(() => {
-      copied.value = false
-    }, 2000)
+    const formData = new FormData()
+    formData.append('audio', file, file.name)
+
+    const response = await fetch('/api/whisper', {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || '文字起こしに失敗しました')
+    }
+
+    const data = await response.json()
+    addHistory(data.text)
   } catch (err) {
-    console.error('Copy failed:', err)
+    error.value = err instanceof Error ? err.message : '予期しないエラーが発生しました'
+    console.error('Upload transcription error:', err)
+  } finally {
+    isUploading.value = false
   }
 }
+
 </script>
 
 <style scoped>
@@ -191,7 +340,7 @@ const copyTranscript = async () => {
 
 .header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 @media (max-width: 1023px) {
@@ -220,8 +369,18 @@ const copyTranscript = async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
-  margin-bottom: 32px;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.buttons-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.file-input-hidden {
+  display: none;
 }
 
 @media (max-width: 1023px) {
@@ -231,27 +390,27 @@ const copyTranscript = async () => {
 }
 
 .record-button {
-  width: 160px;
-  height: 160px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  border: 3px solid #38bdf8;
+  border: 2px solid #38bdf8;
   background: rgba(56, 189, 248, 0.1);
   color: #f8fafc;
-  font-size: 48px;
+  font-size: 24px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 4px;
   transition: all 0.2s ease;
 }
 
 @media (max-width: 1023px) {
   .record-button {
-    width: 140px;
-    height: 140px;
-    font-size: 42px;
+    width: 70px;
+    height: 70px;
+    font-size: 20px;
   }
 }
 
@@ -276,6 +435,76 @@ const copyTranscript = async () => {
   background: rgba(251, 191, 36, 0.1);
 }
 
+.upload-button {
+  border-color: #a78bfa;
+  background: rgba(167, 139, 250, 0.1);
+}
+
+.upload-button:hover:not(:disabled) {
+  background: rgba(167, 139, 250, 0.2);
+  border-color: #8b5cf6;
+  transform: scale(1.05);
+}
+
+.split-button {
+  display: flex;
+  border-radius: 50px;
+  overflow: hidden;
+  border: 2px solid #38bdf8;
+  height: 80px;
+}
+
+.split-half {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 80px;
+  background: none;
+  border: none;
+  color: #f8fafc;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 0;
+}
+
+.split-half .button-icon {
+  font-size: 20px;
+}
+
+.split-half .button-text {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.resume-half {
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.resume-half:hover {
+  background: rgba(56, 189, 248, 0.25);
+}
+
+.split-divider {
+  width: 1px;
+  background: rgba(56, 189, 248, 0.4);
+  align-self: stretch;
+}
+
+.transcribe-half {
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.transcribe-half:hover:not(:disabled) {
+  background: rgba(74, 222, 128, 0.25);
+}
+
+.transcribe-half:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .record-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -287,12 +516,12 @@ const copyTranscript = async () => {
 }
 
 .button-text {
-  font-size: 14px;
+  font-size: 10px;
   font-weight: 500;
 }
 
 .timer {
-  font-size: 24px;
+  font-size: 20px;
   color: #ef4444;
   font-family: 'Monaco', monospace;
   font-weight: 600;
@@ -378,5 +607,102 @@ const copyTranscript = async () => {
   margin: 0 0 12px;
   color: #fca5a5;
   font-size: 14px;
+}
+
+.history {
+  margin-top: 8px;
+}
+
+.history h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.history-table-wrapper {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.history-table-wrapper::-webkit-scrollbar {
+  width: 4px;
+}
+
+.history-table-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.history-table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.history-table thead {
+  position: sticky;
+  top: 0;
+  background: rgba(15, 23, 42, 0.95);
+  z-index: 1;
+}
+
+.history-table th {
+  padding: 8px 12px;
+  text-align: left;
+  color: #64748b;
+  font-weight: 500;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.history-table td {
+  padding: 8px 12px;
+  color: #cbd5e1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.history-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.history-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.col-date {
+  white-space: nowrap;
+  width: 130px;
+}
+
+.col-copy,
+.col-delete {
+  white-space: nowrap;
+  width: 48px;
+  text-align: center;
+}
+
+.action-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1;
+  transition: background 0.15s;
+}
+
+.action-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.action-button.delete:hover {
+  background: rgba(239, 68, 68, 0.15);
 }
 </style>

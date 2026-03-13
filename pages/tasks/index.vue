@@ -3,6 +3,7 @@
     <header class="board-header">
       <NuxtLink to="/" class="back-link">← ホーム</NuxtLink>
       <h1 class="board-title">Tasks</h1>
+      <button class="tag-manager-header-btn" @click="openTagManager">タグ管理</button>
     </header>
 
     <div v-if="loading" class="loading">読み込み中...</div>
@@ -36,47 +37,30 @@
               <div class="card__body" @click="openEdit(task)">
                 <div class="card__top">
                   <span class="card__title">{{ task.title }}</span>
-                  <div v-if="task.tags.length" class="card__tags">
-                    <span
-                      v-for="tag in task.tags"
-                      :key="tag.label"
-                      class="tag"
-                      :style="{
-                        backgroundColor: tag.color + '26',
-                        color: tag.color,
-                        borderColor: tag.color + '55',
-                      }"
-                    >{{ tag.label }}</span>
-                  </div>
+                  <button
+                    class="action-btn action-btn--delete card__delete"
+                    title="削除"
+                    @click.stop="confirmDelete(task)"
+                  >✕</button>
                 </div>
-                <p v-if="task.description" class="card__desc">{{ task.description }}</p>
-                <div class="card__meta">
-                  <span>更新: {{ formatDate(task.updated_at) }}</span>
+                <div v-if="task.tags.length" class="card__tags">
                   <span
-                    v-if="formatDue(task.due_at)"
+                    v-for="tag in task.tags"
+                    :key="tag.label"
+                    class="tag"
+                    :style="{
+                      backgroundColor: tag.color + '26',
+                      color: tag.color,
+                      borderColor: tag.color + '55',
+                    }"
+                  >{{ tag.label }}</span>
+                </div>
+                <div v-if="formatDue(task.due_at)" class="card__meta">
+                  <span
                     class="due-badge"
                     :class="{ 'due-badge--urgent': formatDue(task.due_at)!.urgent }"
                   >{{ formatDue(task.due_at)!.text }}</span>
                 </div>
-              </div>
-              <div class="card__actions">
-                <button
-                  v-if="col.key !== 'todo'"
-                  class="action-btn"
-                  title="前のステータスへ"
-                  @click.stop="moveTask(task, 'prev')"
-                >←</button>
-                <button
-                  v-if="col.key !== 'done'"
-                  class="action-btn"
-                  title="次のステータスへ"
-                  @click.stop="moveTask(task, 'next')"
-                >→</button>
-                <button
-                  class="action-btn action-btn--delete"
-                  title="削除"
-                  @click.stop="confirmDelete(task)"
-                >✕</button>
               </div>
             </div>
           </template>
@@ -87,6 +71,7 @@
     </div>
 
     <!-- Create / Edit Modal -->
+    <ClientOnly>
     <Teleport to="body">
       <div v-if="modalOpen" class="overlay" @click.self="closeModal">
         <div class="modal" role="dialog" aria-modal="true">
@@ -115,43 +100,20 @@
 
             <div class="field">
               <label class="field__label">タグ</label>
-              <div class="tag-editor">
-                <div v-if="form.tags.length" class="tag-list">
-                  <span
-                    v-for="(tag, i) in form.tags"
-                    :key="i"
-                    class="tag tag--removable"
-                    :style="{
-                      backgroundColor: tag.color + '26',
-                      color: tag.color,
-                      borderColor: tag.color + '55',
-                    }"
-                  >
-                    {{ tag.label }}
-                    <button type="button" class="tag__remove" @click="removeTag(i)">✕</button>
-                  </span>
-                </div>
-                <div class="tag-input-row">
-                  <input
-                    v-model="tagInput"
-                    class="input input--sm"
-                    placeholder="タグ名"
-                    @keydown.enter.prevent="addTag"
-                  />
-                  <div class="color-swatches">
-                    <button
-                      v-for="c in TAG_COLORS"
-                      :key="c.value"
-                      type="button"
-                      class="swatch"
-                      :class="{ 'swatch--active': tagColor === c.value }"
-                      :style="{ backgroundColor: c.value }"
-                      :title="c.name"
-                      @click="tagColor = c.value"
-                    />
-                  </div>
-                  <button type="button" class="btn btn--sm" @click="addTag">追加</button>
-                </div>
+              <div class="tag-selector">
+                <span v-if="!libraryTags.length" class="tag-empty">タグがありません。「タグを編集」から作成してください。</span>
+                <span
+                  v-for="lt in libraryTags"
+                  :key="lt.id"
+                  class="tag tag--clickable"
+                  :class="{ 'tag--active': isTagSelected(lt) }"
+                  :style="{
+                    backgroundColor: lt.color + '26',
+                    color: lt.color,
+                    borderColor: isTagSelected(lt) ? lt.color : lt.color + '55',
+                  }"
+                  @click="toggleTag(lt)"
+                >{{ lt.label }}</span>
               </div>
             </div>
 
@@ -183,6 +145,104 @@
         </div>
       </div>
 
+      <!-- Tag Manager Modal -->
+      <div v-if="tagManagerOpen" class="overlay" @click.self="closeTagManager">
+        <div class="modal modal--tag-manager" role="dialog" aria-modal="true">
+          <div class="modal__header">
+            <h2 class="modal__title">タグを編集</h2>
+            <button type="button" class="close-btn" @click="closeTagManager">✕</button>
+          </div>
+
+          <!-- Tag list -->
+          <div class="tm-list">
+            <div v-if="!libraryTags.length" class="tm-empty">タグがありません</div>
+            <template v-for="lt in libraryTags" :key="lt.id">
+              <!-- Edit row -->
+              <div v-if="editingTagId === lt.id" class="tm-row tm-row--editing">
+                <input
+                  v-model="editTagLabel"
+                  class="input input--sm tm-input"
+                  placeholder="タグ名"
+                  @keydown.enter.prevent="saveTagEdit(lt.id)"
+                  @keydown.escape="cancelTagEdit"
+                />
+                <div class="color-swatches color-swatches--grid">
+                  <button
+                    v-for="c in TAG_COLORS"
+                    :key="c.value"
+                    type="button"
+                    class="swatch"
+                    :class="{ 'swatch--active': editTagColor === c.value }"
+                    :style="{ backgroundColor: c.value }"
+                    :title="c.name"
+                    @click="editTagColor = c.value"
+                  />
+                </div>
+                <div class="tm-row__actions">
+                  <button type="button" class="btn btn--sm btn--primary" @click="saveTagEdit(lt.id)">保存</button>
+                  <button type="button" class="btn btn--sm btn--ghost" @click="cancelTagEdit">キャンセル</button>
+                </div>
+              </div>
+              <!-- Display row -->
+              <div v-else class="tm-row">
+                <span
+                  class="tag"
+                  :style="{
+                    backgroundColor: lt.color + '26',
+                    color: lt.color,
+                    borderColor: lt.color + '55',
+                  }"
+                >{{ lt.label }}</span>
+                <div class="tm-row__actions">
+                  <button type="button" class="btn btn--sm btn--ghost" @click="startTagEdit(lt)">名前変更</button>
+                  <button type="button" class="btn btn--sm btn--danger-ghost" @click="removeLibraryTag(lt.id)">削除</button>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- New tag form -->
+          <div class="tm-new">
+            <h3 class="tm-new__title">新しいタグを作成</h3>
+            <div class="field">
+              <input
+                v-model="newTagLabel"
+                class="input"
+                placeholder="タグ名"
+                @keydown.enter.prevent="createNewTag"
+              />
+            </div>
+            <div class="field">
+              <label class="field__label">色を選択</label>
+              <div class="color-swatches color-swatches--grid">
+                <button
+                  v-for="c in TAG_COLORS"
+                  :key="c.value"
+                  type="button"
+                  class="swatch"
+                  :class="{ 'swatch--active': newTagColor === c.value }"
+                  :style="{ backgroundColor: c.value }"
+                  :title="c.name"
+                  @click="newTagColor = c.value"
+                />
+              </div>
+            </div>
+            <div class="tm-new__preview" v-if="newTagLabel.trim()">
+              <span class="field__label">プレビュー:</span>
+              <span
+                class="tag"
+                :style="{
+                  backgroundColor: newTagColor + '26',
+                  color: newTagColor,
+                  borderColor: newTagColor + '55',
+                }"
+              >{{ newTagLabel.trim() }}</span>
+            </div>
+            <button type="button" class="btn btn--primary" :disabled="!newTagLabel.trim()" @click="createNewTag">作成</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Delete Confirmation -->
       <div v-if="deleteTarget" class="overlay" @click.self="deleteTarget = null">
         <div class="modal modal--sm" role="dialog" aria-modal="true">
@@ -195,6 +255,7 @@
         </div>
       </div>
     </Teleport>
+    </ClientOnly>
   </div>
 </template>
 
@@ -202,6 +263,7 @@
 import { ref, nextTick } from 'vue'
 import draggable from 'vuedraggable'
 import type { Task, Tag } from '~/composables/useTasks'
+import type { LibraryTag } from '~/composables/useTags'
 
 type Status = 'todo' | 'doing' | 'done'
 
@@ -213,22 +275,35 @@ const COLUMNS: { key: Status; label: string; accent: string }[] = [
 
 const TAG_COLORS = [
   { name: 'レッド', value: '#ef4444' },
+  { name: 'ディープレッド', value: '#dc2626' },
+  { name: 'ローズ', value: '#f43f5e' },
   { name: 'オレンジ', value: '#f97316' },
+  { name: 'アンバー', value: '#f59e0b' },
   { name: 'イエロー', value: '#eab308' },
+  { name: 'ライム', value: '#84cc16' },
   { name: 'グリーン', value: '#22c55e' },
+  { name: 'エメラルド', value: '#10b981' },
+  { name: 'ティール', value: '#14b8a6' },
+  { name: 'シアン', value: '#06b6d4' },
+  { name: 'スカイ', value: '#38bdf8' },
   { name: 'ブルー', value: '#3b82f6' },
-  { name: 'パープル', value: '#8b5cf6' },
+  { name: 'インディゴ', value: '#6366f1' },
+  { name: 'バイオレット', value: '#8b5cf6' },
+  { name: 'パープル', value: '#a855f7' },
+  { name: 'フクシア', value: '#d946ef' },
   { name: 'ピンク', value: '#ec4899' },
-  { name: 'グレー', value: '#64748b' },
+  { name: 'スレート', value: '#64748b' },
+  { name: 'グレー', value: '#6b7280' },
 ]
 
 const { loadTasks: fetchTasks, createTask, updateTask, deleteTask, reorderTasks } = useTasks()
+const { loadTags: fetchLibraryTags, createTag: createLibraryTag, updateTag: updateLibraryTag, deleteTag: deleteLibraryTag } = useTags()
 
 const loading = ref(true)
 const submitting = ref(false)
 const board = ref<Record<Status, Task[]>>({ todo: [], doing: [], done: [] })
 
-// Modal
+// Task modal
 const modalOpen = ref(false)
 const editingTask = ref<Task | null>(null)
 const titleInput = ref<HTMLInputElement | null>(null)
@@ -240,20 +315,22 @@ const form = ref({
   due_at_local: '',
 })
 
-// Tag editor
-const tagInput = ref('')
-const tagColor = ref(TAG_COLORS[4].value)
+// Library tags
+const libraryTags = ref<LibraryTag[]>([])
+
+// Tag manager modal
+const tagManagerOpen = ref(false)
+const newTagLabel = ref('')
+const newTagColor = ref(TAG_COLORS[12].value)
+const editingTagId = ref<string | null>(null)
+const editTagLabel = ref('')
+const editTagColor = ref(TAG_COLORS[12].value)
 
 // Delete
 const deleteTarget = ref<Task | null>(null)
 
 // Drag sync timer
 let syncTimer: ReturnType<typeof setTimeout> | null = null
-
-function formatDate(ts: number) {
-  const d = new Date(ts)
-  return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
-}
 
 function formatDue(due_at: number | null): { text: string; urgent: boolean } | null {
   if (!due_at) return null
@@ -306,30 +383,9 @@ function onDragEnd() {
   }, 200)
 }
 
-async function moveTask(task: Task, direction: 'prev' | 'next') {
-  const statuses: Status[] = ['todo', 'doing', 'done']
-  const currentIdx = statuses.indexOf(task.status)
-  const newIdx = direction === 'next' ? currentIdx + 1 : currentIdx - 1
-  if (newIdx < 0 || newIdx >= statuses.length) return
-
-  const oldStatus = task.status
-  const newStatus = statuses[newIdx]
-
-  board.value[oldStatus] = board.value[oldStatus].filter((t) => t.id !== task.id)
-  task.status = newStatus
-  board.value[newStatus] = [...board.value[newStatus], task]
-
-  await updateTask(task.id, {
-    status: newStatus,
-    order_index: board.value[newStatus].length - 1,
-  }).catch(console.error)
-}
-
 function openCreate(status: Status) {
   editingTask.value = null
   form.value = { title: '', description: '', tags: [], status, due_at_local: '' }
-  tagInput.value = ''
-  tagColor.value = TAG_COLORS[4].value
   modalOpen.value = true
   nextTick(() => titleInput.value?.focus())
 }
@@ -343,8 +399,6 @@ function openEdit(task: Task) {
     status: task.status,
     due_at_local: tsToLocal(task.due_at),
   }
-  tagInput.value = ''
-  tagColor.value = TAG_COLORS[4].value
   modalOpen.value = true
   nextTick(() => titleInput.value?.focus())
 }
@@ -354,15 +408,80 @@ function closeModal() {
   editingTask.value = null
 }
 
-function addTag() {
-  const label = tagInput.value.trim()
-  if (!label) return
-  form.value.tags.push({ label, color: tagColor.value })
-  tagInput.value = ''
+function isTagSelected(lt: LibraryTag) {
+  return form.value.tags.some((t) => t.label === lt.label)
 }
 
-function removeTag(i: number) {
-  form.value.tags.splice(i, 1)
+function toggleTag(lt: LibraryTag) {
+  const idx = form.value.tags.findIndex((t) => t.label === lt.label)
+  if (idx >= 0) {
+    form.value.tags.splice(idx, 1)
+  } else {
+    form.value.tags.push({ label: lt.label, color: lt.color })
+  }
+}
+
+// Tag manager
+function openTagManager() {
+  newTagLabel.value = ''
+  newTagColor.value = TAG_COLORS[12].value
+  editingTagId.value = null
+  tagManagerOpen.value = true
+}
+
+function closeTagManager() {
+  tagManagerOpen.value = false
+  editingTagId.value = null
+}
+
+async function createNewTag() {
+  const label = newTagLabel.value.trim()
+  if (!label) return
+  const lt = await createLibraryTag(label, newTagColor.value)
+  libraryTags.value.push(lt)
+  newTagLabel.value = ''
+  newTagColor.value = TAG_COLORS[12].value
+}
+
+function startTagEdit(lt: LibraryTag) {
+  editingTagId.value = lt.id
+  editTagLabel.value = lt.label
+  editTagColor.value = lt.color
+}
+
+function cancelTagEdit() {
+  editingTagId.value = null
+}
+
+async function saveTagEdit(id: string) {
+  const label = editTagLabel.value.trim()
+  if (!label) return
+  const oldTag = libraryTags.value.find((t) => t.id === id)
+  const oldLabel = oldTag?.label ?? ''
+  const updated = await updateLibraryTag(id, label, editTagColor.value)
+  const idx = libraryTags.value.findIndex((t) => t.id === id)
+  if (idx >= 0) libraryTags.value[idx] = updated
+  // Update all board tasks that have this tag
+  for (const status of ['todo', 'doing', 'done'] as Status[]) {
+    board.value[status] = board.value[status].map((task) => {
+      if (!task.tags.some((t) => t.label === oldLabel)) return task
+      return { ...task, tags: task.tags.map((t) => t.label === oldLabel ? { label: updated.label, color: updated.color } : t) }
+    })
+  }
+  // Update form tags if modal is open
+  form.value.tags = form.value.tags.map((t) =>
+    t.label === oldLabel ? { label: updated.label, color: updated.color } : t
+  )
+  editingTagId.value = null
+}
+
+async function removeLibraryTag(id: string) {
+  const tag = libraryTags.value.find((t) => t.id === id)
+  await deleteLibraryTag(id)
+  libraryTags.value = libraryTags.value.filter((t) => t.id !== id)
+  if (tag) {
+    form.value.tags = form.value.tags.filter((t) => t.label !== tag.label)
+  }
 }
 
 async function submitTask() {
@@ -419,7 +538,10 @@ async function doDelete() {
   }
 }
 
-onMounted(loadTasks)
+onMounted(async () => {
+  await loadTasks()
+  libraryTags.value = await fetchLibraryTags()
+})
 </script>
 
 <style scoped>
@@ -446,6 +568,25 @@ onMounted(loadTasks)
 }
 .back-link:hover {
   color: #f8fafc;
+}
+
+.tag-manager-header-btn {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  font-family: inherit;
+}
+.tag-manager-header-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .board-title {
@@ -567,8 +708,13 @@ onMounted(loadTasks)
 .card__top {
   display: flex;
   align-items: flex-start;
+  justify-content: space-between;
   gap: 8px;
-  flex-wrap: wrap;
+}
+
+.card__delete {
+  flex-shrink: 0;
+  margin-top: -2px;
 }
 
 .card__title {
@@ -583,16 +729,7 @@ onMounted(loadTasks)
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
-  margin-top: 2px;
-}
-
-.card__desc {
-  margin: 6px 0 0;
-  font-size: 12px;
-  color: #94a3b8;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
+  margin-top: 6px;
 }
 
 .card__meta {
@@ -613,15 +750,6 @@ onMounted(loadTasks)
 
 .due-badge--urgent {
   color: #ef4444;
-}
-
-.card__actions {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-  padding: 6px 4px 6px 0;
-  flex-shrink: 0;
 }
 
 .action-btn {
@@ -651,31 +779,68 @@ onMounted(loadTasks)
 .tag {
   font-size: 11px;
   font-weight: 500;
-  padding: 1px 6px;
+  padding: 2px 8px;
   border-radius: 4px;
   border: 1px solid;
   white-space: nowrap;
 }
 
-.tag--removable {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.tag--clickable {
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.tag--clickable:hover {
+  box-shadow: 0 0 0 1px currentColor;
+}
+.tag--active {
+  box-shadow: 0 0 0 2px currentColor;
+  font-weight: 700;
 }
 
-.tag__remove {
+/* Tag selector in form */
+.field__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.field__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.tag-manage-btn {
+  font-size: 12px;
+  font-weight: 500;
+  color: #38bdf8;
   background: none;
   border: none;
   cursor: pointer;
-  color: inherit;
-  font-size: 10px;
-  padding: 0;
-  line-height: 1;
-  opacity: 0.7;
-  transition: opacity 0.15s;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.15s;
 }
-.tag__remove:hover {
-  opacity: 1;
+.tag-manage-btn:hover {
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.tag-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  min-height: 44px;
+  align-items: center;
+}
+
+.tag-empty {
+  font-size: 12px;
+  color: #475569;
 }
 
 /* Add button */
@@ -727,6 +892,16 @@ onMounted(loadTasks)
   width: min(360px, 100%);
 }
 
+.modal--tag-manager {
+  width: min(520px, 100%);
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .modal__title {
   margin: 0;
   font-size: 18px;
@@ -747,17 +922,96 @@ onMounted(loadTasks)
   gap: 8px;
 }
 
+.close-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.close-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+/* Tag manager list */
+.tm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.tm-empty {
+  font-size: 13px;
+  color: #475569;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.tm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.tm-row--editing {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.tm-row__actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.tm-input {
+  flex: 1;
+}
+
+/* New tag section */
+.tm-new {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tm-new__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.tm-new__preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* Form fields */
 .field {
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.field__label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #94a3b8;
 }
 
 .required {
@@ -799,35 +1053,22 @@ select.input {
   padding-right: 32px;
 }
 
-/* Tag editor */
-.tag-editor {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.tag-input-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
+/* Color swatches */
 .color-swatches {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
 }
 
+.color-swatches--grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+}
+
 .swatch {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   border: 2px solid transparent;
   cursor: pointer;
@@ -858,7 +1099,7 @@ select.input {
   cursor: not-allowed;
 }
 .btn--sm {
-  padding: 6px 12px;
+  padding: 5px 10px;
   font-size: 12px;
   border-radius: 6px;
 }
@@ -883,6 +1124,14 @@ select.input {
 .btn--danger:hover:not(:disabled) {
   background: #f87171;
 }
+.btn--danger-ghost {
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.btn--danger-ghost:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15);
+}
 
 /* Mobile */
 @media (max-width: 768px) {
@@ -892,6 +1141,10 @@ select.input {
 
   .page {
     padding: 16px 12px 32px;
+  }
+
+  .color-swatches--grid {
+    grid-template-columns: repeat(10, 1fr);
   }
 }
 </style>
