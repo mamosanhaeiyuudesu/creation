@@ -5,7 +5,7 @@
     <main>
       <section class="home-hero">
         <div class="hero-grid">
-          <img class="hero-name-image" src="/images/name.png" alt="月ノ瀬 海倭" />
+          <img class="hero-name-image" src="/images/name.jpg" alt="月ノ瀬 海倭" />
           <div class="hero-text">
             <span class="hero-eyebrow">セラピスト 月ノ瀬 海倭</span>
             <h1>本来の自分を思い出す場所</h1>
