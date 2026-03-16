@@ -1,10 +1,14 @@
 <template>
-  <div class="app-container">
+  <!-- therapist ページは独自レイアウトで直接レンダリング -->
+  <NuxtPage v-if="isTherapistRoute" />
+
+  <!-- AI Tools のナビ付きレイアウト -->
+  <div v-else class="app-container">
     <!-- PC向けヘッダー -->
     <header class="header header--desktop">
       <nav class="nav">
-        <NuxtLink 
-          v-for="tool in tools" 
+        <NuxtLink
+          v-for="tool in tools"
           :key="tool.path"
           :to="tool.path"
           :class="['nav-tab', { active: isActive(tool.path) }]"
@@ -17,7 +21,7 @@
 
     <!-- モバイル向けヘッダー -->
     <header class="header header--mobile">
-      <button 
+      <button
         class="menu-toggle"
         @click="isMobileMenuOpen = !isMobileMenuOpen"
         :aria-label="isMobileMenuOpen ? 'メニューを閉じる' : 'メニューを開く'"
@@ -30,14 +34,14 @@
     </header>
 
     <!-- モバイルメニュー -->
-    <nav 
+    <nav
       v-if="isMobileMenuOpen"
       class="mobile-menu"
       @click="isMobileMenuOpen = false"
     >
       <div class="mobile-menu__list">
-        <NuxtLink 
-          v-for="tool in tools" 
+        <NuxtLink
+          v-for="tool in tools"
           :key="tool.path"
           :to="tool.path"
           class="mobile-menu__item"
@@ -75,6 +79,10 @@ const tools = [
 const isActive = (path: string): boolean => {
   return route.path === path
 }
+
+const isTherapistRoute = computed(() =>
+  route.path.startsWith('/kaito') || route.path.startsWith('/mamorin')
+)
 </script>
 
 <style>
