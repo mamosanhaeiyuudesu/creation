@@ -1,10 +1,35 @@
+import { getDevDb } from '~/server/utils/miyako-dev'
+
 // 指定した会期の議案一覧・発言者集計を取得する
 export default defineEventHandler(async (event) => {
   const sessionId = getRouterParam(event, 'id')
   if (!sessionId) throw createError({ statusCode: 400, statusMessage: 'session id required' })
 
-  const { cloudflare } = event.context as any
-  const db = cloudflare.env.MIYAKO_DB
+  const { db, dev, sample } = getDevDb(event)
+
+  if (dev) {
+    if (sample.session.session_id !== sessionId) {
+      throw createError({ statusCode: 404, statusMessage: '会期が見つかりません' })
+    }
+    // utterance_type IN ('質問','討論') の話者を集計
+    const speakerMap = new Map<string, any>()
+    for (const u of sample.utterances) {
+      if (u.utterance_type !== '質問' && u.utterance_type !== '討論') continue
+      const key = u.speaker_name
+      if (!speakerMap.has(key)) {
+        speakerMap.set(key, {
+          speaker_name: u.speaker_name,
+          speaker_role: u.speaker_role,
+          speaker_party: u.speaker_party,
+          speaker_faction: u.speaker_faction,
+          utterance_count: 0,
+        })
+      }
+      speakerMap.get(key).utterance_count++
+    }
+    const speakers = [...speakerMap.values()].sort((a, b) => b.utterance_count - a.utterance_count)
+    return { session: sample.session, bills: sample.bills, speakers }
+  }
 
   const [sessionRow, billsResult, speakersResult] = await Promise.all([
     db

@@ -1,7 +1,12 @@
+import { getDevDb } from '~/server/utils/miyako-dev'
+
 // 会期一覧を取得する
 export default defineEventHandler(async (event) => {
-  const { cloudflare } = event.context as any
-  const db = cloudflare.env.MIYAKO_DB
+  const { db, dev, sample } = getDevDb(event)
+
+  if (dev) {
+    return [sample.session]
+  }
 
   const { results } = await db
     .prepare(

@@ -1,4 +1,5 @@
 import { getOpenAiKey, callOpenAi, extractText, wrapApiError } from '~/server/utils/openai'
+import { getDevDb } from '~/server/utils/miyako-dev'
 
 const CATEGORIES = [
   '予算・財政',
@@ -27,35 +28,48 @@ export default defineEventHandler(async (event) => {
     return cached.data
   }
 
-  const { cloudflare } = event.context as any
-  const db = cloudflare.env.MIYAKO_DB
+  const { db, dev, sample } = getDevDb(event)
 
-  // 会期情報・議案・発言を取得
-  const [sessionRow, billsResult, utterancesResult] = await Promise.all([
-    db.prepare(`SELECT * FROM sessions WHERE session_id = ?`).bind(sessionId).first(),
-    db
-      .prepare(
-        `SELECT bill_id, bill_number, bill_title, proposer, result FROM bills WHERE session_id = ? ORDER BY bill_id`
-      )
-      .bind(sessionId)
-      .all(),
-    db
-      .prepare(
-        `SELECT u.bill_id, u.speaker_name, u.speaker_role, u.utterance_type,
-                substr(u.content, 1, 250) as content
-         FROM utterances u
-         WHERE u.session_id = ?
-           AND u.utterance_type IN ('質問','答弁','討論')
-         ORDER BY u.seq`
-      )
-      .bind(sessionId)
-      .all(),
-  ])
+  let sessionRow: any
+  let bills: any[]
+  let utterances: any[]
 
-  if (!sessionRow) throw createError({ statusCode: 404, statusMessage: '会期が見つかりません' })
+  if (dev) {
+    if (sample.session.session_id !== sessionId) {
+      throw createError({ statusCode: 404, statusMessage: '会期が見つかりません' })
+    }
+    sessionRow = sample.session
+    bills = sample.bills
+    utterances = sample.utterances
+      .filter((u: any) => ['質問', '答弁', '討論'].includes(u.utterance_type))
+      .map((u: any) => ({ ...u, content: u.content.substring(0, 250) }))
+  } else {
+    const [sRow, billsResult, utterancesResult] = await Promise.all([
+      db.prepare(`SELECT * FROM sessions WHERE session_id = ?`).bind(sessionId).first(),
+      db
+        .prepare(
+          `SELECT bill_id, bill_number, bill_title, proposer, result FROM bills WHERE session_id = ? ORDER BY bill_id`
+        )
+        .bind(sessionId)
+        .all(),
+      db
+        .prepare(
+          `SELECT u.bill_id, u.speaker_name, u.speaker_role, u.utterance_type,
+                  substr(u.content, 1, 250) as content
+           FROM utterances u
+           WHERE u.session_id = ?
+             AND u.utterance_type IN ('質問','答弁','討論')
+           ORDER BY u.seq`
+        )
+        .bind(sessionId)
+        .all(),
+    ])
 
-  const bills = billsResult.results as any[]
-  const utterances = utterancesResult.results as any[]
+    if (!sRow) throw createError({ statusCode: 404, statusMessage: '会期が見つかりません' })
+    sessionRow = sRow
+    bills = billsResult.results as any[]
+    utterances = utterancesResult.results as any[]
+  }
 
   // 議案ごとに発言をグループ化し、各議案から最大6件に絞る
   const billMap = new Map<string | null, any[]>()
@@ -83,9 +97,9 @@ export default defineEventHandler(async (event) => {
 以下の議事録データを分析し、JSON形式で返答してください。
 
 # 会議情報
-名称: ${(sessionRow as any).session_name}
-開会日: ${(sessionRow as any).session_date}
-種別: ${(sessionRow as any).session_type}
+名称: ${sessionRow.session_name}
+開会日: ${sessionRow.session_date}
+種別: ${sessionRow.session_type}
 
 # 議案一覧
 ${billsText}

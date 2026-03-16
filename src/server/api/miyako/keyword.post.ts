@@ -1,4 +1,5 @@
 import { getOpenAiKey, callOpenAi, extractText, wrapApiError } from '~/server/utils/openai'
+import { getDevDb } from '~/server/utils/miyako-dev'
 
 const keywordCache = new Map<string, { data: any; expiresAt: number }>()
 const CACHE_TTL_MS = 60 * 60 * 72 * 1000 // 72時間
@@ -11,23 +12,31 @@ export default defineEventHandler(async (event) => {
   const cached = keywordCache.get(cacheKey)
   if (cached && cached.expiresAt > Date.now()) return cached.data
 
-  const { cloudflare } = event.context as any
-  const db = cloudflare.env.MIYAKO_DB
+  const { db, dev, sample } = getDevDb(event)
 
-  // このキーワードが含まれる発言を最大5件取得
-  const utterancesResult = await db
-    .prepare(
-      `SELECT speaker_name, speaker_role, utterance_type, substr(content, 1, 300) as content
-       FROM utterances
-       WHERE session_id = ? AND content LIKE ?
-       LIMIT 5`
-    )
-    .bind(body.sessionId, `%${body.keyword}%`)
-    .all()
+  let excerpts: string
 
-  const excerpts = (utterancesResult.results as any[])
-    .map((u) => `${u.speaker_role ?? ''} ${u.speaker_name}（${u.utterance_type}）: ${u.content}`)
-    .join('\n\n')
+  if (dev) {
+    const matched = sample.utterances
+      .filter((u: any) => u.content.includes(body.keyword))
+      .slice(0, 5)
+      .map((u: any) => `${u.speaker_role ?? ''} ${u.speaker_name}（${u.utterance_type}）: ${u.content.substring(0, 300)}`)
+    excerpts = matched.join('\n\n')
+  } else {
+    const utterancesResult = await db
+      .prepare(
+        `SELECT speaker_name, speaker_role, utterance_type, substr(content, 1, 300) as content
+         FROM utterances
+         WHERE session_id = ? AND content LIKE ?
+         LIMIT 5`
+      )
+      .bind(body.sessionId, `%${body.keyword}%`)
+      .all()
+
+    excerpts = (utterancesResult.results as any[])
+      .map((u) => `${u.speaker_role ?? ''} ${u.speaker_name}（${u.utterance_type}）: ${u.content}`)
+      .join('\n\n')
+  }
 
   const prompt = `宮古島市議会の議事録で「${body.keyword}」というキーワードが登場しました。
 
