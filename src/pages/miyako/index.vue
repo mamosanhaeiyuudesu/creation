@@ -52,6 +52,13 @@ interface KeywordDetail {
   related_topics: string[]
 }
 
+interface BillDetail {
+  summary: string
+  points: string[]
+  background: string
+  outcome: string
+}
+
 const CATEGORY_COLORS: Record<string, string> = {
   '予算・財政': 'green',
   '条例・規則': 'blue',
@@ -84,6 +91,9 @@ const keywordLoading = ref(false)
 const keywordDialog = ref(false)
 const selectedKeyword = ref<Keyword | null>(null)
 const keywordDetail = ref<KeywordDetail | null>(null)
+const selectedBill = ref<Bill | null>(null)
+const billDetailLoading = ref(false)
+const billDetail = ref<BillDetail | null>(null)
 
 // --- fetch sessions ---
 const { data: sessions, pending: sessionsPending } = await useFetch<Session[]>('/api/miyako/sessions')
@@ -103,11 +113,28 @@ const sessionDataLoading = ref(false)
 async function loadSession(id: string) {
   selectedSessionId.value = id
   summaryResult.value = null
+  selectedBill.value = null
+  billDetail.value = null
   sessionDataLoading.value = true
   try {
     sessionData.value = await $fetch(`/api/miyako/${id}/data`)
   } finally {
     sessionDataLoading.value = false
+  }
+}
+
+async function selectBill(bill: Bill) {
+  if (selectedBill.value?.bill_id === bill.bill_id) return
+  selectedBill.value = bill
+  billDetail.value = null
+  billDetailLoading.value = true
+  try {
+    billDetail.value = await $fetch(`/api/miyako/${selectedSessionId.value}/bill`, {
+      method: 'POST',
+      body: { billId: bill.bill_id },
+    })
+  } finally {
+    billDetailLoading.value = false
   }
 }
 
@@ -224,13 +251,17 @@ function formatDate(date: string) {
 
       <v-row>
         <!-- 議案一覧 -->
-        <v-col cols="12" md="7">
+        <v-col cols="12" md="5">
           <v-card elevation="1">
             <v-card-title class="text-subtitle-1">議案一覧</v-card-title>
-            <v-list density="compact" lines="two">
+            <v-list density="compact" lines="two" nav>
               <v-list-item
                 v-for="bill in sessionData.bills"
                 :key="bill.bill_id"
+                :active="selectedBill?.bill_id === bill.bill_id"
+                active-color="primary"
+                class="bill-item"
+                @click="selectBill(bill)"
               >
                 <v-list-item-title class="text-body-2">{{ bill.bill_title }}</v-list-item-title>
                 <v-list-item-subtitle class="text-caption">{{ bill.bill_number }}</v-list-item-subtitle>
@@ -249,30 +280,71 @@ function formatDate(date: string) {
           </v-card>
         </v-col>
 
-        <!-- 発言者ランキング -->
-        <v-col cols="12" md="5">
+        <!-- 議案詳細 -->
+        <v-col cols="12" md="7">
           <v-card elevation="1" height="100%">
-            <v-card-title class="text-subtitle-1">発言者ランキング</v-card-title>
-            <v-list density="compact">
-              <v-list-item
-                v-for="(sp, i) in sessionData.speakers.slice(0, 10)"
-                :key="sp.speaker_name"
-              >
-                <template #prepend>
-                  <span class="rank-badge mr-3 text-caption font-weight-bold text-medium-emphasis">
-                    {{ i + 1 }}
-                  </span>
-                </template>
-                <v-list-item-title class="text-body-2">{{ sp.speaker_name }}</v-list-item-title>
-                <v-list-item-subtitle class="text-caption">
-                  {{ sp.speaker_role }}
-                  <span v-if="sp.speaker_faction">・{{ sp.speaker_faction }}</span>
-                </v-list-item-subtitle>
-                <template #append>
-                  <v-chip size="x-small" variant="tonal" color="primary">{{ sp.utterance_count }}回</v-chip>
-                </template>
-              </v-list-item>
-            </v-list>
+            <!-- 未選択 -->
+            <div v-if="!selectedBill" class="d-flex align-center justify-center pa-8 text-medium-emphasis" style="min-height: 160px">
+              <div class="text-center">
+                <v-icon size="32" class="mb-2">mdi-file-document-outline</v-icon>
+                <p class="text-body-2">議案を選択すると詳細が表示されます</p>
+              </div>
+            </div>
+
+            <template v-else>
+              <v-card-title class="text-subtitle-1 pb-0">{{ selectedBill.bill_title }}</v-card-title>
+              <v-card-subtitle class="text-caption pt-1 pb-2">
+                {{ selectedBill.bill_number }}
+                <span v-if="selectedBill.proposer">・提案者: {{ selectedBill.proposer }}</span>
+              </v-card-subtitle>
+
+              <v-divider />
+
+              <!-- ローディング -->
+              <div v-if="billDetailLoading" class="d-flex justify-center py-8">
+                <v-progress-circular indeterminate color="primary" size="28" />
+              </div>
+
+              <v-card-text v-else-if="billDetail">
+                <!-- 結果バッジ -->
+                <div class="d-flex gap-2 mb-3">
+                  <v-chip
+                    v-if="selectedBill.result"
+                    :color="resultColor(selectedBill.result)"
+                    size="small"
+                    variant="tonal"
+                  >
+                    {{ selectedBill.result }}
+                  </v-chip>
+                  <v-chip
+                    v-if="selectedBill.result_method"
+                    size="small"
+                    variant="outlined"
+                    color="grey"
+                  >
+                    {{ selectedBill.result_method }}
+                  </v-chip>
+                </div>
+
+                <!-- 概要 -->
+                <p class="text-caption font-weight-bold text-medium-emphasis mb-1">概要</p>
+                <p class="text-body-2 mb-3">{{ billDetail.summary }}</p>
+
+                <!-- 背景・目的 -->
+                <p class="text-caption font-weight-bold text-medium-emphasis mb-1">背景・目的</p>
+                <p class="text-body-2 mb-3">{{ billDetail.background }}</p>
+
+                <!-- 議論のポイント -->
+                <p class="text-caption font-weight-bold text-medium-emphasis mb-1">議論のポイント</p>
+                <ul class="bill-points text-body-2 mb-3">
+                  <li v-for="pt in billDetail.points" :key="pt">{{ pt }}</li>
+                </ul>
+
+                <!-- 審議結果 -->
+                <p class="text-caption font-weight-bold text-medium-emphasis mb-1">審議結果</p>
+                <p class="text-body-2">{{ billDetail.outcome }}</p>
+              </v-card-text>
+            </template>
           </v-card>
         </v-col>
       </v-row>
@@ -430,9 +502,17 @@ function formatDate(date: string) {
   margin: 0;
 }
 
-.rank-badge {
-  width: 20px;
-  text-align: right;
+.bill-item {
+  cursor: pointer;
+}
+
+.bill-points {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.bill-points li {
+  margin-bottom: 4px;
 }
 
 .keyword-chip {
