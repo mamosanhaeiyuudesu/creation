@@ -73,6 +73,7 @@ const tools = [
   { path: '/', name: 'ホーム', icon: '🏠' },
   { path: '/snapreader', name: 'SnapReader', icon: '📸' },
   { path: '/whisper', name: 'Whisper', icon: '🎙️' },
+  { path: '/hagemashi', name: 'はげまし', icon: '💪' },
   // { path: '/tasks', name: 'Tasks', icon: '📋' },
 ]
 

@@ -3,13 +3,22 @@
     <div class="container">
       <header class="header">
         <div class="header-center">
-          <h1>Whisper</h1>
-          <p class="subtitle">音声を文字に変換</p>
+          <h1>はげまし</h1>
+          <p class="subtitle">話して、励ましてもらおう</p>
         </div>
         <div class="header-actions">
           <button class="action-btn" data-label="設定" @click="settingsOpen = true">
             <span>⚙️</span>
             <span class="action-label">設定</span>
+          </button>
+          <button
+            class="action-btn encourage-btn"
+            data-label="励ます"
+            :disabled="filteredTexts.length === 0 || isEncouraging"
+            @click="runEncourage"
+          >
+            <span>💪</span>
+            <span class="action-label">励ます</span>
           </button>
         </div>
       </header>
@@ -37,7 +46,7 @@
             </div>
           </template>
 
-          <template v-else-if="isProcessing || isUploading">
+          <template v-else-if="isProcessing">
             <button class="record-button" disabled>
               <span class="button-icon">⏳</span>
               <span class="button-text">解析中</span>
@@ -49,20 +58,7 @@
               <span class="button-icon">🎙️</span>
               <span class="button-text">録音</span>
             </button>
-
-            <button class="record-button upload-button" @click="triggerUpload">
-              <span class="button-icon">📂</span>
-              <span class="button-text">音声ファイル</span>
-            </button>
           </template>
-
-          <input
-            ref="fileInput"
-            type="file"
-            accept="audio/*,video/*"
-            class="file-input-hidden"
-            @change="onFileSelected"
-          />
         </div>
 
         <div v-if="isRecording || duration > 0" class="timer">
@@ -86,6 +82,7 @@
           <button class="modal-close" @click="settingsOpen = false">✕</button>
         </div>
         <div class="modal-body">
+          <!-- 辞書 -->
           <div class="section-title">辞書（校正）</div>
           <p class="section-desc">文字起こし後にAIがこの辞書を使って自動校正します。</p>
 
@@ -95,11 +92,54 @@
             <input v-model="entry.output" class="input dict-input" placeholder="変換" />
             <button class="dict-remove" @click="removeDictEntry(i)">✕</button>
           </div>
-
           <button class="btn-add-dict" @click="addDictEntry">＋ 追加</button>
+
+          <hr class="section-divider" />
+
+          <!-- 励まし設定 -->
+          <div class="section-title">励まし方</div>
+          <div class="field">
+            <label>対象期間</label>
+            <select v-model="settings.period" class="select">
+              <option value="all">すべて</option>
+              <option value="today">今日</option>
+              <option value="week">過去7日</option>
+              <option value="month">過去30日</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>励まし方の指示</label>
+            <textarea
+              v-model="settings.encouragePrompt"
+              class="textarea"
+              rows="4"
+              placeholder="話した内容を踏まえて、温かく励ましてください。"
+            />
+          </div>
         </div>
         <div class="modal-footer">
           <button class="btn-primary" @click="saveSettings">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 励まし結果モーダル -->
+    <div v-if="encourageOpen" class="modal-overlay" @click.self="encourageOpen = false">
+      <div class="modal modal-large">
+        <div class="modal-header">
+          <h2>💪 励まし</h2>
+          <button class="modal-close" @click="encourageOpen = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <div v-if="isEncouraging" class="result-loading">
+            <span class="spinner" />
+            <span>励ましを考えています...</span>
+          </div>
+          <div v-else class="result-text markdown" v-html="parsedResult" />
+        </div>
+        <div class="modal-footer">
+          <button class="btn-ghost" @click="copyResult">{{ resultCopied ? 'コピーしました' : 'コピー' }}</button>
+          <button class="btn-primary" @click="encourageOpen = false">閉じる</button>
         </div>
       </div>
     </div>
@@ -107,29 +147,36 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { marked } from 'marked'
 import { useHistory } from '~/composables/useHistory'
 
 const isRecording = ref(false)
 const isPaused = ref(false)
 const isProcessing = ref(false)
-const isUploading = ref(false)
+const isEncouraging = ref(false)
 const duration = ref(0)
 const error = ref('')
-const fileInput = ref<HTMLInputElement | null>(null)
 const settingsOpen = ref(false)
+const encourageOpen = ref(false)
+const encourageResult = ref('')
+const resultCopied = ref(false)
 
-const { history, copiedHistoryId, addHistory, updateHistory, deleteHistory, copyHistory } = useHistory('whisper-history')
+const { history, copiedHistoryId, addHistory, updateHistory, deleteHistory, copyHistory } = useHistory('hagemashi-history')
 
 // --- 設定 ---
 interface DictEntry { input: string; output: string }
-const defaultSettings = { dictionary: [] as DictEntry[] }
-const settings = ref<typeof defaultSettings>({ dictionary: [] })
+const defaultSettings = {
+  period: 'all',
+  encouragePrompt: '話した内容を踏まえて、温かく励ましてください。',
+  dictionary: [] as DictEntry[],
+}
+const settings = ref<typeof defaultSettings>({ ...defaultSettings, dictionary: [] })
 
 onMounted(() => {
-  const stored = localStorage.getItem('whisper-settings')
+  const stored = localStorage.getItem('hagemashi-settings')
   if (stored) {
-    try { settings.value = { dictionary: [], ...JSON.parse(stored) } } catch {}
+    try { settings.value = { ...defaultSettings, dictionary: [], ...JSON.parse(stored) } } catch {}
   }
 })
 
@@ -137,8 +184,52 @@ const addDictEntry = () => settings.value.dictionary.push({ input: '', output: '
 const removeDictEntry = (i: number) => settings.value.dictionary.splice(i, 1)
 
 const saveSettings = () => {
-  localStorage.setItem('whisper-settings', JSON.stringify(settings.value))
+  localStorage.setItem('hagemashi-settings', JSON.stringify(settings.value))
   settingsOpen.value = false
+}
+
+// --- 励まし対象テキスト ---
+const filteredTexts = computed(() => {
+  const now = new Date()
+  return history.value
+    .filter((item) => {
+      if (settings.value.period === 'all') return true
+      const d = new Date(item.timestamp)
+      if (settings.value.period === 'today') return d.toDateString() === now.toDateString()
+      if (settings.value.period === 'week') return now.getTime() - d.getTime() <= 7 * 24 * 60 * 60 * 1000
+      if (settings.value.period === 'month') return now.getTime() - d.getTime() <= 30 * 24 * 60 * 60 * 1000
+      return true
+    })
+    .map((item) => item.text)
+})
+
+const parsedResult = computed(() => marked.parse(encourageResult.value || '') as string)
+
+const runEncourage = async () => {
+  if (!filteredTexts.value.length) return
+  encourageResult.value = ''
+  encourageOpen.value = true
+  isEncouraging.value = true
+  try {
+    const res = await $fetch<{ result: string }>('/api/hagemashi/encourage', {
+      method: 'POST',
+      body: {
+        texts: filteredTexts.value,
+        encouragePrompt: settings.value.encouragePrompt,
+      },
+    })
+    encourageResult.value = res.result
+  } catch (err) {
+    encourageResult.value = err instanceof Error ? err.message : '励ましの生成に失敗しました'
+  } finally {
+    isEncouraging.value = false
+  }
+}
+
+const copyResult = async () => {
+  await navigator.clipboard.writeText(encourageResult.value)
+  resultCopied.value = true
+  setTimeout(() => { resultCopied.value = false }, 2000)
 }
 
 // --- 校正 ---
@@ -190,7 +281,7 @@ const startRecording = async () => {
     isPaused.value = false
     duration.value = 0
     timerInterval = setInterval(() => { duration.value++ }, 1000)
-  } catch (err) {
+  } catch {
     error.value = 'マイクへのアクセスが許可されていません'
   }
 }
@@ -241,33 +332,6 @@ const transcribeRecording = () => {
     }
   }
 }
-
-const triggerUpload = () => { fileInput.value?.click() }
-
-const onFileSelected = async (event: Event) => {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (!file) return
-  ;(event.target as HTMLInputElement).value = ''
-
-  isUploading.value = true
-  try {
-    const formData = new FormData()
-    formData.append('audio', file, file.name)
-    const response = await fetch('/api/whisper', { method: 'POST', body: formData })
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.message || '文字起こしに失敗しました')
-    }
-    const data = await response.json()
-    const title = await fetchTitle(data.text)
-    const id = addHistory(data.text, title)
-    proofreadInBackground(id, data.text)
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : '予期しないエラーが発生しました'
-  } finally {
-    isUploading.value = false
-  }
-}
 </script>
 
 <style scoped>
@@ -302,10 +366,7 @@ const onFileSelected = async (event: Event) => {
 }
 
 @media (max-width: 1023px) {
-  .container {
-    padding: 20px;
-    gap: 12px;
-  }
+  .container { padding: 20px; gap: 12px; }
 }
 
 .header {
@@ -325,7 +386,7 @@ const onFileSelected = async (event: Event) => {
   margin: 0;
   font-size: clamp(24px, 4vw, 32px);
   color: #f8fafc;
-  background: linear-gradient(135deg, #38bdf8, #6366f1);
+  background: linear-gradient(135deg, #f97316, #ec4899);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -367,15 +428,22 @@ const onFileSelected = async (event: Event) => {
   color: #f8fafc;
 }
 
-.action-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.encourage-btn {
+  border-color: rgba(249, 115, 22, 0.4);
+  background: rgba(249, 115, 22, 0.08);
+  color: #fed7aa;
+}
+
+.encourage-btn:hover:not(:disabled) {
+  background: rgba(249, 115, 22, 0.18);
+  border-color: rgba(249, 115, 22, 0.7);
+  color: #fff;
 }
 
 @media (max-width: 1023px) {
-  .action-label {
-    display: none;
-  }
+  .action-label { display: none; }
 
   .action-btn {
     position: relative;
@@ -399,9 +467,7 @@ const onFileSelected = async (event: Event) => {
     transition: opacity 0.15s;
   }
 
-  .action-btn:hover::after {
-    opacity: 1;
-  }
+  .action-btn:hover::after { opacity: 1; }
 }
 
 .recorder {
@@ -411,22 +477,14 @@ const onFileSelected = async (event: Event) => {
   gap: 12px;
 }
 
-.buttons-row {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.file-input-hidden {
-  display: none;
-}
+.buttons-row { display: flex; gap: 16px; align-items: center; }
 
 .record-button {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  border: 2px solid #38bdf8;
-  background: rgba(56, 189, 248, 0.1);
+  border: 2px solid #f97316;
+  background: rgba(249, 115, 22, 0.1);
   color: #f8fafc;
   font-size: 24px;
   cursor: pointer;
@@ -439,16 +497,11 @@ const onFileSelected = async (event: Event) => {
 }
 
 @media (max-width: 1023px) {
-  .record-button {
-    width: 70px;
-    height: 70px;
-    font-size: 20px;
-  }
+  .record-button { width: 70px; height: 70px; font-size: 20px; }
 }
 
 .record-button:hover:not(:disabled) {
-  background: rgba(56, 189, 248, 0.2);
-  border-color: #0ea5e9;
+  background: rgba(249, 115, 22, 0.2);
   transform: scale(1.05);
 }
 
@@ -457,42 +510,16 @@ const onFileSelected = async (event: Event) => {
   background: rgba(239, 68, 68, 0.1);
 }
 
-.record-button.recording:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: #dc2626;
-}
+.record-button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.upload-button {
-  border-color: #a78bfa;
-  background: rgba(167, 139, 250, 0.1);
-}
-
-.upload-button:hover:not(:disabled) {
-  background: rgba(167, 139, 250, 0.2);
-  border-color: #8b5cf6;
-  transform: scale(1.05);
-}
-
-.record-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.button-icon {
-  display: block;
-  line-height: 1;
-}
-
-.button-text {
-  font-size: 10px;
-  font-weight: 500;
-}
+.button-icon { display: block; line-height: 1; }
+.button-text { font-size: 10px; font-weight: 500; }
 
 .split-button {
   display: flex;
   border-radius: 50px;
   overflow: hidden;
-  border: 2px solid #38bdf8;
+  border: 2px solid #f97316;
   height: 80px;
 }
 
@@ -513,19 +540,11 @@ const onFileSelected = async (event: Event) => {
 
 .split-half .button-icon { font-size: 20px; }
 .split-half .button-text { font-size: 10px; font-weight: 500; }
-
-.resume-half { background: rgba(56, 189, 248, 0.1); }
-.resume-half:hover { background: rgba(56, 189, 248, 0.25); }
-
-.split-divider {
-  width: 1px;
-  background: rgba(56, 189, 248, 0.4);
-  align-self: stretch;
-}
-
+.resume-half { background: rgba(249, 115, 22, 0.1); }
+.resume-half:hover { background: rgba(249, 115, 22, 0.25); }
+.split-divider { width: 1px; background: rgba(249, 115, 22, 0.4); align-self: stretch; }
 .transcribe-half { background: rgba(74, 222, 128, 0.1); }
-.transcribe-half:hover:not(:disabled) { background: rgba(74, 222, 128, 0.25); }
-.transcribe-half:disabled { opacity: 0.6; cursor: not-allowed; }
+.transcribe-half:hover { background: rgba(74, 222, 128, 0.25); }
 
 .timer {
   font-size: 20px;
@@ -541,17 +560,13 @@ const onFileSelected = async (event: Event) => {
   padding: 16px;
 }
 
-.error p {
-  margin: 0 0 12px;
-  color: #fca5a5;
-  font-size: 14px;
-}
+.error p { margin: 0 0 12px; color: #fca5a5; font-size: 14px; }
 
 .reset-button {
   width: 100%;
   padding: 12px 24px;
   border: none;
-  background: linear-gradient(135deg, #38bdf8, #6366f1);
+  background: linear-gradient(135deg, #f97316, #ec4899);
   color: #f8fafc;
   border-radius: 8px;
   font-size: 14px;
@@ -587,6 +602,8 @@ const onFileSelected = async (event: Event) => {
   max-height: 90vh;
 }
 
+.modal-large { max-width: 600px; }
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -595,11 +612,7 @@ const onFileSelected = async (event: Event) => {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.modal-header h2 {
-  margin: 0;
-  font-size: 18px;
-  color: #f1f5f9;
-}
+.modal-header h2 { margin: 0; font-size: 18px; color: #f1f5f9; }
 
 .modal-close {
   background: none;
@@ -630,19 +643,20 @@ const onFileSelected = async (event: Event) => {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #cbd5e1;
+.section-title { font-size: 13px; font-weight: 600; color: #cbd5e1; }
+.section-desc { margin: 0; font-size: 12px; color: #64748b; }
+
+.section-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin: 4px 0;
 }
 
-.section-desc {
-  margin: 0;
-  font-size: 12px;
-  color: #64748b;
-}
+.field { display: flex; flex-direction: column; gap: 6px; }
 
-.input {
+.field label { font-size: 13px; font-weight: 500; color: #94a3b8; }
+
+.input, .select, .textarea {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
@@ -654,24 +668,13 @@ const onFileSelected = async (event: Event) => {
   font-family: inherit;
 }
 
-.input:focus { border-color: #38bdf8; }
+.input:focus, .select:focus, .textarea:focus { border-color: #f97316; }
+.select option { background: #1e293b; }
+.textarea { resize: vertical; line-height: 1.5; }
 
-.dict-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.dict-input {
-  flex: 1;
-  min-width: 0;
-}
-
-.dict-arrow {
-  color: #64748b;
-  font-size: 14px;
-  flex-shrink: 0;
-}
+.dict-row { display: flex; align-items: center; gap: 6px; }
+.dict-input { flex: 1; min-width: 0; }
+.dict-arrow { color: #64748b; font-size: 14px; flex-shrink: 0; }
 
 .dict-remove {
   background: none;
@@ -699,16 +702,13 @@ const onFileSelected = async (event: Event) => {
   transition: all 0.15s;
 }
 
-.btn-add-dict:hover {
-  border-color: rgba(255, 255, 255, 0.35);
-  color: #94a3b8;
-}
+.btn-add-dict:hover { border-color: rgba(255, 255, 255, 0.35); color: #94a3b8; }
 
 .btn-primary {
   padding: 8px 20px;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #38bdf8, #6366f1);
+  background: linear-gradient(135deg, #f97316, #ec4899);
   color: #f8fafc;
   font-size: 14px;
   font-weight: 500;
@@ -717,4 +717,54 @@ const onFileSelected = async (event: Event) => {
 }
 
 .btn-primary:hover { opacity: 0.9; }
+
+.btn-ghost {
+  padding: 8px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-ghost:hover { background: rgba(255, 255, 255, 0.06); color: #f1f5f9; }
+
+.result-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 0;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(249, 115, 22, 0.3);
+  border-top-color: #f97316;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.result-text {
+  color: #e2e8f0;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.result-text.markdown :deep(h1),
+.result-text.markdown :deep(h2),
+.result-text.markdown :deep(h3) { color: #f1f5f9; margin: 16px 0 6px; font-size: 15px; }
+.result-text.markdown :deep(p) { margin: 0 0 10px; }
+.result-text.markdown :deep(ul),
+.result-text.markdown :deep(ol) { margin: 0 0 10px; padding-left: 20px; }
+.result-text.markdown :deep(li) { margin-bottom: 4px; }
+.result-text.markdown :deep(strong) { color: #f1f5f9; font-weight: 600; }
+.result-text.markdown :deep(hr) { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 12px 0; }
 </style>

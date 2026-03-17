@@ -23,11 +23,11 @@
           </div>
         </NuxtLink>
 
-        <NuxtLink class="tool-card" to="/miyako">
-          <div class="tool-card__icon">🏛️</div>
+        <NuxtLink class="tool-card" to="/hagemashi">
+          <div class="tool-card__icon">💪</div>
           <div>
-            <h2 class="tool-card__title">宮古島市議会</h2>
-            <p class="tool-card__desc">議事録をAIで要約・分析</p>
+            <h2 class="tool-card__title">はげまし</h2>
+            <p class="tool-card__desc">話して、AIに励ましてもらおう</p>
           </div>
         </NuxtLink>
 

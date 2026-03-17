@@ -9,7 +9,32 @@ export const getOpenAiKey = (): string => {
     return openaiApiKey as string
 }
 
+// USD per 1M tokens
+const PRICING: Record<string, { input: number; output: number }> = {
+    'gpt-4o':             { input: 2.50,  output: 10.00 },
+    'gpt-4o-mini':        { input: 0.15,  output: 0.60  },
+    'gpt-4.1':            { input: 2.00,  output: 8.00  },
+    'gpt-4.1-mini':       { input: 0.40,  output: 1.60  },
+    'gpt-4.1-nano':       { input: 0.10,  output: 0.40  },
+}
+const JPY_RATE = 150
+
+const logCost = (model: string, usage: { input_tokens?: number; output_tokens?: number }) => {
+    const price = PRICING[model]
+    if (!price || !usage) return
+    const inputTokens = usage.input_tokens ?? 0
+    const outputTokens = usage.output_tokens ?? 0
+    const usd = (inputTokens / 1_000_000) * price.input + (outputTokens / 1_000_000) * price.output
+    const jpy = usd * JPY_RATE
+    console.log(`[OpenAI] tokens: ${inputTokens} in / ${outputTokens} out  cost: ¥${jpy.toFixed(4)} (${(usd * 100).toFixed(4)}¢)`)
+}
+
 export const fetchOpenAi = async (apiKey: string, payload: Record<string, any>): Promise<Response> => {
+    if (process.dev) {
+        console.log('[OpenAI] model:', payload.model)
+        console.log('[OpenAI] prompt:', payload.input ?? payload.instructions ?? '(no input)')
+    }
+
     const response = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
@@ -39,6 +64,8 @@ export const callOpenAi = async (apiKey: string, payload: Record<string, any>): 
             statusMessage: data?.error?.message || 'OpenAI APIの呼び出しに失敗しました。',
         })
     }
+
+    if (process.dev) logCost(payload.model, data?.usage)
 
     return data
 }
