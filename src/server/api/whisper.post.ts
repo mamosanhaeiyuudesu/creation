@@ -1,3 +1,5 @@
+import { appendLog } from '~/server/utils/openai'
+
 export default defineEventHandler(async (event) => {
     const { openaiApiKey } = useRuntimeConfig()
 
@@ -43,6 +45,7 @@ export default defineEventHandler(async (event) => {
         }
 
         const data = await response.json()
+        if (import.meta.dev) appendLog(event, '[OpenAI] whisper-1 | 音声文字起こし')
         return {
             text: data.text,
         }

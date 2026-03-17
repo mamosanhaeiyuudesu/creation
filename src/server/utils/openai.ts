@@ -1,3 +1,5 @@
+import type { H3Event } from 'h3'
+
 export const getOpenAiKey = (): string => {
     const { openaiApiKey } = useRuntimeConfig()
     if (!openaiApiKey) {
@@ -19,22 +21,17 @@ const PRICING: Record<string, { input: number; output: number }> = {
 }
 const JPY_RATE = 150
 
-const logCost = (model: string, usage: { input_tokens?: number; output_tokens?: number }) => {
-    const price = PRICING[model]
-    if (!price || !usage) return
-    const inputTokens = usage.input_tokens ?? 0
-    const outputTokens = usage.output_tokens ?? 0
-    const usd = (inputTokens / 1_000_000) * price.input + (outputTokens / 1_000_000) * price.output
-    const jpy = usd * JPY_RATE
-    console.log(`[OpenAI] tokens: ${inputTokens} in / ${outputTokens} out  cost: ¥${jpy.toFixed(4)} (${(usd * 100).toFixed(4)}¢)`)
+export const appendLog = (event: H3Event | undefined, message: string) => {
+    if (!event) {
+        console.log(message)
+        return
+    }
+    if (!event.context._apiLogs) event.context._apiLogs = []
+    event.context._apiLogs.push(message)
+    setResponseHeader(event, 'X-Api-Logs', encodeURIComponent(JSON.stringify(event.context._apiLogs)))
 }
 
-export const fetchOpenAi = async (apiKey: string, payload: Record<string, any>): Promise<Response> => {
-    if (process.dev) {
-        console.log('[OpenAI] model:', payload.model)
-        console.log('[OpenAI] prompt:', payload.input ?? payload.instructions ?? '(no input)')
-    }
-
+export const fetchOpenAi = async (apiKey: string, payload: Record<string, any>, event?: H3Event): Promise<Response> => {
     const response = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
@@ -54,8 +51,8 @@ export const fetchOpenAi = async (apiKey: string, payload: Record<string, any>):
     return response
 }
 
-export const callOpenAi = async (apiKey: string, payload: Record<string, any>): Promise<any> => {
-    const response = await fetchOpenAi(apiKey, payload)
+export const callOpenAi = async (apiKey: string, payload: Record<string, any>, event?: H3Event, label?: string): Promise<any> => {
+    const response = await fetchOpenAi(apiKey, payload, event)
     const data = await response.json().catch(() => null as any)
 
     if (!response.ok) {
@@ -65,7 +62,22 @@ export const callOpenAi = async (apiKey: string, payload: Record<string, any>): 
         })
     }
 
-    if (process.dev) logCost(payload.model, data?.usage)
+    if (import.meta.dev) {
+        const model = payload.model ?? '(unknown)'
+        const price = PRICING[model]
+        const usage = data?.usage
+        if (price && usage) {
+            const inputTokens = usage.input_tokens ?? 0
+            const outputTokens = usage.output_tokens ?? 0
+            const usd = (inputTokens / 1_000_000) * price.input + (outputTokens / 1_000_000) * price.output
+            const jpy = usd * JPY_RATE
+            const parts = [model, label, `¥${jpy.toFixed(4)} (${(usd * 100).toFixed(4)}¢)`].filter(Boolean)
+            appendLog(event, `[OpenAI] ${parts.join(' | ')}`)
+        } else {
+            const parts = [model, label].filter(Boolean)
+            appendLog(event, `[OpenAI] ${parts.join(' | ')}`)
+        }
+    }
 
     return data
 }

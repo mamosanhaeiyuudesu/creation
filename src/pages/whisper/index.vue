@@ -89,11 +89,19 @@
           <div class="section-title">辞書（校正）</div>
           <p class="section-desc">文字起こし後にAIがこの辞書を使って自動校正します。</p>
 
-          <div v-for="(entry, i) in settings.dictionary" :key="i" class="dict-row">
-            <input v-model="entry.input" class="input dict-input" placeholder="入力" />
-            <span class="dict-arrow">→</span>
-            <input v-model="entry.output" class="input dict-input" placeholder="変換" />
-            <button class="dict-remove" @click="removeDictEntry(i)">✕</button>
+          <div class="dict-list">
+            <div v-for="(entry, i) in settings.dictionary" :key="i" class="dict-row">
+              <input v-model="entry.input" class="input dict-input" placeholder="入力" />
+              <span class="dict-arrow">→</span>
+              <input
+                v-model="entry.output"
+                class="input dict-input"
+                placeholder="変換"
+                :data-dict-output="i"
+                @keydown.enter.prevent="(e: KeyboardEvent) => !e.isComposing && addDictEntryAndFocus(i)"
+              />
+              <button class="dict-remove" @click="removeDictEntry(i)">✕</button>
+            </div>
           </div>
 
           <button class="btn-add-dict" @click="addDictEntry">＋ 追加</button>
@@ -107,7 +115,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useHistory } from '~/composables/useHistory'
 
 const isRecording = ref(false)
@@ -135,6 +143,18 @@ onMounted(() => {
 
 const addDictEntry = () => settings.value.dictionary.push({ input: '', output: '' })
 const removeDictEntry = (i: number) => settings.value.dictionary.splice(i, 1)
+
+const addDictEntryAndFocus = (_i: number) => {
+  localStorage.setItem('whisper-settings', JSON.stringify(settings.value))
+  addDictEntry()
+  nextTick(() => {
+    const list = document.querySelector<HTMLElement>('.dict-list')
+    if (list) list.scrollTop = list.scrollHeight
+    const rows = document.querySelectorAll<HTMLElement>('.dict-row')
+    const lastRow = rows[rows.length - 1]
+    lastRow?.querySelector<HTMLInputElement>('.dict-input')?.focus()
+  })
+}
 
 const saveSettings = () => {
   localStorage.setItem('whisper-settings', JSON.stringify(settings.value))
@@ -655,6 +675,15 @@ const onFileSelected = async (event: Event) => {
 }
 
 .input:focus { border-color: #38bdf8; }
+
+.dict-list {
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
 
 .dict-row {
   display: flex;

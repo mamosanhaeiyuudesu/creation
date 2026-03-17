@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
       temperature: 0.7,
       instructions: body.encouragePrompt || '話した内容を踏まえて、温かく励ましてください。',
       input: userContent,
-    })
+    }, event, '励まし生成')
     return { result: extractText(data) }
   } catch (err) {
     return wrapApiError(err, '励ましの生成に失敗しました')

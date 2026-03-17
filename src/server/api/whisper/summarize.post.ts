@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const data = await callOpenAi(apiKey, payload)
+    const data = await callOpenAi(apiKey, payload, event, '要約生成')
     return { summary: extractText(data) }
   } catch (err) {
     return wrapApiError(err, '要約の生成に失敗しました')

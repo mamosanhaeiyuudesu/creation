@@ -28,7 +28,7 @@ ${body.text}`
       model: 'gpt-4o-mini',
       input: prompt,
       temperature: 0,
-    })
+    }, event, '文字起こし校正')
     return { text: extractText(data) || body.text }
   } catch (err) {
     return wrapApiError(err, '校正に失敗しました')

@@ -139,7 +139,7 @@ keywordsは重要なものを8〜12個抽出してください。`
       model: 'gpt-4o',
       input: prompt,
       temperature: 0.3,
-    })
+    }, event, '議事録要約')
 
     const text = extractText(data)
     // JSON部分を抽出

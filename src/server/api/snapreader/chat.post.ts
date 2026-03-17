@@ -1,3 +1,5 @@
+import { appendLog } from '~/server/utils/openai'
+
 type ChatMessage = {
     role: 'user' | 'assistant'
     content: string
@@ -88,8 +90,9 @@ export default defineEventHandler(async (event) => {
             input,
             max_output_tokens: 400,
             stream: true,
-        })
+        }, event)
 
+        if (import.meta.dev) appendLog(event, '[OpenAI] gpt-4.1 | チャット')
         if (!response.ok) {
             const data = await response.json().catch(() => null as any)
             throw createError({

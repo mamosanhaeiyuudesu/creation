@@ -59,7 +59,7 @@ ${excerpts || '（抜粋なし）'}
       model: 'gpt-4o-mini',
       input: prompt,
       temperature: 0.3,
-    })
+    }, event, 'キーワード検索')
 
     const text = extractText(data)
     const jsonMatch = text.match(/\{[\s\S]*\}/)

@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
                 },
             ],
             max_output_tokens: 3000,
-        })
+        }, event, '全文書き起こし')
 
         const transcript = extractText(transcriptData)
         if (!transcript) {
@@ -82,7 +82,7 @@ export default defineEventHandler(async (event) => {
                 },
             ],
             max_output_tokens: 1200,
-        })
+        }, event, '要約・質問生成')
 
         const summaryContent = extractText(summaryData)
         const parsed = tryParse(summaryContent)

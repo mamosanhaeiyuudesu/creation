@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
                 },
             ],
             max_output_tokens: 3000,
-        })
+        }, event, '全文書き起こし')
 
         const transcript = extractText(data)
         if (!transcript) {

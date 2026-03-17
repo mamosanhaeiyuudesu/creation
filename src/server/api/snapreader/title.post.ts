@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
                 },
             ],
             max_output_tokens: 20,
-        })
+        }, event, 'タイトル生成')
 
         const title = extractText(data)
         return { title: title.trim().slice(0, 8) }

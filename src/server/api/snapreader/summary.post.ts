@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
                 },
             ],
             max_output_tokens: 800,
-        })
+        }, event, '要約')
 
         const summary = extractText(data)
         if (!summary) {

@@ -52,7 +52,7 @@
         <div class="section-inner">
           <h2>提供しているサービス</h2>
           <p>
-            <strong>FLSセッション（Future Life Session）</strong><br />
+            <strong>FLSセッション（Forcus Light Spirit）</strong><br />
             潜在意識にアクセスし、未来の自分、なりたい自分を見つけるセッションです。
             「私こんなこと思ってたんだ」という気づきと共に、本来の自分を思い出していきます。
           </p>
@@ -70,7 +70,7 @@
       <section class="home-section message">
         <div class="section-inner">
           <h2>私の想い</h2>
-          <p>私は、人を裁かず、決めつけず、ただ「聴く」ことを大切にしています。</p>
+          <p>私は、人に対して『こうあるべき』という物差しを持たず、それぞれの個性を大切にしています。</p>
           <p>どんな気持ちも、どんな過去も、ここでは安全です。</p>
           <p>
             子供のキラキラした笑顔のまま大人になってほしい。<br />

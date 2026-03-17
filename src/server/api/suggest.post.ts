@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
             })
         }
 
-        const data = await callOpenAi(apiKey, { model: 'gpt-4.1', input, max_output_tokens: 200 })
+        const data = await callOpenAi(apiKey, { model: 'gpt-4.1', input, max_output_tokens: 200 }, event, '質問候補生成')
         const text = extractText(data)
         const questions = parseQuestions(text).map(normalizeQuestion).filter(Boolean).slice(0, 3)
 

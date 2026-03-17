@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
                 },
             ],
             max_output_tokens: 200,
-        })
+        }, event, '質問候補生成')
 
         const text = extractText(data)
         const questions = parseQuestions(text).map(normalizeQuestion).filter(Boolean).slice(0, 3)

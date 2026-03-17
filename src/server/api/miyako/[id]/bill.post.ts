@@ -77,7 +77,7 @@ ${utterancesText}
       model: 'gpt-4o-mini',
       input: prompt,
       temperature: 0.3,
-    })
+    }, event, '議案分析')
 
     const text = extractText(data)
     const jsonMatch = text.match(/\{[\s\S]*\}/)
