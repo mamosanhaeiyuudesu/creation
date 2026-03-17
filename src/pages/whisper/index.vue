@@ -243,12 +243,7 @@ const transcribeRecording = () => {
     try {
       const formData = new FormData()
       formData.append('audio', audioBlob, 'recording.webm')
-      const response = await fetch('/api/whisper', { method: 'POST', body: formData })
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || '文字起こしに失敗しました')
-      }
-      const data = await response.json()
+      const data = await $fetch<{ text: string }>('/api/whisper', { method: 'POST', body: formData })
       const title = await fetchTitle(data.text)
       const id = addHistory(data.text, title)
       proofreadInBackground(id, data.text)
@@ -273,12 +268,7 @@ const onFileSelected = async (event: Event) => {
   try {
     const formData = new FormData()
     formData.append('audio', file, file.name)
-    const response = await fetch('/api/whisper', { method: 'POST', body: formData })
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.message || '文字起こしに失敗しました')
-    }
-    const data = await response.json()
+    const data = await $fetch<{ text: string }>('/api/whisper', { method: 'POST', body: formData })
     const title = await fetchTitle(data.text)
     const id = addHistory(data.text, title)
     proofreadInBackground(id, data.text)

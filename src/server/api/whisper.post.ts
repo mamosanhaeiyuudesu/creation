@@ -26,6 +26,7 @@ export default defineEventHandler(async (event) => {
         whisperFormData.append('file', audioFile)
         whisperFormData.append('model', 'whisper-1')
         whisperFormData.append('language', 'ja')
+        whisperFormData.append('response_format', 'verbose_json')
 
         const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
             method: 'POST',
@@ -45,7 +46,13 @@ export default defineEventHandler(async (event) => {
         }
 
         const data = await response.json()
-        if (import.meta.dev) appendLog(event, '[OpenAI] whisper-1 | 音声文字起こし')
+        if (import.meta.dev) {
+            const JPY_RATE = 150
+            const durationSec: number = data.duration ?? 0
+            const usd = (durationSec / 60) * 0.006
+            const jpy = usd * JPY_RATE
+            appendLog(event, `[OpenAI] whisper-1 | 音声文字起こし | ¥${jpy.toFixed(4)} (${(usd * 100).toFixed(4)}¢)`)
+        }
         return {
             text: data.text,
         }
