@@ -17,7 +17,7 @@ const STOPWORDS = new Set([
 ])
 
 const TOP_KEYWORDS = 35
-const MAX_DISPLAY = 30
+const MAX_DISPLAY = 25
 const CELL_WIDTH = 28
 
 const loading = ref(true)
@@ -113,7 +113,7 @@ function renderHeatmap() {
   const sessions = displayedSessions.value
   const keywords = topKeywords.value
   const rowHeight = 22
-  const chartHeight = keywords.length * rowHeight + 100
+  const chartHeight = keywords.length * rowHeight + 110
   const chartWidth = sessions.length * CELL_WIDTH + 280
 
   const data: [number, number, number | null][] = []
@@ -134,17 +134,19 @@ function renderHeatmap() {
       width: chartWidth,
       height: chartHeight,
       style: { fontFamily: 'inherit' },
-      marginRight: 160,
-      marginLeft: 110,
-      marginBottom: 80,
+      marginRight: 20,
+      marginLeft: 60,
+      marginTop: 50,
+      marginBottom: 10,
       animation: false,
       backgroundColor: '#FFFFFF',
       plotBackgroundColor: '#FFFFFF',
     },
     title: { text: undefined },
     xAxis: {
+      opposite: true,
       categories: sessions.map(shortLabel),
-      labels: { rotation: -60, style: { fontSize: '9px' }, align: 'right' },
+      labels: { rotation: 60, style: { fontSize: '9px' }, align: 'left', y: -15 },
     },
     yAxis: {
       categories: keywords,
@@ -163,11 +165,7 @@ function renderHeatmap() {
       nullColor: '#EEEEEE',
       labels: { format: '{value:.2f}' },
     },
-    legend: {
-      align: 'right',
-      layout: 'vertical',
-      verticalAlign: 'middle',
-    },
+    legend: { enabled: false },
     tooltip: {
       formatter: function (this: any) {
         if (this.point.value === null || this.point.value === undefined) return false
@@ -193,6 +191,7 @@ function renderHeatmap() {
     }],
     credits: { enabled: false },
   })
+
 }
 
 function renderWordcloud() {
@@ -254,7 +253,7 @@ watch([sessionCount, windowEnd], resetAndRender)
         </v-btn-toggle>
 
         <div class="d-flex align-center gap-2 slider-group">
-          <span class="text-caption text-medium-emphasis text-no-wrap">期間</span>
+          <span class="text-caption text-medium-emphasis text-no-wrap ml-3">期間</span>
           <v-slider
             v-model="windowEnd"
             :min="windowEndMin"
@@ -271,8 +270,6 @@ watch([sessionCount, windowEnd], resetAndRender)
 
         <span class="text-caption text-medium-emphasis ml-auto">
           <v-icon size="13" class="mr-1">mdi-gesture-tap</v-icon>列をクリックでワードクラウド表示
-          <span class="mx-2">—</span>
-          <v-icon size="13" class="mr-1">mdi-gesture-swipe-horizontal</v-icon>横スクロールで全会期確認
         </span>
       </v-card-text>
     </v-card>
@@ -282,27 +279,32 @@ watch([sessionCount, windowEnd], resetAndRender)
     </div>
 
     <template v-else>
-      <v-card class="mb-2" elevation="1">
-        <v-card-text class="pa-2">
-          <div class="heatmap-scroll">
-            <div ref="heatmapRef" class="heatmap-container"></div>
+      <div class="main-layout">
+        <v-card elevation="1" class="heatmap-card">
+          <v-card-text class="pa-2">
+            <div class="heatmap-scroll">
+              <div ref="heatmapRef" class="heatmap-container"></div>
+            </div>
+          </v-card-text>
+        </v-card>
+
+        <v-card elevation="1" class="wordcloud-card">
+          <template v-if="selectedSession">
+            <v-card-title class="text-subtitle-1 px-3 pt-2 pb-1">
+              <v-icon class="mr-1" color="indigo" size="16">mdi-cloud</v-icon>
+              {{ selectedSession }}
+            </v-card-title>
+            <v-card-text class="pa-2">
+              <div ref="wordcloudRef" class="wordcloud-container"></div>
+            </v-card-text>
+          </template>
+          <div v-else class="d-flex align-center justify-center h-100 text-medium-emphasis text-caption pa-4 text-center">
+            <div>
+              <v-icon size="24" class="d-block mb-2">mdi-gesture-tap</v-icon>
+              列をクリックすると<br>ワードクラウドが表示されます
+            </div>
           </div>
-        </v-card-text>
-      </v-card>
-
-      <v-card v-if="selectedSession" elevation="1">
-        <v-card-title class="text-subtitle-1 px-4 pt-2 pb-1">
-          <v-icon class="mr-2" color="indigo" size="18">mdi-cloud</v-icon>
-          {{ selectedSession }}
-        </v-card-title>
-        <v-card-text class="pa-2">
-          <div ref="wordcloudRef" class="wordcloud-container"></div>
-        </v-card-text>
-      </v-card>
-
-      <div v-else class="text-center py-4 text-medium-emphasis text-caption">
-        <v-icon size="18" class="mr-1">mdi-gesture-tap</v-icon>
-        ヒートマップの列をクリックするとワードクラウドが表示されます
+        </v-card>
       </div>
     </template>
   </v-container>
@@ -328,6 +330,23 @@ watch([sessionCount, windowEnd], resetAndRender)
 .miyako-subtitle {
   color: rgba(0, 0, 0, 0.54);
   margin: 0;
+}
+
+.main-layout {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.heatmap-card {
+  flex: 1;
+  min-width: 0;
+}
+
+.wordcloud-card {
+  width: 330px;
+  flex-shrink: 0;
+  align-self: stretch;
 }
 
 .heatmap-scroll {
