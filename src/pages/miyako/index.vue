@@ -148,15 +148,15 @@ function renderHeatmap() {
       categories: sessions.map(shortLabel),
       labels: { rotation: 60, style: { fontSize: '9px' }, align: 'left', y: -15 },
       gridLineWidth: 1,
-      gridLineColor: 'rgba(10,0,0,0.3)',
+      gridLineColor: 'rgba(0,0,0,0.08)',
     },
     yAxis: {
       categories: keywords,
       title: { text: undefined },
-      labels: { style: { fontSize: '11px' }, step: 1 },
+      labels: { style: { fontSize: '11px' }, step: 1, y: 4 },
       reversed: true,
       gridLineWidth: 1,
-      gridLineColor: 'rgba(10,0,0,0.3)',
+      gridLineColor: 'rgba(0,0,0,0.08)',
     },
     colorAxis: {
       min: 0,
