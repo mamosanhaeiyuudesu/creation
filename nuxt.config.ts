@@ -15,7 +15,8 @@ export default defineNuxtConfig({
     },
   },
   runtimeConfig: {
-    openaiApiKey: '', // 値は入れない
+    openaiApiKey: '',        // set via NUXT_OPENAI_API_KEY / wrangler secret put OPENAI_API_KEY
+    miyakoVectorStoreId: '', // set via NUXT_MIYAKO_VECTOR_STORE_ID / wrangler secret put MIYAKO_VECTOR_STORE_ID
   },
   nitro: {
     preset: 'cloudflare_module',

@@ -39,13 +39,13 @@
           </div>
         </NuxtLink>
 
-        <!-- <NuxtLink class="tool-card" to="/tasks">
+        <NuxtLink class="tool-card" to="/task">
           <div class="tool-card__icon">📋</div>
           <div>
-            <h2 class="tool-card__title">Tasks</h2>
-            <p class="tool-card__desc">TODO / DOING / DONE でタスク管理</p>
+            <h2 class="tool-card__title">タスクくん</h2>
+            <p class="tool-card__desc">Trello の DOING / TODO / DONE をまとめて確認</p>
           </div>
-        </NuxtLink> -->
+        </NuxtLink>
       </div>
     </main>
   </div>

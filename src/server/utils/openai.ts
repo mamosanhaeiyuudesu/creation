@@ -82,10 +82,16 @@ export const callOpenAi = async (apiKey: string, payload: Record<string, any>, e
     return data
 }
 
-export const extractText = (data: any): string =>
-    data?.output_text ||
-    data?.output?.[0]?.content?.find?.((chunk: any) => 'text' in chunk)?.text ||
-    ''
+export const extractText = (data: any): string => {
+    if (data?.output_text) return data.output_text
+    // ツール使用時は output 配列に file_search_call が先行し、message は後方にある
+    const messageItem = data?.output?.find?.((item: any) => item.type === 'message')
+    if (messageItem) {
+        const chunk = messageItem.content?.find?.((c: any) => c.type === 'output_text' || 'text' in c)
+        if (chunk?.text) return chunk.text
+    }
+    return ''
+}
 
 export const wrapApiError = (err: any, fallbackMessage: string): never => {
     if (err?.statusCode && err?.statusMessage) throw err

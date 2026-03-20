@@ -17,7 +17,7 @@ const STOPWORDS = new Set([
 ])
 
 const TOP_KEYWORDS = 100
-const MAX_DISPLAY = 25
+const MAX_DISPLAY = 20
 const CELL_WIDTH = 28
 
 const loading = ref(true)
@@ -26,6 +26,15 @@ const sessionTypeFilter = ref<'定例会' | '臨時会'>('定例会')
 const selectedSession = ref<string | null>(null)
 const sessionCount = MAX_DISPLAY
 const windowEnd = ref(0)
+
+const selectedWord = ref<string | null>(null)
+const aiSummary = ref<string>('')
+const aiLoading = ref(false)
+const maxChars = ref(1000)
+const MAX_CHARS_OPTIONS = [500, 1000, 2000]
+
+const { marked } = await import('marked')
+const renderedSummary = computed(() => aiSummary.value ? marked(aiSummary.value) as string : '')
 
 const heatmapRef = ref<HTMLElement>()
 const wordcloudRef = ref<HTMLElement>()
@@ -211,11 +220,17 @@ function renderWordcloud() {
       type: 'wordcloud',
       data: words,
       name: '特徴度',
+      cursor: 'pointer',
       colors: [
         '#1A237E', '#283593', '#303F9F', '#3949AB',
         '#3F51B5', '#5C6BC0', '#7986CB', '#9FA8DA',
         '#C5CAE9', '#0D47A1', '#1565C0', '#1976D2',
       ],
+      point: {
+        events: {
+          click: function (this: any) { fetchSummary(this.name) },
+        },
+      },
     }],
     title: { text: undefined },
     tooltip: {
@@ -227,8 +242,37 @@ function renderWordcloud() {
   })
 }
 
+async function fetchSummary(word: string) {
+  if (!selectedSession.value) return
+  selectedWord.value = word
+  aiSummary.value = ''
+
+  const cacheKey = `miyako_summary:${selectedSession.value}:${word}:${maxChars.value}`
+  const cached = localStorage.getItem(cacheKey)
+  if (cached) {
+    aiSummary.value = cached
+    return
+  }
+
+  aiLoading.value = true
+  try {
+    const data = await $fetch<{ summary: string }>('/api/miyako/search', {
+      method: 'POST',
+      body: { session: selectedSession.value, word, maxChars: maxChars.value },
+    })
+    aiSummary.value = data.summary
+    localStorage.setItem(cacheKey, data.summary)
+  } catch {
+    aiSummary.value = '取得に失敗しました。'
+  } finally {
+    aiLoading.value = false
+  }
+}
+
 async function resetAndRender() {
   selectedSession.value = null
+  selectedWord.value = null
+  aiSummary.value = ''
   wordcloudChart?.destroy()
   wordcloudChart = null
   await nextTick()
@@ -271,6 +315,13 @@ watch([sessionCount, windowEnd], resetAndRender)
           />
           <span class="text-caption text-no-wrap text-medium-emphasis">{{ rangeLabel }}</span>
         </div>
+
+        <div class="d-flex align-center gap-1 ml-3">
+          <span class="text-caption text-medium-emphasis text-no-wrap">文字数</span>
+          <v-btn-toggle v-model="maxChars" mandatory color="indigo" variant="outlined" density="compact">
+            <v-btn v-for="n in MAX_CHARS_OPTIONS" :key="n" :value="n" size="small">{{ n }}</v-btn>
+          </v-btn-toggle>
+        </div>
       </v-card-text>
     </v-card>
 
@@ -294,8 +345,23 @@ watch([sessionCount, windowEnd], resetAndRender)
               <v-icon class="mr-1" color="indigo" size="16">mdi-cloud</v-icon>
               {{ selectedSession?.replace(/〜[\d-]+$/, '〜') }}
             </v-card-title>
-            <v-card-text class="pa-2">
+            <v-card-text class="pa-2 pb-1">
               <div ref="wordcloudRef" class="wordcloud-container"></div>
+            </v-card-text>
+            <v-divider />
+            <v-card-text class="summary-section">
+              <div v-if="!selectedWord" class="summary-hint text-caption text-medium-emphasis" style="padding: 12px 14px">
+                <v-icon size="14" class="mr-1">mdi-cursor-default-click</v-icon>単語をクリックするとAI解説が表示されます
+              </div>
+              <template v-else>
+                <div class="summary-word font-weight-bold">
+                  <v-icon size="16" color="white" class="mr-1">mdi-robot</v-icon>「{{ selectedWord }}」の議論
+                </div>
+                <div v-if="aiLoading" class="summary-loading">
+                  <v-progress-circular indeterminate size="20" width="2" color="indigo" />
+                </div>
+                <div v-else class="summary-text" v-html="renderedSummary" />
+              </template>
             </v-card-text>
           </template>
           <div v-else class="d-flex align-center justify-center h-100 text-medium-emphasis text-caption pa-4 text-center">
@@ -349,12 +415,12 @@ watch([sessionCount, windowEnd], resetAndRender)
 .wordcloud-card {
   width: 100%;
   flex-shrink: 0;
-  align-self: stretch;
+  align-self: flex-start;
 }
 
 @media (min-width: 768px) {
   .wordcloud-card {
-    width: 330px;
+    width: 420px;
   }
 }
 
@@ -369,12 +435,79 @@ watch([sessionCount, windowEnd], resetAndRender)
 
 .wordcloud-container {
   width: 100%;
-  height: 280px;
+  height: 200px;
 }
 
 @media (min-width: 768px) {
   .wordcloud-container {
-    height: 340px;
+    height: 220px;
   }
+}
+
+.summary-section {
+  min-height: 100px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 0 !important;
+}
+
+.summary-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
+.summary-word {
+  background: #1a237e;
+  color: #ffffff;
+  font-size: 15px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+}
+
+.summary-text {
+  color: #1a237e;
+  background: #ffffff;
+  font-size: 13px;
+  padding: 10px 14px;
+  line-height: 1.7;
+}
+
+.summary-text :deep(h2) {
+  font-size: 14.5px;
+  font-weight: 700;
+  margin: 12px 0 6px;
+  color: #1a237e;
+  border-left: 3px solid #3949ab;
+  padding-left: 8px;
+}
+
+.summary-text :deep(h2:first-child) {
+  margin-top: 0;
+}
+
+.summary-text :deep(ul) {
+  margin: 0 0 8px 16px;
+  padding: 0;
+}
+
+.summary-text :deep(li) {
+  line-height: 1.75;
+  margin-bottom: 4px;
+}
+
+.summary-text :deep(strong) {
+  color: #283593;
+}
+
+.summary-text :deep(p) {
+  margin: 0 0 6px;
+  line-height: 1.7;
+}
+
+.summary-hint {
+  padding: 12px 14px;
 }
 </style>
