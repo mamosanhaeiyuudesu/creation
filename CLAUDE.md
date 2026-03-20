@@ -27,7 +27,6 @@ wrangler secret put OPENAI_API_KEY  # 本番用APIキーの設定
 | `/` | ツール一覧ハブ |
 | `/snapreader` | 画像OCR・要約・AIチャット |
 | `/whisper` | 音声文字起こし（Whisper API） |
-| `/tasks` | Kanbanタスクボード（D1 + vuedraggable） |
 | `/miyako` | 宮古島市議会議事録のAI要約・分析 |
 | `/kaito`, `/mamorin` | セラピスト向けマーケティングページ |
 
@@ -37,22 +36,19 @@ wrangler secret put OPENAI_API_KEY  # 本番用APIキーの設定
 
 - **OpenAI呼び出し**は `src/server/utils/openai.ts` の `callOpenAi()` に集約。
 - APIルートはファイル名で動詞を表す（例: `analyze.post.ts`）。
-- D1バインディングは `event.context.cloudflare.env.DB`（tasks）と `.MIYAKO_DB`（miyako）で取得する。
+- D1バインディングは `event.context.cloudflare.env.MIYAKO_DB`（miyako）で取得する。
 
 ### Cloudflare D1
 
-`wrangler.toml` に2つのD1データベースが定義されている：
+`wrangler.toml` に1つのD1データベースが定義されている：
 
-- `DB` → `tasks-db`：タスクボードのデータ（スキーマは `schema.sql` 参照）
 - `MIYAKO_DB` → `miyako-gijiroku`：宮古島市議会の sessions / bills / utterances テーブル
 
-**ローカルdev時のフォールバック：** macOSのバージョン制約でローカルD1が使えないため、`src/server/utils/miyako-dev.ts` の `getDevDb()` が `cloudflare.env.MIYAKO_DB` の有無を確認し、なければ `miyako-sample.json`（プロジェクトルート）からデータを返す。tasks側は `useTasks` composableがdev時にlocalStorageを使う。
+**ローカルdev時のフォールバック：** macOSのバージョン制約でローカルD1が使えないため、`src/server/utils/miyako-dev.ts` の `getDevDb()` が `cloudflare.env.MIYAKO_DB` の有無を確認し、なければ `miyako-sample.json`（プロジェクトルート）からデータを返す。
 
 ### 状態管理・Composables
 
 - `useHistory(storageKey)` — localStorageに履歴を保存する汎用composable
-- `useTasks()` — タスクCRUD（dev: localStorage / prod: `/api/tasks`）
-- `useTags()` — タグCRUD（同上）
 
 ### コーディング規則
 
