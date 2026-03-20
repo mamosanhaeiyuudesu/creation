@@ -1,164 +1,152 @@
 <template>
-  <div class="page">
-    <div class="container">
-      <header class="header">
-        <div class="header-center">
-          <h1>はげまし</h1>
-          <p class="subtitle">話して、励ましてもらおう</p>
+  <div class="flex flex-col items-center px-4 pt-4 lg:pt-8 pb-12 min-h-screen">
+    <div class="w-full max-w-[600px] bg-white/[0.04] border border-white/[0.08] rounded-2xl p-7 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-[10px] grid gap-4 ml-2.5 max-h-[70dvh] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
+
+      <!-- Header -->
+      <header class="flex items-start justify-between gap-3">
+        <div class="flex-1 text-center pl-10">
+          <h1 class="m-0 text-[clamp(24px,4vw,32px)] font-bold bg-gradient-to-br from-orange-500 to-pink-500 bg-clip-text text-transparent">はげまし</h1>
+          <p class="mt-2 mb-0 text-slate-400 text-base">話して、励ましてもらおう</p>
         </div>
-        <div class="header-actions">
-          <button class="action-btn" data-label="設定" @click="settingsOpen = true">
+        <div class="flex flex-col gap-1.5 flex-shrink-0 pt-1">
+          <button class="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/15 bg-white/[0.06] text-slate-300 text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-white/[0.12] hover:border-white/25 hover:text-slate-50" data-label="設定" @click="settingsOpen = true">
             <span>⚙️</span>
-            <span class="action-label">設定</span>
+            <span class="hidden lg:inline">設定</span>
           </button>
           <button
-            class="action-btn encourage-btn"
+            class="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-orange-500/40 bg-orange-500/[0.08] text-orange-200 text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-orange-500/[0.18] hover:border-orange-500/70 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
             data-label="励ます"
             :disabled="filteredTexts.length === 0 || isEncouraging"
             @click="runEncourage"
           >
             <span>💪</span>
-            <span class="action-label">励ます</span>
+            <span class="hidden lg:inline">励ます</span>
           </button>
         </div>
       </header>
 
-      <div class="recorder">
-        <div class="buttons-row">
+      <!-- Recorder -->
+      <div class="flex flex-col items-center gap-3">
+        <div class="flex gap-4 items-center">
           <template v-if="isRecording">
-            <button class="record-button recording" @click="pauseRecording">
-              <span class="button-icon">⏸️</span>
-              <span class="button-text">一時停止</span>
+            <button class="w-20 h-20 rounded-full border-2 border-red-500 bg-red-500/10 text-slate-50 text-2xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:bg-red-500/20" @click="pauseRecording">
+              <span class="block leading-none">⏸️</span>
+              <span class="text-[10px] font-medium">一時停止</span>
             </button>
           </template>
-
           <template v-else-if="isPaused">
-            <div class="split-button">
-              <button class="split-half resume-half" @click="resumeRecording">
-                <span class="button-icon">▶</span>
-                <span class="button-text">再開</span>
+            <div class="flex rounded-full overflow-hidden border-2 border-orange-500 h-20">
+              <button class="flex flex-col items-center justify-center gap-1 w-20 bg-orange-500/10 border-none text-slate-50 cursor-pointer transition-colors hover:bg-orange-500/25 p-0" @click="resumeRecording">
+                <span class="text-xl leading-none">▶</span>
+                <span class="text-[10px] font-medium">再開</span>
               </button>
-              <div class="split-divider" />
-              <button class="split-half transcribe-half" @click="transcribeRecording">
-                <span class="button-icon">✍️</span>
-                <span class="button-text">文字起こし</span>
+              <div class="w-px bg-orange-500/40 self-stretch" />
+              <button class="flex flex-col items-center justify-center gap-1 w-20 bg-green-400/10 border-none text-slate-50 cursor-pointer transition-colors hover:bg-green-400/25 p-0" @click="transcribeRecording">
+                <span class="text-xl leading-none">✍️</span>
+                <span class="text-[10px] font-medium">文字起こし</span>
               </button>
             </div>
           </template>
-
           <template v-else-if="isProcessing">
-            <button class="record-button" disabled>
-              <span class="button-icon">⏳</span>
-              <span class="button-text">解析中</span>
+            <button class="w-20 h-20 rounded-full border-2 border-orange-500 bg-orange-500/10 text-slate-50 text-2xl flex flex-col items-center justify-center gap-1 opacity-60 cursor-not-allowed" disabled>
+              <span class="block leading-none">⏳</span>
+              <span class="text-[10px] font-medium">解析中</span>
             </button>
           </template>
-
           <template v-else>
-            <button class="record-button" @click="startRecording">
-              <span class="button-icon">🎙️</span>
-              <span class="button-text">録音</span>
+            <button class="w-20 h-20 rounded-full border-2 border-orange-500 bg-orange-500/10 text-slate-50 text-2xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:bg-orange-500/20 hover:scale-105" @click="startRecording">
+              <span class="block leading-none">🎙️</span>
+              <span class="text-[10px] font-medium">録音</span>
             </button>
           </template>
         </div>
-
-        <div v-if="isRecording || duration > 0" class="timer">
+        <div v-if="isRecording || duration > 0" class="text-xl text-red-500 font-mono font-semibold">
           {{ formatTime(duration) }}
         </div>
       </div>
 
-      <div v-if="error" class="error">
-        <p>{{ error }}</p>
-        <button class="reset-button" @click="error = ''">閉じる</button>
+      <!-- Error -->
+      <div v-if="error" class="bg-red-500/10 border border-red-500/30 rounded-2xl p-4">
+        <p class="m-0 mb-3 text-red-300 text-sm">{{ error }}</p>
+        <button class="w-full py-3 px-6 border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 rounded-lg text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="error = ''">閉じる</button>
       </div>
 
       <HistoryTable :history="history" :copiedId="copiedHistoryId" @copy="copyHistory" @delete="deleteHistory" />
     </div>
 
-    <!-- テーマ ワードクラウド -->
-    <div v-if="themes.length" class="word-cloud" aria-hidden="true">
+    <!-- Word cloud -->
+    <div v-if="themes.length" class="w-full max-w-[640px] h-[100px] lg:h-[180px] flex flex-wrap items-center justify-center gap-y-2.5 gap-x-[22px] px-3 pt-8 pb-2 overflow-hidden" aria-hidden="true">
       <span
         v-for="(theme, i) in themes"
         :key="i"
-        class="cloud-word"
+        class="font-bold tracking-[0.04em] cursor-default select-none inline-block transition-[opacity,transform] duration-[250ms] opacity-0 [animation:cloud-in_0.7s_ease_forwards] hover:opacity-100 hover:brightness-[1.3] hover:scale-110"
         :style="wordStyle(i)"
       >{{ theme }}</span>
     </div>
 
-    <!-- 設定モーダル -->
-    <div v-if="settingsOpen" class="modal-overlay" @click.self="settingsOpen = false">
-      <div class="modal">
-        <div class="modal-header">
-          <h2>設定</h2>
-          <button class="modal-close" @click="settingsOpen = false">✕</button>
+    <!-- Settings Modal -->
+    <div v-if="settingsOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="settingsOpen = false">
+      <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
+          <h2 class="m-0 text-lg text-slate-50 font-semibold">設定</h2>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="settingsOpen = false">✕</button>
         </div>
-        <div class="modal-body">
-          <!-- 辞書 -->
-          <div class="section-title">辞書（校正）</div>
-          <p class="section-desc">文字起こし後にAIがこの辞書を使って自動校正します。</p>
-
-          <div v-for="(entry, i) in settings.dictionary" :key="i" class="dict-row">
-            <input v-model="entry.input" class="input dict-input" placeholder="入力" />
-            <span class="dict-arrow">→</span>
-            <input v-model="entry.output" class="input dict-input" placeholder="変換" />
-            <button class="dict-remove" @click="removeDictEntry(i)">✕</button>
+        <div class="px-6 py-5 overflow-y-auto flex flex-col gap-3">
+          <div class="text-[13px] font-semibold text-slate-300">辞書（校正）</div>
+          <p class="m-0 text-xs text-slate-500">文字起こし後にAIがこの辞書を使って自動校正します。</p>
+          <div v-for="(entry, i) in settings.dictionary" :key="i" class="flex items-center gap-1.5">
+            <input v-model="entry.input" class="flex-1 min-w-0 bg-white/[0.05] border border-white/[0.12] rounded-lg text-slate-50 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit]" placeholder="入力" />
+            <span class="text-slate-500 text-sm flex-shrink-0">→</span>
+            <input v-model="entry.output" class="flex-1 min-w-0 bg-white/[0.05] border border-white/[0.12] rounded-lg text-slate-50 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit]" placeholder="変換" />
+            <button class="bg-transparent border-none text-slate-500 text-[13px] cursor-pointer p-1 px-1.5 rounded flex-shrink-0 hover:text-red-400 transition-colors" @click="removeDictEntry(i)">✕</button>
           </div>
-          <button class="btn-add-dict" @click="addDictEntry">＋ 追加</button>
+          <button class="self-start bg-transparent border border-dashed border-white/20 rounded-md text-slate-500 text-xs px-3 py-1 cursor-pointer hover:border-white/35 hover:text-slate-400 transition-all" @click="addDictEntry">＋ 追加</button>
 
-          <hr class="section-divider" />
+          <hr class="border-none border-t border-white/[0.08] my-1" />
 
-          <!-- 励まし設定 -->
-          <div class="section-title">励まし方</div>
-          <div class="field">
-            <label>ベース知識（Vector Store ID）</label>
-            <input
-              v-model="settings.vectorStoreId"
-              class="input"
-              placeholder="vs_xxxxxxxxxxxx（省略可）"
-            />
-            <p class="section-desc">OpenAIのVector Store IDを指定すると、励ますときにその知識を参照します。</p>
+          <div class="text-[13px] font-semibold text-slate-300">励まし方</div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[13px] font-medium text-slate-400">ベース知識（Vector Store ID）</label>
+            <input v-model="settings.vectorStoreId" class="bg-white/[0.05] border border-white/[0.12] rounded-lg text-slate-50 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit]" placeholder="vs_xxxxxxxxxxxx（省略可）" />
+            <p class="m-0 text-xs text-slate-500">OpenAIのVector Store IDを指定すると、励ますときにその知識を参照します。</p>
           </div>
-          <div class="field">
-            <label>対象期間</label>
-            <select v-model="settings.period" class="select">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[13px] font-medium text-slate-400">対象期間</label>
+            <select v-model="settings.period" class="bg-white/[0.05] border border-white/[0.12] rounded-lg text-slate-50 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] [&>option]:bg-[#1e293b]">
               <option value="all">すべて</option>
               <option value="today">今日</option>
               <option value="week">過去7日</option>
               <option value="month">過去30日</option>
             </select>
           </div>
-          <div class="field">
-            <label>励まし方の指示</label>
-            <textarea
-              v-model="settings.encouragePrompt"
-              class="textarea"
-              rows="4"
-              placeholder="話した内容を踏まえて、温かく励ましてください。"
-            />
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[13px] font-medium text-slate-400">励まし方の指示</label>
+            <textarea v-model="settings.encouragePrompt" class="bg-white/[0.05] border border-white/[0.12] rounded-lg text-slate-50 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-y leading-relaxed" rows="4" placeholder="話した内容を踏まえて、温かく励ましてください。" />
           </div>
         </div>
-        <div class="modal-footer">
-          <button class="btn-primary" @click="saveSettings">保存</button>
+        <div class="flex justify-end gap-2 px-6 py-4 pb-5 border-t border-white/[0.08]">
+          <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="saveSettings">保存</button>
         </div>
       </div>
     </div>
 
-    <!-- 励まし結果モーダル -->
-    <div v-if="encourageOpen" class="modal-overlay" @click.self="encourageOpen = false">
-      <div class="modal modal-large">
-        <div class="modal-header">
-          <h2>💪 励まし</h2>
-          <button class="modal-close" @click="encourageOpen = false">✕</button>
+    <!-- Encourage result modal -->
+    <div v-if="encourageOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="encourageOpen = false">
+      <div class="w-full max-w-[600px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
+          <h2 class="m-0 text-lg text-slate-50 font-semibold">💪 励まし</h2>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="encourageOpen = false">✕</button>
         </div>
-        <div class="modal-body">
-          <div v-if="isEncouraging" class="result-loading">
-            <span class="spinner" />
-            <span>励ましを考えています...</span>
+        <div class="px-6 py-5 overflow-y-auto flex flex-col gap-3 flex-1">
+          <div v-if="isEncouraging" class="flex items-center justify-center gap-2.5 py-8 text-slate-400 text-sm">
+            <span class="w-5 h-5 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
+            励ましを考えています...
           </div>
-          <div v-else class="result-text markdown" v-html="parsedResult" />
+          <div v-else class="text-[#e2e8f0] text-sm leading-relaxed [&_h1]:text-slate-50 [&_h2]:text-slate-50 [&_h3]:text-slate-50 [&_h2]:text-[15px] [&_h2]:my-4 [&_p]:m-0 [&_p]:mb-2.5 [&_ul]:m-0 [&_ul]:mb-2.5 [&_ul]:pl-5 [&_li]:mb-1 [&_strong]:text-slate-50 [&_strong]:font-semibold [&_hr]:border-none [&_hr]:border-t [&_hr]:border-white/[0.08] [&_hr]:my-3" v-html="parsedResult" />
         </div>
-        <div class="modal-footer">
-          <button class="btn-ghost" @click="copyResult">{{ resultCopied ? 'コピーしました' : 'コピー' }}</button>
-          <button class="btn-primary" @click="encourageOpen = false">閉じる</button>
+        <div class="flex justify-end gap-2 px-6 py-4 pb-5 border-t border-white/[0.08]">
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="copyResult">{{ resultCopied ? 'コピーしました' : 'コピー' }}</button>
+          <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="encourageOpen = false">閉じる</button>
         </div>
       </div>
     </div>
@@ -302,487 +290,9 @@ const { isRecording, isPaused, isProcessing, duration, formatTime, startRecordin
 })
 </script>
 
-<style scoped>
-.page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 32px 16px 48px;
-  min-height: 100dvh;
-  gap: 0;
-}
-
-@media (max-width: 1023px) {
-  .page {
-    padding: 16px 16px 40px;
-  }
-}
-
-.word-cloud {
-  width: 100%;
-  max-width: 640px;
-  height: 100px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 14px 22px;
-  padding: 32px 12px 8px;
-  overflow: hidden;
-}
-
-@media (max-width: 1023px) {
-  .word-cloud {
-    height: 180px;
-    padding: 16px 12px 4px;
-    gap: 10px 16px;
-  }
-}
-
-.cloud-word {
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  cursor: default;
-  user-select: none;
-  opacity: 0;
-  display: inline-block;
-  transition: opacity 0.25s, transform 0.25s;
-  animation: cloud-in 0.7s ease forwards;
-  white-space: nowrap;
-}
-
-.cloud-word:hover {
-  opacity: 1 !important;
-  filter: brightness(1.3);
-  transform: scale(1.1) rotate(0deg) !important;
-}
-
+<style>
 @keyframes cloud-in {
   from { opacity: 0; transform: translateY(8px) scale(0.88); }
-  to   { opacity: 0.65; transform: translateY(0) scale(1); }
+  to { opacity: 0.65; transform: translateY(0) scale(1); }
 }
-
-.container {
-  width: 100%;
-  max-width: 600px;
-  max-height: 70dvh;
-  overflow-y: auto;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 28px;
-  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(10px);
-  display: grid;
-  gap: 16px;
-  margin-left: 10px;
-}
-
-.container::-webkit-scrollbar { width: 4px; }
-.container::-webkit-scrollbar-track { background: transparent; }
-.container::-webkit-scrollbar-thumb { background: rgba(249, 115, 22, 0.3); border-radius: 2px; }
-.container::-webkit-scrollbar-thumb:hover { background: rgba(249, 115, 22, 0.55); }
-
-@media (max-width: 1023px) {
-  .container { padding: 20px; gap: 12px; max-height: 68dvh; }
-}
-
-.header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.header-center {
-  flex: 1;
-  text-align: center;
-  padding: 0 0 0 40px;
-}
-
-.header-center h1 {
-  margin: 0;
-  font-size: clamp(24px, 4vw, 32px);
-  color: #f8fafc;
-  background: linear-gradient(135deg, #f97316, #ec4899);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.subtitle {
-  margin: 8px 0 0;
-  color: #94a3b8;
-  font-size: 16px;
-}
-
-.header-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex-shrink: 0;
-  padding-top: 4px;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.06);
-  color: #cbd5e1;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.action-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.25);
-  color: #f8fafc;
-}
-
-.action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.encourage-btn {
-  border-color: rgba(249, 115, 22, 0.4);
-  background: rgba(249, 115, 22, 0.08);
-  color: #fed7aa;
-}
-
-.encourage-btn:hover:not(:disabled) {
-  background: rgba(249, 115, 22, 0.18);
-  border-color: rgba(249, 115, 22, 0.7);
-  color: #fff;
-}
-
-@media (max-width: 1023px) {
-  .action-label { display: none; }
-
-  .action-btn {
-    position: relative;
-    padding: 8px 10px;
-  }
-
-  .action-btn::after {
-    content: attr(data-label);
-    position: absolute;
-    bottom: calc(100% + 6px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: #334155;
-    color: #f1f5f9;
-    font-size: 11px;
-    padding: 3px 8px;
-    border-radius: 4px;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.15s;
-  }
-
-  .action-btn:hover::after { opacity: 1; }
-}
-
-.recorder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.buttons-row { display: flex; gap: 16px; align-items: center; }
-
-.record-button {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  border: 2px solid #f97316;
-  background: rgba(249, 115, 22, 0.1);
-  color: #f8fafc;
-  font-size: 24px;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  transition: all 0.2s ease;
-}
-
-@media (max-width: 1023px) {
-  .record-button { width: 70px; height: 70px; font-size: 20px; }
-}
-
-.record-button:hover:not(:disabled) {
-  background: rgba(249, 115, 22, 0.2);
-  transform: scale(1.05);
-}
-
-.record-button.recording {
-  border-color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
-}
-
-.record-button:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.button-icon { display: block; line-height: 1; }
-.button-text { font-size: 10px; font-weight: 500; }
-
-.split-button {
-  display: flex;
-  border-radius: 50px;
-  overflow: hidden;
-  border: 2px solid #f97316;
-  height: 80px;
-}
-
-.split-half {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  width: 80px;
-  background: none;
-  border: none;
-  color: #f8fafc;
-  cursor: pointer;
-  transition: background 0.2s;
-  padding: 0;
-}
-
-.split-half .button-icon { font-size: 20px; }
-.split-half .button-text { font-size: 10px; font-weight: 500; }
-.resume-half { background: rgba(249, 115, 22, 0.1); }
-.resume-half:hover { background: rgba(249, 115, 22, 0.25); }
-.split-divider { width: 1px; background: rgba(249, 115, 22, 0.4); align-self: stretch; }
-.transcribe-half { background: rgba(74, 222, 128, 0.1); }
-.transcribe-half:hover { background: rgba(74, 222, 128, 0.25); }
-
-.timer {
-  font-size: 20px;
-  color: #ef4444;
-  font-family: 'Monaco', monospace;
-  font-weight: 600;
-}
-
-.error {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 16px;
-  padding: 16px;
-}
-
-.error p { margin: 0 0 12px; color: #fca5a5; font-size: 14px; }
-
-.reset-button {
-  width: 100%;
-  padding: 12px 24px;
-  border: none;
-  background: linear-gradient(135deg, #f97316, #ec4899);
-  color: #f8fafc;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.reset-button:hover { opacity: 0.9; }
-
-/* モーダル */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  z-index: 100;
-}
-
-.modal {
-  width: 100%;
-  max-width: 480px;
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
-  display: flex;
-  flex-direction: column;
-  max-height: 90vh;
-}
-
-.modal-large { max-width: 600px; }
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.modal-header h2 { margin: 0; font-size: 18px; color: #f1f5f9; }
-
-.modal-close {
-  background: none;
-  border: none;
-  color: #64748b;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: color 0.2s;
-}
-
-.modal-close:hover { color: #f1f5f9; }
-
-.modal-body {
-  padding: 20px 24px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 16px 24px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.section-title { font-size: 13px; font-weight: 600; color: #cbd5e1; }
-.section-desc { margin: 0; font-size: 12px; color: #64748b; }
-
-.section-divider {
-  border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  margin: 4px 0;
-}
-
-.field { display: flex; flex-direction: column; gap: 6px; }
-
-.field label { font-size: 13px; font-weight: 500; color: #94a3b8; }
-
-.input, .select, .textarea {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  color: #f1f5f9;
-  font-size: 14px;
-  padding: 8px 12px;
-  outline: none;
-  transition: border-color 0.2s;
-  font-family: inherit;
-}
-
-.input:focus, .select:focus, .textarea:focus { border-color: #f97316; }
-.select option { background: #1e293b; }
-.textarea { resize: vertical; line-height: 1.5; }
-
-.dict-row { display: flex; align-items: center; gap: 6px; }
-.dict-input { flex: 1; min-width: 0; }
-.dict-arrow { color: #64748b; font-size: 14px; flex-shrink: 0; }
-
-.dict-remove {
-  background: none;
-  border: none;
-  color: #64748b;
-  font-size: 13px;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 4px;
-  flex-shrink: 0;
-  transition: color 0.15s;
-}
-
-.dict-remove:hover { color: #f87171; }
-
-.btn-add-dict {
-  align-self: flex-start;
-  background: none;
-  border: 1px dashed rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  color: #64748b;
-  font-size: 12px;
-  padding: 5px 12px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.btn-add-dict:hover { border-color: rgba(255, 255, 255, 0.35); color: #94a3b8; }
-
-.btn-primary {
-  padding: 8px 20px;
-  border: none;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #f97316, #ec4899);
-  color: #f8fafc;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.btn-primary:hover { opacity: 0.9; }
-
-.btn-ghost {
-  padding: 8px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  background: transparent;
-  color: #94a3b8;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-ghost:hover { background: rgba(255, 255, 255, 0.06); color: #f1f5f9; }
-
-.result-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 32px 0;
-  color: #94a3b8;
-  font-size: 14px;
-}
-
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(249, 115, 22, 0.3);
-  border-top-color: #f97316;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.result-text {
-  color: #e2e8f0;
-  font-size: 14px;
-  line-height: 1.7;
-}
-
-.result-text.markdown :deep(h1),
-.result-text.markdown :deep(h2),
-.result-text.markdown :deep(h3) { color: #f1f5f9; margin: 16px 0 6px; font-size: 15px; }
-.result-text.markdown :deep(p) { margin: 0 0 10px; }
-.result-text.markdown :deep(ul),
-.result-text.markdown :deep(ol) { margin: 0 0 10px; padding-left: 20px; }
-.result-text.markdown :deep(li) { margin-bottom: 4px; }
-.result-text.markdown :deep(strong) { color: #f1f5f9; font-weight: 600; }
-.result-text.markdown :deep(hr) { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 12px 0; }
 </style>

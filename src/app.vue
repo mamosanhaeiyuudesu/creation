@@ -5,7 +5,11 @@
 </template>
 
 <style>
-* {
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*, *::before, *::after {
   box-sizing: border-box;
 }
 

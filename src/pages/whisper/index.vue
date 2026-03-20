@@ -1,113 +1,136 @@
 <template>
-  <div class="page">
-    <div class="container">
-      <header class="header">
-        <div class="header-center">
-          <h1>Whisper</h1>
-          <p class="subtitle">音声を文字に変換</p>
+  <div class="flex items-start justify-center px-4 pt-4 lg:pt-8 min-h-full pb-8">
+    <div class="w-full max-w-[600px] bg-white/[0.04] border border-white/[0.08] rounded-2xl p-7 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-[10px] grid gap-4 ml-2.5">
+
+      <!-- Header -->
+      <header class="flex items-start justify-between gap-3">
+        <div class="flex-1 text-center pl-10">
+          <h1 class="m-0 text-[clamp(24px,4vw,32px)] font-bold bg-gradient-to-br from-sky-400 to-indigo-500 bg-clip-text text-transparent">Whisper</h1>
+          <p class="mt-2 mb-0 text-slate-400 text-base">音声を文字に変換</p>
         </div>
-        <div class="header-actions">
-          <button class="action-btn" data-label="設定" @click="settingsOpen = true">
+        <div class="flex flex-col gap-1.5 flex-shrink-0 pt-1">
+          <button
+            class="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/15 bg-white/[0.06] text-slate-300 text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-white/[0.12] hover:border-white/25 hover:text-slate-50 [&_.label]:inline [&_.label]:lg:inline"
+            data-label="設定"
+            @click="settingsOpen = true"
+          >
             <span>⚙️</span>
-            <span class="action-label">設定</span>
+            <span class="hidden lg:inline">設定</span>
           </button>
         </div>
       </header>
 
-      <div class="recorder">
-        <div class="buttons-row">
+      <!-- Recorder -->
+      <div class="flex flex-col items-center gap-3">
+        <div class="flex gap-4 items-center">
+          <!-- Recording state -->
           <template v-if="isRecording">
-            <button class="record-button recording" @click="pauseRecording">
-              <span class="button-icon">⏸️</span>
-              <span class="button-text">一時停止</span>
+            <button
+              class="w-20 h-20 lg:w-20 lg:h-20 rounded-full border-2 border-red-500 bg-red-500/10 text-slate-50 text-2xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:bg-red-500/20 active:scale-95"
+              @click="pauseRecording"
+            >
+              <span class="block leading-none">⏸️</span>
+              <span class="text-[10px] font-medium">一時停止</span>
             </button>
           </template>
 
+          <!-- Paused state -->
           <template v-else-if="isPaused">
-            <div class="split-button">
-              <button class="split-half resume-half" @click="resumeRecording">
-                <span class="button-icon">▶</span>
-                <span class="button-text">再開</span>
+            <div class="flex rounded-full overflow-hidden border-2 border-sky-400 h-20">
+              <button
+                class="flex flex-col items-center justify-center gap-1 w-20 bg-sky-400/10 border-none text-slate-50 cursor-pointer transition-colors hover:bg-sky-400/25 p-0"
+                @click="resumeRecording"
+              >
+                <span class="text-xl leading-none">▶</span>
+                <span class="text-[10px] font-medium">再開</span>
               </button>
-              <div class="split-divider" />
-              <button class="split-half transcribe-half" @click="transcribeRecording">
-                <span class="button-icon">✍️</span>
-                <span class="button-text">文字起こし</span>
+              <div class="w-px bg-sky-400/40 self-stretch" />
+              <button
+                class="flex flex-col items-center justify-center gap-1 w-20 bg-green-400/10 border-none text-slate-50 cursor-pointer transition-colors hover:bg-green-400/25 p-0"
+                @click="transcribeRecording"
+              >
+                <span class="text-xl leading-none">✍️</span>
+                <span class="text-[10px] font-medium">文字起こし</span>
               </button>
             </div>
           </template>
 
+          <!-- Processing state -->
           <template v-else-if="isProcessing || isUploading">
-            <button class="record-button" disabled>
-              <span class="button-icon">⏳</span>
-              <span class="button-text">解析中</span>
+            <button class="w-20 h-20 rounded-full border-2 border-sky-400 bg-sky-400/10 text-slate-50 text-2xl flex flex-col items-center justify-center gap-1 opacity-60 cursor-not-allowed" disabled>
+              <span class="block leading-none">⏳</span>
+              <span class="text-[10px] font-medium">解析中</span>
             </button>
           </template>
 
+          <!-- Idle state -->
           <template v-else>
-            <button class="record-button" @click="startRecording">
-              <span class="button-icon">🎙️</span>
-              <span class="button-text">録音</span>
+            <button
+              class="w-20 h-20 rounded-full border-2 border-sky-400 bg-sky-400/10 text-slate-50 text-2xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:bg-sky-400/20 hover:scale-105"
+              @click="startRecording"
+            >
+              <span class="block leading-none">🎙️</span>
+              <span class="text-[10px] font-medium">録音</span>
             </button>
-
-            <button class="record-button upload-button" @click="triggerUpload">
-              <span class="button-icon">📂</span>
-              <span class="button-text">音声ファイル</span>
+            <button
+              class="w-20 h-20 rounded-full border-2 border-violet-400 bg-violet-400/10 text-slate-50 text-2xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:bg-violet-400/20 hover:scale-105"
+              @click="triggerUpload"
+            >
+              <span class="block leading-none">📂</span>
+              <span class="text-[10px] font-medium">音声ファイル</span>
             </button>
           </template>
 
-          <input
-            ref="fileInput"
-            type="file"
-            accept="audio/*,video/*"
-            class="file-input-hidden"
-            @change="onFileSelected"
-          />
+          <input ref="fileInput" type="file" accept="audio/*,video/*" class="hidden" @change="onFileSelected" />
         </div>
 
-        <div v-if="isRecording || duration > 0" class="timer">
+        <div v-if="isRecording || duration > 0" class="text-xl text-red-500 font-mono font-semibold">
           {{ formatTime(duration) }}
         </div>
       </div>
 
-      <div v-if="error" class="error">
-        <p>{{ error }}</p>
-        <button class="reset-button" @click="error = ''">閉じる</button>
+      <!-- Error -->
+      <div v-if="error" class="bg-red-500/10 border border-red-500/30 rounded-2xl p-4">
+        <p class="m-0 mb-3 text-red-300 text-sm">{{ error }}</p>
+        <button
+          class="w-full py-3 px-6 border-none bg-gradient-to-br from-sky-400 to-indigo-500 text-slate-50 rounded-lg text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity"
+          @click="error = ''"
+        >閉じる</button>
       </div>
 
       <HistoryTable :history="history" :copiedId="copiedHistoryId" @copy="copyHistory" @delete="deleteHistory" />
     </div>
 
-    <!-- 設定モーダル -->
-    <div v-if="settingsOpen" class="modal-overlay" @click.self="settingsOpen = false">
-      <div class="modal">
-        <div class="modal-header">
-          <h2>設定</h2>
-          <button class="modal-close" @click="settingsOpen = false">✕</button>
+    <!-- Settings Modal -->
+    <div v-if="settingsOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="settingsOpen = false">
+      <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
+          <h2 class="m-0 text-lg text-slate-50 font-semibold">設定</h2>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="settingsOpen = false">✕</button>
         </div>
-        <div class="modal-body">
-          <div class="section-title">辞書（校正）</div>
-          <p class="section-desc">文字起こし後にAIがこの辞書を使って自動校正します。</p>
+        <div class="px-6 py-5 overflow-y-auto flex flex-col gap-3">
+          <div class="text-[13px] font-semibold text-slate-300">辞書（校正）</div>
+          <p class="m-0 text-xs text-slate-500">文字起こし後にAIがこの辞書を使って自動校正します。</p>
 
-          <div class="dict-list">
-            <div v-for="(entry, i) in settings.dictionary" :key="i" class="dict-row">
-              <input v-model="entry.input" class="input dict-input" placeholder="入力" />
-              <span class="dict-arrow">→</span>
+          <div class="max-h-[240px] overflow-y-auto flex flex-col gap-1.5 mb-2">
+            <div v-for="(entry, i) in settings.dictionary" :key="i" class="flex items-center gap-1.5">
+              <input v-model="entry.input" class="flex-1 min-w-0 bg-white/[0.05] border border-white/[0.12] rounded-lg text-slate-50 text-sm px-3 py-2 outline-none focus:border-sky-400 transition-colors font-[inherit]" placeholder="入力" />
+              <span class="text-slate-500 text-sm flex-shrink-0">→</span>
               <input
                 v-model="entry.output"
-                class="input dict-input"
+                class="flex-1 min-w-0 bg-white/[0.05] border border-white/[0.12] rounded-lg text-slate-50 text-sm px-3 py-2 outline-none focus:border-sky-400 transition-colors font-[inherit]"
                 placeholder="変換"
                 :data-dict-output="i"
                 @keydown.enter.prevent="(e: KeyboardEvent) => !e.isComposing && addDictEntryAndFocus(i)"
               />
-              <button class="dict-remove" @click="removeDictEntry(i)">✕</button>
+              <button class="bg-transparent border-none text-slate-500 text-[13px] cursor-pointer p-1 px-1.5 rounded flex-shrink-0 hover:text-red-400 transition-colors" @click="removeDictEntry(i)">✕</button>
             </div>
           </div>
 
-          <button class="btn-add-dict" @click="addDictEntry">＋ 追加</button>
+          <button class="self-start bg-transparent border border-dashed border-white/20 rounded-md text-slate-500 text-xs px-3 py-1 cursor-pointer hover:border-white/35 hover:text-slate-400 transition-all" @click="addDictEntry">＋ 追加</button>
         </div>
-        <div class="modal-footer">
-          <button class="btn-primary" @click="saveSettings">保存</button>
+        <div class="flex justify-end gap-2 px-6 py-4 pb-5 border-t border-white/[0.08]">
+          <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-sky-400 to-indigo-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="saveSettings">保存</button>
         </div>
       </div>
     </div>
@@ -191,461 +214,3 @@ const onFileSelected = async (event: Event) => {
   }
 }
 </script>
-
-<style scoped>
-.page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 16px;
-  min-height: 100%;
-}
-
-@media (max-width: 1023px) {
-  .page {
-    padding: 12px 16px;
-    align-items: flex-start;
-    padding-top: 16px;
-  }
-}
-
-.container {
-  width: 100%;
-  max-width: 600px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 28px;
-  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(10px);
-  display: grid;
-  gap: 16px;
-  margin-left: 10px;
-}
-
-@media (max-width: 1023px) {
-  .container {
-    padding: 20px;
-    gap: 12px;
-  }
-}
-
-.header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.header-center {
-  flex: 1;
-  text-align: center;
-  padding: 0 0 0 40px;
-}
-
-.header-center h1 {
-  margin: 0;
-  font-size: clamp(24px, 4vw, 32px);
-  color: #f8fafc;
-  background: linear-gradient(135deg, #38bdf8, #6366f1);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.subtitle {
-  margin: 8px 0 0;
-  color: #94a3b8;
-  font-size: 16px;
-}
-
-.header-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex-shrink: 0;
-  padding-top: 4px;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.06);
-  color: #cbd5e1;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.action-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.25);
-  color: #f8fafc;
-}
-
-.action-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-@media (max-width: 1023px) {
-  .action-label {
-    display: none;
-  }
-
-  .action-btn {
-    position: relative;
-    padding: 8px 10px;
-  }
-
-  .action-btn::after {
-    content: attr(data-label);
-    position: absolute;
-    bottom: calc(100% + 6px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: #334155;
-    color: #f1f5f9;
-    font-size: 11px;
-    padding: 3px 8px;
-    border-radius: 4px;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.15s;
-  }
-
-  .action-btn:hover::after {
-    opacity: 1;
-  }
-}
-
-.recorder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.buttons-row {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.file-input-hidden {
-  display: none;
-}
-
-.record-button {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  border: 2px solid #38bdf8;
-  background: rgba(56, 189, 248, 0.1);
-  color: #f8fafc;
-  font-size: 24px;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  transition: all 0.2s ease;
-}
-
-@media (max-width: 1023px) {
-  .record-button {
-    width: 70px;
-    height: 70px;
-    font-size: 20px;
-  }
-}
-
-.record-button:hover:not(:disabled) {
-  background: rgba(56, 189, 248, 0.2);
-  border-color: #0ea5e9;
-  transform: scale(1.05);
-}
-
-.record-button.recording {
-  border-color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
-}
-
-.record-button.recording:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: #dc2626;
-}
-
-.upload-button {
-  border-color: #a78bfa;
-  background: rgba(167, 139, 250, 0.1);
-}
-
-.upload-button:hover:not(:disabled) {
-  background: rgba(167, 139, 250, 0.2);
-  border-color: #8b5cf6;
-  transform: scale(1.05);
-}
-
-.record-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.button-icon {
-  display: block;
-  line-height: 1;
-}
-
-.button-text {
-  font-size: 10px;
-  font-weight: 500;
-}
-
-.split-button {
-  display: flex;
-  border-radius: 50px;
-  overflow: hidden;
-  border: 2px solid #38bdf8;
-  height: 80px;
-}
-
-.split-half {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  width: 80px;
-  background: none;
-  border: none;
-  color: #f8fafc;
-  cursor: pointer;
-  transition: background 0.2s;
-  padding: 0;
-}
-
-.split-half .button-icon { font-size: 20px; }
-.split-half .button-text { font-size: 10px; font-weight: 500; }
-
-.resume-half { background: rgba(56, 189, 248, 0.1); }
-.resume-half:hover { background: rgba(56, 189, 248, 0.25); }
-
-.split-divider {
-  width: 1px;
-  background: rgba(56, 189, 248, 0.4);
-  align-self: stretch;
-}
-
-.transcribe-half { background: rgba(74, 222, 128, 0.1); }
-.transcribe-half:hover:not(:disabled) { background: rgba(74, 222, 128, 0.25); }
-.transcribe-half:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.timer {
-  font-size: 20px;
-  color: #ef4444;
-  font-family: 'Monaco', monospace;
-  font-weight: 600;
-}
-
-.error {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 16px;
-  padding: 16px;
-}
-
-.error p {
-  margin: 0 0 12px;
-  color: #fca5a5;
-  font-size: 14px;
-}
-
-.reset-button {
-  width: 100%;
-  padding: 12px 24px;
-  border: none;
-  background: linear-gradient(135deg, #38bdf8, #6366f1);
-  color: #f8fafc;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.reset-button:hover { opacity: 0.9; }
-
-/* モーダル */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  z-index: 100;
-}
-
-.modal {
-  width: 100%;
-  max-width: 480px;
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
-  display: flex;
-  flex-direction: column;
-  max-height: 90vh;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 18px;
-  color: #f1f5f9;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: #64748b;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: color 0.2s;
-}
-
-.modal-close:hover { color: #f1f5f9; }
-
-.modal-body {
-  padding: 20px 24px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 16px 24px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #cbd5e1;
-}
-
-.section-desc {
-  margin: 0;
-  font-size: 12px;
-  color: #64748b;
-}
-
-.input {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  color: #f1f5f9;
-  font-size: 14px;
-  padding: 8px 12px;
-  outline: none;
-  transition: border-color 0.2s;
-  font-family: inherit;
-}
-
-.input:focus { border-color: #38bdf8; }
-
-.dict-list {
-  max-height: 240px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.dict-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.dict-input {
-  flex: 1;
-  min-width: 0;
-}
-
-.dict-arrow {
-  color: #64748b;
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.dict-remove {
-  background: none;
-  border: none;
-  color: #64748b;
-  font-size: 13px;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 4px;
-  flex-shrink: 0;
-  transition: color 0.15s;
-}
-
-.dict-remove:hover { color: #f87171; }
-
-.btn-add-dict {
-  align-self: flex-start;
-  background: none;
-  border: 1px dashed rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  color: #64748b;
-  font-size: 12px;
-  padding: 5px 12px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.btn-add-dict:hover {
-  border-color: rgba(255, 255, 255, 0.35);
-  color: #94a3b8;
-}
-
-.btn-primary {
-  padding: 8px 20px;
-  border: none;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #38bdf8, #6366f1);
-  color: #f8fafc;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.btn-primary:hover { opacity: 0.9; }
-</style>

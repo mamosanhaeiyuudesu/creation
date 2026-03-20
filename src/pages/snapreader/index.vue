@@ -1,62 +1,79 @@
 <template>
-  <div class="page">
-    <div class="container">
-      <header class="header">
-        <h1>SnapReader</h1>
-        <p class="subtitle">画像を解析</p>
+  <div class="flex items-start justify-center px-4 pt-4 lg:pt-8 min-h-full pb-8">
+    <div class="w-full max-w-[600px] bg-white/[0.04] border border-white/[0.08] rounded-2xl p-7 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-[10px] grid gap-4">
+
+      <header class="text-center mb-2">
+        <h1 class="m-0 text-[clamp(24px,4vw,32px)] font-bold bg-gradient-to-br from-sky-400 to-indigo-500 bg-clip-text text-transparent">SnapReader</h1>
+        <p class="mt-2 mb-0 text-slate-400 text-base">画像を解析</p>
       </header>
 
-      <div class="uploader">
-        <div class="buttons-row">
-          <button class="record-button camera-button" @click="fileInputTranscript?.click()" :disabled="loading">
-            <span class="button-icon">{{ loadingMode === 'transcript' ? '⏳' : '📷' }}</span>
-            <span class="button-text">{{ loadingMode === 'transcript' ? '解析中' : '文字起こし' }}</span>
-          </button>
-          <button class="record-button summary-button" @click="triggerSummary" :disabled="loading">
-            <span class="button-icon">{{ loadingMode === 'summary' ? '⏳' : '📝' }}</span>
-            <span class="button-text">{{ loadingMode === 'summary' ? '処理中' : '要約' }}</span>
-          </button>
-          <input ref="fileInputTranscript" type="file" accept="image/*" class="file-input-hidden" @change="onTranscriptFileChange" />
-          <input ref="fileInputSummary" type="file" accept="image/*" class="file-input-hidden" @change="onSummaryFileChange" />
-        </div>
+      <!-- Action buttons -->
+      <div class="flex justify-center gap-4">
+        <button
+          class="w-20 h-20 rounded-full border-2 border-violet-400 bg-violet-400/10 text-slate-50 text-2xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:bg-violet-400/20 hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
+          :disabled="loading"
+          @click="fileInputTranscript?.click()"
+        >
+          <span class="block leading-none">{{ loadingMode === 'transcript' ? '⏳' : '📷' }}</span>
+          <span class="text-[10px] font-medium">{{ loadingMode === 'transcript' ? '解析中' : '文字起こし' }}</span>
+        </button>
+        <button
+          class="w-20 h-20 rounded-full border-2 border-emerald-400 bg-emerald-400/10 text-slate-50 text-2xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:bg-emerald-400/20 hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
+          :disabled="loading"
+          @click="triggerSummary"
+        >
+          <span class="block leading-none">{{ loadingMode === 'summary' ? '⏳' : '📝' }}</span>
+          <span class="text-[10px] font-medium">{{ loadingMode === 'summary' ? '処理中' : '要約' }}</span>
+        </button>
+        <input ref="fileInputTranscript" type="file" accept="image/*" class="hidden" @change="onTranscriptFileChange" />
+        <input ref="fileInputSummary" type="file" accept="image/*" class="hidden" @change="onSummaryFileChange" />
       </div>
 
-      <div v-if="error" class="status status--error">
-        <p>{{ error }}</p>
+      <!-- Error -->
+      <div v-if="error" class="bg-red-500/[0.08] border border-red-400/40 rounded-xl px-3.5 py-3 text-red-300 text-sm">
+        <p class="m-0">{{ error }}</p>
       </div>
 
-      <!-- 要約モード -->
+      <!-- Summary mode -->
       <template v-if="summary">
-        <div class="summary-box">
-          <p class="label">要約</p>
-          <p class="summary-text">{{ summary }}</p>
+        <div class="bg-emerald-400/[0.06] border border-emerald-400/20 rounded-xl p-4">
+          <p class="m-0 mb-2 text-[11px] font-semibold text-emerald-400 uppercase tracking-[0.08em]">要約</p>
+          <p class="m-0 text-[#e2e8f0] text-sm leading-relaxed whitespace-pre-line">{{ summary }}</p>
         </div>
 
-        <div v-if="chatHistory.length > 0" ref="chatContainer" class="chat-history">
+        <div v-if="chatHistory.length > 0" ref="chatContainer" class="flex flex-col gap-2.5 max-h-[400px] overflow-y-auto pr-1">
           <template v-for="(msg, i) in chatHistory" :key="i">
-            <div :class="['chat-message', msg.role]">
-              <p>{{ msg.content }}</p>
+            <div
+              :class="[
+                'rounded-xl px-3.5 py-3 text-sm leading-relaxed',
+                msg.role === 'user'
+                  ? 'bg-indigo-500/12 border border-indigo-500/25 text-indigo-200 self-end max-w-[90%]'
+                  : 'bg-white/[0.04] border border-white/[0.08] text-[#e2e8f0]'
+              ]"
+            >
+              <p class="m-0 whitespace-pre-line">{{ msg.content }}</p>
             </div>
           </template>
-          <div v-if="streamingAnswer" class="chat-message assistant streaming">
-            <p>{{ streamingAnswer }}</p>
+          <div v-if="streamingAnswer" class="rounded-xl px-3.5 py-3 text-sm leading-relaxed bg-white/[0.04] border border-sky-400/30 text-[#e2e8f0]">
+            <p class="m-0 whitespace-pre-line">{{ streamingAnswer }}</p>
           </div>
         </div>
 
-        <div v-if="loadingMode === 'questions'" class="loading-questions">
-          <span>質問を生成中…</span>
+        <div v-if="loadingMode === 'questions'" class="text-slate-500 text-[13px] text-center py-1">質問を生成中…</div>
+
+        <div v-if="questions.length > 0 && turnCount < 5 && !loading" class="flex flex-col gap-2">
+          <button
+            v-for="(q, i) in questions"
+            :key="i"
+            class="w-full bg-sky-400/[0.07] border border-sky-400/25 rounded-[10px] px-3.5 py-2.5 text-sky-300 text-[13px] text-left cursor-pointer transition-all hover:bg-sky-400/[0.14] hover:border-sky-400/45 hover:text-sky-200 leading-relaxed"
+            @click="askQuestion(q)"
+          >{{ q }}</button>
         </div>
 
-        <div v-if="questions.length > 0 && turnCount < 5 && !loading" class="questions">
-          <button v-for="(q, i) in questions" :key="i" class="question-button" @click="askQuestion(q)">
-            {{ q }}
-          </button>
-        </div>
-
-        <p v-if="turnCount >= 5 && !loading" class="turn-limit">会話の上限（5回）に達しました。</p>
+        <p v-if="turnCount >= 5 && !loading" class="m-0 text-slate-500 text-[13px] text-center">会話の上限（5回）に達しました。</p>
       </template>
 
-      <!-- 文字起こしモード: 履歴表示 -->
+      <!-- History mode -->
       <HistoryTable v-if="!summary" :history="history" :copiedId="copiedHistoryId" @copy="copyHistory" @delete="deleteHistory" />
     </div>
   </div>
@@ -257,268 +274,3 @@ const askQuestion = async (question: string) => {
   }
 }
 </script>
-
-<style scoped>
-.page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 16px;
-  min-height: 100vh;
-}
-
-@media (max-width: 1023px) {
-  .page {
-    padding: 12px 16px;
-    align-items: flex-start;
-    padding-top: 16px;
-  }
-}
-
-.container {
-  width: 100%;
-  max-width: 600px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 28px;
-  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(10px);
-  display: grid;
-  gap: 16px;
-}
-
-@media (max-width: 1023px) {
-  .container {
-    padding: 20px;
-    gap: 12px;
-  }
-}
-
-.header {
-  text-align: center;
-  margin-bottom: 8px;
-}
-
-.header h1 {
-  margin: 0;
-  font-size: clamp(24px, 4vw, 32px);
-  color: #f8fafc;
-  background: linear-gradient(135deg, #38bdf8, #6366f1);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.subtitle {
-  margin: 8px 0 0;
-  color: #94a3b8;
-  font-size: 16px;
-}
-
-.uploader {
-  display: grid;
-  gap: 12px;
-}
-
-.buttons-row {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-}
-
-.file-input-hidden {
-  display: none;
-}
-
-.record-button {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  border: 2px solid #38bdf8;
-  background: rgba(56, 189, 248, 0.1);
-  color: #f8fafc;
-  font-size: 24px;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  transition: all 0.2s ease;
-}
-
-@media (max-width: 1023px) {
-  .record-button {
-    width: 70px;
-    height: 70px;
-    font-size: 20px;
-  }
-}
-
-.record-button:hover:not(:disabled) {
-  background: rgba(56, 189, 248, 0.2);
-  border-color: #0ea5e9;
-  transform: scale(1.05);
-}
-
-.record-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.camera-button {
-  border-color: #a78bfa;
-  background: rgba(167, 139, 250, 0.1);
-}
-
-.camera-button:hover:not(:disabled) {
-  background: rgba(167, 139, 250, 0.2);
-  border-color: #8b5cf6;
-  transform: scale(1.05);
-}
-
-.summary-button {
-  border-color: #34d399;
-  background: rgba(52, 211, 153, 0.1);
-}
-
-.summary-button:hover:not(:disabled) {
-  background: rgba(52, 211, 153, 0.2);
-  border-color: #10b981;
-  transform: scale(1.05);
-}
-
-.button-icon {
-  display: block;
-  line-height: 1;
-}
-
-.button-text {
-  font-size: 10px;
-  font-weight: 500;
-}
-
-.status {
-  border-radius: 12px;
-  padding: 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.status p {
-  margin: 0;
-}
-
-.status--error {
-  background: rgba(248, 113, 113, 0.08);
-  border-color: rgba(248, 113, 113, 0.4);
-  color: #fca5a5;
-  font-size: 14px;
-}
-
-/* 要約エリア */
-.summary-box {
-  background: rgba(52, 211, 153, 0.06);
-  border: 1px solid rgba(52, 211, 153, 0.2);
-  border-radius: 12px;
-  padding: 16px;
-}
-
-.label {
-  margin: 0 0 8px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #34d399;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.summary-text {
-  margin: 0;
-  color: #e2e8f0;
-  font-size: 14px;
-  line-height: 1.75;
-  white-space: pre-line;
-}
-
-/* チャット履歴 */
-.chat-history {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.chat-message {
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 14px;
-  line-height: 1.7;
-}
-
-.chat-message p {
-  margin: 0;
-  white-space: pre-line;
-}
-
-.chat-message.user {
-  background: rgba(99, 102, 241, 0.12);
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  color: #c7d2fe;
-  align-self: flex-end;
-  max-width: 90%;
-}
-
-.chat-message.assistant {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #e2e8f0;
-}
-
-.chat-message.streaming {
-  border-color: rgba(56, 189, 248, 0.3);
-}
-
-/* 質問ボタン */
-.questions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.question-button {
-  width: 100%;
-  background: rgba(56, 189, 248, 0.07);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  border-radius: 10px;
-  padding: 10px 14px;
-  color: #7dd3fc;
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  line-height: 1.5;
-}
-
-.question-button:hover {
-  background: rgba(56, 189, 248, 0.14);
-  border-color: rgba(56, 189, 248, 0.45);
-  color: #bae6fd;
-}
-
-.loading-questions {
-  color: #64748b;
-  font-size: 13px;
-  text-align: center;
-  padding: 4px 0;
-}
-
-.turn-limit {
-  margin: 0;
-  color: #64748b;
-  font-size: 13px;
-  text-align: center;
-}
-</style>

@@ -1,49 +1,24 @@
 <template>
-  <div class="page">
-    <main class="hub">
-      <header class="hub__header">
-        <h1>AI Tools</h1>
-        <p class="hub__subtitle">AIを使ったツール集</p>
+  <div class="min-h-screen flex items-start justify-center px-4 pt-6 pb-4">
+    <main class="w-[min(520px,100%)] grid gap-5">
+      <header class="text-center">
+        <h1 class="m-0 text-[clamp(24px,5vw,36px)] font-bold bg-gradient-to-br from-sky-400 to-indigo-500 bg-clip-text text-transparent">
+          AI Tools
+        </h1>
+        <p class="mt-1 mb-0 text-slate-400 text-sm">AIを使ったツール集</p>
       </header>
 
-      <div class="tools">
-        <NuxtLink class="tool-card" to="/snapreader">
-          <div class="tool-card__icon">📸</div>
+      <div class="grid gap-2">
+        <NuxtLink
+          v-for="tool in tools"
+          :key="tool.path"
+          :to="tool.path"
+          class="flex items-center gap-3 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 no-underline text-inherit transition-all duration-200 hover:border-sky-400/40 hover:bg-white/[0.07] hover:-translate-y-0.5"
+        >
+          <div class="text-2xl flex-shrink-0">{{ tool.icon }}</div>
           <div>
-            <h2 class="tool-card__title">SnapReader</h2>
-            <p class="tool-card__desc">画像を送って、数秒で要約</p>
-          </div>
-        </NuxtLink>
-
-        <NuxtLink class="tool-card" to="/whisper">
-          <div class="tool-card__icon">🎙️</div>
-          <div>
-            <h2 class="tool-card__title">Whisper</h2>
-            <p class="tool-card__desc">音声を文字に自動変換</p>
-          </div>
-        </NuxtLink>
-
-        <NuxtLink class="tool-card" to="/hagemashi">
-          <div class="tool-card__icon">💪</div>
-          <div>
-            <h2 class="tool-card__title">はげまし</h2>
-            <p class="tool-card__desc">話して、AIに励ましてもらおう</p>
-          </div>
-        </NuxtLink>
-
-        <NuxtLink class="tool-card" to="/miyako">
-          <div class="tool-card__icon">🏝️</div>
-          <div>
-            <h2 class="tool-card__title">宮古島市議事録分析</h2>
-            <p class="tool-card__desc">会期別キーワード特徴度ヒートマップ</p>
-          </div>
-        </NuxtLink>
-
-        <NuxtLink class="tool-card" to="/task">
-          <div class="tool-card__icon">📋</div>
-          <div>
-            <h2 class="tool-card__title">タスクくん</h2>
-            <p class="tool-card__desc">Trello の DOING / TODO / DONE をまとめて確認</p>
+            <h2 class="m-0 mb-0.5 text-base text-slate-50">{{ tool.name }}</h2>
+            <p class="m-0 text-xs text-slate-400">{{ tool.desc }}</p>
           </div>
         </NuxtLink>
       </div>
@@ -51,80 +26,12 @@
   </div>
 </template>
 
-<style scoped>
-.page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  padding-top: 10px;
-}
-
-.hub {
-  width: min(720px, 100%);
-  display: grid;
-  gap: 32px;
-}
-
-.hub__header {
-  text-align: center;
-}
-
-.hub__header h1 {
-  margin: 0;
-  font-size: clamp(32px, 6vw, 48px);
-  color: #f8fafc;
-  background: linear-gradient(135deg, #38bdf8, #6366f1);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.hub__subtitle {
-  margin: 8px 0 0;
-  color: #94a3b8;
-  font-size: 16px;
-}
-
-.tools {
-  display: grid;
-  gap: 12px;
-}
-
-.tool-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 20px 24px;
-  text-decoration: none;
-  color: inherit;
-  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
-}
-
-.tool-card:hover {
-  border-color: rgba(56, 189, 248, 0.4);
-  background: rgba(255, 255, 255, 0.07);
-  transform: translateY(-2px);
-}
-
-.tool-card__icon {
-  font-size: 32px;
-  flex-shrink: 0;
-}
-
-.tool-card__title {
-  margin: 0 0 4px;
-  font-size: 20px;
-  color: #f8fafc;
-}
-
-.tool-card__desc {
-  margin: 0;
-  font-size: 14px;
-  color: #94a3b8;
-}
-</style>
+<script setup lang="ts">
+const tools = [
+  { path: '/snapreader', icon: '📸', name: 'SnapReader', desc: '画像を送って、数秒で要約' },
+  { path: '/whisper', icon: '🎙️', name: 'Whisper', desc: '音声を文字に自動変換' },
+  { path: '/hagemashi', icon: '💪', name: 'はげまし', desc: '話して、AIに励ましてもらおう' },
+  { path: '/miyako', icon: '🏝️', name: '宮古島市議事録分析', desc: '会期別キーワード特徴度ヒートマップ' },
+  { path: '/task', icon: '📋', name: 'タスクくん', desc: 'Trello の DOING / TODO / DONE をまとめて確認' },
+]
+</script>

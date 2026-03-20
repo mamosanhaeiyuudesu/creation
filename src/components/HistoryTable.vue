@@ -1,35 +1,39 @@
 <template>
-  <div v-if="history.length > 0" class="history">
-    <h2>履歴</h2>
-    <div class="history-table-wrapper">
-      <table class="history-table">
-        <thead>
+  <div v-if="history.length > 0" class="mt-1 min-w-0">
+    <h2 class="m-0 mb-3 text-base text-slate-400 font-medium">履歴</h2>
+    <div class="max-h-[280px] overflow-auto border border-white/[0.08] rounded-[10px] [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.15)_transparent]">
+      <table class="w-full border-collapse text-xs">
+        <thead class="sticky top-0 bg-[rgba(15,23,42,0.95)] z-[1]">
           <tr>
-            <th class="col-date">日時</th>
-            <th class="col-title">タイトル</th>
-            <th class="col-copy">コピー</th>
-            <th class="col-delete">削除</th>
+            <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-[110px] whitespace-nowrap">日時</th>
+            <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08]">タイトル</th>
+            <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-8 text-center">コピー</th>
+            <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-[52px] text-center">削除</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in history" :key="item.id">
-            <td class="col-date">{{ formatDate(item.timestamp) }}</td>
-            <td class="col-title">{{ item.title }}</td>
-            <td class="col-copy">
+          <tr
+            v-for="item in history"
+            :key="item.id"
+            class="hover:[&>td]:bg-white/[0.03]"
+          >
+            <td class="py-1.5 px-2 text-slate-300 border-b border-white/[0.04] whitespace-nowrap last:border-b-0 w-[110px]">{{ formatDate(item.timestamp) }}</td>
+            <td class="py-1.5 px-2 text-slate-200 border-b border-white/[0.04] overflow-hidden text-ellipsis whitespace-nowrap max-w-0">{{ item.title }}</td>
+            <td class="py-1.5 px-2 text-slate-300 border-b border-white/[0.04] text-center w-8">
               <button
-                class="action-button"
+                class="bg-transparent border-none cursor-pointer p-1 rounded text-[13px] leading-none transition-colors hover:bg-white/[0.08]"
                 :title="item.id === copiedId ? 'コピーしました!' : 'コピー'"
                 @click="$emit('copy', item)"
               >
                 {{ item.id === copiedId ? '✓' : '📋' }}
               </button>
             </td>
-            <td class="col-delete">
+            <td class="py-1.5 px-2 text-slate-300 border-b border-white/[0.04] text-center w-[52px] whitespace-nowrap">
               <template v-if="confirmingId === item.id">
-                <button class="action-button confirm-yes" title="削除する" @click="confirmDelete(item.id)">✓</button>
-                <button class="action-button confirm-no" title="キャンセル" @click="confirmingId = null">✕</button>
+                <button class="bg-transparent border-none cursor-pointer p-1 rounded text-[13px] leading-none text-green-400 transition-colors hover:bg-green-400/15" title="削除する" @click="confirmDelete(item.id)">✓</button>
+                <button class="bg-transparent border-none cursor-pointer p-1 rounded text-[13px] leading-none text-slate-400 transition-colors hover:bg-white/[0.08]" title="キャンセル" @click="confirmingId = null">✕</button>
               </template>
-              <button v-else class="action-button delete" title="削除" @click="confirmingId = item.id">🗑️</button>
+              <button v-else class="bg-transparent border-none cursor-pointer p-1 rounded text-[13px] leading-none transition-colors hover:bg-red-500/15" title="削除" @click="confirmingId = item.id">🗑️</button>
             </td>
           </tr>
         </tbody>
@@ -69,127 +73,3 @@ const formatDate = (iso: string): string => {
   return `${y}/${mo}/${day} ${h}:${mi}`
 }
 </script>
-
-<style scoped>
-.history {
-  margin-top: 4px;
-  min-width: 0;
-}
-
-.history h2 {
-  margin: 0 0 12px;
-  font-size: 16px;
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-.history-table-wrapper {
-  max-height: 280px;
-  overflow: auto;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-}
-
-.history-table-wrapper::-webkit-scrollbar {
-  width: 4px;
-}
-
-.history-table-wrapper::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.history-table-wrapper::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 2px;
-}
-
-.history-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-.history-table thead {
-  position: sticky;
-  top: 0;
-  background: rgba(15, 23, 42, 0.95);
-  z-index: 1;
-}
-
-.history-table th {
-  padding: 6px 8px;
-  text-align: left;
-  color: #64748b;
-  font-weight: 500;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.history-table td {
-  padding: 6px 8px;
-  color: #cbd5e1;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.history-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.history-table tbody tr:hover td {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.col-date {
-  white-space: nowrap;
-  width: 110px;
-}
-
-.col-title {
-  color: #e2e8f0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 0;
-}
-
-.col-copy,
-.col-delete {
-  white-space: nowrap;
-  width: 32px;
-  text-align: center;
-}
-
-.col-delete {
-  width: 52px;
-}
-
-.action-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  font-size: 13px;
-  line-height: 1;
-  transition: background 0.15s;
-}
-
-.action-button:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.action-button.delete:hover {
-  background: rgba(239, 68, 68, 0.15);
-}
-
-.action-button.confirm-yes {
-  color: #4ade80;
-}
-
-.action-button.confirm-yes:hover {
-  background: rgba(74, 222, 128, 0.15);
-}
-
-.action-button.confirm-no {
-  color: #94a3b8;
-}
-</style>
