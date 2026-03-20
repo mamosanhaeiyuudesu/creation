@@ -3,9 +3,7 @@ const LS_KEY = 'trello_key'
 const LS_TOKEN = 'trello_token'
 const LS_EXCLUDED = 'trello_excluded'
 
-const DEFAULT_EXCLUDED =
-  '3.otter,8.Basic-ph2,4:インベーダーゲーム,5:LINE-bot,5:アファーメーションbot,6:執筆活動,7:家族,7:運転,8:旨,8:釣り,8:転職,9:FLSアプリ,4:tableau,6.相関-α版,2.flaskでWebアプリ,3.おすすめキーワード検証,5.クラスタリングAPI,8.新時系列キーワード,9.新検索推移,新Trend,変化アラート'
-
+const DEFAULT_EXCLUDED = ''
 interface Card {
   id: string
   name: string
@@ -746,7 +744,7 @@ async function deleteTask() {
           <div class="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
             <div v-for="board in boards" :key="board.id" class="w-[220px] flex-shrink-0 rounded-xl p-3 bg-sky-400/[0.05] border border-sky-400/15 flex flex-col">
               <div class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.05em] mb-2.5">{{ board.name }}</div>
-              <ul class="list-none m-0 p-0 flex flex-col gap-1.5">
+              <ul class="list-none m-0 p-0 flex flex-col gap-1.5 max-h-[290px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
                 <li
                   v-for="card in board.doing"
                   :key="card.id"
@@ -802,7 +800,7 @@ async function deleteTask() {
           <div class="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
             <div v-for="board in boards" :key="board.id" class="w-[220px] flex-shrink-0 rounded-xl p-3 bg-amber-500/[0.05] border border-amber-500/15 flex flex-col">
               <div class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.05em] mb-2.5">{{ board.name }}</div>
-              <ul class="list-none m-0 p-0 flex flex-col gap-1.5">
+              <ul class="list-none m-0 p-0 flex flex-col gap-1.5 max-h-[290px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
                 <li
                   v-for="card in board.todo"
                   :key="card.id"
@@ -857,7 +855,7 @@ async function deleteTask() {
           </div>
           <div v-if="allDates.length === 0" class="px-4 py-4 text-slate-600 text-[13px]">期間内の完了タスクなし</div>
           <div v-else class="overflow-x-auto rounded-xl border border-white/[0.07]">
-            <table class="w-full border-collapse text-[13px] table-fixed">
+            <table class="border-collapse text-[13px]">
               <thead>
                 <tr>
                   <th class="border border-white/[0.06] px-2.5 py-2 text-left text-slate-500 text-[11px] font-bold whitespace-nowrap w-[90px] min-w-[90px] bg-emerald-500/[0.08]">日付</th>
