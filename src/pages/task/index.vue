@@ -11,6 +11,7 @@ interface Card {
   name: string
   desc: string
   due: string | null
+  pos: number
   isOverdue: boolean
   isUrgent: boolean
   display: string
@@ -21,7 +22,7 @@ interface Board {
   name: string
   doing: Card[]
   todo: Card[]
-  done: Record<string, string[]>
+  done: Record<string, { id: string; name: string }[]>
   doingListId: string
   todoListId: string
   doneListId: string
@@ -189,6 +190,7 @@ async function load() {
                   name: card.name,
                   desc: card.desc || '',
                   due: card.due || null,
+                  pos: card.pos ?? 0,
                   isOverdue: false,
                   isUrgent: false,
                   display: '',
@@ -201,7 +203,7 @@ async function load() {
                 if (due < rangeStart || due > rangeEnd) continue
                 const jst = new Date(due.getTime() + 9 * 3_600_000)
                 const key = jst.toISOString().slice(0, 10)
-                ;(board.done[key] ??= []).push(card.name)
+                ;(board.done[key] ??= []).push({ id: card.id, name: card.name })
               }
             }
           }),
@@ -239,6 +241,33 @@ function doneTotal(board: Board) {
   return Object.values(board.done).reduce((s, arr) => s + arr.length, 0)
 }
 
+async function unmarkDone(item: { id: string; name: string }, dateKey: string, board: Board) {
+  if (!board.doingListId) { error.value = 'Doingリストが見つかりません'; return }
+  saving.value = true
+  error.value = ''
+  try {
+    const raw = await trelloPut(`/cards/${item.id}`, {
+      idList: board.doingListId,
+      dueComplete: false,
+      due: '',
+    })
+    // DONEテーブルから除去
+    const arr = board.done[dateKey]
+    if (arr) {
+      const idx = arr.findIndex(c => c.id === item.id)
+      if (idx >= 0) arr.splice(idx, 1)
+      if (arr.length === 0) delete board.done[dateKey]
+      rebuildAllDates()
+    }
+    // DOINGに追加
+    board.doing.push(buildCard(raw))
+  } catch (e: any) {
+    error.value = e.message
+  } finally {
+    saving.value = false
+  }
+}
+
 // --- Modal operations ---
 
 function openAddTask(boardId: string, status: 'todo' | 'doing') {
@@ -271,6 +300,7 @@ function buildCard(raw: any): Card {
     name: raw.name,
     desc: raw.desc || '',
     due: raw.due || null,
+    pos: raw.pos ?? 0,
     isOverdue: false,
     isUrgent: false,
     display: '',
@@ -293,7 +323,7 @@ function addToDoneTable(board: Board, card: Card) {
   if (due < new Date(sy, sm - 1, 1) || due > new Date(ey, em, 0, 23, 59, 59)) return
   const jst = new Date(due.getTime() + 9 * 3_600_000)
   const key = jst.toISOString().slice(0, 10)
-  ;(board.done[key] ??= []).push(card.name)
+  ;(board.done[key] ??= []).push({ id: card.id, name: card.name })
   rebuildAllDates()
 }
 
@@ -305,7 +335,7 @@ async function saveTask() {
     const board = boards.value.find(b => b.id === taskForm.value.boardId)
     if (!board) throw new Error('ボードが見つかりません')
 
-    const dueIso = taskForm.value.due ? new Date(taskForm.value.due).toISOString() : null
+    const dueIso = taskForm.value.due ? new Date(taskForm.value.due).toISOString() : ''
     const body: Record<string, any> = {
       name: taskForm.value.name.trim(),
       desc: taskForm.value.desc.trim(),
@@ -390,6 +420,118 @@ async function execMarkDone(card: Card, board: Board, dueIso: string) {
     error.value = e.message
   } finally {
     saving.value = false
+  }
+}
+
+// --- Drag & Drop ---
+const dragging = ref<{ cardId: string; boardId: string; status: 'doing' | 'todo' } | null>(null)
+const dragOverCardId = ref<string | null>(null)
+const dragOverEndKey = ref<string | null>(null) // `${boardId}:${status}`
+
+function getArr(boardId: string, status: 'doing' | 'todo') {
+  const b = boards.value.find(b => b.id === boardId)
+  return b ? (status === 'doing' ? b.doing : b.todo) : null
+}
+
+function onDragStart(e: DragEvent, card: Card, boardId: string, status: 'doing' | 'todo') {
+  dragging.value = { cardId: card.id, boardId, status }
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
+}
+
+function onDragEnd() {
+  dragging.value = null
+  dragOverCardId.value = null
+  dragOverEndKey.value = null
+}
+
+function onDragOverCard(e: DragEvent, cardId: string) {
+  e.preventDefault()
+  dragOverCardId.value = cardId
+  dragOverEndKey.value = null
+}
+
+function onDragOverEnd(e: DragEvent, key: string) {
+  e.preventDefault()
+  dragOverCardId.value = null
+  dragOverEndKey.value = key
+}
+
+async function onDropCard(targetCardId: string, targetBoardId: string, targetStatus: 'doing' | 'todo') {
+  if (!dragging.value) return
+  const { cardId: srcCardId, boardId: srcBoardId, status: srcStatus } = dragging.value
+  dragging.value = null
+  dragOverCardId.value = null
+
+  if (srcCardId === targetCardId) return
+
+  const targetBoard = boards.value.find(b => b.id === targetBoardId)
+  if (!targetBoard) return
+  const targetArr = targetStatus === 'doing' ? targetBoard.doing : targetBoard.todo
+  const targetIdx = targetArr.findIndex(c => c.id === targetCardId)
+  if (targetIdx < 0) return
+
+  // すでに直前にある場合はスキップ
+  if (targetArr[targetIdx - 1]?.id === srcCardId) return
+
+  const prevPos = targetArr[targetIdx - 1]?.pos ?? 0
+  const newPos = (prevPos + targetArr[targetIdx].pos) / 2
+
+  try {
+    const body: Record<string, any> = { pos: newPos }
+    if (srcBoardId !== targetBoardId || srcStatus !== targetStatus) {
+      body.idList = targetStatus === 'doing' ? targetBoard.doingListId : targetBoard.todoListId
+    }
+    await trelloPut(`/cards/${srcCardId}`, body)
+
+    // 元配列から取り出す
+    const srcArr = getArr(srcBoardId, srcStatus)
+    if (!srcArr) return
+    const srcIdx = srcArr.findIndex(c => c.id === srcCardId)
+    if (srcIdx < 0) return
+    const [movedCard] = srcArr.splice(srcIdx, 1)
+
+    // posを更新して挿入（削除後にインデックス再取得）
+    movedCard.pos = newPos
+    const insertIdx = targetArr.findIndex(c => c.id === targetCardId)
+    targetArr.splice(insertIdx, 0, movedCard)
+  } catch (e: any) {
+    error.value = e.message
+  }
+}
+
+async function onDropEnd(targetBoardId: string, targetStatus: 'doing' | 'todo') {
+  if (!dragging.value) return
+  const { cardId: srcCardId, boardId: srcBoardId, status: srcStatus } = dragging.value
+  dragging.value = null
+  dragOverEndKey.value = null
+
+  const targetBoard = boards.value.find(b => b.id === targetBoardId)
+  if (!targetBoard) return
+  const targetArr = targetStatus === 'doing' ? targetBoard.doing : targetBoard.todo
+
+  // すでに末尾にある場合はスキップ
+  if (targetArr[targetArr.length - 1]?.id === srcCardId) return
+
+  const lastPos = targetArr[targetArr.length - 1]?.pos ?? 0
+  const newPos = lastPos + 16384
+
+  try {
+    const body: Record<string, any> = { pos: newPos }
+    if (srcBoardId !== targetBoardId || srcStatus !== targetStatus) {
+      body.idList = targetStatus === 'doing' ? targetBoard.doingListId : targetBoard.todoListId
+    }
+    await trelloPut(`/cards/${srcCardId}`, body)
+
+    const srcArr = getArr(srcBoardId, srcStatus)
+    if (!srcArr) return
+    const srcIdx = srcArr.findIndex(c => c.id === srcCardId)
+    if (srcIdx < 0) return
+    const [movedCard] = srcArr.splice(srcIdx, 1)
+
+    movedCard.pos = newPos
+    targetArr.push(movedCard)
+  } catch (e: any) {
+    error.value = e.message
   }
 }
 
@@ -609,10 +751,17 @@ async function deleteTask() {
                   v-for="card in board.doing"
                   :key="card.id"
                   :class="[
-                    'bg-white/[0.04] border border-white/[0.07] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 transition-all hover:bg-white/[0.07] cursor-pointer',
+                    'bg-white/[0.04] border border-white/[0.07] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 transition-all hover:bg-white/[0.07] cursor-grab select-none',
                     card.isOverdue ? 'border-red-500/40 bg-red-500/[0.06]' : '',
                     card.isUrgent ? 'border-amber-500/40 bg-amber-500/[0.06]' : '',
+                    dragging?.cardId === card.id ? 'opacity-40' : '',
+                    dragOverCardId === card.id ? 'border-t-2 border-t-sky-400' : '',
                   ]"
+                  draggable="true"
+                  @dragstart="onDragStart($event, card, board.id, 'doing')"
+                  @dragend="onDragEnd"
+                  @dragover="onDragOverCard($event, card.id)"
+                  @drop.prevent="onDropCard(card.id, board.id, 'doing')"
                   @click="openEditTask(card, board.id, 'doing')"
                 >
                   <div class="flex items-start gap-2">
@@ -630,8 +779,15 @@ async function deleteTask() {
                 </li>
               </ul>
               <button
-                class="mt-2 w-full py-1.5 rounded-lg border border-dashed border-sky-400/20 text-sky-400/40 hover:border-sky-400/50 hover:text-sky-400/70 hover:bg-sky-400/[0.04] text-[13px] cursor-pointer transition-all"
+                :class="[
+                  'mt-2 w-full py-1.5 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all',
+                  dragOverEndKey === `${board.id}:doing`
+                    ? 'border-sky-400/60 bg-sky-400/[0.08] text-sky-400/80'
+                    : 'border-sky-400/20 text-sky-400/40 hover:border-sky-400/50 hover:text-sky-400/70 hover:bg-sky-400/[0.04]',
+                ]"
                 @click="openAddTask(board.id, 'doing')"
+                @dragover="onDragOverEnd($event, `${board.id}:doing`)"
+                @drop.prevent="onDropEnd(board.id, 'doing')"
               >＋</button>
             </div>
           </div>
@@ -651,10 +807,17 @@ async function deleteTask() {
                   v-for="card in board.todo"
                   :key="card.id"
                   :class="[
-                    'bg-white/[0.04] border border-white/[0.07] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 transition-all hover:bg-white/[0.07] cursor-pointer',
+                    'bg-white/[0.04] border border-white/[0.07] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 transition-all hover:bg-white/[0.07] cursor-grab select-none',
                     card.isOverdue ? 'border-red-500/40 bg-red-500/[0.06]' : '',
                     card.isUrgent ? 'border-amber-500/40 bg-amber-500/[0.06]' : '',
+                    dragging?.cardId === card.id ? 'opacity-40' : '',
+                    dragOverCardId === card.id ? 'border-t-2 border-t-amber-400' : '',
                   ]"
+                  draggable="true"
+                  @dragstart="onDragStart($event, card, board.id, 'todo')"
+                  @dragend="onDragEnd"
+                  @dragover="onDragOverCard($event, card.id)"
+                  @drop.prevent="onDropCard(card.id, board.id, 'todo')"
                   @click="openEditTask(card, board.id, 'todo')"
                 >
                   <div class="flex items-start gap-2">
@@ -672,8 +835,15 @@ async function deleteTask() {
                 </li>
               </ul>
               <button
-                class="mt-2 w-full py-1.5 rounded-lg border border-dashed border-amber-500/20 text-amber-500/40 hover:border-amber-500/50 hover:text-amber-500/70 hover:bg-amber-500/[0.04] text-[13px] cursor-pointer transition-all"
+                :class="[
+                  'mt-2 w-full py-1.5 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all',
+                  dragOverEndKey === `${board.id}:todo`
+                    ? 'border-amber-400/60 bg-amber-400/[0.08] text-amber-400/80'
+                    : 'border-amber-500/20 text-amber-500/40 hover:border-amber-500/50 hover:text-amber-500/70 hover:bg-amber-500/[0.04]',
+                ]"
                 @click="openAddTask(board.id, 'todo')"
+                @dragover="onDragOverEnd($event, `${board.id}:todo`)"
+                @drop.prevent="onDropEnd(board.id, 'todo')"
               >＋</button>
             </div>
           </div>
@@ -703,7 +873,14 @@ async function deleteTask() {
                   <td class="border border-white/[0.06] px-2.5 py-2 whitespace-nowrap text-slate-500 text-xs">{{ formatDate(date) }}</td>
                   <td v-for="board in boards" :key="board.id" class="border border-white/[0.06] px-2.5 py-2 min-w-[140px] align-top">
                     <ul v-if="board.done[date]" class="list-none m-0 p-0 flex flex-col gap-1">
-                      <li v-for="(name, i) in board.done[date]" :key="i" class="px-1.5 py-0.5 bg-emerald-500/[0.08] rounded border-l-2 border-emerald-500/40 leading-snug text-[#a7f3d0] text-xs">{{ name }}</li>
+                      <li v-for="item in board.done[date]" :key="item.id" class="flex items-center gap-1.5 px-1.5 py-0.5 bg-emerald-500/[0.08] rounded border-l-2 border-emerald-500/40">
+                        <button
+                          class="flex-shrink-0 w-3.5 h-3.5 rounded border border-emerald-500/60 bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer"
+                          title="DOINGに戻す"
+                          @click="unmarkDone(item, date, board)"
+                        >✓</button>
+                        <span class="leading-snug text-[#a7f3d0] text-xs">{{ item.name }}</span>
+                      </li>
                     </ul>
                   </td>
                 </tr>
