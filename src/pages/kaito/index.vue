@@ -26,7 +26,7 @@
             </div>
             <div class="hero-actions">
               <NuxtLink class="cta-link" to="/kaito/services">サービス内容を見る</NuxtLink>
-              <NuxtLink class="secondary-link" to="/kaito/profile">月ノ瀬 海倭さんについて</NuxtLink>
+              <NuxtLink class="secondary-link" to="/kaito/profile">月ノ瀬 海倭について</NuxtLink>
             </div>
           </div>
         </div>
@@ -83,7 +83,7 @@
             それが私の使命だと感じています。
           </p>
           <div class="section-link-wrap">
-            <NuxtLink class="read-more" to="/kaito/profile">月ノ瀬 海倭さんについて詳しく</NuxtLink>
+            <NuxtLink class="read-more" to="/kaito/profile">月ノ瀬 海倭について詳しく</NuxtLink>
           </div>
         </div>
       </section>
