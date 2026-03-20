@@ -1,5 +1,32 @@
 import type { H3Event } from 'h3'
 
+interface OpenAiContentPart {
+  type: string
+  text?: string
+  image_url?: string
+}
+
+interface OpenAiMessage {
+  role: string
+  content: string | OpenAiContentPart[]
+}
+
+export interface OpenAiPayload {
+  model: string
+  input: OpenAiMessage[]
+  max_output_tokens?: number
+  tools?: unknown[]
+  tool_choice?: unknown
+  temperature?: number
+}
+
+interface OpenAiResponse {
+  output_text?: string
+  output?: Array<{ type: string; content?: Array<{ type: string; text?: string }> }>
+  usage?: { input_tokens: number; output_tokens: number }
+  error?: { message: string }
+}
+
 export const getOpenAiKey = (): string => {
     const { openaiApiKey } = useRuntimeConfig()
     if (!openaiApiKey) {
@@ -31,7 +58,7 @@ export const appendLog = (event: H3Event | undefined, message: string) => {
     setResponseHeader(event, 'X-Api-Logs', encodeURIComponent(JSON.stringify(event.context._apiLogs)))
 }
 
-export const fetchOpenAi = async (apiKey: string, payload: Record<string, any>, event?: H3Event): Promise<Response> => {
+export const fetchOpenAi = async (apiKey: string, payload: OpenAiPayload, event?: H3Event): Promise<Response> => {
     const response = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
@@ -51,9 +78,9 @@ export const fetchOpenAi = async (apiKey: string, payload: Record<string, any>, 
     return response
 }
 
-export const callOpenAi = async (apiKey: string, payload: Record<string, any>, event?: H3Event, label?: string): Promise<any> => {
+export const callOpenAi = async (apiKey: string, payload: OpenAiPayload, event?: H3Event, label?: string): Promise<OpenAiResponse> => {
     const response = await fetchOpenAi(apiKey, payload, event)
-    const data = await response.json().catch(() => null as any)
+    const data: OpenAiResponse = await response.json().catch(() => null)
 
     if (!response.ok) {
         throw createError({
@@ -82,21 +109,21 @@ export const callOpenAi = async (apiKey: string, payload: Record<string, any>, e
     return data
 }
 
-export const extractText = (data: any): string => {
+export const extractText = (data: OpenAiResponse): string => {
     if (data?.output_text) return data.output_text
     // ツール使用時は output 配列に file_search_call が先行し、message は後方にある
-    const messageItem = data?.output?.find?.((item: any) => item.type === 'message')
+    const messageItem = data?.output?.find((item) => item.type === 'message')
     if (messageItem) {
-        const chunk = messageItem.content?.find?.((c: any) => c.type === 'output_text' || 'text' in c)
+        const chunk = messageItem.content?.find((c) => c.type === 'output_text' || 'text' in c)
         if (chunk?.text) return chunk.text
     }
     return ''
 }
 
-export const wrapApiError = (err: any, fallbackMessage: string): never => {
-    if (err?.statusCode && err?.statusMessage) throw err
+export const wrapApiError = (err: unknown, fallbackMessage: string): never => {
+    if (err && typeof err === 'object' && 'statusCode' in err && 'statusMessage' in err) throw err
     throw createError({
         statusCode: 500,
-        statusMessage: err?.message || fallbackMessage,
+        statusMessage: err instanceof Error ? err.message : fallbackMessage,
     })
 }

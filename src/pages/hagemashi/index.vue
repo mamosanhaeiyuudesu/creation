@@ -169,17 +169,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { marked } from 'marked'
 import { useHistory } from '~/composables/useHistory'
+import { useAudioRecorder, fetchTitle, proofreadInBackground, type DictEntry } from '~/composables/useAudioRecorder'
 
-const isRecording = ref(false)
-const isPaused = ref(false)
-const isProcessing = ref(false)
-const isEncouraging = ref(false)
-const duration = ref(0)
 const error = ref('')
 const settingsOpen = ref(false)
 const encourageOpen = ref(false)
 const encourageResult = ref('')
 const resultCopied = ref(false)
+const isEncouraging = ref(false)
 
 const { history, copiedHistoryId, addHistory, updateHistory, deleteHistory, copyHistory } = useHistory('hagemashi-history')
 
@@ -222,7 +219,6 @@ const generateThemes = async () => {
 }
 
 // --- 設定 ---
-interface DictEntry { input: string; output: string }
 const defaultSettings = {
   period: 'all',
   encouragePrompt: '話した内容を踏まえて、温かく励ましてください。',
@@ -292,101 +288,18 @@ const copyResult = async () => {
   setTimeout(() => { resultCopied.value = false }, 2000)
 }
 
-// --- 校正 ---
-const proofreadInBackground = async (id: string, text: string) => {
-  const entries = settings.value.dictionary.filter((d) => d.input)
-  if (!entries.length) return
-  try {
-    const res = await $fetch<{ text: string }>('/api/whisper/proofread', {
-      method: 'POST',
-      body: { text, dictionary: entries },
-    })
-    if (res.text && res.text !== text) updateHistory(id, res.text)
-  } catch {
-    // 校正失敗は無視
-  }
+// --- 文字起こし後処理 ---
+const handleTranscribed = async (text: string) => {
+  const title = await fetchTitle(text)
+  const id = addHistory(text, title)
+  proofreadInBackground(id, text, settings.value.dictionary, updateHistory)
 }
 
 // --- 録音 ---
-let mediaRecorder: MediaRecorder | null = null
-let audioChunks: Blob[] = []
-let timerInterval: ReturnType<typeof setInterval> | null = null
-
-const formatTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins}:${secs.toString().padStart(2, '0')}`
-}
-
-const fetchTitle = async (text: string): Promise<string> => {
-  try {
-    const response = await $fetch<{ title: string }>('/api/snapreader/title', {
-      method: 'POST',
-      body: { transcript: text },
-    })
-    return response.title
-  } catch {
-    return ''
-  }
-}
-
-const startRecording = async () => {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    mediaRecorder = new MediaRecorder(stream)
-    audioChunks = []
-    mediaRecorder.ondataavailable = (event) => { audioChunks.push(event.data) }
-    mediaRecorder.start()
-    isRecording.value = true
-    isPaused.value = false
-    duration.value = 0
-    timerInterval = setInterval(() => { duration.value++ }, 1000)
-  } catch {
-    error.value = 'マイクへのアクセスが許可されていません'
-  }
-}
-
-const pauseRecording = () => {
-  if (!mediaRecorder) return
-  mediaRecorder.pause()
-  isRecording.value = false
-  isPaused.value = true
-  if (timerInterval) { clearInterval(timerInterval); timerInterval = null }
-}
-
-const resumeRecording = () => {
-  if (!mediaRecorder) return
-  mediaRecorder.resume()
-  isRecording.value = true
-  isPaused.value = false
-  timerInterval = setInterval(() => { duration.value++ }, 1000)
-}
-
-const transcribeRecording = () => {
-  if (!mediaRecorder) return
-  mediaRecorder.stop()
-  isPaused.value = false
-  if (timerInterval) { clearInterval(timerInterval); timerInterval = null }
-
-  mediaRecorder.onstop = async () => {
-    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
-    isProcessing.value = true
-    try {
-      const formData = new FormData()
-      formData.append('audio', audioBlob, 'recording.webm')
-      const data = await $fetch<{ text: string }>('/api/whisper', { method: 'POST', body: formData })
-      const title = await fetchTitle(data.text)
-      const id = addHistory(data.text, title)
-      proofreadInBackground(id, data.text)
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : '予期しないエラーが発生しました'
-    } finally {
-      isProcessing.value = false
-      duration.value = 0
-      mediaRecorder!.stream.getTracks().forEach(track => track.stop())
-    }
-  }
-}
+const { isRecording, isPaused, isProcessing, duration, formatTime, startRecording, pauseRecording, resumeRecording, transcribeRecording } = useAudioRecorder({
+  onTranscribed: handleTranscribed,
+  onError: (msg) => { error.value = msg },
+})
 </script>
 
 <style scoped>

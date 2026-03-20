@@ -1,14 +1,7 @@
-import { appendLog } from '~/server/utils/openai'
+import { appendLog, getOpenAiKey } from '~/server/utils/openai'
 
 export default defineEventHandler(async (event) => {
-    const { openaiApiKey } = useRuntimeConfig()
-
-    if (!openaiApiKey) {
-        throw createError({
-            statusCode: 500,
-            statusMessage: 'OPENAI_API_KEY is not configured',
-        })
-    }
+    const apiKey = getOpenAiKey()
 
     try {
         const formData = await readFormData(event)
@@ -31,7 +24,7 @@ export default defineEventHandler(async (event) => {
         const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${openaiApiKey}`,
+                'Authorization': `Bearer ${apiKey}`,
             },
             body: whisperFormData,
         })
