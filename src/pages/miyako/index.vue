@@ -34,7 +34,12 @@ const maxChars = ref(1000)
 const MAX_CHARS_OPTIONS = [500, 1000, 2000]
 
 const { marked } = await import('marked')
-const renderedSummary = computed(() => aiSummary.value ? marked(aiSummary.value) as string : '')
+const renderedSummary = computed(() => {
+  if (!aiSummary.value) return ''
+  const html = marked(aiSummary.value) as string
+  // ↓ のみの段落にクラスを付与してフロー矢印として強調
+  return html.replace(/<p>↓<\/p>/g, '<p class="flow-arrow">↓</p>')
+})
 
 const heatmapRef = ref<HTMLElement>()
 const wordcloudRef = ref<HTMLElement>()
@@ -288,20 +293,31 @@ watch([sessionCount, windowEnd], resetAndRender)
 </script>
 
 <template>
-  <v-container max-width="1400" class="miyako-container">
-    <div class="miyako-header">
-      <h1 class="miyako-title">宮古島市議会 議事録分析</h1>
-    </div>
+  <div class="miyako-root">
 
-    <v-card class="mb-2" elevation="1">
-      <v-card-text class="d-flex align-center gap-4 flex-wrap py-2">
-        <v-btn-toggle v-model="sessionTypeFilter" mandatory color="indigo" variant="outlined" density="compact">
-          <v-btn value="定例会">定例会</v-btn>
-          <v-btn value="臨時会">臨時会</v-btn>
-        </v-btn-toggle>
+    <!-- ページヘッダー -->
+    <header class="page-header">
+      <div class="page-header-inner">
+        <div>
+          <h1 class="page-title">宮古島市議会<span class="page-title-accent">議事録分析</span></h1>
+          <p class="page-subtitle">会期ごとのキーワード出現傾向と議論内容をAIで可視化</p>
+        </div>
+      </div>
+    </header>
 
-        <div class="d-flex align-center gap-2 slider-group">
-          <span class="text-caption text-medium-emphasis text-no-wrap ml-3">期間</span>
+    <!-- コントロールバー -->
+    <div class="controls-bar">
+      <div class="controls-inner">
+        <div class="ctrl-item">
+          <span class="ctrl-label">会期</span>
+          <v-btn-toggle v-model="sessionTypeFilter" mandatory color="indigo-darken-3" variant="outlined" density="compact" rounded="lg">
+            <v-btn value="定例会" size="small">定例会</v-btn>
+            <v-btn value="臨時会" size="small">臨時会</v-btn>
+          </v-btn-toggle>
+        </div>
+
+        <div class="ctrl-item ctrl-item--slider">
+          <span class="ctrl-label">期間</span>
           <v-slider
             v-model="windowEnd"
             :min="windowEndMin"
@@ -309,94 +325,211 @@ watch([sessionCount, windowEnd], resetAndRender)
             :step="1"
             density="compact"
             hide-details
-            color="indigo"
-            thumb-size="14"
-            style="min-width: 120px; max-width: 180px; margin-right: 10px"
+            color="indigo-darken-3"
+            thumb-size="13"
+            class="ctrl-slider"
           />
-          <span class="text-caption text-no-wrap text-medium-emphasis">{{ rangeLabel }}</span>
+          <span class="ctrl-range">{{ rangeLabel }}</span>
         </div>
 
-        <div class="d-flex align-center gap-1 ml-3">
-          <span class="text-caption text-medium-emphasis text-no-wrap">文字数</span>
-          <v-btn-toggle v-model="maxChars" mandatory color="indigo" variant="outlined" density="compact">
+        <div class="ctrl-item">
+          <span class="ctrl-label">要約文字数</span>
+          <v-btn-toggle v-model="maxChars" mandatory color="indigo-darken-3" variant="outlined" density="compact" rounded="lg">
             <v-btn v-for="n in MAX_CHARS_OPTIONS" :key="n" :value="n" size="small">{{ n }}</v-btn>
           </v-btn-toggle>
         </div>
-      </v-card-text>
-    </v-card>
-
-    <div v-if="loading" class="d-flex justify-center py-8">
-      <v-progress-circular indeterminate color="indigo" size="48" />
+      </div>
     </div>
 
-    <template v-else>
-      <div class="main-layout">
-        <v-card elevation="1" class="heatmap-card">
-          <v-card-text class="pa-2">
-            <div class="heatmap-scroll">
-              <div ref="heatmapRef" class="heatmap-container"></div>
-            </div>
-          </v-card-text>
-        </v-card>
+    <!-- ローディング -->
+    <div v-if="loading" class="loading-wrap">
+      <v-progress-circular indeterminate color="indigo-darken-3" size="44" width="3" />
+    </div>
 
-        <v-card elevation="1" class="wordcloud-card">
-          <template v-if="selectedSession">
-            <v-card-title class="text-subtitle-1 pr-3 pt-2 pb-1" style="padding-left: 0; margin-left: -3px">
-              <v-icon class="mr-1" color="indigo" size="16">mdi-cloud</v-icon>
-              {{ selectedSession?.replace(/〜[\d-]+$/, '〜') }}
-            </v-card-title>
-            <v-card-text class="pa-2 pb-1">
-              <div ref="wordcloudRef" class="wordcloud-container"></div>
-            </v-card-text>
-            <v-divider />
-            <v-card-text class="summary-section">
-              <div v-if="!selectedWord" class="summary-hint text-caption text-medium-emphasis" style="padding: 12px 14px">
-                <v-icon size="14" class="mr-1">mdi-cursor-default-click</v-icon>単語をクリックするとAI解説が表示されます
-              </div>
-              <template v-else>
-                <div class="summary-word font-weight-bold">
-                  <v-icon size="16" color="white" class="mr-1">mdi-robot</v-icon>「{{ selectedWord }}」の議論
-                </div>
-                <div v-if="aiLoading" class="summary-loading">
-                  <v-progress-circular indeterminate size="20" width="2" color="indigo" />
-                </div>
-                <div v-else class="summary-text" v-html="renderedSummary" />
-              </template>
-            </v-card-text>
-          </template>
-          <div v-else class="d-flex align-center justify-center h-100 text-medium-emphasis text-caption pa-4 text-center">
-            <div>
-              <v-icon size="24" class="d-block mb-2">mdi-gesture-tap</v-icon>
-              列をクリックすると<br>ワードクラウドが表示されます
-            </div>
-          </div>
-        </v-card>
+    <!-- メインコンテンツ -->
+    <div v-else class="main-layout">
+
+      <!-- ヒートマップパネル -->
+      <div class="panel heatmap-panel">
+        <div class="panel-head">
+          <v-icon size="13" color="indigo-darken-3" class="mr-1">mdi-view-grid-outline</v-icon>
+          <span class="panel-head-title">キーワード分布</span>
+          <span class="panel-head-sub">{{ rangeLabel }}</span>
+          <span class="panel-head-hint">列をクリックでワードクラウドを表示</span>
+        </div>
+        <div class="heatmap-scroll">
+          <div ref="heatmapRef" class="heatmap-container"></div>
+        </div>
       </div>
-    </template>
-  </v-container>
+
+      <!-- サイドパネル -->
+      <div class="panel side-panel">
+        <template v-if="selectedSession">
+
+          <!-- 会期ヘッダー -->
+          <div class="session-head">
+            <v-icon size="13" class="mr-1" style="opacity:.7">mdi-calendar-text-outline</v-icon>
+            <span class="session-head-name">{{ selectedSession?.replace(/〜[\d-]+$/, '〜') }}</span>
+          </div>
+
+          <!-- ワードクラウド -->
+          <div class="wordcloud-wrap">
+            <div ref="wordcloudRef" class="wordcloud-container"></div>
+          </div>
+
+          <v-divider />
+
+          <!-- AI解説セクション -->
+          <div class="ai-section">
+            <div v-if="!selectedWord" class="ai-hint">
+              <v-icon size="14" class="mr-1">mdi-cursor-default-click</v-icon>
+              単語をクリックするとAI解説が表示されます
+            </div>
+            <template v-else>
+              <div class="ai-head">
+                <v-icon size="15" color="white" class="mr-2">mdi-robot-outline</v-icon>
+                「{{ selectedWord }}」の議論
+              </div>
+              <div v-if="aiLoading" class="ai-loading">
+                <v-progress-circular indeterminate size="22" width="2" color="indigo-darken-3" />
+              </div>
+              <div v-else class="ai-body" v-html="renderedSummary" />
+            </template>
+          </div>
+
+        </template>
+
+        <!-- 未選択時 -->
+        <div v-else class="side-empty">
+          <v-icon size="32" style="opacity:.25">mdi-gesture-tap</v-icon>
+          <p>左のヒートマップの列をクリックすると<br>ワードクラウドが表示されます</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </template>
 
 <style scoped>
-.miyako-container {
-  padding-top: 12px;
-  padding-bottom: 24px;
+/* ── Design tokens ─────────────────────────────── */
+.miyako-root {
+  --navy:       #1c2d5a;
+  --navy-dark:  #121d3e;
+  --navy-mid:   #2a3f7a;
+  --blue:       #3d5fc4;
+  --blue-soft:  #eef1fb;
+  --surface:    #f0f2f8;
+  --card:       #ffffff;
+  --border:     #dde2ef;
+  --text:       #1c2d5a;
+  --text-sub:   #6878a8;
+  --radius:     10px;
+  --shadow:     0 1px 4px rgba(28,45,90,.07), 0 0 0 1px rgba(28,45,90,.06);
+
+  background: var(--surface);
+  min-height: 100vh;
 }
 
-.miyako-header {
-  text-align: center;
-  margin-bottom: 10px;
+/* ── Page Header ───────────────────────────────── */
+.page-header {
+  background: linear-gradient(140deg, var(--navy-dark) 0%, var(--navy-mid) 100%);
+  padding: 20px 24px 18px;
 }
 
-.miyako-title {
-  font-size: clamp(20px, 4vw, 28px);
+.page-header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: clamp(17px, 2.5vw, 22px);
   font-weight: 700;
-  margin: 0 0 2px;
+  color: #ffffff;
+  margin: 0 0 4px;
+  letter-spacing: 0.03em;
 }
 
+.page-title-accent {
+  color: #a5b4fc;
+  margin-left: 6px;
+}
+
+.page-subtitle {
+  font-size: 11.5px;
+  color: rgba(255,255,255,.45);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+/* ── Controls Bar ──────────────────────────────── */
+.controls-bar {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 9px 24px;
+}
+
+.controls-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.ctrl-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ctrl-item--slider {
+  gap: 6px;
+}
+
+.ctrl-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-sub);
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ctrl-slider {
+  min-width: 110px;
+  max-width: 170px;
+}
+
+.ctrl-range {
+  font-size: 11px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  min-width: 110px;
+}
+
+/* 未選択ボタンのテキストを見えやすく */
+:deep(.v-btn-toggle .v-btn:not(.v-btn--active)) {
+  color: var(--navy) !important;
+  opacity: 1 !important;
+}
+
+/* ── Loading ───────────────────────────────────── */
+.loading-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 72px 24px;
+}
+
+/* ── Main Layout ───────────────────────────────── */
 .main-layout {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px 24px 32px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   align-items: stretch;
 }
 
@@ -407,30 +540,93 @@ watch([sessionCount, windowEnd], resetAndRender)
   }
 }
 
-.heatmap-card {
+/* ── Panel base ────────────────────────────────── */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.heatmap-panel {
   flex: 1;
   min-width: 0;
 }
 
-.wordcloud-card {
+.side-panel {
   width: 100%;
   flex-shrink: 0;
   align-self: flex-start;
 }
 
 @media (min-width: 768px) {
-  .wordcloud-card {
+  .side-panel {
     width: 420px;
   }
 }
 
+/* ── Panel header ──────────────────────────────── */
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  background: #fafbff;
+}
+
+.panel-head-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: 0.03em;
+}
+
+.panel-head-sub {
+  font-size: 11px;
+  color: var(--text-sub);
+  margin-left: 8px;
+}
+
+.panel-head-hint {
+  font-size: 10.5px;
+  color: var(--text-sub);
+  margin-left: auto;
+  opacity: .7;
+}
+
+/* ── Heatmap ───────────────────────────────────── */
 .heatmap-scroll {
   overflow: auto;
   max-height: 600px;
+  padding: 6px 4px 4px;
 }
 
 .heatmap-container {
   display: inline-block;
+}
+
+/* ── Session header (side panel) ───────────────── */
+.session-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 14px;
+  background: var(--blue-soft);
+  border-bottom: 1px solid var(--border);
+}
+
+.session-head-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--navy);
+  letter-spacing: 0.02em;
+}
+
+/* ── Wordcloud ─────────────────────────────────── */
+.wordcloud-wrap {
+  padding: 8px;
 }
 
 .wordcloud-container {
@@ -444,70 +640,100 @@ watch([sessionCount, windowEnd], resetAndRender)
   }
 }
 
-.summary-section {
+/* ── AI Section ────────────────────────────────── */
+.ai-section {
   min-height: 100px;
   max-height: 320px;
   overflow-y: auto;
-  padding: 0 !important;
 }
 
-.summary-loading {
+.ai-hint {
+  display: flex;
+  align-items: center;
+  padding: 13px 14px;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.ai-head {
+  display: flex;
+  align-items: center;
+  background: var(--navy);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 10px 14px;
+  letter-spacing: 0.02em;
+}
+
+.ai-loading {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 80px;
 }
 
-.summary-word {
-  background: #1a237e;
-  color: #ffffff;
-  font-size: 15px;
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-}
-
-.summary-text {
-  color: #1a237e;
-  background: #ffffff;
+.ai-body {
   font-size: 13px;
-  padding: 10px 14px;
-  line-height: 1.7;
+  color: var(--text);
+  padding: 12px 14px;
+  line-height: 1.75;
 }
 
-.summary-text :deep(h2) {
-  font-size: 14.5px;
+.ai-body :deep(h2) {
+  font-size: 13.5px;
   font-weight: 700;
-  margin: 12px 0 6px;
-  color: #1a237e;
-  border-left: 3px solid #3949ab;
+  margin: 14px 0 6px;
+  color: var(--navy);
+  border-left: 3px solid var(--blue);
   padding-left: 8px;
 }
 
-.summary-text :deep(h2:first-child) {
+.ai-body :deep(h2:first-child) {
   margin-top: 0;
 }
 
-.summary-text :deep(ul) {
+.ai-body :deep(ul) {
   margin: 0 0 8px 16px;
   padding: 0;
 }
 
-.summary-text :deep(li) {
+.ai-body :deep(li) {
   line-height: 1.75;
   margin-bottom: 4px;
 }
 
-.summary-text :deep(strong) {
-  color: #283593;
+.ai-body :deep(strong) {
+  color: var(--navy);
 }
 
-.summary-text :deep(p) {
+.ai-body :deep(p) {
   margin: 0 0 6px;
-  line-height: 1.7;
+  line-height: 1.75;
 }
 
-.summary-hint {
-  padding: 12px 14px;
+/* ↓ フロー矢印 */
+.ai-body :deep(.flow-arrow) {
+  text-align: center;
+  color: var(--blue);
+  font-size: 16px;
+  margin: 1px 0;
+  line-height: 1.3;
+  opacity: .7;
+}
+
+/* ── Empty state ───────────────────────────────── */
+.side-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  gap: 12px;
+  padding: 32px;
+  text-align: center;
+  color: var(--text-sub);
+  font-size: 12px;
+  line-height: 1.8;
 }
 </style>
