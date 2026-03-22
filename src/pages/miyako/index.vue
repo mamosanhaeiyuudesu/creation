@@ -471,12 +471,15 @@ watch(selectedCategory, resetAndRender)
     <!-- Page header + Controls -->
     <header class="bg-gradient-to-br from-[#121d3e] to-[#2a3f7a] px-6 py-3.5">
       <div class="max-w-[1400px] mx-auto flex items-center gap-4">
-        <!-- Title + subtitle -->
-        <div class="flex items-baseline gap-3 flex-shrink-0">
+        <!-- Title + tabs -->
+        <div class="flex items-center gap-4 flex-shrink-0">
           <h1 class="m-0 text-[clamp(15px,2vw,19px)] font-bold text-white tracking-[0.03em] whitespace-nowrap">
-            宮古島市議会<span class="text-[#a5b4fc] ml-1.5">議事録分析</span>
+            宮古島市議会
           </h1>
-          <p class="m-0 text-[11px] text-white/40 tracking-[0.02em] whitespace-nowrap hidden sm:block">会期ごとのキーワード出現傾向と議論内容をAIで可視化</p>
+          <div class="flex rounded overflow-hidden border border-white/20">
+            <span class="px-3 py-1 text-[12px] font-semibold bg-[#a5b4fc] text-[#121d3e] whitespace-nowrap">議事録分析</span>
+            <NuxtLink to="/miyako/tfidf" class="px-3 py-1 text-[12px] font-medium bg-white/10 text-white/70 hover:bg-white/20 whitespace-nowrap transition-colors">話者分析</NuxtLink>
+          </div>
         </div>
 
         <!-- Controls (right-aligned) -->
