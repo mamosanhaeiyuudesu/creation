@@ -31,14 +31,46 @@ interface CategoryEntry {
 const CATEGORIES = [
   '暮らし・福祉', '医療・健康', '子ども・教育', 'まちづくり・インフラ',
   '農業・水産業', '観光・産業', '環境・防災', '財政・税金',
-  '行政・議会運営', '安全保障・基地問題',
+  // '行政・議会運営',
+  '安全保障・基地問題',
 ]
 
-const mode = ref<'word' | 'category'>('word')
-const rankLimit = ref(20)
-const filterGender = ref('すべて')
-const filterGroup = ref('すべて')
-const memberOnly = ref(true)
+const route = useRoute()
+const router = useRouter()
+
+function qStr(key: string, fallback: string) {
+  const v = route.query[key]
+  return typeof v === 'string' ? v : fallback
+}
+function qInt(key: string, fallback: number) {
+  const v = route.query[key]
+  const n = parseInt(typeof v === 'string' ? v : '')
+  return isNaN(n) ? fallback : n
+}
+function qBool(key: string, fallback: boolean) {
+  const v = route.query[key]
+  if (v === '1') return true
+  if (v === '0') return false
+  return fallback
+}
+
+const mode = ref<'word' | 'category'>(qStr('mode', 'word') === 'category' ? 'category' : 'word')
+const rankLimit = ref(qInt('top', 20))
+const filterGender = ref(qStr('gender', 'すべて'))
+const filterGroup = ref(qStr('group', 'すべて'))
+const memberOnly = ref(qBool('member', true))
+
+watch([mode, rankLimit, filterGender, filterGroup, memberOnly], () => {
+  router.replace({
+    query: {
+      mode: mode.value,
+      top: String(rankLimit.value),
+      gender: filterGender.value,
+      group: filterGroup.value,
+      member: memberOnly.value ? '1' : '0',
+    },
+  })
+})
 
 const speakersMeta = ref<SpeakerMeta[]>([])
 const wordEntries = ref<WordEntry[]>([])
@@ -131,7 +163,9 @@ const catMap = computed(() => {
 const catRange = computed(() => {
   let min = Infinity, max = -Infinity
   for (const cats of Object.values(catMap.value)) {
-    for (const { score } of Object.values(cats)) {
+    for (const cat of CATEGORIES) {
+      const score = cats[cat]?.score
+      if (score == null) continue
       if (score < min) min = score
       if (score > max) max = score
     }
