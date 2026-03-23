@@ -552,6 +552,16 @@ const selectedDate = ref<string | null>(null)
 
 const BOARD_COLORS = ['#38bdf8', '#818cf8', '#34d399', '#fb923c', '#f472b6', '#a78bfa', '#4ade80', '#facc15']
 
+function boardColor(board: Board): string {
+  const idx = boards.value.findIndex(b => b.id === board.id)
+  return BOARD_COLORS[idx % BOARD_COLORS.length]
+}
+
+function boardBorderStyle(board: Board): Record<string, string> {
+  const c = boardColor(board)
+  return { borderColor: c + '40', backgroundColor: c + '0d' }
+}
+
 const doneViewOptions: { key: DoneView; label: string }[] = [
   { key: 'table', label: '表' },
   { key: 'line', label: '折れ線' },
@@ -947,16 +957,88 @@ async function deleteTask() {
 
   <div class="min-h-screen pb-16 text-[#e2e8f0] text-sm">
     <!-- Header -->
-    <header class="sticky top-0 z-[100] flex items-center gap-3 px-5 py-3.5 bg-[rgba(15,23,42,0.92)] backdrop-blur-[12px] border-b border-white/[0.08]">
-      <h1 class="flex-none m-0 ml-2 text-xl font-bold bg-gradient-to-br from-sky-400 to-indigo-500 bg-clip-text text-transparent">タスクくん</h1>
-      <div v-if="hasCredentials" class="flex items-center gap-2 ml-auto">
-        <!-- Profile selector -->
-        <div class="flex items-center gap-1 mr-1">
+    <header class="sticky top-0 z-[100] bg-[rgba(15,23,42,0.92)] backdrop-blur-[12px] border-b border-white/[0.08]">
+      <!-- タイトル行 -->
+      <div class="flex items-center gap-2 px-3 md:px-5 py-2 md:py-3.5">
+        <h1 class="flex-none m-0 text-xl font-bold bg-gradient-to-br from-sky-400 to-indigo-500 bg-clip-text text-transparent">タスクくん</h1>
+        <!-- デスクトップ用コントロール -->
+        <div v-if="hasCredentials" class="hidden md:flex items-center gap-2 ml-auto">
+          <div class="flex items-center gap-1 mr-1">
+            <button
+              v-for="p in profiles"
+              :key="p.id"
+              :class="[
+                'px-2.5 py-1 rounded-md text-[12px] font-medium cursor-pointer border transition-all',
+                activeProfileId === p.id
+                  ? 'bg-sky-500/20 border-sky-400/50 text-sky-400'
+                  : 'bg-white/[0.04] border-white/10 text-slate-500 hover:bg-white/[0.08] hover:text-slate-300',
+              ]"
+              @click="switchProfile(p.id)"
+            >{{ p.name }}</button>
+          </div>
+          <div class="relative z-50" @click.stop>
+            <button
+              class="bg-white/[0.06] border border-white/10 rounded-md px-2.5 py-1.5 text-[#e2e8f0] text-[13px] cursor-pointer hover:bg-white/[0.1] transition-colors min-w-[90px] text-left"
+              @click="togglePicker('start')"
+            >{{ formatMonthLabel(startMonth) }}</button>
+            <div v-if="pickerOpen === 'start'" class="absolute top-full left-0 mt-1 bg-[#1e293b] border border-white/10 rounded-xl p-3 shadow-xl w-44">
+              <div class="flex items-center justify-between mb-2">
+                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm" @click="prevYear('start')">‹</button>
+                <span class="text-[13px] font-semibold text-slate-200">{{ pickerYearStart }}年</span>
+                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm" @click="nextYear('start')">›</button>
+              </div>
+              <div class="grid grid-cols-3 gap-1">
+                <button
+                  v-for="m in 12" :key="m"
+                  class="py-1 rounded-md text-[12px] transition-colors cursor-pointer"
+                  :class="isSelectedMonth('start', m) ? 'bg-sky-500 text-white font-semibold' : 'text-slate-300 hover:bg-white/10'"
+                  @click="selectMonth('start', m)"
+                >{{ m }}月</button>
+              </div>
+            </div>
+          </div>
+          <span class="text-slate-600">〜</span>
+          <div class="relative z-50" @click.stop>
+            <button
+              class="bg-white/[0.06] border border-white/10 rounded-md px-2.5 py-1.5 text-[#e2e8f0] text-[13px] cursor-pointer hover:bg-white/[0.1] transition-colors min-w-[90px] text-left"
+              @click="togglePicker('end')"
+            >{{ formatMonthLabel(endMonth) }}</button>
+            <div v-if="pickerOpen === 'end'" class="absolute top-full left-0 mt-1 bg-[#1e293b] border border-white/10 rounded-xl p-3 shadow-xl w-44">
+              <div class="flex items-center justify-between mb-2">
+                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm" @click="prevYear('end')">‹</button>
+                <span class="text-[13px] font-semibold text-slate-200">{{ pickerYearEnd }}年</span>
+                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm" @click="nextYear('end')">›</button>
+              </div>
+              <div class="grid grid-cols-3 gap-1">
+                <button
+                  v-for="m in 12" :key="m"
+                  class="py-1 rounded-md text-[12px] transition-colors cursor-pointer"
+                  :class="isSelectedMonth('end', m) ? 'bg-sky-500 text-white font-semibold' : 'text-slate-300 hover:bg-white/10'"
+                  @click="selectMonth('end', m)"
+                >{{ m }}月</button>
+              </div>
+            </div>
+          </div>
+          <button
+            class="px-4 py-1.5 rounded-lg border-none bg-gradient-to-br from-sky-400 to-indigo-500 text-white text-[13px] font-semibold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:opacity-90 hover:enabled:-translate-y-px"
+            :disabled="loading"
+            @click="load"
+          >{{ loading ? '…' : '更新' }}</button>
+        </div>
+        <button
+          class="w-9 h-9 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-lg cursor-pointer flex items-center justify-center transition-all hover:bg-white/[0.12] hover:text-[#e2e8f0] ml-auto md:ml-0"
+          title="設定"
+          @click="openSettings"
+        >⚙</button>
+      </div>
+      <!-- モバイル用コントロール行 -->
+      <div v-if="hasCredentials" class="md:hidden flex items-center gap-1.5 flex-wrap px-3 pb-2">
+        <div class="flex items-center gap-1 flex-wrap">
           <button
             v-for="p in profiles"
             :key="p.id"
             :class="[
-              'px-2.5 py-1 rounded-md text-[12px] font-medium cursor-pointer border transition-all',
+              'px-2 py-1 rounded-md text-[11px] font-medium cursor-pointer border transition-all',
               activeProfileId === p.id
                 ? 'bg-sky-500/20 border-sky-400/50 text-sky-400'
                 : 'bg-white/[0.04] border-white/10 text-slate-500 hover:bg-white/[0.08] hover:text-slate-300',
@@ -964,13 +1046,12 @@ async function deleteTask() {
             @click="switchProfile(p.id)"
           >{{ p.name }}</button>
         </div>
-        <!-- Start month picker -->
         <div class="relative z-50" @click.stop>
           <button
-            class="bg-white/[0.06] border border-white/10 rounded-md px-2.5 py-1.5 text-[#e2e8f0] text-[13px] cursor-pointer hover:bg-white/[0.1] transition-colors min-w-[90px] text-left"
+            class="bg-white/[0.06] border border-white/10 rounded-md px-2 py-1 text-[#e2e8f0] text-[12px] cursor-pointer hover:bg-white/[0.1] transition-colors min-w-[80px] text-left"
             @click="togglePicker('start')"
           >{{ formatMonthLabel(startMonth) }}</button>
-          <div v-if="pickerOpen === 'start'" class="absolute top-full left-0 mt-1 bg-[#1e293b] border border-white/10 rounded-xl p-3 shadow-xl w-44">
+          <div v-if="pickerOpen === 'start'" class="absolute top-full left-0 mt-1 bg-[#1e293b] border border-white/10 rounded-xl p-3 shadow-xl w-44 z-50">
             <div class="flex items-center justify-between mb-2">
               <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm" @click="prevYear('start')">‹</button>
               <span class="text-[13px] font-semibold text-slate-200">{{ pickerYearStart }}年</span>
@@ -986,14 +1067,13 @@ async function deleteTask() {
             </div>
           </div>
         </div>
-        <span class="text-slate-600">〜</span>
-        <!-- End month picker -->
+        <span class="text-slate-600 text-[12px]">〜</span>
         <div class="relative z-50" @click.stop>
           <button
-            class="bg-white/[0.06] border border-white/10 rounded-md px-2.5 py-1.5 text-[#e2e8f0] text-[13px] cursor-pointer hover:bg-white/[0.1] transition-colors min-w-[90px] text-left"
+            class="bg-white/[0.06] border border-white/10 rounded-md px-2 py-1 text-[#e2e8f0] text-[12px] cursor-pointer hover:bg-white/[0.1] transition-colors min-w-[80px] text-left"
             @click="togglePicker('end')"
           >{{ formatMonthLabel(endMonth) }}</button>
-          <div v-if="pickerOpen === 'end'" class="absolute top-full left-0 mt-1 bg-[#1e293b] border border-white/10 rounded-xl p-3 shadow-xl w-44">
+          <div v-if="pickerOpen === 'end'" class="absolute top-full left-0 mt-1 bg-[#1e293b] border border-white/10 rounded-xl p-3 shadow-xl w-44 z-50">
             <div class="flex items-center justify-between mb-2">
               <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm" @click="prevYear('end')">‹</button>
               <span class="text-[13px] font-semibold text-slate-200">{{ pickerYearEnd }}年</span>
@@ -1010,17 +1090,11 @@ async function deleteTask() {
           </div>
         </div>
         <button
-          class="px-4 py-1.5 rounded-lg border-none bg-gradient-to-br from-sky-400 to-indigo-500 text-white text-[13px] font-semibold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:opacity-90 hover:enabled:-translate-y-px"
+          class="px-3 py-1 rounded-lg border-none bg-gradient-to-br from-sky-400 to-indigo-500 text-white text-[12px] font-semibold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           :disabled="loading"
           @click="load"
         >{{ loading ? '…' : '更新' }}</button>
       </div>
-      <button
-        class="w-9 h-9 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-lg cursor-pointer flex items-center justify-center transition-all hover:bg-white/[0.12] hover:text-[#e2e8f0]"
-        :class="hasCredentials ? '' : 'ml-auto'"
-        title="設定"
-        @click="openSettings"
-      >⚙</button>
     </header>
 
     <!-- Settings Modal -->
@@ -1215,8 +1289,13 @@ async function deleteTask() {
             <span class="text-xl font-bold text-slate-600">{{ doingTotal }}</span>
           </div>
           <div class="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
-            <div v-for="board in boards" :key="board.id" class="w-[220px] flex-shrink-0 rounded-xl p-3 bg-sky-400/[0.05] border border-sky-400/15 flex flex-col">
-              <div class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.05em] mb-2.5">{{ board.name }}<span v-if="board.doing.length" class="ml-1 text-sky-400/70">({{ board.doing.length }})</span></div>
+            <div
+              v-for="board in boards"
+              :key="board.id"
+              class="w-[220px] flex-shrink-0 rounded-xl p-3 border flex flex-col"
+              :style="boardBorderStyle(board)"
+            >
+              <div class="text-[11px] font-bold uppercase tracking-[0.05em] mb-2.5" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="board.doing.length" class="ml-1 opacity-70">({{ board.doing.length }})</span></div>
               <ul class="list-none m-0 p-0 flex flex-col gap-1.5 max-h-[290px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
                 <li
                   v-for="card in board.doing"
@@ -1242,7 +1321,7 @@ async function deleteTask() {
                       @click.stop="markDone(card, board)"
                     />
                     <div class="flex-1 min-w-0">
-                      <span class="text-[13px] leading-snug text-slate-300 block">{{ card.name }}</span>
+                      <span class="text-[13px] leading-snug text-white block">{{ card.name }}</span>
                       <span v-if="card.desc" class="text-[11px] text-slate-500 block mt-0.5 truncate">{{ card.desc }}</span>
                     </div>
                   </div>
@@ -1250,12 +1329,8 @@ async function deleteTask() {
                 </li>
               </ul>
               <button
-                :class="[
-                  'mt-2 w-full py-1.5 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all',
-                  dragOverEndKey === `${board.id}:doing`
-                    ? 'border-sky-400/60 bg-sky-400/[0.08] text-sky-400/80'
-                    : 'border-sky-400/20 text-sky-400/40 hover:border-sky-400/50 hover:text-sky-400/70 hover:bg-sky-400/[0.04]',
-                ]"
+                class="mt-2 w-full py-1.5 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all opacity-40 hover:opacity-80"
+                :style="{ borderColor: boardColor(board), color: boardColor(board) }"
                 @click="openAddTask(board.id, 'doing')"
                 @dragover="onDragOverEnd($event, `${board.id}:doing`)"
                 @drop.prevent="onDropEnd(board.id, 'doing')"
@@ -1271,8 +1346,13 @@ async function deleteTask() {
             <span class="text-xl font-bold text-slate-600">{{ todoTotal }}</span>
           </div>
           <div class="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
-            <div v-for="board in boards" :key="board.id" class="w-[220px] flex-shrink-0 rounded-xl p-3 bg-amber-500/[0.05] border border-amber-500/15 flex flex-col">
-              <div class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.05em] mb-2.5">{{ board.name }}<span v-if="board.todo.length" class="ml-1 text-amber-500/70">({{ board.todo.length }})</span></div>
+            <div
+              v-for="board in boards"
+              :key="board.id"
+              class="w-[220px] flex-shrink-0 rounded-xl p-3 border flex flex-col"
+              :style="boardBorderStyle(board)"
+            >
+              <div class="text-[11px] font-bold uppercase tracking-[0.05em] mb-2.5" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="board.todo.length" class="ml-1 opacity-70">({{ board.todo.length }})</span></div>
               <ul class="list-none m-0 p-0 flex flex-col gap-1.5 max-h-[290px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
                 <li
                   v-for="card in board.todo"
@@ -1298,7 +1378,7 @@ async function deleteTask() {
                       @click.stop="markDone(card, board)"
                     />
                     <div class="flex-1 min-w-0">
-                      <span class="text-[13px] leading-snug text-slate-300 block">{{ card.name }}</span>
+                      <span class="text-[13px] leading-snug text-white block">{{ card.name }}</span>
                       <span v-if="card.desc" class="text-[11px] text-slate-500 block mt-0.5 truncate">{{ card.desc }}</span>
                     </div>
                   </div>
@@ -1306,12 +1386,8 @@ async function deleteTask() {
                 </li>
               </ul>
               <button
-                :class="[
-                  'mt-2 w-full py-1.5 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all',
-                  dragOverEndKey === `${board.id}:todo`
-                    ? 'border-amber-400/60 bg-amber-400/[0.08] text-amber-400/80'
-                    : 'border-amber-500/20 text-amber-500/40 hover:border-amber-500/50 hover:text-amber-500/70 hover:bg-amber-500/[0.04]',
-                ]"
+                class="mt-2 w-full py-1.5 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all opacity-40 hover:opacity-80"
+                :style="{ borderColor: boardColor(board), color: boardColor(board) }"
                 @click="openAddTask(board.id, 'todo')"
                 @dragover="onDragOverEnd($event, `${board.id}:todo`)"
                 @drop.prevent="onDropEnd(board.id, 'todo')"
@@ -1347,7 +1423,9 @@ async function deleteTask() {
                 <thead>
                   <tr>
                     <th class="border border-white/[0.06] px-2.5 py-2 text-left text-slate-500 text-[11px] font-bold whitespace-nowrap w-[90px] min-w-[90px] bg-emerald-500/[0.08]">日付</th>
-                    <th v-for="board in boards" :key="board.id" class="border border-white/[0.06] px-2.5 py-2 text-left text-slate-500 text-[11px] font-bold whitespace-nowrap bg-emerald-500/[0.08]">{{ board.name }}</th>
+                    <th v-for="board in boards" :key="board.id" class="border border-white/[0.06] px-2.5 py-2 text-left text-[11px] font-bold whitespace-nowrap" :style="{ backgroundColor: boardColor(board) + '1a', color: boardColor(board) }">
+                      <span class="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" :style="{ backgroundColor: boardColor(board) }" />{{ board.name }}
+                    </th>
                   </tr>
                   <tr>
                     <td class="border border-white/[0.06] px-2.5 py-2 text-slate-400 font-bold bg-white/[0.03]">合計</td>
@@ -1401,24 +1479,28 @@ async function deleteTask() {
         </section>
 
         <!-- スマホ版レイアウト (md未満のみ表示) -->
-        <div class="md:hidden px-3 pt-4 pb-8">
+        <div class="md:hidden px-2 pt-3 pb-8">
           <!-- ヘッダー: TODO/DOING 合計 -->
-          <div class="mb-4 flex items-center gap-2">
-            <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-[800] tracking-[0.1em] bg-amber-500/15 text-amber-500 border border-amber-500/30">TODO</span>
-            <span class="text-slate-600 text-sm font-bold">{{ todoTotal }}</span>
+          <div class="mb-3 flex items-center gap-2">
+            <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-amber-500/15 text-amber-500 border border-amber-500/30">TODO</span>
+            <span class="text-slate-400 text-base font-bold">{{ todoTotal }}</span>
             <span class="mx-1 text-slate-700">/</span>
-            <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-[800] tracking-[0.1em] bg-sky-400/15 text-sky-400 border border-sky-400/30">DOING</span>
-            <span class="text-slate-600 text-sm font-bold">{{ doingTotal }}</span>
+            <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-sky-400/15 text-sky-400 border border-sky-400/30">DOING</span>
+            <span class="text-slate-400 text-base font-bold">{{ doingTotal }}</span>
           </div>
 
           <!-- ボードごとに TODO(左) DOING(右) -->
-          <div v-for="board in boards" :key="board.id" class="mb-5">
-            <div class="text-[11px] font-bold text-slate-500 uppercase tracking-[0.05em] mb-2 px-0.5">{{ board.name }}</div>
-            <div class="grid grid-cols-2 gap-2">
+          <div v-for="board in boards" :key="board.id" class="mb-3">
+            <!-- ボード名ヘッダー -->
+            <div
+              class="text-[13px] font-bold uppercase tracking-[0.05em] mb-1.5 px-1.5 py-1 rounded-lg border-l-4"
+              :style="{ color: boardColor(board), borderColor: boardColor(board), backgroundColor: boardColor(board) + '12' }"
+            >{{ board.name }}</div>
+            <div class="grid grid-cols-2 gap-1.5">
               <!-- TODO (左) -->
-              <div class="rounded-xl p-2.5 bg-amber-500/[0.05] border border-amber-500/15 flex flex-col">
-                <div class="text-[10px] font-bold text-amber-500/70 mb-1.5">TODO<span v-if="board.todo.length" class="ml-1">{{ board.todo.length }}</span></div>
-                <ul class="list-none m-0 p-0 flex flex-col gap-1 min-h-[32px]">
+              <div class="rounded-xl p-2 border flex flex-col" :style="boardBorderStyle(board)">
+                <div class="text-[11px] font-bold mb-1 text-amber-400/80">TODO<span v-if="board.todo.length" class="ml-1">{{ board.todo.length }}</span></div>
+                <ul class="list-none m-0 p-0 flex flex-col gap-1 min-h-[28px]">
                   <li
                     v-for="card in board.todo"
                     :key="card.id"
@@ -1430,21 +1512,22 @@ async function deleteTask() {
                     @click="openEditTask(card, board.id, 'todo')"
                   >
                     <button
-                      class="mt-0.5 flex-shrink-0 w-3.5 h-3.5 rounded border border-white/20 bg-white/[0.04] hover:border-emerald-400/60 hover:bg-emerald-400/10 transition-all cursor-pointer flex items-center justify-center"
+                      class="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-white/20 bg-white/[0.04] hover:border-emerald-400/60 hover:bg-emerald-400/10 transition-all cursor-pointer flex items-center justify-center"
                       @click.stop="markDone(card, board)"
                     />
-                    <span class="text-[12px] leading-snug text-slate-300 flex-1 min-w-0 break-all">{{ card.name }}</span>
+                    <span class="text-[14px] leading-snug text-white flex-1 min-w-0 break-words">{{ card.name }}</span>
                   </li>
                 </ul>
                 <button
-                  class="mt-1.5 w-full py-1 rounded-lg border border-dashed border-amber-500/20 text-amber-500/40 text-[12px] hover:border-amber-500/50 hover:text-amber-500/70 cursor-pointer transition-all"
+                  class="mt-1.5 w-full py-1 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all opacity-40 hover:opacity-80"
+                  :style="{ borderColor: boardColor(board), color: boardColor(board) }"
                   @click="openAddTask(board.id, 'todo')"
                 >＋</button>
               </div>
               <!-- DOING (右) -->
-              <div class="rounded-xl p-2.5 bg-sky-400/[0.05] border border-sky-400/15 flex flex-col">
-                <div class="text-[10px] font-bold text-sky-400/70 mb-1.5">DOING<span v-if="board.doing.length" class="ml-1">{{ board.doing.length }}</span></div>
-                <ul class="list-none m-0 p-0 flex flex-col gap-1 min-h-[32px]">
+              <div class="rounded-xl p-2 border flex flex-col" :style="boardBorderStyle(board)">
+                <div class="text-[11px] font-bold mb-1 text-sky-400/80">DOING<span v-if="board.doing.length" class="ml-1">{{ board.doing.length }}</span></div>
+                <ul class="list-none m-0 p-0 flex flex-col gap-1 min-h-[28px]">
                   <li
                     v-for="card in board.doing"
                     :key="card.id"
@@ -1456,14 +1539,15 @@ async function deleteTask() {
                     @click="openEditTask(card, board.id, 'doing')"
                   >
                     <button
-                      class="mt-0.5 flex-shrink-0 w-3.5 h-3.5 rounded border border-white/20 bg-white/[0.04] hover:border-emerald-400/60 hover:bg-emerald-400/10 transition-all cursor-pointer flex items-center justify-center"
+                      class="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-white/20 bg-white/[0.04] hover:border-emerald-400/60 hover:bg-emerald-400/10 transition-all cursor-pointer flex items-center justify-center"
                       @click.stop="markDone(card, board)"
                     />
-                    <span class="text-[12px] leading-snug text-slate-300 flex-1 min-w-0 break-all">{{ card.name }}</span>
+                    <span class="text-[14px] leading-snug text-white flex-1 min-w-0 break-words">{{ card.name }}</span>
                   </li>
                 </ul>
                 <button
-                  class="mt-1.5 w-full py-1 rounded-lg border border-dashed border-sky-400/20 text-sky-400/40 text-[12px] hover:border-sky-400/50 hover:text-sky-400/70 cursor-pointer transition-all"
+                  class="mt-1.5 w-full py-1 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all opacity-40 hover:opacity-80"
+                  :style="{ borderColor: boardColor(board), color: boardColor(board) }"
                   @click="openAddTask(board.id, 'doing')"
                 >＋</button>
               </div>
@@ -1471,21 +1555,21 @@ async function deleteTask() {
           </div>
 
           <!-- スマホ版 DONE -->
-          <div class="mt-6 pt-5 border-t border-white/[0.06]">
-            <div class="flex items-center gap-2 mb-4">
-              <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-[800] tracking-[0.1em] bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">DONE</span>
-              <span class="text-slate-600 text-sm font-bold">{{ boards.reduce((s, b) => s + doneTotal(b), 0) }}</span>
+          <div class="mt-4 pt-4 border-t border-white/[0.06]">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">DONE</span>
+              <span class="text-slate-400 text-base font-bold">{{ boards.reduce((s, b) => s + doneTotal(b), 0) }}</span>
             </div>
             <div class="flex gap-3">
               <!-- 左半分: 直近1週間のDONEリスト（ボード順） -->
               <div class="flex-1 min-w-0">
-                <div class="text-[10px] font-bold text-slate-600 mb-2 uppercase tracking-wider">直近7日</div>
-                <div v-if="thisWeekDone.length === 0" class="text-[12px] text-slate-600 py-3 text-center">完了タスクなし</div>
+                <div class="text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">直近7日</div>
+                <div v-if="thisWeekDone.length === 0" class="text-[13px] text-slate-600 py-3 text-center">完了タスクなし</div>
                 <template v-else>
                   <div v-for="row in thisWeekDone" :key="row.board.id" class="mb-3">
-                    <div class="text-[10px] font-bold text-slate-500 mb-1.5 truncate">{{ row.board.name }}</div>
+                    <div class="text-[12px] font-bold mb-1.5 truncate" :style="{ color: boardColor(row.board) }">{{ row.board.name }}</div>
                     <div v-for="dayItem in row.items" :key="dayItem.date" class="mb-1.5">
-                      <div class="text-[10px] text-slate-600 mb-0.5">{{ formatDate(dayItem.date) }}</div>
+                      <div class="text-[11px] text-slate-500 mb-0.5">{{ formatDate(dayItem.date) }}</div>
                       <ul class="list-none m-0 p-0 flex flex-col gap-0.5">
                         <li
                           v-for="item in dayItem.cards"
@@ -1493,11 +1577,11 @@ async function deleteTask() {
                           class="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/[0.08] rounded border-l-2 border-emerald-500/40"
                         >
                           <button
-                            class="flex-shrink-0 w-3 h-3 rounded border border-emerald-500/60 bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-[9px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer"
+                            class="flex-shrink-0 w-3.5 h-3.5 rounded border border-emerald-500/60 bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer"
                             title="DOINGに戻す"
                             @click="unmarkDone(item, dayItem.date, row.board)"
                           >✓</button>
-                          <span class="text-[11px] leading-snug text-[#a7f3d0] truncate">{{ item.name }}</span>
+                          <span class="text-[12px] leading-snug text-[#a7f3d0] truncate">{{ item.name }}</span>
                         </li>
                       </ul>
                     </div>
@@ -1506,18 +1590,18 @@ async function deleteTask() {
               </div>
               <!-- 右半分: 今週 vs 先週比較 -->
               <div class="flex-1 min-w-0">
-                <div class="text-[10px] font-bold text-slate-600 mb-2 uppercase tracking-wider">今週 vs 先週</div>
-                <table class="w-full border-collapse text-[11px]">
+                <div class="text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">今週 vs 先週</div>
+                <table class="w-full border-collapse text-[12px]">
                   <thead>
                     <tr>
-                      <th class="text-left py-1 px-1 text-slate-600 text-[10px] font-bold border-b border-white/[0.06]"></th>
-                      <th class="text-right py-1 px-1 text-emerald-500/70 text-[10px] font-bold border-b border-white/[0.06]">今週</th>
-                      <th class="text-right py-1 px-1 text-slate-600 text-[10px] font-bold border-b border-white/[0.06]">先週</th>
+                      <th class="text-left py-1 px-1 text-slate-500 text-[11px] font-bold border-b border-white/[0.06]"></th>
+                      <th class="text-right py-1 px-1 text-emerald-500/70 text-[11px] font-bold border-b border-white/[0.06]">今週</th>
+                      <th class="text-right py-1 px-1 text-slate-500 text-[11px] font-bold border-b border-white/[0.06]">先週</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr class="border-b border-white/[0.05]">
-                      <td class="py-1 px-1 text-slate-400 font-bold text-[11px]">合計</td>
+                      <td class="py-1 px-1 text-slate-400 font-bold text-[12px]">合計</td>
                       <td
                         class="py-1 px-1 text-right font-bold"
                         :class="weekCompTotal.thisWeek > weekCompTotal.prevWeek ? 'text-emerald-400' : weekCompTotal.thisWeek < weekCompTotal.prevWeek ? 'text-red-400' : 'text-slate-400'"
@@ -1525,11 +1609,11 @@ async function deleteTask() {
                       <td class="py-1 px-1 text-right text-slate-500">{{ weekCompTotal.prevWeek }}</td>
                     </tr>
                     <tr
-                      v-for="row in weekComparison"
+                      v-for="(row, ri) in weekComparison"
                       :key="row.name"
                       class="border-b border-white/[0.03]"
                     >
-                      <td class="py-1 px-1 text-slate-500 text-[10px] truncate max-w-0 w-1/2">{{ row.name }}</td>
+                      <td class="py-1 px-1 text-[11px] truncate max-w-0 w-1/2" :style="{ color: BOARD_COLORS[ri % BOARD_COLORS.length] }">{{ row.name }}</td>
                       <td
                         class="py-1 px-1 text-right"
                         :class="row.thisWeek > row.prevWeek ? 'text-emerald-400' : row.thisWeek < row.prevWeek ? 'text-red-400' : 'text-slate-400'"
