@@ -1285,7 +1285,7 @@ async function deleteTask() {
         <!-- DOING (PC only) -->
         <section class="hidden md:block px-5 pt-5 mb-8">
           <div class="flex items-center gap-2.5 mb-3.5">
-            <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-sky-400/15 text-sky-400 border border-sky-400/30">DOING</span>
+            <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-sky-400/15 text-white border border-sky-400/30">DOING</span>
             <span class="text-xl font-bold text-slate-600">{{ doingTotal }}</span>
           </div>
           <div class="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
@@ -1342,7 +1342,7 @@ async function deleteTask() {
         <!-- TODO (PC only) -->
         <section class="hidden md:block px-5 mb-8">
           <div class="flex items-center gap-2.5 mb-3.5">
-            <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-amber-500/15 text-amber-500 border border-amber-500/30">TODO</span>
+            <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-amber-500/15 text-white border border-amber-500/30">TODO</span>
             <span class="text-xl font-bold text-slate-600">{{ todoTotal }}</span>
           </div>
           <div class="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
@@ -1399,7 +1399,7 @@ async function deleteTask() {
         <!-- DONE (PC only) -->
         <section class="hidden md:block px-5">
           <div class="flex items-center gap-2.5 mb-3.5">
-            <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">DONE</span>
+            <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-emerald-500/15 text-white border border-emerald-500/30">DONE</span>
             <span class="text-xl font-bold text-slate-600">{{ boards.reduce((s, b) => s + doneTotal(b), 0) }}</span>
             <div class="ml-auto flex items-center gap-1">
               <button
@@ -1443,7 +1443,7 @@ async function deleteTask() {
                             title="DOINGに戻す"
                             @click="unmarkDone(item, date, board)"
                           >✓</button>
-                          <span class="leading-snug text-[#a7f3d0] text-xs">{{ item.name }}</span>
+                          <span class="leading-snug text-white text-xs">{{ item.name }}</span>
                         </li>
                       </ul>
                     </td>
@@ -1463,11 +1463,11 @@ async function deleteTask() {
                   </div>
                   <template v-for="board in boards" :key="board.id">
                     <template v-if="board.done[selectedDate]?.length">
-                      <p class="m-0 mb-1 text-[11px] font-bold text-slate-500 uppercase tracking-wide">{{ board.name }}</p>
+                      <p class="m-0 mb-1 text-[11px] font-bold uppercase tracking-wide" :style="{ color: boardColor(board) }">{{ board.name }}</p>
                       <ul class="list-none m-0 p-0 mb-2.5 flex flex-col gap-1">
-                        <li v-for="item in board.done[selectedDate]" :key="item.id" class="flex items-center gap-1.5 px-1.5 py-0.5 bg-emerald-500/[0.08] rounded border-l-2 border-emerald-500/40">
+                        <li v-for="item in board.done[selectedDate]" :key="item.id" class="flex items-center gap-1.5 px-1.5 py-0.5 rounded border-l-2" :style="{ backgroundColor: boardColor(board) + '14', borderColor: boardColor(board) + '60' }">
                           <button class="flex-shrink-0 w-3.5 h-3.5 rounded border border-emerald-500/60 bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer" title="DOINGに戻す" @click="unmarkDone(item, selectedDate, board)">✓</button>
-                          <span class="leading-snug text-[#a7f3d0] text-xs">{{ item.name }}</span>
+                          <span class="leading-snug text-white text-xs">{{ item.name }}</span>
                         </li>
                       </ul>
                     </template>
@@ -1482,10 +1482,10 @@ async function deleteTask() {
         <div class="md:hidden px-2 pt-3 pb-8">
           <!-- ヘッダー: TODO/DOING 合計 -->
           <div class="mb-3 flex items-center gap-2">
-            <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-amber-500/15 text-amber-500 border border-amber-500/30">TODO</span>
+            <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-amber-500/15 text-white border border-amber-500/30">TODO</span>
             <span class="text-slate-400 text-base font-bold">{{ todoTotal }}</span>
             <span class="mx-1 text-slate-700">/</span>
-            <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-sky-400/15 text-sky-400 border border-sky-400/30">DOING</span>
+            <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-sky-400/15 text-white border border-sky-400/30">DOING</span>
             <span class="text-slate-400 text-base font-bold">{{ doingTotal }}</span>
           </div>
 
@@ -1557,7 +1557,7 @@ async function deleteTask() {
           <!-- スマホ版 DONE -->
           <div class="mt-4 pt-4 border-t border-white/[0.06]">
             <div class="flex items-center gap-2 mb-3">
-              <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">DONE</span>
+              <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-emerald-500/15 text-white border border-emerald-500/30">DONE</span>
               <span class="text-slate-400 text-base font-bold">{{ boards.reduce((s, b) => s + doneTotal(b), 0) }}</span>
             </div>
             <div class="flex gap-3">
@@ -1581,7 +1581,7 @@ async function deleteTask() {
                             title="DOINGに戻す"
                             @click="unmarkDone(item, dayItem.date, row.board)"
                           >✓</button>
-                          <span class="text-[12px] leading-snug text-[#a7f3d0] truncate">{{ item.name }}</span>
+                          <span class="text-[12px] leading-snug text-white truncate">{{ item.name }}</span>
                         </li>
                       </ul>
                     </div>
