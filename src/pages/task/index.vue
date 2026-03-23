@@ -911,6 +911,21 @@ const thisWeekDone = computed(() =>
   })).filter(r => r.items.length > 0)
 )
 
+// 直近1週間のDONEタスク（フラット・完了日新しい順）
+const thisWeekDoneFlat = computed(() => {
+  const items: { card: any; board: any }[] = []
+  // thisWeekKeys は新しい日から古い日の順なのでそのまま追加でOK
+  for (const date of thisWeekKeys.value) {
+    for (const board of boards.value) {
+      const cards = board.done[date] ?? []
+      for (const card of cards) {
+        items.push({ card, board, date })
+      }
+    }
+  }
+  return items
+})
+
 // 今週 vs 先週の比較（ボード別）
 const weekComparison = computed(() =>
   boards.value.map(board => ({
@@ -1483,10 +1498,10 @@ async function deleteTask() {
           <!-- ヘッダー: TODO/DOING 合計 -->
           <div class="mb-3 flex items-center gap-2">
             <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-amber-500/15 text-white border border-amber-500/30">TODO</span>
-            <span class="text-slate-400 text-base font-bold">{{ todoTotal }}</span>
+            <span class="text-slate-400 text-base font-bold">({{ todoTotal }})</span>
             <span class="mx-1 text-slate-700">/</span>
             <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-sky-400/15 text-white border border-sky-400/30">DOING</span>
-            <span class="text-slate-400 text-base font-bold">{{ doingTotal }}</span>
+            <span class="text-slate-400 text-base font-bold">({{ doingTotal }})</span>
           </div>
 
           <!-- ボードごとに TODO(左) DOING(右) -->
@@ -1499,10 +1514,10 @@ async function deleteTask() {
             <div class="grid grid-cols-2 gap-1.5">
               <!-- TODO (左) -->
               <div class="rounded-xl p-2 border flex flex-col" :style="boardBorderStyle(board)">
-                <div class="text-[11px] font-bold mb-1 text-white/80">TODO<span v-if="board.todo.length" class="ml-1">{{ board.todo.length }}</span></div>
-                <ul class="list-none m-0 p-0 flex flex-col gap-1 min-h-[28px]">
+                <div class="text-[11px] font-bold mb-1 text-white/80">TODO<span v-if="board.todo.length" class="ml-1">({{ board.todo.length }})</span></div>
+                <ul class="list-none m-0 p-0 flex flex-col gap-1 min-h-[28px] max-h-[168px] overflow-y-auto">
                   <li
-                    v-for="card in board.todo"
+                    v-for="card in board.todo.slice(0, 5)"
                     :key="card.id"
                     :class="[
                       'bg-white/[0.04] border border-white/[0.07] rounded-lg px-2 py-1.5 flex items-start gap-1.5 cursor-pointer active:bg-white/[0.07]',
@@ -1526,10 +1541,10 @@ async function deleteTask() {
               </div>
               <!-- DOING (右) -->
               <div class="rounded-xl p-2 border flex flex-col" :style="boardBorderStyle(board)">
-                <div class="text-[11px] font-bold mb-1 text-white/80">DOING<span v-if="board.doing.length" class="ml-1">{{ board.doing.length }}</span></div>
-                <ul class="list-none m-0 p-0 flex flex-col gap-1 min-h-[28px]">
+                <div class="text-[11px] font-bold mb-1 text-white/80">DOING<span v-if="board.doing.length" class="ml-1">({{ board.doing.length }})</span></div>
+                <ul class="list-none m-0 p-0 flex flex-col gap-1 min-h-[28px] max-h-[168px] overflow-y-auto">
                   <li
-                    v-for="card in board.doing"
+                    v-for="card in board.doing.slice(0, 5)"
                     :key="card.id"
                     :class="[
                       'bg-white/[0.04] border border-white/[0.07] rounded-lg px-2 py-1.5 flex items-start gap-1.5 cursor-pointer active:bg-white/[0.07]',
@@ -1558,35 +1573,27 @@ async function deleteTask() {
           <div class="mt-4 pt-4 border-t border-white/[0.06]">
             <div class="flex items-center gap-2 mb-3">
               <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-emerald-500/15 text-white border border-emerald-500/30">DONE</span>
-              <span class="text-slate-400 text-base font-bold">{{ boards.reduce((s, b) => s + doneTotal(b), 0) }}</span>
+              <span class="text-slate-400 text-base font-bold">({{ boards.reduce((s, b) => s + doneTotal(b), 0) }})</span>
             </div>
             <div class="flex gap-3">
-              <!-- 左半分: 直近1週間のDONEリスト（ボード順） -->
+              <!-- 左半分: 直近1週間のDONEリスト（日付新しい順・フラット） -->
               <div class="flex-1 min-w-0">
                 <div class="text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">直近7日</div>
-                <div v-if="thisWeekDone.length === 0" class="text-[13px] text-slate-600 py-3 text-center">完了タスクなし</div>
-                <template v-else>
-                  <div v-for="row in thisWeekDone" :key="row.board.id" class="mb-3">
-                    <div class="text-[12px] font-bold mb-1.5 truncate" :style="{ color: boardColor(row.board) }">{{ row.board.name }}</div>
-                    <div v-for="dayItem in row.items" :key="dayItem.date" class="mb-1.5">
-                      <div class="text-[11px] text-slate-500 mb-0.5">{{ formatDate(dayItem.date) }}</div>
-                      <ul class="list-none m-0 p-0 flex flex-col gap-0.5">
-                        <li
-                          v-for="item in dayItem.cards"
-                          :key="item.id"
-                          class="flex items-center gap-1 px-1.5 py-1 rounded bg-white/[0.03]"
-                        >
-                          <button
-                            class="flex-shrink-0 w-3.5 h-3.5 rounded border border-white/40 bg-white/10 flex items-center justify-center text-white text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer"
-                            title="DOINGに戻す"
-                            @click="unmarkDone(item, dayItem.date, row.board)"
-                          >✓</button>
-                          <span class="text-[14px] leading-snug text-white truncate">{{ item.name }}</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </template>
+                <div v-if="thisWeekDoneFlat.length === 0" class="text-[13px] text-slate-600 py-3 text-center">完了タスクなし</div>
+                <ul v-else class="list-none m-0 p-0 flex flex-col gap-0.5">
+                  <li
+                    v-for="row in thisWeekDoneFlat"
+                    :key="row.card.id"
+                    class="flex items-center gap-1 px-1.5 py-1 rounded bg-white/[0.03]"
+                  >
+                    <button
+                      class="flex-shrink-0 w-3.5 h-3.5 rounded border border-white/40 bg-white/10 flex items-center justify-center text-white text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer"
+                      title="DOINGに戻す"
+                      @click="unmarkDone(row.card, row.date, row.board)"
+                    >✓</button>
+                    <span class="text-[14px] leading-snug text-white truncate" :style="{ color: boardColor(row.board) + 'cc' }">{{ row.card.name }}</span>
+                  </li>
+                </ul>
               </div>
               <!-- 右半分: 今週 vs 先週比較 -->
               <div class="flex-1 min-w-0">
@@ -1605,7 +1612,7 @@ async function deleteTask() {
                       <td
                         class="py-1 px-1 text-right font-bold"
                         :class="weekCompTotal.thisWeek > weekCompTotal.prevWeek ? 'text-emerald-400' : weekCompTotal.thisWeek < weekCompTotal.prevWeek ? 'text-red-400' : 'text-slate-400'"
-                      >{{ weekCompTotal.thisWeek }}</td>
+                      >{{ weekCompTotal.thisWeek }}<span v-if="weekCompTotal.thisWeek > weekCompTotal.prevWeek">↑</span><span v-else-if="weekCompTotal.thisWeek < weekCompTotal.prevWeek">↓</span></td>
                       <td class="py-1 px-1 text-right text-slate-500">{{ weekCompTotal.prevWeek }}</td>
                     </tr>
                     <tr
@@ -1617,7 +1624,7 @@ async function deleteTask() {
                       <td
                         class="py-1 px-1 text-right"
                         :class="row.thisWeek > row.prevWeek ? 'text-emerald-400' : row.thisWeek < row.prevWeek ? 'text-red-400' : 'text-slate-400'"
-                      >{{ row.thisWeek }}</td>
+                      >{{ row.thisWeek }}<span v-if="row.thisWeek > row.prevWeek">↑</span><span v-else-if="row.thisWeek < row.prevWeek">↓</span></td>
                       <td class="py-1 px-1 text-right text-slate-500">{{ row.prevWeek }}</td>
                     </tr>
                   </tbody>
