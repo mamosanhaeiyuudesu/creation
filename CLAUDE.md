@@ -24,18 +24,19 @@ wrangler secret put OPENAI_API_KEY  # 本番用APIキーの設定
 
 ### ページ一覧
 
-| ルート | 概要 |
-|--------|------|
-| `/` | ツール一覧ハブ |
-| `/snapreader` | 画像OCR・要約・AIチャット |
-| `/whisper` | 音声文字起こし（Whisper API）・要約・校正 |
-| `/hagemashi` | AI励ましメッセージ生成 |
-| `/task` | Trello連携タスク管理（DOING/TODO/DONE） |
-| `/miyako` | 宮古島市議会議事録 — キーワード×会期ヒートマップ・AIパネル |
-| `/miyako/member` | 議員分析 — 単語/カテゴリTF-IDFランキング |
-| `/kaito`, `/mamorin` | セラピスト向けマーケティングページ（複数サブページあり） |
+| ルート | 概要 | 主要ファイル |
+|--------|------|-------------|
+| `/` | ツール一覧ハブ | `src/pages/index.vue` |
+| `/snapreader` | 画像OCR・要約・AIチャット | `src/pages/snapreader/index.vue`, `src/server/api/snapreader/` |
+| `/whisper` | 音声文字起こし（Whisper API）・要約・校正 | `src/pages/whisper/index.vue`, `src/server/api/whisper/`, `src/composables/useAudioRecorder.ts` |
+| `/hagemashi` | AI励ましメッセージ生成 | `src/pages/hagemashi/index.vue`, `src/server/api/hagemashi/` |
+| `/task` | Trello連携タスク管理（DOING/TODO/DONE） | `src/pages/task/index.vue` |
+| `/miyako` | 宮古島市議会議事録 — キーワード×会期ヒートマップ・AIパネル | `src/pages/miyako/index.vue`, `src/server/api/miyako/`, `src/components/miyako/session/`, `src/utils/miyako/` |
+| `/miyako/member` | 議員分析 — 単語/カテゴリTF-IDFランキング | `src/pages/miyako/member.vue`, `src/components/miyako/member/`, `src/public/data/tfidf_*.csv` |
+| `/kaito` | セラピスト向けマーケティング（kaito） | `src/pages/kaito/`, `src/layouts/therapist.vue`, `src/assets/css/kaito.css` |
+| `/mamorin` | セラピスト向けマーケティング（mamorin） | `src/pages/mamorin/`, `src/layouts/mamorin.vue` |
 
-`/kaito` と `/mamorin` は `src/layouts/therapist.vue` を使い、Vuetifyのスタイルをリセットした独自デザイン。miyakoページはVuetifyではなくTailwind CSSを使用。
+miyakoページはVuetifyではなくTailwind CSSを使用。
 
 ### サーバーAPI（`src/server/api/`）
 
