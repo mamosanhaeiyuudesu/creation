@@ -67,7 +67,7 @@ const endMonth = ref((route.query.end as string) || defaultEnd)
 
 // --- Task modal ---
 const showTaskModal = ref(false)
-type EditTarget = { card: Card; boardId: string; status: 'doing' | 'todo' } | null
+type EditTarget = { card: Card; boardId: string; status: 'doing' | 'todo' | 'done'; dateKey?: string } | null
 const editTarget = ref<EditTarget>(null)
 const taskForm = ref({ name: '', desc: '', due: '', boardId: '', status: 'todo' as 'todo' | 'doing' | 'done' })
 
@@ -343,6 +343,15 @@ function openAddTask(boardId: string, status: 'todo' | 'doing') {
   showTaskModal.value = true
 }
 
+function openEditDoneTask(item: { id: string; name: string }, dateKey: string, board: Board) {
+  const dueForInput = dateKey + 'T12:00'
+  const dueIso = new Date(dueForInput).toISOString()
+  const card: Card = { id: item.id, name: item.name, desc: '', due: dueIso, pos: 0, isOverdue: false, isUrgent: false, display: '' }
+  editTarget.value = { card, boardId: board.id, status: 'done', dateKey }
+  taskForm.value = { name: item.name, desc: '', due: dueForInput, boardId: board.id, status: 'done' }
+  showTaskModal.value = true
+}
+
 function openEditTask(card: Card, boardId: string, status: 'doing' | 'todo') {
   editTarget.value = { card, boardId, status }
   taskForm.value = {
@@ -404,21 +413,68 @@ async function saveTask() {
 
     const dueIso = taskForm.value.due ? new Date(taskForm.value.due).toISOString() : ''
 
+    // 編集中のDONEアイテムの処理
+    if (isEditing.value && editTarget.value?.status === 'done') {
+      const { card, dateKey } = editTarget.value
+      const effectiveDue = dueIso || card.due || new Date().toISOString()
+      const newStatus = taskForm.value.status
+
+      if (newStatus === 'done') {
+        await trelloPut(`/cards/${card.id}`, {
+          name: taskForm.value.name.trim(),
+          desc: taskForm.value.desc.trim(),
+          due: effectiveDue,
+          dueComplete: true,
+        })
+        // 日付が変わった場合は古いエントリを削除して再追加
+        const newDue = new Date(effectiveDue)
+        const jst = new Date(newDue.getTime() + 9 * 3_600_000)
+        const newDateKey = jst.toISOString().slice(0, 10)
+        if (dateKey && newDateKey !== dateKey) {
+          const oldArr = board.done[dateKey]
+          if (oldArr) {
+            const idx = oldArr.findIndex(c => c.id === card.id)
+            if (idx >= 0) oldArr.splice(idx, 1)
+            if (oldArr.length === 0) delete board.done[dateKey]
+          }
+          addToDoneTable(board, { ...card, name: taskForm.value.name.trim(), due: effectiveDue })
+          rebuildAllDates()
+        } else if (dateKey && board.done[dateKey]) {
+          const idx = board.done[dateKey].findIndex(c => c.id === card.id)
+          if (idx >= 0) board.done[dateKey][idx].name = taskForm.value.name.trim()
+        }
+      } else {
+        // DONEからDOING/TODOへ移動
+        const newListId = newStatus === 'doing' ? board.doingListId : board.todoListId
+        if (!newListId) throw new Error('対象リストが見つかりません')
+        const raw = await trelloPut(`/cards/${card.id}`, {
+          name: taskForm.value.name.trim(),
+          desc: taskForm.value.desc.trim(),
+          idList: newListId,
+          dueComplete: false,
+          due: dueIso || '',
+        })
+        if (dateKey && board.done[dateKey]) {
+          const idx = board.done[dateKey].findIndex(c => c.id === card.id)
+          if (idx >= 0) board.done[dateKey].splice(idx, 1)
+          if (board.done[dateKey].length === 0) delete board.done[dateKey]
+          rebuildAllDates()
+        }
+        const updatedCard = buildCard(raw)
+        const dstArr = newStatus === 'doing' ? board.doing : board.todo
+        dstArr.push(updatedCard)
+      }
+      showTaskModal.value = false
+      return
+    }
+
     // DONEステータスの処理（チェックボックスと同じ挙動）
     if (taskForm.value.status === 'done') {
       if (!board.doneListId) throw new Error('Doneリストが見つかりません')
 
       if (isEditing.value && editTarget.value) {
         const { card, status } = editTarget.value
-        const effectiveDue = dueIso || card.due || ''
-
-        if (!effectiveDue) {
-          // 期限未設定 → カレンダーを表示（チェック選択時と同じ）
-          showTaskModal.value = false
-          pendingDueInput.value = toLocalDatetimeInput(new Date().toISOString())
-          pendingDone.value = { card, board }
-          return
-        }
+        const effectiveDue = dueIso || card.due || new Date().toISOString()
 
         await trelloPut(`/cards/${card.id}`, {
           name: taskForm.value.name.trim(),
@@ -432,15 +488,10 @@ async function saveTask() {
         if (idx >= 0) srcArr.splice(idx, 1)
         addToDoneTable(board, { ...card, name: taskForm.value.name.trim(), due: effectiveDue })
       } else {
-        // 新規カード → 期限必須
-        if (!dueIso) {
-          error.value = 'DONEにするには期限を入力してください'
-          return
-        }
         const raw = await trelloPost('/cards', {
           name: taskForm.value.name.trim(),
           desc: taskForm.value.desc.trim(),
-          due: dueIso,
+          due: dueIso || new Date().toISOString(),
           dueComplete: true,
           idList: board.doneListId,
         })
@@ -740,13 +791,7 @@ const pendingDueInput = ref('')
 
 function markDone(card: Card, board: Board) {
   if (!board.doneListId) { error.value = 'Doneリストが見つかりません'; return }
-  if (!card.due) {
-    // 期限未設定 → カレンダーを表示
-    pendingDueInput.value = toLocalDatetimeInput(new Date().toISOString())
-    pendingDone.value = { card, board }
-    return
-  }
-  execMarkDone(card, board, card.due)
+  execMarkDone(card, board, card.due || new Date().toISOString())
 }
 
 async function confirmMarkDone() {
@@ -930,7 +975,7 @@ const thisWeekDone = computed(() =>
 
 // 直近1週間のDONEタスク（フラット・完了日新しい順）
 const thisWeekDoneFlat = computed(() => {
-  const items: { card: any; board: any }[] = []
+  const items: { card: any; board: any; date: string }[] = []
   // thisWeekKeys は新しい日から古い日の順なのでそのまま追加でOK
   for (const date of thisWeekKeys.value) {
     for (const board of boards.value) {
@@ -970,9 +1015,19 @@ async function deleteTask() {
 
     const board = boards.value.find(b => b.id === boardId)
     if (board) {
-      const arr = status === 'doing' ? board.doing : board.todo
-      const idx = arr.findIndex(c => c.id === card.id)
-      if (idx >= 0) arr.splice(idx, 1)
+      if (status === 'done') {
+        const dk = editTarget.value?.dateKey
+        if (dk && board.done[dk]) {
+          const idx = board.done[dk].findIndex(c => c.id === card.id)
+          if (idx >= 0) board.done[dk].splice(idx, 1)
+          if (board.done[dk].length === 0) delete board.done[dk]
+          rebuildAllDates()
+        }
+      } else {
+        const arr = status === 'doing' ? board.doing : board.todo
+        const idx = arr.findIndex(c => c.id === card.id)
+        if (idx >= 0) arr.splice(idx, 1)
+      }
     }
     showTaskModal.value = false
   } catch (e: any) {
@@ -1466,11 +1521,11 @@ async function deleteTask() {
                     <td class="border border-white/[0.06] pl-2.5 pr-1 py-2 whitespace-nowrap text-slate-500 text-xs w-[72px] min-w-[72px]">{{ formatDate(date) }}</td>
                     <td v-for="board in boards" :key="board.id" class="border border-white/[0.06] px-2.5 py-2 align-top">
                       <ul v-if="board.done[date]" class="list-none m-0 p-0 flex flex-col gap-1">
-                        <li v-for="item in board.done[date]" :key="item.id" class="flex items-center gap-1.5 px-1.5 py-1 rounded bg-white/[0.03]">
+                        <li v-for="item in board.done[date]" :key="item.id" class="flex items-center gap-1.5 px-1.5 py-1 rounded bg-white/[0.03] hover:bg-white/[0.06] cursor-pointer" @click="openEditDoneTask(item, date, board)">
                           <button
                             class="flex-shrink-0 w-3.5 h-3.5 rounded border border-white/40 bg-white/10 flex items-center justify-center text-white text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer"
                             title="DOINGに戻す"
-                            @click="unmarkDone(item, date, board)"
+                            @click.stop="unmarkDone(item, date, board)"
                           >✓</button>
                           <span class="leading-snug text-white text-[13px]">{{ item.name }}</span>
                         </li>
@@ -1487,15 +1542,15 @@ async function deleteTask() {
               <transition name="slide-fade">
                 <div v-if="selectedDate && (doneView === 'line' || doneView === 'stacked')" class="w-80 flex-none bg-white/[0.04] border border-white/[0.08] rounded-xl p-3 self-stretch overflow-y-auto max-h-[480px]">
                   <div class="flex items-center justify-between mb-2.5">
-                    <span class="text-[13px] font-bold text-emerald-400">{{ formatDate(selectedDate) }}</span>
+                    <span class="text-[13px] font-bold text-white">{{ formatDate(selectedDate) }}</span>
                     <button class="w-5 h-5 flex items-center justify-center text-slate-500 hover:text-slate-300 text-xs cursor-pointer" @click="selectedDate = null">✕</button>
                   </div>
                   <template v-for="board in boards" :key="board.id">
                     <template v-if="board.done[selectedDate]?.length">
                       <p class="m-0 mb-1 text-[11px] font-bold uppercase tracking-wide" :style="{ color: boardColor(board) }">{{ board.name }}</p>
                       <ul class="list-none m-0 p-0 mb-2.5 flex flex-col gap-1">
-                        <li v-for="item in board.done[selectedDate]" :key="item.id" class="flex items-center gap-1.5 px-1.5 py-0.5 rounded border-l-2" :style="{ backgroundColor: boardColor(board) + '14', borderColor: boardColor(board) + '60' }">
-                          <button class="flex-shrink-0 w-3.5 h-3.5 rounded border border-white/40 bg-white/10 flex items-center justify-center text-white text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer" title="DOINGに戻す" @click="unmarkDone(item, selectedDate, board)">✓</button>
+                        <li v-for="item in board.done[selectedDate]" :key="item.id" class="flex items-center gap-1.5 px-1.5 py-0.5 rounded border-l-2 cursor-pointer hover:brightness-125" :style="{ backgroundColor: boardColor(board) + '14', borderColor: boardColor(board) + '60' }" @click="openEditDoneTask(item, selectedDate, board)">
+                          <button class="flex-shrink-0 w-3.5 h-3.5 rounded border border-white/40 bg-white/10 flex items-center justify-center text-white text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer" title="DOINGに戻す" @click.stop="unmarkDone(item, selectedDate, board)">✓</button>
                           <span class="leading-snug text-white text-xs">{{ item.name }}</span>
                         </li>
                       </ul>
@@ -1598,12 +1653,13 @@ async function deleteTask() {
                   <li
                     v-for="row in thisWeekDoneFlat"
                     :key="row.card.id"
-                    class="flex items-center gap-1 px-1.5 py-1 rounded bg-white/[0.03]"
+                    class="flex items-center gap-1 px-1.5 py-1 rounded bg-white/[0.03] hover:bg-white/[0.06] cursor-pointer"
+                    @click="openEditDoneTask(row.card, row.date, row.board)"
                   >
                     <button
                       class="flex-shrink-0 w-3.5 h-3.5 rounded border border-white/40 bg-white/10 flex items-center justify-center text-white text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer"
                       title="DOINGに戻す"
-                      @click="unmarkDone(row.card, row.date, row.board)"
+                      @click.stop="unmarkDone(row.card, row.date, row.board)"
                     >✓</button>
                     <span class="text-[14px] leading-snug text-white truncate" :style="{ color: boardColor(row.board) + 'cc' }">{{ row.card.name }}</span>
                   </li>
