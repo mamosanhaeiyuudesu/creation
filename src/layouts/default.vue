@@ -60,8 +60,8 @@
     </nav>
 
     <!-- Main -->
-    <div class="flex flex-1 relative">
-      <main class="flex-1 overflow-y-auto">
+    <div class="flex flex-1 relative min-w-0">
+      <main class="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
         <slot />
       </main>
     </div>

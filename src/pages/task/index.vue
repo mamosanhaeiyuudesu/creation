@@ -783,6 +783,7 @@ watch(doneView, () => {
 
 onUnmounted(() => {
   doneChart?.dispose()
+  compChart?.dispose()
 })
 
 // --- 期限なしDONE確認 ---
@@ -1001,6 +1002,107 @@ const weekCompTotal = computed(() => ({
   thisWeek: weekComparison.value.reduce((s, r) => s + r.thisWeek, 0),
   prevWeek: weekComparison.value.reduce((s, r) => s + r.prevWeek, 0),
 }))
+
+// --- PC版DONE期間比較チャート ---
+type CompPeriod = 7 | 30 | 90 | 180
+const compPeriod = ref<CompPeriod>(7)
+const compChartRef = ref<HTMLElement>()
+let compChart: any = null
+
+function getPeriodKeys(daysBack: number, length: number): string[] {
+  const keys: string[] = []
+  for (let i = daysBack; i < daysBack + length; i++) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    const jst = new Date(d.getTime() + 9 * 3_600_000)
+    keys.push(jst.toISOString().slice(0, 10))
+  }
+  return keys
+}
+
+const currentPeriodKeys = computed(() => getPeriodKeys(0, compPeriod.value))
+const prevPeriodKeys = computed(() => getPeriodKeys(compPeriod.value, compPeriod.value))
+
+const compPeriodData = computed(() =>
+  boards.value.map((board, i) => ({
+    name: board.name,
+    current: currentPeriodKeys.value.reduce((s, d) => s + (board.done[d]?.length ?? 0), 0),
+    prev: prevPeriodKeys.value.reduce((s, d) => s + (board.done[d]?.length ?? 0), 0),
+    color: BOARD_COLORS[i % BOARD_COLORS.length],
+  }))
+)
+
+const compPeriodTotal = computed(() => ({
+  current: compPeriodData.value.reduce((s, r) => s + r.current, 0),
+  prev: compPeriodData.value.reduce((s, r) => s + r.prev, 0),
+}))
+
+async function renderCompChart() {
+  if (!compChartRef.value) return
+  if (!EC) EC = await import('echarts')
+  if (!compChart || !EC.getInstanceByDom(compChartRef.value)) {
+    compChart?.dispose()
+    compChart = EC.init(compChartRef.value, 'dark')
+  }
+  const data = compPeriodData.value
+  const periodLabel = compPeriod.value === 7 ? '今週' : `直近${compPeriod.value}日`
+  const prevLabel = compPeriod.value === 7 ? '先週' : `前${compPeriod.value}日`
+  compChart.setOption({
+    backgroundColor: 'transparent',
+    grid: { left: 10, right: 20, top: 16, bottom: 56, containLabel: true },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: '#1e293b',
+      borderColor: 'rgba(255,255,255,0.1)',
+      textStyle: { color: '#e2e8f0', fontSize: 12 },
+    },
+    legend: {
+      bottom: 0,
+      textStyle: { color: '#94a3b8', fontSize: 11 },
+      itemWidth: 12,
+      itemHeight: 8,
+    },
+    xAxis: {
+      type: 'category',
+      data: data.map(d => d.name),
+      axisLabel: { color: '#64748b', fontSize: 11, rotate: 30 },
+      axisLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } },
+    },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+      axisLabel: { color: '#64748b', fontSize: 11 },
+      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
+    },
+    series: [
+      {
+        name: prevLabel,
+        type: 'bar',
+        data: data.map(d => ({ value: d.prev, itemStyle: { color: '#475569', borderRadius: [3, 3, 0, 0] } })),
+        barMaxWidth: 40,
+        label: { show: true, position: 'top', color: '#64748b', fontSize: 11, formatter: '{c}' },
+      },
+      {
+        name: periodLabel,
+        type: 'bar',
+        data: data.map(d => ({
+          value: d.current,
+          itemStyle: {
+            color: d.current >= d.prev ? '#34d399' : '#f87171',
+            borderRadius: [3, 3, 0, 0],
+          },
+        })),
+        barMaxWidth: 40,
+        label: { show: true, position: 'top', color: '#94a3b8', fontSize: 11, formatter: '{c}' },
+      },
+    ],
+  }, true)
+}
+
+watch([compPeriod, boards], async () => {
+  await nextTick()
+  renderCompChart()
+})
 
 async function deleteTask() {
   if (!editTarget.value) return
@@ -1560,6 +1662,35 @@ async function deleteTask() {
               </transition>
             </div>
           </template>
+        </section>
+
+        <!-- DONE 期間比較 (PC only) -->
+        <section class="hidden md:block px-5 mt-6 pb-8">
+          <div class="flex items-center gap-2.5 mb-3.5">
+            <span class="text-[13px] font-bold text-slate-400">前期間との比較</span>
+            <div class="flex items-center gap-1 ml-2">
+              <button
+                v-for="p in ([7, 30, 90, 180] as const)"
+                :key="p"
+                :class="[
+                  'px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-all cursor-pointer',
+                  compPeriod === p
+                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                    : 'bg-white/[0.04] border-white/10 text-slate-500 hover:bg-white/[0.08] hover:text-slate-300',
+                ]"
+                @click="compPeriod = p"
+              >{{ p }}日</button>
+            </div>
+            <div class="ml-auto flex items-center gap-3 text-[13px]">
+              <span class="text-slate-500">前期: <span class="font-bold text-slate-400">{{ compPeriodTotal.prev }}</span></span>
+              <span :class="compPeriodTotal.current >= compPeriodTotal.prev ? 'text-emerald-400' : 'text-red-400'">
+                今期: <span class="font-bold">{{ compPeriodTotal.current }}</span>
+                <span v-if="compPeriodTotal.current > compPeriodTotal.prev"> ↑</span>
+                <span v-else-if="compPeriodTotal.current < compPeriodTotal.prev"> ↓</span>
+              </span>
+            </div>
+          </div>
+          <div ref="compChartRef" class="h-[280px] rounded-xl border border-white/[0.07]" />
         </section>
 
         <!-- スマホ版レイアウト (md未満のみ表示) -->
