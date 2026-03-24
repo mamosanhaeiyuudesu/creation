@@ -1,63 +1,14 @@
 <script setup lang="ts">
-const LS_PROFILES = 'trello_profiles'
-const LS_ACTIVE = 'trello_active_profile'
-// Legacy keys for migration
-const LS_KEY_LEGACY = 'trello_key'
-const LS_TOKEN_LEGACY = 'trello_token'
-const LS_EXCLUDED_LEGACY = 'trello_excluded'
-
-const DEFAULT_EXCLUDED = ''
-
-interface Profile {
-  id: string
-  name: string
-  key: string
-  token: string
-  excluded: string
-}
+import { ref, computed, watch, onMounted } from 'vue'
+import { useTaskProfiles } from '~/composables/task/useTaskProfiles'
+import { useTaskBoards, BOARD_COLORS } from '~/composables/task/useTaskBoards'
+import { useDragDrop } from '~/composables/task/useDragDrop'
+import { useMonthPicker } from '~/composables/task/useMonthPicker'
+import { useTaskStats } from '~/composables/task/useTaskStats'
+import type { DoneView } from '~/composables/task/useTaskStats'
 
 const route = useRoute()
-interface Card {
-  id: string
-  name: string
-  desc: string
-  due: string | null
-  pos: number
-  isOverdue: boolean
-  isUrgent: boolean
-  display: string
-}
-
-interface Board {
-  id: string
-  name: string
-  doing: Card[]
-  todo: Card[]
-  done: Record<string, { id: string; name: string }[]>
-  doingListId: string
-  todoListId: string
-  doneListId: string
-}
-
-const profiles = ref<Profile[]>([])
-const activeProfileId = ref('')
-const activeProfile = computed(() =>
-  profiles.value.find(p => p.id === activeProfileId.value) ?? profiles.value[0]
-)
-const apiKey = computed(() => activeProfile.value?.key ?? '')
-const apiToken = computed(() => activeProfile.value?.token ?? '')
-const excludedText = computed(() => activeProfile.value?.excluded ?? '')
-
-const showSettings = ref(false)
-const settingsProfiles = ref<Profile[]>([])
-const settingsActiveTab = ref(0)
-
 const isMounted = ref(false)
-const loading = ref(false)
-const saving = ref(false)
-const error = ref('')
-const boards = ref<Board[]>([])
-const allDates = ref<string[]>([])
 
 const now = new Date()
 const defaultStart = `${now.getFullYear()}-01`
@@ -65,140 +16,45 @@ const defaultEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2
 const startMonth = ref((route.query.start as string) || defaultStart)
 const endMonth = ref((route.query.end as string) || defaultEnd)
 
-// --- Task modal ---
-const showTaskModal = ref(false)
-type EditTarget = { card: Card; boardId: string; status: 'doing' | 'todo' | 'done'; dateKey?: string } | null
-const editTarget = ref<EditTarget>(null)
-const taskForm = ref({ name: '', desc: '', due: '', boardId: '', status: 'todo' as 'todo' | 'doing' | 'done' })
+// --- Composables ---
+const {
+  profiles, activeProfileId, apiKey, apiToken,
+  excludedBoards, hasCredentials, showSettings,
+  init, openSettings, applySettings, switchProfile: switchProfileFn,
+} = useTaskProfiles()
 
-const isEditing = computed(() => editTarget.value !== null)
-const modalTitle = computed(() => isEditing.value ? 'タスクを編集' : 'タスクを追加')
+const {
+  boards, allDates, loading, saving, error,
+  showTaskModal, editTarget, taskForm, isEditing, modalTitle,
+  pendingDone, pendingDueInput,
+  doingTotal, todoTotal,
+  trelloPut,
+  load: loadBoards, formatDate, doneTotal, boardColor, boardBorderStyle,
+  markDone, confirmMarkDone, unmarkDone,
+  openAddTask, openEditTask, openEditDoneTask, saveTask, deleteTask,
+} = useTaskBoards(apiKey, apiToken, excludedBoards, startMonth, endMonth)
 
-const hasCredentials = computed(() => !!(apiKey.value && apiToken.value))
+const {
+  dragging, dragOverCardId, dragOverEndKey,
+  onDragStart, onDragEnd, onDragOverCard, onDragOverEnd, onDropCard, onDropEnd,
+  onMobileTouchStart,
+} = useDragDrop(boards, trelloPut)
 
-const excludedBoards = computed(() =>
-  excludedText.value
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean),
-)
+const {
+  pickerOpen, pickerYearStart, pickerYearEnd, showMobilePeriod,
+  formatMonthLabel, formatMonthShort,
+  toggleMobilePeriod, togglePicker, prevYear, nextYear, selectMonth, isSelectedMonth,
+} = useMonthPicker(startMonth, endMonth)
 
-const doingTotal = computed(() => boards.value.reduce((s, b) => s + b.doing.length, 0))
-const todoTotal = computed(() => boards.value.reduce((s, b) => s + b.todo.length, 0))
+const {
+  doneView, doneViewOptions,
+  chartRef, selectedDate, renderDoneChart,
+  compPeriod, compChartRef, renderCompChart,
+  compPeriodData, compPeriodTotal,
+  thisWeekDoneFlat, weekComparison, weekCompTotal,
+} = useTaskStats(boards, allDates, route.query.view as DoneView)
 
-onMounted(() => {
-  const stored = localStorage.getItem(LS_PROFILES)
-  if (stored) {
-    try { profiles.value = JSON.parse(stored) } catch {}
-  }
-  if (!profiles.value.length) {
-    const key = localStorage.getItem(LS_KEY_LEGACY) || ''
-    const token = localStorage.getItem(LS_TOKEN_LEGACY) || ''
-    const excluded = localStorage.getItem(LS_EXCLUDED_LEGACY) || DEFAULT_EXCLUDED
-    profiles.value = [{ id: '1', name: 'デフォルト', key, token, excluded }]
-    localStorage.setItem(LS_PROFILES, JSON.stringify(profiles.value))
-  }
-  const fromUrl = route.query.profile as string | undefined
-  const fromStorage = localStorage.getItem(LS_ACTIVE)
-  const preferred = fromUrl || fromStorage
-  activeProfileId.value = (preferred && profiles.value.find(p => p.id === preferred))
-    ? preferred
-    : profiles.value[0].id
-  localStorage.setItem(LS_ACTIVE, activeProfileId.value)
-  isMounted.value = true
-
-  if (hasCredentials.value) {
-    load()
-  } else {
-    openSettings()
-  }
-})
-
-function openSettings() {
-  settingsProfiles.value = JSON.parse(JSON.stringify(profiles.value))
-  settingsActiveTab.value = Math.max(0, settingsProfiles.value.findIndex(p => p.id === activeProfileId.value))
-  showSettings.value = true
-}
-
-function addSettingsProfile() {
-  const id = Date.now().toString()
-  settingsProfiles.value.push({ id, name: `アカウント${settingsProfiles.value.length + 1}`, key: '', token: '', excluded: DEFAULT_EXCLUDED })
-  settingsActiveTab.value = settingsProfiles.value.length - 1
-}
-
-function removeSettingsProfile(idx: number) {
-  if (settingsProfiles.value.length <= 1) return
-  settingsProfiles.value.splice(idx, 1)
-  settingsActiveTab.value = Math.max(0, Math.min(settingsActiveTab.value, settingsProfiles.value.length - 1))
-}
-
-function saveSettings() {
-  const valid = settingsProfiles.value
-    .map((p, i) => ({ ...p, key: p.key.trim(), token: p.token.trim(), name: p.name.trim() || `アカウント${i + 1}` }))
-    .filter(p => p.key || p.token)
-  if (!valid.length) return
-  profiles.value = valid
-  if (!profiles.value.find(p => p.id === activeProfileId.value)) {
-    activeProfileId.value = profiles.value[0].id
-  }
-  localStorage.setItem(LS_PROFILES, JSON.stringify(profiles.value))
-  localStorage.setItem(LS_ACTIVE, activeProfileId.value)
-  showSettings.value = false
-  if (hasCredentials.value) load()
-}
-
-function switchProfile(id: string) {
-  if (activeProfileId.value === id) return
-  activeProfileId.value = id
-  localStorage.setItem(LS_ACTIVE, id)
-  load()
-}
-
-async function trelloGet(path: string) {
-  const sep = path.includes('?') ? '&' : '?'
-  const res = await fetch(
-    `https://api.trello.com/1${path}${sep}key=${apiKey.value}&token=${apiToken.value}`,
-  )
-  if (!res.ok) throw new Error(`Trello API Error: ${res.status}`)
-  return res.json()
-}
-
-async function trelloPost(path: string, body: Record<string, any>) {
-  const res = await fetch(`https://api.trello.com/1${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...body, key: apiKey.value, token: apiToken.value }),
-  })
-  if (!res.ok) throw new Error(`Trello API Error: ${res.status}`)
-  return res.json()
-}
-
-async function trelloPut(path: string, body: Record<string, any>) {
-  const res = await fetch(`https://api.trello.com/1${path}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...body, key: apiKey.value, token: apiToken.value }),
-  })
-  if (!res.ok) throw new Error(`Trello API Error: ${res.status}`)
-  return res.json()
-}
-
-function timeRemaining(dueStr: string): Pick<Card, 'isOverdue' | 'isUrgent' | 'display'> {
-  const diffH = (new Date(dueStr).getTime() - Date.now()) / 3_600_000
-  if (diffH < 0) {
-    const d = Math.floor(-diffH / 24)
-    return {
-      isOverdue: true,
-      isUrgent: false,
-      display: d > 0 ? `${d}日超過` : `${Math.floor(-diffH)}h超過`,
-    }
-  }
-  if (diffH < 24) {
-    return { isOverdue: false, isUrgent: true, display: `残り${Math.floor(diffH)}h` }
-  }
-  return { isOverdue: false, isUrgent: false, display: `残り${Math.floor(diffH / 24)}日` }
-}
-
+// --- Page-level orchestration ---
 function syncUrl() {
   const url = new URL(window.location.href)
   url.searchParams.set('start', startMonth.value)
@@ -208,936 +64,44 @@ function syncUrl() {
   window.history.replaceState({}, '', url.toString())
 }
 
-async function load() {
-  if (!hasCredentials.value) return
-  syncUrl()
-  loading.value = true
-  error.value = ''
-  boards.value = []
-  selectedDate.value = null
-
-  try {
-    const rawBoards = await trelloGet('/members/me/boards')
-    const filtered = rawBoards.filter((b: any) => !excludedBoards.value.includes(b.name))
-
-    const [sy, sm] = startMonth.value.split('-').map(Number)
-    const [ey, em] = endMonth.value.split('-').map(Number)
-    const rangeStart = new Date(sy, sm - 1, 1)
-    const rangeEnd = new Date(ey, em, 0, 23, 59, 59)
-
-    const results: Board[] = await Promise.all(
-      filtered.map(async (b: any) => {
-        const lists = await trelloGet(`/boards/${b.id}/lists`)
-        const board: Board = {
-          id: b.id,
-          name: b.name,
-          doing: [],
-          todo: [],
-          done: {},
-          doingListId: '',
-          todoListId: '',
-          doneListId: '',
-        }
-
-        await Promise.all(
-          lists.map(async (list: any) => {
-            const lname = list.name.toLowerCase()
-            if (!['doing', 'todo', 'done'].includes(lname)) return
-
-            if (lname === 'doing') board.doingListId = list.id
-            else if (lname === 'todo') board.todoListId = list.id
-            else if (lname === 'done') board.doneListId = list.id
-
-            const cards = await trelloGet(`/lists/${list.id}/cards`)
-
-            for (const card of cards) {
-              if (lname === 'doing' || lname === 'todo') {
-                const c: Card = {
-                  id: card.id,
-                  name: card.name,
-                  desc: card.desc || '',
-                  due: card.due || null,
-                  pos: card.pos ?? 0,
-                  isOverdue: false,
-                  isUrgent: false,
-                  display: '',
-                }
-                if (card.due) Object.assign(c, timeRemaining(card.due))
-                lname === 'doing' ? board.doing.push(c) : board.todo.push(c)
-              } else {
-                if (!card.due) continue
-                const due = new Date(card.due)
-                if (due < rangeStart || due > rangeEnd) continue
-                const jst = new Date(due.getTime() + 9 * 3_600_000)
-                const key = jst.toISOString().slice(0, 10)
-                ;(board.done[key] ??= []).push({ id: card.id, name: card.name })
-              }
-            }
-          }),
-        )
-
-        board.doing.sort((a, b) => {
-          if (a.isOverdue !== b.isOverdue) return a.isOverdue ? 1 : -1
-          if (a.isUrgent !== b.isUrgent) return a.isUrgent ? -1 : 1
-          return 0
-        })
-
-        return board
-      }),
-    )
-
-    boards.value = results.sort((a, b) => a.name.localeCompare(b.name, 'ja'))
-
-    const dateSet = new Set<string>()
-    results.forEach(b => Object.keys(b.done).forEach(d => dateSet.add(d)))
-    allDates.value = [...dateSet].sort().reverse()
-  } catch (e: any) {
-    error.value = e.message
-  } finally {
-    loading.value = false
-  }
-}
-
-function formatDate(dateStr: string) {
-  const [y, m, d] = dateStr.split('-').map(Number)
-  const day = ['日', '月', '火', '水', '木', '金', '土'][new Date(y, m - 1, d).getDay()]
-  return `${m}/${d}(${day})`
-}
-
-function doneTotal(board: Board) {
-  return Object.values(board.done).reduce((s, arr) => s + arr.length, 0)
-}
-
-async function unmarkDone(item: { id: string; name: string }, dateKey: string, board: Board) {
-  if (!board.doingListId) { error.value = 'Doingリストが見つかりません'; return }
-  saving.value = true
-  error.value = ''
-  try {
-    const raw = await trelloPut(`/cards/${item.id}`, {
-      idList: board.doingListId,
-      dueComplete: false,
-      due: '',
-    })
-    // DONEテーブルから除去
-    const arr = board.done[dateKey]
-    if (arr) {
-      const idx = arr.findIndex(c => c.id === item.id)
-      if (idx >= 0) arr.splice(idx, 1)
-      if (arr.length === 0) delete board.done[dateKey]
-      rebuildAllDates()
-    }
-    // DOINGに追加
-    board.doing.push(buildCard(raw))
-  } catch (e: any) {
-    error.value = e.message
-  } finally {
-    saving.value = false
-  }
-}
-
-// --- Modal operations ---
-
-function openAddTask(boardId: string, status: 'todo' | 'doing') {
-  editTarget.value = null
-  taskForm.value = { name: '', desc: '', due: '', boardId, status }
-  showTaskModal.value = true
-}
-
-function openEditDoneTask(item: { id: string; name: string }, dateKey: string, board: Board) {
-  const dueForInput = dateKey + 'T12:00'
-  const dueIso = new Date(dueForInput).toISOString()
-  const card: Card = { id: item.id, name: item.name, desc: '', due: dueIso, pos: 0, isOverdue: false, isUrgent: false, display: '' }
-  editTarget.value = { card, boardId: board.id, status: 'done', dateKey }
-  taskForm.value = { name: item.name, desc: '', due: dueForInput, boardId: board.id, status: 'done' }
-  showTaskModal.value = true
-}
-
-function openEditTask(card: Card, boardId: string, status: 'doing' | 'todo') {
-  editTarget.value = { card, boardId, status }
-  taskForm.value = {
-    name: card.name,
-    desc: card.desc,
-    due: card.due ? toLocalDatetimeInput(card.due) : '',
-    boardId,
-    status,
-  }
-  showTaskModal.value = true
-}
-
-function toLocalDatetimeInput(iso: string) {
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-function buildCard(raw: any): Card {
-  const c: Card = {
-    id: raw.id,
-    name: raw.name,
-    desc: raw.desc || '',
-    due: raw.due || null,
-    pos: raw.pos ?? 0,
-    isOverdue: false,
-    isUrgent: false,
-    display: '',
-  }
-  if (raw.due) Object.assign(c, timeRemaining(raw.due))
-  return c
-}
-
-function rebuildAllDates() {
-  const dateSet = new Set<string>()
-  boards.value.forEach(b => Object.keys(b.done).forEach(d => dateSet.add(d)))
-  allDates.value = [...dateSet].sort().reverse()
-}
-
-function addToDoneTable(board: Board, card: Card) {
-  if (!card.due) return
-  const due = new Date(card.due)
-  const [sy, sm] = startMonth.value.split('-').map(Number)
-  const [ey, em] = endMonth.value.split('-').map(Number)
-  if (due < new Date(sy, sm - 1, 1) || due > new Date(ey, em, 0, 23, 59, 59)) return
-  const jst = new Date(due.getTime() + 9 * 3_600_000)
-  const key = jst.toISOString().slice(0, 10)
-  ;(board.done[key] ??= []).push({ id: card.id, name: card.name })
-  rebuildAllDates()
-}
-
-async function saveTask() {
-  if (!taskForm.value.name.trim()) return
-  saving.value = true
-  error.value = ''
-  try {
-    const board = boards.value.find(b => b.id === taskForm.value.boardId)
-    if (!board) throw new Error('ボードが見つかりません')
-
-    const dueIso = taskForm.value.due ? new Date(taskForm.value.due).toISOString() : ''
-
-    // 編集中のDONEアイテムの処理
-    if (isEditing.value && editTarget.value?.status === 'done') {
-      const { card, dateKey } = editTarget.value
-      const effectiveDue = dueIso || card.due || new Date().toISOString()
-      const newStatus = taskForm.value.status
-
-      if (newStatus === 'done') {
-        await trelloPut(`/cards/${card.id}`, {
-          name: taskForm.value.name.trim(),
-          desc: taskForm.value.desc.trim(),
-          due: effectiveDue,
-          dueComplete: true,
-        })
-        // 日付が変わった場合は古いエントリを削除して再追加
-        const newDue = new Date(effectiveDue)
-        const jst = new Date(newDue.getTime() + 9 * 3_600_000)
-        const newDateKey = jst.toISOString().slice(0, 10)
-        if (dateKey && newDateKey !== dateKey) {
-          const oldArr = board.done[dateKey]
-          if (oldArr) {
-            const idx = oldArr.findIndex(c => c.id === card.id)
-            if (idx >= 0) oldArr.splice(idx, 1)
-            if (oldArr.length === 0) delete board.done[dateKey]
-          }
-          addToDoneTable(board, { ...card, name: taskForm.value.name.trim(), due: effectiveDue })
-          rebuildAllDates()
-        } else if (dateKey && board.done[dateKey]) {
-          const idx = board.done[dateKey].findIndex(c => c.id === card.id)
-          if (idx >= 0) board.done[dateKey][idx].name = taskForm.value.name.trim()
-        }
-      } else {
-        // DONEからDOING/TODOへ移動
-        const newListId = newStatus === 'doing' ? board.doingListId : board.todoListId
-        if (!newListId) throw new Error('対象リストが見つかりません')
-        const raw = await trelloPut(`/cards/${card.id}`, {
-          name: taskForm.value.name.trim(),
-          desc: taskForm.value.desc.trim(),
-          idList: newListId,
-          dueComplete: false,
-          due: dueIso || '',
-        })
-        if (dateKey && board.done[dateKey]) {
-          const idx = board.done[dateKey].findIndex(c => c.id === card.id)
-          if (idx >= 0) board.done[dateKey].splice(idx, 1)
-          if (board.done[dateKey].length === 0) delete board.done[dateKey]
-          rebuildAllDates()
-        }
-        const updatedCard = buildCard(raw)
-        const dstArr = newStatus === 'doing' ? board.doing : board.todo
-        dstArr.push(updatedCard)
-      }
-      showTaskModal.value = false
-      return
-    }
-
-    // DONEステータスの処理（チェックボックスと同じ挙動）
-    if (taskForm.value.status === 'done') {
-      if (!board.doneListId) throw new Error('Doneリストが見つかりません')
-
-      if (isEditing.value && editTarget.value) {
-        const { card, status } = editTarget.value
-        const effectiveDue = dueIso || card.due || new Date().toISOString()
-
-        await trelloPut(`/cards/${card.id}`, {
-          name: taskForm.value.name.trim(),
-          desc: taskForm.value.desc.trim(),
-          idList: board.doneListId,
-          dueComplete: true,
-          due: effectiveDue,
-        })
-        const srcArr = status === 'doing' ? board.doing : board.todo
-        const idx = srcArr.findIndex(c => c.id === card.id)
-        if (idx >= 0) srcArr.splice(idx, 1)
-        addToDoneTable(board, { ...card, name: taskForm.value.name.trim(), due: effectiveDue })
-      } else {
-        const raw = await trelloPost('/cards', {
-          name: taskForm.value.name.trim(),
-          desc: taskForm.value.desc.trim(),
-          due: dueIso || new Date().toISOString(),
-          dueComplete: true,
-          idList: board.doneListId,
-        })
-        addToDoneTable(board, buildCard(raw))
-      }
-
-      showTaskModal.value = false
-      return
-    }
-
-    const body: Record<string, any> = {
-      name: taskForm.value.name.trim(),
-      desc: taskForm.value.desc.trim(),
-      due: dueIso,
-    }
-
-    if (isEditing.value && editTarget.value) {
-      const { card, status } = editTarget.value
-      const newStatus = taskForm.value.status
-      const newListId = newStatus === 'doing' ? board.doingListId : board.todoListId
-      const oldListId = status === 'doing' ? board.doingListId : board.todoListId
-      if (newListId && newListId !== oldListId) body.idList = newListId
-
-      const raw = await trelloPut(`/cards/${card.id}`, body)
-      const updated = buildCard(raw)
-
-      const srcArr = status === 'doing' ? board.doing : board.todo
-      const idx = srcArr.findIndex(c => c.id === card.id)
-      if (newStatus === status) {
-        if (idx >= 0) srcArr[idx] = updated
-      } else {
-        if (idx >= 0) srcArr.splice(idx, 1)
-        const dstArr = newStatus === 'doing' ? board.doing : board.todo
-        dstArr.push(updated)
-      }
-    } else {
-      const listId = taskForm.value.status === 'doing' ? board.doingListId : board.todoListId
-      if (!listId) throw new Error('対象リストが見つかりません')
-      body.idList = listId
-      const raw = await trelloPost('/cards', body)
-      const newCard = buildCard(raw)
-      const arr = taskForm.value.status === 'doing' ? board.doing : board.todo
-      arr.push(newCard)
-    }
-
-    showTaskModal.value = false
-  } catch (e: any) {
-    error.value = e.message
-  } finally {
-    saving.value = false
-  }
-}
-
-// --- Month Picker ---
-type PickerTarget = 'start' | 'end'
-const pickerOpen = ref<PickerTarget | null>(null)
-const pickerYearStart = ref(parseInt(startMonth.value.split('-')[0]))
-const pickerYearEnd = ref(parseInt(endMonth.value.split('-')[0]))
-
-function formatMonthLabel(val: string) {
-  const [y, m] = val.split('-').map(Number)
-  return `${y}年${m}月`
-}
-
-function formatMonthShort(val: string) {
-  const [y, m] = val.split('-').map(Number)
-  return `${y}年${m}月`
-}
-
-// モバイル用統合期間ピッカー
-const showMobilePeriod = ref(false)
-function toggleMobilePeriod() {
-  if (showMobilePeriod.value) {
-    showMobilePeriod.value = false
-  } else {
-    pickerYearStart.value = parseInt(startMonth.value.split('-')[0])
-    pickerYearEnd.value = parseInt(endMonth.value.split('-')[0])
-    showMobilePeriod.value = true
-  }
-}
-
-function togglePicker(t: PickerTarget) {
-  if (pickerOpen.value === t) {
-    pickerOpen.value = null
-  } else {
-    if (t === 'start') pickerYearStart.value = parseInt(startMonth.value.split('-')[0])
-    else pickerYearEnd.value = parseInt(endMonth.value.split('-')[0])
-    pickerOpen.value = t
-  }
-}
-
-function prevYear(t: PickerTarget) {
-  if (t === 'start') pickerYearStart.value--
-  else pickerYearEnd.value--
-}
-
-function nextYear(t: PickerTarget) {
-  if (t === 'start') pickerYearStart.value++
-  else pickerYearEnd.value++
-}
-
-function selectMonth(t: PickerTarget, m: number) {
-  const year = t === 'start' ? pickerYearStart.value : pickerYearEnd.value
-  const val = `${year}-${String(m).padStart(2, '0')}`
-  if (t === 'start') startMonth.value = val
-  else endMonth.value = val
-  pickerOpen.value = null
-}
-
-function isSelectedMonth(t: PickerTarget, m: number) {
-  const current = t === 'start' ? startMonth.value : endMonth.value
-  const year = t === 'start' ? pickerYearStart.value : pickerYearEnd.value
-  return current === `${year}-${String(m).padStart(2, '0')}`
-}
-
-// --- DONE chart ---
-type DoneView = 'table' | 'line' | 'stacked' | 'total'
-const DONE_VIEWS: DoneView[] = ['table', 'line', 'stacked', 'total']
-const doneView = ref<DoneView>(
-  DONE_VIEWS.includes(route.query.view as DoneView) ? (route.query.view as DoneView) : 'table',
-)
-const chartRef = ref<HTMLElement>()
-let doneChart: any = null
-let EC: any = null
-const selectedDate = ref<string | null>(null)
-
-const BOARD_COLORS = ['#38bdf8', '#818cf8', '#34d399', '#fb923c', '#f472b6', '#a78bfa', '#4ade80', '#facc15']
-
-function boardColor(board: Board): string {
-  const idx = boards.value.findIndex(b => b.id === board.id)
-  return BOARD_COLORS[idx % BOARD_COLORS.length]
-}
-
-function boardBorderStyle(board: Board): Record<string, string> {
-  const c = boardColor(board)
-  return { borderColor: c + '40', backgroundColor: c + '0d' }
-}
-
-const doneViewOptions: { key: DoneView; label: string }[] = [
-  { key: 'table', label: '表' },
-  { key: 'line', label: '折れ線' },
-  { key: 'stacked', label: '積み上げ' },
-  { key: 'total', label: '合計棒' },
-]
-
-async function renderDoneChart() {
-  if (!chartRef.value || doneView.value === 'table') return
-  if (!EC) EC = await import('echarts')
-  if (!doneChart || !EC.getInstanceByDom(chartRef.value)) {
-    doneChart?.dispose()
-    doneChart = EC.init(chartRef.value, 'dark')
-  }
-
-  const sortedDates = [...allDates.value].reverse()
-  const baseOpts = {
-    backgroundColor: 'transparent',
-    grid: { left: 10, right: 20, top: 16, bottom: 56, containLabel: true },
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: '#1e293b',
-      borderColor: 'rgba(255,255,255,0.1)',
-      textStyle: { color: '#e2e8f0', fontSize: 12 },
-    },
-    legend: {
-      bottom: 0,
-      textStyle: { color: '#94a3b8', fontSize: 11 },
-      itemWidth: 12,
-      itemHeight: 8,
-    },
-  }
-
-  if (doneView.value === 'line') {
-    doneChart.setOption({
-      ...baseOpts,
-      xAxis: {
-        type: 'category',
-        data: sortedDates.map(d => formatDate(d)),
-        axisLabel: { color: '#64748b', fontSize: 11, rotate: sortedDates.length > 10 ? 45 : 0 },
-        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } },
-      },
-      yAxis: {
-        type: 'value',
-        minInterval: 1,
-        axisLabel: { color: '#64748b', fontSize: 11 },
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
-      },
-      series: boards.value.map((board, i) => ({
-        name: board.name,
-        type: 'line',
-        smooth: true,
-        data: sortedDates.map(d => board.done[d]?.length ?? 0),
-        color: BOARD_COLORS[i % BOARD_COLORS.length],
-        lineStyle: { width: 2 },
-        symbol: 'circle',
-        symbolSize: 6,
-      })),
-    }, true)
-  } else if (doneView.value === 'stacked') {
-    doneChart.setOption({
-      ...baseOpts,
-      xAxis: {
-        type: 'category',
-        data: sortedDates.map(d => formatDate(d)),
-        axisLabel: { color: '#64748b', fontSize: 11, rotate: sortedDates.length > 10 ? 45 : 0 },
-        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } },
-      },
-      yAxis: {
-        type: 'value',
-        minInterval: 1,
-        axisLabel: { color: '#64748b', fontSize: 11 },
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
-      },
-      series: boards.value.map((board, i) => ({
-        name: board.name,
-        type: 'bar',
-        stack: 'total',
-        data: sortedDates.map(d => board.done[d]?.length ?? 0),
-        color: BOARD_COLORS[i % BOARD_COLORS.length],
-        barMaxWidth: 40,
-      })),
-    }, true)
-  } else if (doneView.value === 'total') {
-    doneChart.setOption({
-      ...baseOpts,
-      legend: { show: false },
-      xAxis: {
-        type: 'category',
-        data: boards.value.map(b => b.name),
-        axisLabel: { color: '#64748b', fontSize: 11, rotate: 30 },
-        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } },
-      },
-      yAxis: {
-        type: 'value',
-        minInterval: 1,
-        axisLabel: { color: '#64748b', fontSize: 11 },
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
-      },
-      series: [{
-        type: 'bar',
-        data: boards.value.map((board, i) => ({
-          value: doneTotal(board),
-          itemStyle: { color: BOARD_COLORS[i % BOARD_COLORS.length], borderRadius: [4, 4, 0, 0] },
-        })),
-        barMaxWidth: 60,
-        label: { show: true, position: 'top', color: '#94a3b8', fontSize: 12, formatter: '{c}' },
-      }],
-    }, true)
-  }
-
-  doneChart.off('click')
-  if (doneView.value === 'line' || doneView.value === 'stacked') {
-    doneChart.on('click', (params: any) => {
-      const date = sortedDates[params.dataIndex] ?? null
-      selectedDate.value = selectedDate.value === date ? null : date
-    })
-  } else {
-    selectedDate.value = null
-  }
-}
-
-watch(doneView, async (v) => {
-  if (v === 'table') {
-    doneChart?.dispose()
-    doneChart = null
-    return
-  }
-  await nextTick()
-  renderDoneChart()
-})
-
-watch(allDates, async () => {
-  if (doneView.value !== 'table') {
-    await nextTick()
-    renderDoneChart()
-  }
-})
-
-watch(selectedDate, async () => {
-  await nextTick()
-  doneChart?.resize()
-})
-
-// doneView変更は即座にURLへ反映（start/endはload()時に更新）
 watch(doneView, () => {
   const url = new URL(window.location.href)
   url.searchParams.set('view', doneView.value)
   window.history.replaceState({}, '', url.toString())
 })
 
-onUnmounted(() => {
-  doneChart?.dispose()
-  compChart?.dispose()
+async function load() {
+  selectedDate.value = null
+  syncUrl()
+  await loadBoards()
+}
+
+function switchProfile(id: string) {
+  switchProfileFn(id)
+  load()
+}
+
+function handleTaskSave(form: typeof taskForm.value) {
+  Object.assign(taskForm.value, form)
+  saveTask()
+}
+
+function handleSettingsSave(validProfiles: typeof profiles.value) {
+  applySettings(validProfiles)
+  if (hasCredentials.value) load()
+}
+
+const showPendingDone = computed({
+  get: () => pendingDone.value !== null,
+  set: (v: boolean) => { if (!v) pendingDone.value = null },
 })
 
-// --- 期限なしDONE確認 ---
-const pendingDone = ref<{ card: Card; board: Board } | null>(null)
-const pendingDueInput = ref('')
-
-function markDone(card: Card, board: Board) {
-  if (!board.doneListId) { error.value = 'Doneリストが見つかりません'; return }
-  execMarkDone(card, board, card.due || new Date().toISOString())
-}
-
-async function confirmMarkDone() {
-  if (!pendingDone.value || !pendingDueInput.value) return
-  const { card, board } = pendingDone.value
-  const dueIso = new Date(pendingDueInput.value).toISOString()
-  pendingDone.value = null
-  execMarkDone(card, board, dueIso)
-}
-
-async function execMarkDone(card: Card, board: Board, dueIso: string) {
-  saving.value = true
-  error.value = ''
-  try {
-    await trelloPut(`/cards/${card.id}`, { idList: board.doneListId, dueComplete: true, due: dueIso })
-
-    const doingIdx = board.doing.findIndex(c => c.id === card.id)
-    if (doingIdx >= 0) board.doing.splice(doingIdx, 1)
-    else {
-      const todoIdx = board.todo.findIndex(c => c.id === card.id)
-      if (todoIdx >= 0) board.todo.splice(todoIdx, 1)
-    }
-
-    addToDoneTable(board, { ...card, due: dueIso })
-  } catch (e: any) {
-    error.value = e.message
-  } finally {
-    saving.value = false
-  }
-}
-
-// --- Drag & Drop ---
-const dragging = ref<{ cardId: string; boardId: string; status: 'doing' | 'todo' } | null>(null)
-const dragOverCardId = ref<string | null>(null)
-const dragOverEndKey = ref<string | null>(null) // `${boardId}:${status}`
-
-function getArr(boardId: string, status: 'doing' | 'todo') {
-  const b = boards.value.find(b => b.id === boardId)
-  return b ? (status === 'doing' ? b.doing : b.todo) : null
-}
-
-function onDragStart(e: DragEvent, card: Card, boardId: string, status: 'doing' | 'todo') {
-  dragging.value = { cardId: card.id, boardId, status }
-  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
-}
-
-function onDragEnd() {
-  dragging.value = null
-  dragOverCardId.value = null
-  dragOverEndKey.value = null
-}
-
-function onDragOverCard(e: DragEvent, cardId: string) {
-  e.preventDefault()
-  dragOverCardId.value = cardId
-  dragOverEndKey.value = null
-}
-
-function onDragOverEnd(e: DragEvent, key: string) {
-  e.preventDefault()
-  dragOverCardId.value = null
-  dragOverEndKey.value = key
-}
-
-async function onDropCard(targetCardId: string, targetBoardId: string, targetStatus: 'doing' | 'todo') {
-  if (!dragging.value) return
-  const { cardId: srcCardId, boardId: srcBoardId, status: srcStatus } = dragging.value
-  dragging.value = null
-  dragOverCardId.value = null
-
-  if (srcCardId === targetCardId) return
-
-  const targetBoard = boards.value.find(b => b.id === targetBoardId)
-  if (!targetBoard) return
-  const targetArr = targetStatus === 'doing' ? targetBoard.doing : targetBoard.todo
-  const targetIdx = targetArr.findIndex(c => c.id === targetCardId)
-  if (targetIdx < 0) return
-
-  // すでに直前にある場合はスキップ
-  if (targetArr[targetIdx - 1]?.id === srcCardId) return
-
-  const prevPos = targetArr[targetIdx - 1]?.pos ?? 0
-  const newPos = (prevPos + targetArr[targetIdx].pos) / 2
-
-  try {
-    const body: Record<string, any> = { pos: newPos }
-    if (srcBoardId !== targetBoardId || srcStatus !== targetStatus) {
-      body.idList = targetStatus === 'doing' ? targetBoard.doingListId : targetBoard.todoListId
-      if (srcBoardId !== targetBoardId) body.idBoard = targetBoardId
-    }
-    await trelloPut(`/cards/${srcCardId}`, body)
-
-    // 元配列から取り出す
-    const srcArr = getArr(srcBoardId, srcStatus)
-    if (!srcArr) return
-    const srcIdx = srcArr.findIndex(c => c.id === srcCardId)
-    if (srcIdx < 0) return
-    const [movedCard] = srcArr.splice(srcIdx, 1)
-
-    // posを更新して挿入（削除後にインデックス再取得）
-    movedCard.pos = newPos
-    const insertIdx = targetArr.findIndex(c => c.id === targetCardId)
-    targetArr.splice(insertIdx, 0, movedCard)
-  } catch (e: any) {
-    error.value = e.message
-  }
-}
-
-async function onDropEnd(targetBoardId: string, targetStatus: 'doing' | 'todo') {
-  if (!dragging.value) return
-  const { cardId: srcCardId, boardId: srcBoardId, status: srcStatus } = dragging.value
-  dragging.value = null
-  dragOverEndKey.value = null
-
-  const targetBoard = boards.value.find(b => b.id === targetBoardId)
-  if (!targetBoard) return
-  const targetArr = targetStatus === 'doing' ? targetBoard.doing : targetBoard.todo
-
-  // すでに末尾にある場合はスキップ
-  if (targetArr[targetArr.length - 1]?.id === srcCardId) return
-
-  const lastPos = targetArr[targetArr.length - 1]?.pos ?? 0
-  const newPos = lastPos + 16384
-
-  try {
-    const body: Record<string, any> = { pos: newPos }
-    if (srcBoardId !== targetBoardId || srcStatus !== targetStatus) {
-      body.idList = targetStatus === 'doing' ? targetBoard.doingListId : targetBoard.todoListId
-      if (srcBoardId !== targetBoardId) body.idBoard = targetBoardId
-    }
-    await trelloPut(`/cards/${srcCardId}`, body)
-
-    const srcArr = getArr(srcBoardId, srcStatus)
-    if (!srcArr) return
-    const srcIdx = srcArr.findIndex(c => c.id === srcCardId)
-    if (srcIdx < 0) return
-    const [movedCard] = srcArr.splice(srcIdx, 1)
-
-    movedCard.pos = newPos
-    targetArr.push(movedCard)
-  } catch (e: any) {
-    error.value = e.message
-  }
-}
-
-// --- スマホ版DONE用 ---
-
-// 直近7日の日付キー（今日含む）
-const thisWeekKeys = computed(() => {
-  const keys: string[] = []
-  for (let i = 0; i < 7; i++) {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
-    const jst = new Date(d.getTime() + 9 * 3_600_000)
-    keys.push(jst.toISOString().slice(0, 10))
-  }
-  return keys
+onMounted(() => {
+  init(route.query.profile as string | undefined)
+  isMounted.value = true
+  if (hasCredentials.value) load()
+  else openSettings()
 })
-
-// 先週7日の日付キー（7〜13日前）
-const prevWeekKeys = computed(() => {
-  const keys: string[] = []
-  for (let i = 7; i < 14; i++) {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
-    const jst = new Date(d.getTime() + 9 * 3_600_000)
-    keys.push(jst.toISOString().slice(0, 10))
-  }
-  return keys
-})
-
-// 直近1週間のDONEタスク（ボード × 日付）
-const thisWeekDone = computed(() =>
-  boards.value.map(board => ({
-    board,
-    items: thisWeekKeys.value
-      .filter(d => board.done[d]?.length)
-      .map(d => ({ date: d, cards: board.done[d] })),
-  })).filter(r => r.items.length > 0)
-)
-
-// 直近1週間のDONEタスク（フラット・完了日新しい順）
-const thisWeekDoneFlat = computed(() => {
-  const items: { card: any; board: any; date: string }[] = []
-  // thisWeekKeys は新しい日から古い日の順なのでそのまま追加でOK
-  for (const date of thisWeekKeys.value) {
-    for (const board of boards.value) {
-      const cards = board.done[date] ?? []
-      for (const card of cards) {
-        items.push({ card, board, date })
-      }
-    }
-  }
-  return items
-})
-
-// 今週 vs 先週の比較（ボード別）
-const weekComparison = computed(() =>
-  boards.value.map(board => ({
-    name: board.name,
-    thisWeek: thisWeekKeys.value.reduce((s, d) => s + (board.done[d]?.length ?? 0), 0),
-    prevWeek: prevWeekKeys.value.reduce((s, d) => s + (board.done[d]?.length ?? 0), 0),
-  }))
-)
-
-const weekCompTotal = computed(() => ({
-  thisWeek: weekComparison.value.reduce((s, r) => s + r.thisWeek, 0),
-  prevWeek: weekComparison.value.reduce((s, r) => s + r.prevWeek, 0),
-}))
-
-// --- PC版DONE期間比較チャート ---
-type CompPeriod = 7 | 30 | 90 | 180
-const compPeriod = ref<CompPeriod>(7)
-const compChartRef = ref<HTMLElement>()
-let compChart: any = null
-
-function getPeriodKeys(daysBack: number, length: number): string[] {
-  const keys: string[] = []
-  for (let i = daysBack; i < daysBack + length; i++) {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
-    const jst = new Date(d.getTime() + 9 * 3_600_000)
-    keys.push(jst.toISOString().slice(0, 10))
-  }
-  return keys
-}
-
-const currentPeriodKeys = computed(() => getPeriodKeys(0, compPeriod.value))
-const prevPeriodKeys = computed(() => getPeriodKeys(compPeriod.value, compPeriod.value))
-
-const compPeriodData = computed(() =>
-  boards.value.map((board, i) => ({
-    name: board.name,
-    current: currentPeriodKeys.value.reduce((s, d) => s + (board.done[d]?.length ?? 0), 0),
-    prev: prevPeriodKeys.value.reduce((s, d) => s + (board.done[d]?.length ?? 0), 0),
-    color: BOARD_COLORS[i % BOARD_COLORS.length],
-  }))
-)
-
-const compPeriodTotal = computed(() => ({
-  current: compPeriodData.value.reduce((s, r) => s + r.current, 0),
-  prev: compPeriodData.value.reduce((s, r) => s + r.prev, 0),
-}))
-
-async function renderCompChart() {
-  if (!compChartRef.value) return
-  if (!EC) EC = await import('echarts')
-  if (!compChart || !EC.getInstanceByDom(compChartRef.value)) {
-    compChart?.dispose()
-    compChart = EC.init(compChartRef.value, 'dark')
-  }
-  const data = compPeriodData.value
-  const periodLabel = compPeriod.value === 7 ? '今週' : `直近${compPeriod.value}日`
-  const prevLabel = compPeriod.value === 7 ? '先週' : `前${compPeriod.value}日`
-  compChart.setOption({
-    backgroundColor: 'transparent',
-    grid: { left: 10, right: 20, top: 16, bottom: 56, containLabel: true },
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: '#1e293b',
-      borderColor: 'rgba(255,255,255,0.1)',
-      textStyle: { color: '#e2e8f0', fontSize: 12 },
-    },
-    legend: {
-      bottom: 0,
-      textStyle: { color: '#94a3b8', fontSize: 11 },
-      itemWidth: 12,
-      itemHeight: 8,
-    },
-    xAxis: {
-      type: 'category',
-      data: data.map(d => d.name),
-      axisLabel: { color: '#64748b', fontSize: 11, rotate: 30 },
-      axisLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } },
-    },
-    yAxis: {
-      type: 'value',
-      minInterval: 1,
-      axisLabel: { color: '#64748b', fontSize: 11 },
-      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
-    },
-    series: [
-      {
-        name: prevLabel,
-        type: 'bar',
-        data: data.map(d => ({ value: d.prev, itemStyle: { color: '#475569', borderRadius: [3, 3, 0, 0] } })),
-        barMaxWidth: 40,
-        label: { show: true, position: 'top', color: '#64748b', fontSize: 11, formatter: '{c}' },
-      },
-      {
-        name: periodLabel,
-        type: 'bar',
-        data: data.map(d => ({
-          value: d.current,
-          itemStyle: {
-            color: d.current >= d.prev ? '#34d399' : '#f87171',
-            borderRadius: [3, 3, 0, 0],
-          },
-        })),
-        barMaxWidth: 40,
-        label: { show: true, position: 'top', color: '#94a3b8', fontSize: 11, formatter: '{c}' },
-      },
-    ],
-  }, true)
-}
-
-watch([compPeriod, boards], async () => {
-  await nextTick()
-  renderCompChart()
-})
-
-async function deleteTask() {
-  if (!editTarget.value) return
-  if (!confirm(`「${editTarget.value.card.name}」を削除しますか？`)) return
-  saving.value = true
-  error.value = ''
-  try {
-    const { card, boardId, status } = editTarget.value
-    const sep = `/cards/${card.id}?key=${apiKey.value}&token=${apiToken.value}`
-    const res = await fetch(`https://api.trello.com/1${sep}`, { method: 'DELETE' })
-    if (!res.ok) throw new Error(`Trello API Error: ${res.status}`)
-
-    const board = boards.value.find(b => b.id === boardId)
-    if (board) {
-      if (status === 'done') {
-        const dk = editTarget.value?.dateKey
-        if (dk && board.done[dk]) {
-          const idx = board.done[dk].findIndex(c => c.id === card.id)
-          if (idx >= 0) board.done[dk].splice(idx, 1)
-          if (board.done[dk].length === 0) delete board.done[dk]
-          rebuildAllDates()
-        }
-      } else {
-        const arr = status === 'doing' ? board.doing : board.todo
-        const idx = arr.findIndex(c => c.id === card.id)
-        if (idx >= 0) arr.splice(idx, 1)
-      }
-    }
-    showTaskModal.value = false
-  } catch (e: any) {
-    error.value = e.message
-  } finally {
-    saving.value = false
-  }
-}
 </script>
 
 <template>
@@ -1222,7 +186,6 @@ async function deleteTask() {
       </div>
       <!-- モバイル用コントロール行 -->
       <div v-if="hasCredentials" class="md:hidden flex items-center gap-2 px-3 pb-2">
-        <!-- プロファイル選択 -->
         <select
           v-if="profiles.length > 1"
           :value="activeProfileId"
@@ -1231,14 +194,12 @@ async function deleteTask() {
         >
           <option v-for="p in profiles" :key="p.id" :value="p.id" class="bg-[#1e293b] text-[#e2e8f0]">{{ p.name }}</option>
         </select>
-        <!-- 統合期間ピッカー -->
         <div class="relative flex-1 min-w-0 z-50" @click.stop>
           <button
             class="w-full bg-white/[0.06] border border-white/10 rounded-md px-2 py-1 text-[#e2e8f0] text-[12px] cursor-pointer hover:bg-white/[0.1] transition-colors text-left whitespace-nowrap"
             @click="toggleMobilePeriod"
           >{{ formatMonthShort(startMonth) }}〜{{ formatMonthShort(endMonth) }}</button>
           <div v-if="showMobilePeriod" class="absolute top-full left-0 mt-1 bg-[#1e293b] border border-white/10 rounded-xl p-3 shadow-xl z-50 flex gap-4">
-            <!-- 開始月 -->
             <div>
               <div class="text-[11px] text-slate-400 mb-1.5 font-semibold">開始</div>
               <div class="flex items-center justify-between mb-2">
@@ -1255,7 +216,6 @@ async function deleteTask() {
                 >{{ m }}月</button>
               </div>
             </div>
-            <!-- 終了月 -->
             <div>
               <div class="text-[11px] text-slate-400 mb-1.5 font-semibold">終了</div>
               <div class="flex items-center justify-between mb-2">
@@ -1274,7 +234,6 @@ async function deleteTask() {
             </div>
           </div>
         </div>
-        <!-- 更新 -->
         <button
           class="flex-shrink-0 px-3 py-1 rounded-lg border-none bg-gradient-to-br from-sky-400 to-indigo-500 text-white text-[12px] font-semibold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           :disabled="loading"
@@ -1283,164 +242,31 @@ async function deleteTask() {
       </div>
     </header>
 
-    <!-- Settings Modal -->
-    <Teleport to="body">
-      <div v-if="showSettings" class="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-sm flex items-center justify-center p-5" @click.self="showSettings = false">
-        <div class="w-[min(560px,100%)] bg-[#1e293b] border border-white/10 rounded-2xl p-7 flex flex-col gap-2.5 max-h-[90vh] overflow-y-auto">
-          <h2 class="m-0 mb-1 text-lg font-bold text-slate-50">設定</h2>
-
-          <!-- Account tabs -->
-          <div class="flex items-end gap-0 border-b border-white/10 mb-2 overflow-x-auto">
-            <button
-              v-for="(p, i) in settingsProfiles"
-              :key="p.id"
-              :class="[
-                'px-3 py-1.5 text-[13px] font-medium rounded-t-lg border-b-2 transition-all cursor-pointer whitespace-nowrap flex-shrink-0',
-                settingsActiveTab === i
-                  ? 'border-sky-400 text-sky-400 bg-white/[0.04]'
-                  : 'border-transparent text-slate-500 hover:text-slate-300 bg-transparent',
-              ]"
-              @click="settingsActiveTab = i"
-            >{{ p.name || `アカウント${i + 1}` }}</button>
-            <button
-              class="px-2.5 py-1.5 text-[18px] leading-none text-slate-500 hover:text-sky-400 border-b-2 border-transparent cursor-pointer transition-all flex-shrink-0"
-              title="新しいアカウントを追加"
-              @click="addSettingsProfile"
-            >＋</button>
-          </div>
-
-          <!-- Current tab fields -->
-          <template v-if="settingsProfiles[settingsActiveTab]">
-            <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em] mt-1">アカウント名</label>
-            <input v-model="settingsProfiles[settingsActiveTab].name" class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)]" type="text" :placeholder="`アカウント${settingsActiveTab + 1}`" />
-
-            <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em] mt-1">Trello API Key</label>
-            <input v-model="settingsProfiles[settingsActiveTab].key" class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)]" type="text" placeholder="API Key" />
-
-            <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em] mt-1">Trello Token</label>
-            <input v-model="settingsProfiles[settingsActiveTab].token" class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)]" type="text" placeholder="Token" />
-
-            <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em] mt-1">非表示ボード（カンマ区切り）</label>
-            <textarea v-model="settingsProfiles[settingsActiveTab].excluded" class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)] resize-y min-h-[80px] font-mono text-xs leading-relaxed" rows="4" />
-
-            <div v-if="settingsProfiles.length > 1" class="flex justify-start mt-1">
-              <button class="px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 text-[12px] cursor-pointer transition-all hover:bg-red-500/20" @click="removeSettingsProfile(settingsActiveTab)">このアカウントを削除</button>
-            </div>
-          </template>
-
-          <div class="flex justify-end gap-2 mt-2">
-            <button class="px-4 py-2 rounded-lg bg-white/[0.08] border border-white/10 text-slate-400 text-[13px] cursor-pointer transition-all hover:bg-white/[0.12]" @click="showSettings = false">キャンセル</button>
-            <button class="px-4 py-2 rounded-lg border-none bg-gradient-to-br from-sky-400 to-indigo-500 text-white text-[13px] font-semibold cursor-pointer" @click="saveSettings">保存して読み込む</button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
-
-    <!-- Task Add/Edit Modal -->
-    <Teleport to="body">
-      <div v-if="showTaskModal" class="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-sm flex items-center justify-center p-5" @click.self="showTaskModal = false">
-        <div class="w-[min(480px,100%)] bg-[#1e293b] border border-white/10 rounded-2xl p-7 flex flex-col gap-3">
-          <h2 class="m-0 mb-1 text-lg font-bold text-slate-50">{{ modalTitle }}</h2>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">タスク名 <span class="text-red-400">*</span></label>
-            <input
-              v-model="taskForm.name"
-              class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)]"
-              type="text"
-              placeholder="タスク名を入力"
-              autofocus
-              @keydown.enter="(e) => { if (!e.isComposing) saveTask() }"
-            />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">概要</label>
-            <textarea
-              v-model="taskForm.desc"
-              class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)] resize-y min-h-[80px] leading-relaxed"
-              rows="3"
-              placeholder="概要・メモ"
-            />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">期限</label>
-            <input
-              v-model="taskForm.due"
-              class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)] [color-scheme:dark]"
-              type="datetime-local"
-            />
-          </div>
-
-          <div class="flex gap-3">
-            <div class="flex flex-col gap-1 flex-1">
-              <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">ボード</label>
-              <select
-                v-model="taskForm.boardId"
-                class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 [color-scheme:dark] cursor-pointer"
-              >
-                <option v-for="b in boards" :key="b.id" :value="b.id">{{ b.name }}</option>
-              </select>
-            </div>
-            <div class="flex flex-col gap-1 flex-1">
-              <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">リスト</label>
-              <select
-                v-model="taskForm.status"
-                class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 [color-scheme:dark] cursor-pointer"
-              >
-                <option value="todo">TODO</option>
-                <option value="doing">DOING</option>
-                <option value="done">DONE</option>
-              </select>
-            </div>
-          </div>
-
-          <div v-if="error" class="px-3 py-2 bg-red-500/12 border border-red-500/30 rounded-lg text-red-300 text-[13px]">⚠ {{ error }}</div>
-
-          <div class="flex items-center gap-2 mt-1">
-            <button
-              v-if="isEditing"
-              class="px-4 py-2 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 text-[13px] cursor-pointer transition-all hover:bg-red-500/20 disabled:opacity-40"
-              :disabled="saving"
-              @click="deleteTask"
-            >削除</button>
-            <div class="flex-1" />
-            <button class="px-4 py-2 rounded-lg bg-white/[0.08] border border-white/10 text-slate-400 text-[13px] cursor-pointer transition-all hover:bg-white/[0.12]" @click="showTaskModal = false">キャンセル</button>
-            <button
-              class="px-4 py-2 rounded-lg border-none bg-gradient-to-br from-sky-400 to-indigo-500 text-white text-[13px] font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="saving || !taskForm.name.trim()"
-              @click="saveTask"
-            >{{ saving ? '保存中…' : '保存' }}</button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
-
-    <!-- Due date picker for DONE (no due date) -->
-    <Teleport to="body">
-      <div v-if="pendingDone" class="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-sm flex items-center justify-center p-5" @click.self="pendingDone = null">
-        <div class="w-[min(360px,100%)] bg-[#1e293b] border border-white/10 rounded-2xl p-6 flex flex-col gap-4">
-          <div>
-            <h2 class="m-0 text-base font-bold text-slate-50">期限を設定してDONEにする</h2>
-            <p class="m-0 mt-1 text-[13px] text-slate-500 truncate">{{ pendingDone.card.name }}</p>
-          </div>
-          <input
-            v-model="pendingDueInput"
-            class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)] [color-scheme:dark]"
-            type="datetime-local"
-          />
-          <div class="flex justify-end gap-2">
-            <button class="px-4 py-2 rounded-lg bg-white/[0.08] border border-white/10 text-slate-400 text-[13px] cursor-pointer hover:bg-white/[0.12]" @click="pendingDone = null">キャンセル</button>
-            <button
-              class="px-4 py-2 rounded-lg border-none bg-emerald-500/80 text-white text-[13px] font-semibold cursor-pointer hover:bg-emerald-500 disabled:opacity-40"
-              :disabled="!pendingDueInput || saving"
-              @click="confirmMarkDone"
-            >{{ saving ? '…' : 'DONEにする' }}</button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <!-- Modals -->
+    <TaskSettingsModal
+      v-model:show="showSettings"
+      :profiles="profiles"
+      :active-profile-id="activeProfileId"
+      @save="handleSettingsSave"
+    />
+    <TaskModal
+      v-model:show="showTaskModal"
+      :boards="boards"
+      :is-editing="isEditing"
+      :modal-title="modalTitle"
+      :initial-form="taskForm"
+      :saving="saving"
+      :error="error"
+      @save="handleTaskSave"
+      @delete="deleteTask"
+    />
+    <TaskDoneDateModal
+      v-model:show="showPendingDone"
+      v-model="pendingDueInput"
+      :card-name="pendingDone?.card.name ?? ''"
+      :saving="saving"
+      @confirm="confirmMarkDone"
+    />
 
     <!-- No credentials -->
     <div v-if="isMounted && !hasCredentials" class="flex flex-col items-center justify-center gap-3 min-h-[60vh] text-slate-500">
@@ -1640,7 +466,6 @@ async function deleteTask() {
             <!-- Chart -->
             <div v-else class="flex gap-4 items-start">
               <div ref="chartRef" class="flex-1 min-w-0 h-[480px] rounded-xl border border-white/[0.07]" style="cursor:pointer" />
-              <!-- Date detail panel -->
               <transition name="slide-fade">
                 <div v-if="selectedDate && (doneView === 'line' || doneView === 'stacked')" class="w-80 flex-none bg-white/[0.04] border border-white/[0.08] rounded-xl p-3 self-stretch overflow-y-auto max-h-[480px]">
                   <div class="flex items-center justify-between mb-2.5">
@@ -1706,7 +531,6 @@ async function deleteTask() {
 
           <!-- ボードごとに TODO(左) DOING(右) -->
           <div v-for="board in boards" :key="board.id" class="mb-3">
-            <!-- ボード名ヘッダー -->
             <div
               class="text-[13px] font-bold uppercase tracking-[0.05em] mb-1.5 px-1.5 py-1 rounded-lg border-l-4"
               :style="{ color: boardColor(board), borderColor: boardColor(board), backgroundColor: boardColor(board) + '12' }"
@@ -1719,6 +543,9 @@ async function deleteTask() {
                   <li
                     v-for="card in board.todo"
                     :key="card.id"
+                    :data-card-id="card.id"
+                    :data-board-id="board.id"
+                    data-status="todo"
                     :class="[
                       'bg-white/[0.04] border border-white/[0.07] rounded-lg px-2 py-1.5 flex items-start gap-1.5 cursor-grab active:bg-white/[0.07] select-none',
                       card.isOverdue ? 'border-red-500/40 bg-red-500/[0.06]' : '',
@@ -1731,9 +558,11 @@ async function deleteTask() {
                     @dragend="onDragEnd"
                     @dragover="onDragOverCard($event, card.id)"
                     @drop.prevent="onDropCard(card.id, board.id, 'todo')"
+                    @touchstart="onMobileTouchStart($event, card, board.id, 'todo')"
                     @click="openEditTask(card, board.id, 'todo')"
                   >
                     <button
+                      data-no-drag="true"
                       class="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-white/20 bg-white/[0.04] hover:border-emerald-400/60 hover:bg-emerald-400/10 transition-all cursor-pointer flex items-center justify-center"
                       @click.stop="markDone(card, board)"
                     />
@@ -1741,6 +570,7 @@ async function deleteTask() {
                   </li>
                 </ul>
                 <button
+                  :data-drop-end="`${board.id}:todo`"
                   class="mt-1.5 w-full py-1 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all opacity-40 hover:opacity-80"
                   :style="{ borderColor: boardColor(board), color: boardColor(board) }"
                   @click="openAddTask(board.id, 'todo')"
@@ -1755,6 +585,9 @@ async function deleteTask() {
                   <li
                     v-for="card in board.doing"
                     :key="card.id"
+                    :data-card-id="card.id"
+                    :data-board-id="board.id"
+                    data-status="doing"
                     :class="[
                       'bg-white/[0.04] border border-white/[0.07] rounded-lg px-2 py-1.5 flex items-start gap-1.5 cursor-grab active:bg-white/[0.07] select-none',
                       card.isOverdue ? 'border-red-500/40 bg-red-500/[0.06]' : '',
@@ -1767,9 +600,11 @@ async function deleteTask() {
                     @dragend="onDragEnd"
                     @dragover="onDragOverCard($event, card.id)"
                     @drop.prevent="onDropCard(card.id, board.id, 'doing')"
+                    @touchstart="onMobileTouchStart($event, card, board.id, 'doing')"
                     @click="openEditTask(card, board.id, 'doing')"
                   >
                     <button
+                      data-no-drag="true"
                       class="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-white/20 bg-white/[0.04] hover:border-emerald-400/60 hover:bg-emerald-400/10 transition-all cursor-pointer flex items-center justify-center"
                       @click.stop="markDone(card, board)"
                     />
@@ -1777,6 +612,7 @@ async function deleteTask() {
                   </li>
                 </ul>
                 <button
+                  :data-drop-end="`${board.id}:doing`"
                   class="mt-1.5 w-full py-1 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all opacity-40 hover:opacity-80"
                   :style="{ borderColor: boardColor(board), color: boardColor(board) }"
                   @click="openAddTask(board.id, 'doing')"
@@ -1794,7 +630,7 @@ async function deleteTask() {
               <span class="text-slate-400 text-base font-bold">({{ boards.reduce((s, b) => s + doneTotal(b), 0) }})</span>
             </div>
             <div class="flex gap-3">
-              <!-- 左半分: 直近1週間のDONEリスト（日付新しい順・フラット） -->
+              <!-- 左半分: 直近1週間のDONEリスト -->
               <div class="flex-1 min-w-0">
                 <div class="text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">直近7日</div>
                 <div v-if="thisWeekDoneFlat.length === 0" class="text-[13px] text-slate-600 py-3 text-center">完了タスクなし</div>
