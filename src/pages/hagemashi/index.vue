@@ -8,7 +8,7 @@
           <h1 class="m-0 text-[clamp(24px,4vw,32px)] font-bold bg-gradient-to-br from-orange-500 to-pink-500 bg-clip-text text-transparent">はげまし</h1>
           <p class="mt-2 mb-0 text-slate-400 text-base">話して、励ましてもらおう</p>
         </div>
-        <div class="flex flex-col gap-1.5 flex-shrink-0 pt-1">
+        <div class="flex-shrink-0 -mt-3.5 -mr-3.5">
           <UserMenu
             v-if="!$dev && user"
             :username="user.username"
@@ -16,15 +16,6 @@
             accentFrom="#f97316"
             accentTo="#ec4899"
           />
-          <button
-            class="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-orange-500/40 bg-orange-500/[0.08] text-orange-200 text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-orange-500/[0.18] hover:border-orange-500/70 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
-            data-label="励ます"
-            :disabled="filteredTexts.length === 0 || isEncouraging"
-            @click="runEncourage"
-          >
-            <span>💪</span>
-            <span class="hidden lg:inline">励ます</span>
-          </button>
         </div>
       </header>
 
@@ -62,6 +53,17 @@
               <span class="text-[10px] font-medium">録音</span>
             </button>
           </template>
+
+          <!-- 励ます button -->
+          <button
+            class="w-20 h-20 rounded-full border-2 border-orange-500/50 bg-orange-500/[0.08] text-slate-50 flex flex-col items-center justify-center gap-1 transition-all disabled:opacity-35 disabled:cursor-not-allowed"
+            :class="filteredTexts.length > 0 && !isEncouraging ? 'cursor-pointer hover:bg-orange-500/[0.20] hover:border-orange-500/80 hover:scale-105' : ''"
+            :disabled="filteredTexts.length === 0 || isEncouraging"
+            @click="runEncourage"
+          >
+            <span class="text-2xl leading-none">💪</span>
+            <span class="text-[10px] font-medium">励ます</span>
+          </button>
         </div>
         <div v-if="isRecording || duration > 0" class="text-xl text-red-500 font-mono font-semibold">
           {{ formatTime(duration) }}

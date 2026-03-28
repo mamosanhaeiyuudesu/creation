@@ -8,7 +8,7 @@
           <h1 class="m-0 text-[clamp(24px,4vw,32px)] font-bold bg-gradient-to-br from-sky-400 to-indigo-500 bg-clip-text text-transparent">Whisper</h1>
           <p class="mt-2 mb-0 text-slate-400 text-base">音声を文字に変換</p>
         </div>
-        <div class="flex-shrink-0 pt-1">
+        <div class="flex-shrink-0 -mt-3.5 -mr-3.5">
           <UserMenu
             v-if="!$dev && user"
             :username="user.username"
