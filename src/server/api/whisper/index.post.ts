@@ -30,15 +30,34 @@ export default defineEventHandler(async (event) => {
         })
 
         if (!response.ok) {
-            const errorData = await response.json()
-            console.error('OpenAI API error:', errorData)
+            let errorMessage = `OpenAI API error: HTTP ${response.status}`
+            try {
+                const body = await response.text()
+                if (body) {
+                    try {
+                        const errorData = JSON.parse(body)
+                        errorMessage = errorData.error?.message || errorMessage
+                    } catch {
+                        errorMessage = body
+                    }
+                }
+            } catch {}
+            console.error('OpenAI API error:', errorMessage)
             throw createError({
                 statusCode: response.status,
-                statusMessage: errorData.error?.message || 'Failed to transcribe audio',
+                statusMessage: errorMessage,
             })
         }
 
-        const data = await response.json()
+        let data: { text: string; duration?: number }
+        try {
+            data = await response.json()
+        } catch (parseErr) {
+            throw createError({
+                statusCode: 500,
+                statusMessage: 'Failed to parse OpenAI response',
+            })
+        }
         if (import.meta.dev) {
             const JPY_RATE = 150
             const durationSec: number = data.duration ?? 0

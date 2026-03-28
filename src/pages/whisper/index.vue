@@ -140,7 +140,7 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
 import { useHistory } from '~/composables/useHistory'
-import { useAudioRecorder, fetchTitle, proofreadInBackground, type DictEntry } from '~/composables/useAudioRecorder'
+import { useAudioRecorder, splitAndTranscribeBlob, fetchTitle, proofreadInBackground, type DictEntry } from '~/composables/useAudioRecorder'
 
 const error = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -203,10 +203,8 @@ const onFileSelected = async (event: Event) => {
 
   isUploading.value = true
   try {
-    const formData = new FormData()
-    formData.append('audio', file, file.name)
-    const data = await $fetch<{ text: string }>('/api/whisper', { method: 'POST', body: formData })
-    await handleTranscribed(data.text)
+    const text = await splitAndTranscribeBlob(file, file.name)
+    await handleTranscribed(text)
   } catch (err) {
     error.value = err instanceof Error ? err.message : '予期しないエラーが発生しました'
   } finally {

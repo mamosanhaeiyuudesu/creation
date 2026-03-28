@@ -17,6 +17,9 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: 'cloudflare_module',
+    devServer: {
+      maxBodySize: 100 * 1024 * 1024, // 100MB（大きな音声ファイルの並列アップロード対応）
+    },
   },
   vite: {
     server: {
