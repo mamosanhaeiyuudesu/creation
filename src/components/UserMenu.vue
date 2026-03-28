@@ -1,15 +1,13 @@
 <template>
   <div class="relative" ref="containerRef">
     <button
-      class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/[0.12] bg-white/[0.05] hover:bg-white/[0.10] hover:border-white/[0.20] transition-all duration-150 cursor-pointer"
+      class="flex items-center p-1.5 rounded-xl border border-white/[0.12] bg-white/[0.05] hover:bg-white/[0.10] hover:border-white/[0.20] transition-all duration-150 cursor-pointer"
       @click="open = !open"
     >
       <span
-        class="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
+        class="w-7 h-7 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
         :style="{ background: `linear-gradient(135deg, ${accentFrom ?? '#38bdf8'}, ${accentTo ?? '#6366f1'})` }"
       >{{ initial }}</span>
-      <span class="text-xs font-medium text-slate-300 max-w-[90px] truncate leading-none">{{ username }}</span>
-      <span class="text-slate-500 text-[9px] transition-transform duration-150 leading-none" :class="{ 'rotate-180': open }">▼</span>
     </button>
 
     <Transition
