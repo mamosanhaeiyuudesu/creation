@@ -7,13 +7,15 @@
         <div class="flex-1 text-center pl-10">
           <h1 class="m-0 text-[clamp(24px,4vw,32px)] font-bold bg-gradient-to-br from-orange-500 to-pink-500 bg-clip-text text-transparent">はげまし</h1>
           <p class="mt-2 mb-0 text-slate-400 text-base">話して、励ましてもらおう</p>
-          <p v-if="!$dev && user" class="mt-1 mb-0 text-xs text-slate-500">{{ user.username }}</p>
         </div>
         <div class="flex flex-col gap-1.5 flex-shrink-0 pt-1">
-          <button v-if="!$dev && user" class="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/15 bg-white/[0.06] text-slate-400 text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-white/[0.12] hover:text-slate-50" @click="logout">
-            <span>🚪</span>
-            <span class="hidden lg:inline">ログアウト</span>
-          </button>
+          <template v-if="!$dev && user">
+            <span class="text-xs text-slate-500 text-right px-1">{{ user.username }}</span>
+            <button class="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/15 bg-white/[0.06] text-slate-400 text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-white/[0.12] hover:text-slate-50" @click="logout">
+              <span>🚪</span>
+              <span class="hidden lg:inline">ログアウト</span>
+            </button>
+          </template>
           <button class="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/15 bg-white/[0.06] text-slate-300 text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-white/[0.12] hover:border-white/25 hover:text-slate-50" data-label="設定" @click="settingsOpen = true">
             <span>⚙️</span>
             <span class="hidden lg:inline">設定</span>
@@ -80,7 +82,7 @@
     </div>
 
     <!-- Auth Modal -->
-    <AuthModal v-if="!$dev && !isLoggedIn" accent="orange" />
+    <AuthModal v-if="!$dev && checked && !isLoggedIn" accent="orange" />
 
     <!-- Settings Modal -->
     <div v-if="settingsOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="settingsOpen = false">
@@ -167,7 +169,7 @@ const encourageResult = ref('')
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
 
-const { user, isLoggedIn, checkAuth, logout } = useAuth()
+const { user, isLoggedIn, checked, checkAuth, logout } = useAuth()
 
 if (!$dev) {
   onMounted(checkAuth)
