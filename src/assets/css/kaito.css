@@ -23,17 +23,17 @@ body:has(.therapist-layout) {
   margin: 0;
 }
 
-a {
+.therapist-layout a {
   color: inherit;
 }
 
-img {
+.therapist-layout img {
   max-width: 100%;
   height: auto;
   display: block;
 }
 
-header {
+.therapist-layout header {
   background: var(--color-surface);
   border-bottom: 1px solid rgba(56, 163, 165, 0.08);
   position: sticky;
