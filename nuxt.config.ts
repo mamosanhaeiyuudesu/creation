@@ -13,6 +13,7 @@ export default defineNuxtConfig({
   modules: ['@nuxtjs/tailwindcss'],
   runtimeConfig: {
     openaiApiKey: '',
+    anthropicApiKey: '',
     miyakoVectorStoreId: '',
   },
   nitro: {

@@ -7,7 +7,7 @@
           <tr>
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-[110px] whitespace-nowrap">日時</th>
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08]">タイトル</th>
-            <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-8 text-center">コピー</th>
+            <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-8 text-center whitespace-nowrap">コピー</th>
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-[52px] text-center">削除</th>
           </tr>
         </thead>

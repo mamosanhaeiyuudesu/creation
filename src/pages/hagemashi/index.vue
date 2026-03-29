@@ -57,9 +57,9 @@
           <!-- 励ます button -->
           <button
             class="w-20 h-20 rounded-full border-2 border-orange-500/50 bg-orange-500/[0.08] text-slate-50 flex flex-col items-center justify-center gap-1 transition-all disabled:opacity-35 disabled:cursor-not-allowed"
-            :class="filteredTexts.length > 0 && !isEncouraging ? 'cursor-pointer hover:bg-orange-500/[0.20] hover:border-orange-500/80 hover:scale-105' : ''"
-            :disabled="filteredTexts.length === 0 || isEncouraging"
-            @click="runEncourage"
+            :class="history.length > 0 && !isEncouraging ? 'cursor-pointer hover:bg-orange-500/[0.20] hover:border-orange-500/80 hover:scale-105' : ''"
+            :disabled="history.length === 0 || isEncouraging"
+            @click="openSelectModal"
           >
             <span class="text-2xl leading-none">💪</span>
             <span class="text-[10px] font-medium">励ます</span>
@@ -91,26 +91,53 @@
         </div>
         <div class="px-6 py-5 overflow-y-auto flex flex-col gap-3">
           <div class="flex flex-col gap-1.5">
-            <label class="text-[13px] font-medium text-slate-400">ベース知識（Vector Store ID）</label>
-            <input v-model="settings.vectorStoreId" class="bg-white/[0.05] border border-white/[0.12] rounded-lg text-slate-50 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit]" placeholder="vs_xxxxxxxxxxxx（省略可）" />
-            <p class="m-0 text-xs text-slate-500">OpenAIのVector Store IDを指定すると、励ますときにその知識を参照します。</p>
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-[13px] font-medium text-slate-400">対象期間</label>
-            <select v-model="settings.period" class="bg-white/[0.05] border border-white/[0.12] rounded-lg text-slate-50 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] [&>option]:bg-[#1e293b]">
-              <option value="all">すべて</option>
-              <option value="today">今日</option>
-              <option value="week">過去7日</option>
-              <option value="month">過去30日</option>
-            </select>
-          </div>
-          <div class="flex flex-col gap-1.5">
             <label class="text-[13px] font-medium text-slate-400">励まし方の指示</label>
             <textarea v-model="settings.encouragePrompt" class="bg-white/[0.05] border border-white/[0.12] rounded-lg text-slate-50 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-y leading-relaxed" rows="4" placeholder="話した内容を踏まえて、温かく励ましてください。" />
           </div>
         </div>
         <div class="flex justify-end gap-2 px-6 py-4 pb-5 border-t border-white/[0.08]">
           <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="saveSettings">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 履歴選択ポップアップ -->
+    <div v-if="selectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="selectOpen = false">
+      <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
+          <h2 class="m-0 text-lg text-slate-50 font-semibold">励ます対象を選択</h2>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="selectOpen = false">✕</button>
+        </div>
+        <div class="px-4 py-3 overflow-y-auto flex flex-col gap-1 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
+          <label
+            v-for="item in history"
+            :key="item.id"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors"
+            :class="selectedIds.includes(item.id) ? 'bg-orange-500/15' : 'hover:bg-white/[0.05]'"
+          >
+            <input
+              type="checkbox"
+              class="w-4 h-4 shrink-0 accent-orange-500 cursor-pointer"
+              :checked="selectedIds.includes(item.id)"
+              @change="toggleSelect(item.id)"
+            />
+            <span class="text-xs text-slate-400 whitespace-nowrap">{{ formatSelectDate(item.timestamp) }}</span>
+            <span class="text-sm text-slate-200 truncate">{{ item.title || item.text.slice(0, 40) }}</span>
+          </label>
+        </div>
+        <div class="flex items-center justify-between gap-2 px-6 py-4 pb-5 border-t border-white/[0.08]">
+          <div class="flex gap-2">
+            <button class="px-3 py-1.5 rounded-lg border border-white/15 bg-transparent text-slate-400 text-xs cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="selectedIds = history.map(i => i.id)">全選択</button>
+            <button class="px-3 py-1.5 rounded-lg border border-white/15 bg-transparent text-slate-400 text-xs cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="selectedIds = []">全解除</button>
+          </div>
+          <div class="flex gap-2">
+            <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="selectOpen = false">キャンセル</button>
+            <button
+              class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+              :disabled="selectedIds.length === 0"
+              @click="confirmSelect"
+            >💪 励ます</button>
+          </div>
         </div>
       </div>
     </div>
@@ -149,6 +176,8 @@ const $dev = import.meta.dev
 
 const error = ref('')
 const settingsOpen = ref(false)
+const selectOpen = ref(false)
+const selectedIds = ref<string[]>([])
 const encourageOpen = ref(false)
 const encourageResult = ref('')
 const resultCopied = ref(false)
@@ -169,9 +198,7 @@ const menuItems = [
 
 // --- 設定 ---
 const defaultSettings = {
-  period: 'all',
   encouragePrompt: '話した内容を踏まえて、温かく励ましてください。',
-  vectorStoreId: '',
 }
 const settings = ref<typeof defaultSettings>({ ...defaultSettings })
 
@@ -187,25 +214,40 @@ const saveSettings = () => {
   settingsOpen.value = false
 }
 
-// --- 励まし対象テキスト ---
-const filteredTexts = computed(() => {
-  const now = new Date()
-  return history.value
-    .filter((item) => {
-      if (settings.value.period === 'all') return true
-      const d = new Date(item.timestamp)
-      if (settings.value.period === 'today') return d.toDateString() === now.toDateString()
-      if (settings.value.period === 'week') return now.getTime() - d.getTime() <= 7 * 24 * 60 * 60 * 1000
-      if (settings.value.period === 'month') return now.getTime() - d.getTime() <= 30 * 24 * 60 * 60 * 1000
-      return true
-    })
-    .map((item) => item.text)
-})
-
 const parsedResult = computed(() => marked.parse(encourageResult.value || '') as string)
 
+// --- 履歴選択モーダル ---
+const openSelectModal = () => {
+  selectedIds.value = history.value.length > 0 ? [history.value[0].id] : []
+  selectOpen.value = true
+}
+
+const toggleSelect = (id: string) => {
+  const idx = selectedIds.value.indexOf(id)
+  if (idx === -1) selectedIds.value.push(id)
+  else selectedIds.value.splice(idx, 1)
+}
+
+const confirmSelect = () => {
+  selectOpen.value = false
+  runEncourage()
+}
+
+const formatSelectDate = (iso: string): string => {
+  const d = new Date(iso)
+  const mo = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const h = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  return `${mo}/${day} ${h}:${mi}`
+}
+
+// --- 励まし実行 ---
 const runEncourage = async () => {
-  if (!filteredTexts.value.length) return
+  const texts = history.value
+    .filter(item => selectedIds.value.includes(item.id))
+    .map(item => item.text)
+  if (!texts.length) return
   encourageResult.value = ''
   encourageOpen.value = true
   isEncouraging.value = true
@@ -213,9 +255,8 @@ const runEncourage = async () => {
     const res = await $fetch<{ result: string }>('/api/hagemashi/encourage', {
       method: 'POST',
       body: {
-        texts: filteredTexts.value,
+        texts,
         encouragePrompt: settings.value.encouragePrompt,
-        vectorStoreId: settings.value.vectorStoreId || undefined,
       },
     })
     encourageResult.value = res.result
