@@ -372,8 +372,8 @@ onMounted(() => {
                 </li>
               </ul>
               <button
-                class="mt-2 w-full py-1.5 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all opacity-40 hover:opacity-80"
-                :style="{ borderColor: boardColor(board), color: boardColor(board) }"
+                :class="['mt-2 w-full py-1.5 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all', dragOverEndKey === `${board.id}:doing` ? 'opacity-100 border-t-2 border-t-sky-400' : 'opacity-40 hover:opacity-80']"
+                :style="{ borderColor: dragOverEndKey === `${board.id}:doing` ? undefined : boardColor(board), color: boardColor(board) }"
                 @click="openAddTask(board.id, 'doing')"
                 @dragover="onDragOverEnd($event, `${board.id}:doing`)"
                 @drop.prevent="onDropEnd(board.id, 'doing')"
@@ -429,8 +429,8 @@ onMounted(() => {
                 </li>
               </ul>
               <button
-                class="mt-2 w-full py-1.5 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all opacity-40 hover:opacity-80"
-                :style="{ borderColor: boardColor(board), color: boardColor(board) }"
+                :class="['mt-2 w-full py-1.5 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all', dragOverEndKey === `${board.id}:todo` ? 'opacity-100 border-t-2 border-t-amber-400' : 'opacity-40 hover:opacity-80']"
+                :style="{ borderColor: dragOverEndKey === `${board.id}:todo` ? undefined : boardColor(board), color: boardColor(board) }"
                 @click="openAddTask(board.id, 'todo')"
                 @dragover="onDragOverEnd($event, `${board.id}:todo`)"
                 @drop.prevent="onDropEnd(board.id, 'todo')"
@@ -623,8 +623,8 @@ onMounted(() => {
                 </ul>
                 <button
                   :data-drop-end="`${board.id}:todo`"
-                  class="mt-1.5 w-full py-1 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all opacity-40 hover:opacity-80"
-                  :style="{ borderColor: boardColor(board), color: boardColor(board) }"
+                  :class="['mt-1.5 w-full py-1 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all', dragOverEndKey === `${board.id}:todo` ? 'opacity-100 border-t-2 border-t-amber-400' : 'opacity-40 hover:opacity-80']"
+                  :style="{ borderColor: dragOverEndKey === `${board.id}:todo` ? undefined : boardColor(board), color: boardColor(board) }"
                   @click="openAddTask(board.id, 'todo')"
                   @dragover="onDragOverEnd($event, `${board.id}:todo`)"
                   @drop.prevent="onDropEnd(board.id, 'todo')"
@@ -665,8 +665,8 @@ onMounted(() => {
                 </ul>
                 <button
                   :data-drop-end="`${board.id}:doing`"
-                  class="mt-1.5 w-full py-1 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all opacity-40 hover:opacity-80"
-                  :style="{ borderColor: boardColor(board), color: boardColor(board) }"
+                  :class="['mt-1.5 w-full py-1 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all', dragOverEndKey === `${board.id}:doing` ? 'opacity-100 border-t-2 border-t-sky-400' : 'opacity-40 hover:opacity-80']"
+                  :style="{ borderColor: dragOverEndKey === `${board.id}:doing` ? undefined : boardColor(board), color: boardColor(board) }"
                   @click="openAddTask(board.id, 'doing')"
                   @dragover="onDragOverEnd($event, `${board.id}:doing`)"
                   @drop.prevent="onDropEnd(board.id, 'doing')"

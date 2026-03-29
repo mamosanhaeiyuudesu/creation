@@ -11,11 +11,6 @@
   all: initial;
 }
 
-body:has(.therapist-layout) {
-  background: initial !important;
-  color: initial !important;
-  font-family: initial !important;
-}
 
 .v-application:has(.therapist-layout) {
   background: transparent !important;

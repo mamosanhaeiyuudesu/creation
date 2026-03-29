@@ -16,7 +16,7 @@
   --line-height-base: 1.75;
 }
 
-body {
+body:has(.therapist-layout) {
   font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans JP", sans-serif;
   background: #f7fbfb;
   color: #1f2937;
