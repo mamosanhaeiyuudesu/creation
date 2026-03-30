@@ -6,6 +6,7 @@
         <nav class="mm-nav">
           <NuxtLink to="/mamorin" class="mm-nav-link">トップ</NuxtLink>
           <NuxtLink to="/mamorin/why-oyako" class="mm-nav-link">なぜ親子問題を扱うのか</NuxtLink>
+          <NuxtLink to="/mamorin/qa" class="mm-nav-link">Q&amp;A</NuxtLink>
           <NuxtLink to="/mamorin#contact" class="mm-nav-link mm-nav-cta">無料相談</NuxtLink>
         </nav>
         <button class="mm-menu-btn" :class="{ open: menuOpen }" @click="menuOpen = !menuOpen" aria-label="メニュー">
@@ -15,6 +16,7 @@
       <div class="mm-drawer" :class="{ open: menuOpen }" @click="menuOpen = false">
         <NuxtLink to="/mamorin" class="mm-drawer-link">トップ</NuxtLink>
         <NuxtLink to="/mamorin/why-oyako" class="mm-drawer-link">なぜ親子問題を扱うのか</NuxtLink>
+        <NuxtLink to="/mamorin/qa" class="mm-drawer-link">Q&amp;A</NuxtLink>
         <NuxtLink to="/mamorin#contact" class="mm-drawer-link">無料相談（初回無料）</NuxtLink>
       </div>
     </header>
