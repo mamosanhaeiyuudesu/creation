@@ -85,7 +85,7 @@ function save() {
           </div>
         </template>
 
-        <div class="flex justify-end gap-2 mt-2">
+<div class="flex justify-end gap-2 mt-2">
           <button class="px-4 py-2 rounded-lg bg-white/[0.08] border border-white/10 text-slate-400 text-[13px] cursor-pointer transition-all hover:bg-white/[0.12]" @click="emit('update:show', false)">キャンセル</button>
           <button class="px-4 py-2 rounded-lg border-none bg-gradient-to-br from-sky-400 to-indigo-500 text-white text-[13px] font-semibold cursor-pointer" @click="save">保存して読み込む</button>
         </div>

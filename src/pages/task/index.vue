@@ -54,6 +54,23 @@ const {
   thisWeekDoneFlat, weekComparison, weekCompTotal, lastMonthWeekDoneFlat,
 } = useTaskStats(boards, allDates, route.query.view as DoneView)
 
+// カード表示件数設定
+const cardLimitOptions = [
+  { value: 5, label: '5件' },
+  { value: 10, label: '10件' },
+  { value: 20, label: '20件' },
+  { value: 0, label: '全件' },
+]
+const cardLimit = ref(parseInt((route.query.limit as string) || '5') || 5)
+watch(cardLimit, v => {
+  const url = new URL(window.location.href)
+  url.searchParams.set('limit', String(v))
+  window.history.replaceState({}, '', url.toString())
+})
+function visibleCards<T>(cards: T[]): T[] {
+  return cardLimit.value > 0 ? cards.slice(0, cardLimit.value) : cards
+}
+
 const praiseFeedback = ref('')
 const praiseLoading = ref(false)
 const praiseError = ref('')
@@ -92,6 +109,7 @@ function syncUrl() {
   url.searchParams.set('end', endMonth.value)
   url.searchParams.set('view', doneView.value)
   url.searchParams.set('profile', activeProfileId.value)
+  url.searchParams.set('limit', String(cardLimit.value))
   window.history.replaceState({}, '', url.toString())
 }
 
@@ -160,6 +178,13 @@ onMounted(() => {
               @click="switchProfile(p.id)"
             >{{ p.name }}</button>
           </div>
+          <select
+            :value="cardLimit"
+            class="bg-white/[0.06] border border-white/10 rounded-md px-2 py-1.5 text-[#e2e8f0] text-[13px] cursor-pointer"
+            @change="cardLimit = parseInt(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-for="opt in cardLimitOptions" :key="opt.value" :value="opt.value" class="bg-[#1e293b] text-[#e2e8f0]">{{ opt.label }}</option>
+          </select>
           <div class="relative z-50" @click.stop>
             <button
               class="bg-white/[0.06] border border-white/10 rounded-md px-2.5 py-1.5 text-[#e2e8f0] text-[13px] cursor-pointer hover:bg-white/[0.1] transition-colors min-w-[90px] text-left"
@@ -224,6 +249,13 @@ onMounted(() => {
           @change="switchProfile(($event.target as HTMLSelectElement).value)"
         >
           <option v-for="p in profiles" :key="p.id" :value="p.id" class="bg-[#1e293b] text-[#e2e8f0]">{{ p.name }}</option>
+        </select>
+        <select
+          :value="cardLimit"
+          class="bg-white/[0.06] border border-white/10 rounded-md px-2 py-1 text-[12px] text-[#e2e8f0] cursor-pointer flex-shrink-0"
+          @change="cardLimit = parseInt(($event.target as HTMLSelectElement).value)"
+        >
+          <option v-for="opt in cardLimitOptions" :key="opt.value" :value="opt.value" class="bg-[#1e293b] text-[#e2e8f0]">{{ opt.label }}</option>
         </select>
         <div class="relative flex-1 min-w-0 z-50" @click.stop>
           <button
@@ -339,9 +371,9 @@ onMounted(() => {
               :style="boardBorderStyle(board)"
             >
               <div class="text-[11px] font-bold uppercase tracking-[0.05em] mb-2.5" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="board.doing.length" class="ml-1 opacity-70">({{ board.doing.length }})</span></div>
-              <ul class="list-none m-0 p-0 flex flex-col gap-1.5 max-h-[290px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
+              <ul class="list-none m-0 p-0 flex flex-col gap-1.5">
                 <li
-                  v-for="card in board.doing"
+                  v-for="card in visibleCards(board.doing)"
                   :key="card.id"
                   :class="[
                     'bg-white/[0.04] border border-white/[0.07] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 transition-all hover:bg-white/[0.07] cursor-grab select-none',
@@ -396,9 +428,9 @@ onMounted(() => {
               :style="boardBorderStyle(board)"
             >
               <div class="text-[11px] font-bold uppercase tracking-[0.05em] mb-2.5" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="board.todo.length" class="ml-1 opacity-70">({{ board.todo.length }})</span></div>
-              <ul class="list-none m-0 p-0 flex flex-col gap-1.5 max-h-[290px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
+              <ul class="list-none m-0 p-0 flex flex-col gap-1.5">
                 <li
-                  v-for="card in board.todo"
+                  v-for="card in visibleCards(board.todo)"
                   :key="card.id"
                   :class="[
                     'bg-white/[0.04] border border-white/[0.07] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 transition-all hover:bg-white/[0.07] cursor-grab select-none',
@@ -591,9 +623,9 @@ onMounted(() => {
               <!-- TODO (左) -->
               <div class="rounded-xl p-2 border flex flex-col" :style="boardBorderStyle(board)">
                 <div class="text-[11px] font-bold mb-1 text-white/80">TODO<span v-if="board.todo.length" class="ml-1">({{ board.todo.length }})</span></div>
-                <ul class="list-none m-0 p-0 flex flex-col gap-1 min-h-[28px] max-h-[240px] overflow-y-auto">
+                <ul class="list-none m-0 p-0 flex flex-col gap-1 min-h-[28px]">
                   <li
-                    v-for="card in board.todo"
+                    v-for="card in visibleCards(board.todo)"
                     :key="card.id"
                     :data-card-id="card.id"
                     :data-board-id="board.id"
@@ -633,9 +665,9 @@ onMounted(() => {
               <!-- DOING (右) -->
               <div class="rounded-xl p-2 border flex flex-col" :style="boardBorderStyle(board)">
                 <div class="text-[11px] font-bold mb-1 text-white/80">DOING<span v-if="board.doing.length" class="ml-1">({{ board.doing.length }})</span></div>
-                <ul class="list-none m-0 p-0 flex flex-col gap-1 min-h-[28px] max-h-[240px] overflow-y-auto">
+                <ul class="list-none m-0 p-0 flex flex-col gap-1 min-h-[28px]">
                   <li
-                    v-for="card in board.doing"
+                    v-for="card in visibleCards(board.doing)"
                     :key="card.id"
                     :data-card-id="card.id"
                     :data-board-id="board.id"

@@ -133,15 +133,15 @@ const faqs = [
 
 <style>
 .mamorin-page {
-  --bg: #faf9f7;
+  --bg: #f2fbfc;
   --bg-card: #ffffff;
-  --bg-muted: #f4f2ee;
-  --text: #1a1916;
-  --text-secondary: #5a5854;
-  --text-tertiary: #9a9890;
-  --border: rgba(26, 25, 22, 0.1);
-  --border-strong: rgba(26, 25, 22, 0.2);
-  --accent: #3a3630;
+  --bg-muted: #f0fafb;
+  --text: #0a2e38;
+  --text-secondary: #1e6878;
+  --text-tertiary: #5a9eac;
+  --border: rgba(0, 160, 180, 0.14);
+  --border-strong: rgba(0, 160, 180, 0.30);
+  --accent: #00a8b8;
 
   font-family: 'Noto Sans JP', sans-serif;
   background: var(--bg);
@@ -155,15 +155,15 @@ const faqs = [
 
 @media (prefers-color-scheme: dark) {
   .mamorin-page {
-    --bg: #111110;
-    --bg-card: #1a1916;
-    --bg-muted: #222120;
-    --text: #f0ede8;
-    --text-secondary: #a09d98;
-    --text-tertiary: #666360;
-    --border: rgba(240, 237, 232, 0.1);
-    --border-strong: rgba(240, 237, 232, 0.2);
-    --accent: #d4d0c8;
+    --bg: #f2fbfc;
+    --bg-card: #ffffff;
+    --bg-muted: #f0fafb;
+    --text: #0a2e38;
+    --text-secondary: #1e6878;
+    --text-tertiary: #5a9eac;
+    --border: rgba(0, 160, 180, 0.14);
+    --border-strong: rgba(0, 160, 180, 0.30);
+    --accent: #00a8b8;
   }
 }
 
@@ -313,18 +313,18 @@ const faqs = [
 .mamorin-page .cta-btn {
   display: inline-block;
   padding: 15px 44px;
-  border: 0.5px solid var(--border-strong);
+  border: none;
   border-radius: 40px;
   font-size: 14px;
   cursor: pointer;
-  background: transparent;
-  color: var(--text);
+  background: var(--accent);
+  color: #ffffff;
   font-family: 'Noto Sans JP', sans-serif;
   text-decoration: none;
-  transition: background 0.2s;
+  transition: background 0.2s, opacity 0.2s;
 }
 
-.mamorin-page .cta-btn:hover { background: var(--bg-muted); }
+.mamorin-page .cta-btn:hover { opacity: 0.85; }
 
 .mamorin-page footer {
   border-top: 0.5px solid var(--border);

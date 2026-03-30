@@ -6,6 +6,7 @@
         <nav class="mm-nav">
           <NuxtLink to="/mamorin" class="mm-nav-link">トップ</NuxtLink>
           <NuxtLink to="/mamorin/why-oyako" class="mm-nav-link">なぜ親子問題を扱うのか</NuxtLink>
+          <NuxtLink to="/mamorin/story" class="mm-nav-link">私の原体験</NuxtLink>
           <NuxtLink to="/mamorin/qa" class="mm-nav-link">Q&amp;A</NuxtLink>
           <NuxtLink to="/mamorin#contact" class="mm-nav-link mm-nav-cta">無料相談</NuxtLink>
         </nav>
@@ -16,6 +17,7 @@
       <div class="mm-drawer" :class="{ open: menuOpen }" @click="menuOpen = false">
         <NuxtLink to="/mamorin" class="mm-drawer-link">トップ</NuxtLink>
         <NuxtLink to="/mamorin/why-oyako" class="mm-drawer-link">なぜ親子問題を扱うのか</NuxtLink>
+        <NuxtLink to="/mamorin/story" class="mm-drawer-link">私の原体験</NuxtLink>
         <NuxtLink to="/mamorin/qa" class="mm-drawer-link">Q&amp;A</NuxtLink>
         <NuxtLink to="/mamorin#contact" class="mm-drawer-link">無料相談（初回無料）</NuxtLink>
       </div>
@@ -47,18 +49,18 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(250, 249, 247, 0.88);
+  background: rgba(242, 251, 252, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 0.5px solid rgba(26, 25, 22, 0.1);
+  border-bottom: 0.5px solid rgba(0, 160, 180, 0.14);
   font-family: 'Noto Sans JP', sans-serif;
   box-sizing: border-box;
 }
 
 @media (prefers-color-scheme: dark) {
   .mm-header {
-    background: rgba(17, 17, 16, 0.88);
-    border-bottom-color: rgba(240, 237, 232, 0.1);
+    background: rgba(242, 251, 252, 0.92);
+    border-bottom-color: rgba(0, 160, 180, 0.14);
   }
 }
 
@@ -77,13 +79,13 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
   font-family: 'Noto Serif JP', serif !important;
   font-size: 16px;
   font-weight: 400;
-  color: #1a1916;
+  color: #0a2e38;
   text-decoration: none;
   letter-spacing: 0.04em;
 }
 
 @media (prefers-color-scheme: dark) {
-  .mm-logo { color: #f0ede8; }
+  .mm-logo { color: #0a2e38; }
 }
 
 .mm-nav {
@@ -94,7 +96,7 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
 
 .mm-nav-link {
   font-size: 13px;
-  color: #5a5854;
+  color: #1e6878;
   text-decoration: none;
   letter-spacing: 0.03em;
   transition: color 0.15s;
@@ -103,34 +105,36 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
 
 .mm-nav-link:hover,
 .mm-nav-link.router-link-exact-active {
-  color: #1a1916;
+  color: #00a8b8;
 }
 
 @media (prefers-color-scheme: dark) {
-  .mm-nav-link { color: #a09d98; }
+  .mm-nav-link { color: #1e6878; }
   .mm-nav-link:hover,
-  .mm-nav-link.router-link-exact-active { color: #f0ede8; }
+  .mm-nav-link.router-link-exact-active { color: #00a8b8; }
 }
 
 .mm-nav-cta {
   padding: 7px 18px;
-  border: 0.5px solid rgba(26, 25, 22, 0.3);
+  background: #00a8b8;
+  border: none;
   border-radius: 20px;
   font-size: 12px;
-  color: #1a1916 !important;
+  color: #ffffff !important;
   transition: background 0.15s;
 }
 
 .mm-nav-cta:hover {
-  background: rgba(26, 25, 22, 0.06);
+  background: #008898;
+  color: #ffffff !important;
 }
 
 @media (prefers-color-scheme: dark) {
   .mm-nav-cta {
-    border-color: rgba(240, 237, 232, 0.25);
-    color: #f0ede8 !important;
+    background: #00a8b8;
+    color: #ffffff !important;
   }
-  .mm-nav-cta:hover { background: rgba(240, 237, 232, 0.08); }
+  .mm-nav-cta:hover { background: #008898; }
 }
 
 /* ハンバーガー */
@@ -151,13 +155,13 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
   display: block;
   height: 1px;
   width: 100%;
-  background: #1a1916;
+  background: #0a2e38;
   transition: transform 0.2s, opacity 0.2s;
   transform-origin: center;
 }
 
 @media (prefers-color-scheme: dark) {
-  .mm-menu-btn span { background: #f0ede8; }
+  .mm-menu-btn span { background: #0a2e38; }
 }
 
 .mm-menu-btn.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
@@ -168,8 +172,8 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
 .mm-drawer {
   display: none;
   flex-direction: column;
-  background: rgba(250, 249, 247, 0.97);
-  border-top: 0.5px solid rgba(26, 25, 22, 0.1);
+  background: rgba(242, 251, 252, 0.97);
+  border-top: 0.5px solid rgba(0, 160, 180, 0.14);
   padding: 0;
   overflow: hidden;
   max-height: 0;
@@ -183,21 +187,21 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
 .mm-drawer-link {
   font-family: 'Noto Sans JP', sans-serif;
   font-size: 14px;
-  color: #5a5854;
+  color: #1e6878;
   text-decoration: none;
   padding: 1rem 1.5rem;
-  border-bottom: 0.5px solid rgba(26, 25, 22, 0.06);
+  border-bottom: 0.5px solid rgba(0, 160, 180, 0.10);
   display: block;
 }
 
 .mm-drawer-link:last-child { border-bottom: none; }
 
-.mm-drawer-link.router-link-exact-active { color: #1a1916; }
+.mm-drawer-link.router-link-exact-active { color: #00a8b8; }
 
 @media (prefers-color-scheme: dark) {
-  .mm-drawer { background: rgba(17, 17, 16, 0.97); border-top-color: rgba(240, 237, 232, 0.1); }
-  .mm-drawer-link { color: #a09d98; border-bottom-color: rgba(240, 237, 232, 0.06); }
-  .mm-drawer-link.router-link-exact-active { color: #f0ede8; }
+  .mm-drawer { background: rgba(242, 251, 252, 0.97); border-top-color: rgba(0, 160, 180, 0.14); }
+  .mm-drawer-link { color: #1e6878; border-bottom-color: rgba(0, 160, 180, 0.10); }
+  .mm-drawer-link.router-link-exact-active { color: #00a8b8; }
 }
 
 @media (max-width: 600px) {

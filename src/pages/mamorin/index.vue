@@ -45,28 +45,12 @@
       </div>
 
       <p class="story-para">
-        私は子どもの頃から父に進路を強要され続け、中学生の頃からまともに父と会話できなくなりました。<br>
-        心理学を学び、セミナーに通い、父を批判し続けた時代――振り返ると、あの頃が最も自分を許していなかった瞬間でした。<br>
-        親を恨みながら、恨んでいる自分を責めるという二重の苦しさの中にいました。
+        父への長年の恨みと、恨んでいる自分を責める二重の苦しさ——<br>
+        私自身がその場所にいました。そして、その場所から抜け出す道を、自分で歩いてきました。
       </p>
-      <p class="story-para">
-        転機は、父の苦しみが見えた時でした。<br>
-        偉大な父親（私から見た祖父）の影で自己表現が許されなかった幼少期<br>
-        研究職から営業に左遷され、自分の能力の発揮の場を奪われた社会人時代。<br>
-        その苦しみが理解できるにつれ、「強要された」という感覚が徐々に薄れていきました。
-      </p>
-      <p class="story-para">
-        恨みを解くために、カウンセリングやコーチングをたくさん受けました。<br>
-        また、セラピーを通じて自分の感情――寂しさ、怒り、悲しみ、恥――に一つひとつ形を与えていく、地道な作業をしました。<br>
-        感情を可視化することで、初めて自己受容できたのです。
-      </p>
-      <p class="story-para">
-        今思うと恥ずかしくなるくらい、いろんな人に父や母への恨みを言いまくっていました。<br>
-        でも、それは必要なプロセスだったと思っています。<br>
-        幼少期の自分は、心の中に留めていた親への恨みや怒りを、誰にも話すことなく生きていたのです。<br>
-        その分をどこかで解放する必要があったのだと、今は思います。<br>
-        自分自身も、そういうことができるカウンセラーでありたいと思っています。
-      </p>
+      <div style="margin-top: 2rem;">
+        <NuxtLink to="/mamorin/story" class="cta-btn">私の原体験を読む</NuxtLink>
+      </div>
     </section>
   </div>
 
@@ -154,7 +138,7 @@
           </div>
         </div>
 
-        <div class="price-row featured">
+        <div class="price-row">
           <div>
             <p class="price-name">感情フォーカス・セラピー</p>
             <p class="price-detail">60分 / オンライン</p>
@@ -228,15 +212,15 @@ useHead({
 
 <style>
 .mamorin-page {
-  --bg: #faf9f7;
+  --bg: #f2fbfc;
   --bg-card: #ffffff;
-  --bg-muted: #f4f2ee;
-  --text: #1a1916;
-  --text-secondary: #5a5854;
-  --text-tertiary: #9a9890;
-  --border: rgba(26, 25, 22, 0.1);
-  --border-strong: rgba(26, 25, 22, 0.2);
-  --accent: #3a3630;
+  --bg-muted: #f0fafb;
+  --text: #0a2e38;
+  --text-secondary: #1e6878;
+  --text-tertiary: #5a9eac;
+  --border: rgba(0, 160, 180, 0.14);
+  --border-strong: rgba(0, 160, 180, 0.30);
+  --accent: #00a8b8;
 
   font-family: 'Noto Sans JP', sans-serif;
   background: var(--bg);
@@ -250,15 +234,15 @@ useHead({
 
 @media (prefers-color-scheme: dark) {
   .mamorin-page {
-    --bg: #111110;
-    --bg-card: #1a1916;
-    --bg-muted: #222120;
-    --text: #f0ede8;
-    --text-secondary: #a09d98;
-    --text-tertiary: #666360;
-    --border: rgba(240, 237, 232, 0.1);
-    --border-strong: rgba(240, 237, 232, 0.2);
-    --accent: #d4d0c8;
+    --bg: #f2fbfc;
+    --bg-card: #ffffff;
+    --bg-muted: #f0fafb;
+    --text: #0a2e38;
+    --text-secondary: #1e6878;
+    --text-tertiary: #5a9eac;
+    --border: rgba(0, 160, 180, 0.14);
+    --border-strong: rgba(0, 160, 180, 0.30);
+    --accent: #00a8b8;
   }
 }
 
@@ -485,18 +469,18 @@ useHead({
 .mamorin-page .cta-btn {
   display: inline-block;
   padding: 15px 44px;
-  border: 0.5px solid var(--border-strong);
+  border: none;
   border-radius: 40px;
   font-size: 14px;
   cursor: pointer;
-  background: transparent;
-  color: var(--text);
+  background: var(--accent);
+  color: #ffffff;
   font-family: 'Noto Sans JP', sans-serif;
   text-decoration: none;
-  transition: background 0.2s;
+  transition: background 0.2s, opacity 0.2s;
 }
 
-.mamorin-page .cta-btn:hover { background: var(--bg-muted); }
+.mamorin-page .cta-btn:hover { opacity: 0.85; }
 
 .mamorin-page .cta-note { font-size: 12px; color: var(--text-tertiary); margin-top: 1.25rem; }
 
