@@ -6,10 +6,10 @@
       <div class="ac-nav-inner">
         <span class="ac-nav-logo">AI Consultant</span>
         <ul class="ac-nav-links">
-          <li><a href="#about">自己紹介</a></li>
           <li><a href="#services">できること</a></li>
           <li><a href="#portfolio">ポートフォリオ</a></li>
           <li><a href="#for-you">こんな方へ</a></li>
+          <li><a href="#about">自己紹介</a></li>
           <li><a href="#contact">お問い合わせ</a></li>
         </ul>
       </div>
@@ -24,31 +24,14 @@
           <span>来てください。</span>
         </h1>
         <p class="hero-sub">
-          「なんとなくこういうのが欲しい」から一緒に形にします。
+          「なんとなくこういうのが欲しい」から一緒に形にします。<br />
+          最初から答えありきではなく、お客様と同じ目線で考えながら進めるスタイルです。<br />
+          モヤッとしたイメージを聞いて形にし、フィードバックを重ねながら一緒に育てていきます。
         </p>
         <a href="#contact" class="hero-cta">
           まずは相談する
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </a>
-      </div>
-    </section>
-
-    <!-- 自己紹介 -->
-    <section id="about" class="ac-about">
-      <div class="ac-wrap">
-        <p class="section-label">About</p>
-        <h2 class="section-title">データを「気づきに変える」エンジニア</h2>
-        <div class="section-body">
-          <p>
-            大手企業でデータ可視化・分析に15年以上携わってきたエンジニアです。
-          </p>
-          <p>
-            ずっとやってきたのは、埋もれているデータを「見た人が何かに気づける」形に変えること。検索データ・ログ・議事録・テキストなど、そのままでは意味を読み取りにくいデータを、インタラクティブなグラフやダッシュボードとして可視化してきました。
-          </p>
-          <p>
-            「どう集計すれば面白いインサイトが出るか」「どう見せれば一番伝わるか」を、データの性質から一緒に考えるのが自分の仕事だと思っています。
-          </p>
-        </div>
       </div>
     </section>
 
@@ -76,21 +59,31 @@
           </div>
 
           <div class="service-card">
-            <div class="service-icon">🛠️</div>
-            <h3 class="service-card-title">プロトタイプ開発</h3>
+            <div class="service-icon">🤖</div>
+            <h3 class="service-card-title">メンタル系チャットボット開発</h3>
             <div class="service-card-body">
               <p>
-                「何が作りたいかまだよくわからない」という段階が、実は一番依頼しやすいタイミングです。
+                傾聴・励まし・セルフケアサポートなど、メンタルヘルス領域に特化したAIチャットボットの開発実績があります。
               </p>
               <p>
-                要件が固まってから発注する必要はありません。モヤッとしたイメージを聞いて、まずこちらが形にします。それを見てもらって「これじゃない」でも大歓迎。そのフィードバックが次のヒントになって、一緒に育てていくのが自分のスタイルです。
+                「こういう雰囲気で話しかけてほしい」「こんな場面で使いたい」という感覚的なイメージから、AIの応答スタイルや会話の流れを一緒に設計します。
               </p>
               <p>
-                社内では数多くのプロトタイプを開発し、起点となってSaaSとして社外展開されたサービスを複数生み出してきました。0から1を作る部分が、一番得意な領域です。
+                セラピスト・カウンセラー・支援職の方が現場で使えるツールを、現場の声を聞きながらプロトタイプします。
               </p>
             </div>
           </div>
 
+        </div>
+        <div class="services-scope">
+          <div class="services-scope-item services-scope-in">
+            <span class="scope-label">担当範囲</span>
+            <span class="scope-text">アイデアの検証 / プロトタイプ開発</span>
+          </div>
+          <div class="services-scope-item services-scope-out">
+            <span class="scope-label">対象外</span>
+            <span class="scope-text">本番運用・インフラ管理</span>
+          </div>
         </div>
       </div>
     </section>
@@ -181,20 +174,54 @@
           </li>
           <li>
             <span class="check">✓</span>
-            社内向けにわかりやすいダッシュボードが欲しい人。
-          </li>
-          <li>
-            <span class="check">✓</span>
             「なんとなくこういう画面が欲しい」という段階で止まっている人。
           </li>
           <li>
             <span class="check">✓</span>
             プロトタイプをまず作って、社内で見せてみたい人。
           </li>
+          <li>
+            <span class="check">✓</span>
+            こちらの要望をじっくり聞いてもらいながら進めたい人。
+          </li>
         </ul>
         <p class="for-you-note">
-          要件が決まっていなくて大丈夫です。むしろその段階から声をかけてください。
+          要件が決まっていなくて大丈夫です。<br>
+          むしろその段階から声をかけてください。<br />
+          現場で感じるお客様の声こそが、良いものを作る一番の材料だと思っています。
         </p>
+      </div>
+    </section>
+
+    <!-- 自己紹介 -->
+    <section id="about" class="ac-about">
+      <div class="ac-wrap">
+        <p class="section-label">About</p>
+        <h2 class="section-title">データを「気づきに変える」エンジニア</h2>
+        <div class="section-body">
+          <p>
+            大手企業でデータ可視化・分析に15年以上携わってきたエンジニアです。
+          </p>
+          <p>
+            ずっとやってきたのは、埋もれているデータを「見た人が何かに気づける」形に変えること。<br />
+            検索データ・ログ・議事録・テキストなど、そのままでは意味を読み取りにくいデータを、インタラクティブなグラフやダッシュボードとして可視化してきました。
+          </p>
+          <p>
+            「どう集計すれば面白いインサイトが出るか」「どう見せれば一番伝わるか」を、データの性質から一緒に考えるのが自分の仕事だと思っています。
+          </p>
+          <p>
+            大手IT企業の社員として、大規模トラフィックデータを活用した分析SaaSツールの企画・開発に従事。<br />
+            性別・年齢・地域などの顧客属性データを軸に、地図・棒グラフ・ヒートマップなど目的に応じた可視化手法を設計し、ユーザーが直感的にインサイトを得られるプロダクトを開発してきました。
+          </p>
+          <p>
+            プロダクトの多くは自分の発案がベースとなっており、「プロトタイプが企画書だ」という信念のもと、会議や議論の場で言葉を重ねるよりも、まず手を動かしてアイデアを形にすることでプロジェクトを前に進めてきました。<br />
+            他社事例を素早く参照・応用しながら具体的なプロトタイプを作り、チームや顧客の意思決定を加速させるスタイルが自分の強みです。
+          </p>
+          <p>
+            クライアントへのヒアリングからバックエンド（Python）・フロントエンド（Nuxt）まで一貫して自分一人で担当し、顧客の声を聞きながら試行錯誤で改善していくプロセスを得意としています。<br />
+            近年は生成AIを活用したクラスタリングや分析機能の実装にも取り組んでいます。
+          </p>
+        </div>
       </div>
     </section>
 
