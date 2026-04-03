@@ -1,11 +1,12 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 
-import { STOPWORDS, CATEGORY_WORDS } from '~/utils/miyako/categories'
+import { STOPWORDS, CATEGORY_WORDS, CATEGORIES } from '~/utils/miyako/categories'
 
 interface WordScore {
   word: string
   score: number
+  count?: number
 }
 
 type FeaturesData = Record<string, WordScore[]>
@@ -32,8 +33,8 @@ const aiTopics = ref<AiTopic[]>([])
 const aiLoading = ref(false)
 const maxChars = ref(1000)
 const MAX_CHARS_OPTIONS = [500, 1000, 2000]
-const selectedCategory = ref<string>('すべて')
-const CATEGORY_OPTIONS = ['すべて', ...Object.keys(CATEGORY_WORDS)]
+const selectedCategory = ref<string>('暮らし・福祉')
+const CATEGORY_OPTIONS = [...CATEGORIES]
 
 // ── 年グループ計算 ─────────────────────────────
 
@@ -66,12 +67,14 @@ const yearAggregatedData = computed(() => {
   const result: Record<string, WordScore[]> = {}
   for (const [year, sessions] of yearSessions.entries()) {
     const wordMax = new Map<string, number>()
+    const wordCount = new Map<string, number>()
     for (const session of sessions) {
-      for (const { word, score } of (rawData.value[session] ?? [])) {
+      for (const { word, score, count } of (rawData.value[session] ?? [])) {
         if ((wordMax.get(word) ?? 0) < score) wordMax.set(word, score)
+        wordCount.set(word, (wordCount.get(word) ?? 0) + (count ?? 0))
       }
     }
-    result[year] = [...wordMax.entries()].map(([word, score]) => ({ word, score }))
+    result[year] = [...wordMax.entries()].map(([word, score]) => ({ word, score, count: wordCount.get(word) ?? 0 }))
   }
   return result
 })
@@ -86,10 +89,8 @@ const topKeywords = computed(() => {
     }
   }
   let entries = [...maxScore.entries()].sort((a, b) => b[1] - a[1])
-  if (selectedCategory.value !== 'すべて') {
-    const catWords = CATEGORY_WORDS[selectedCategory.value]
-    entries = entries.filter(([w]) => catWords?.has(w))
-  }
+  const catWords = CATEGORY_WORDS[selectedCategory.value]
+  if (catWords) entries = entries.filter(([w]) => catWords.has(w))
   return entries.slice(0, TOP_KEYWORDS).map(([w]) => w)
 })
 
@@ -97,8 +98,9 @@ const topKeywords = computed(() => {
 
 const wordcloudWords = computed(() => {
   if (!selectedSession.value) return []
+  const catWords = CATEGORY_WORDS[selectedCategory.value]
   const words = (yearAggregatedData.value[selectedSession.value] ?? [])
-    .filter(w => !STOPWORDS.has(w.word))
+    .filter(w => !STOPWORDS.has(w.word) && (!catWords || catWords.has(w.word)))
     .sort((a, b) => b.score - a.score)
     .slice(0, 50)
   if (!words.length) return []
@@ -170,20 +172,11 @@ watch(selectedCategory, resetAndRender)
 <template>
   <div class="min-h-screen bg-[#f0f2f8]">
     <MiyakoHeader active-page="session">
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-        <div class="flex items-center gap-1.5">
-          <span class="text-[10.5px] font-semibold text-white/50 whitespace-nowrap uppercase tracking-[0.04em]">カテゴリ</span>
-          <select v-model="selectedCategory" class="ctrl-select">
-            <option v-for="opt in CATEGORY_OPTIONS" :key="opt" :value="opt">{{ opt }}</option>
-          </select>
-        </div>
-
-        <div class="flex items-center gap-1.5">
-          <span class="text-[10.5px] font-semibold text-white/50 whitespace-nowrap uppercase tracking-[0.04em]">要約文字数</span>
-          <select v-model.number="maxChars" class="ctrl-select">
-            <option v-for="n in MAX_CHARS_OPTIONS" :key="n" :value="n">{{ n }}</option>
-          </select>
-        </div>
+      <div class="flex items-center gap-1.5">
+        <span class="text-[10.5px] font-semibold text-white/50 whitespace-nowrap uppercase tracking-[0.04em]">要約文字数</span>
+        <select v-model.number="maxChars" class="ctrl-select">
+          <option v-for="n in MAX_CHARS_OPTIONS" :key="n" :value="n">{{ n }}</option>
+        </select>
       </div>
     </MiyakoHeader>
 
@@ -204,7 +197,20 @@ watch(selectedCategory, resetAndRender)
           :raw-data="yearAggregatedData"
           :short-label="yearLabel"
           @session-click="selectedSession = $event"
-        />
+        >
+          <template #label>
+            <div class="flex items-center flex-wrap gap-0 ml-2">
+              <template v-for="(cat, i) in CATEGORY_OPTIONS" :key="cat">
+                <span v-if="i > 0" class="text-[#c5cad8] text-[11px] select-none mx-0.5">/</span>
+                <button
+                  class="text-[11px] px-1 py-0 rounded transition-colors leading-5"
+                  :class="selectedCategory === cat ? 'text-[#1A237E] font-bold' : 'text-[#6878a8] hover:text-[#3949AB]'"
+                  @click="selectedCategory = cat"
+                >{{ cat }}</button>
+              </template>
+            </div>
+          </template>
+        </MiyakoSessionHeatmap>
       </div>
 
       <!-- Side panel -->

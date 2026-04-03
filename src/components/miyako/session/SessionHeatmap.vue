@@ -2,6 +2,7 @@
 interface WordScore {
   word: string
   score: number
+  count?: number
 }
 
 const props = defineProps<{
@@ -39,14 +40,31 @@ function render() {
   const chartHeight = keywords.length * rowHeight + 54
   const chartWidth = sessions.length * CELL_WIDTH + 37
 
-  const data: [number, number, number][] = []
+  // session×keyword の (score, count) マップを構築
+  type CellMeta = { score: number; count: number }
+  const metaMap = new Map<string, CellMeta>()
   for (let si = 0; si < sessions.length; si++) {
     const wordMap = new Map(
-      (rawData[sessions[si]] ?? []).map(w => [w.word, w.score])
+      (rawData[sessions[si]] ?? []).map(w => [w.word, w])
     )
     for (let ki = 0; ki < keywords.length; ki++) {
-      const s = wordMap.get(keywords[ki])
-      data.push([si, ki, s !== undefined ? s : -1])
+      const w = wordMap.get(keywords[ki])
+      if (w) metaMap.set(`${si},${ki}`, { score: w.score, count: w.count ?? 0 })
+    }
+  }
+
+  // ヒートマップ全体のスコア最小・最大を求める（0-10正規化用）
+  const allScores = [...metaMap.values()].map(m => m.score)
+  const minScore = Math.min(...allScores)
+  const maxScore = Math.max(...allScores)
+  const normalizeScore = (s: number) =>
+    maxScore === minScore ? 5 : Math.round(((s - minScore) / (maxScore - minScore)) * 10)
+
+  const data: [number, number, number][] = []
+  for (let si = 0; si < sessions.length; si++) {
+    for (let ki = 0; ki < keywords.length; ki++) {
+      const meta = metaMap.get(`${si},${ki}`)
+      data.push([si, ki, meta !== undefined ? meta.score : -1])
     }
   }
 
@@ -87,8 +105,13 @@ function render() {
       trigger: 'item',
       formatter: (params: any) => {
         if (params.value[2] < 0) return ''
-        const label = sessions[params.value[0]].replace(/〜[\d-]+$/, '〜')
-        return `<b>${label}</b><br/>${keywords[params.value[1]]}: <b>${params.value[2].toFixed(3)}</b>`
+        const si = params.value[0]
+        const ki = params.value[1]
+        const year = sessions[si].replace(/〜[\d-]+$/, '〜')
+        const meta = metaMap.get(`${si},${ki}`)
+        const norm = meta ? normalizeScore(meta.score) : 0
+        const count = meta?.count ?? 0
+        return `<b>${keywords[ki]}（${year}）</b><br/>特徴度 <b>${norm}</b> / 出現 <b>${count}回</b>`
       },
     },
     series: [{
