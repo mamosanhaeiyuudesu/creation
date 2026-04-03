@@ -1,257 +1,161 @@
 <template>
-  <div class="ac-page">
+  <div class="aico-page">
 
     <!-- ナビゲーション -->
-    <nav class="ac-nav">
-      <div class="ac-nav-inner">
-        <span class="ac-nav-logo">AI Consultant</span>
-        <ul class="ac-nav-links">
-          <li><a href="#services">できること</a></li>
-          <li><a href="#portfolio">ポートフォリオ</a></li>
-          <li><a href="#for-you">こんな方へ</a></li>
-          <li><a href="#about">自己紹介</a></li>
+    <nav class="aico-nav">
+      <div class="aico-wrap">
+        <span class="aico-nav-logo">AI Consultant</span>
+        <ul class="aico-nav-links">
+          <li><a href="#philosophy">理念</a></li>
+          <li><a href="#services">提供できること</a></li>
+          <li><a href="#message">あなたへ</a></li>
           <li><a href="#contact">お問い合わせ</a></li>
         </ul>
       </div>
     </nav>
 
     <!-- ヒーロー -->
-    <section class="ac-hero">
-      <div class="ac-wrap">
-        <span class="hero-eyebrow">Data Visualization &amp; Prototype Development</span>
-        <h1 class="hero-catch">
-          モヤッとしたまま、<br />
-          <span>来てください。</span>
+    <section class="aico-hero">
+      <div class="aico-wrap">
+        <span class="aico-eyebrow">AI × Human Collaboration</span>
+        <h1 class="aico-catch">
+          AIに仕事を奪われる？<br />
+          <span>それより大事な話があります。</span>
         </h1>
-        <p class="hero-sub">
-          「なんとなくこういうのが欲しい」から一緒に形にします。<br />
-          最初から答えありきではなく、お客様と同じ目線で考えながら進めるスタイルです。<br />
-          モヤッとしたイメージを聞いて形にし、フィードバックを重ねながら一緒に育てていきます。
+        <p class="aico-sub">
+          今、人間がどうAIと関わるかで、この先の社会の形が変わります。<br />
+          「AIを使いこなす」の前に、自分が何をしたいかを一緒に考えましょう。
         </p>
-        <a href="#contact" class="hero-cta">
-          まずは相談する
+        <a href="#contact" class="aico-cta">
+          話を聞いてみる
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </a>
       </div>
     </section>
 
-    <!-- できること -->
-    <section id="services">
-      <div class="ac-wrap">
-        <p class="section-label">Services</p>
-        <h2 class="section-title">できること</h2>
-        <div class="service-grid">
+    <!-- 理念 -->
+    <section id="philosophy" class="aico-philosophy">
+      <div class="aico-wrap">
+        <p class="aico-label">Philosophy</p>
+        <h2 class="aico-section-title">理念</h2>
 
-          <div class="service-card">
-            <div class="service-icon">📊</div>
-            <h3 class="service-card-title">テキスト・データ可視化</h3>
-            <div class="service-card-body">
-              <p>
-                社内に眠っているテキストデータや数値データは、見せ方を変えるだけで全く違う景色になります。
-              </p>
-              <p>
-                議事録・社内ログ・検索データ・アクセス履歴——これらはただの記録ではなく、組織や利用者の行動パターンが詰まった資産です。
-              </p>
-              <p>
-                形態素解析やAIを活用した前処理から、Highcharts・EChartsを使ったインタラクティブな可視化まで、バックエンドの集計処理を含めて一貫して対応します。
-              </p>
-            </div>
-          </div>
+        <div class="philosophy-body">
+          <p class="philosophy-lead">
+            私たちは今、歴史的な分岐点に立っています。
+          </p>
+          <p>
+            AIの登場で、「こうしたい」と思ったことがかつてないスピードで形になる時代が始まりました。ロボット技術の発展を見れば、近い将来、物理的な作業すらAIが担う社会が来ることも、もはや疑いようがありません。
+          </p>
+          <p>
+            このとき問われるのは、「AIに仕事を奪われるかどうか」ではありません。<strong>人間がAIといかに協調して生きるか</strong>、です。
+          </p>
+          <p>
+            人間が本来持っている意志・価値観・創造性——それは純粋に素晴らしいものです。AIはその創造性を奪う存在ではなく、あなたの意志を具現化するパートナーです。
+          </p>
 
-          <div class="service-card">
-            <div class="service-icon">🤖</div>
-            <h3 class="service-card-title">メンタル系チャットボット開発</h3>
-            <div class="service-card-body">
-              <p>
-                傾聴・励まし・セルフケアサポートなど、メンタルヘルス領域に特化したAIチャットボットの開発実績があります。
-              </p>
-              <p>
-                「こういう雰囲気で話しかけてほしい」「こんな場面で使いたい」という感覚的なイメージから、AIの応答スタイルや会話の流れを一緒に設計します。
-              </p>
-              <p>
-                セラピスト・カウンセラー・支援職の方が現場で使えるツールを、現場の声を聞きながらプロトタイプします。
-              </p>
-            </div>
-          </div>
-
-        </div>
-        <div class="services-scope">
-          <div class="services-scope-item services-scope-in">
-            <span class="scope-label">担当範囲</span>
-            <span class="scope-text">アイデアの検証 / プロトタイプ開発</span>
-          </div>
-          <div class="services-scope-item services-scope-out">
-            <span class="scope-label">対象外</span>
-            <span class="scope-text">本番運用・インフラ管理</span>
+          <div class="philosophy-highlight">
+            この理解が広まるかどうかで、来たる社会が理想になるか地獄になるかが決まる——私はそう本気で考えています。
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ポートフォリオ -->
-    <section id="portfolio" class="ac-portfolio">
-      <div class="ac-wrap">
-        <p class="section-label">Portfolio</p>
-        <h2 class="section-title">制作事例</h2>
-        <p class="section-body" style="margin-bottom: 0;">
-          実際に開発したツールをご紹介します。
-        </p>
+    <!-- 提供できること -->
+    <section id="services" class="aico-services">
+      <div class="aico-wrap">
+        <p class="aico-label">Services</p>
+        <h2 class="aico-section-title">提供できること</h2>
 
-        <div class="portfolio-card">
-          <div class="portfolio-card-header">
-            <span class="portfolio-tag">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              公開デモあり
-            </span>
-            <h3 class="portfolio-card-title">宮古島市議会議事録 分析ツール</h3>
-            <p class="portfolio-card-lead">
-              公開されている宮古島市議会の議事録テキストを自然言語処理で分析し、キーワードの出現傾向をインタラクティブに可視化。AIによる議論要約も搭載したWebアプリです。
+        <div class="aico-service-grid">
+
+          <div class="aico-service-card">
+            <div class="aico-service-num">01</div>
+            <h3 class="aico-service-title">仕組みレベルからの説明</h3>
+            <p class="aico-service-body">
+              「なぜそう動くのか」という構造的な視点でAIを解説します。表面的な使い方だけでなく、本質を理解することで応用が利くようになります。エンジニアとしての経験をもとに、難しすぎず・浅すぎずのちょうどいい解像度で話します。
             </p>
           </div>
-          <div class="portfolio-card-body">
-            <div class="portfolio-features">
-              <div class="portfolio-feature">
-                <span class="feature-dot"></span>
-                <div class="feature-text">
-                  <strong>キーワード×会期 ヒートマップ</strong>
-                  任意のキーワードが各会期でどれだけ議論されたかをTF-IDFスコアでヒートマップ表示。年代をまたいだトレンド変化を一目で把握できます。
-                </div>
-              </div>
-              <div class="portfolio-feature">
-                <span class="feature-dot"></span>
-                <div class="feature-text">
-                  <strong>AI議論要約パネル</strong>
-                  キーワードを選択すると、その会期での関連発言をOpenAI APIで要約・分析。トピック・結論・議論の流れを自動生成します。
-                </div>
-              </div>
-              <div class="portfolio-feature">
-                <span class="feature-dot"></span>
-                <div class="feature-text">
-                  <strong>議員別TF-IDFランキング</strong>
-                  議員ごとの発言傾向を単語・カテゴリ別に分析。色分けされたランキングテーブルで各議員の関心分野を可視化します。
-                </div>
-              </div>
-              <div class="portfolio-feature">
-                <span class="feature-dot"></span>
-                <div class="feature-text">
-                  <strong>ワードクラウド</strong>
-                  会期別の頻出語をインタラクティブなワードクラウドで表示。全文検索と組み合わせて直感的に探索できます。
-                </div>
-              </div>
-            </div>
 
-            <div class="portfolio-tech">
-              <span class="tech-badge">Nuxt 3</span>
-              <span class="tech-badge">ECharts</span>
-              <span class="tech-badge">OpenAI API</span>
-              <span class="tech-badge">Vector Store / File Search</span>
-              <span class="tech-badge">Cloudflare Workers</span>
-              <span class="tech-badge">Cloudflare D1</span>
-              <span class="tech-badge">TF-IDF</span>
-              <span class="tech-badge">形態素解析</span>
-              <span class="tech-badge">TypeScript</span>
-            </div>
-
-            <NuxtLink to="/miyako" class="portfolio-link" target="_blank">
-              デモを見る
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </NuxtLink>
+          <div class="aico-service-card">
+            <div class="aico-service-num">02</div>
+            <h3 class="aico-service-title">双方向のディスカッション</h3>
+            <p class="aico-service-body">
+              一方的な講義ではなく、あなたの疑問・状況・課題を起点にした対話を大切にします。随時質問を受け付け、あなた自身の言葉で「あ、そういうことか」と腹落ちするまで話し合います。
+            </p>
           </div>
-        </div>
 
+          <div class="aico-service-card">
+            <div class="aico-service-num">03</div>
+            <h3 class="aico-service-title">実生活への落とし込み</h3>
+            <p class="aico-service-body">
+              抽象的な話で終わりません。あなたの仕事や日常の文脈に合わせて、実際に使える形へと一緒に翻訳していきます。「わかったけど、じゃあ自分はどうすればいいの？」という問いに向き合います。
+            </p>
+          </div>
+
+        </div>
       </div>
     </section>
 
-    <!-- こんな方へ -->
-    <section id="for-you">
-      <div class="ac-wrap">
-        <p class="section-label">For You</p>
-        <h2 class="section-title">こんな方へ</h2>
-        <ul class="for-you-list">
+    <!-- あなたへ -->
+    <section id="message" class="aico-message">
+      <div class="aico-wrap">
+        <p class="aico-label">For You</p>
+        <h2 class="aico-section-title">あなたに伝えたいこと</h2>
+
+        <div class="message-body">
+          <p class="message-lead">
+            AIを「使いこなす」より前に、<strong>自分が何を実現したいのか</strong>を問うことが先です。
+          </p>
+          <p>
+            意志のある人間が、AIというパートナーを得た。それがこの時代の本質です。
+          </p>
+          <p>
+            ツールに振り回されるのではなく、自分の意志を起点に動くこと。その意志の育て方と、AIの活かし方を、一緒に考えていきましょう。
+          </p>
+        </div>
+
+        <ul class="aico-for-you-list">
           <li>
-            <span class="check">✓</span>
-            データはあるけど、どう見せればいいかわからない人。
+            <span class="aico-check">✓</span>
+            AIを使ってみたけど、なんかうまく使えている気がしない人。
           </li>
           <li>
-            <span class="check">✓</span>
-            「なんとなくこういう画面が欲しい」という段階で止まっている人。
+            <span class="aico-check">✓</span>
+            「AIで仕事がなくなる」と不安になっている人。
           </li>
           <li>
-            <span class="check">✓</span>
-            プロトタイプをまず作って、社内で見せてみたい人。
+            <span class="aico-check">✓</span>
+            AIの仕組みをちゃんと理解して、自分の仕事に活かしたい人。
           </li>
           <li>
-            <span class="check">✓</span>
-            こちらの要望をじっくり聞いてもらいながら進めたい人。
+            <span class="aico-check">✓</span>
+            一人で試行錯誤するより、誰かと一緒に考えたい人。
           </li>
         </ul>
-        <p class="for-you-note">
-          要件が決まっていなくて大丈夫です。<br>
-          むしろその段階から声をかけてください。<br />
-          現場で感じるお客様の声こそが、良いものを作る一番の材料だと思っています。
-        </p>
-      </div>
-    </section>
-
-    <!-- 自己紹介 -->
-    <section id="about" class="ac-about">
-      <div class="ac-wrap">
-        <p class="section-label">About</p>
-        <h2 class="section-title">データを「気づきに変える」エンジニア</h2>
-        <div class="section-body">
-          <p>
-            大手企業でデータ可視化・分析に15年以上携わってきたエンジニアです。
-          </p>
-          <p>
-            ずっとやってきたのは、埋もれているデータを「見た人が何かに気づける」形に変えること。<br />
-            検索データ・ログ・議事録・テキストなど、そのままでは意味を読み取りにくいデータを、インタラクティブなグラフやダッシュボードとして可視化してきました。
-          </p>
-          <p>
-            「どう集計すれば面白いインサイトが出るか」「どう見せれば一番伝わるか」を、データの性質から一緒に考えるのが自分の仕事だと思っています。
-          </p>
-          <p>
-            大手IT企業の社員として、大規模トラフィックデータを活用した分析SaaSツールの企画・開発に従事。<br />
-            性別・年齢・地域などの顧客属性データを軸に、地図・棒グラフ・ヒートマップなど目的に応じた可視化手法を設計し、ユーザーが直感的にインサイトを得られるプロダクトを開発してきました。
-          </p>
-          <p>
-            プロダクトの多くは自分の発案がベースとなっており、「プロトタイプが企画書だ」という信念のもと、会議や議論の場で言葉を重ねるよりも、まず手を動かしてアイデアを形にすることでプロジェクトを前に進めてきました。<br />
-            他社事例を素早く参照・応用しながら具体的なプロトタイプを作り、チームや顧客の意思決定を加速させるスタイルが自分の強みです。
-          </p>
-          <p>
-            クライアントへのヒアリングからバックエンド（Python）・フロントエンド（Nuxt）まで一貫して自分一人で担当し、顧客の声を聞きながら試行錯誤で改善していくプロセスを得意としています。<br />
-            近年は生成AIを活用したクラスタリングや分析機能の実装にも取り組んでいます。
-          </p>
-        </div>
       </div>
     </section>
 
     <!-- CTA -->
-    <section id="contact" class="ac-cta">
-      <div class="ac-wrap">
-        <div class="cta-inner">
-          <h2 class="cta-title">まず、話してみませんか。</h2>
-          <p class="cta-desc">
-            「こういうのが欲しいかも」「そんなことできる？」<br />
-            そのくらいの温度感で十分です。一緒に考えます。
+    <section id="contact" class="aico-cta-section">
+      <div class="aico-wrap">
+        <div class="aico-cta-inner">
+          <h2 class="aico-cta-title">まず、話してみませんか。</h2>
+          <p class="aico-cta-desc">
+            「AIってよくわからない」「自分の仕事にどう使えばいい？」<br />
+            そんな入口でも大丈夫。一緒に考えましょう。
           </p>
-          <div class="cta-buttons">
-            <a href="mailto:" class="btn-primary">
-              メールで相談する
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
-            </a>
-            <NuxtLink to="/miyako" class="btn-secondary" target="_blank">
-              デモを触ってみる
-            </NuxtLink>
-          </div>
+          <a href="mailto:" class="aico-btn-primary">
+            メールで連絡する
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
+          </a>
         </div>
       </div>
     </section>
 
     <!-- フッター -->
-    <footer class="ac-footer">
-      <div class="ac-footer-inner">
-        <span class="ac-footer-copy">&copy; 2026 AI Consultant</span>
-        <NuxtLink to="/miyako" class="ac-footer-link">Portfolio: 宮古島市議事録分析 →</NuxtLink>
+    <footer class="aico-footer">
+      <div class="aico-wrap">
+        <span class="aico-footer-copy">&copy; 2026 AI Consultant</span>
       </div>
     </footer>
 
@@ -262,15 +166,431 @@
 definePageMeta({ layout: 'ai-consultant' })
 
 useHead({
-  title: 'AI Consultant | モヤッとしたまま、来てください。',
+  title: 'AI Consultant | AIと人間の協調を、一緒に考える。',
   meta: [
-    { name: 'description', content: 'データ可視化・プロトタイプ開発の相談窓口。「なんとなくこういうのが欲しい」から一緒に形にします。大手企業でデータ可視化・分析に15年以上携わってきたエンジニアです。' },
-    { property: 'og:title', content: 'AI Consultant | モヤッとしたまま、来てください。' },
-    { property: 'og:description', content: 'データ可視化・プロトタイプ開発の相談窓口。「なんとなくこういうのが欲しい」から一緒に形にします。' },
+    { name: 'description', content: 'AIの仕組みを理解し、自分の意志を起点に活かすための対話型コンサルティング。「AIに仕事を奪われる」ではなく、AIをパートナーとして生きるための考え方を一緒に育てます。' },
+    { property: 'og:title', content: 'AI Consultant | AIと人間の協調を、一緒に考える。' },
+    { property: 'og:description', content: 'AIの仕組みを理解し、自分の意志を起点に活かすための対話型コンサルティング。' },
   ],
 })
 </script>
 
 <style>
-@import '~/assets/css/ai-consultant.css';
+/* ==========================================
+   AI Consultant（理念ページ）
+   .aico-page スコープ
+   ========================================== */
+
+.aico-page {
+  --c-bg: #f5f0e8;
+  --c-bg-surface: #ede6d8;
+  --c-bg-card: #faf7f2;
+  --c-border: rgba(80, 60, 20, 0.12);
+  --c-primary: #2d1f0e;
+  --c-accent: #b85a00;
+  --c-accent-light: #d97000;
+  --c-text: #1e1408;
+  --c-text-muted: #6b5840;
+  --c-text-dim: #9e8c76;
+  --content-max: 780px;
+  --section-gap: 88px;
+  --radius: 14px;
+  --radius-lg: 22px;
+
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", "Helvetica Neue", sans-serif;
+  background: var(--c-bg);
+  color: var(--c-text);
+  line-height: 1.85;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+.aico-page *, .aico-page *::before, .aico-page *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.aico-page a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ナビ */
+.aico-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(245, 240, 232, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--c-border);
+}
+
+.aico-nav > .aico-wrap {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.aico-nav-logo {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--c-accent);
+}
+
+.aico-nav-links {
+  display: flex;
+  gap: 28px;
+  list-style: none;
+}
+
+.aico-nav-links a {
+  font-size: 13px;
+  color: var(--c-text-muted);
+  transition: color 0.2s;
+}
+
+.aico-nav-links a:hover {
+  color: var(--c-accent);
+}
+
+/* 共通ラッパー */
+.aico-wrap {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.aico-page section {
+  padding: var(--section-gap) 0;
+}
+
+.aico-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--c-accent);
+  margin-bottom: 12px;
+}
+
+.aico-section-title {
+  font-size: clamp(22px, 4vw, 30px);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--c-text);
+  margin-bottom: 32px;
+}
+
+/* ヒーロー */
+.aico-hero {
+  padding: 100px 0 90px;
+  position: relative;
+  overflow: hidden;
+}
+
+.aico-hero::before {
+  content: '';
+  position: absolute;
+  top: -160px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(ellipse at center, rgba(184, 90, 0, 0.07) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.aico-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--c-accent);
+  display: block;
+  margin-bottom: 20px;
+}
+
+.aico-catch {
+  font-size: clamp(28px, 5.5vw, 46px);
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--c-text);
+  margin-bottom: 24px;
+}
+
+.aico-catch span {
+  background: linear-gradient(135deg, var(--c-accent), var(--c-accent-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.aico-sub {
+  font-size: 17px;
+  color: var(--c-text-muted);
+  line-height: 1.8;
+  max-width: 580px;
+  margin-bottom: 40px;
+}
+
+.aico-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--c-accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 14px 28px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.aico-cta:hover {
+  background: var(--c-accent-light);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(184, 90, 0, 0.28);
+}
+
+/* 理念 */
+.aico-philosophy {
+  background: var(--c-bg-surface);
+  border-top: 1px solid var(--c-border);
+  border-bottom: 1px solid var(--c-border);
+}
+
+.philosophy-body {
+  color: var(--c-text-muted);
+  line-height: 1.95;
+  font-size: 16px;
+}
+
+.philosophy-body p + p {
+  margin-top: 18px;
+}
+
+.philosophy-lead {
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--c-text);
+  line-height: 1.7;
+}
+
+.philosophy-body strong {
+  color: var(--c-text);
+  font-weight: 700;
+}
+
+.philosophy-highlight {
+  margin-top: 32px;
+  padding: 24px 28px;
+  background: var(--c-bg-card);
+  border-left: 4px solid var(--c-accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--c-text);
+  line-height: 1.75;
+}
+
+/* サービス */
+.aico-service-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.aico-service-card {
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  padding: 32px 32px 32px 88px;
+  position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.aico-service-card:hover {
+  border-color: rgba(184, 90, 0, 0.3);
+  box-shadow: 0 6px 24px rgba(184, 90, 0, 0.07);
+}
+
+.aico-service-num {
+  position: absolute;
+  left: 32px;
+  top: 32px;
+  font-size: 28px;
+  font-weight: 800;
+  color: rgba(184, 90, 0, 0.18);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.aico-service-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--c-text);
+  margin-bottom: 10px;
+}
+
+.aico-service-body {
+  font-size: 14px;
+  color: var(--c-text-muted);
+  line-height: 1.85;
+}
+
+/* あなたへ */
+.aico-message {
+  background: var(--c-bg-surface);
+  border-top: 1px solid var(--c-border);
+  border-bottom: 1px solid var(--c-border);
+}
+
+.message-body {
+  color: var(--c-text-muted);
+  line-height: 1.95;
+  margin-bottom: 36px;
+}
+
+.message-body p + p {
+  margin-top: 16px;
+}
+
+.message-lead {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--c-text);
+  line-height: 1.7;
+}
+
+.message-body strong {
+  color: var(--c-accent);
+}
+
+.aico-for-you-list {
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.aico-for-you-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  font-size: 15px;
+  color: var(--c-text-muted);
+  line-height: 1.65;
+  transition: border-color 0.2s;
+}
+
+.aico-for-you-list li:hover {
+  border-color: rgba(184, 90, 0, 0.3);
+}
+
+.aico-check {
+  color: var(--c-accent);
+  font-size: 16px;
+  flex-shrink: 0;
+  font-weight: 700;
+  margin-top: 1px;
+}
+
+/* CTA */
+.aico-cta-section {
+  background: var(--c-primary);
+}
+
+.aico-cta-inner {
+  text-align: center;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.aico-cta-title {
+  font-size: clamp(22px, 4vw, 30px);
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.aico-cta-desc {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.8;
+  margin-bottom: 36px;
+}
+
+.aico-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--c-accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 14px 28px;
+  border-radius: 9999px;
+  transition: all 0.2s;
+}
+
+.aico-btn-primary:hover {
+  background: var(--c-accent-light);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(184, 90, 0, 0.4);
+}
+
+/* フッター */
+.aico-footer {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 32px 0;
+  background: var(--c-primary);
+}
+
+.aico-footer .aico-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.aico-footer-copy {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* レスポンシブ */
+@media (max-width: 640px) {
+  .aico-page {
+    --section-gap: 60px;
+  }
+
+  .aico-nav-links {
+    display: none;
+  }
+
+  .aico-hero {
+    padding: 72px 0 56px;
+  }
+
+  .aico-service-card {
+    padding: 24px 24px 24px 24px;
+  }
+
+  .aico-service-num {
+    position: static;
+    display: block;
+    margin-bottom: 8px;
+    font-size: 22px;
+  }
+}
 </style>

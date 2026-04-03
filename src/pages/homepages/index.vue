@@ -40,6 +40,7 @@ useHead({
 const pages = [
   { path: '/mamorin', icon: '🌿', name: 'mamorin', desc: 'カウンセリング & 感情フォーカス・セラピー' },
   { path: '/kaito', icon: '🌊', name: 'kaito', desc: 'セラピスト向けマーケティング（kaito）' },
-  { path: '/ai-consultant', icon: '💡', name: 'AI Consultant', desc: 'データ可視化・プロトタイプ開発の相談窓口' },
+  { path: '/prototyper', icon: '🛠️', name: 'Prototyper', desc: 'データ可視化・プロトタイプ開発の相談窓口' },
+  { path: '/ai-consultant', icon: '🤝', name: 'AI Consultant', desc: 'AIと人間の協調を、一緒に考える。' },
 ]
 </script>

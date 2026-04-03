@@ -135,9 +135,7 @@ defineExpose({ render })
 <template>
   <div class="bg-white border border-[#dde2ef] rounded-[10px] shadow-[0_1px_4px_rgba(28,45,90,0.07),0_0_0_1px_rgba(28,45,90,0.06)] overflow-hidden">
     <div class="flex items-center gap-1 px-3.5 py-2.5 border-b border-[#dde2ef] bg-[#fafbff]">
-      <span class="text-[11.5px] font-bold text-[#1c2d5a] tracking-[0.03em]">■ キーワード分布</span>
       <slot name="label" />
-      <span class="hidden md:inline text-[10.5px] text-[#6878a8] ml-auto opacity-70">列をクリックでワードクラウドを表示</span>
     </div>
     <div class="overflow-auto max-h-[600px] p-0.5 md:p-1.5">
       <div ref="heatmapRef" class="inline-block" />

@@ -2,7 +2,7 @@
 definePageMeta({ ssr: false })
 
 import { parseCsv } from '~/utils/miyako/csv'
-import { CATEGORIES } from '~/utils/miyako/categories'
+import { CATEGORIES, CATEGORY_WORDS, STOPWORDS } from '~/utils/miyako/categories'
 
 interface SpeakerMeta {
   id: string
@@ -17,13 +17,6 @@ interface SpeakerMeta {
   in_member_json: boolean
 }
 
-interface WordEntry {
-  speaker_id: string
-  word: string
-  tfidf: number
-  rank: number
-}
-
 interface CategoryEntry {
   speaker_id: string
   category: string
@@ -31,90 +24,71 @@ interface CategoryEntry {
   top_words: string
 }
 
+interface WordEntry {
+  speaker_id: string
+  word: string
+  tfidf: number
+  count: number
+}
+
+interface AiTopic {
+  title: string
+  conclusion: string
+  flow: string[]
+}
+
+const WC_COLORS = [
+  '#1A237E', '#283593', '#303F9F', '#3949AB',
+  '#3F51B5', '#5C6BC0', '#7986CB', '#0D47A1',
+  '#1565C0', '#1976D2', '#1E88E5',
+]
+
 const route = useRoute()
 const router = useRouter()
 
-function qStr(key: string, fallback: string) {
-  const v = route.query[key]
-  return typeof v === 'string' ? v : fallback
-}
 function qInt(key: string, fallback: number) {
   const v = route.query[key]
   const n = parseInt(typeof v === 'string' ? v : '')
   return isNaN(n) ? fallback : n
 }
-function qBool(key: string, fallback: boolean) {
-  const v = route.query[key]
-  if (v === '1') return true
-  if (v === '0') return false
-  return fallback
-}
 
-const mode = ref<'word' | 'category'>(qStr('mode', 'word') === 'category' ? 'category' : 'word')
-const rankLimit = ref(qInt('top', 20))
-const filterGender = ref(qStr('gender', 'すべて'))
-const filterGroup = ref(qStr('group', 'すべて'))
-const memberOnly = ref(qBool('member', true))
+const filterTerm = ref(qInt('term', 6))
 
-watch([mode, rankLimit, filterGender, filterGroup, memberOnly], () => {
-  router.replace({
-    query: {
-      mode: mode.value,
-      top: String(rankLimit.value),
-      gender: filterGender.value,
-      group: filterGroup.value,
-      member: memberOnly.value ? '1' : '0',
-    },
-  })
+watch([filterTerm], () => {
+  router.replace({ query: { term: String(filterTerm.value) } })
 })
 
 const speakersMeta = ref<SpeakerMeta[]>([])
-const wordEntries = ref<WordEntry[]>([])
 const categoryEntries = ref<CategoryEntry[]>([])
+const wordEntries = ref<WordEntry[]>([])
 const loading = ref(true)
 
-const groupOptions = computed(() => {
-  const counts = new Map<string, number>()
+// 選択状態
+const selectedSpeakerId = ref<string | null>(null)
+const selectedCategory = ref<string | null>(null)
+const selectedWord = ref<string | null>(null)
+const aiTopics = ref<AiTopic[]>([])
+const aiLoading = ref(false)
+const maxChars = ref(1000)
+const MAX_CHARS_OPTIONS = [500, 1000, 2000]
+
+const heatmapRef = ref<{ render: () => void } | null>(null)
+
+const termOptions = computed(() => {
+  const counts = new Map<number, number>()
   for (const s of speakersMeta.value) {
-    if (memberOnly.value && !s.in_member_json) continue
-    if (s.faction && s.faction !== '-') counts.set(s.faction, (counts.get(s.faction) ?? 0) + 1)
-    if (s.party && s.party !== '-') counts.set(s.party, (counts.get(s.party) ?? 0) + 1)
+    for (const t of s.terms) counts.set(t, (counts.get(t) ?? 0) + 1)
   }
-  const sorted = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])
-  return [{ label: 'すべて', value: 'すべて' }, ...sorted.map(([k, n]) => ({ label: `${k}（${n}）`, value: k }))]
+  return Array.from(counts.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([term, count]) => ({ term, count }))
 })
 
 const filteredSpeakers = computed(() =>
-  speakersMeta.value.filter(s => {
-    if (memberOnly.value && !s.in_member_json) return false
-    if (filterGender.value !== 'すべて' && s.gender !== filterGender.value) return false
-    if (filterGroup.value !== 'すべて' && s.faction !== filterGroup.value && s.party !== filterGroup.value) return false
-    return true
-  })
+  speakersMeta.value.filter(s => s.terms.includes(filterTerm.value))
 )
 
 const filteredIds = computed(() => new Set(filteredSpeakers.value.map(s => s.id)))
-
-const wordMap = computed(() => {
-  const map: Record<string, Record<number, { word: string; tfidf: number }>> = {}
-  for (const e of wordEntries.value) {
-    if (!filteredIds.value.has(e.speaker_id) || e.rank > rankLimit.value) continue
-    if (!map[e.speaker_id]) map[e.speaker_id] = {}
-    map[e.speaker_id][e.rank] = { word: e.word, tfidf: e.tfidf }
-  }
-  return map
-})
-
-const wordRange = computed(() => {
-  let min = Infinity, max = -Infinity
-  for (const ranks of Object.values(wordMap.value)) {
-    for (const { tfidf } of Object.values(ranks)) {
-      if (tfidf < min) min = tfidf
-      if (tfidf > max) max = tfidf
-    }
-  }
-  return { min: min === Infinity ? 0 : min, max: max === -Infinity ? 1 : max }
-})
 
 const catMap = computed(() => {
   const map: Record<string, Record<string, { score: number; top_words: string }>> = {}
@@ -139,21 +113,108 @@ const catRange = computed(() => {
   return { min: min === Infinity ? 0 : min, max: max === -Infinity ? 1 : max }
 })
 
+const displayNames = computed(() => {
+  const familyName = (name: string) => name.split(/\s+/)[0] ?? name
+  const givenName = (name: string) => name.split(/\s+/)[1] ?? ''
+  const counts = new Map<string, number>()
+  for (const s of filteredSpeakers.value) {
+    const fn = familyName(s.name)
+    counts.set(fn, (counts.get(fn) ?? 0) + 1)
+  }
+  const result: Record<string, string> = {}
+  for (const s of filteredSpeakers.value) {
+    const fn = familyName(s.name)
+    result[s.id] = (counts.get(fn) ?? 1) > 1
+      ? `${fn}（${givenName(s.name).charAt(0)}）`
+      : fn
+  }
+  return result
+})
+
+const selectedSpeakerName = computed(() => {
+  if (!selectedSpeakerId.value) return null
+  return speakersMeta.value.find(s => s.id === selectedSpeakerId.value)?.name ?? null
+})
+
+// ワードクラウド用単語
+const wordcloudWords = computed(() => {
+  if (!selectedSpeakerId.value || !selectedCategory.value) return []
+  const catWords = CATEGORY_WORDS[selectedCategory.value]
+  const words = wordEntries.value
+    .filter(w =>
+      w.speaker_id === selectedSpeakerId.value &&
+      !STOPWORDS.has(w.word) &&
+      (!catWords || catWords.has(w.word))
+    )
+    .sort((a, b) => b.tfidf - a.tfidf)
+    .slice(0, 50)
+  if (!words.length) return []
+  const maxScore = words[0].tfidf
+  const minScore = words[words.length - 1].tfidf
+  const range = maxScore - minScore || 1
+  return words.map((w, i) => {
+    const t = (w.tfidf - minScore) / range
+    const size = Math.round(11 + Math.pow(t, 0.55) * 26)
+    return { name: w.word, score: w.tfidf, size, color: WC_COLORS[i % WC_COLORS.length] }
+  })
+})
+
+function handleCellClick(speakerId: string, category: string) {
+  selectedSpeakerId.value = speakerId
+  selectedCategory.value = category
+  selectedWord.value = null
+  aiTopics.value = []
+}
+
+async function fetchMemberSummary(word: string) {
+  const speaker = speakersMeta.value.find(s => s.id === selectedSpeakerId.value)
+  if (!speaker) return
+  selectedWord.value = word
+  aiTopics.value = []
+
+  const speakerName = speaker.name
+  const cacheKey = `miyako_member_summary:${speakerName}:${word}:${maxChars.value}`
+  const cached = localStorage.getItem(cacheKey)
+  if (cached) {
+    try {
+      aiTopics.value = JSON.parse(cached)
+      return
+    } catch {
+      localStorage.removeItem(cacheKey)
+    }
+  }
+
+  aiLoading.value = true
+  try {
+    const data = await $fetch<{ topics: AiTopic[] }>('/api/miyako/member-summary', {
+      method: 'POST',
+      body: { speakerName, word, maxChars: maxChars.value },
+    })
+    aiTopics.value = data.topics
+    localStorage.setItem(cacheKey, JSON.stringify(data.topics))
+  } catch {
+    aiTopics.value = [{ title: 'エラー', conclusion: '取得に失敗しました。', flow: [] }]
+  } finally {
+    aiLoading.value = false
+  }
+}
+
+watch(filterTerm, () => {
+  selectedSpeakerId.value = null
+  selectedCategory.value = null
+  selectedWord.value = null
+  aiTopics.value = []
+  nextTick(() => heatmapRef.value?.render())
+})
+
 onMounted(async () => {
-  const [metaRaw, wordsRaw, catsRaw] = await Promise.all([
+  const [metaRaw, catsRaw, wordsRaw] = await Promise.all([
     $fetch<SpeakerMeta[]>('/data/speakers_meta.json'),
-    $fetch('/data/tfidf_words.csv', { responseType: 'text' }) as Promise<string>,
     $fetch('/data/tfidf_categories.csv', { responseType: 'text' }) as Promise<string>,
+    $fetch('/data/tfidf_words.csv', { responseType: 'text' }) as Promise<string>,
   ])
 
   speakersMeta.value = metaRaw
-
-  wordEntries.value = parseCsv(wordsRaw).map(r => ({
-    speaker_id: r.speaker_id,
-    word: r.word,
-    tfidf: parseFloat(r.tfidf),
-    rank: parseInt(r.rank),
-  }))
 
   categoryEntries.value = parseCsv(catsRaw).map(r => ({
     speaker_id: r.speaker_id,
@@ -162,51 +223,26 @@ onMounted(async () => {
     top_words: r.top_words,
   }))
 
+  wordEntries.value = parseCsv(wordsRaw).map(r => ({
+    speaker_id: r.speaker_id,
+    word: r.word,
+    tfidf: parseFloat(r.tfidf),
+    count: parseInt(r.count),
+  }))
+
   loading.value = false
+  await nextTick()
+  heatmapRef.value?.render()
 })
 </script>
 
 <template>
   <div class="min-h-screen bg-[#f0f2f8]">
     <MiyakoHeader active-page="member">
-      <!-- モード -->
       <div class="flex items-center gap-1.5">
-        <span class="text-[10.5px] font-semibold text-white/50 uppercase tracking-[0.04em]">モード</span>
-        <div class="flex rounded overflow-hidden border border-white/20">
-          <button
-            :class="['px-3 py-0.5 text-[11.5px] font-medium transition-colors', mode === 'word' ? 'bg-[#a5b4fc] text-[#121d3e]' : 'bg-white/10 text-white/70 hover:bg-white/20']"
-            @click="mode = 'word'">単語</button>
-          <button
-            :class="['px-3 py-0.5 text-[11.5px] font-medium transition-colors', mode === 'category' ? 'bg-[#a5b4fc] text-[#121d3e]' : 'bg-white/10 text-white/70 hover:bg-white/20']"
-            @click="mode = 'category'">カテゴリ</button>
-        </div>
-      </div>
-
-      <!-- 単語モード: 表示行数 -->
-      <div v-if="mode === 'word'" class="flex items-center gap-1.5">
-        <span class="text-[10.5px] font-semibold text-white/50 uppercase tracking-[0.04em]">表示数</span>
-        <select v-model.number="rankLimit" class="ctrl-select">
-          <option v-for="n in [5, 10, 15, 20]" :key="n" :value="n">top {{ n }}</option>
-        </select>
-      </div>
-
-      <!-- フィルタ -->
-      <label class="flex items-center gap-1 text-[11px] text-white/70 cursor-pointer select-none">
-        <input type="checkbox" v-model="memberOnly" class="accent-[#a5b4fc]" />
-        議員のみ
-      </label>
-
-      <div class="flex items-center gap-1.5">
-        <span class="text-[10.5px] font-semibold text-white/50 uppercase tracking-[0.04em]">性別</span>
-        <select v-model="filterGender" class="ctrl-select">
-          <option v-for="g in ['すべて', '男', '女']" :key="g" :value="g">{{ g }}</option>
-        </select>
-      </div>
-
-      <div class="flex items-center gap-1.5">
-        <span class="text-[10.5px] font-semibold text-white/50 uppercase tracking-[0.04em]">会派・政党</span>
-        <select v-model="filterGroup" class="ctrl-select">
-          <option v-for="opt in groupOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        <span class="text-[10.5px] font-semibold text-white/50 whitespace-nowrap uppercase tracking-[0.04em]">要約文字数</span>
+        <select v-model.number="maxChars" class="ctrl-select">
+          <option v-for="n in MAX_CHARS_OPTIONS" :key="n" :value="n">{{ n }}</option>
         </select>
       </div>
     </MiyakoHeader>
@@ -216,18 +252,40 @@ onMounted(async () => {
       <span class="w-11 h-11 rounded-full border-[3px] border-[#1A237E]/30 border-t-[#1A237E] animate-spin block" />
     </div>
 
-    <!-- Table -->
-    <div v-else class="max-w-[1600px] mx-auto px-6 pt-3 pb-8">
-      <MiyakoMemberTable
-        :filtered-speakers="filteredSpeakers"
-        :mode="mode"
-        :rank-limit="rankLimit"
-        :categories="CATEGORIES"
-        :word-map="wordMap"
-        :cat-map="catMap"
-        :word-range="wordRange"
-        :cat-range="catRange"
-      />
+    <!-- Main content -->
+    <div v-else class="max-w-[1400px] mx-auto px-3 md:px-6 pt-[11px] pb-8 flex flex-col md:flex-row gap-3 items-start">
+
+      <!-- Heatmap panel -->
+      <div class="flex-1 min-w-0">
+        <MiyakoMemberHeatmap
+          ref="heatmapRef"
+          :speakers="filteredSpeakers"
+          :categories="CATEGORIES"
+          :cat-map="catMap"
+          :cat-range="catRange"
+          :display-names="displayNames"
+          :term-options="termOptions"
+          :filter-term="filterTerm"
+          @cell-click="handleCellClick"
+          @update:filter-term="filterTerm = $event"
+        />
+      </div>
+
+      <!-- Side panel -->
+      <div class="w-full md:w-[420px] md:h-[638px] flex-shrink-0 flex flex-col gap-3">
+        <MiyakoMemberWordCloud
+          :speaker-name="selectedSpeakerName"
+          :category="selectedCategory"
+          :words="wordcloudWords"
+          @word-click="fetchMemberSummary($event)"
+        />
+
+        <MiyakoSessionAiPanel
+          :selected-word="selectedWord"
+          :ai-topics="aiTopics"
+          :ai-loading="aiLoading"
+        />
+      </div>
     </div>
   </div>
 </template>

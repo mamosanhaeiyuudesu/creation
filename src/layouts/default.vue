@@ -80,7 +80,7 @@ const tools = [
   { path: '/snapreader', name: 'SnapReader', icon: '📸' },
   { path: '/whisper', name: 'Whisper', icon: '🎙️' },
   { path: '/hagemashi', name: 'はげまし', icon: '💪' },
-  { path: '/miyako', name: '宮古島市議事録分析', icon: '🏝️' },
+  { path: '/miyako', name: '宮古島市議会バズワード', icon: '🏝️' },
   { path: '/task', name: 'タスクくん', icon: '📋' },
 ]
 

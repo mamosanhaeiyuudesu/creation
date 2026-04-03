@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 
-import { STOPWORDS, CATEGORY_WORDS, CATEGORIES } from '~/utils/miyako/categories'
+import { STOPWORDS, CATEGORY_WORDS, CATEGORIES, CATEGORY_SHORT } from '~/utils/miyako/categories'
 
 interface WordScore {
   word: string
@@ -209,7 +209,7 @@ watch(selectedCategory, resetAndRender)
                   class="text-[11px] px-1 py-0 rounded transition-colors leading-5"
                   :class="selectedCategory === cat ? 'text-[#1A237E] font-bold' : 'text-[#6878a8] hover:text-[#3949AB]'"
                   @click="selectedCategory = cat"
-                >{{ cat }}</button>
+                >{{ CATEGORY_SHORT[cat] ?? cat }}</button>
               </template>
             </div>
           </template>

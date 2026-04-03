@@ -31,7 +31,7 @@ const tools = [
   { path: '/snapreader', icon: '📸', name: 'SnapReader', desc: '画像を送って、数秒で要約' },
   { path: '/whisper', icon: '🎙️', name: 'Whisper', desc: '音声を文字に自動変換' },
   { path: '/hagemashi', icon: '💪', name: 'はげまし', desc: '話して、AIに励ましてもらおう' },
-  { path: '/miyako', icon: '🏝️', name: '宮古島市議事録分析', desc: '会期別キーワード特徴度ヒートマップ' },
+  { path: '/miyako', icon: '🏝️', name: '宮古島市議会バズワード', desc: '会期別キーワード特徴度ヒートマップ' },
   { path: '/task', icon: '📋', name: 'タスクくん', desc: 'Trello の DOING / TODO / DONE をまとめて確認' },
   { path: '/ai-consultant', icon: '💡', name: 'AI Consultant', desc: 'データ可視化・プロトタイプ開発の相談窓口' },
 ]

@@ -14,67 +14,58 @@ interface SpeakerMeta {
   in_member_json: boolean
 }
 
-defineProps<{
+const props = defineProps<{
   filteredSpeakers: SpeakerMeta[]
-  mode: 'word' | 'category'
-  rankLimit: number
   categories: readonly string[]
-  wordMap: Record<string, Record<number, { word: string; tfidf: number }>>
   catMap: Record<string, Record<string, { score: number; top_words: string }>>
-  wordRange: { min: number; max: number }
   catRange: { min: number; max: number }
+  termOptions: { term: number; count: number }[]
+  filterTerm: number
 }>()
+
+const emit = defineEmits<{ 'update:filterTerm': [term: number] }>()
+
+const displayNames = computed(() => {
+  const familyName = (name: string) => name.split(/\s+/)[0] ?? name
+  const givenName = (name: string) => name.split(/\s+/)[1] ?? ''
+  const counts = new Map<string, number>()
+  for (const s of props.filteredSpeakers) {
+    const fn = familyName(s.name)
+    counts.set(fn, (counts.get(fn) ?? 0) + 1)
+  }
+  const result: Record<string, string> = {}
+  for (const s of props.filteredSpeakers) {
+    const fn = familyName(s.name)
+    result[s.id] = (counts.get(fn) ?? 1) > 1
+      ? `${fn}（${givenName(s.name).charAt(0)}）`
+      : fn
+  }
+  return result
+})
 </script>
 
 <template>
   <div class="bg-white border border-[#dde2ef] rounded-[10px] shadow-[0_1px_4px_rgba(28,45,90,0.07),0_0_0_1px_rgba(28,45,90,0.06)] overflow-hidden">
-    <div class="flex items-center gap-2 px-4 py-2.5 border-b border-[#dde2ef] bg-[#fafbff]">
-      <span class="text-[11.5px] font-bold text-[#1c2d5a] tracking-[0.03em]">
-        ■ {{ mode === 'word' ? '特徴語ヒートマップ' : 'カテゴリ傾注度' }}
-      </span>
-      <span class="text-[11px] text-[#6878a8]">{{ filteredSpeakers.length }}人</span>
-      <span v-if="mode === 'word'" class="text-[10.5px] text-[#6878a8] ml-auto opacity-70">各議員の特徴語を上から特徴度順に表示</span>
-      <span v-else class="text-[10.5px] text-[#6878a8] ml-auto opacity-70">数値にカーソルで上位語を表示</span>
+    <div class="flex items-center gap-1.5 px-4 py-2.5 border-b border-[#dde2ef] bg-[#fafbff]">
+      <template v-for="(opt, i) in termOptions" :key="opt.term">
+        <span v-if="i > 0" class="text-[#c8d4e8] text-[11px]">/</span>
+        <button
+          :class="[
+            'text-[11.5px] font-semibold transition-colors',
+            opt.term === filterTerm ? 'text-[#1c2d5a]' : 'text-[#9aaac8] hover:text-[#4f6ac0]',
+          ]"
+          @click="emit('update:filterTerm', opt.term)"
+        >{{ opt.term }}期<span class="text-[10.5px] font-normal">（{{ opt.count }}人）</span></button>
+      </template>
     </div>
 
     <div class="overflow-auto">
-      <!-- 単語モード -->
-      <table v-if="mode === 'word'" class="tbl">
-        <thead>
-          <tr>
-            <th class="tbl-rank-head">#</th>
-            <th v-for="s in filteredSpeakers" :key="s.id" class="tbl-col-head">
-              <div class="tbl-name">{{ s.name }}</div>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="rank in rankLimit" :key="rank">
-            <td class="tbl-rank-cell">{{ rank }}</td>
-            <td
-              v-for="s in filteredSpeakers" :key="s.id"
-              class="tbl-cell"
-              :title="wordMap[s.id]?.[rank] ? `${wordMap[s.id][rank].word}　TF-IDF: ${wordMap[s.id][rank].tfidf.toFixed(4)}` : ''"
-              :style="wordMap[s.id]?.[rank]
-                ? { backgroundColor: heatColor(wordMap[s.id][rank].tfidf, wordRange.min, wordRange.max).bg }
-                : { backgroundColor: '#f8f9fe' }"
-            >
-              <span
-                v-if="wordMap[s.id]?.[rank]"
-                :style="{ color: heatColor(wordMap[s.id][rank].tfidf, wordRange.min, wordRange.max).light ? '#1c2d5a' : '#fff' }"
-              >{{ wordMap[s.id][rank].word }}</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- カテゴリモード -->
-      <table v-else class="tbl">
+      <table class="tbl">
         <thead>
           <tr>
             <th class="tbl-cat-head">カテゴリ</th>
             <th v-for="s in filteredSpeakers" :key="s.id" class="tbl-col-head">
-              <div class="tbl-name">{{ s.name }}</div>
+              <div class="tbl-name">{{ displayNames[s.id] }}</div>
             </th>
           </tr>
         </thead>
@@ -109,21 +100,6 @@ defineProps<{
   font-size: 12px;
 }
 
-.tbl-rank-head {
-  position: sticky;
-  left: 0;
-  z-index: 2;
-  background: #fafbff;
-  border-right: 2px solid #dde2ef;
-  border-bottom: 2px solid #dde2ef;
-  padding: 6px 10px;
-  text-align: center;
-  font-size: 10px;
-  color: #9aaac8;
-  font-weight: 600;
-  min-width: 28px;
-}
-
 .tbl-cat-head {
   position: sticky;
   left: 0;
@@ -144,8 +120,8 @@ defineProps<{
   border-right: 1px solid #eef0f8;
   padding: 5px 4px 4px;
   text-align: center;
-  min-width: 66px;
-  max-width: 74px;
+  min-width: 60px;
+  max-width: 68px;
   background: #fafbff;
   vertical-align: bottom;
 }
@@ -156,21 +132,7 @@ defineProps<{
   color: #1c2d5a;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 66px;
-}
-
-.tbl-rank-cell {
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  background: #fafbff;
-  border-right: 2px solid #dde2ef;
-  border-bottom: 1px solid #eef0f8;
-  padding: 0 8px;
-  text-align: center;
-  font-size: 10px;
-  color: #c8d0e0;
-  font-weight: 600;
+  max-width: 60px;
 }
 
 .tbl-cat-cell {
@@ -192,8 +154,8 @@ defineProps<{
   padding: 0 3px;
   text-align: center;
   height: 26px;
-  min-width: 66px;
-  max-width: 74px;
+  min-width: 60px;
+  max-width: 68px;
   overflow: hidden;
 }
 .tbl-cell span {
