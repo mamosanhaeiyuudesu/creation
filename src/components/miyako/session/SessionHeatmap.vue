@@ -58,7 +58,7 @@ function render() {
   const minScore = Math.min(...allScores)
   const maxScore = Math.max(...allScores)
   const normalizeScore = (s: number) =>
-    maxScore === minScore ? 5 : Math.round(((s - minScore) / (maxScore - minScore)) * 10)
+    maxScore === minScore ? 5 : Math.min(10, Math.max(1, Math.round(((s - minScore) / (maxScore - minScore)) * 10)))
 
   const data: [number, number, number][] = []
   for (let si = 0; si < sessions.length; si++) {
@@ -110,8 +110,7 @@ function render() {
         const year = sessions[si].replace(/〜[\d-]+$/, '〜')
         const meta = metaMap.get(`${si},${ki}`)
         const norm = meta ? normalizeScore(meta.score) : 0
-        const count = meta?.count ?? 0
-        return `<b>${keywords[ki]}（${year}）</b><br/>特徴度 <b>${norm}</b> / 出現 <b>${count}回</b>`
+        return `<b>${keywords[ki]}（${year}）</b><br/>バズ度 <b>${norm}</b>`
       },
     },
     series: [{

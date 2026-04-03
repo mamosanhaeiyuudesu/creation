@@ -101,7 +101,7 @@ function render() {
         if (!entry) return ''
         const shortCat = CATEGORY_SHORT[cat] ?? cat
         const level = Math.min(10, Math.max(1, Math.round((entry.score / catRange.max) * 10)))
-        return `<b>${displayNames[speaker.id]}（${shortCat}）</b><br/>特徴度 <b>${level}</b>`
+        return `<b>${displayNames[speaker.id]}（${shortCat}）</b><br/>バズ度 <b>${level}</b>`
       },
     },
     series: [{

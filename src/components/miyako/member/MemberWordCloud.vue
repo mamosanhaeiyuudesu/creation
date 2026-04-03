@@ -130,7 +130,7 @@ function layoutWordcloud() {
               top: (wcPositions[item.name]?.y ?? 0) + 'px',
               opacity: wcReady ? 1 : 0,
             }"
-            :title="`特徴度: ${item.score.toFixed(3)}`"
+            :title="`バズ度: ${Math.min(10, Math.max(1, Math.round((item.score / (words[0]?.score || 1)) * 10)))}`"
             @click="emit('word-click', item.name)"
           >{{ item.name }}</span>
         </div>
