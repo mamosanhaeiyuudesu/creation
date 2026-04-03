@@ -121,6 +121,9 @@ async function fetchSummary(word: string) {
   selectedWord.value = word
   aiTopics.value = []
 
+  // 選択年に属する全会期キー
+  const yearSessions = Object.keys(rawData.value).filter(k => getYear(k) === selectedSession.value)
+
   const cacheKey = `miyako_summary:${selectedSession.value}:${word}:${maxChars.value}`
   const cached = localStorage.getItem(cacheKey)
   if (cached) {
@@ -136,7 +139,7 @@ async function fetchSummary(word: string) {
   try {
     const data = await $fetch<{ topics: AiTopic[] }>('/api/miyako/search', {
       method: 'POST',
-      body: { session: selectedSession.value, word, maxChars: maxChars.value },
+      body: { sessions: yearSessions, word, maxChars: maxChars.value },
     })
     aiTopics.value = data.topics
     localStorage.setItem(cacheKey, JSON.stringify(data.topics))
