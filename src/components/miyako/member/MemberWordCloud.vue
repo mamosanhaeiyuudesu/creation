@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { CATEGORY_SHORT } from '~/utils/miyako/categories'
+
 interface WcWord {
   name: string
   score: number
@@ -113,9 +115,7 @@ function layoutWordcloud() {
     <template v-if="speakerName && category">
       <div class="flex items-center gap-1.5 px-3.5 py-2.5 bg-[#eef1fb] border-b border-[#dde2ef]">
         <span class="opacity-70">👤</span>
-        <span class="text-xs font-semibold text-[#1c2d5a] tracking-[0.02em]">{{ speakerName }}</span>
-        <span class="text-[10px] text-[#6878a8]">×</span>
-        <span class="text-xs font-semibold text-[#3d5fc4]">{{ category }}</span>
+        <span class="text-xs font-semibold text-[#1c2d5a] tracking-[0.02em]">{{ speakerName }}（{{ category ? (CATEGORY_SHORT[category] ?? category) : '' }}）</span>
       </div>
       <div class="p-0">
         <div ref="wcContainerRef" class="wordcloud-container">

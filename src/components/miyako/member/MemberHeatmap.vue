@@ -99,7 +99,9 @@ function render() {
         const cat = categories[ci]
         const entry = catMap[speaker.id]?.[cat]
         if (!entry) return ''
-        return `<b>${displayNames[speaker.id]} × ${cat}</b><br/>特徴度: <b>${entry.score.toFixed(3)}</b><br/>上位語: ${entry.top_words}`
+        const shortCat = CATEGORY_SHORT[cat] ?? cat
+        const level = Math.min(10, Math.max(1, Math.round((entry.score / catRange.max) * 10)))
+        return `<b>${displayNames[speaker.id]}（${shortCat}）</b><br/>特徴度 <b>${level}</b>`
       },
     },
     series: [{

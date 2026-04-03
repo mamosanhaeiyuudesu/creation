@@ -125,7 +125,7 @@ const displayNames = computed(() => {
   for (const s of filteredSpeakers.value) {
     const fn = familyName(s.name)
     result[s.id] = (counts.get(fn) ?? 1) > 1
-      ? `${fn}（${givenName(s.name).charAt(0)}）`
+      ? `${fn} ${givenName(s.name).charAt(0)}`
       : fn
   }
   return result
@@ -140,11 +140,15 @@ const selectedSpeakerName = computed(() => {
 const wordcloudWords = computed(() => {
   if (!selectedSpeakerId.value || !selectedCategory.value) return []
   const catWords = CATEGORY_WORDS[selectedCategory.value]
+  const entry = catMap.value[selectedSpeakerId.value]?.[selectedCategory.value]
+  const topWordSet = new Set(
+    entry?.top_words ? entry.top_words.split(',').map((w: string) => w.trim()).filter(Boolean) : []
+  )
   const words = wordEntries.value
     .filter(w =>
       w.speaker_id === selectedSpeakerId.value &&
       !STOPWORDS.has(w.word) &&
-      (!catWords || catWords.has(w.word))
+      (!catWords || catWords.has(w.word) || topWordSet.has(w.word))
     )
     .sort((a, b) => b.tfidf - a.tfidf)
     .slice(0, 50)
@@ -274,7 +278,7 @@ onMounted(async () => {
       <!-- Side panel -->
       <div class="w-full md:w-[420px] md:h-[638px] flex-shrink-0 flex flex-col gap-3">
         <MiyakoMemberWordCloud
-          :speaker-name="selectedSpeakerName"
+          :speaker-name="selectedSpeakerId ? (displayNames[selectedSpeakerId] ?? selectedSpeakerName) : null"
           :category="selectedCategory"
           :words="wordcloudWords"
           @word-click="fetchMemberSummary($event)"
