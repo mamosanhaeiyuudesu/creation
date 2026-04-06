@@ -20,7 +20,7 @@
   <div class="container">
     <section id="for-you" class="section">
       <p class="label">こんな方へ</p>
-      <h2 class="section-title serif">あなたに届いて欲しい</h2>
+      <h2 class="section-title serif" style="margin-bottom: 0rem;">あなたに届いて欲しい</h2>
       <div style="display:flex; gap:2rem; align-items:flex-start; flex-wrap:wrap;">
         <ul class="for-you-list" style="flex:1; min-width:240px;">
           <li>父親、母親に対して、長年の怒りや恨みを抱えている</li>
@@ -34,26 +34,40 @@
     </section>
   </div>
 
-  <!-- STORY -->
+  <!-- STRENGTHS SUMMARY -->
   <div class="container">
     <section class="section">
-      <p class="label">私の原体験</p>
-      <h2 class="section-title serif">理解が先に来て、許しはずっとあとについてくる</h2>
+      <p class="label">お客様の声</p>
+      <h2 class="section-title serif">3つの強み</h2>
 
-      <div class="quote-block">
-        <p class="quote-text serif">「親を批判していた、あの頃が、一番自分を許していなかった。」</p>
+      <div class="strength-list">
+        <div class="strength-item">
+          <p class="strength-num">01</p>
+          <h3 class="strength-title serif">「同じ境遇の人がいる」という安心感を提供できる</h3>
+          <p class="story-para">
+            父親問題は孤立しやすいテーマです。体験者同士のつながりが、「自分だけかもしれない」という孤独感を解消します。
+          </p>
+        </div>
+
+        <div class="strength-item">
+          <p class="strength-num">02</p>
+          <h3 class="strength-title serif">閉じた関係を「外から見る視点」を与えられる</h3>
+          <p class="story-para">
+            「父親と自分」という二人の閉じた関係に第三者の目が入ることで、初めて客観視できます。
+          </p>
+        </div>
+
+        <div class="strength-item">
+          <p class="strength-num">03</p>
+          <h3 class="strength-title serif">「許せない」から「歩み寄ってみよう」への自発的な変化を引き出せる</h3>
+          <p class="story-para">
+            具体的な改善策を押しつけるのではなく、話を聞いてもらうだけで本人が自分から動き出します。
+          </p>
+        </div>
       </div>
 
-      <p class="story-para">
-        父への長年の恨みと、恨んでいる自分を責める二重の苦しさ——<br>
-        私自身がその場所にいました。そして、その場所から抜け出す道を、自分で歩いてきました。
-      </p>
-      <p class="story-para">
-        その道で出会ったのが、同じように父親への恨みを抱えながらそれを乗り越えてきた、一人の男性カウンセラーの存在でした。<br>
-        その人の本、その人との関わり、そして実際のセッションが、私の中に確かな変化をもたらしてくれました。
-      </p>
       <div style="margin-top: 2rem;">
-        <NuxtLink to="/mamorin/story" class="cta-btn">私の原体験を読む</NuxtLink>
+        <NuxtLink to="/mamorin/voice" class="cta-btn">お客様の声を読む</NuxtLink>
       </div>
     </section>
   </div>
@@ -62,7 +76,7 @@
   <div class="container">
     <section id="services" class="section">
       <p class="label">サービス</p>
-      <h2 class="section-title serif">2つのアプローチ</h2>
+      <h2 class="section-title serif">3つのアプローチ</h2>
 
       <div class="service-grid">
         <div class="service-card">
@@ -94,6 +108,44 @@
             <li>カウンセリングを一定数実施後が推奨</li>
           </ul>
         </div>
+
+        <div class="service-card">
+          <p class="service-type">Service 03</p>
+          <h3 class="service-name serif">グループカウンセリング</h3>
+          <p class="service-desc">
+            「自分だけじゃなかった」という安心感を、体験する場所。<br>
+            他の人のリアルな話を聞くだけで、視界が開けることがあります。
+          </p>
+          <ul class="service-points">
+            <li>正解を押し付けない、等身大の対話</li>
+            <li>オンライン参加・顔出しなしOK・秘密厳守</li>
+            <li>「男らしさ」の呪縛を外して、素直に話せる場</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- STORY -->
+  <div class="container">
+    <section class="section">
+      <p class="label">私の原体験</p>
+      <h2 class="section-title serif">理解が先に来て、許しはずっとあとについてくる</h2>
+
+      <div class="quote-block">
+        <p class="quote-text serif">「親を批判していた、あの頃が、一番自分を許していなかった。」</p>
+      </div>
+
+      <p class="story-para">
+        父への長年の恨みと、恨んでいる自分を責める二重の苦しさ——<br>
+        私自身がその場所にいました。そして、その場所から抜け出す道を、自分で歩いてきました。
+      </p>
+      <p class="story-para">
+        その道で出会ったのが、同じように父親への恨みを抱えながらそれを乗り越えてきた、一人の男性カウンセラーの存在でした。<br>
+        その人の本、その人との関わり、そして実際のセッションが、私の中に確かな変化をもたらしてくれました。
+      </p>
+      <div style="margin-top: 2rem;">
+        <NuxtLink to="/mamorin/story" class="cta-btn">私の原体験を読む</NuxtLink>
       </div>
     </section>
   </div>
@@ -149,6 +201,16 @@
           </div>
           <div style="text-align:right;">
             <p class="price-amount serif">¥5,000 <span class="price-unit">/ 回</span></p>
+          </div>
+        </div>
+
+        <div class="price-row">
+          <div>
+            <p class="price-name">グループカウンセリング</p>
+            <p class="price-detail">60分 / オンライン</p>
+          </div>
+          <div style="text-align:right;">
+            <p class="price-amount serif">¥2,000 <span class="price-unit">/ 回</span></p>
           </div>
         </div>
 
@@ -299,14 +361,14 @@ useHead({
   max-width: 520px;
 }
 
-.mamorin-page .for-you-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+.mamorin-page .for-you-list { list-style: none; display: flex; flex-direction: column; gap: 2px; }
 
 .mamorin-page .for-you-list li {
   font-size: 15px;
   color: var(--text-secondary);
   padding-left: 1.75rem;
   position: relative;
-  line-height: 1.9;
+  line-height: 1.25;
 }
 
 .mamorin-page .for-you-list li::before {
@@ -466,6 +528,7 @@ useHead({
   font-weight: 400;
   margin-bottom: 1.5rem;
   line-height: 1.9;
+  color: var(--text);
 }
 
 .mamorin-page .cta-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 2.5rem; line-height: 2.2; }
@@ -495,4 +558,32 @@ useHead({
 }
 
 .mamorin-page footer p { font-size: 12px; color: var(--text-tertiary); }
+
+.mamorin-page .strength-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  margin-top: 2rem;
+}
+
+.mamorin-page .strength-item {
+  border-left: 2px solid var(--border-strong);
+  padding-left: 1.5rem;
+}
+
+.mamorin-page .strength-num {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--text-tertiary);
+  margin-bottom: 0.5rem;
+}
+
+.mamorin-page .strength-title {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 18px;
+  font-weight: 400;
+  margin-bottom: 1rem;
+  line-height: 1.8;
+  color: var(--text);
+}
 </style>

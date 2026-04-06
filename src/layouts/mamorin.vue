@@ -5,8 +5,8 @@
         <nav class="mm-nav">
           <NuxtLink to="/mamorin" class="mm-nav-link">ホーム</NuxtLink>
           <NuxtLink to="/mamorin/why-oyako" class="mm-nav-link">なぜ親子問題を扱うのか</NuxtLink>
-          <NuxtLink to="/mamorin/story" class="mm-nav-link">私の原体験</NuxtLink>
           <NuxtLink to="/mamorin/voice" class="mm-nav-link">お客様の声</NuxtLink>
+          <NuxtLink to="/mamorin/story" class="mm-nav-link">私の原体験</NuxtLink>
           <NuxtLink to="/mamorin/qa" class="mm-nav-link">Q&amp;A</NuxtLink>
           <NuxtLink to="/mamorin#contact" class="mm-nav-link mm-nav-cta">無料相談</NuxtLink>
         </nav>
@@ -17,8 +17,8 @@
       <div class="mm-drawer" :class="{ open: menuOpen }" @click="menuOpen = false">
         <NuxtLink to="/mamorin" class="mm-drawer-link">ホーム</NuxtLink>
         <NuxtLink to="/mamorin/why-oyako" class="mm-drawer-link">なぜ親子問題を扱うのか</NuxtLink>
-        <NuxtLink to="/mamorin/story" class="mm-drawer-link">私の原体験</NuxtLink>
         <NuxtLink to="/mamorin/voice" class="mm-drawer-link">お客様の声</NuxtLink>
+        <NuxtLink to="/mamorin/story" class="mm-drawer-link">私の原体験</NuxtLink>
         <NuxtLink to="/mamorin/qa" class="mm-drawer-link">Q&amp;A</NuxtLink>
         <NuxtLink to="/mamorin#contact" class="mm-drawer-link">無料相談（初回無料）</NuxtLink>
       </div>

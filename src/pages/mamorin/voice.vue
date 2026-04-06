@@ -75,6 +75,45 @@
       </section>
     </div>
 
+    <!-- STRENGTHS -->
+    <div class="container">
+      <section class="section">
+        <p class="label">この声から読み取れること</p>
+        <h2 class="section-title serif">3つの強み</h2>
+
+        <div class="strength-list">
+          <div class="strength-item">
+            <p class="strength-num">01</p>
+            <h3 class="strength-title serif">「同じ境遇の人がいる」という安心感を提供できる</h3>
+            <p class="story-para">
+              父親問題は孤立しやすいテーマです。<br>
+              「自分だけかもしれない」という孤独感を、共感と仲間意識で解消できたことが最大の転換点になっています。<br>
+              これは通常のカウンセリングにはない、体験者同士のつながりという独自の価値です。
+            </p>
+          </div>
+
+          <div class="strength-item">
+            <p class="strength-num">02</p>
+            <h3 class="strength-title serif">閉じた関係を「外から見る視点」を与えられる</h3>
+            <p class="story-para">
+              「父親と自分」という二人の閉じた関係に第三者の目が入ることで、初めて客観視できたと語られています。<br>
+              関係性そのものを俯瞰させるのが、このカウンセリングの特徴です。
+            </p>
+          </div>
+
+          <div class="strength-item">
+            <p class="strength-num">03</p>
+            <h3 class="strength-title serif">「許せない」から「歩み寄ってみよう」への自発的な変化を引き出せる</h3>
+            <p class="story-para">
+              具体的な改善策を押しつけるのではなく、話を聞いてもらうだけで本人が自分から動き出しています。<br>
+              内側からの動機を引き出すスタイルが強みです。
+            </p>
+          </div>
+        </div>
+
+      </section>
+    </div>
+
     <!-- CLOSING CTA -->
     <div class="container">
       <section class="section">
@@ -254,4 +293,32 @@ useHead({
 }
 
 .mamorin-page footer p { font-size: 12px; color: var(--text-tertiary); }
+
+.mamorin-page .strength-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  margin-top: 2rem;
+}
+
+.mamorin-page .strength-item {
+  border-left: 2px solid var(--border-strong);
+  padding-left: 1.5rem;
+}
+
+.mamorin-page .strength-num {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--text-tertiary);
+  margin-bottom: 0.5rem;
+}
+
+.mamorin-page .strength-title {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 18px;
+  font-weight: 400;
+  margin-bottom: 1rem;
+  line-height: 1.8;
+  color: var(--text);
+}
 </style>
