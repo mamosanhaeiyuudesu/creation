@@ -117,16 +117,9 @@
     <div class="container">
       <section class="section">
         <div class="cta-section" style="padding: 2rem 0 4rem;">
-          <h2 class="cta-title serif">
-            親と向き合うことで、<br>
-            あなた自身と和解できる。
-          </h2>
-          <p class="cta-sub">
-            もし今、親との関係に苦しさを感じているなら、<br>
-            その苦しさはあなたのせいではありません。<br>
-            一緒に、紐解いていきましょう。
-          </p>
-          <a class="cta-btn" href="/mamorin">カウンセリングについて見る</a>
+          <h2 class="cta-title serif">同じ場所にいるあなたへ。</h2>
+          <p class="cta-sub">初回30分は無料で、お話を聞かせてください。</p>
+          <a class="cta-btn" href="/mamorin#contact">無料相談フォームへ</a>
         </div>
       </section>
     </div>

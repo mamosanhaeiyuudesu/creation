@@ -48,6 +48,10 @@
         父への長年の恨みと、恨んでいる自分を責める二重の苦しさ——<br>
         私自身がその場所にいました。そして、その場所から抜け出す道を、自分で歩いてきました。
       </p>
+      <p class="story-para">
+        その道で出会ったのが、同じように父親への恨みを抱えながらそれを乗り越えてきた、一人の男性カウンセラーの存在でした。<br>
+        その人の本、その人との関わり、そして実際のセッションが、私の中に確かな変化をもたらしてくれました。
+      </p>
       <div style="margin-top: 2rem;">
         <NuxtLink to="/mamorin/story" class="cta-btn">私の原体験を読む</NuxtLink>
       </div>
@@ -178,7 +182,7 @@
   <div class="container">
     <section id="contact" class="section">
       <div class="cta-section" style="padding:0 0 3rem;">
-        <h2 class="cta-title serif">一人で抱えなくていい。<br>話すことから、始めてみてください。</h2>
+        <h2 class="cta-title serif">同じ場所にいるあなたへ。</h2>
         <p class="cta-sub">初回30分は無料で、お話を聞かせてください。</p>
       </div>
 

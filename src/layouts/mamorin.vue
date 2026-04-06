@@ -2,9 +2,8 @@
   <div class="therapist-layout">
     <header class="mm-header">
       <div class="mm-header-inner">
-        <NuxtLink to="/mamorin" class="mm-logo serif">まもりん</NuxtLink>
         <nav class="mm-nav">
-          <NuxtLink to="/mamorin" class="mm-nav-link">トップ</NuxtLink>
+          <NuxtLink to="/mamorin" class="mm-nav-link">ホーム</NuxtLink>
           <NuxtLink to="/mamorin/why-oyako" class="mm-nav-link">なぜ親子問題を扱うのか</NuxtLink>
           <NuxtLink to="/mamorin/story" class="mm-nav-link">私の原体験</NuxtLink>
           <NuxtLink to="/mamorin/voice" class="mm-nav-link">お客様の声</NuxtLink>
@@ -16,7 +15,7 @@
         </button>
       </div>
       <div class="mm-drawer" :class="{ open: menuOpen }" @click="menuOpen = false">
-        <NuxtLink to="/mamorin" class="mm-drawer-link">トップ</NuxtLink>
+        <NuxtLink to="/mamorin" class="mm-drawer-link">ホーム</NuxtLink>
         <NuxtLink to="/mamorin/why-oyako" class="mm-drawer-link">なぜ親子問題を扱うのか</NuxtLink>
         <NuxtLink to="/mamorin/story" class="mm-drawer-link">私の原体験</NuxtLink>
         <NuxtLink to="/mamorin/voice" class="mm-drawer-link">お客様の声</NuxtLink>
