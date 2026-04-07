@@ -2,6 +2,11 @@
 defineProps<{
   activePage: 'session' | 'member' | 'keyword'
 }>()
+
+const route = useRoute()
+const base = computed(() =>
+  route.path.startsWith('/miyako_gijiroku') ? '/miyako_gijiroku' : '/miyako'
+)
 </script>
 
 <template>
@@ -16,7 +21,7 @@ defineProps<{
         <div class="hidden md:flex rounded overflow-hidden border border-white/50 ml-4">
           <NuxtLink
             v-if="activePage !== 'session'"
-            to="/miyako"
+            :to="base"
             class="px-3 py-1 text-[12px] font-medium bg-white/10 text-white/70 hover:bg-white/25 whitespace-nowrap transition-colors"
           >年で見る</NuxtLink>
           <span
@@ -26,7 +31,7 @@ defineProps<{
 
           <NuxtLink
             v-if="activePage !== 'member'"
-            to="/miyako/member"
+            :to="`${base}/member`"
             class="px-3 py-1 text-[12px] font-medium bg-white/10 text-white/70 hover:bg-white/25 whitespace-nowrap transition-colors border-l border-white/50"
           >議員で見る</NuxtLink>
           <span
@@ -36,7 +41,7 @@ defineProps<{
 
           <NuxtLink
             v-if="activePage !== 'keyword'"
-            to="/miyako/keyword"
+            :to="`${base}/keyword`"
             class="px-3 py-1 text-[12px] font-medium bg-white/10 text-white/70 hover:bg-white/25 whitespace-nowrap transition-colors border-l border-white/50"
           >キーワードで見る</NuxtLink>
           <span
@@ -55,7 +60,7 @@ defineProps<{
         <div class="flex rounded overflow-hidden border border-white/50">
           <NuxtLink
             v-if="activePage !== 'session'"
-            to="/miyako"
+            :to="base"
             class="px-3 py-1 text-[12px] font-medium bg-white/10 text-white/70 hover:bg-white/25 whitespace-nowrap transition-colors"
           >年で見る</NuxtLink>
           <span
@@ -65,7 +70,7 @@ defineProps<{
 
           <NuxtLink
             v-if="activePage !== 'member'"
-            to="/miyako/member"
+            :to="`${base}/member`"
             class="px-3 py-1 text-[12px] font-medium bg-white/10 text-white/70 hover:bg-white/25 whitespace-nowrap transition-colors border-l border-white/50"
           >議員で見る</NuxtLink>
           <span
@@ -75,7 +80,7 @@ defineProps<{
 
           <NuxtLink
             v-if="activePage !== 'keyword'"
-            to="/miyako/keyword"
+            :to="`${base}/keyword`"
             class="px-3 py-1 text-[12px] font-medium bg-white/10 text-white/70 hover:bg-white/25 whitespace-nowrap transition-colors border-l border-white/50"
           >キーワードで見る</NuxtLink>
           <span

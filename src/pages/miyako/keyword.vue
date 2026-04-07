@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ ssr: false })
+definePageMeta({ ssr: false, alias: ['/miyako_gijiroku/keyword'] })
 
 interface AiTopic {
   title: string

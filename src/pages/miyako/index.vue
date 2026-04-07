@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ ssr: false })
+definePageMeta({ ssr: false, alias: ['/miyako_gijiroku', '/miyako_gijiroku/'] })
 
 import { STOPWORDS, CATEGORY_WORDS, CATEGORIES, CATEGORY_SHORT } from '~/utils/miyako/categories'
 

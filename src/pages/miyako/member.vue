@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ ssr: false })
+definePageMeta({ ssr: false, alias: ['/miyako_gijiroku/member'] })
 
 import { parseCsv } from '~/utils/miyako/csv'
 import { CATEGORIES, CATEGORY_WORDS, STOPWORDS } from '~/utils/miyako/categories'
