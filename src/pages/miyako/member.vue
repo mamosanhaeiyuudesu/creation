@@ -240,7 +240,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#f0f2f8]">
+  <div class="min-h-screen bg-[#f0f2f8] overflow-x-hidden">
     <MiyakoHeader active-page="member" />
 
     <!-- Loading -->
@@ -252,7 +252,7 @@ onMounted(async () => {
     <div v-else class="max-w-[1400px] mx-auto px-3 md:px-6 pt-[11px] pb-8 flex flex-col md:flex-row gap-3 items-start">
 
       <!-- Heatmap panel -->
-      <div class="flex-1 min-w-0">
+      <div class="w-full md:flex-1 min-w-0 overflow-hidden">
         <MiyakoMemberHeatmap
           ref="heatmapRef"
           :speakers="filteredSpeakers"

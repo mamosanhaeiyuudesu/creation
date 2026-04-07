@@ -132,12 +132,12 @@ defineExpose({ render })
 </script>
 
 <template>
-  <div class="bg-white border border-[#dde2ef] rounded-[10px] shadow-[0_1px_4px_rgba(28,45,90,0.07),0_0_0_1px_rgba(28,45,90,0.06)] overflow-hidden">
+  <div class="bg-white border border-[#dde2ef] rounded-[10px] shadow-[0_1px_4px_rgba(28,45,90,0.07),0_0_0_1px_rgba(28,45,90,0.06)] overflow-hidden w-full min-w-0">
     <div class="flex items-center gap-1 px-3.5 py-2.5 border-b border-[#dde2ef] bg-[#fafbff]">
       <slot name="label" />
     </div>
-    <div class="overflow-auto max-h-[45vh] md:max-h-[600px] p-0.5 md:p-1.5 scroll-smooth" style="-webkit-overflow-scrolling: touch">
-      <div ref="heatmapRef" class="inline-block" />
+    <div class="w-full overflow-x-auto overflow-y-auto max-h-[45vh] md:max-h-[600px] p-0.5 md:p-1.5" style="-webkit-overflow-scrolling: touch">
+      <div ref="heatmapRef" class="inline-block" style="min-width: min-content" />
     </div>
     <div class="flex md:hidden items-center justify-end px-3 py-1 text-[10px] text-[#9aa3c0] border-t border-[#dde2ef]">
       ← 横スクロールで全体を確認

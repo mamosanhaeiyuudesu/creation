@@ -58,7 +58,7 @@
             </div>
           </div>
 
-          <div class="service-card">
+          <!-- <div class="service-card">
             <div class="service-icon">🤖</div>
             <h3 class="service-card-title">メンタル系チャットボット開発</h3>
             <div class="service-card-body">
@@ -72,7 +72,7 @@
                 セラピスト・カウンセラー・支援職の方が現場で使えるツールを、現場の声を聞きながらプロトタイプします。
               </p>
             </div>
-          </div>
+          </div> -->
 
         </div>
         <div class="services-scope">

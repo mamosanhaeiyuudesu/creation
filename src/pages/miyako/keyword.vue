@@ -86,8 +86,7 @@ async function search() {
           v-model="keyword"
           type="text"
           placeholder="キーワード"
-          class="rounded-[8px] border border-[#c5cad8] bg-white px-3 py-2.5 text-[14px] text-[#1c2d5a] placeholder:text-[#a0aac4] outline-none focus:border-[#3d5fc4] focus:ring-2 focus:ring-[#3d5fc4]/15 shadow-[0_1px_3px_rgba(28,45,90,0.06)] transition-all"
-          style="width: 200px"
+          class="rounded-[8px] border border-[#c5cad8] bg-white px-3 py-2.5 text-[14px] text-[#1c2d5a] placeholder:text-[#a0aac4] outline-none focus:border-[#3d5fc4] focus:ring-2 focus:ring-[#3d5fc4]/15 shadow-[0_1px_3px_rgba(28,45,90,0.06)] transition-all w-[200px]"
           @keydown="handleKeydown"
         />
         <button
@@ -97,13 +96,13 @@ async function search() {
         >
           検索
         </button>
-        <div class="flex items-center gap-1.5">
+        <div class="hidden md:flex items-center gap-1.5">
           <span class="text-[11px] text-[#6878a8] whitespace-nowrap">件数</span>
           <select v-model.number="resultCount" class="search-select">
             <option v-for="n in RESULT_COUNT_OPTIONS" :key="n" :value="n">{{ n }}件</option>
           </select>
         </div>
-        <div class="flex items-center gap-1.5">
+        <div class="hidden md:flex items-center gap-1.5">
           <span class="text-[11px] text-[#6878a8] whitespace-nowrap">モデル</span>
           <select v-model="model" class="search-select">
             <option v-for="m in MODEL_OPTIONS" :key="m" :value="m">{{ m }}</option>
