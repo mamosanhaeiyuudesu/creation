@@ -117,16 +117,38 @@ export function useDragDrop(
   let touchInitialY = 0
   let touchElemOffsetX = 0
   let touchElemOffsetY = 0
-  let touchMoved = false
+  let isDragActive = false
+  let longPressTimer: ReturnType<typeof setTimeout> | null = null
+  let lastTouchX = 0
+  let lastTouchY = 0
   let pendingTouchInfo: { card: Card; boardId: string; status: 'doing' | 'todo'; el: HTMLElement } | null = null
+
+  function activateDrag(currentX: number, currentY: number) {
+    if (!pendingTouchInfo) return
+    const { card, boardId, status, el } = pendingTouchInfo
+    dragging.value = { cardId: card.id, boardId, status }
+    const rect = el.getBoundingClientRect()
+    touchElemOffsetX = touchInitialX - rect.left
+    touchElemOffsetY = touchInitialY - rect.top
+    touchGhost = el.cloneNode(true) as HTMLElement
+    touchGhost.style.cssText = `position:fixed;left:${currentX - touchElemOffsetX}px;top:${currentY - touchElemOffsetY}px;width:${rect.width}px;opacity:0.75;pointer-events:none;z-index:9999;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.4);`
+    document.body.appendChild(touchGhost)
+    isDragActive = true
+  }
 
   function onMobileTouchStart(e: TouchEvent, card: Card, boardId: string, status: 'doing' | 'todo') {
     if ((e.target as HTMLElement).closest('[data-no-drag]')) return
     const touch = e.touches[0]
-    touchMoved = false
+    isDragActive = false
     touchInitialX = touch.clientX
     touchInitialY = touch.clientY
+    lastTouchX = touch.clientX
+    lastTouchY = touch.clientY
     pendingTouchInfo = { card, boardId, status, el: e.currentTarget as HTMLElement }
+    longPressTimer = setTimeout(() => {
+      longPressTimer = null
+      activateDrag(lastTouchX, lastTouchY)
+    }, 350)
     document.addEventListener('touchmove', onDocTouchMove, { passive: false })
     document.addEventListener('touchend', onDocTouchEnd, { once: true })
   }
@@ -134,22 +156,22 @@ export function useDragDrop(
   function onDocTouchMove(e: TouchEvent) {
     if (!pendingTouchInfo) return
     const touch = e.touches[0]
-    const dx = touch.clientX - touchInitialX
-    const dy = touch.clientY - touchInitialY
+    lastTouchX = touch.clientX
+    lastTouchY = touch.clientY
 
-    if (!touchMoved && Math.sqrt(dx * dx + dy * dy) > 8) {
-      touchMoved = true
-      const { card, boardId, status, el } = pendingTouchInfo
-      dragging.value = { cardId: card.id, boardId, status }
-      const rect = el.getBoundingClientRect()
-      touchElemOffsetX = touchInitialX - rect.left
-      touchElemOffsetY = touchInitialY - rect.top
-      touchGhost = el.cloneNode(true) as HTMLElement
-      touchGhost.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;opacity:0.75;pointer-events:none;z-index:9999;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.4);`
-      document.body.appendChild(touchGhost)
+    if (!isDragActive) {
+      // ロングプレス待機中: 指が動いたらスクロールとみなしドラッグキャンセル
+      const dx = touch.clientX - touchInitialX
+      const dy = touch.clientY - touchInitialY
+      if (Math.sqrt(dx * dx + dy * dy) > 8) {
+        if (longPressTimer !== null) { clearTimeout(longPressTimer); longPressTimer = null }
+        pendingTouchInfo = null
+        document.removeEventListener('touchmove', onDocTouchMove)
+      }
+      return // preventDefault不要 → ネイティブスクロール動作
     }
 
-    if (touchMoved && touchGhost) {
+    if (touchGhost) {
       e.preventDefault()
       touchGhost.style.left = `${touch.clientX - touchElemOffsetX}px`
       touchGhost.style.top = `${touch.clientY - touchElemOffsetY}px`
@@ -163,13 +185,15 @@ export function useDragDrop(
 
   async function onDocTouchEnd(e: TouchEvent) {
     document.removeEventListener('touchmove', onDocTouchMove)
+    if (longPressTimer !== null) { clearTimeout(longPressTimer); longPressTimer = null }
     const info = pendingTouchInfo
     pendingTouchInfo = null
 
-    if (!touchMoved || !info) {
+    if (!isDragActive || !info) {
       dragging.value = null
       dragOverCardId.value = null
       dragOverEndKey.value = null
+      isDragActive = false
       return
     }
 
@@ -178,6 +202,7 @@ export function useDragDrop(
     if (touchGhost) touchGhost.style.display = 'none'
     const under = document.elementFromPoint(touch.clientX, touch.clientY)
     if (touchGhost) { touchGhost.remove(); touchGhost = null }
+    isDragActive = false
 
     dragging.value = { cardId: info.card.id, boardId: info.boardId, status: info.status }
 
