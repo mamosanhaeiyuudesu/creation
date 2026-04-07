@@ -194,11 +194,11 @@ watch(selectedCategory, resetAndRender)
           @session-click="selectedSession = $event"
         >
           <template #label>
-            <div class="flex items-center flex-wrap gap-0 ml-2">
+            <div class="flex items-center flex-wrap gap-y-0.5 gap-x-0 ml-1">
               <template v-for="(cat, i) in CATEGORY_OPTIONS" :key="cat">
                 <span v-if="i > 0" class="text-[#c5cad8] text-[11px] select-none mx-0.5">/</span>
                 <button
-                  class="text-[11px] px-1 py-0 rounded transition-colors leading-5"
+                  class="text-[11px] px-1 py-0.5 rounded transition-colors leading-5"
                   :class="selectedCategory === cat ? 'text-[#1A237E] font-bold' : 'text-[#6878a8] hover:text-[#3949AB]'"
                   @click="selectedCategory = cat"
                 >{{ CATEGORY_SHORT[cat] ?? cat }}</button>

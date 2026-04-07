@@ -135,9 +135,10 @@ function layoutWordcloud() {
       </div>
     </template>
 
-    <div v-else class="flex flex-col items-center justify-center min-h-[280px] gap-3 p-8 text-center text-[#6878a8] text-xs leading-relaxed">
+    <div v-else class="flex flex-col items-center justify-center min-h-[160px] md:min-h-[280px] gap-3 p-6 text-center text-[#6878a8] text-xs leading-relaxed">
       <span class="text-4xl opacity-25">👆</span>
-      <p class="m-0">左のヒートマップの列をクリックすると<br>ワードクラウドが表示されます</p>
+      <p class="m-0 hidden md:block">左のヒートマップの列をクリックすると<br>ワードクラウドが表示されます</p>
+      <p class="m-0 md:hidden">上のヒートマップの列をクリックすると<br>ワードクラウドが表示されます</p>
     </div>
   </div>
 </template>
@@ -146,8 +147,14 @@ function layoutWordcloud() {
 .wordcloud-container {
   position: relative;
   width: 100%;
-  height: 220px;
+  height: 260px;
   overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .wordcloud-container {
+    height: 220px;
+  }
 }
 
 .wc-word {

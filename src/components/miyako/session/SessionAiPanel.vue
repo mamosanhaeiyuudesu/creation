@@ -13,7 +13,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="flex-1 min-h-0 bg-white border border-[#dde2ef] rounded-[10px] shadow-[0_1px_4px_rgba(28,45,90,0.07),0_0_0_1px_rgba(28,45,90,0.06)] overflow-hidden flex flex-col">
+  <div class="bg-white border border-[#dde2ef] rounded-[10px] shadow-[0_1px_4px_rgba(28,45,90,0.07),0_0_0_1px_rgba(28,45,90,0.06)] overflow-hidden flex flex-col md:flex-1 md:min-h-0">
     <div v-if="!selectedWord" class="flex items-center px-3.5 py-3 text-xs text-[#6878a8]">
       👆 単語をクリックするとAI解説が表示されます
     </div>
@@ -21,7 +21,7 @@ defineProps<{
       <div class="flex items-center flex-shrink-0 bg-[#1c2d5a] text-white text-[13.5px] font-semibold px-3.5 py-2.5 tracking-[0.02em]">
         🤖 「{{ selectedWord }}」の議論
       </div>
-      <div class="overflow-y-auto flex-1 min-h-0">
+      <div class="overflow-y-auto md:flex-1 md:min-h-0">
         <div v-if="aiLoading" class="flex items-center justify-center min-h-[80px]">
           <span class="w-[22px] h-[22px] rounded-full border-2 border-[#1A237E]/30 border-t-[#1A237E] animate-spin block" />
         </div>
