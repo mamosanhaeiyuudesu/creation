@@ -47,7 +47,7 @@
             まず無料相談でお話しください。
           </h2>
           <p class="cta-sub">初回30分は無料で、お話を聞かせてください。</p>
-          <a class="cta-btn" href="/mamorin">カウンセリングについて見る</a>
+          <a class="cta-btn" href="/homepages/mamorin">カウンセリングについて見る</a>
         </div>
       </section>
     </div>
@@ -60,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'mamorin' })
+definePageMeta({ layout: 'mamorin', alias: ['/mamorin/qa'] })
 
 useHead({
   title: 'よくある質問 — カウンセリング & 感情フォーカス・セラピー',

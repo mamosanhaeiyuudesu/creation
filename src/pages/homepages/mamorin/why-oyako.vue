@@ -119,7 +119,7 @@
         <div class="cta-section" style="padding: 2rem 0 4rem;">
           <h2 class="cta-title serif">同じ場所にいるあなたへ。</h2>
           <p class="cta-sub">初回30分は無料で、お話を聞かせてください。</p>
-          <a class="cta-btn" href="/mamorin#contact">無料相談フォームへ</a>
+          <a class="cta-btn" href="/homepages/mamorin#contact">無料相談フォームへ</a>
         </div>
       </section>
     </div>
@@ -132,7 +132,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'mamorin' })
+definePageMeta({ layout: 'mamorin', alias: ['/mamorin/why-oyako'] })
 
 useHead({
   title: 'なぜ親子問題を扱うのか — カウンセリング & 感情フォーカス・セラピー',

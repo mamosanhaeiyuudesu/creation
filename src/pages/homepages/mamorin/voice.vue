@@ -125,7 +125,7 @@
             話せる場所が、ここにあります。<br>
             一度、言葉にしてみてください。
           </p>
-          <NuxtLink to="/mamorin#contact" class="cta-btn">初回無料相談へ</NuxtLink>
+          <NuxtLink to="/homepages/mamorin#contact" class="cta-btn">初回無料相談へ</NuxtLink>
         </div>
       </section>
     </div>
@@ -138,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'mamorin' })
+definePageMeta({ layout: 'mamorin', alias: ['/mamorin/voice'] })
 
 useHead({
   title: 'お客様の声 — カウンセリング & 感情フォーカス・セラピー',

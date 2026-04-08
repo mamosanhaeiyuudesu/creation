@@ -4,9 +4,11 @@ defineProps<{
 }>()
 
 const route = useRoute()
-const base = computed(() =>
-  route.path.startsWith('/miyako_gijiroku') ? '/miyako_gijiroku' : '/miyako'
-)
+const base = computed(() => {
+  if (route.path.startsWith('/miyako_gijiroku')) return '/miyako_gijiroku'
+  if (route.path.startsWith('/miyako')) return '/miyako'
+  return '/ai-tools/miyako'
+})
 </script>
 
 <template>

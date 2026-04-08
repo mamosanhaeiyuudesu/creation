@@ -158,7 +158,7 @@
             ここに書いたことは、私だけの話ではないと思っています。<br>
             もし重なる部分があれば、一度話してみてください。
           </p>
-          <NuxtLink to="/mamorin#contact" class="cta-btn">初回無料相談へ</NuxtLink>
+          <NuxtLink to="/homepages/mamorin#contact" class="cta-btn">初回無料相談へ</NuxtLink>
         </div>
       </section>
     </div>
@@ -171,7 +171,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'mamorin' })
+definePageMeta({ layout: 'mamorin', alias: ['/mamorin/story'] })
 
 useHead({
   title: '私の原体験 — カウンセリング & 感情フォーカス・セラピー',

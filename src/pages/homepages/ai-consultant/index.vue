@@ -163,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'ai-consultant' })
+definePageMeta({ layout: 'ai-consultant', alias: ['/ai-consultant', '/ai-consultant/'] })
 
 useHead({
   title: 'AI Consultant | AIと人間の協調を、一緒に考える。',

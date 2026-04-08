@@ -25,8 +25,8 @@
               </p>
             </div>
             <div class="hero-actions">
-              <NuxtLink class="cta-link" to="/kaito/services">サービス内容を見る</NuxtLink>
-              <NuxtLink class="secondary-link" to="/kaito/profile">月ノ瀬 海倭について</NuxtLink>
+              <NuxtLink class="cta-link" to="/homepages/kaito/services">サービス内容を見る</NuxtLink>
+              <NuxtLink class="secondary-link" to="/homepages/kaito/profile">月ノ瀬 海倭について</NuxtLink>
             </div>
           </div>
         </div>
@@ -43,7 +43,7 @@
             <li>怒りや憎しみから解放されたい方</li>
           </ul>
           <div class="section-link-wrap">
-            <NuxtLink class="read-more" to="/kaito/for-you">詳しく見る</NuxtLink>
+            <NuxtLink class="read-more" to="/homepages/kaito/for-you">詳しく見る</NuxtLink>
           </div>
         </div>
       </section>
@@ -62,7 +62,7 @@
             前世の記憶が見えることもあります。
           </p>
           <div class="section-link-wrap">
-            <NuxtLink class="read-more" to="/kaito/services">サービス詳細を見る</NuxtLink>
+            <NuxtLink class="read-more" to="/homepages/kaito/services">サービス詳細を見る</NuxtLink>
           </div>
         </div>
       </section>
@@ -83,7 +83,7 @@
             それが私の使命だと感じています。
           </p>
           <div class="section-link-wrap">
-            <NuxtLink class="read-more" to="/kaito/profile">月ノ瀬 海倭について詳しく</NuxtLink>
+            <NuxtLink class="read-more" to="/homepages/kaito/profile">月ノ瀬 海倭について詳しく</NuxtLink>
           </div>
         </div>
       </section>
@@ -97,9 +97,9 @@
             実際に受けた方の声は「お客様の声」でご覧いただけます。
           </p>
           <div class="cta-grid">
-            <NuxtLink class="cta-card" to="/kaito/services"><span>サービス内容</span></NuxtLink>
-            <NuxtLink class="cta-card" to="/kaito/profile"><span>月ノ瀬 海倭について</span></NuxtLink>
-            <NuxtLink class="cta-card" to="/kaito/testimonials"><span>お客様の声</span></NuxtLink>
+            <NuxtLink class="cta-card" to="/homepages/kaito/services"><span>サービス内容</span></NuxtLink>
+            <NuxtLink class="cta-card" to="/homepages/kaito/profile"><span>月ノ瀬 海倭について</span></NuxtLink>
+            <NuxtLink class="cta-card" to="/homepages/kaito/testimonials"><span>お客様の声</span></NuxtLink>
           </div>
         </div>
       </section>
@@ -110,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'therapist' })
+definePageMeta({ layout: 'therapist', alias: ['/kaito', '/kaito/'] })
 
 useHead({
   bodyAttrs: { class: 'home' },

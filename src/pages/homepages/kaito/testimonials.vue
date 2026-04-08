@@ -116,7 +116,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'therapist' })
+definePageMeta({ layout: 'therapist', alias: ['/kaito/testimonials'] })
 
 useHead({
   bodyAttrs: { class: 'home' },

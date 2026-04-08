@@ -282,6 +282,7 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ alias: ['/hagemashi', '/hagemashi/'] })
 import { ref, computed, onMounted } from 'vue'
 import { marked } from 'marked'
 

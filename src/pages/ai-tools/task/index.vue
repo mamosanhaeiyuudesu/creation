@@ -1,4 +1,5 @@
 <script setup lang="ts">
+definePageMeta({ alias: ['/task', '/task/'] })
 import { ref, computed, watch, onMounted } from 'vue'
 
 useHead({

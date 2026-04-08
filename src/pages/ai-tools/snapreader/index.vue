@@ -80,6 +80,7 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ alias: ['/snapreader', '/snapreader/'] })
 import { ref, nextTick } from 'vue'
 
 useHead({

@@ -67,7 +67,7 @@
       </div>
 
       <div style="margin-top: 2rem;">
-        <NuxtLink to="/mamorin/voice" class="cta-btn">お客様の声を読む</NuxtLink>
+        <NuxtLink to="/homepages/mamorin/voice" class="cta-btn">お客様の声を読む</NuxtLink>
       </div>
     </section>
   </div>
@@ -145,7 +145,7 @@
         その人の本、その人との関わり、そして実際のセッションが、私の中に確かな変化をもたらしてくれました。
       </p>
       <div style="margin-top: 2rem;">
-        <NuxtLink to="/mamorin/story" class="cta-btn">私の原体験を読む</NuxtLink>
+        <NuxtLink to="/homepages/mamorin/story" class="cta-btn">私の原体験を読む</NuxtLink>
       </div>
     </section>
   </div>
@@ -235,7 +235,7 @@
       <h2 class="section-title serif">Q&amp;A</h2>
       <p class="story-para">「どんな人が対象？」「セッションでは何をするの？」「心理系の資格は持っていないの？」<br>気になる疑問にまとめてお答えしています。</p>
       <div style="margin-top: 2rem;">
-        <NuxtLink to="/mamorin/qa" class="cta-btn">よくある質問を見る</NuxtLink>
+        <NuxtLink to="/homepages/mamorin/qa" class="cta-btn">よくある質問を見る</NuxtLink>
       </div>
     </section>
   </div>
@@ -262,7 +262,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'mamorin' })
+definePageMeta({ layout: 'mamorin', alias: ['/mamorin', '/mamorin/'] })
 
 useHead({
   title: '自分を許す — カウンセリング & 感情フォーカス・セラピー',

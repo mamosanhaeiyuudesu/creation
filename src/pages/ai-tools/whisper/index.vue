@@ -114,6 +114,7 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ alias: ['/whisper', '/whisper/'] })
 import { ref, onMounted } from 'vue'
 
 useHead({

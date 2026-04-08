@@ -152,7 +152,7 @@
               <span class="tech-badge">TypeScript</span>
             </div>
 
-            <NuxtLink to="/miyako" class="portfolio-link" target="_blank">
+            <NuxtLink to="/ai-tools/miyako" class="portfolio-link" target="_blank">
               デモを見る
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </NuxtLink>
@@ -239,7 +239,7 @@
               メールで相談する
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
             </a>
-            <NuxtLink to="/miyako" class="btn-secondary" target="_blank">
+            <NuxtLink to="/ai-tools/miyako" class="btn-secondary" target="_blank">
               デモを触ってみる
             </NuxtLink>
           </div>
@@ -251,7 +251,7 @@
     <footer class="ac-footer">
       <div class="ac-footer-inner">
         <span class="ac-footer-copy">&copy; 2026 Prototyper</span>
-        <NuxtLink to="/miyako" class="ac-footer-link">Portfolio: 宮古島市議事録分析 →</NuxtLink>
+        <NuxtLink to="/ai-tools/miyako" class="ac-footer-link">Portfolio: 宮古島市議事録分析 →</NuxtLink>
       </div>
     </footer>
 
@@ -259,7 +259,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'ai-consultant' })
+definePageMeta({ layout: 'ai-consultant', alias: ['/prototyper', '/prototyper/'] })
 
 useHead({
   title: 'Prototyper | モヤッとしたまま、来てください。',
