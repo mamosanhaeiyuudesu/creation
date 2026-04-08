@@ -159,14 +159,6 @@
               placeholder="励まし方の指示を入力..."
             />
           </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-[13px] font-medium text-slate-400">Vector Store ID <span class="text-slate-600 font-normal">（RAG使用時のみ）</span></label>
-            <input
-              v-model="editingProfiles[editingTabIdx].vectorStoreId"
-              class="bg-white/[0.05] border border-white/[0.12] rounded-lg text-slate-50 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] font-mono"
-              placeholder="vs_xxxxxxxxxxxxxxxx"
-            />
-          </div>
           <div class="flex justify-start">
             <button
               class="px-4 py-2 rounded-lg border border-red-500/40 bg-transparent text-red-400 text-xs cursor-pointer hover:bg-red-500/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
@@ -198,7 +190,6 @@
             @click="selectProfileAndOpenModal(p)"
           >
             <span class="text-sm text-slate-200 font-medium">{{ p.name }}</span>
-            <span v-if="p.vectorStoreId" class="text-[11px] px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">RAG</span>
           </button>
         </div>
         <div class="px-6 pb-4 pt-1">
@@ -213,7 +204,7 @@
         <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
           <div>
             <h2 class="m-0 text-lg text-slate-50 font-semibold">励ます対象を選択</h2>
-            <p v-if="selectedProfile" class="m-0 mt-0.5 text-xs text-slate-500">{{ selectedProfile.name }}{{ selectedProfile.vectorStoreId ? ' · RAG使用' : '' }}</p>
+            <p v-if="selectedProfile" class="m-0 mt-0.5 text-xs text-slate-500">{{ selectedProfile.name }}</p>
           </div>
           <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="selectOpen = false">✕</button>
         </div>
@@ -303,7 +294,6 @@ interface HagemashiProfile {
   id: string
   name: string
   encouragePrompt: string
-  vectorStoreId: string
 }
 
 const LS_PROFILES = 'hagemashi-profiles'
@@ -323,7 +313,6 @@ const makeDefaultProfile = (): HagemashiProfile => ({
   id: Date.now().toString(),
   name: 'デフォルト',
   encouragePrompt: DEFAULT_PROMPT,
-  vectorStoreId: '',
 })
 
 const error = ref('')
@@ -490,24 +479,14 @@ const runEncourage = async () => {
   encourageOpen.value = true
   isEncouraging.value = true
   try {
-    const res = await $fetch<{ result: string; _debug?: Record<string, unknown> }>('/api/hagemashi/encourage', {
+    const res = await $fetch<{ result: string }>('/api/hagemashi/encourage', {
       method: 'POST',
       body: {
         texts,
         encouragePrompt: profile.encouragePrompt,
         charLimit: charLimit.value,
-        ...(profile.vectorStoreId ? { vectorStoreId: profile.vectorStoreId } : {}),
       },
     })
-    if (res._debug) {
-      console.group('[hagemashi/encourage RAG debug]')
-      console.log('vectorStoreId:', res._debug.vectorStoreId)
-      console.log('userContent:', res._debug.userContent)
-      console.log('keyPoints (Step1):', res._debug.keyPoints)
-      console.log('ragInput (Step2):', res._debug.ragInput)
-      console.log('rawResponse (Step2):', res._debug.rawResponse)
-      console.groupEnd()
-    }
     encourageResult.value = res.result
     const title = await fetchEncourageTitle(res.result)
     addEncourageHistory(res.result, title)
