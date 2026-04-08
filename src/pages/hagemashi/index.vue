@@ -101,8 +101,12 @@
           :history="history"
           :copiedId="copiedHistoryId"
           :hideHeader="true"
+          :summarizable="true"
+          :noSummarizeColumn="true"
+          :summarizingId="summarizingId"
           @copy="copyHistory"
           @delete="deleteHistory"
+          @summarize="summarizeHistory"
         />
         <HistoryTable
           v-else
@@ -323,6 +327,7 @@ const encourageOpen = ref(false)
 const encourageResult = ref('')
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
+const summarizingId = ref<string | null>(null)
 const activeTab = ref<'transcription' | 'encourage'>('transcription')
 const charLimit = ref(1000)
 const profileSelectOpen = ref(false)
@@ -341,7 +346,7 @@ if (!$dev) {
   onMounted(checkAuth)
 }
 
-const { history, copiedHistoryId, addHistory, deleteHistory, copyHistory } = useHistory('hagemashi-history', 'hagemashi')
+const { history, copiedHistoryId, addHistory, updateHistoryNotes, deleteHistory, copyHistory } = useHistory('hagemashi-history', 'hagemashi')
 const {
   history: encourageHistory,
   copiedHistoryId: copiedEncourageId,
@@ -514,10 +519,30 @@ const copyResult = async () => {
   setTimeout(() => { resultCopied.value = false }, 2000)
 }
 
+// --- 箇条書き要約 ---
+const fetchBullets = async (text: string): Promise<string> => {
+  try {
+    const res = await $fetch<{ notes: string }>('/api/hagemashi/bullets', { method: 'POST', body: { text } })
+    return res.notes
+  } catch {
+    return ''
+  }
+}
+
+const summarizeHistory = async (id: string) => {
+  const item = history.value.find(h => h.id === id)
+  if (!item) return
+  summarizingId.value = id
+  const notes = await fetchBullets(item.text)
+  if (notes) updateHistoryNotes(id, notes)
+  summarizingId.value = null
+}
+
 // --- 文字起こし後処理 ---
 const handleTranscribed = async (text: string) => {
-  const title = await fetchTitle(text)
-  addHistory(text, title)
+  const [title, notes] = await Promise.all([fetchTitle(text), fetchBullets(text)])
+  const id = addHistory(text, title)
+  if (notes) updateHistoryNotes(id, notes)
 }
 
 // --- 録音 ---

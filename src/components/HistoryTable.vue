@@ -7,7 +7,7 @@
           <tr>
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-[110px] whitespace-nowrap">日時</th>
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08]">タイトル</th>
-            <th v-if="summarizable" class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-8 text-center whitespace-nowrap">要約</th>
+            <th v-if="summarizable && !noSummarizeColumn" class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-8 text-center whitespace-nowrap">要約</th>
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-8 text-center whitespace-nowrap">コピー</th>
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-[52px] text-center">削除</th>
           </tr>
@@ -23,7 +23,7 @@
               class="py-1.5 px-2 text-slate-200 border-b border-white/[0.04] overflow-hidden text-ellipsis whitespace-nowrap max-w-0 cursor-pointer hover:text-orange-400 transition-colors"
               @click="selectedItem = item"
             >{{ item.title }}</td>
-            <td v-if="summarizable" class="py-1.5 px-2 text-slate-300 border-b border-white/[0.04] text-center w-8">
+            <td v-if="summarizable && !noSummarizeColumn" class="py-1.5 px-2 text-slate-300 border-b border-white/[0.04] text-center w-8">
               <button
                 v-if="!item.notes"
                 class="bg-transparent border-none cursor-pointer p-1 rounded text-[13px] leading-none transition-colors hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed"
@@ -141,6 +141,7 @@ const props = defineProps<{
   markdown?: boolean
   summarizable?: boolean
   summarizingId?: string | null
+  noSummarizeColumn?: boolean
 }>()
 
 const emit = defineEmits<{
