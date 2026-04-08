@@ -209,6 +209,16 @@
           <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="selectOpen = false">✕</button>
         </div>
         <div class="px-4 py-3 overflow-y-auto flex flex-col gap-1 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
+          <label class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer border-b border-white/[0.06] mb-1 hover:bg-white/[0.05] transition-colors">
+            <input
+              type="checkbox"
+              class="w-4 h-4 shrink-0 accent-orange-500 cursor-pointer"
+              :checked="allSelected"
+              :indeterminate="someSelected"
+              @change="toggleAll"
+            />
+            <span class="text-xs text-slate-400 font-medium">全て選択</span>
+          </label>
           <label
             v-for="item in history"
             :key="item.id"
@@ -226,25 +236,8 @@
           </label>
         </div>
         <div class="px-6 pt-3 pb-4 border-t border-white/[0.08] flex flex-col gap-3">
-          <!-- 文字数選択 -->
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-500 whitespace-nowrap">文字数</span>
-            <div class="flex gap-1.5">
-              <button
-                v-for="n in [200, 500, 1000]"
-                :key="n"
-                class="px-3 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer"
-                :class="charLimit === n ? 'border-orange-500 bg-orange-500/20 text-orange-300' : 'border-white/15 bg-transparent text-slate-400 hover:border-white/30 hover:text-slate-300'"
-                @click="charLimit = n"
-              >{{ n }}</button>
-            </div>
-          </div>
           <!-- アクションボタン -->
-          <div class="flex items-center justify-between">
-            <div class="flex gap-2">
-              <button class="px-3 py-1.5 rounded-lg border border-white/15 bg-transparent text-slate-400 text-xs cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="selectedIds = history.map(i => i.id)">全選択</button>
-              <button class="px-3 py-1.5 rounded-lg border border-white/15 bg-transparent text-slate-400 text-xs cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="selectedIds = []">全解除</button>
-            </div>
+          <div class="flex items-center justify-end">
             <div class="flex gap-2">
               <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="selectOpen = false">キャンセル</button>
               <button
@@ -325,7 +318,7 @@ const encourageResult = ref('')
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
 const activeTab = ref<'transcription' | 'encourage'>('transcription')
-const charLimit = ref(500)
+const charLimit = ref(1000)
 const profileSelectOpen = ref(false)
 const selectedProfile = ref<HagemashiProfile | null>(null)
 
@@ -434,6 +427,17 @@ function selectProfileAndOpenModal(p: HagemashiProfile) {
 }
 
 // --- 履歴選択モーダル ---
+const allSelected = computed(() => history.value.length > 0 && selectedIds.value.length === history.value.length)
+const someSelected = computed(() => selectedIds.value.length > 0 && selectedIds.value.length < history.value.length)
+
+const toggleAll = () => {
+  if (allSelected.value) {
+    selectedIds.value = []
+  } else {
+    selectedIds.value = history.value.map(i => i.id)
+  }
+}
+
 const openSelectModal = () => {
   selectedIds.value = history.value.length > 0 ? [history.value[0].id] : []
   selectOpen.value = true
