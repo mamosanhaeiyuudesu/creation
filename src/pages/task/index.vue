@@ -56,7 +56,7 @@ const {
   chartRef, selectedDate, renderDoneChart,
   compPeriod, compChartRef, renderCompChart,
   compPeriodData, compPeriodTotal,
-  thisWeekDoneFlat, weekComparison, weekCompTotal, lastMonthWeekDoneFlat,
+  thisWeekDoneFlat, weekComparison, weekCompTotal,
 } = useTaskStats(boards, allDates, route.query.view as DoneView)
 
 // 全件表示
@@ -87,8 +87,7 @@ async function generatePraise() {
     const res = await $fetch<{ feedback: string }>('/api/task/praise', {
       method: 'POST',
       body: {
-        thisWeek: thisWeekDoneFlat.value.map(r => r.card.name),
-        lastMonthWeek: lastMonthWeekDoneFlat.value.map(r => r.card.name),
+        thisWeek: thisWeekDoneFlat.value.map(r => ({ board: r.board.name, task: r.card.name })),
       },
     })
     praiseFeedback.value = res.feedback
@@ -348,7 +347,7 @@ onMounted(() => {
 
       <template v-else>
         <!-- DOING (PC only) -->
-        <section class="hidden md:block px-5 pt-5 mb-8">
+        <section class="hidden md:block px-5 pt-3 mb-8">
           <div class="flex items-center gap-2.5 mb-3.5">
             <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-sky-400/15 text-white border border-sky-400/30">DOING</span>
             <span class="text-xl font-bold text-slate-600">{{ doingTotal }}</span>
@@ -461,6 +460,22 @@ onMounted(() => {
           </div>
         </section>
 
+        <!-- 称賛フィードバック (PC only) -->
+        <section class="hidden md:block px-5 pt-1.8">
+          <div class="flex items-center gap-3 mb-1.5">
+            <button
+              class="px-3.5 py-1.5 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[12px] font-semibold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:opacity-90 hover:enabled:-translate-y-px"
+              :disabled="praiseLoading"
+              @click="generatePraise"
+            >{{ praiseLoading ? '生成中…' : 'AIに称賛してもらう' }}</button>
+          </div>
+          <div v-if="praiseError" class="px-3.5 py-2.5 bg-red-500/12 border border-red-500/30 rounded-lg text-red-300 text-[13px] mb-4">⚠ {{ praiseError }}</div>
+          <div v-else-if="praiseLoading" class="h-[56px] rounded-xl bg-white/[0.04] border border-white/[0.07] animate-pulse mb-4" />
+          <div v-else-if="praiseFeedback" class="px-4 py-3.5 bg-violet-500/[0.08] border border-violet-400/25 rounded-xl text-[14px] leading-relaxed text-slate-200 flex flex-col gap-1 mb-4">
+            <p v-for="(s, i) in praiseSentences" :key="i" class="m-0">{{ s }}</p>
+          </div>
+        </section>
+
         <!-- DONE (PC only) -->
         <section class="hidden md:block px-5">
           <div class="flex items-center gap-2.5 mb-3.5">
@@ -540,27 +555,6 @@ onMounted(() => {
               </transition>
             </div>
           </template>
-        </section>
-
-        <!-- 称賛フィードバック (PC only) -->
-        <section class="hidden md:block px-5 mt-6">
-          <div class="flex items-center gap-3 mb-3">
-            <span class="text-[13px] font-bold text-slate-400">今週の称賛フィードバック</span>
-            <span class="text-[11px] text-slate-600">直近7日 vs 2週間前の7日</span>
-            <button
-              class="ml-auto px-3.5 py-1.5 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[12px] font-semibold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:opacity-90 hover:enabled:-translate-y-px"
-              :disabled="praiseLoading"
-              @click="generatePraise"
-            >{{ praiseLoading ? '生成中…' : 'AIに称賛してもらう' }}</button>
-          </div>
-          <div v-if="praiseError" class="px-3.5 py-2.5 bg-red-500/12 border border-red-500/30 rounded-lg text-red-300 text-[13px]">⚠ {{ praiseError }}</div>
-          <div v-else-if="praiseLoading" class="h-[56px] rounded-xl bg-white/[0.04] border border-white/[0.07] animate-pulse" />
-          <div v-else-if="praiseFeedback" class="px-4 py-3.5 bg-violet-500/[0.08] border border-violet-400/25 rounded-xl text-[14px] leading-relaxed text-slate-200 flex flex-col gap-1">
-            <p v-for="(s, i) in praiseSentences" :key="i" class="m-0">{{ s }}</p>
-          </div>
-          <div v-else class="px-4 py-3 text-[13px] text-slate-600 bg-white/[0.02] border border-white/[0.06] rounded-xl">
-            今週({{ thisWeekDoneFlat.length }}件) と2週間前の同期間({{ lastMonthWeekDoneFlat.length }}件) を比較して、AIが称賛コメントを生成します。
-          </div>
         </section>
 
         <!-- DONE 期間比較 (PC only) -->
@@ -697,6 +691,22 @@ onMounted(() => {
             </div>
           </div>
 
+          <!-- スマホ版 称賛フィードバック -->
+          <div class="mt-3 pt-3 border-t border-white/[0.06]">
+            <div class="flex items-center gap-2 mb-2">
+              <button
+                class="px-3 py-1 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[11px] font-semibold cursor-pointer disabled:opacity-50"
+                :disabled="praiseLoading"
+                @click="generatePraise"
+              >{{ praiseLoading ? '…' : 'AIに称賛してもらう' }}</button>
+            </div>
+            <div v-if="praiseError" class="px-2.5 py-2 bg-red-500/12 border border-red-500/30 rounded-lg text-red-300 text-[12px]">⚠ {{ praiseError }}</div>
+            <div v-else-if="praiseLoading" class="h-12 rounded-xl bg-white/[0.04] border border-white/[0.07] animate-pulse" />
+            <div v-else-if="praiseFeedback" class="px-3 py-2.5 bg-violet-500/[0.08] border border-violet-400/25 rounded-xl text-[13px] leading-relaxed text-slate-200 flex flex-col gap-1">
+              <p v-for="(s, i) in praiseSentences" :key="i" class="m-0">{{ s }}</p>
+            </div>
+          </div>
+
           <!-- スマホ版 DONE -->
           <div class="mt-4 pt-4 border-t border-white/[0.06]">
             <div class="flex items-center gap-2 mb-3">
@@ -762,23 +772,6 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- スマホ版 称賛フィードバック -->
-          <div class="mt-4 pt-4 border-t border-white/[0.06]">
-            <div class="flex items-center gap-2 mb-2">
-              <span class="text-[11px] font-bold text-slate-400">今週の称賛フィードバック</span>
-              <button
-                class="ml-auto px-3 py-1 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[11px] font-semibold cursor-pointer disabled:opacity-50"
-                :disabled="praiseLoading"
-                @click="generatePraise"
-              >{{ praiseLoading ? '…' : 'AIに称賛してもらう' }}</button>
-            </div>
-            <div v-if="praiseError" class="px-2.5 py-2 bg-red-500/12 border border-red-500/30 rounded-lg text-red-300 text-[12px]">⚠ {{ praiseError }}</div>
-            <div v-else-if="praiseLoading" class="h-12 rounded-xl bg-white/[0.04] border border-white/[0.07] animate-pulse" />
-            <div v-else-if="praiseFeedback" class="px-3 py-2.5 bg-violet-500/[0.08] border border-violet-400/25 rounded-xl text-[13px] leading-relaxed text-slate-200 flex flex-col gap-1">
-              <p v-for="(s, i) in praiseSentences" :key="i" class="m-0">{{ s }}</p>
-            </div>
-            <div v-else class="text-[12px] text-slate-600">今週({{ thisWeekDoneFlat.length }}件) vs 2週間前({{ lastMonthWeekDoneFlat.length }}件)</div>
-          </div>
         </div>
       </template>
     </template>

@@ -1,15 +1,12 @@
 import { callOpenAi, extractText, getOpenAiKey, wrapApiError } from '~/server/utils/openai'
 
 export default defineEventHandler(async (event) => {
-  const { thisWeek, lastMonthWeek } = await readBody<{ thisWeek: string[]; lastMonthWeek: string[] }>(event)
+  const { thisWeek } = await readBody<{ thisWeek: { board: string; task: string }[] }>(event)
 
   const apiKey = getOpenAiKey()
 
   const thisWeekText = thisWeek.length > 0
-    ? thisWeek.map((t) => `・${t}`).join('\n')
-    : '（なし）'
-  const lastMonthText = lastMonthWeek.length > 0
-    ? lastMonthWeek.map((t) => `・${t}`).join('\n')
+    ? thisWeek.map((t) => `・[${t.board}] ${t.task}`).join('\n')
     : '（なし）'
 
   try {
@@ -20,17 +17,20 @@ export default defineEventHandler(async (event) => {
           role: 'system',
           content: `あなたはタスク管理データを元に、ユーザーへの深く刺さる称賛フィードバックを生成するアシスタントです。
 以下のルールを厳守してください：
-- タスク名の文字列から「何をやった仕事か」を具体的に推測・解釈し、その内容に踏み込んで言及する
-- 抽象的な称賛（「よく頑張りました」「素晴らしい」）は禁止。タスクの中身・種類・難易度感を読み取った上で褒める
-- タスク名をそのまま引用するか、内容を噛み砕いた表現で具体性を出す
-- 1ヶ月前との差分（件数・仕事の種類・取り組みの変化）を根拠にして言語化する
-- 本人が薄々感じているが言語化できていないことを言語化する
-- 2〜3文。各文は句点（。）で終える
-- 日本語で出力`,
+
+- 具体的・事実ベース：タスク名から具体的な事実を拾い、抽象的な激励に終わらせない
+- 論理的根拠あり：なぜそれが強みや前進なのか、筋道を立てて示す
+- 意外性・新しい切り口：本人がまだ気づいていない視点や解釈を提示する
+- 深い文脈理解：その人の状況・背景を理解していることが伝わる言葉を選ぶ
+- 量を絞る：あれもこれも言わず、最も刺さる一点に集中する
+- 自己一致感：薄々感じていたことを言語化し「そうそう、それだ」と思わせる
+- 差分・成長の可視化：この1週間で何が積み上がっているかを示す
+- 「よく頑張りました」「素晴らしい」などの抽象的な称賛は禁止
+- 日本語500文字程度で出力`,
         },
         {
           role: 'user',
-          content: `【直近1週間のDONEタスク（${thisWeek.length}件）】\n${thisWeekText}\n\n【2週間前の同じ1週間のDONEタスク（${lastMonthWeek.length}件）】\n${lastMonthText}\n\n上記を比較して、タスクの内容に踏み込んだ称賛フィードバックを2〜3文で。`,
+          content: `【直近1週間のDONEタスク（${thisWeek.length}件）】\n${thisWeekText}\n\n上記のタスク内容に踏み込んだ称賛フィードバックを日本語500文字程度で。`,
         },
       ],
     }, event, 'task/praise')
