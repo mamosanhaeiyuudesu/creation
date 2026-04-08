@@ -172,6 +172,7 @@ useHead({
     { property: 'og:title', content: 'AI Consultant | AIと人間の協調を、一緒に考える。' },
     { property: 'og:description', content: 'AIの仕組みを理解し、自分の意志を起点に活かすための対話型コンサルティング。' },
   ],
+  link: [{ rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤝</text></svg>` }],
 })
 </script>
 
