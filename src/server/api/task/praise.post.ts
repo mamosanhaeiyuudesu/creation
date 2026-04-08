@@ -15,7 +15,6 @@ export default defineEventHandler(async (event) => {
   try {
     const data = await callOpenAi(apiKey, {
       model: 'gpt-4.1-mini',
-      max_output_tokens: 200,
       input: [
         {
           role: 'system',
