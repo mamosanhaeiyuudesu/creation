@@ -69,6 +69,11 @@ watch(showAll, v => {
   window.history.replaceState({}, '', url.toString())
 })
 
+const praiseDialog = ref(false)
+const praiseDays = ref(3)
+const praiseDaysOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 60, 180, 365]
+const praiseChars = ref(500)
+const praiseCharsOptions = [500, 1000, 1500, 2000]
 const praiseFeedback = ref('')
 const praiseLoading = ref(false)
 const praiseError = ref('')
@@ -80,7 +85,25 @@ const praiseSentences = computed(() =>
     .map(s => s + '。')
 )
 
+const praisePeriodFlat = computed(() => {
+  const keys = Array.from({ length: praiseDays.value }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    return new Date(d.getTime() + 9 * 3_600_000).toISOString().slice(0, 10)
+  })
+  const items: { card: any; board: any; date: string }[] = []
+  for (const date of keys) {
+    for (const board of boards.value) {
+      for (const card of board.done[date] ?? []) {
+        items.push({ card, board, date })
+      }
+    }
+  }
+  return items
+})
+
 async function generatePraise() {
+  praiseDialog.value = false
   praiseLoading.value = true
   praiseFeedback.value = ''
   praiseError.value = ''
@@ -88,7 +111,9 @@ async function generatePraise() {
     const res = await $fetch<{ feedback: string }>('/api/task/praise', {
       method: 'POST',
       body: {
-        thisWeek: thisWeekDoneFlat.value.map(r => ({ board: r.board.name, task: r.card.name })),
+        tasks: praisePeriodFlat.value.map(r => ({ board: r.board.name, task: r.card.name, date: r.date })),
+        days: praiseDays.value,
+        chars: praiseChars.value,
       },
     })
     praiseFeedback.value = res.feedback
@@ -152,6 +177,38 @@ onMounted(() => {
 <template>
   <!-- Month picker backdrop -->
   <div v-if="pickerOpen || showMobilePeriod" class="fixed inset-0 z-40" @click="pickerOpen = null; showMobilePeriod = false" />
+
+  <!-- 称賛ダイアログ -->
+  <div v-if="praiseDialog" class="fixed inset-0 z-[200] flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="praiseDialog = false" />
+    <div class="relative bg-[#1e293b] border border-white/[0.12] rounded-2xl p-5 w-[320px] shadow-2xl" @click.stop>
+      <h3 class="text-[14px] font-semibold text-slate-200 mb-4">称賛の設定</h3>
+      <div class="flex flex-col gap-3 mb-5">
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1.5">期間</label>
+          <select
+            v-model="praiseDays"
+            class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-slate-200 cursor-pointer focus:outline-none focus:border-violet-400/50"
+          >
+            <option v-for="d in praiseDaysOptions" :key="d" :value="d" class="bg-[#1e293b] text-slate-200">{{ d }}日</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1.5">文字数</label>
+          <select
+            v-model="praiseChars"
+            class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-slate-200 cursor-pointer focus:outline-none focus:border-violet-400/50"
+          >
+            <option v-for="c in praiseCharsOptions" :key="c" :value="c" class="bg-[#1e293b] text-slate-200">{{ c }}文字</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-slate-400 text-[12px] cursor-pointer hover:bg-white/[0.08]" @click="praiseDialog = false">キャンセル</button>
+        <button class="px-4 py-1.5 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[12px] font-semibold cursor-pointer hover:opacity-90" @click="generatePraise">生成</button>
+      </div>
+    </div>
+  </div>
 
   <div class="min-h-screen pb-16 text-[#e2e8f0] text-sm">
     <!-- Header -->
@@ -467,7 +524,7 @@ onMounted(() => {
             <button
               class="px-3.5 py-1.5 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[12px] font-semibold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:opacity-90 hover:enabled:-translate-y-px"
               :disabled="praiseLoading"
-              @click="generatePraise"
+              @click="praiseDialog = true"
             >{{ praiseLoading ? '生成中…' : 'AIに称賛してもらう' }}</button>
           </div>
           <div v-if="praiseError" class="px-3.5 py-2.5 bg-red-500/12 border border-red-500/30 rounded-lg text-red-300 text-[13px] mb-4">⚠ {{ praiseError }}</div>
@@ -698,7 +755,7 @@ onMounted(() => {
               <button
                 class="px-3 py-1 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[11px] font-semibold cursor-pointer disabled:opacity-50"
                 :disabled="praiseLoading"
-                @click="generatePraise"
+                @click="praiseDialog = true"
               >{{ praiseLoading ? '…' : 'AIに称賛してもらう' }}</button>
             </div>
             <div v-if="praiseError" class="px-2.5 py-2 bg-red-500/12 border border-red-500/30 rounded-lg text-red-300 text-[12px]">⚠ {{ praiseError }}</div>
