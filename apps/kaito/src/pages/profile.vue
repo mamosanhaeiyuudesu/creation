@@ -89,7 +89,7 @@
           </section>
 
           <div style="margin-top: 60px; text-align: center;">
-            <NuxtLink class="cta-link" to="/kaito/services">サービス内容を見る</NuxtLink>
+            <NuxtLink class="cta-link" to="/services">サービス内容を見る</NuxtLink>
           </div>
         </div>
       </article>
