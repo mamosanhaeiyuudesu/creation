@@ -190,6 +190,12 @@
   max-width: 600px;
   margin-bottom: 40px;
 }
+.hero-sub p {
+  margin: 0 0 16px;
+}
+.hero-sub p:last-child {
+  margin-bottom: 0;
+}
 
 .hero-cta {
   display: inline-flex;

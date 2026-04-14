@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
     maxChars?: number
   }>(event)
 
-  const apiKey = getOpenAiKey()
+  const apiKey = getOpenAiKey(event)
   const { miyakoVectorStoreId } = useRuntimeConfig()
 
   if (!miyakoVectorStoreId) {

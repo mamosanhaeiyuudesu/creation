@@ -1,7 +1,7 @@
 import { appendLog, getOpenAiKey } from '~/server/utils/openai'
 
 export default defineEventHandler(async (event) => {
-    const apiKey = getOpenAiKey()
+    const apiKey = getOpenAiKey(event)
 
     try {
         const formData = await readFormData(event)

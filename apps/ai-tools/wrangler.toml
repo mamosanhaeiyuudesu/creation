@@ -5,8 +5,9 @@ compatibility_date = "2025-12-31"
 [vars]
 # Add non-secret variables here.
 # Set secrets with:
-#   wrangler secret put OPENAI_API_KEY
-#   wrangler secret put MIYAKO_VECTOR_STORE_ID
+#   wrangler secret put NUXT_OPENAI_API_KEY
+#   wrangler secret put NUXT_ANTHROPIC_API_KEY
+#   wrangler secret put NUXT_MIYAKO_VECTOR_STORE_ID
 
 [[d1_databases]]
 binding = "WHISPER_DB"

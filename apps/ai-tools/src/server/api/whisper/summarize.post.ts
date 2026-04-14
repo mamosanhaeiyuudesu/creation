@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'texts are required' })
   }
 
-  const apiKey = getOpenAiKey()
+  const apiKey = getOpenAiKey(event)
 
   const userContent = body.texts
     .map((t, i) => `【文字起こし${i + 1}】\n${t}`)

@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: 'transcript is required' })
     }
 
-    const apiKey = getOpenAiKey()
+    const apiKey = getOpenAiKey(event)
     try {
         const data = await callOpenAi(apiKey, {
             model: 'gpt-4.1',

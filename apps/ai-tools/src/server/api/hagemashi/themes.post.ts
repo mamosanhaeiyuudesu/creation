@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'texts are required' })
   }
 
-  const apiKey = getOpenAiKey()
+  const apiKey = getOpenAiKey(event)
 
   const userContent = body.texts
     .slice(0, 10)

@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'word が必要です。' })
   }
 
-  const apiKey = getOpenAiKey()
+  const apiKey = getOpenAiKey(event)
   const { miyakoVectorStoreId } = useRuntimeConfig()
 
   if (!miyakoVectorStoreId) {

@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
     chars?: number
   }>(event)
 
-  const apiKey = getOpenAiKey()
+  const apiKey = getOpenAiKey(event)
 
   const periodLabel = days === 1 ? '1日' : `${days}日間`
 

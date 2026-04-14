@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: 'messages is required' })
     }
 
-    const apiKey = getOpenAiKey()
+    const apiKey = getOpenAiKey(event)
     try {
         const input: Array<{ role: string; content: Array<{ type: string; text?: string; image_url?: string }> }> = [
             {

@@ -28,8 +28,8 @@ interface OpenAiResponse {
   error?: { message: string }
 }
 
-export const getOpenAiKey = (): string => {
-    const { openaiApiKey } = useRuntimeConfig()
+export const getOpenAiKey = (event?: H3Event): string => {
+    const { openaiApiKey } = useRuntimeConfig(event)
     if (!openaiApiKey) {
         throw createError({
             statusCode: 500,
