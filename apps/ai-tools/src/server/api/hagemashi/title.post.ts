@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'text is required' })
   }
 
-  const { anthropicApiKey } = useRuntimeConfig()
+  const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) {
     throw createError({ statusCode: 500, statusMessage: 'Anthropic API key is not configured.' })
   }

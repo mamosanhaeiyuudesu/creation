@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   }>(event)
 
   const apiKey = getOpenAiKey(event)
-  const { miyakoVectorStoreId } = useRuntimeConfig()
+  const { miyakoVectorStoreId } = useRuntimeConfig(event)
 
   if (!miyakoVectorStoreId) {
     throw createError({ statusCode: 500, statusMessage: 'MIYAKO_VECTOR_STORE_ID が設定されていません。' })
