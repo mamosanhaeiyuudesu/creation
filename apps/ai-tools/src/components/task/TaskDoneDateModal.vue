@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Card } from '~/composables/task/useTaskBoards'
+import TaskDatePicker from './TaskDatePicker.vue'
 
 const props = defineProps<{
   show: boolean
@@ -23,12 +24,7 @@ const emit = defineEmits<{
           <h2 class="m-0 text-base font-bold text-slate-50">期限を設定してDONEにする</h2>
           <p class="m-0 mt-1 text-[13px] text-slate-500 truncate">{{ cardName }}</p>
         </div>
-        <input
-          :value="modelValue"
-          class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)] [color-scheme:dark]"
-          type="datetime-local"
-          @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
-        />
+        <TaskDatePicker :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)" />
         <div class="flex justify-end gap-2">
           <button class="px-4 py-2 rounded-lg bg-white/[0.08] border border-white/10 text-slate-400 text-[13px] cursor-pointer hover:bg-white/[0.12]" @click="emit('update:show', false)">キャンセル</button>
           <button

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import type { Board } from '~/composables/task/useTaskBoards'
+import TaskDatePicker from './TaskDatePicker.vue'
 
 type TaskForm = { name: string; desc: string; due: string; boardId: string; status: 'todo' | 'doing' | 'done' }
 
@@ -57,11 +58,7 @@ watch(() => props.show, (v) => {
 
         <div class="flex flex-col gap-1">
           <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">期限</label>
-          <input
-            v-model="form.due"
-            class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)] [color-scheme:dark]"
-            type="datetime-local"
-          />
+          <TaskDatePicker v-model="form.due" />
         </div>
 
         <div class="flex gap-3">
