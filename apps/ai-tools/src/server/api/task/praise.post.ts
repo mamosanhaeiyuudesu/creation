@@ -1,10 +1,11 @@
 import { callOpenAi, extractText, getOpenAiKey, wrapApiError } from '~/server/utils/openai'
 
 export default defineEventHandler(async (event) => {
-  const { tasks = [], days = 7, chars = 500 } = await readBody<{
+  const { tasks = [], days = 7, chars = 500, boardContexts = [] } = await readBody<{
     tasks: { board: string; task: string; date: string }[]
     days?: number
     chars?: number
+    boardContexts?: { name: string; description: string }[]
   }>(event)
 
   const apiKey = getOpenAiKey(event)
@@ -29,6 +30,10 @@ export default defineEventHandler(async (event) => {
     }).join('\n')
     : '（なし）'
 
+  const boardContextText = boardContexts.length > 0
+    ? '\n\n【各ボードの概要】\n' + boardContexts.map(b => `[${b.name}] ${b.description}`).join('\n')
+    : ''
+
   try {
     const data = await callOpenAi(apiKey, {
       model: 'gpt-4.1-mini',
@@ -42,7 +47,7 @@ export default defineEventHandler(async (event) => {
 - 具体的・事実ベース：タスク名から具体的な事実を拾い、抽象的な激励に終わらせない
 - 論理的根拠あり：なぜそれが強みや前進なのか、筋道を立てて示す
 - 意外性・新しい切り口：本人がまだ気づいていない視点や解釈を提示する
-- 深い文脈理解：その人の状況・背景を理解していることが伝わる言葉を選ぶ
+- 深い文脈理解：その人の状況・背景を理解していることが伝わる言葉を選ぶ${boardContexts.length > 0 ? '\n- ボードの概要：各ボードの概要・目的を踏まえてタスクの意味づけを深める' : ''}
 - ボード横断：${boards.length > 1 ? `複数のボード（${boards.join('・')}）にまたがる活動全体を見渡して言及する` : '全タスクを幅広く見渡して言及する'}
 - 期間全体を均等にカバー：直近のタスクだけでなく、${periodLabel}の最初から最後まで均等に取り上げる
 - 量を絞る：あれもこれも言わず、最も刺さる一点に集中する
@@ -53,7 +58,7 @@ export default defineEventHandler(async (event) => {
         },
         {
           role: 'user',
-          content: `【直近${periodLabel}のDONEタスク（${tasks.length}件）】\n${tasksText}\n\n上記のタスク内容に踏み込んだ称賛フィードバックを日本語${chars}文字程度で。`,
+          content: `【直近${periodLabel}のDONEタスク（${tasks.length}件）】\n${tasksText}${boardContextText}\n\n上記のタスク内容に踏み込んだ称賛フィードバックを日本語${chars}文字程度で。`,
         },
       ],
     }, event, 'task/praise')

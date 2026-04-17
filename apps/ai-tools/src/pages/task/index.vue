@@ -31,6 +31,9 @@ const {
 
 const {
   boards, allDates, loading, saving, error,
+  boardDescriptions,
+  showBoardEditModal, boardEditForm,
+  openEditBoard, saveBoardMeta,
   showTaskModal, editTarget, taskForm, isEditing, modalTitle,
   pendingDone, pendingDueInput,
   doingTotal, todoTotal,
@@ -114,6 +117,9 @@ async function generatePraise() {
         tasks: praisePeriodFlat.value.map(r => ({ board: r.board.name, task: r.card.name, date: r.date })),
         days: praiseDays.value,
         chars: praiseChars.value,
+        boardContexts: boards.value
+          .filter(b => boardDescriptions.value[b.id])
+          .map(b => ({ name: b.name, description: boardDescriptions.value[b.id] })),
       },
     })
     praiseFeedback.value = res.feedback
@@ -206,6 +212,37 @@ onMounted(() => {
       <div class="flex justify-end gap-2">
         <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-slate-400 text-[12px] cursor-pointer hover:bg-white/[0.08]" @click="praiseDialog = false">キャンセル</button>
         <button class="px-4 py-1.5 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[12px] font-semibold cursor-pointer hover:opacity-90" @click="generatePraise">生成</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ボード編集ダイアログ -->
+  <div v-if="showBoardEditModal" class="fixed inset-0 z-[200] flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showBoardEditModal = false" />
+    <div class="relative bg-[#1e293b] border border-white/[0.12] rounded-2xl p-5 w-[360px] shadow-2xl" @click.stop>
+      <h3 class="text-[14px] font-semibold text-slate-200 mb-4">ボードを編集</h3>
+      <div class="flex flex-col gap-3 mb-5">
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1.5">ボード名</label>
+          <input
+            v-model="boardEditForm.name"
+            type="text"
+            class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-slate-200 focus:outline-none focus:border-sky-400/50"
+          />
+        </div>
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1.5">概要 <span class="text-slate-600">（AIによる称賛に反映されます）</span></label>
+          <textarea
+            v-model="boardEditForm.description"
+            rows="4"
+            class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-slate-200 resize-none focus:outline-none focus:border-sky-400/50 placeholder-slate-600"
+            placeholder="このボードの目的・概要を入力..."
+          />
+        </div>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-slate-400 text-[12px] cursor-pointer hover:bg-white/[0.08]" @click="showBoardEditModal = false">キャンセル</button>
+        <button class="px-4 py-1.5 rounded-lg border-none bg-gradient-to-br from-sky-400 to-indigo-500 text-white text-[12px] font-semibold cursor-pointer hover:opacity-90 disabled:opacity-50" :disabled="saving" @click="saveBoardMeta">{{ saving ? '保存中…' : '保存' }}</button>
       </div>
     </div>
   </div>
@@ -414,10 +451,15 @@ onMounted(() => {
             <div
               v-for="board in boards"
               :key="board.id"
-              class="w-[220px] flex-shrink-0 rounded-xl p-3 border flex flex-col"
+              class="group w-[220px] flex-shrink-0 rounded-xl p-3 border flex flex-col"
               :style="boardBorderStyle(board)"
             >
-              <div class="text-[11px] font-bold uppercase tracking-[0.05em] mb-2.5" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="board.doing.length" class="ml-1 opacity-70">({{ board.doing.length }})</span></div>
+              <div class="flex items-center gap-1 mb-2.5">
+                <span class="text-[11px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="board.doing.length" class="ml-1 opacity-70">({{ board.doing.length }})</span></span>
+                <button class="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-slate-400 hover:text-slate-200 cursor-pointer" title="ボードを編集" @click.stop="openEditBoard(board)">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>
+                </button>
+              </div>
               <ul :class="['list-none m-0 p-0 flex flex-col gap-1.5', showAll ? '' : 'overflow-y-auto max-h-[300px]']">
                 <li
                   v-for="card in board.doing"
@@ -471,10 +513,15 @@ onMounted(() => {
             <div
               v-for="board in boards"
               :key="board.id"
-              class="w-[220px] flex-shrink-0 rounded-xl p-3 border flex flex-col"
+              class="group w-[220px] flex-shrink-0 rounded-xl p-3 border flex flex-col"
               :style="boardBorderStyle(board)"
             >
-              <div class="text-[11px] font-bold uppercase tracking-[0.05em] mb-2.5" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="board.todo.length" class="ml-1 opacity-70">({{ board.todo.length }})</span></div>
+              <div class="flex items-center gap-1 mb-2.5">
+                <span class="text-[11px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="board.todo.length" class="ml-1 opacity-70">({{ board.todo.length }})</span></span>
+                <button class="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-slate-400 hover:text-slate-200 cursor-pointer" title="ボードを編集" @click.stop="openEditBoard(board)">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>
+                </button>
+              </div>
               <ul :class="['list-none m-0 p-0 flex flex-col gap-1.5', showAll ? '' : 'overflow-y-auto max-h-[300px]']">
                 <li
                   v-for="card in board.todo"
@@ -658,9 +705,14 @@ onMounted(() => {
           <!-- ボードごとに TODO(左) DOING(右) -->
           <div v-for="board in boards" :key="board.id" class="mb-3">
             <div
-              class="text-[13px] font-bold uppercase tracking-[0.05em] mb-1.5 px-1.5 py-1 rounded-lg border-l-4"
+              class="flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-[0.05em] mb-1.5 px-1.5 py-1 rounded-lg border-l-4"
               :style="{ color: boardColor(board), borderColor: boardColor(board), backgroundColor: boardColor(board) + '12' }"
-            >{{ board.name }}</div>
+            >
+              <span class="flex-1 min-w-0">{{ board.name }}</span>
+              <button class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded opacity-60 active:opacity-100 text-current cursor-pointer" title="ボードを編集" @click.stop="openEditBoard(board)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="11" height="11" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>
+              </button>
+            </div>
             <div class="grid grid-cols-2 gap-1.5">
               <!-- TODO (左) -->
               <div class="rounded-xl p-2 border flex flex-col" :style="boardBorderStyle(board)">

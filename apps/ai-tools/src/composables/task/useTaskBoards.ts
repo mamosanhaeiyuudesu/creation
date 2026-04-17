@@ -23,6 +23,8 @@ export interface Board {
   doneListId: string
 }
 
+const BOARD_DESC_LS_KEY = 'task_board_descs'
+
 export type EditTarget = {
   card: Card
   boardId: string
@@ -44,6 +46,48 @@ export function useTaskBoards(
   const loading = ref(false)
   const saving = ref(false)
   const error = ref('')
+
+  // Board descriptions (stored in localStorage)
+  const boardDescriptions = ref<Record<string, string>>(
+    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(BOARD_DESC_LS_KEY) || '{}') : {}
+  )
+
+  // Board edit modal state
+  const showBoardEditModal = ref(false)
+  const boardEditTarget = ref<Board | null>(null)
+  const boardEditForm = ref({ name: '', description: '' })
+
+  function openEditBoard(board: Board) {
+    boardEditTarget.value = board
+    boardEditForm.value = {
+      name: board.name,
+      description: boardDescriptions.value[board.id] || '',
+    }
+    showBoardEditModal.value = true
+  }
+
+  async function saveBoardMeta() {
+    if (!boardEditTarget.value) return
+    saving.value = true
+    error.value = ''
+    try {
+      const board = boardEditTarget.value
+      const newName = boardEditForm.value.name.trim()
+      if (newName && newName !== board.name) {
+        await trelloPut(`/boards/${board.id}`, { name: newName })
+        board.name = newName
+      }
+      boardDescriptions.value[board.id] = boardEditForm.value.description
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(BOARD_DESC_LS_KEY, JSON.stringify(boardDescriptions.value))
+      }
+      showBoardEditModal.value = false
+    } catch (e: any) {
+      error.value = e.message
+    } finally {
+      saving.value = false
+    }
+  }
 
   // Task modal state
   const showTaskModal = ref(false)
@@ -433,6 +477,9 @@ export function useTaskBoards(
 
   return {
     boards, allDates, loading, saving, error,
+    boardDescriptions,
+    showBoardEditModal, boardEditTarget, boardEditForm,
+    openEditBoard, saveBoardMeta,
     showTaskModal, editTarget, taskForm, isEditing, modalTitle,
     pendingDone, pendingDueInput,
     doingTotal, todoTotal,
