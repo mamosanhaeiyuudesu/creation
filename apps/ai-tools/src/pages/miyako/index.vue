@@ -28,6 +28,9 @@ const WC_COLORS = [
   '#1565C0', '#1976D2', '#1E88E5',
 ]
 
+const route = useRoute()
+const router = useRouter()
+
 const loading = ref(true)
 const rawData = ref<FeaturesData>({})
 const selectedSession = ref<string | null>(null)
@@ -36,8 +39,22 @@ const selectedWord = ref<string | null>(null)
 const aiTopics = ref<AiTopic[]>([])
 const aiLoading = ref(false)
 const maxChars = ref(1000)
-const selectedCategory = ref<string>('暮らし・福祉')
 const CATEGORY_OPTIONS = [...CATEGORIES]
+
+// URL の cat パラメータで初期値を決定（watch が発火しないよう ref 生成時に設定）
+const _initCat = (route.query.cat as string) ?? ''
+const selectedCategory = ref<string>(
+  CATEGORY_OPTIONS.includes(_initCat) ? _initCat : '暮らし・福祉'
+)
+
+// state → URL 同期
+watch([selectedCategory, selectedSession, selectedWord], () => {
+  const query: Record<string, string> = {}
+  if (selectedCategory.value !== '暮らし・福祉') query.cat = selectedCategory.value
+  if (selectedSession.value) query.year = selectedSession.value
+  if (selectedWord.value) query.word = selectedWord.value
+  router.replace({ query })
+})
 
 // ── 年グループ計算 ─────────────────────────────
 
@@ -170,6 +187,16 @@ onMounted(async () => {
   loading.value = false
   await nextTick()
   heatmapRef.value?.render()
+
+  // URL からセッション・ワードを復元
+  const yearParam = route.query.year as string
+  const wordParam = route.query.word as string
+  if (yearParam && yearKeys.value.includes(yearParam)) {
+    selectedSession.value = yearParam
+    if (wordParam) {
+      await fetchSummary(wordParam)
+    }
+  }
 })
 
 watch(selectedCategory, resetAndRender)

@@ -8,14 +8,15 @@ interface AiTopic {
   flow: string[]
 }
 
+const route = useRoute()
+const router = useRouter()
+
 const keyword = ref('')
 const searchedWord = ref('')
 const loading = ref(false)
 const topics = ref<AiTopic[]>([])
 const resultCount = ref(3)
-const RESULT_COUNT_OPTIONS = [3, 6, 9]
 const model = ref('gpt-4.1-mini')
-const MODEL_OPTIONS = ['gpt-4.1-mini', 'gpt-5.4-mini']
 
 function periodToSortKey(period: string): number {
   if (/令和元年/.test(period)) return 2019 * 100
@@ -26,13 +27,13 @@ function periodToSortKey(period: string): number {
   return 0
 }
 
-function sortTopicsNewest(list: AiTopic[]): AiTopic[] {
+function sortTopicsOldest(list: AiTopic[]): AiTopic[] {
   return [...list].sort((a, b) => {
-    const diff = periodToSortKey(b.period) - periodToSortKey(a.period)
+    const diff = periodToSortKey(a.period) - periodToSortKey(b.period)
     if (diff !== 0) return diff
     const numA = parseInt(a.period.match(/第(\d+)回/)?.[1] ?? '0')
     const numB = parseInt(b.period.match(/第(\d+)回/)?.[1] ?? '0')
-    return numB - numA
+    return numA - numB
   })
 }
 
@@ -46,6 +47,7 @@ async function search() {
 
   searchedWord.value = word
   topics.value = []
+  router.replace({ query: { q: word } })
 
   const cacheKey = `miyako_keyword:${word}:${resultCount.value}:${model.value}`
   const cached = localStorage.getItem(cacheKey)
@@ -64,7 +66,7 @@ async function search() {
       method: 'POST',
       body: { word, count: resultCount.value, model: model.value },
     })
-    topics.value = sortTopicsNewest(data.topics)
+    topics.value = sortTopicsOldest(data.topics)
     localStorage.setItem(cacheKey, JSON.stringify(data.topics))
   } catch {
     topics.value = [{ title: 'エラー', period: '', conclusion: '取得に失敗しました。', flow: [] }]
@@ -72,6 +74,14 @@ async function search() {
     loading.value = false
   }
 }
+
+onMounted(async () => {
+  const q = (route.query.q as string) ?? ''
+  if (q) {
+    keyword.value = q
+    await search()
+  }
+})
 </script>
 
 <template>
@@ -96,18 +106,6 @@ async function search() {
         >
           検索
         </button>
-        <div class="hidden md:flex items-center gap-1.5">
-          <span class="text-[11px] text-[#6878a8] whitespace-nowrap">件数</span>
-          <select v-model.number="resultCount" class="search-select">
-            <option v-for="n in RESULT_COUNT_OPTIONS" :key="n" :value="n">{{ n }}件</option>
-          </select>
-        </div>
-        <div class="hidden md:flex items-center gap-1.5">
-          <span class="text-[11px] text-[#6878a8] whitespace-nowrap">モデル</span>
-          <select v-model="model" class="search-select">
-            <option v-for="m in MODEL_OPTIONS" :key="m" :value="m">{{ m }}</option>
-          </select>
-        </div>
       </div>
 
       <!-- ローディング -->
@@ -122,34 +120,39 @@ async function search() {
         <p class="text-[14px]">キーワードを入力して、議論の変遷を見る</p>
       </div>
 
-      <!-- 結果グリッド（常に3列、件数で行数が変わる） -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div
-          v-for="(topic, i) in topics"
-          :key="i"
-          class="bg-white border border-[#dde2ef] rounded-[10px] shadow-[0_1px_4px_rgba(28,45,90,0.07),0_0_0_1px_rgba(28,45,90,0.06)] overflow-hidden flex flex-col"
-        >
-          <!-- 会期ヘッダー -->
-          <div class="flex items-center flex-shrink-0 bg-[#1c2d5a] text-white px-3.5 py-2.5 gap-1.5">
-            <span class="text-[11px] opacity-60">📅</span>
-            <span class="text-[12.5px] font-semibold tracking-[0.02em]">{{ topic.period || '会期不明' }}</span>
-          </div>
+      <!-- 結果（カード間に矢印） -->
+      <div v-else class="flex flex-col md:flex-row md:items-stretch gap-0">
+        <template v-for="(topic, i) in topics" :key="i">
+          <!-- カード -->
+          <div class="flex-1 min-w-0 bg-white border border-[#dde2ef] rounded-[10px] shadow-[0_1px_4px_rgba(28,45,90,0.07),0_0_0_1px_rgba(28,45,90,0.06)] overflow-hidden flex flex-col">
+            <!-- 会期ヘッダー -->
+            <div class="flex items-center flex-shrink-0 bg-[#1c2d5a] text-white px-3.5 py-2.5 gap-1.5">
+              <span class="text-[11px] opacity-60">📅</span>
+              <span class="text-[12.5px] font-semibold tracking-[0.02em]">{{ topic.period || '会期不明' }}</span>
+            </div>
 
-          <!-- トピック内容 -->
-          <div class="ai-body flex-1">
-            <div class="topic-title">{{ topic.title }}</div>
-            <div class="conclusion">{{ topic.conclusion }}</div>
-            <div v-if="topic.flow?.length" class="flow-list">
-              <template v-for="(step, si) in topic.flow" :key="si">
-                <div class="flow-step">{{ step }}</div>
-                <div v-if="si < topic.flow.length - 1" class="flow-arrow">↓</div>
-              </template>
+            <!-- トピック内容 -->
+            <div class="ai-body flex-1">
+              <div class="topic-title">{{ topic.title }}</div>
+              <div class="conclusion">{{ topic.conclusion }}</div>
+              <div v-if="topic.flow?.length" class="flow-list">
+                <template v-for="(step, si) in topic.flow" :key="si">
+                  <div class="flow-step">{{ step }}</div>
+                  <div v-if="si < topic.flow.length - 1" class="flow-arrow">↓</div>
+                </template>
+              </div>
             </div>
           </div>
-        </div>
+
+          <!-- カード間の矢印（最後のカードには表示しない） -->
+          <div v-if="i < topics.length - 1" class="card-arrow">
+            <span class="md:hidden">↓</span>
+            <span class="hidden md:inline">→</span>
+          </div>
+        </template>
 
         <!-- 結果なし -->
-        <div v-if="topics.length === 0" class="col-span-3 flex flex-col items-center justify-center py-16 text-[#6878a8]">
+        <div v-if="topics.length === 0" class="flex flex-col items-center justify-center py-16 text-[#6878a8] w-full">
           <p class="text-[14px]">「{{ searchedWord }}」に関する議論は見つかりませんでした</p>
         </div>
       </div>
@@ -235,5 +238,16 @@ async function search() {
   line-height: 1.4;
   opacity: 0.6;
   margin: 1px 0;
+}
+
+.card-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #3d5fc4;
+  font-size: 20px;
+  opacity: 0.5;
+  padding: 8px 4px;
 }
 </style>

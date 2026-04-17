@@ -54,10 +54,6 @@ function qInt(key: string, fallback: number) {
 
 const filterTerm = ref(qInt('term', 6))
 
-watch([filterTerm], () => {
-  router.replace({ query: { term: String(filterTerm.value) } })
-})
-
 const speakersMeta = ref<SpeakerMeta[]>([])
 const categoryEntries = ref<CategoryEntry[]>([])
 const wordEntries = ref<WordEntry[]>([])
@@ -70,6 +66,15 @@ const selectedWord = ref<string | null>(null)
 const aiTopics = ref<AiTopic[]>([])
 const aiLoading = ref(false)
 const maxChars = ref(1000)
+
+// speaker / cat / word が変わったら URL を同期
+watch([selectedSpeakerId, selectedCategory, selectedWord], () => {
+  const query: Record<string, string> = { term: String(filterTerm.value) }
+  if (selectedSpeakerId.value) query.speaker = selectedSpeakerId.value
+  if (selectedCategory.value) query.cat = selectedCategory.value
+  if (selectedWord.value) query.word = selectedWord.value
+  router.replace({ query })
+})
 
 const heatmapRef = ref<{ render: () => void } | null>(null)
 
@@ -207,6 +212,7 @@ watch(filterTerm, () => {
   selectedCategory.value = null
   selectedWord.value = null
   aiTopics.value = []
+  router.replace({ query: { term: String(filterTerm.value) } })
   nextTick(() => heatmapRef.value?.render())
 })
 
@@ -236,6 +242,17 @@ onMounted(async () => {
   loading.value = false
   await nextTick()
   heatmapRef.value?.render()
+
+  // URL からセル選択・ワードを復元
+  const speakerParam = route.query.speaker as string
+  const catParam = route.query.cat as string
+  const wordParam = route.query.word as string
+  if (speakerParam && filteredIds.value.has(speakerParam) && catParam && (CATEGORIES as readonly string[]).includes(catParam)) {
+    handleCellClick(speakerParam, catParam)
+    if (wordParam) {
+      await fetchMemberSummary(wordParam)
+    }
+  }
 })
 </script>
 
