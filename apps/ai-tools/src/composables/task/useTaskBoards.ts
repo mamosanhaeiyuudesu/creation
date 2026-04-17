@@ -15,6 +15,7 @@ export interface Card {
 export interface Board {
   id: string
   name: string
+  desc: string
   doing: Card[]
   todo: Card[]
   done: Record<string, { id: string; name: string }[]>
@@ -22,8 +23,6 @@ export interface Board {
   todoListId: string
   doneListId: string
 }
-
-const BOARD_DESC_LS_KEY = 'task_board_descs'
 
 export type EditTarget = {
   card: Card
@@ -47,11 +46,6 @@ export function useTaskBoards(
   const saving = ref(false)
   const error = ref('')
 
-  // Board descriptions (stored in localStorage)
-  const boardDescriptions = ref<Record<string, string>>(
-    typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(BOARD_DESC_LS_KEY) || '{}') : {}
-  )
-
   // Board edit modal state
   const showBoardEditModal = ref(false)
   const boardEditTarget = ref<Board | null>(null)
@@ -61,7 +55,7 @@ export function useTaskBoards(
     boardEditTarget.value = board
     boardEditForm.value = {
       name: board.name,
-      description: boardDescriptions.value[board.id] || '',
+      description: board.desc,
     }
     showBoardEditModal.value = true
   }
@@ -73,14 +67,12 @@ export function useTaskBoards(
     try {
       const board = boardEditTarget.value
       const newName = boardEditForm.value.name.trim()
-      if (newName && newName !== board.name) {
-        await trelloPut(`/boards/${board.id}`, { name: newName })
-        board.name = newName
-      }
-      boardDescriptions.value[board.id] = boardEditForm.value.description
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(BOARD_DESC_LS_KEY, JSON.stringify(boardDescriptions.value))
-      }
+      const newDesc = boardEditForm.value.description
+      const body: Record<string, string> = { desc: newDesc }
+      if (newName && newName !== board.name) body.name = newName
+      await trelloPut(`/boards/${board.id}`, body)
+      if (newName) board.name = newName
+      board.desc = newDesc
       showBoardEditModal.value = false
     } catch (e: any) {
       error.value = e.message
@@ -210,7 +202,7 @@ export function useTaskBoards(
       const results: Board[] = await Promise.all(
         filtered.map(async (b: any) => {
           const lists = await trelloGet(`/boards/${b.id}/lists`)
-          const board: Board = { id: b.id, name: b.name, doing: [], todo: [], done: {}, doingListId: '', todoListId: '', doneListId: '' }
+          const board: Board = { id: b.id, name: b.name, desc: b.desc || '', doing: [], todo: [], done: {}, doingListId: '', todoListId: '', doneListId: '' }
 
           await Promise.all(
             lists.map(async (list: any) => {
@@ -477,7 +469,6 @@ export function useTaskBoards(
 
   return {
     boards, allDates, loading, saving, error,
-    boardDescriptions,
     showBoardEditModal, boardEditTarget, boardEditForm,
     openEditBoard, saveBoardMeta,
     showTaskModal, editTarget, taskForm, isEditing, modalTitle,

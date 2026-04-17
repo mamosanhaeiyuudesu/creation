@@ -31,7 +31,6 @@ const {
 
 const {
   boards, allDates, loading, saving, error,
-  boardDescriptions,
   showBoardEditModal, boardEditForm,
   openEditBoard, saveBoardMeta,
   showTaskModal, editTarget, taskForm, isEditing, modalTitle,
@@ -118,8 +117,8 @@ async function generatePraise() {
         days: praiseDays.value,
         chars: praiseChars.value,
         boardContexts: boards.value
-          .filter(b => boardDescriptions.value[b.id])
-          .map(b => ({ name: b.name, description: boardDescriptions.value[b.id] })),
+          .filter(b => b.desc)
+          .map(b => ({ name: b.name, description: b.desc })),
       },
     })
     praiseFeedback.value = res.feedback
