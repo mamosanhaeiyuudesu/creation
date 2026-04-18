@@ -32,6 +32,5 @@ const tools = [
   { path: '/whisper', icon: '🎙️', name: 'Whisper', desc: '音声を文字に自動変換' },
   { path: '/hagemashi', icon: '💪', name: 'はげまし', desc: '話して、AIに励ましてもらおう' },
   { path: '/task', icon: '📋', name: 'タスクくん', desc: 'Trello の DOING / TODO / DONE をまとめて確認' },
-  { path: '/japanese-mlb-player', icon: '⚾', name: 'MLB日本人選手成績', desc: 'MLB在籍の日本人選手14名の成績・推移を比較' },
 ]
 </script>
