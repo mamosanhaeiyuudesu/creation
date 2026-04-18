@@ -54,6 +54,13 @@ export default defineEventHandler(async (event) => {
   const today = new Date().toISOString().slice(0, 10)
   const results: { playerId: string; nameJa: string; status: string; detail?: string }[] = []
 
+  // 選手マスタを先に全件 upsert（stats の外部キー制約を満たすため）
+  await db.batch(PLAYERS.map(p =>
+    db.prepare(
+      'INSERT OR REPLACE INTO mlb_players (id, name_ja, name_en, position, team, team_full, league) VALUES (?,?,?,?,?,?,?)'
+    ).bind(p.id, p.nameJa, p.nameEn, p.position, p.team, p.teamFull, p.league)
+  ))
+
   for (const player of PLAYERS) {
     const fgId = FG_PLAYER_IDS[player.id]
     if (!fgId) {
