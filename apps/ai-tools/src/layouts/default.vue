@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col h-screen">
     <!-- PC header -->
-    <header v-if="showNav" class="hidden lg:block border-b border-white/[0.08] px-8">
+    <header class="hidden lg:block border-b border-white/[0.08] px-8">
       <nav class="flex max-w-[1200px] mx-auto">
         <NuxtLink
           v-for="tool in tools"
@@ -21,7 +21,7 @@
     </header>
 
     <!-- Mobile header -->
-    <header v-if="showNav" class="lg:hidden flex items-center gap-4 px-4 py-4 border-b border-white/[0.08] relative z-50">
+    <header class="lg:hidden flex items-center gap-4 px-4 py-4 border-b border-white/[0.08] relative z-50">
       <button
         class="flex flex-col gap-[5px] bg-transparent border-none cursor-pointer p-1 text-slate-50"
         :aria-label="isMobileMenuOpen ? 'メニューを閉じる' : 'メニューを開く'"
@@ -38,7 +38,7 @@
 
     <!-- Mobile menu -->
     <nav
-      v-if="showNav && isMobileMenuOpen"
+      v-if="isMobileMenuOpen"
       class="fixed top-[61px] inset-x-0 bottom-0 bg-black/50 flex z-[200] animate-[fadeIn_0.2s_ease]"
       @click="isMobileMenuOpen = false"
     >
@@ -74,14 +74,12 @@ import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const isMobileMenuOpen = ref(false)
-const showNav = true
 
 const tools = [
   { path: '/', name: 'ホーム', icon: '🏠' },
   { path: '/snapreader', name: 'SnapReader', icon: '📸' },
   { path: '/whisper', name: 'Whisper', icon: '🎙️' },
   { path: '/hagemashi', name: 'はげまし', icon: '💪' },
-  { path: '/miyako', name: '宮古島市議会バズワード', icon: '🏝️' },
   { path: '/task', name: 'タスクくん', icon: '📋' },
 ]
 
