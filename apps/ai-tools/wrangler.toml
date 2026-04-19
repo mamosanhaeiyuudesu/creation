@@ -25,6 +25,14 @@ database_id = "7698b7b5-b0c8-4289-b19e-a99c669ca75f"
 #   wrangler d1 create mlb-db
 #   wrangler d1 execute mlb-db --file src/server/db/mlb-schema.sql
 
+[[d1_databases]]
+binding = "DEEPHEART_DB"
+database_name = "deepheart-db"
+database_id = "afcdcced-79d2-4f3a-a0c5-bf86a21731a4"
+# 初回セットアップ:
+#   wrangler d1 create deepheart-db
+#   wrangler d1 execute deepheart-db --file src/server/db/003_deepheart.sql
+
 # Cron Trigger（毎日6:00 JST = UTC 21:00前日）
 [triggers]
 crons = ["0 21 * * *"]

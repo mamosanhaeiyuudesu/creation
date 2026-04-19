@@ -1,6 +1,8 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false, layout: 'miyako', alias: ['/miyako/keyword', '/miyako_gijiroku/keyword'] })
 
+useHead({ title: import.meta.dev ? '宮古議事録 (dev)' : '宮古議事録' })
+
 interface AiTopic {
   title: string
   period: string

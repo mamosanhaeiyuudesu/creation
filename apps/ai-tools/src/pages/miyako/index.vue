@@ -2,6 +2,7 @@
 definePageMeta({ ssr: false, layout: 'miyako', alias: ['/miyako', '/miyako/', '/miyako_gijiroku', '/miyako_gijiroku/'] })
 
 useHead({
+  title: import.meta.dev ? '宮古議事録 (dev)' : '宮古議事録',
   link: [{ rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏝️</text></svg>` }]
 })
 

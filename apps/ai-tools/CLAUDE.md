@@ -31,6 +31,7 @@ wrangler secret put OPENAI_API_KEY  # 本番用APIキーの設定
 | `/ai-tools/whisper` | 音声文字起こし（Whisper API）・要約・校正 | `src/pages/ai-tools/whisper/index.vue`, `src/server/api/whisper/`, `src/composables/useAudioRecorder.ts` |
 | `/ai-tools/hagemashi` | AI励ましメッセージ生成 | `src/pages/ai-tools/hagemashi/index.vue`, `src/server/api/hagemashi/` |
 | `/ai-tools/task` | Trello連携タスク管理（DOING/TODO/DONE） | `src/pages/ai-tools/task/index.vue` |
+| `/deepheart` | カウンセリングチャット（独立した認証・D1） | `src/pages/deepheart/index.vue`, `src/server/api/deepheart/`, `src/components/deepheart/` |
 | `/ai-tools/miyako` | 宮古島市議会議事録 — キーワード×会期ヒートマップ・AIパネル | `src/pages/ai-tools/miyako/index.vue`, `src/server/api/miyako/`, `src/components/miyako/session/`, `src/utils/miyako/` |
 | `/ai-tools/miyako/member` | 議員分析 — 単語/カテゴリTF-IDFランキング | `src/pages/ai-tools/miyako/member.vue`, `src/components/miyako/member/`, `src/public/data/tfidf_*.csv` |
 
@@ -61,6 +62,7 @@ miyakoページはVuetifyではなくTailwind CSSを使用。
 
 - `MIYAKO_DB` → `miyako-gijiroku`：宮古島市議会の sessions / bills / utterances テーブル
 - `event.context.cloudflare.env.MIYAKO_DB` で取得
+- `DEEPHEART_DB` → `deepheart-db`：deepheart 独自の users / sessions / messages / personalities。`src/server/utils/deepheart.ts` の `getDeepheartDb()` / `getDeepheartUser()` 経由でアクセス。Cookie 名は `deepheart-session`。
 
 **ローカルdev時のフォールバック：** macOSのバージョン制約でローカルD1が使えないため、`src/server/utils/miyako-dev.ts` の `getDevDb()` が `cloudflare.env.MIYAKO_DB` の有無を確認し、なければ `miyako-sample.json`（プロジェクトルート）からデータを返す。
 

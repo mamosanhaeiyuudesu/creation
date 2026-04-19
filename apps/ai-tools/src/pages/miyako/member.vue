@@ -1,6 +1,8 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false, layout: 'miyako', alias: ['/miyako/member', '/miyako_gijiroku/member'] })
 
+useHead({ title: import.meta.dev ? '宮古議事録 (dev)' : '宮古議事録' })
+
 import { parseCsv } from '~/utils/miyako/csv'
 import { CATEGORIES, CATEGORY_WORDS, STOPWORDS } from '~/utils/miyako/categories'
 
