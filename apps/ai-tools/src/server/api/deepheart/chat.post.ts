@@ -1,4 +1,4 @@
-import { getDeepheartDb, getDeepheartUser, buildSystemPrompt, DEEPHEART_TONES, type DeepheartTone } from '~/server/utils/deepheart'
+import { getDeepheartDb, getDeepheartUser, buildSystemPrompt, DEEPHEART_TONES, RESPONSE_LENGTH_TOKENS, type DeepheartTone } from '~/server/utils/deepheart'
 import { appendLog } from '~/server/utils/openai'
 
 type ChatMessage = {
@@ -24,13 +24,11 @@ export default defineEventHandler(async (event) => {
   const db = getDeepheartDb(event)
   const user = await getDeepheartUser(event)
 
-  // DB があるのに未ログインならブロック（本番運用想定）
   if (db && !user) {
     throw createError({ statusCode: 401, message: '未ログイン' })
   }
-  // DB も無い環境（ローカル dev で D1 バインディングが無い）は、認証・永続化をスキップ
 
-  const body = await readBody<{ messages?: ChatMessage[]; tone?: string; systemPrompt?: string }>(event)
+  const body = await readBody<{ messages?: ChatMessage[]; tone?: string; systemPrompt?: string; responseLength?: number }>(event)
   const rawMessages = Array.isArray(body?.messages) ? body!.messages! : []
   const messages = rawMessages.filter(
     (m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim()
@@ -42,25 +40,29 @@ export default defineEventHandler(async (event) => {
 
   const latestUser = messages[messages.length - 1]
 
-  // パーソナリティ決定：DB+ユーザーがあれば DB、なければリクエストボディから
-  let tone: DeepheartTone = 'gentle'
+  let tone: DeepheartTone = 'listen'
   let systemPromptExtra = ''
+  let responseLength = 3
+
   if (db && user) {
     const persona = await db
-      .prepare('SELECT tone, system_prompt FROM deepheart_personalities WHERE user_id = ?')
+      .prepare('SELECT tone, system_prompt, response_length FROM deepheart_personalities WHERE user_id = ?')
       .bind(user.id)
-      .first<{ tone: string; system_prompt: string }>()
+      .first<{ tone: string; system_prompt: string; response_length: number }>()
     if (persona) {
       if ((DEEPHEART_TONES as readonly string[]).includes(persona.tone)) tone = persona.tone as DeepheartTone
       systemPromptExtra = persona.system_prompt ?? ''
+      responseLength = persona.response_length ?? 3
     }
   } else {
     if ((DEEPHEART_TONES as readonly string[]).includes(body?.tone ?? '')) tone = body!.tone as DeepheartTone
     systemPromptExtra = (body?.systemPrompt ?? '').slice(0, 2000)
+    responseLength = Math.min(5, Math.max(1, Number(body?.responseLength) || 3))
   }
-  const systemPrompt = buildSystemPrompt(tone, systemPromptExtra)
 
-  // 直近24件に制限（コンテキスト圧縮）
+  const systemPrompt = buildSystemPrompt(tone, systemPromptExtra)
+  const maxTokens = RESPONSE_LENGTH_TOKENS[responseLength] ?? 400
+
   const trimmed = messages.slice(-24)
 
   const input = [
@@ -70,7 +72,7 @@ export default defineEventHandler(async (event) => {
     },
     ...trimmed.map((m) => ({
       role: m.role,
-      content: [{ type: 'input_text', text: m.content }],
+      content: [{ type: m.role === 'assistant' ? 'output_text' : 'input_text', text: m.content }],
     })),
   ]
 
@@ -80,7 +82,7 @@ export default defineEventHandler(async (event) => {
     const response = await fetchOpenAi(apiKey, {
       model: 'gpt-4.1-mini',
       input,
-      max_output_tokens: 800,
+      max_output_tokens: maxTokens,
       stream: true,
     } as any, event)
 

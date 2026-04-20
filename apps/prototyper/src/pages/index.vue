@@ -120,29 +120,37 @@
               <div class="portfolio-feature">
                 <span class="feature-dot"></span>
                 <div class="feature-text">
-                  <strong>キーワード×会期 ヒートマップ</strong>
-                  任意のキーワードが各会期でどれだけ議論されたかをTF-IDFスコアでヒートマップ表示。年代をまたいだトレンド変化を一目で把握できます。
+                  <strong>年ごとの特徴的な話題ヒートマップ</strong>
+                  TF-IDFスコアを使って、各年・各会期にどんなテーマが特徴的だったかをヒートマップで可視化。時代とともに移り変わる議会の関心を一目で読み取れます。
+                  <br>
+                  <a href="https://prototype.insightlens.jp/miyako" class="feature-link" target="_blank">
+                    年別ヒートマップを見る
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </a>
                 </div>
               </div>
               <div class="portfolio-feature">
                 <span class="feature-dot"></span>
                 <div class="feature-text">
-                  <strong>AI議論要約パネル</strong>
-                  キーワードを選択すると、その会期での関連発言をOpenAI APIで要約・分析。トピック・結論・議論の流れを自動生成します。
+                  <strong>議員の発言傾向ヒートマップ</strong>
+                  議員ごとに、どんな分野・カテゴリの発言が多いかをヒートマップで一覧表示。各議員の関心領域や特色をひと目で比較できます。
+                  <br>
+                  <a href="https://prototype.insightlens.jp/miyako/member" class="feature-link" target="_blank">
+                    議員別ヒートマップを見る
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </a>
                 </div>
               </div>
               <div class="portfolio-feature">
                 <span class="feature-dot"></span>
                 <div class="feature-text">
-                  <strong>議員別TF-IDFランキング</strong>
-                  議員ごとの発言傾向を単語・カテゴリ別に分析。色分けされたランキングテーブルで各議員の関心分野を可視化します。
-                </div>
-              </div>
-              <div class="portfolio-feature">
-                <span class="feature-dot"></span>
-                <div class="feature-text">
-                  <strong>ワードクラウド</strong>
-                  会期別の頻出語をインタラクティブなワードクラウドで表示。全文検索と組み合わせて直感的に探索できます。
+                  <strong>キーワードで引くAI時系列分析</strong>
+                  キーワードを検索すると、関連する会議での発言をAIが時系列で要約・分析。議論のトピック・結論・流れを自動生成します。
+                  <br>
+                  <a href="https://prototype.insightlens.jp/miyako/keyword" class="feature-link" target="_blank">
+                    キーワード分析を見る
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </a>
                 </div>
               </div>
             </div>
@@ -159,7 +167,7 @@
               <span class="tech-badge">TypeScript</span>
             </div>
 
-            <a href="http://localhost:3000/ai-tools/miyako" class="portfolio-link" target="_blank">
+            <a href="https://prototype.insightlens.jp/miyako" class="portfolio-link" target="_blank">
               デモを見る
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </a>
@@ -250,7 +258,7 @@
               メールで相談する
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
             </a>
-            <a href="http://localhost:3000/ai-tools/miyako" class="btn-secondary" target="_blank">
+            <a href="https://prototype.insightlens.jp/miyako" class="btn-secondary" target="_blank">
               デモを触ってみる
             </a>
           </div>
@@ -262,7 +270,7 @@
     <footer class="ac-footer">
       <div class="ac-footer-inner">
         <span class="ac-footer-copy">&copy; 2026 Prototyper</span>
-        <a href="http://localhost:3000/ai-tools/miyako" class="ac-footer-link">Portfolio: 宮古島市議事録分析 →</a>
+        <a href="https://prototype.insightlens.jp/miyako" class="ac-footer-link">Portfolio: 宮古島市議事録分析 →</a>
       </div>
     </footer>
 

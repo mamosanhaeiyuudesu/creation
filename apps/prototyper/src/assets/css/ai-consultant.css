@@ -427,6 +427,21 @@
   margin-bottom: 2px;
 }
 
+.feature-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--c-primary);
+  text-decoration: none;
+}
+
+.feature-link:hover {
+  text-decoration: underline;
+}
+
 .portfolio-tech {
   display: flex;
   flex-wrap: wrap;

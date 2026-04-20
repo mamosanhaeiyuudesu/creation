@@ -8,17 +8,21 @@
           <span class="text-xl">💗</span>
           <div class="leading-tight">
             <h1 class="m-0 text-base font-semibold bg-gradient-to-br from-rose-400 to-indigo-400 bg-clip-text text-transparent">deepheart</h1>
-            <p class="m-0 text-[11px] text-slate-500">安心して話せるカウンセリングAI</p>
+            <p class="m-0 text-[11px] text-slate-500 hidden sm:block">{{ currentApproachLabel }}</p>
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <UserMenu
-            v-if="user"
-            :username="user.username"
-            :items="menuItems"
-            accentFrom="#f43f5e"
-            accentTo="#6366f1"
-          />
+          <button
+            class="flex items-center gap-2 p-1.5 rounded-xl border border-white/[0.12] bg-white/[0.05] hover:bg-white/[0.10] hover:border-white/[0.20] transition-all duration-150 cursor-pointer"
+            @click="openSettings"
+          >
+            <span class="text-xs text-slate-400 pl-1">{{ currentApproachLabel }}</span>
+            <span
+              v-if="user"
+              class="w-7 h-7 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
+              style="background: linear-gradient(135deg, #f43f5e, #6366f1)"
+            >{{ user.username.charAt(0).toUpperCase() }}</span>
+          </button>
         </div>
       </header>
 
@@ -67,18 +71,18 @@
       </form>
     </div>
 
-    <!-- Auth modal：未ログインなら必ず表示（モーダル下部に新規登録への切替リンクあり） -->
     <DeepheartAuthModal v-if="checked && !isLoggedIn" />
 
-    <!-- Settings modal -->
     <SettingsModal
       v-if="settingsOpen"
       :tone="personality.tone"
       :systemPrompt="personality.systemPrompt"
+      :responseLength="personality.responseLength"
       :saving="savingSettings"
       @close="settingsOpen = false"
       @save="saveSettings"
       @clearHistory="confirmClearHistory"
+      @logout="logout"
     />
   </div>
 </template>
@@ -89,6 +93,7 @@ import { useDeepheartAuth } from '~/composables/useDeepheartAuth'
 import DeepheartAuthModal from '~/components/deepheart/DeepheartAuthModal.vue'
 import MessageBubble from '~/components/deepheart/MessageBubble.vue'
 import SettingsModal from '~/components/deepheart/SettingsModal.vue'
+
 
 definePageMeta({ alias: ['/deepheart', '/deepheart/'] })
 
@@ -101,6 +106,22 @@ interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
+}
+
+interface Personality {
+  tone: string
+  systemPrompt: string
+  responseLength: number
+}
+
+const APPROACH_LABELS: Record<string, string> = {
+  listen:  '受け止める',
+  explore: '原因を調査',
+  reframe: '見方を変える',
+  forward: '前向きになる',
+}
+const LENGTH_LABELS: Record<number, string> = {
+  1: '一言', 2: '短め', 3: '普通', 4: '長め', 5: '詳しく',
 }
 
 const { user, isLoggedIn, checked, checkAuth, logout } = useDeepheartAuth()
@@ -121,16 +142,14 @@ const inputRef = ref<HTMLTextAreaElement | null>(null)
 
 const settingsOpen = ref(false)
 const savingSettings = ref(false)
-const personality = ref<{ tone: string; systemPrompt: string }>({ tone: 'gentle', systemPrompt: '' })
+const personality = ref<Personality>({ tone: 'listen', systemPrompt: '', responseLength: 3 })
 
-const menuItems = computed(() => [
-  { icon: '⚙️', label: 'カウンセラー設定', action: openSettings },
-  { icon: '🚪', label: 'ログアウト', action: logout },
-])
+const currentApproachLabel = computed(() => APPROACH_LABELS[personality.value.tone] ?? '受け止めてほしい')
+const currentLengthLabel = computed(() => LENGTH_LABELS[personality.value.responseLength] ?? '普通')
+
 
 onMounted(checkAuth)
 
-// ログイン完了後に履歴・設定を読み込み
 watch(() => isLoggedIn.value, async (logged) => {
   if (logged) await loadAll()
 }, { immediate: true })
@@ -168,22 +187,22 @@ async function loadHistory() {
 async function loadPersonality() {
   if (dev) {
     if (!personalityKey.value) {
-      personality.value = { tone: 'gentle', systemPrompt: '' }
+      personality.value = { tone: 'listen', systemPrompt: '', responseLength: 3 }
       return
     }
     try {
       const raw = localStorage.getItem(personalityKey.value)
-      personality.value = raw ? JSON.parse(raw) : { tone: 'gentle', systemPrompt: '' }
+      personality.value = raw ? { ...{ tone: 'listen', systemPrompt: '', responseLength: 3 }, ...JSON.parse(raw) } : { tone: 'listen', systemPrompt: '', responseLength: 3 }
     } catch {
-      personality.value = { tone: 'gentle', systemPrompt: '' }
+      personality.value = { tone: 'listen', systemPrompt: '', responseLength: 3 }
     }
     return
   }
   try {
-    const p = await $fetch<{ tone: string; systemPrompt: string }>('/api/deepheart/personality')
+    const p = await $fetch<Personality>('/api/deepheart/personality')
     personality.value = p
   } catch {
-    personality.value = { tone: 'gentle', systemPrompt: '' }
+    personality.value = { tone: 'listen', systemPrompt: '', responseLength: 3 }
   }
 }
 
@@ -198,7 +217,7 @@ function openSettings() {
   settingsOpen.value = true
 }
 
-async function saveSettings(payload: { tone: string; systemPrompt: string }) {
+async function saveSettings(payload: Personality) {
   savingSettings.value = true
   try {
     if (dev) {
@@ -209,7 +228,7 @@ async function saveSettings(payload: { tone: string; systemPrompt: string }) {
       settingsOpen.value = false
       return
     }
-    const res = await $fetch<{ tone: string; systemPrompt: string }>('/api/deepheart/personality', {
+    const res = await $fetch<Personality>('/api/deepheart/personality', {
       method: 'PUT',
       body: payload,
     })
@@ -293,6 +312,7 @@ async function send() {
         messages: payloadMessages,
         tone: personality.value.tone,
         systemPrompt: personality.value.systemPrompt,
+        responseLength: personality.value.responseLength,
       }),
     })
 
@@ -318,15 +338,12 @@ async function send() {
     }
 
     if (dev) {
-      // dev は localStorage に保存、ID は local-* のまま
       saveMessagesLocal()
     } else {
-      // 本番はサーバーで保存された履歴に合わせ、ID 再同期のため再取得
       await loadHistory()
     }
   } catch (err: any) {
     error.value = err?.message ?? '返信の取得に失敗しました'
-    // 失敗した場合は空のアシスタントメッセージを除去
     if (!assistantMsg.content) {
       messages.value = messages.value.filter((m) => m.id !== assistantMsg.id)
     }

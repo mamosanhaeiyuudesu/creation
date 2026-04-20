@@ -21,6 +21,8 @@ apps/
 - **whisper** — 音声文字起こし・要約・校正
 - **hagemashi** — AI励ましメッセージ生成
 - **task** — Trello連携タスク管理
+- **deepheart** — カウンセリングチャット（独立した認証・D1）
+- **mlb** / **japanese-mlb-player** — 日本人MLBプレイヤー情報
 - **ai-tools 全般**（ルーティング、共通コンポーネント、サーバーAPI など）
 
 ユーザーの指示に以下のキーワードが含まれる場合は `apps/homepages/` で作業する：
