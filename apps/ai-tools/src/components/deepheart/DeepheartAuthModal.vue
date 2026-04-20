@@ -4,7 +4,7 @@
       <div class="px-6 pt-6 pb-4 text-center">
         <h2 class="m-0 text-xl font-bold text-slate-50">{{ isRegister ? '新規登録' : 'ログイン' }}</h2>
         <p class="mt-1 mb-0 text-sm text-slate-400">
-          deepheart は別アカウント管理です。{{ isRegister ? '新しく作成してください' : 'ログインしてください' }}
+          {{ isRegister ? '新しく作成してください' : 'ログインしてください' }}
         </p>
       </div>
 
