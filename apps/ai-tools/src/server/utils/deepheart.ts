@@ -38,6 +38,36 @@ export function getDeepheartDb(event: H3Event): any {
   return (event.context as any).cloudflare?.env?.DEEPHEART_DB ?? null
 }
 
+export function getDeepheartEncryptionKey(event: H3Event): string | null {
+  return (event.context as any).cloudflare?.env?.DEEPHEART_ENCRYPTION_KEY ?? null
+}
+
+export async function encryptMessage(content: string, keyBase64: string): Promise<string> {
+  const keyBytes = Uint8Array.from(atob(keyBase64), (c) => c.charCodeAt(0))
+  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt'])
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(content))
+  const ivB64 = btoa(String.fromCharCode(...iv))
+  const ctB64 = btoa(String.fromCharCode(...new Uint8Array(ciphertext)))
+  return `ENC:${ivB64}:${ctB64}`
+}
+
+export async function decryptMessage(stored: string, keyBase64: string): Promise<string> {
+  if (!stored.startsWith('ENC:')) return stored
+  try {
+    const parts = stored.split(':')
+    if (parts.length !== 3) return stored
+    const iv = Uint8Array.from(atob(parts[1]), (c) => c.charCodeAt(0))
+    const ciphertext = Uint8Array.from(atob(parts[2]), (c) => c.charCodeAt(0))
+    const keyBytes = Uint8Array.from(atob(keyBase64), (c) => c.charCodeAt(0))
+    const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['decrypt'])
+    const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext)
+    return new TextDecoder().decode(plaintext)
+  } catch {
+    return stored
+  }
+}
+
 export async function getDeepheartUser(event: H3Event): Promise<{ id: string; username: string } | null> {
   const db = getDeepheartDb(event)
   if (!db) return null

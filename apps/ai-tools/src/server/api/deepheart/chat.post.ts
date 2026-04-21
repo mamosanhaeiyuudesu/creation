@@ -1,4 +1,4 @@
-import { getDeepheartDb, getDeepheartUser, buildSystemPrompt, DEEPHEART_TONES, RESPONSE_LENGTH_TOKENS, type DeepheartTone } from '~/server/utils/deepheart'
+import { getDeepheartDb, getDeepheartUser, getDeepheartEncryptionKey, encryptMessage, buildSystemPrompt, DEEPHEART_TONES, RESPONSE_LENGTH_TOKENS, type DeepheartTone } from '~/server/utils/deepheart'
 import { appendLog } from '~/server/utils/openai'
 
 type ChatMessage = {
@@ -76,6 +76,7 @@ export default defineEventHandler(async (event) => {
     })),
   ]
 
+  const encKey = getDeepheartEncryptionKey(event)
   const apiKey = getOpenAiKey(event)
 
   try {
@@ -125,7 +126,7 @@ export default defineEventHandler(async (event) => {
 
         const data = trimmedLine.slice(5).trim()
         if (!data || data === '[DONE]') {
-          if (db && user) await persistTurn(db, user.id, latestUser.content, assembled)
+          if (db && user) await persistTurn(db, user.id, latestUser.content, assembled, encKey)
           res.end()
           return
         }
@@ -146,7 +147,7 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    if (db && user) await persistTurn(db, user.id, latestUser.content, assembled)
+    if (db && user) await persistTurn(db, user.id, latestUser.content, assembled, encKey)
     res.end()
     return
   } catch (err: any) {
@@ -154,21 +155,24 @@ export default defineEventHandler(async (event) => {
   }
 })
 
-async function persistTurn(db: any, userId: string, userContent: string, assistantContent: string) {
+async function persistTurn(db: any, userId: string, userContent: string, assistantContent: string, encKey: string | null) {
   if (!userContent) return
   const now = new Date()
   const baseIso = now.toISOString().replace('T', ' ').replace('Z', '')
   const later = new Date(now.getTime() + 1).toISOString().replace('T', ' ').replace('Z', '')
 
+  const storedUser = encKey ? await encryptMessage(userContent, encKey) : userContent
+
   await db
     .prepare('INSERT INTO deepheart_messages (id, user_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)')
-    .bind(crypto.randomUUID(), userId, 'user', userContent, baseIso)
+    .bind(crypto.randomUUID(), userId, 'user', storedUser, baseIso)
     .run()
 
   if (assistantContent) {
+    const storedAssistant = encKey ? await encryptMessage(assistantContent, encKey) : assistantContent
     await db
       .prepare('INSERT INTO deepheart_messages (id, user_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)')
-      .bind(crypto.randomUUID(), userId, 'assistant', assistantContent, later)
+      .bind(crypto.randomUUID(), userId, 'assistant', storedAssistant, later)
       .run()
   }
 }

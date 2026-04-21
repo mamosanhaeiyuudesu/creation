@@ -1,10 +1,11 @@
-import { getDeepheartDb, requireDeepheartUser } from '~/server/utils/deepheart'
+import { getDeepheartDb, requireDeepheartUser, getDeepheartEncryptionKey, decryptMessage } from '~/server/utils/deepheart'
 
 export default defineEventHandler(async (event) => {
   const user = await requireDeepheartUser(event)
   const db = getDeepheartDb(event)
   if (!db) throw createError({ statusCode: 503, message: 'データベースが利用できません' })
 
+  const encKey = getDeepheartEncryptionKey(event)
   const query = getQuery(event)
   const limit = Math.min(Math.max(parseInt(String(query.limit ?? '200'), 10) || 200, 1), 500)
 
@@ -14,10 +15,12 @@ export default defineEventHandler(async (event) => {
     .all<{ id: string; role: string; content: string; created_at: string }>()
 
   const rows = res.results ?? []
-  return rows.map((r) => ({
-    id: r.id,
-    role: r.role,
-    content: r.content,
-    createdAt: r.created_at,
-  }))
+  return Promise.all(
+    rows.map(async (r) => ({
+      id: r.id,
+      role: r.role,
+      content: encKey ? await decryptMessage(r.content, encKey) : r.content,
+      createdAt: r.created_at,
+    }))
+  )
 })
