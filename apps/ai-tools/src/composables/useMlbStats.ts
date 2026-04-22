@@ -1,16 +1,16 @@
-import type { SeasonData, YearlyData } from '~/types/mlb'
+import type { SeasonData, YearlyData, AllLeagueStats } from '~/types/mlb'
 import { PLAYERS } from '~/utils/japanese-mlb-player/players'
 
-const DEFAULT_SELECTED = ['660271', '808967', '694297', '676440', '673548']
-
 export function useMlbStats() {
-  const selectedIds = useState<string[]>('mlb-selected', () => [...DEFAULT_SELECTED])
+  const selectedIds = useState<string[]>('mlb-selected', () => PLAYERS.map(p => p.id))
   const activeTab = useState<'season' | 'yearly'>('mlb-tab', () => 'season')
   const selectedSeason = useState<number>('mlb-season', () => 2026)
 
   const seasonCache = useState<Map<string, SeasonData>>('mlb-season-cache', () => new Map())
   const yearlyCache = useState<Map<string, YearlyData>>('mlb-yearly-cache', () => new Map())
+  const leagueStatsCache = useState<AllLeagueStats | null>('mlb-league-stats', () => null)
   const loadingIds = useState<Set<string>>('mlb-loading', () => new Set())
+  const leagueLoading = useState<boolean>('mlb-league-loading', () => false)
 
   const selectedPlayers = computed(() =>
     selectedIds.value.map(id => PLAYERS.find(p => p.id === id)).filter(Boolean) as typeof PLAYERS
@@ -59,11 +59,31 @@ export function useMlbStats() {
   }
 
   async function ensureSeasonData() {
-    await Promise.all(selectedIds.value.map(id => fetchSeason(id)))
+    await Promise.all([
+      ...selectedIds.value.map(id => fetchSeason(id)),
+      ensureLeagueStats(),
+    ])
   }
 
   async function ensureYearlyData() {
     await Promise.all(selectedIds.value.map(id => fetchYearly(id)))
+  }
+
+  async function ensureLeagueStats() {
+    if (leagueStatsCache.value || leagueLoading.value) return
+    leagueLoading.value = true
+    try {
+      const data = await $fetch<AllLeagueStats>('/api/japanese-mlb-player/league-stats', {
+        query: { season: selectedSeason.value },
+      })
+      leagueStatsCache.value = data
+    } finally {
+      leagueLoading.value = false
+    }
+  }
+
+  function getLeagueStats(): AllLeagueStats | null {
+    return leagueStatsCache.value
   }
 
   function isLoading(id: string) {
@@ -91,5 +111,6 @@ export function useMlbStats() {
     isLoading,
     getSeasonData,
     getYearlyData,
+    getLeagueStats,
   }
 }

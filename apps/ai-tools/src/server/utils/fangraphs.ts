@@ -171,6 +171,32 @@ export function mapPitcherRow(row: FgPitcherRow, playerId: string, season: numbe
   }
 }
 
+function buildLeagueUrl(stats: 'bat' | 'pit', league: 'al' | 'nl', season: number): string {
+  const url = new URL('https://www.fangraphs.com/api/leaders/major-league/data')
+  url.searchParams.set('pos', 'all')
+  url.searchParams.set('stats', stats)
+  url.searchParams.set('lg', league)
+  url.searchParams.set('qual', '1')
+  url.searchParams.set('type', '8')
+  url.searchParams.set('season', String(season))
+  url.searchParams.set('season1', String(season))
+  url.searchParams.set('ind', '0')
+  url.searchParams.set('team', '0')
+  url.searchParams.set('pageitems', '1000')
+  url.searchParams.set('pagenum', '1')
+  return url.toString()
+}
+
+export async function fetchFgLeagueBatters(league: 'al' | 'nl', season: number): Promise<FgBatterRow[]> {
+  const json = await fetchJson<{ data?: FgBatterRow[] }>(buildLeagueUrl('bat', league, season))
+  return json?.data ?? []
+}
+
+export async function fetchFgLeaguePitchers(league: 'al' | 'nl', season: number): Promise<FgPitcherRow[]> {
+  const json = await fetchJson<{ data?: FgPitcherRow[] }>(buildLeagueUrl('pit', league, season))
+  return json?.data ?? []
+}
+
 export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }

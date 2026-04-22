@@ -19,7 +19,13 @@ const tabs = [
   { key: 'yearly' as const, label: '年度別推移' },
 ]
 
+const leagueTabs = [
+  { key: 'NL' as const, label: 'ナ・リーグ' },
+  { key: 'AL' as const, label: 'ア・リーグ' },
+]
+
 const mobileMenu = ref(false)
+const activeLeague = ref<'AL' | 'NL'>('NL')
 
 const {
   selectedIds,
@@ -30,7 +36,10 @@ const {
   ensureYearlyData,
   getSeasonData,
   getYearlyData,
+  getLeagueStats,
 } = useMlbStats()
+
+const leagueStats = computed(() => getLeagueStats())
 
 const seasonDataMap = computed(() => {
   const m = new Map<string, SeasonData>()
@@ -50,7 +59,6 @@ const yearlyDataMap = computed(() => {
   return m
 })
 
-// 投手として扱う選手ID（pitcher / both）
 const pitcherIds = computed(() =>
   selectedIds.value.filter(id => {
     const p = PLAYERS.find(pl => pl.id === id)
@@ -58,12 +66,19 @@ const pitcherIds = computed(() =>
   })
 )
 
-// 野手として扱う選手ID（batter / both）
 const batterIds = computed(() =>
   selectedIds.value.filter(id => {
     const p = PLAYERS.find(pl => pl.id === id)
     return p?.position === 'batter' || p?.position === 'both'
   })
+)
+
+const filteredPitcherIds = computed(() =>
+  pitcherIds.value.filter(id => PLAYERS.find(pl => pl.id === id)?.league === activeLeague.value)
+)
+
+const filteredBatterIds = computed(() =>
+  batterIds.value.filter(id => PLAYERS.find(pl => pl.id === id)?.league === activeLeague.value)
 )
 
 watch(activeTab, async (tab) => {
@@ -103,7 +118,7 @@ function deselectAll() {
     />
 
     <main class="flex-1 overflow-y-auto bg-white">
-      <!-- タブバー -->
+      <!-- シーズン/年度別タブ -->
       <div class="flex border-b border-slate-200 bg-white sticky top-0 z-10">
         <button
           v-for="tab in tabs"
@@ -143,6 +158,19 @@ function deselectAll() {
             左のサイドバーで選手を選択してください
           </div>
           <template v-else>
+            <!-- AL/NLリーグタブ -->
+            <div class="flex gap-1 mb-5">
+              <button
+                v-for="lt in leagueTabs"
+                :key="lt.key"
+                @click="activeLeague = lt.key"
+                class="px-4 py-1.5 text-xs font-semibold rounded-full border transition-colors"
+                :class="activeLeague === lt.key
+                  ? 'bg-slate-800 text-white border-slate-800'
+                  : 'bg-white text-slate-500 border-slate-300 hover:border-slate-500'"
+              >{{ lt.label }}</button>
+            </div>
+
             <section class="mb-8">
               <h2 class="text-sm font-bold text-slate-600 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 rounded inline-block" style="background: #0C447C;" />
@@ -151,28 +179,30 @@ function deselectAll() {
               <StatsTable
                 :selected-ids="selectedIds"
                 :season-data-map="seasonDataMap"
+                :league-stats="leagueStats"
+                :league="activeLeague"
               />
             </section>
 
-            <section v-if="pitcherIds.length" class="mb-8">
+            <section v-if="filteredPitcherIds.length" class="mb-8">
               <h2 class="text-sm font-bold text-slate-600 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 rounded inline-block" style="background: #0C447C;" />
                 シーズン内推移（投手）
               </h2>
               <TrendChart
-                :selected-ids="pitcherIds"
+                :selected-ids="filteredPitcherIds"
                 :season-data-map="seasonDataMap"
                 mode="pitcher"
               />
             </section>
 
-            <section v-if="batterIds.length">
+            <section v-if="filteredBatterIds.length">
               <h2 class="text-sm font-bold text-slate-600 mb-3 flex items-center gap-2">
                 <span class="w-1 h-4 rounded inline-block" style="background: #0C447C;" />
                 シーズン内推移（野手）
               </h2>
               <TrendChart
-                :selected-ids="batterIds"
+                :selected-ids="filteredBatterIds"
                 :season-data-map="seasonDataMap"
                 mode="batter"
               />

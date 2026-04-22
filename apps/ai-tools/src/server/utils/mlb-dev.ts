@@ -1,4 +1,4 @@
-import type { SeasonData, YearlyData, BatterStats, PitcherStats } from '~/types/mlb'
+import type { SeasonData, YearlyData, BatterStats, PitcherStats, AllLeagueStats, LeagueStatsBlock, LeagueStatSummary } from '~/types/mlb'
 import { PLAYERS } from '~/utils/japanese-mlb-player/players'
 
 // 2026年現在成績サンプルデータ（ローカル開発用）
@@ -185,4 +185,58 @@ export function getDevYearlyData(playerId: string): YearlyData | null {
 
 export function getDevPlayers() {
   return PLAYERS
+}
+
+function makeSummary(leader: number, avg: number, count: number, higherIsBetter: boolean): LeagueStatSummary {
+  const step = higherIsBetter ? -(leader - avg * 0.6) / count : (avg * 1.4 - leader) / count
+  const values: number[] = []
+  for (let i = 0; i < count; i++) {
+    values.push(Math.round((leader + step * i) * 1000) / 1000)
+  }
+  return { leaderValue: leader, leagueAvg: avg, sortedValues: values }
+}
+
+function makeLeagueBlock(
+  batterLeaders: { avg: number; obp: number; ops: number; wrcPlus: number; bbPct: number; kPct: number; war: number },
+  batterAvgs: { avg: number; obp: number; ops: number; wrcPlus: number; bbPct: number; kPct: number; war: number },
+  pitcherLeaders: { era: number; fip: number; whip: number; kPct: number; bbPct: number; gbPct: number; war: number },
+  pitcherAvgs: { era: number; fip: number; whip: number; kPct: number; bbPct: number; gbPct: number; war: number },
+): LeagueStatsBlock {
+  return {
+    batter: {
+      avg: makeSummary(batterLeaders.avg, batterAvgs.avg, 150, true),
+      obp: makeSummary(batterLeaders.obp, batterAvgs.obp, 150, true),
+      ops: makeSummary(batterLeaders.ops, batterAvgs.ops, 150, true),
+      wrcPlus: makeSummary(batterLeaders.wrcPlus, batterAvgs.wrcPlus, 150, true),
+      bbPct: makeSummary(batterLeaders.bbPct, batterAvgs.bbPct, 150, true),
+      kPct: makeSummary(batterLeaders.kPct, batterAvgs.kPct, 150, false),
+      war: makeSummary(batterLeaders.war, batterAvgs.war, 150, true),
+    },
+    pitcher: {
+      era: makeSummary(pitcherLeaders.era, pitcherAvgs.era, 80, false),
+      fip: makeSummary(pitcherLeaders.fip, pitcherAvgs.fip, 80, false),
+      whip: makeSummary(pitcherLeaders.whip, pitcherAvgs.whip, 80, false),
+      kPct: makeSummary(pitcherLeaders.kPct, pitcherAvgs.kPct, 80, true),
+      bbPct: makeSummary(pitcherLeaders.bbPct, pitcherAvgs.bbPct, 80, false),
+      gbPct: makeSummary(pitcherLeaders.gbPct, pitcherAvgs.gbPct, 80, true),
+      war: makeSummary(pitcherLeaders.war, pitcherAvgs.war, 80, true),
+    },
+  }
+}
+
+export function getDevLeagueStats(): AllLeagueStats {
+  return {
+    AL: makeLeagueBlock(
+      { avg: 0.345, obp: 0.420, ops: 1.050, wrcPlus: 180, bbPct: 17.2, kPct: 12.5, war: 4.2 },
+      { avg: 0.255, obp: 0.322, ops: 0.745, wrcPlus: 100, bbPct: 8.5,  kPct: 24.0, war: 1.2 },
+      { era: 1.42, fip: 1.65, whip: 0.82, kPct: 38.5, bbPct: 3.8, gbPct: 58.2, war: 3.8 },
+      { era: 4.12, fip: 4.05, whip: 1.28, kPct: 22.8, bbPct: 8.2,  gbPct: 43.0, war: 1.1 },
+    ),
+    NL: makeLeagueBlock(
+      { avg: 0.352, obp: 0.428, ops: 1.080, wrcPlus: 185, bbPct: 16.8, kPct: 11.8, war: 4.5 },
+      { avg: 0.252, obp: 0.318, ops: 0.738, wrcPlus: 100, bbPct: 8.2,  kPct: 24.5, war: 1.1 },
+      { era: 1.38, fip: 1.58, whip: 0.80, kPct: 40.2, bbPct: 3.5, gbPct: 60.1, war: 4.0 },
+      { era: 4.08, fip: 4.00, whip: 1.25, kPct: 23.5, bbPct: 7.9,  gbPct: 44.0, war: 1.0 },
+    ),
+  }
 }
