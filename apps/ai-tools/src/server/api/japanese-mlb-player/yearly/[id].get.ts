@@ -32,10 +32,8 @@ export default defineEventHandler(async (event) => {
     avg: r.avg as number | null,
     obp: r.obp as number | null,
     ops: r.ops as number | null,
-    wrcPlus: r.wrc_plus as number | null,
     bbPct: r.bb_pct as number | null,
     kPct: r.k_pct as number | null,
-    war: r.war as number | null,
   })
 
   const mapPitcher = (r: Record<string, unknown>) => ({
@@ -43,12 +41,9 @@ export default defineEventHandler(async (event) => {
     season: r.season as number,
     date: null,
     era: r.era as number | null,
-    fip: r.fip as number | null,
     whip: r.whip as number | null,
     kPct: r.k_pct as number | null,
     bbPct: r.bb_pct as number | null,
-    gbPct: r.gb_pct as number | null,
-    war: r.war as number | null,
   })
 
   return {

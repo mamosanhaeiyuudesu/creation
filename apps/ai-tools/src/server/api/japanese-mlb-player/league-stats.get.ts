@@ -1,8 +1,5 @@
 import type { AllLeagueStats, LeagueStatsBlock, LeagueStatSummary } from '~/types/mlb'
-import {
-  fetchFgLeagueBatters, fetchFgLeaguePitchers,
-  mapBatterRow, mapPitcherRow,
-} from '~/server/utils/fangraphs'
+import { fetchLeagueBatters, fetchLeaguePitchers } from '~/server/utils/mlbstats'
 import { getDevLeagueStats } from '~/server/utils/mlb-dev'
 
 function computeSummary(values: (number | null)[], higherIsBetter: boolean): LeagueStatSummary | null {
@@ -17,40 +14,33 @@ function computeSummary(values: (number | null)[], higherIsBetter: boolean): Lea
   }
 }
 
-async function getLeagueBlock(league: 'al' | 'nl', season: number): Promise<LeagueStatsBlock> {
-  const [bRows, pRows] = await Promise.all([
-    fetchFgLeagueBatters(league, season),
-    fetchFgLeaguePitchers(league, season),
+// AL = 103, NL = 104
+async function getLeagueBlock(leagueId: number, season: number): Promise<LeagueStatsBlock> {
+  const [batters, pitchers] = await Promise.all([
+    fetchLeagueBatters(leagueId, season),
+    fetchLeaguePitchers(leagueId, season),
   ])
-
-  const bStats = bRows.map(r => mapBatterRow(r, '', season, ''))
-  const pStats = pRows.map(r => mapPitcherRow(r, '', season, ''))
 
   return {
     batter: {
-      avg: computeSummary(bStats.map(s => s.avg), true) ?? undefined,
-      obp: computeSummary(bStats.map(s => s.obp), true) ?? undefined,
-      ops: computeSummary(bStats.map(s => s.ops), true) ?? undefined,
-      wrcPlus: computeSummary(bStats.map(s => s.wrcPlus), true) ?? undefined,
-      bbPct: computeSummary(bStats.map(s => s.bbPct), true) ?? undefined,
-      kPct: computeSummary(bStats.map(s => s.kPct), false) ?? undefined,
-      war: computeSummary(bStats.map(s => s.war), true) ?? undefined,
+      avg: computeSummary(batters.map(s => s.avg), true) ?? undefined,
+      obp: computeSummary(batters.map(s => s.obp), true) ?? undefined,
+      ops: computeSummary(batters.map(s => s.ops), true) ?? undefined,
+      bbPct: computeSummary(batters.map(s => s.bbPct), true) ?? undefined,
+      kPct: computeSummary(batters.map(s => s.kPct), false) ?? undefined,
     },
     pitcher: {
-      era: computeSummary(pStats.map(s => s.era), false) ?? undefined,
-      fip: computeSummary(pStats.map(s => s.fip), false) ?? undefined,
-      whip: computeSummary(pStats.map(s => s.whip), false) ?? undefined,
-      kPct: computeSummary(pStats.map(s => s.kPct), true) ?? undefined,
-      bbPct: computeSummary(pStats.map(s => s.bbPct), false) ?? undefined,
-      gbPct: computeSummary(pStats.map(s => s.gbPct), true) ?? undefined,
-      war: computeSummary(pStats.map(s => s.war), true) ?? undefined,
+      era: computeSummary(pitchers.map(s => s.era), false) ?? undefined,
+      whip: computeSummary(pitchers.map(s => s.whip), false) ?? undefined,
+      kPct: computeSummary(pitchers.map(s => s.kPct), true) ?? undefined,
+      bbPct: computeSummary(pitchers.map(s => s.bbPct), false) ?? undefined,
     },
   }
 }
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
-  const season = Number(query.season ?? 2026)
+  const season = Number(query.season ?? new Date().getFullYear())
 
   const env = event.context.cloudflare?.env as Record<string, unknown> | undefined
   if (!env?.MLB_DB) {
@@ -58,8 +48,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const [al, nl] = await Promise.all([
-    getLeagueBlock('al', season),
-    getLeagueBlock('nl', season),
+    getLeagueBlock(103, season),
+    getLeagueBlock(104, season),
   ])
 
   return { AL: al, NL: nl } satisfies AllLeagueStats

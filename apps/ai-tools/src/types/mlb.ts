@@ -14,27 +14,22 @@ export interface Player {
 export interface BatterStats {
   playerId: string
   season: number
-  date: string
+  date: string | null
   avg: number | null
   obp: number | null
   ops: number | null
-  wrcPlus: number | null
   bbPct: number | null
   kPct: number | null
-  war: number | null
 }
 
 export interface PitcherStats {
   playerId: string
   season: number
-  date: string
+  date: string | null
   era: number | null
-  fip: number | null
   whip: number | null
   kPct: number | null
   bbPct: number | null
-  gbPct: number | null
-  war: number | null
 }
 
 export interface StatMeta {

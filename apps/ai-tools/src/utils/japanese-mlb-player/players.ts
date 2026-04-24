@@ -49,13 +49,6 @@ export const BATTER_STATS: StatMeta[] = [
     format: (v) => v === null ? '—' : v.toFixed(3).replace(/^0\./, ''),
   },
   {
-    key: 'wrcPlus', label: '得点貢献+',
-    fullName: 'wRC+ = Weighted Runs Created Plus',
-    description: '球場・時代を補正した得点貢献度。100が平均。高いほど良い。',
-    direction: 'high',
-    format: (v) => v === null ? '—' : Math.round(v as number).toString(),
-  },
-  {
     key: 'bbPct', label: '四球率',
     fullName: 'BB% = Base on Balls Percentage',
     description: '四球を選んだ割合（選球眼の指標）。高いほど良い。',
@@ -69,13 +62,6 @@ export const BATTER_STATS: StatMeta[] = [
     direction: 'low',
     format: (v) => v === null ? '—' : (v as number).toFixed(1) + '%',
   },
-  {
-    key: 'war', label: '総合貢献',
-    fullName: 'WAR = Wins Above Replacement',
-    description: '平均的な選手と比べた総合的な勝利貢献数。高いほど良い。',
-    direction: 'high',
-    format: (v) => v === null ? '—' : (v as number).toFixed(1),
-  },
 ]
 
 export const PITCHER_STATS: StatMeta[] = [
@@ -83,13 +69,6 @@ export const PITCHER_STATS: StatMeta[] = [
     key: 'era', label: '防御率',
     fullName: 'ERA = Earned Run Average',
     description: '9イニングあたりの自責点。低いほど良い。',
-    direction: 'low',
-    format: (v) => v === null ? '—' : (v as number).toFixed(2),
-  },
-  {
-    key: 'fip', label: '純防御率',
-    fullName: 'FIP = Fielding Independent Pitching',
-    description: '守備を除外した投手単独の能力（ERA類似）。低いほど良い。',
     direction: 'low',
     format: (v) => v === null ? '—' : (v as number).toFixed(2),
   },
@@ -113,20 +92,6 @@ export const PITCHER_STATS: StatMeta[] = [
     description: '打者に四球を与えた割合。低いほど良い。',
     direction: 'low',
     format: (v) => v === null ? '—' : (v as number).toFixed(1) + '%',
-  },
-  {
-    key: 'gbPct', label: 'ゴロ率',
-    fullName: 'GB% = Ground Ball Percentage',
-    description: 'ゴロアウトで打ち取る割合。高いほど良い。',
-    direction: 'high',
-    format: (v) => v === null ? '—' : (v as number).toFixed(1) + '%',
-  },
-  {
-    key: 'war', label: '総合貢献',
-    fullName: 'WAR = Wins Above Replacement',
-    description: '平均的な投手と比べた総合的な勝利貢献数。高いほど良い。',
-    direction: 'high',
-    format: (v) => v === null ? '—' : (v as number).toFixed(1),
   },
 ]
 

@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   if (!player) throw createError({ statusCode: 404, statusMessage: '選手が見つかりません。' })
 
   const query = getQuery(event)
-  const season = Number(query.season ?? 2026)
+  const season = Number(query.season ?? new Date().getFullYear())
 
   const env = event.context.cloudflare?.env as Record<string, unknown> | undefined
   const db = env?.MLB_DB as D1Database | undefined
@@ -43,10 +43,8 @@ export default defineEventHandler(async (event) => {
     avg: r.avg as number | null,
     obp: r.obp as number | null,
     ops: r.ops as number | null,
-    wrcPlus: r.wrc_plus as number | null,
     bbPct: r.bb_pct as number | null,
     kPct: r.k_pct as number | null,
-    war: r.war as number | null,
   })
 
   const mapPitcher = (r: Record<string, unknown>) => ({
@@ -54,12 +52,9 @@ export default defineEventHandler(async (event) => {
     season: r.season as number,
     date: r.date as string | null,
     era: r.era as number | null,
-    fip: r.fip as number | null,
     whip: r.whip as number | null,
     kPct: r.k_pct as number | null,
     bbPct: r.bb_pct as number | null,
-    gbPct: r.gb_pct as number | null,
-    war: r.war as number | null,
   })
 
   return {

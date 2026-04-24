@@ -1,10 +1,14 @@
--- MLB日本人選手 D1テーブル定義
+-- MLB日本人選手 D1テーブル定義（v2: MLB Stats API対応、FanGraphs固有指標削除）
 -- date カラムは TEXT NOT NULL。年度集計レコードは '' (空文字)、日次レコードは 'YYYY-MM-DD'。
 --
--- セットアップ:
+-- セットアップ（初回 or 再作成）:
 --   wrangler d1 execute mlb-db --remote --file src/server/db/mlb-schema.sql
 
-CREATE TABLE IF NOT EXISTS mlb_players (
+DROP TABLE IF EXISTS mlb_batter_stats;
+DROP TABLE IF EXISTS mlb_pitcher_stats;
+DROP TABLE IF EXISTS mlb_players;
+
+CREATE TABLE mlb_players (
   id TEXT PRIMARY KEY,
   name_ja TEXT NOT NULL,
   name_en TEXT NOT NULL,
@@ -14,31 +18,26 @@ CREATE TABLE IF NOT EXISTS mlb_players (
   league TEXT NOT NULL CHECK(league IN ('AL', 'NL'))
 );
 
-CREATE TABLE IF NOT EXISTS mlb_batter_stats (
+CREATE TABLE mlb_batter_stats (
   player_id TEXT NOT NULL REFERENCES mlb_players(id),
   season INTEGER NOT NULL,
   date TEXT NOT NULL DEFAULT '',
   avg REAL,
   obp REAL,
   ops REAL,
-  wrc_plus REAL,
   bb_pct REAL,
   k_pct REAL,
-  war REAL,
   PRIMARY KEY (player_id, season, date)
 );
 
-CREATE TABLE IF NOT EXISTS mlb_pitcher_stats (
+CREATE TABLE mlb_pitcher_stats (
   player_id TEXT NOT NULL REFERENCES mlb_players(id),
   season INTEGER NOT NULL,
   date TEXT NOT NULL DEFAULT '',
   era REAL,
-  fip REAL,
   whip REAL,
   k_pct REAL,
   bb_pct REAL,
-  gb_pct REAL,
-  war REAL,
   PRIMARY KEY (player_id, season, date)
 );
 
