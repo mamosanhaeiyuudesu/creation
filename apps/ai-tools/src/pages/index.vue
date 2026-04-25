@@ -32,5 +32,6 @@ const tools = [
   { path: '/whisper', icon: '🎙️', name: 'Whisper', desc: '音声を文字に自動変換' },
   { path: '/hagemashi', icon: '💪', name: 'はげまし', desc: '話して、AIに励ましてもらおう' },
   { path: '/task', icon: '📋', name: 'タスクくん', desc: 'Trello の DOING / TODO / DONE をまとめて確認' },
+  { path: '/keiko', icon: '⚔️', name: '稽古 — 足さばき', desc: '剣道の足さばきをランダム掛け声でトレーニング' },
 ]
 </script>

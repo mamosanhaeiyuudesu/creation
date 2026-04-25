@@ -81,6 +81,7 @@ const tools = [
   { path: '/whisper', name: 'Whisper', icon: '🎙️' },
   { path: '/hagemashi', name: 'はげまし', icon: '💪' },
   { path: '/task', name: 'タスクくん', icon: '📋' },
+  { path: '/keiko', name: '稽古', icon: '⚔️' },
 ]
 
 const isActive = (path: string): boolean => route.path === path
