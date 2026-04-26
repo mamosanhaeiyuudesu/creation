@@ -52,6 +52,8 @@ export interface StatMeta {
   direction: 'high' | 'low'
   format: (v: number | null) => string
   counting?: boolean
+  chartMin?: number
+  chartMax?: number
 }
 
 export interface LeagueStatSummary {

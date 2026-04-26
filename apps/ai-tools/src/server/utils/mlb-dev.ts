@@ -3,9 +3,9 @@ import { PLAYERS } from '~/utils/japanese-mlb-player/players'
 
 // 2026年現在成績サンプルデータ（ローカル開発用）
 const CURRENT_BATTER: Record<string, Omit<BatterStats, 'playerId' | 'season' | 'date'>> = {
-  '676440': { avg: 0.278, obp: 0.362, slg: 0.480, ops: 0.842, bbPct: 12.8, kPct: 19.5, hr: 4,  rbi: 14, hits: 22, runs: 12, stolenBases: 0 },
-  '838984': { avg: 0.261, obp: 0.335, slg: 0.430, ops: 0.795, bbPct: 9.2,  kPct: 21.8, hr: 4,  rbi: 13, hits: 21, runs: 10, stolenBases: 1 },
-  '838985': { avg: 0.248, obp: 0.342, slg: 0.483, ops: 0.825, bbPct: 12.5, kPct: 27.3, hr: 5,  rbi: 15, hits: 20, runs: 11, stolenBases: 0 },
+  '807799': { avg: 0.278, obp: 0.362, slg: 0.480, ops: 0.842, bbPct: 12.8, kPct: 19.5, hr: 4,  rbi: 14, hits: 22, runs: 12, stolenBases: 0 },
+  '672960': { avg: 0.261, obp: 0.335, slg: 0.430, ops: 0.795, bbPct: 9.2,  kPct: 21.8, hr: 4,  rbi: 13, hits: 21, runs: 10, stolenBases: 1 },
+  '808959': { avg: 0.248, obp: 0.342, slg: 0.483, ops: 0.825, bbPct: 12.5, kPct: 27.3, hr: 5,  rbi: 15, hits: 20, runs: 11, stolenBases: 0 },
   '673548': { avg: 0.287, obp: 0.358, slg: 0.471, ops: 0.858, bbPct: 10.1, kPct: 18.7, hr: 4,  rbi: 16, hits: 25, runs: 14, stolenBases: 3 },
   '666971': { avg: 0.256, obp: 0.347, slg: 0.435, ops: 0.782, bbPct: 11.4, kPct: 21.2, hr: 3,  rbi: 10, hits: 20, runs: 13, stolenBases: 5 },
   '660271': { avg: 0.240, obp: 0.364, slg: 0.438, ops: 0.802, bbPct: 14.3, kPct: 25.2, hr: 5,  rbi: 11, hits: 23, runs: 15, stolenBases: 1 },
@@ -14,26 +14,26 @@ const CURRENT_BATTER: Record<string, Omit<BatterStats, 'playerId' | 'season' | '
 const CURRENT_PITCHER: Record<string, Omit<PitcherStats, 'playerId' | 'season' | 'date'>> = {
   '694973': { era: 2.43, whip: 1.01, kPct: 31.2, bbPct: 6.8, wins: 3, losses: 1, strikeouts: 38, inningsPitched: 33.1, saves: 0, holds: 0 },
   '694297': { era: 2.87, whip: 1.08, kPct: 28.4, bbPct: 5.2, wins: 3, losses: 1, strikeouts: 32, inningsPitched: 31.1, saves: 0, holds: 0 },
-  '838982': { era: 2.18, whip: 0.94, kPct: 33.6, bbPct: 5.8, wins: 2, losses: 1, strikeouts: 35, inningsPitched: 29.0, saves: 0, holds: 0 },
+  '808963': { era: 2.18, whip: 0.94, kPct: 33.6, bbPct: 5.8, wins: 2, losses: 1, strikeouts: 35, inningsPitched: 29.0, saves: 0, holds: 0 },
   '660271': { era: 2.32, whip: 0.97, kPct: 35.1, bbPct: 6.9, wins: 2, losses: 1, strikeouts: 28, inningsPitched: 23.1, saves: 0, holds: 0 },
   '808967': { era: 2.62, whip: 1.04, kPct: 29.3, bbPct: 5.9, wins: 3, losses: 1, strikeouts: 30, inningsPitched: 30.2, saves: 0, holds: 0 },
-  '673668': { era: 2.91, whip: 1.11, kPct: 28.1, bbPct: 7.8, wins: 2, losses: 0, strikeouts: 18, inningsPitched: 17.0, saves: 5, holds: 3 },
+  '673513': { era: 2.91, whip: 1.11, kPct: 28.1, bbPct: 7.8, wins: 2, losses: 0, strikeouts: 18, inningsPitched: 17.0, saves: 5, holds: 3 },
   '506433': { era: 3.22, whip: 1.09, kPct: 26.4, bbPct: 6.9, wins: 2, losses: 2, strikeouts: 28, inningsPitched: 28.0, saves: 0, holds: 0 },
   '579328': { era: 3.84, whip: 1.21, kPct: 22.3, bbPct: 8.1, wins: 2, losses: 2, strikeouts: 24, inningsPitched: 25.0, saves: 0, holds: 0 },
-  '838986': { era: 3.42, whip: 1.14, kPct: 25.2, bbPct: 8.9, wins: 2, losses: 2, strikeouts: 22, inningsPitched: 23.2, saves: 0, holds: 0 },
+  '837227': { era: 3.42, whip: 1.14, kPct: 25.2, bbPct: 8.9, wins: 2, losses: 2, strikeouts: 22, inningsPitched: 23.2, saves: 0, holds: 0 },
 }
 
 // 年度別サンプルデータ
 const YEARLY_BATTER: Record<string, Array<Omit<BatterStats, 'playerId' | 'date'>>> = {
-  '676440': [
+  '807799': [
     { season: 2023, avg: 0.289, obp: 0.370, slg: 0.498, ops: 0.868, bbPct: 11.2, kPct: 18.3, hr: 15, rbi: 72, hits: 142, runs: 68, stolenBases: 2 },
     { season: 2024, avg: 0.271, obp: 0.352, slg: 0.469, ops: 0.821, bbPct: 10.8, kPct: 19.8, hr: 18, rbi: 80, hits: 131, runs: 62, stolenBases: 1 },
     { season: 2025, avg: 0.283, obp: 0.367, slg: 0.481, ops: 0.848, bbPct: 11.9, kPct: 20.1, hr: 20, rbi: 85, hits: 138, runs: 71, stolenBases: 3 },
   ],
-  '838984': [
+  '672960': [
     { season: 2026, avg: 0.261, obp: 0.335, slg: 0.430, ops: 0.795, bbPct: 9.2, kPct: 21.8, hr: 4, rbi: 13, hits: 21, runs: 10, stolenBases: 1 },
   ],
-  '838985': [
+  '808959': [
     { season: 2026, avg: 0.248, obp: 0.342, slg: 0.483, ops: 0.825, bbPct: 12.5, kPct: 27.3, hr: 5, rbi: 15, hits: 20, runs: 11, stolenBases: 0 },
   ],
   '673548': [
@@ -64,7 +64,7 @@ const YEARLY_PITCHER: Record<string, Array<Omit<PitcherStats, 'playerId' | 'date
     { season: 2024, era: 3.22, whip: 1.12, kPct: 26.8, bbPct: 5.8, wins: 15, losses: 5,  strikeouts: 188, inningsPitched: 174.1, saves: 0, holds: 0 },
     { season: 2025, era: 2.95, whip: 1.06, kPct: 28.2, bbPct: 5.4, wins: 14, losses: 7,  strikeouts: 198, inningsPitched: 178.0, saves: 0, holds: 0 },
   ],
-  '838982': [
+  '808963': [
     { season: 2025, era: 2.42, whip: 0.98, kPct: 32.1, bbPct: 6.2, wins: 12, losses: 5,  strikeouts: 188, inningsPitched: 152.0, saves: 0, holds: 0 },
   ],
   '660271': [
@@ -75,7 +75,7 @@ const YEARLY_PITCHER: Record<string, Array<Omit<PitcherStats, 'playerId' | 'date
     { season: 2024, era: 3.00, whip: 1.08, kPct: 28.1, bbPct: 6.3, wins: 7,  losses: 2,  strikeouts: 58,  inningsPitched: 52.0,  saves: 0, holds: 0 },
     { season: 2025, era: 2.71, whip: 1.03, kPct: 29.8, bbPct: 5.8, wins: 14, losses: 6,  strikeouts: 182, inningsPitched: 170.1, saves: 0, holds: 0 },
   ],
-  '673668': [
+  '673513': [
     { season: 2024, era: 3.12, whip: 1.14, kPct: 27.2, bbPct: 8.1, wins: 4,  losses: 2,  strikeouts: 62,  inningsPitched: 55.1,  saves: 18, holds: 8  },
     { season: 2025, era: 2.98, whip: 1.10, kPct: 28.5, bbPct: 7.6, wins: 5,  losses: 1,  strikeouts: 68,  inningsPitched: 58.0,  saves: 22, holds: 10 },
   ],
@@ -93,7 +93,7 @@ const YEARLY_PITCHER: Record<string, Array<Omit<PitcherStats, 'playerId' | 'date
     { season: 2024, era: 3.52, whip: 1.18, kPct: 23.5, bbPct: 8.4, wins: 12, losses: 9,  strikeouts: 158, inningsPitched: 160.0, saves: 0, holds: 0 },
     { season: 2025, era: 3.72, whip: 1.19, kPct: 22.9, bbPct: 8.2, wins: 11, losses: 10, strikeouts: 152, inningsPitched: 156.1, saves: 0, holds: 0 },
   ],
-  '838986': [
+  '837227': [
     { season: 2026, era: 3.42, whip: 1.14, kPct: 25.2, bbPct: 8.9, wins: 2, losses: 2, strikeouts: 22, inningsPitched: 23.2, saves: 0, holds: 0 },
   ],
 }

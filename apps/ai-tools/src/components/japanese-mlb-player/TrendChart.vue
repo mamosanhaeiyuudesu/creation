@@ -49,6 +49,10 @@ const hasData = computed(() =>
 )
 
 function buildSeries() {
+  const meta = activeMeta.value.find(m => m.key === selectedMetric.value)
+  const min = meta?.chartMin
+  const max = meta?.chartMax
+
   return props.selectedIds.map(id => {
     const data = props.seasonDataMap.get(id)
     const player = [...PITCHER_PLAYERS, ...BATTER_PLAYERS].find(p => p.id === id)
@@ -57,7 +61,12 @@ function buildSeries() {
     const trend = props.mode === 'batter' ? data.trendBatter : data.trendPitcher
     const pts = trend
       .filter(d => (d as Record<string, unknown>)[selectedMetric.value] !== null)
-      .map(d => [d.date, (d as Record<string, unknown>)[selectedMetric.value]])
+      .map(d => {
+        let val = (d as Record<string, unknown>)[selectedMetric.value] as number
+        if (min !== undefined && val < min) val = min
+        if (max !== undefined && val > max) val = max
+        return [d.date, val]
+      })
 
     return {
       name: player.nameJa,
@@ -109,6 +118,8 @@ async function renderChart() {
     yAxis: {
       type: 'value',
       inverse: meta?.direction === 'low',
+      min: meta?.chartMin,
+      max: meta?.chartMax,
       axisLabel: { fontSize: 10, formatter: (v: number) => meta?.format(v) ?? v },
     },
     series,

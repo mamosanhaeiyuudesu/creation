@@ -3,9 +3,22 @@
     class="flex-shrink-0 overflow-y-auto flex flex-col"
     style="width: 200px; background: #0C447C;"
   >
+    <!-- リーグ切り替え -->
+    <div class="flex border-b border-blue-700">
+      <button
+        v-for="lg in leagues"
+        :key="lg.key"
+        @click="$emit('update:league', lg.key)"
+        class="flex-1 py-2 text-xs font-semibold transition-colors"
+        :class="league === lg.key
+          ? 'bg-white/20 text-white'
+          : 'text-blue-300 hover:text-white hover:bg-white/10'"
+      >{{ lg.label }}</button>
+    </div>
+
     <div class="p-3 flex flex-col gap-4">
       <!-- 投手 -->
-      <div>
+      <div v-if="pitchers.length">
         <h3 class="text-blue-200 text-xs font-semibold uppercase tracking-wider mb-2 px-1">投手</h3>
         <ul class="flex flex-col gap-0.5">
           <li
@@ -26,7 +39,7 @@
       </div>
 
       <!-- 野手 -->
-      <div>
+      <div v-if="batters.length">
         <h3 class="text-blue-200 text-xs font-semibold uppercase tracking-wider mb-2 px-1">野手</h3>
         <ul class="flex flex-col gap-0.5">
           <li
@@ -63,15 +76,25 @@
 <script setup lang="ts">
 import { PITCHER_PLAYERS, BATTER_PLAYERS, PLAYER_COLORS } from '~/utils/japanese-mlb-player/players'
 
-const props = defineProps<{ selectedIds: string[] }>()
+const props = defineProps<{
+  selectedIds: string[]
+  league: 'AL' | 'NL'
+}>()
+
 const emit = defineEmits<{
   toggle: [id: string]
   'select-all': []
   'deselect-all': []
+  'update:league': [value: 'AL' | 'NL']
 }>()
 
-const pitchers = PITCHER_PLAYERS
-const batters = BATTER_PLAYERS
+const leagues = [
+  { key: 'AL' as const, label: 'ア・リーグ' },
+  { key: 'NL' as const, label: 'ナ・リーグ' },
+]
+
+const pitchers = computed(() => PITCHER_PLAYERS.filter(p => p.league === props.league))
+const batters  = computed(() => BATTER_PLAYERS.filter(p => p.league === props.league))
 const colors = PLAYER_COLORS
 
 function isSelected(id: string) {
