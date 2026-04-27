@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>PWA Icon Generator</title>
+  <style>
+    body { font-family: sans-serif; padding: 24px; background: #0f172a; color: #e2e8f0; }
+    h1 { margin-bottom: 24px; }
+    .grid { display: flex; flex-wrap: wrap; gap: 24px; }
+    .card { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    canvas { border-radius: 22px; display: block; }
+    a.btn {
+      display: block; padding: 6px 16px; border-radius: 8px;
+      background: #3b82f6; color: #fff; text-decoration: none; font-size: 13px;
+    }
+    p.note { margin-top: 32px; color: #94a3b8; font-size: 13px; line-height: 1.6; }
+    code { background: #1e293b; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>PWA Icon Generator</h1>
+  <div class="grid" id="grid"></div>
+  <p class="note">
+    ダウンロードしたPNGを <code>apps/ai-tools/src/public/</code> に置いてください。<br>
+    ファイル名はそのまま（例: <code>apple-touch-icon-deepheart.png</code>）で保存してください。
+  </p>
+
+  <script>
+    const SIZE = 192
+
+    const apps = [
+      { name: 'deepheart',  emoji: '💗', bg: '#0f172a' },
+      { name: 'mlb',        emoji: '⚾', bg: '#0f172a' },
+      { name: 'keiko',      emoji: '⚔️', bg: '#0f172a' },
+      { name: 'hagemashi',  emoji: '💪', bg: '#0f172a' },
+      { name: 'whisper',    emoji: '🎙️', bg: '#0f172a' },
+      { name: 'task',       emoji: '📋', bg: '#0f172a' },
+    ]
+
+    const grid = document.getElementById('grid')
+
+    apps.forEach(({ name, emoji, bg }) => {
+      const canvas = document.createElement('canvas')
+      canvas.width = SIZE
+      canvas.height = SIZE
+      const ctx = canvas.getContext('2d')
+
+      // 背景
+      ctx.fillStyle = bg
+      ctx.beginPath()
+      ctx.roundRect(0, 0, SIZE, SIZE, 22)
+      ctx.fill()
+
+      // 絵文字
+      ctx.font = `${Math.round(SIZE * 0.68)}px serif`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(emoji, SIZE / 2, SIZE / 2 + SIZE * 0.03)
+
+      const filename = `apple-touch-icon-${name}.png`
+      const a = document.createElement('a')
+      a.className = 'btn'
+      a.textContent = `↓ ${filename}`
+      a.href = canvas.toDataURL('image/png')
+      a.download = filename
+
+      const card = document.createElement('div')
+      card.className = 'card'
+      card.appendChild(canvas)
+      card.appendChild(a)
+      grid.appendChild(card)
+    })
+  </script>
+</body>
+</html>

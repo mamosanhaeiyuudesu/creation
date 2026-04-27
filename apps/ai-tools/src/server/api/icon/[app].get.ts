@@ -1,3 +1,6 @@
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+
 const APP_COLORS: Record<string, [number, number, number]> = {
   deepheart:  [0xf4, 0x3f, 0x5e],
   mlb:        [0x1e, 0x3a, 0x8a],
@@ -50,15 +53,12 @@ async function zlibCompress(data: Uint8Array): Promise<Uint8Array> {
 }
 
 async function makeSolidPng(size: number, r: number, g: number, b: number): Promise<Uint8Array> {
-  // IHDR: width, height, 8-bit, RGB color type
   const ihdrData = new Uint8Array(13)
   const ihdrView = new DataView(ihdrData.buffer)
   ihdrView.setUint32(0, size)
   ihdrView.setUint32(4, size)
-  ihdrData[8] = 8   // bit depth
-  ihdrData[9] = 2   // color type: RGB
-
-  // Raw scanlines: filter byte (0 = None) + R G B per pixel
+  ihdrData[8] = 8
+  ihdrData[9] = 2
   const raw = new Uint8Array(size * (1 + size * 3))
   for (let y = 0; y < size; y++) {
     const row = y * (1 + size * 3)
@@ -69,10 +69,9 @@ async function makeSolidPng(size: number, r: number, g: number, b: number): Prom
       raw[row + 1 + x * 3 + 2] = b
     }
   }
-
   const compressed = await zlibCompress(raw)
   const parts = [
-    new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), // PNG signature
+    new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
     pngChunk('IHDR', ihdrData),
     pngChunk('IDAT', compressed),
     pngChunk('IEND', new Uint8Array(0)),
@@ -89,8 +88,23 @@ export default defineEventHandler(async (event) => {
   const color = APP_COLORS[app]
   if (!color) throw createError({ statusCode: 404, message: 'Unknown app' })
 
-  const png = await makeSolidPng(192, ...color)
   setHeader(event, 'Content-Type', 'image/png')
   setHeader(event, 'Cache-Control', 'public, max-age=604800, immutable')
-  return png
+
+  // 絵文字PNGが生成済みであればそちらを返す
+  if (!import.meta.env.DEV) {
+    try {
+      const pngPath = join(process.cwd(), '.output/public', `apple-touch-icon-${app}.png`)
+      const file = await readFile(pngPath)
+      return file
+    } catch { /* fall through to generated PNG */ }
+  } else {
+    try {
+      const pngPath = join(process.cwd(), 'src/public', `apple-touch-icon-${app}.png`)
+      const file = await readFile(pngPath)
+      return file
+    } catch { /* fall through to generated PNG */ }
+  }
+
+  return makeSolidPng(192, ...color)
 })
