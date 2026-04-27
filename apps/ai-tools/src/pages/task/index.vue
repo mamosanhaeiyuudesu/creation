@@ -4,7 +4,17 @@ import { ref, computed, watch, onMounted } from 'vue'
 
 useHead({
   title: import.meta.dev ? 'タスクくん (dev)' : 'タスクくん',
-  link: [{ rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>` }]
+  link: [
+    { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>` },
+    { rel: 'manifest', href: '/manifest-task.json' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+  ],
+  meta: [
+    { name: 'apple-mobile-web-app-capable', content: 'yes' },
+    { name: 'apple-mobile-web-app-title', content: 'タスクくん' },
+    { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+    { name: 'theme-color', content: '#10b981' },
+  ],
 })
 import { useTaskProfiles } from '~/composables/task/useTaskProfiles'
 import { useTaskBoards, BOARD_COLORS } from '~/composables/task/useTaskBoards'

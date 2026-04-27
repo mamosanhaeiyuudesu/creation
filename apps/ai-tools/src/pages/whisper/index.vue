@@ -119,7 +119,17 @@ import { ref, onMounted } from 'vue'
 
 useHead({
   title: import.meta.dev ? 'Whisper (dev)' : 'Whisper',
-  link: [{ rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎙️</text></svg>` }]
+  link: [
+    { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎙️</text></svg>` },
+    { rel: 'manifest', href: '/manifest-whisper.json' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+  ],
+  meta: [
+    { name: 'apple-mobile-web-app-capable', content: 'yes' },
+    { name: 'apple-mobile-web-app-title', content: 'Whisper' },
+    { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+    { name: 'theme-color', content: '#8b5cf6' },
+  ],
 })
 import { useHistory } from '~/composables/useHistory'
 import { useAuth } from '~/composables/useAuth'
