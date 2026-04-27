@@ -29,8 +29,13 @@ const tabs = [
   { key: 'yearly' as const, label: '年度別推移' },
 ]
 
+const route = useRoute()
+const router = useRouter()
+
 const mobileMenu = ref(false)
-const activeLeague = ref<'AL' | 'NL'>('NL')
+const activeLeague = ref<'AL' | 'NL'>(
+  route.query.league === 'AL' ? 'AL' : 'NL'
+)
 
 const {
   selectedIds,
@@ -42,6 +47,13 @@ const {
   getYearlyData,
   getLeagueStats,
 } = useMlbStats()
+
+watch([activeLeague, activeTab], ([league, tab]) => {
+  const query: Record<string, string> = {}
+  if (league !== 'NL') query.league = league
+  if (tab !== 'season') query.tab = tab
+  router.replace({ query })
+})
 
 const leagueStats = computed(() => getLeagueStats())
 
@@ -90,7 +102,12 @@ watch(selectedIds, async () => {
 }, { deep: true })
 
 onMounted(async () => {
-  await ensureSeasonData()
+  if (route.query.tab === 'yearly') {
+    activeTab.value = 'yearly'
+    await ensureYearlyData()
+  } else {
+    await ensureSeasonData()
+  }
 })
 
 function selectAll() {

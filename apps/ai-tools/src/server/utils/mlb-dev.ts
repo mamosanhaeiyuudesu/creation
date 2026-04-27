@@ -12,8 +12,8 @@ const CURRENT_BATTER: Record<string, Omit<BatterStats, 'playerId' | 'season' | '
 }
 
 const CURRENT_PITCHER: Record<string, Omit<PitcherStats, 'playerId' | 'season' | 'date'>> = {
-  '694973': { era: 2.43, whip: 1.01, kPct: 31.2, bbPct: 6.8, wins: 3, losses: 1, strikeouts: 38, inningsPitched: 33.1, saves: 0, holds: 0 },
-  '694297': { era: 2.87, whip: 1.08, kPct: 28.4, bbPct: 5.2, wins: 3, losses: 1, strikeouts: 32, inningsPitched: 31.1, saves: 0, holds: 0 },
+  '673540': { era: 2.43, whip: 1.01, kPct: 31.2, bbPct: 6.8, wins: 3, losses: 1, strikeouts: 38, inningsPitched: 33.1, saves: 0, holds: 0 },
+  '684007': { era: 2.87, whip: 1.08, kPct: 28.4, bbPct: 5.2, wins: 3, losses: 1, strikeouts: 32, inningsPitched: 31.1, saves: 0, holds: 0 },
   '808963': { era: 2.18, whip: 0.94, kPct: 33.6, bbPct: 5.8, wins: 2, losses: 1, strikeouts: 35, inningsPitched: 29.0, saves: 0, holds: 0 },
   '660271': { era: 2.32, whip: 0.97, kPct: 35.1, bbPct: 6.9, wins: 2, losses: 1, strikeouts: 28, inningsPitched: 23.1, saves: 0, holds: 0 },
   '808967': { era: 2.62, whip: 1.04, kPct: 29.3, bbPct: 5.9, wins: 3, losses: 1, strikeouts: 30, inningsPitched: 30.2, saves: 0, holds: 0 },
@@ -55,12 +55,11 @@ const YEARLY_BATTER: Record<string, Array<Omit<BatterStats, 'playerId' | 'date'>
 }
 
 const YEARLY_PITCHER: Record<string, Array<Omit<PitcherStats, 'playerId' | 'date'>>> = {
-  '694973': [
+  '673540': [
     { season: 2023, era: 2.98, whip: 1.07, kPct: 30.1, bbPct: 7.2, wins: 12, losses: 7,  strikeouts: 202, inningsPitched: 166.1, saves: 0, holds: 0 },
-    { season: 2024, era: 2.61, whip: 1.02, kPct: 31.8, bbPct: 6.5, wins: 14, losses: 6,  strikeouts: 218, inningsPitched: 178.2, saves: 0, holds: 0 },
     { season: 2025, era: 2.45, whip: 0.99, kPct: 32.4, bbPct: 6.1, wins: 15, losses: 5,  strikeouts: 225, inningsPitched: 182.0, saves: 0, holds: 0 },
   ],
-  '694297': [
+  '684007': [
     { season: 2024, era: 3.22, whip: 1.12, kPct: 26.8, bbPct: 5.8, wins: 15, losses: 5,  strikeouts: 188, inningsPitched: 174.1, saves: 0, holds: 0 },
     { season: 2025, era: 2.95, whip: 1.06, kPct: 28.2, bbPct: 5.4, wins: 14, losses: 7,  strikeouts: 198, inningsPitched: 178.0, saves: 0, holds: 0 },
   ],

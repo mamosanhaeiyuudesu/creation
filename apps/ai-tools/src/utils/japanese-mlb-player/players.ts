@@ -8,8 +8,8 @@ export const PLAYERS: Player[] = [
   { id: '579328', nameJa: '菊池 雄星', nameEn: 'Yusei Kikuchi', position: 'pitcher', team: 'LAA', teamFull: 'ロサンゼルス・エンゼルス', league: 'AL' },
   { id: '837227', nameJa: '今井 達也', nameEn: 'Tatsuya Imai', position: 'pitcher', team: 'HOU', teamFull: 'ヒューストン・アストロズ', league: 'AL' },
   // ナ・リーグ
-  { id: '694973', nameJa: '千賀 滉大', nameEn: 'Kodai Senga', position: 'pitcher', team: 'NYM', teamFull: 'ニューヨーク・メッツ', league: 'NL' },
-  { id: '694297', nameJa: '今永 昇太', nameEn: 'Shota Imanaga', position: 'pitcher', team: 'CHC', teamFull: 'シカゴ・カブス', league: 'NL' },
+  { id: '673540', nameJa: '千賀 滉大', nameEn: 'Kodai Senga', position: 'pitcher', team: 'NYM', teamFull: 'ニューヨーク・メッツ', league: 'NL' },
+  { id: '684007', nameJa: '今永 昇太', nameEn: 'Shota Imanaga', position: 'pitcher', team: 'CHC', teamFull: 'シカゴ・カブス', league: 'NL' },
   { id: '673548', nameJa: '鈴木 誠也', nameEn: 'Seiya Suzuki', position: 'batter', team: 'CHC', teamFull: 'シカゴ・カブス', league: 'NL' },
   { id: '666971', nameJa: 'ラーズ・ヌートバー', nameEn: 'Lars Nootbaar', position: 'batter', team: 'STL', teamFull: 'セントルイス・カージナルス', league: 'NL' },
   { id: '808963', nameJa: '佐々木 朗希', nameEn: 'Roki Sasaki', position: 'pitcher', team: 'LAD', teamFull: 'ロサンゼルス・ドジャース', league: 'NL' },
@@ -24,7 +24,7 @@ export const BATTER_PLAYERS = PLAYERS.filter(p => p.position === 'batter' || p.p
 
 export const PLAYER_MAP = new Map(PLAYERS.map(p => [p.id, p]))
 
-const fmtAvg = (v: number | null) => v === null ? '—' : v.toFixed(3).replace(/^0\./, '')
+const fmtAvg = (v: number | null) => v === null ? '—' : v.toFixed(3).replace(/^0/, '')
 
 
 export const BATTER_STATS: StatMeta[] = [
@@ -97,7 +97,7 @@ export const BATTER_STATS: StatMeta[] = [
     fullName: 'OPS = On-base Plus Slugging',
     description: '出塁率＋長打率の合計。1.000以上が超一流。高いほど良い。',
     direction: 'high',
-    format: (v) => v === null ? '—' : v.toFixed(3).replace(/^0\./, ''),
+    format: (v) => v === null ? '—' : v.toFixed(3).replace(/^0/, ''),
     chartMin: 0.45, chartMax: 1.20,
   },
   {
@@ -210,14 +210,14 @@ export const PITCHER_STATS: StatMeta[] = [
 export const PLAYER_COLORS: Record<string, string> = {
   '660271': '#E63946',  // 大谷
   '808967': '#2196F3',  // 山本
-  '694973': '#4CAF50',  // 千賀
-  '694297': '#FF9800',  // 今永
+  '673540': '#4CAF50',  // 千賀
+  '684007': '#FF9800',  // 今永
   '808963': '#9C27B0',  // 佐々木
   '506433': '#00BCD4',  // ダルビッシュ
-  '673513': '#F44336',  // 松井
+  '673513': '#FDD835',  // 松井
   '579328': '#3F51B5',  // 菊池
   '837227': '#009688',  // 今井
-  '807799': '#FF5722',  // 吉田
+  '807799': '#26A69A',  // 吉田
   '673548': '#8BC34A',  // 鈴木
   '666971': '#FFC107',  // ヌートバー
   '672960': '#E91E63',  // 岡本

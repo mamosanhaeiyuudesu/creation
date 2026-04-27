@@ -18,6 +18,18 @@
               <span class="inline-flex items-center gap-1" :style="{ color: colors[player.id] }">
                 <span class="w-2 h-2 rounded-full inline-block" :style="{ background: colors[player.id] }" />
                 {{ player.nameJa }}
+                <a
+                  :href="`https://search.yahoo.co.jp/search?p=${encodeURIComponent(player.nameJa + ' MLB')}`"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-slate-400 hover:text-slate-600 transition-colors"
+                  title="Yahoo検索"
+                  @click.stop
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 3a6 6 0 100 12A6 6 0 009 3zM1 9a8 8 0 1114.32 4.906l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387A8 8 0 011 9z" clip-rule="evenodd"/>
+                  </svg>
+                </a>
               </span>
             </th>
           </tr>
@@ -84,6 +96,18 @@
               <span class="inline-flex items-center gap-1" :style="{ color: colors[player.id] }">
                 <span class="w-2 h-2 rounded-full inline-block" :style="{ background: colors[player.id] }" />
                 {{ player.nameJa }}
+                <a
+                  :href="`https://search.yahoo.co.jp/search?p=${encodeURIComponent(player.nameJa + ' MLB')}`"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-slate-400 hover:text-slate-600 transition-colors"
+                  title="Yahoo検索"
+                  @click.stop
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 3a6 6 0 100 12A6 6 0 009 3zM1 9a8 8 0 1114.32 4.906l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387A8 8 0 011 9z" clip-rule="evenodd"/>
+                  </svg>
+                </a>
               </span>
             </th>
           </tr>
