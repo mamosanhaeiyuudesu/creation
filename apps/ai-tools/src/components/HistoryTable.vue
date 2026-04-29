@@ -67,9 +67,26 @@
     >
       <div class="w-full max-w-[600px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
         <div class="flex items-start justify-between gap-3 px-6 pt-5 pb-4 border-b border-white/[0.08]">
-          <div>
+          <div class="min-w-0 flex-1">
             <p class="m-0 text-xs text-slate-500 mb-1">{{ formatDate(selectedItem.timestamp) }}</p>
-            <h2 class="m-0 text-base text-slate-50 font-semibold">{{ selectedItem.title }}</h2>
+            <input
+              v-if="editingTitle"
+              ref="titleInput"
+              v-model="editingTitleValue"
+              class="w-full bg-white/[0.07] border border-white/[0.2] rounded-md text-slate-50 text-base font-semibold px-2 py-0.5 outline-none focus:border-white/40 transition-colors font-[inherit]"
+              @keydown.enter.prevent="saveTitle"
+              @keydown.escape="cancelTitle"
+              @blur="saveTitle"
+            />
+            <h2
+              v-else
+              class="m-0 text-base text-slate-50 font-semibold cursor-pointer hover:text-slate-300 transition-colors group flex items-center gap-1.5"
+              title="クリックして編集"
+              @click="startEditTitle"
+            >
+              <span class="truncate">{{ selectedItem.title }}</span>
+              <span class="text-slate-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity shrink-0">✏️</span>
+            </h2>
           </div>
           <button class="shrink-0 bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="selectedItem = null">✕</button>
         </div>
@@ -130,7 +147,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { marked } from 'marked'
 import type { HistoryItem } from '~/types/history'
 
@@ -148,15 +165,22 @@ const emit = defineEmits<{
   copy: [item: HistoryItem]
   delete: [id: string]
   summarize: [id: string]
+  updateTitle: [id: string, title: string]
 }>()
 
 const confirmingId = ref<string | null>(null)
 const selectedItem = ref<HistoryItem | null>(null)
 const confirmingDelete = ref(false)
 const modalCopied = ref(false)
+const editingTitle = ref(false)
+const editingTitleValue = ref('')
+const titleInput = ref<HTMLInputElement | null>(null)
 
-// selectedItemが変わったらdelete確認をリセット
-watch(selectedItem, () => { confirmingDelete.value = false })
+// selectedItemが変わったらdelete確認・タイトル編集をリセット
+watch(selectedItem, () => {
+  confirmingDelete.value = false
+  editingTitle.value = false
+})
 
 // 削除後にポップアップを閉じる
 watch(() => props.history, (newHistory) => {
@@ -168,6 +192,27 @@ watch(() => props.history, (newHistory) => {
 const parsedText = computed(() =>
   props.markdown && selectedItem.value ? marked.parse(selectedItem.value.text) as string : ''
 )
+
+const startEditTitle = () => {
+  if (!selectedItem.value) return
+  editingTitleValue.value = selectedItem.value.title
+  editingTitle.value = true
+  nextTick(() => titleInput.value?.select())
+}
+
+const saveTitle = () => {
+  if (!selectedItem.value || !editingTitle.value) return
+  const newTitle = editingTitleValue.value.trim()
+  if (newTitle !== selectedItem.value.title) {
+    selectedItem.value.title = newTitle
+    emit('updateTitle', selectedItem.value.id, newTitle)
+  }
+  editingTitle.value = false
+}
+
+const cancelTitle = () => {
+  editingTitle.value = false
+}
 
 const confirmDelete = (id: string) => {
   emit('delete', id)

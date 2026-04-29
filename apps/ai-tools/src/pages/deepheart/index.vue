@@ -141,11 +141,11 @@ const inputRef = ref<HTMLTextAreaElement | null>(null)
 
 const settingsOpen = ref(false)
 const savingSettings = ref(false)
-const personality = ref<Personality>({ systemPrompt: '', fontSize: 'small' })
+const personality = ref<Personality>({ systemPrompt: '', fontSize: 'medium' })
 
 const fontSizePx = computed(() => {
-  const map = { small: '14px', medium: '16px', large: '18px' }
-  return map[personality.value.fontSize || 'small']
+  const map = { small: '16px', medium: '18px', large: '22px' }
+  return map[personality.value.fontSize || 'medium']
 })
 
 
@@ -188,21 +188,21 @@ async function loadHistory() {
 async function loadPersonality() {
   if (dev) {
     if (!personalityKey.value) {
-      personality.value = { systemPrompt: '', fontSize: 'small' }
+      personality.value = { systemPrompt: '', fontSize: 'medium' }
       return
     }
     try {
       const raw = localStorage.getItem(personalityKey.value)
-      personality.value = raw ? { systemPrompt: '', fontSize: 'small', ...JSON.parse(raw) } : { systemPrompt: '', fontSize: 'small' }
+      personality.value = raw ? { systemPrompt: '', fontSize: 'medium', ...JSON.parse(raw) } : { systemPrompt: '', fontSize: 'medium' }
     } catch {
-      personality.value = { systemPrompt: '', fontSize: 'small' }
+      personality.value = { systemPrompt: '', fontSize: 'medium' }
     }
     return
   }
   try {
     const p = await $fetch<{ systemPrompt: string }>('/api/deepheart/personality')
     // fontSizeはローカルに保存しているので取り出す
-    let fontSize: 'small' | 'medium' | 'large' = 'small'
+    let fontSize: 'small' | 'medium' | 'large' = 'medium'
     if (personalityKey.value) {
       try {
         const stored = JSON.parse(localStorage.getItem(personalityKey.value) || '{}')
@@ -211,7 +211,7 @@ async function loadPersonality() {
     }
     personality.value = { systemPrompt: p.systemPrompt, fontSize }
   } catch {
-    personality.value = { systemPrompt: '', fontSize: 'small' }
+    personality.value = { systemPrompt: '', fontSize: 'medium' }
   }
 }
 

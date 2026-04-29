@@ -97,7 +97,7 @@ const emit = defineEmits<{
 }>()
 
 const localPrompt = ref(props.systemPrompt || '')
-const localFontSize = ref<'small' | 'medium' | 'large'>(props.fontSize || 'small')
+const localFontSize = ref<'small' | 'medium' | 'large'>(props.fontSize || 'medium')
 
 const fontSizeOptions = [
   { value: 'small' as const, label: '小' },
@@ -106,7 +106,7 @@ const fontSizeOptions = [
 ]
 
 watch(() => props.systemPrompt, (v) => { localPrompt.value = v || '' })
-watch(() => props.fontSize, (v) => { localFontSize.value = v || 'small' })
+watch(() => props.fontSize, (v) => { localFontSize.value = v || 'medium' })
 
 const save = () => {
   emit('save', { systemPrompt: localPrompt.value, fontSize: localFontSize.value })

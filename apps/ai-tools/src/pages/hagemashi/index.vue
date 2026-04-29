@@ -107,6 +107,7 @@
           @copy="copyHistory"
           @delete="deleteHistory"
           @summarize="summarizeHistory"
+          @updateTitle="updateHistoryTitle"
         />
         <HistoryTable
           v-else
@@ -116,6 +117,7 @@
           :markdown="true"
           @copy="copyEncourageHistory"
           @delete="deleteEncourageHistory"
+          @updateTitle="updateEncourageHistoryTitle"
         />
       </div>
     </div>
@@ -395,11 +397,12 @@ if (!$dev) {
   onMounted(checkAuth)
 }
 
-const { history, copiedHistoryId, addHistory, updateHistoryNotes, deleteHistory, copyHistory } = useHistory('hagemashi-history', 'hagemashi')
+const { history, copiedHistoryId, addHistory, updateHistoryNotes, updateHistoryTitle, deleteHistory, copyHistory } = useHistory('hagemashi-history', 'hagemashi')
 const {
   history: encourageHistory,
   copiedHistoryId: copiedEncourageId,
   addHistory: addEncourageHistory,
+  updateHistoryTitle: updateEncourageHistoryTitle,
   deleteHistory: deleteEncourageHistory,
   copyHistory: copyEncourageHistory,
 } = useHistory('hagemashi-encourage-history', 'hagemashi-encourage')

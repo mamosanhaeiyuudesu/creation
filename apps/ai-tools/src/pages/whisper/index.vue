@@ -105,7 +105,7 @@
         >閉じる</button>
       </div>
 
-      <HistoryTable :history="history" :copiedId="copiedHistoryId" @copy="copyHistory" @delete="deleteHistory" />
+      <HistoryTable :history="history" :copiedId="copiedHistoryId" @copy="copyHistory" @delete="deleteHistory" @updateTitle="updateHistoryTitle" />
     </div>
 
     <!-- Auth Modal -->
@@ -147,7 +147,7 @@ if (!$dev) {
   onMounted(checkAuth)
 }
 
-const { history, copiedHistoryId, addHistory, deleteHistory, copyHistory } = useHistory('whisper-history', 'whisper')
+const { history, copiedHistoryId, addHistory, deleteHistory, copyHistory, updateHistoryTitle } = useHistory('whisper-history', 'whisper')
 
 const menuItems = [
   { icon: '🚪', label: 'ログアウト', action: logout },

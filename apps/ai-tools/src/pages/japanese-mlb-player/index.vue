@@ -57,6 +57,16 @@ watch([activeLeague, activeTab], ([league, tab]) => {
 
 const leagueStats = computed(() => getLeagueStats())
 
+const lastUpdated = computed(() => {
+  let latest: string | null = null
+  for (const [, data] of seasonDataMap.value) {
+    for (const t of [...data.trendBatter, ...data.trendPitcher]) {
+      if (t.date && t.date > (latest ?? '')) latest = t.date
+    }
+  }
+  return latest
+})
+
 const seasonDataMap = computed(() => {
   const m = new Map<string, SeasonData>()
   for (const id of selectedIds.value) {
@@ -124,7 +134,7 @@ function deselectAll() {
 </script>
 
 <template>
-  <MlbHeader />
+  <MlbHeader :last-updated="lastUpdated" />
 
   <div class="flex flex-1 overflow-hidden">
     <PlayerSidebar
@@ -139,7 +149,7 @@ function deselectAll() {
 
     <main class="flex-1 overflow-y-auto bg-white">
       <!-- シーズン/年度別タブ -->
-      <div class="flex border-b border-slate-200 bg-white sticky top-0 z-10">
+      <div class="flex border-b border-slate-200 bg-white sticky top-0 z-20">
         <button
           v-for="tab in tabs"
           :key="tab.key"

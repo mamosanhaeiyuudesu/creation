@@ -62,12 +62,20 @@ export function useHistory(storageKey: string, app?: string) {
       }
     }
 
+    const updateHistoryTitle = (id: string, title: string) => {
+      const item = history.value.find((h) => h.id === id)
+      if (item) {
+        item.title = title
+        saveHistory()
+      }
+    }
+
     const deleteHistory = (id: string) => {
       history.value = history.value.filter((item) => item.id !== id)
       saveHistory()
     }
 
-    return { history, copiedHistoryId, addHistory, updateHistory, updateHistoryNotes, deleteHistory, copyHistory }
+    return { history, copiedHistoryId, addHistory, updateHistory, updateHistoryNotes, updateHistoryTitle, deleteHistory, copyHistory }
   }
 
   // 本番環境: APIを使用
@@ -118,10 +126,18 @@ export function useHistory(storageKey: string, app?: string) {
     }
   }
 
+  const updateHistoryTitle = (id: string, title: string) => {
+    const item = history.value.find((h) => h.id === id)
+    if (item) {
+      item.title = title
+      $fetch(`/api/app-history/${id}`, { method: 'PATCH', body: { title } }).catch(console.error)
+    }
+  }
+
   const deleteHistory = (id: string) => {
     history.value = history.value.filter((item) => item.id !== id)
     $fetch(`/api/app-history/${id}`, { method: 'DELETE' }).catch(console.error)
   }
 
-  return { history, copiedHistoryId, addHistory, updateHistory, updateHistoryNotes, deleteHistory, copyHistory }
+  return { history, copiedHistoryId, addHistory, updateHistory, updateHistoryNotes, updateHistoryTitle, deleteHistory, copyHistory }
 }

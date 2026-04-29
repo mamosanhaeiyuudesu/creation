@@ -55,13 +55,26 @@
             <td
               v-for="player in selectedPlayerList"
               :key="player.id"
-              class="py-2 px-3 text-center font-mono text-slate-700"
+              class="py-2 px-3 text-center font-mono"
+              :class="isOutOfRange(player.id, year) ? 'text-amber-600' : 'text-slate-700'"
             >
-              {{ getYearlyValue(player.id, year) }}
+              {{ getYearlyValue(player.id, year) }}<span v-if="isOutOfRange(player.id, year)" class="text-[9px] align-top ml-0.5 opacity-70">※</span>
+            </td>
+          </tr>
+          <!-- 通算行 -->
+          <tr class="border-t-2 border-slate-300 bg-slate-50">
+            <td class="py-2 px-3 font-bold text-slate-700">通算</td>
+            <td
+              v-for="player in selectedPlayerList"
+              :key="player.id"
+              class="py-2 px-3 text-center font-mono font-semibold text-slate-800"
+            >
+              {{ getCareerValue(player.id) }}
             </td>
           </tr>
         </tbody>
       </table>
+      <p v-if="hasOutOfRange" class="mt-1 text-[10px] text-amber-600 opacity-80">※ グラフの表示範囲外の値</p>
     </div>
   </div>
 </template>
@@ -114,14 +127,44 @@ function getRawValue(playerId: string, year: number): number | null {
   return (row as Record<string, unknown>)[selectedMetric.value] as number | null
 }
 
+function isOutOfRange(playerId: string, year: number): boolean {
+  const meta = activeMeta.value.find(m => m.key === selectedMetric.value)
+  const val = getRawValue(playerId, year)
+  if (val === null || !meta) return false
+  if (meta.chartMax !== undefined && val > meta.chartMax) return true
+  if (meta.chartMin !== undefined && val < meta.chartMin) return true
+  return false
+}
+
 function getYearlyValue(playerId: string, year: number): string {
   const meta = activeMeta.value.find(m => m.key === selectedMetric.value)
   const val = getRawValue(playerId, year)
   if (val === null) return '—'
-  if (meta?.chartMax !== undefined && val > meta.chartMax) return '圏外'
-  if (meta?.chartMin !== undefined && val < meta.chartMin) return '圏外'
   return meta ? meta.format(val) : String(val)
 }
+
+function getCareerValue(playerId: string): string {
+  const meta = activeMeta.value.find(m => m.key === selectedMetric.value)
+  const d = props.yearlyDataMap.get(playerId)
+  if (!d) return '—'
+  const rows = props.mode === 'batter' ? d.yearlyBatter : d.yearlyPitcher
+  const values = rows
+    .map(r => (r as Record<string, unknown>)[selectedMetric.value] as number | null)
+    .filter((v): v is number => v !== null)
+  if (!values.length) return '—'
+  if (meta?.counting) {
+    const total = values.reduce((a, b) => a + b, 0)
+    return meta.format(total)
+  }
+  const avg = values.reduce((a, b) => a + b, 0) / values.length
+  return meta ? meta.format(avg) : avg.toFixed(2)
+}
+
+const hasOutOfRange = computed(() =>
+  allYears.value.some(year =>
+    props.selectedIds.some(id => isOutOfRange(id, year))
+  )
+)
 
 async function renderChart() {
   if (!chartEl.value) return
