@@ -4,12 +4,13 @@
     <!-- ナビゲーション -->
     <nav class="ac-nav">
       <div class="ac-nav-inner">
-        <span class="ac-nav-logo">Prototyper</span>
+        <span class="ac-nav-logo">data-vis</span>
         <ul class="ac-nav-links">
           <li><a href="#services">できること</a></li>
           <li><a href="#portfolio">ポートフォリオ</a></li>
           <li><a href="#for-you">こんな方へ</a></li>
           <li><a href="#about">自己紹介</a></li>
+          <li><a href="#terms">ご依頼について</a></li>
           <li><a href="#contact">お問い合わせ</a></li>
         </ul>
       </div>
@@ -233,7 +234,7 @@
           </p>
           <p>
             「プロトタイプが企画書だ」という信念のもと、会議や議論の場で言葉を重ねるよりも、まず手を動かしてアイデアを形にすることでプロジェクトを前に進めて、多くのツールをSaaS化してきました。<br />
-            他社事例を素早く参照・応用しながら具体的なプロトタイプを作り、チームや顧客の意思決定を加速させるスタイルが自分の強みです。
+            自身の長年の経験に加えて、他社事例を素早く参照・応用しながら具体的なプロトタイプを作り、チームや顧客の意思決定を加速させるスタイルが自分の強みです。
           </p>
           <p>
             自分のプロトタイプから生まれたプロダクトは、一部上場企業を中心に500社以上に導入。<br />
@@ -247,6 +248,88 @@
       </div>
     </section>
 
+    <!-- ご依頼について -->
+    <section id="terms">
+      <div class="ac-wrap">
+        <p class="section-label">Terms</p>
+        <h2 class="section-title">ご依頼について</h2>
+        <p class="terms-intro">ご依頼前に知っておいていただきたい事項をまとめています。</p>
+        <div class="terms-grid">
+
+          <div class="terms-card">
+            <div class="terms-icon">🧪</div>
+            <h3 class="terms-card-title">これはプロトタイプです</h3>
+            <p class="terms-card-body">アイディアの検証に特化した開発です。<br />本番運用・インフラ管理・セキュリティ対策・パフォーマンス最適化は対象外です。</p>
+          </div>
+
+          <div class="terms-card">
+            <div class="terms-icon">📦</div>
+            <h3 class="terms-card-title">納品物</h3>
+            <p class="terms-card-body">触れて動かせるWebアプリ（プロトタイプ）をお渡しします。<br />ソースコードのお渡しも可能ですが、プロトタイプとしての品質であり、本番転用・保守を前提とした実装ではない点をご了承ください。</p>
+          </div>
+
+          <div class="terms-card">
+            <div class="terms-icon">🛠️</div>
+            <h3 class="terms-card-title">技術スタック</h3>
+            <p class="terms-card-body">Nuxt 3 / TypeScript / Cloudflare Workers / ECharts・Highcharts（可視化）/ OpenAI API・Claude API（生成AI）を中心に使用。<br />案件の内容に応じて最適な技術を選定します。</p>
+          </div>
+
+          <div class="terms-card">
+            <div class="terms-icon">🔄</div>
+            <h3 class="terms-card-title">修正対応</h3>
+            <p class="terms-card-body">プロトタイプの性質上、方向性の調整は歓迎します。<br />ただし初期合意を大幅に超える仕様変更・追加機能は別途ご相談になります。</p>
+          </div>
+
+          <div class="terms-card">
+            <div class="terms-icon">📋</div>
+            <h3 class="terms-card-title">開発スコープ</h3>
+            <p class="terms-card-body">ご依頼時に合意した機能・仕様のみを開発します。<br />追加機能の実装は都度お見積もりになります。</p>
+          </div>
+
+          <div class="terms-card">
+            <div class="terms-icon">🔐</div>
+            <h3 class="terms-card-title">著作権</h3>
+            <p class="terms-card-body">納品物の著作権はクライアントに完全に譲渡します。<br />ただし制作者は、制作実績としてデモ画面・URLをポートフォリオに掲載する権利を留保します。</p>
+          </div>
+
+          <div class="terms-card">
+            <div class="terms-icon">💻</div>
+            <h3 class="terms-card-title">動作環境</h3>
+            <p class="terms-card-body">Chrome・Firefox・Safari の最新版（PC）を動作保証の対象とします。<br />スマートフォン・タブレット対応が必要な場合は事前にお申し付けください。</p>
+          </div>
+
+          <div class="terms-card">
+            <div class="terms-icon">✅</div>
+            <h3 class="terms-card-title">検収</h3>
+            <p class="terms-card-body">納品後14日以内にご報告いただいた不具合は無償で対応します。<br />それ以降の対応は有償となります。</p>
+          </div>
+
+        </div>
+
+        <div class="terms-payment">
+          <div class="terms-payment-header">
+            <span class="terms-payment-icon">💳</span>
+            <h3 class="terms-payment-title">開発費用・お支払い</h3>
+          </div>
+          <div class="terms-payment-body">
+            <div class="terms-payment-row">
+              <span class="terms-payment-label">ヒアリング</span>
+              <span class="terms-payment-value">¥8,000 / 時間（約2時間を想定）</span>
+            </div>
+            <div class="terms-payment-row">
+              <span class="terms-payment-label">開発費用</span>
+              <span class="terms-payment-value">案件の規模・内容によるため、ヒアリング後にお見積もり</span>
+            </div>
+            <div class="terms-payment-row">
+              <span class="terms-payment-label">着手金</span>
+              <span class="terms-payment-value">開発費用の 50%（着手前）、残金は納品時</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
     <!-- CTA -->
     <section id="contact" class="ac-cta">
       <div class="ac-wrap">
@@ -256,6 +339,10 @@
             「こういうのが欲しいかも」「そんなことできる？」<br />
             そのくらいの温度感で十分です。一緒に考えます。
           </p>
+          <div class="cta-price">
+            <span class="cta-price-label">初回相談</span>
+            <span class="cta-price-value">60分 / ¥5,000</span>
+          </div>
           <div class="cta-buttons">
             <a href="mailto:" class="btn-primary">
               メールで相談する
@@ -291,7 +378,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'ai-consultant' })
+definePageMeta({ layout: 'prototyper' })
 
 const lightbox = reactive({ open: false, src: '', alt: '' })
 
@@ -321,5 +408,5 @@ useHead({
 </script>
 
 <style>
-@import '~/assets/css/ai-consultant.css';
+@import '~/assets/css/prototyper.css';
 </style>
