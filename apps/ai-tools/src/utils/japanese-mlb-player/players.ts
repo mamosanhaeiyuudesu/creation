@@ -2,21 +2,21 @@ import type { Player, StatMeta } from '~/types/mlb'
 
 export const PLAYERS: Player[] = [
   // ア・リーグ
-  { id: '807799', nameJa: '吉田 正尚', nameEn: 'Masataka Yoshida', position: 'batter', team: 'BOS', teamFull: 'ボストン・レッドソックス', league: 'AL' },
-  { id: '672960', nameJa: '岡本 和真', nameEn: 'Kazuma Okamoto', position: 'batter', team: 'TOR', teamFull: 'トロント・ブルージェイズ', league: 'AL' },
-  { id: '808959', nameJa: '村上 宗隆', nameEn: 'Munetaka Murakami', position: 'batter', team: 'CWS', teamFull: 'シカゴ・ホワイトソックス', league: 'AL' },
-  { id: '579328', nameJa: '菊池 雄星', nameEn: 'Yusei Kikuchi', position: 'pitcher', team: 'LAA', teamFull: 'ロサンゼルス・エンゼルス', league: 'AL' },
-  { id: '837227', nameJa: '今井 達也', nameEn: 'Tatsuya Imai', position: 'pitcher', team: 'HOU', teamFull: 'ヒューストン・アストロズ', league: 'AL' },
+  { id: '807799', nameJa: '吉田 正尚', nameEn: 'Masataka Yoshida', position: 'batter', team: 'BOS', teamFull: 'ボストン・レッドソックス', league: 'AL', sportnavi: '202100515' },
+  { id: '672960', nameJa: '岡本 和真', nameEn: 'Kazuma Okamoto', position: 'batter', team: 'TOR', teamFull: 'トロント・ブルージェイズ', league: 'AL', sportnavi: '202101516' },
+  { id: '808959', nameJa: '村上 宗隆', nameEn: 'Munetaka Murakami', position: 'batter', team: 'CWS', teamFull: 'シカゴ・ホワイトソックス', league: 'AL', sportnavi: '202101502' },
+  { id: '579328', nameJa: '菊池 雄星', nameEn: 'Yusei Kikuchi', position: 'pitcher', team: 'LAA', teamFull: 'ロサンゼルス・エンゼルス', league: 'AL', sportnavi: '2100956' },
+  { id: '837227', nameJa: '今井 達也', nameEn: 'Tatsuya Imai', position: 'pitcher', team: 'HOU', teamFull: 'ヒューストン・アストロズ', league: 'AL', sportnavi: '202101474' },
   // ナ・リーグ
-  { id: '673540', nameJa: '千賀 滉大', nameEn: 'Kodai Senga', position: 'pitcher', team: 'NYM', teamFull: 'ニューヨーク・メッツ', league: 'NL' },
-  { id: '684007', nameJa: '今永 昇太', nameEn: 'Shota Imanaga', position: 'pitcher', team: 'CHC', teamFull: 'シカゴ・カブス', league: 'NL' },
-  { id: '673548', nameJa: '鈴木 誠也', nameEn: 'Seiya Suzuki', position: 'batter', team: 'CHC', teamFull: 'シカゴ・カブス', league: 'NL' },
-  { id: '663457', nameJa: 'ラーズ・ヌートバー', nameEn: 'Lars Nootbaar', position: 'batter', team: 'STL', teamFull: 'セントルイス・カージナルス', league: 'NL' },
-  { id: '808963', nameJa: '佐々木 朗希', nameEn: 'Roki Sasaki', position: 'pitcher', team: 'LAD', teamFull: 'ロサンゼルス・ドジャース', league: 'NL' },
-  { id: '660271', nameJa: '大谷 翔平', nameEn: 'Shohei Ohtani', position: 'both', team: 'LAD', teamFull: 'ロサンゼルス・ドジャース', league: 'NL' },
-  { id: '808967', nameJa: '山本 由伸', nameEn: 'Yoshinobu Yamamoto', position: 'pitcher', team: 'LAD', teamFull: 'ロサンゼルス・ドジャース', league: 'NL' },
-  { id: '673513', nameJa: '松井 裕樹', nameEn: 'Yuki Matsui', position: 'pitcher', team: 'SD', teamFull: 'サンディエゴ・パドレス', league: 'NL' },
-  { id: '506433', nameJa: 'ダルビッシュ 有', nameEn: 'Yu Darvish', position: 'pitcher', team: 'SD', teamFull: 'サンディエゴ・パドレス', league: 'NL' },
+  { id: '673540', nameJa: '千賀 滉大', nameEn: 'Kodai Senga', position: 'pitcher', team: 'NYM', teamFull: 'ニューヨーク・メッツ', league: 'NL', sportnavi: '202100525' },
+  { id: '684007', nameJa: '今永 昇太', nameEn: 'Shota Imanaga', position: 'pitcher', team: 'CHC', teamFull: 'シカゴ・カブス', league: 'NL', sportnavi: '202101112' },
+  { id: '673548', nameJa: '鈴木 誠也', nameEn: 'Seiya Suzuki', position: 'batter', team: 'CHC', teamFull: 'シカゴ・カブス', league: 'NL', sportnavi: '202100102' },
+  { id: '663457', nameJa: 'ラーズ・ヌートバー', nameEn: 'Lars Nootbaar', position: 'batter', team: 'STL', teamFull: 'セントルイス・カージナルス', league: 'NL', sportnavi: '2102188' },
+  { id: '808963', nameJa: '佐々木 朗希', nameEn: 'Roki Sasaki', position: 'pitcher', team: 'LAD', teamFull: 'ロサンゼルス・ドジャース', league: 'NL', sportnavi: '202101303' },
+  { id: '660271', nameJa: '大谷 翔平', nameEn: 'Shohei Ohtani', position: 'both', team: 'LAD', teamFull: 'ロサンゼルス・ドジャース', league: 'NL', sportnavi: '2100825' },
+  { id: '808967', nameJa: '山本 由伸', nameEn: 'Yoshinobu Yamamoto', position: 'pitcher', team: 'LAD', teamFull: 'ロサンゼルス・ドジャース', league: 'NL', sportnavi: '202101128' },
+  { id: '673513', nameJa: '松井 裕樹', nameEn: 'Yuki Matsui', position: 'pitcher', team: 'SD', teamFull: 'サンディエゴ・パドレス', league: 'NL', sportnavi: '202101125' },
+  { id: '506433', nameJa: 'ダルビッシュ 有', nameEn: 'Yu Darvish', position: 'pitcher', team: 'SD', teamFull: 'サンディエゴ・パドレス', league: 'NL', sportnavi: '2100954' },
 ]
 
 export const PITCHER_PLAYERS = PLAYERS.filter(p => p.position === 'pitcher' || p.position === 'both')

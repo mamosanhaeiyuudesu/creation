@@ -28,6 +28,7 @@ async function getLeagueBlock(leagueId: number, season: number): Promise<LeagueS
     batter: {
       avg:         computeSummary(batters.map(s => s.avg), true) ?? undefined,
       obp:         computeSummary(batters.map(s => s.obp), true) ?? undefined,
+      slg:         computeSummary(batters.map(s => s.slg), true) ?? undefined,
       ops:         computeSummary(batters.map(s => s.ops), true) ?? undefined,
       bbPct:       computeSummary(batters.map(s => s.bbPct), true) ?? undefined,
       kPct:        computeSummary(batters.map(s => s.kPct), false) ?? undefined,

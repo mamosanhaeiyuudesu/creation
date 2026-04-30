@@ -30,11 +30,11 @@
               <span class="inline-flex items-center gap-1" :style="{ color: colors[player.id] }">
                 {{ player.nameJa }}
                 <a
-                  :href="`https://search.yahoo.co.jp/search?p=${encodeURIComponent(player.nameJa + ' MLB')}`"
+                  :href="`https://baseball.yahoo.co.jp/mlb/player/${player.sportnavi}/top`"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="text-slate-400 hover:text-slate-600 transition-colors"
-                  title="Yahoo検索"
+                  title="スポナビで見る"
                   @click.stop
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">

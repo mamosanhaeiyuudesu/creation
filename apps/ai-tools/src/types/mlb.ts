@@ -9,6 +9,7 @@ export interface Player {
   team: string
   teamFull: string
   league: League
+  sportnavi: string
 }
 
 export interface BatterStats {

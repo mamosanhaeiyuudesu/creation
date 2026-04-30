@@ -2,7 +2,6 @@
   <div>
     <!-- 投手テーブル -->
     <div v-if="pitcherPlayers.length && props.mode !== 'batter'" class="mb-6">
-      <h3 class="text-sm font-semibold text-slate-600 mb-2">⚾ 投手</h3>
       <div class="overflow-auto max-h-[65vh] border border-slate-100 rounded isolate">
         <table class="w-full text-sm border-collapse">
           <thead>
@@ -20,11 +19,11 @@
                   <span class="w-2 h-2 rounded-full inline-block" :style="{ background: colors[player.id] }" />
                   {{ player.nameJa }}
                   <a
-                    :href="`https://search.yahoo.co.jp/search?p=${encodeURIComponent(player.nameJa + ' MLB')}`"
+                    :href="`https://baseball.yahoo.co.jp/mlb/player/${player.sportnavi}/top`"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="text-slate-400 hover:text-slate-600 transition-colors"
-                    title="Yahoo検索"
+                    title="スポナビで見る"
                     @click.stop
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
@@ -82,7 +81,6 @@
 
     <!-- 野手テーブル -->
     <div v-if="batterPlayers.length && props.mode !== 'pitcher'">
-      <h3 class="text-sm font-semibold text-slate-600 mb-2">🏏 野手</h3>
       <div class="overflow-auto max-h-[65vh] border border-slate-100 rounded isolate">
         <table class="w-full text-sm border-collapse">
           <thead>
@@ -100,11 +98,11 @@
                   <span class="w-2 h-2 rounded-full inline-block" :style="{ background: colors[player.id] }" />
                   {{ player.nameJa }}
                   <a
-                    :href="`https://search.yahoo.co.jp/search?p=${encodeURIComponent(player.nameJa + ' MLB')}`"
+                    :href="`https://baseball.yahoo.co.jp/mlb/player/${player.sportnavi}/top`"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="text-slate-400 hover:text-slate-600 transition-colors"
-                    title="Yahoo検索"
+                    title="スポナビで見る"
                     @click.stop
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
