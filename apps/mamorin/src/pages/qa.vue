@@ -1,59 +1,64 @@
 <template>
-  <div class="mamorin-page">
+  <div class="mm-page">
 
-    <!-- HERO -->
-    <div class="container">
-      <section class="hero section">
-        <p class="hero-eyebrow">よくある質問</p>
-        <h1 class="hero-title serif">
-          Q&amp;A
-        </h1>
-        <p class="hero-sub">
-          セッションを申し込む前に、気になることを確認しておいてください。
-        </p>
-      </section>
-    </div>
+    <!-- ヒーロー -->
+    <section class="mm-hero">
+      <div class="mm-wrap">
+        <div class="mm-hero-text">
+          <p class="mm-hero-eyebrow">よくある質問</p>
+          <h1 class="mm-hero-title">Q&amp;A</h1>
+          <p class="mm-hero-sub">セッションを申し込む前に、気になることを確認しておいてください。</p>
+        </div>
+      </div>
+    </section>
 
     <!-- FAQ -->
-    <div class="container">
-      <section class="section">
-        <div class="faq-list">
+    <section class="mm-surface">
+      <div class="mm-wrap">
+        <p class="mm-section-label">FAQ</p>
+        <div class="mm-faq-list">
           <div
             v-for="(item, i) in faqs"
             :key="i"
-            class="faq-item"
+            class="mm-faq-item"
             :class="{ open: openIndex === i }"
           >
-            <button class="faq-q" @click="toggle(i)">
-              <span class="faq-q-text serif">{{ item.q }}</span>
-              <span class="faq-icon">{{ openIndex === i ? '−' : '+' }}</span>
+            <button class="mm-faq-q" @click="toggle(i)">
+              <span class="mm-faq-q-text">{{ item.q }}</span>
+              <span class="mm-faq-icon">{{ openIndex === i ? '−' : '+' }}</span>
             </button>
-            <div class="faq-a-wrap">
-              <div class="faq-a">
-                <p v-for="(para, j) in item.a" :key="j" class="story-para" v-html="para" />
+            <div class="mm-faq-a-wrap">
+              <div class="mm-faq-a">
+                <p v-for="(para, j) in item.a" :key="j" class="mm-story-para" v-html="para" />
               </div>
             </div>
           </div>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
 
     <!-- CTA -->
-    <div class="container">
-      <section class="section">
-        <div class="cta-section" style="padding: 2rem 0 4rem;">
-          <h2 class="cta-title serif">
-            他にも気になることがあれば、<br>
-            まず無料相談でお話しください。
-          </h2>
-          <p class="cta-sub">初回30分は無料で、お話を聞かせてください。</p>
-          <a class="cta-btn" href="">カウンセリングについて見る</a>
+    <section class="mm-cta">
+      <div class="mm-wrap">
+        <div class="mm-cta-inner">
+          <p class="mm-section-label">Contact</p>
+          <h2 class="mm-cta-title">他にも気になることがあれば、<br>まず無料相談でお話しください。</h2>
+          <p class="mm-cta-desc">初回30分は無料で、お話を聞かせてください。</p>
+          <div class="mm-cta-buttons">
+            <a class="mm-btn-primary" href="https://docs.google.com/forms/d/e/1FAIpQLSckcLkBNH9xEMSeS3_SuDznoShew41SF6Ja6Du7XHvS6-rwRg/viewform?usp=publish-editor" target="_blank" rel="noopener noreferrer">
+              無料相談フォームへ
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+            <NuxtLink to="/" class="mm-btn-secondary">トップページへ</NuxtLink>
+          </div>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
 
-    <footer>
-      <p>&copy; 2025 自分を許す カウンセリング &amp; セラピー</p>
+    <footer class="mm-footer">
+      <div class="mm-footer-inner">
+        <span class="mm-footer-copy">&copy; 2026 自分を許す カウンセリング &amp; セラピー</span>
+      </div>
     </footer>
 
   </div>
@@ -64,13 +69,6 @@ definePageMeta({ layout: 'mamorin', alias: ['/mamorin/qa'] })
 
 useHead({
   title: 'よくある質問 — カウンセリング & 感情フォーカス・セラピー',
-  link: [
-    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-    {
-      rel: 'stylesheet',
-      href: 'https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap',
-    },
-  ],
 })
 
 const openIndex = ref<number | null>(0)
@@ -130,207 +128,3 @@ const faqs = [
   },
 ]
 </script>
-
-<style>
-.mamorin-page {
-  --bg: #f2fbfc;
-  --bg-card: #ffffff;
-  --bg-muted: #f0fafb;
-  --text: #0a2e38;
-  --text-secondary: #1e6878;
-  --text-tertiary: #5a9eac;
-  --border: rgba(0, 160, 180, 0.14);
-  --border-strong: rgba(0, 160, 180, 0.30);
-  --accent: #00a8b8;
-
-  font-family: 'Noto Sans JP', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  line-height: 1.8;
-  font-size: 15px;
-  box-sizing: border-box;
-}
-
-.mamorin-page *, .mamorin-page *::before, .mamorin-page *::after { box-sizing: border-box; }
-
-@media (prefers-color-scheme: dark) {
-  .mamorin-page {
-    --bg: #f2fbfc;
-    --bg-card: #ffffff;
-    --bg-muted: #f0fafb;
-    --text: #0a2e38;
-    --text-secondary: #1e6878;
-    --text-tertiary: #5a9eac;
-    --border: rgba(0, 160, 180, 0.14);
-    --border-strong: rgba(0, 160, 180, 0.30);
-    --accent: #00a8b8;
-  }
-}
-
-.mamorin-page .serif { font-family: 'Noto Serif JP', serif; }
-
-.mamorin-page .container { max-width: 720px; margin: 0 auto; padding: 0 1.5rem; }
-
-.mamorin-page .section { padding: 5rem 0; }
-.mamorin-page .section + .section { border-top: 0.5px solid var(--border); }
-
-.mamorin-page .label {
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  margin-bottom: 1.25rem;
-}
-
-.mamorin-page .hero { padding: 6rem 0 5rem; }
-
-.mamorin-page .hero-eyebrow {
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  color: var(--text-tertiary);
-  margin-bottom: 2.5rem;
-}
-
-.mamorin-page .hero-title {
-  font-family: 'Noto Serif JP', serif;
-  font-size: clamp(2rem, 5vw, 3.2rem);
-  font-weight: 300;
-  line-height: 1.6;
-  margin-bottom: 2.5rem;
-}
-
-.mamorin-page .hero-sub {
-  font-size: 15px;
-  color: var(--text-secondary);
-  line-height: 2.2;
-  max-width: 520px;
-}
-
-.mamorin-page .story-para {
-  font-size: 15px;
-  color: var(--text-secondary);
-  line-height: 2.3;
-  margin-bottom: 1.25rem;
-}
-
-.mamorin-page .story-para:last-child { margin-bottom: 0; }
-
-.mamorin-page .story-para strong {
-  color: var(--text);
-  font-weight: 500;
-}
-
-/* FAQ accordion */
-.mamorin-page .faq-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  border: 0.5px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.mamorin-page .faq-item {
-  border-bottom: 0.5px solid var(--border);
-}
-
-.mamorin-page .faq-item:last-child {
-  border-bottom: none;
-}
-
-.mamorin-page .faq-q {
-  width: 100%;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.25rem;
-  padding: 1.5rem 1.75rem;
-  background: var(--bg-card);
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.15s;
-}
-
-.mamorin-page .faq-q:hover {
-  background: var(--bg-muted);
-}
-
-.mamorin-page .faq-item.open .faq-q {
-  background: var(--bg-muted);
-}
-
-.mamorin-page .faq-q-text {
-  font-family: 'Noto Serif JP', serif;
-  font-size: 16px;
-  font-weight: 400;
-  color: var(--text);
-  line-height: 1.7;
-}
-
-.mamorin-page .faq-icon {
-  font-size: 20px;
-  font-weight: 300;
-  color: var(--text-tertiary);
-  flex-shrink: 0;
-  line-height: 1.5;
-  width: 1.5rem;
-  text-align: center;
-}
-
-.mamorin-page .faq-a-wrap {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.25s ease;
-}
-
-.mamorin-page .faq-item.open .faq-a-wrap {
-  grid-template-rows: 1fr;
-}
-
-.mamorin-page .faq-a {
-  overflow: hidden;
-  padding: 0 1.75rem;
-}
-
-.mamorin-page .faq-item.open .faq-a {
-  padding: 1.5rem 1.75rem 2rem;
-}
-
-/* CTA */
-.mamorin-page .cta-section { text-align: center; padding: 6rem 1.5rem; }
-
-.mamorin-page .cta-title {
-  font-family: 'Noto Serif JP', serif;
-  font-size: clamp(20px, 3vw, 26px);
-  font-weight: 400;
-  margin-bottom: 1.5rem;
-  line-height: 1.9;
-}
-
-.mamorin-page .cta-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 2.5rem; line-height: 2.2; }
-
-.mamorin-page .cta-btn {
-  display: inline-block;
-  padding: 15px 44px;
-  border: none;
-  border-radius: 40px;
-  font-size: 14px;
-  cursor: pointer;
-  background: var(--accent);
-  color: #ffffff;
-  font-family: 'Noto Sans JP', sans-serif;
-  text-decoration: none;
-  transition: background 0.2s, opacity 0.2s;
-}
-
-.mamorin-page .cta-btn:hover { opacity: 0.85; }
-
-.mamorin-page footer {
-  border-top: 0.5px solid var(--border);
-  padding: 2.5rem 1.5rem;
-  text-align: center;
-}
-
-.mamorin-page footer p { font-size: 12px; color: var(--text-tertiary); }
-</style>
