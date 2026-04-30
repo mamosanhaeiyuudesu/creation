@@ -117,7 +117,6 @@
           :tooFewMessages="insightTooFew"
           :loading="insightLoading"
           :refreshing="insightRefreshing"
-          :canRefresh="insightCanRefresh"
           @refresh="refreshInsight"
         />
       </template>
@@ -183,7 +182,6 @@ interface InsightsResponse {
   createdAt: string | null
   messageCount: number
   tooFewMessages: boolean
-  canRefresh: boolean
 }
 
 const { user, isLoggedIn, checked, checkAuth, logout } = useDeepheartAuth()
@@ -212,7 +210,6 @@ const insightMessageCount = ref(0)
 const insightTooFew = ref(false)
 const insightLoading = ref(false)
 const insightRefreshing = ref(false)
-const insightCanRefresh = ref(true)
 
 // ── 設定 ──
 const settingsOpen = ref(false)
@@ -306,8 +303,13 @@ async function loadPersonality() {
 
 async function switchToInsight() {
   tab.value = 'insight'
-  if (!dev && !insightData.value && !insightLoading.value) {
+  if (dev) return
+  if (!insightData.value && !insightLoading.value && !insightRefreshing.value) {
+    // まずDBに保存済みのインサイトを取得し、なければ自動生成
     await loadInsight()
+    if (!insightData.value && !insightTooFew.value) {
+      await refreshInsight()
+    }
   }
 }
 
@@ -320,7 +322,6 @@ async function loadInsight() {
     insightCreatedAt.value = res.createdAt
     insightMessageCount.value = res.messageCount
     insightTooFew.value = res.tooFewMessages
-    insightCanRefresh.value = res.canRefresh
   } catch {
     // ignore
   } finally {
@@ -332,11 +333,10 @@ async function refreshInsight() {
   if (dev) return
   insightRefreshing.value = true
   try {
-    const res = await $fetch<InsightsResponse & { cached: boolean }>('/api/deepheart/insights/refresh', { method: 'POST' })
+    const res = await $fetch<InsightsResponse>('/api/deepheart/insights/refresh', { method: 'POST' })
     insightData.value = res.insight
     insightCreatedAt.value = res.createdAt
     insightMessageCount.value = res.messageCount
-    insightCanRefresh.value = res.canRefresh
     insightTooFew.value = false
   } catch (err: any) {
     if (err?.data?.tooFewMessages) {

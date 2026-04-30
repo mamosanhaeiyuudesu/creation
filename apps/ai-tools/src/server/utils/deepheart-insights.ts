@@ -2,39 +2,66 @@ import { encryptMessage, decryptMessage } from './deepheart'
 import { callOpenAi, extractText } from './openai'
 
 export const MIN_MESSAGES_FOR_INSIGHT = 5
-export const MAX_MESSAGES_FOR_INSIGHT = 100
+export const MAX_MESSAGES_FOR_INSIGHT = 200
 export const INSIGHT_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000
 
+const BATCH_SIZE = 50
+
 export interface InsightResult {
-  concerns: string
-  emotions: string
-  patterns: string
-  strengths: string
+  concerns: string[]
+  emotions: string[]
+  patterns: string[]
+  strengths: string[]
   hints: string[]
   nextStep: string
 }
 
-const SYSTEM_PROMPT = `あなたは共感的なカウンセリング支援AIです。
-ユーザーがカウンセリングチャットで話した発言一覧を渡します。
-これを読み、以下のJSON形式で心理的パターンの分析を行ってください。
+// Stage 1: バッチごとの要約プロンプト
+const STAGE1_SYSTEM = `カウンセリングチャットにおけるユーザーの発言から、以下を簡潔に箇条書きで抽出してください（全体300字以内）：
+・話題になった出来事・状況
+・感じていた感情
+・繰り返し現れたキーワードや表現
 
-診断や判断はせず、観察された傾向をあたたかく建設的な言葉で記述してください。
-強みの項目は必ず記載し、ユーザーが自分を責めすぎないよう配慮してください。
-nextStepは今週中に実行できる、とても小さく具体的な行動にしてください。
-返答はJSONのみを返してください（コードブロック不要）。
+余計な説明は不要です。箇条書きのみ返してください。`
+
+// Stage 2: 考察生成プロンプト
+const STAGE2_SYSTEM = `以下は、あるユーザーのカウンセリングチャットを時系列順に複数期間に分けて要約したものです。
+これらを踏まえ、心理的パターンの分析を以下のJSON形式で返してください。
+
+各項目は箇条書き（string配列）で、1点あたり1〜2文。診断や判断はしないでください。
+強みは必ず含め、nextStepは今週できる小さな一歩を1文で。
+返答はJSONのみ（コードブロック不要）。
 
 {
-  "concerns": "繰り返し登場している悩みや状況のテーマ（2〜4文）",
-  "emotions": "よく現れる感情と、それが起きやすい状況（2〜4文）",
-  "patterns": "繰り返し見られる思考や行動のクセ（2〜4文）",
-  "strengths": "発言から見えてくる強みやリソース（2〜3文）",
-  "hints": [
-    "心理的な気づきのヒント（1〜2文）",
-    "心理的な気づきのヒント（1〜2文）",
-    "心理的な気づきのヒント（1〜2文）"
-  ],
-  "nextStep": "今週中にできる、とても小さな一歩（1〜2文）"
+  "concerns": ["繰り返す悩みのテーマ（2〜4点）"],
+  "emotions": ["感情パターン（2〜4点）"],
+  "patterns": ["思考・行動のクセ（2〜4点）"],
+  "strengths": ["強み・リソース（2〜3点）"],
+  "hints": ["気づきのヒント（3点）"],
+  "nextStep": "今週の一歩（1文）"
 }`
+
+async function summarizeBatch(
+  messages: string[],
+  batchIndex: number,
+  totalMessages: number,
+  apiKey: string
+): Promise<string> {
+  const start = batchIndex * BATCH_SIZE + 1
+  const end = Math.min(start + messages.length - 1, totalMessages)
+  const text = messages.map((m, i) => `[${start + i}] ${m}`).join('\n')
+
+  const data = await callOpenAi(apiKey, {
+    model: 'gpt-4.1-mini',
+    input: [
+      { role: 'system', content: [{ type: 'input_text', text: STAGE1_SYSTEM }] as any },
+      { role: 'user', content: [{ type: 'input_text', text: `発言${start}〜${end}件目:\n${text}` }] as any },
+    ],
+    max_output_tokens: 400,
+  })
+
+  return extractText(data) || ''
+}
 
 export async function generateInsight(
   userMessages: string[],
@@ -43,20 +70,32 @@ export async function generateInsight(
   if (userMessages.length < MIN_MESSAGES_FOR_INSIGHT) return null
 
   const msgs = userMessages.slice(-MAX_MESSAGES_FOR_INSIGHT)
-  const userText = msgs.map((m, i) => `[${i + 1}] ${m}`).join('\n')
+
+  // Stage 1: BATCH_SIZE件ずつ要約（並列実行）
+  const batches: string[][] = []
+  for (let i = 0; i < msgs.length; i += BATCH_SIZE) {
+    batches.push(msgs.slice(i, i + BATCH_SIZE))
+  }
+
+  const summaries = await Promise.all(
+    batches.map((batch, i) => summarizeBatch(batch, i, msgs.length, apiKey))
+  )
+
+  // Stage 2: 要約をまとめて考察生成
+  const summaryText = summaries
+    .map((s, i) => {
+      const start = i * BATCH_SIZE + 1
+      const end = Math.min(start + batches[i].length - 1, msgs.length)
+      return `【${start}〜${end}件目】\n${s}`
+    })
+    .join('\n\n')
 
   try {
     const data = await callOpenAi(apiKey, {
       model: 'gpt-4.1-mini',
       input: [
-        {
-          role: 'system',
-          content: [{ type: 'input_text', text: SYSTEM_PROMPT }] as any,
-        },
-        {
-          role: 'user',
-          content: [{ type: 'input_text', text: userText }] as any,
-        },
+        { role: 'system', content: [{ type: 'input_text', text: STAGE2_SYSTEM }] as any },
+        { role: 'user', content: [{ type: 'input_text', text: summaryText }] as any },
       ],
       max_output_tokens: 800,
     })
@@ -66,13 +105,13 @@ export async function generateInsight(
 
     const clean = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
     const parsed = JSON.parse(clean) as Partial<InsightResult>
-    if (!parsed.concerns || !Array.isArray(parsed.hints) || !parsed.nextStep) return null
+    if (!Array.isArray(parsed.concerns) || !Array.isArray(parsed.hints) || !parsed.nextStep) return null
 
     return {
       concerns: parsed.concerns,
-      emotions: parsed.emotions ?? '',
-      patterns: parsed.patterns ?? '',
-      strengths: parsed.strengths ?? '',
+      emotions: Array.isArray(parsed.emotions) ? parsed.emotions : [],
+      patterns: Array.isArray(parsed.patterns) ? parsed.patterns : [],
+      strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
       hints: parsed.hints.slice(0, 5),
       nextStep: parsed.nextStep,
     }

@@ -1,8 +1,4 @@
-import {
-  MIN_MESSAGES_FOR_INSIGHT,
-  getLatestInsight,
-  isRefreshable,
-} from '~/server/utils/deepheart-insights'
+import { MIN_MESSAGES_FOR_INSIGHT, getLatestInsight } from '~/server/utils/deepheart-insights'
 import { requireDeepheartUser, getDeepheartDb, getDeepheartEncryptionKey } from '~/server/utils/deepheart'
 
 export default defineEventHandler(async (event) => {
@@ -14,13 +10,7 @@ export default defineEventHandler(async (event) => {
   const latest = await getLatestInsight(db, user.id, encKey)
 
   if (latest) {
-    return {
-      insight: latest.insight,
-      createdAt: latest.createdAt,
-      messageCount: latest.messageCount,
-      tooFewMessages: false,
-      canRefresh: isRefreshable(latest.createdAt),
-    }
+    return { insight: latest.insight, createdAt: latest.createdAt, messageCount: latest.messageCount, tooFewMessages: false }
   }
 
   const countRow = await db
@@ -29,12 +19,5 @@ export default defineEventHandler(async (event) => {
     .first<{ cnt: number }>()
 
   const messageCount = countRow?.cnt ?? 0
-
-  return {
-    insight: null,
-    createdAt: null,
-    messageCount,
-    tooFewMessages: messageCount < MIN_MESSAGES_FOR_INSIGHT,
-    canRefresh: true,
-  }
+  return { insight: null, createdAt: null, messageCount, tooFewMessages: messageCount < MIN_MESSAGES_FOR_INSIGHT }
 })

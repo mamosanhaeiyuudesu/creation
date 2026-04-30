@@ -33,10 +33,9 @@ database_id = "afcdcced-79d2-4f3a-a0c5-bf86a21731a4"
 #   wrangler d1 create deepheart-db
 #   wrangler d1 execute deepheart-db --file src/server/db/003_deepheart.sql
 
+# Cron Trigger（6時間ごと・4回/日）
 [triggers]
-crons = ["0 0 * * *", "0 6 * * *", "0 12 * * *", "0 18 * * *", "0 3 * * *"]
-# 0,6,12,18: MLB Stats 同期
-# 3: deepheart 気づき分析（日次）
+crons = ["0 0 * * *", "0 6 * * *", "0 12 * * *", "0 18 * * *"]
 
 [build]
 command = "npm run build"

@@ -3,8 +3,6 @@ import {
   generateInsight,
   getUserMessageTexts,
   saveInsight,
-  getLatestInsight,
-  isRefreshable,
 } from '~/server/utils/deepheart-insights'
 import { requireDeepheartUser, getDeepheartDb, getDeepheartEncryptionKey } from '~/server/utils/deepheart'
 
@@ -14,20 +12,8 @@ export default defineEventHandler(async (event) => {
   if (!db) throw createError({ statusCode: 503, message: 'データベースが利用できません' })
 
   const encKey = getDeepheartEncryptionKey(event)
-
-  // 24時間以内に生成済みの場合はキャッシュを返す
-  const latest = await getLatestInsight(db, user.id, encKey)
-  if (latest && !isRefreshable(latest.createdAt)) {
-    return {
-      cached: true,
-      insight: latest.insight,
-      createdAt: latest.createdAt,
-      messageCount: latest.messageCount,
-      canRefresh: false,
-    }
-  }
-
   const messages = await getUserMessageTexts(db, user.id, encKey)
+
   if (messages.length < MIN_MESSAGES_FOR_INSIGHT) {
     throw createError({
       statusCode: 422,
@@ -44,11 +30,5 @@ export default defineEventHandler(async (event) => {
 
   const { createdAt } = await saveInsight(db, user.id, insight, messages.length, encKey)
 
-  return {
-    cached: false,
-    insight,
-    createdAt,
-    messageCount: messages.length,
-    canRefresh: false,
-  }
+  return { insight, createdAt, messageCount: messages.length }
 })
