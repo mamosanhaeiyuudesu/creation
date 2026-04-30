@@ -33,6 +33,7 @@ const route = useRoute()
 const router = useRouter()
 
 const mobileMenu = ref(false)
+const mainRef = ref<HTMLElement | null>(null)
 const activeLeague = ref<'AL' | 'NL'>(
   route.query.league === 'AL' ? 'AL' : 'NL'
 )
@@ -120,6 +121,20 @@ onMounted(async () => {
   }
 })
 
+function openMobileMenu() {
+  mobileMenu.value = !mobileMenu.value
+  if (mobileMenu.value) {
+    nextTick(() => mainRef.value?.scrollTo({ top: 0, behavior: 'smooth' }))
+  }
+}
+
+async function mobileToggle(id: string) {
+  togglePlayer(id)
+  mobileMenu.value = false
+  await nextTick()
+  mainRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 function selectAll() {
   const leagueIds = leaguePlayers.value.map(p => p.id)
   const others = selectedIds.value.filter(id => !leagueIds.includes(id))
@@ -147,7 +162,7 @@ function deselectAll() {
       @update:league="activeLeague = $event"
     />
 
-    <main class="flex-1 overflow-y-auto bg-white">
+    <main ref="mainRef" class="flex-1 overflow-y-auto bg-white">
       <!-- シーズン/年度別タブ -->
       <div class="flex border-b border-slate-200 bg-white sticky top-0 z-20">
         <button
@@ -160,13 +175,23 @@ function deselectAll() {
             : 'border-transparent text-slate-500 hover:text-slate-700'"
         >{{ tab.label }}</button>
 
-        <button
-          class="ml-auto px-4 py-3 text-sm text-slate-500 flex items-center gap-1 md:hidden"
-          @click="mobileMenu = !mobileMenu"
-        >
-          <span>選手 {{ selectedIds.length }}</span>
-          <span>{{ mobileMenu ? '▴' : '▾' }}</span>
-        </button>
+        <div class="ml-auto flex items-center gap-1 md:hidden">
+          <select
+            :value="activeLeague"
+            @change="activeLeague = ($event.target as HTMLSelectElement).value as 'AL' | 'NL'"
+            class="text-xs text-slate-600 border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
+          >
+            <option value="AL">ア・リーグ</option>
+            <option value="NL">ナ・リーグ</option>
+          </select>
+          <button
+            class="px-4 py-3 text-sm text-slate-500 flex items-center gap-1"
+            @click="openMobileMenu"
+          >
+            <span>選手 {{ selectedIds.length }}</span>
+            <span>{{ mobileMenu ? '▴' : '▾' }}</span>
+          </button>
+        </div>
       </div>
 
       <!-- モバイル選手メニュー -->
@@ -174,10 +199,13 @@ function deselectAll() {
         <PlayerSidebar
           :selected-ids="selectedIds"
           :league="activeLeague"
-          @toggle="togglePlayer"
+          :show-league="false"
+          :closable="true"
+          @toggle="mobileToggle"
           @select-all="selectAll"
           @deselect-all="deselectAll"
           @update:league="activeLeague = $event"
+          @close="mobileMenu = false"
           style="width: 100%;"
         />
       </div>

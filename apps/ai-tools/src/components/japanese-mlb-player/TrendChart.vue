@@ -97,6 +97,7 @@ function buildSeries() {
 async function renderChart() {
   if (!chartEl.value) return
   const EC = await import('echarts')
+  if (!chartEl.value) return
   if (!chart) {
     chart = EC.init(chartEl.value, undefined, { renderer: 'svg' })
   }
@@ -126,7 +127,7 @@ async function renderChart() {
       textStyle: { fontSize: 11 },
       top: 0,
     },
-    grid: { top: 40, right: 16, bottom: 40, left: 52 },
+    grid: { top: Math.max(40, Math.ceil(series.length / 3) * 28), right: 16, bottom: 40, left: 52 },
     xAxis: {
       type: 'time',
       axisLabel: { fontSize: 10, formatter: (v: number) => new Date(v).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' }) },

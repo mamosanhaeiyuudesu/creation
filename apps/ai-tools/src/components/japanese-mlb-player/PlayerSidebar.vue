@@ -3,8 +3,8 @@
     class="flex-shrink-0 overflow-y-auto flex flex-col"
     style="width: 200px; background: #0C447C;"
   >
-    <!-- リーグ切り替え -->
-    <div class="flex border-b border-blue-700">
+    <!-- リーグ切り替え（デスクトップのみ） -->
+    <div v-if="showLeague !== false" class="flex border-b border-blue-700">
       <button
         v-for="lg in leagues"
         :key="lg.key"
@@ -60,15 +60,22 @@
       </div>
     </div>
 
-    <div class="p-3 mt-auto border-t border-blue-700">
+    <div class="p-3 mt-auto border-t border-blue-700 flex flex-col gap-1">
+      <div class="flex gap-1">
+        <button
+          @click="$emit('select-all')"
+          class="flex-1 text-xs text-blue-200 hover:text-white transition-colors py-1"
+        >全選択</button>
+        <button
+          @click="$emit('deselect-all')"
+          class="flex-1 text-xs text-blue-200 hover:text-white transition-colors py-1"
+        >全解除</button>
+      </div>
       <button
-        @click="$emit('select-all')"
-        class="w-full text-xs text-blue-200 hover:text-white transition-colors py-1"
-      >全選択</button>
-      <button
-        @click="$emit('deselect-all')"
-        class="w-full text-xs text-blue-200 hover:text-white transition-colors py-1"
-      >全解除</button>
+        v-if="closable"
+        @click="$emit('close')"
+        class="w-full text-xs font-semibold text-white bg-white/15 hover:bg-white/25 transition-colors py-1.5 rounded"
+      >閉じる</button>
     </div>
   </aside>
 </template>
@@ -79,6 +86,8 @@ import { PITCHER_PLAYERS, BATTER_PLAYERS, PLAYER_COLORS } from '~/utils/japanese
 const props = defineProps<{
   selectedIds: string[]
   league: 'AL' | 'NL'
+  showLeague?: boolean
+  closable?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -86,6 +95,7 @@ const emit = defineEmits<{
   'select-all': []
   'deselect-all': []
   'update:league': [value: 'AL' | 'NL']
+  close: []
 }>()
 
 const leagues = [
