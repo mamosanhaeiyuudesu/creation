@@ -4,7 +4,7 @@
  */
 
 import { PLAYERS } from '~/utils/japanese-mlb-player/players'
-import { currentYearJST } from '~/utils/jst'
+import { currentYearJST, nowJST } from '~/utils/jst'
 import {
   MLB_DEBUT_SEASONS,
   fetchBatterSeason,
@@ -86,6 +86,9 @@ export default defineTask({
       if (stmts.length > 0) await db.batch(stmts)
     }
 
-    return { result: `synced ${PLAYERS.length} players`, season }
+    const lastSyncedAt = nowJST().toISOString().slice(0, 19).replace('T', ' ')
+    await db.prepare('INSERT OR REPLACE INTO mlb_meta (key, value) VALUES (?, ?)').bind('last_synced_at', lastSyncedAt).run()
+
+    return { result: `synced ${PLAYERS.length} players`, season, lastSyncedAt }
   },
 })

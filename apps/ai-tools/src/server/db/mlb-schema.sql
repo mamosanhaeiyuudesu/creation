@@ -57,3 +57,9 @@ CREATE INDEX IF NOT EXISTS idx_batter_player_season ON mlb_batter_stats(player_i
 CREATE INDEX IF NOT EXISTS idx_pitcher_player_season ON mlb_pitcher_stats(player_id, season);
 CREATE INDEX IF NOT EXISTS idx_batter_date ON mlb_batter_stats(player_id, season, date);
 CREATE INDEX IF NOT EXISTS idx_pitcher_date ON mlb_pitcher_stats(player_id, season, date);
+
+-- 同期メタデータ（既存DBへの追加は 005_mlb_meta.sql を使う）
+CREATE TABLE IF NOT EXISTS mlb_meta (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);

@@ -41,7 +41,9 @@ const activeLeague = ref<'AL' | 'NL'>(
 const {
   selectedIds,
   activeTab,
+  lastSyncedAt,
   togglePlayer,
+  fetchMeta,
   ensureSeasonData,
   ensureYearlyData,
   getSeasonData,
@@ -58,15 +60,6 @@ watch([activeLeague, activeTab], ([league, tab]) => {
 
 const leagueStats = computed(() => getLeagueStats())
 
-const lastUpdated = computed(() => {
-  let latest: string | null = null
-  for (const [, data] of seasonDataMap.value) {
-    for (const t of [...data.trendBatter, ...data.trendPitcher]) {
-      if (t.date && t.date > (latest ?? '')) latest = t.date
-    }
-  }
-  return latest
-})
 
 const seasonDataMap = computed(() => {
   const m = new Map<string, SeasonData>()
@@ -113,6 +106,7 @@ watch(selectedIds, async () => {
 }, { deep: true })
 
 onMounted(async () => {
+  fetchMeta()
   if (route.query.tab === 'yearly') {
     activeTab.value = 'yearly'
     await ensureYearlyData()
@@ -149,7 +143,7 @@ function deselectAll() {
 </script>
 
 <template>
-  <MlbHeader :last-updated="lastUpdated" />
+  <MlbHeader :last-updated="lastSyncedAt" />
 
   <div class="flex flex-1 overflow-hidden">
     <PlayerSidebar

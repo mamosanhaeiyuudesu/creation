@@ -1,5 +1,6 @@
 import type { SeasonData, YearlyData, BatterStats, PitcherStats, AllLeagueStats, LeagueStatsBlock, LeagueStatSummary } from '~/types/mlb'
 import { PLAYERS } from '~/utils/japanese-mlb-player/players'
+import { nowJST } from '~/utils/jst'
 
 // 2026年現在成績サンプルデータ（ローカル開発用）
 const CURRENT_BATTER: Record<string, Omit<BatterStats, 'playerId' | 'season' | 'date'>> = {
@@ -154,6 +155,10 @@ function generateTrendPitcher(playerId: string, season: number): PitcherStats[] 
   return trend
 }
 
+export function getDevMeta() {
+  return { lastSyncedAt: nowJST().toISOString().slice(0, 19).replace('T', ' ') }
+}
+
 export function getDevSeasonData(playerId: string): SeasonData | null {
   const player = PLAYERS.find(p => p.id === playerId)
   if (!player) return null
@@ -253,3 +258,4 @@ export function getDevLeagueStats(): AllLeagueStats {
     ),
   }
 }
+
