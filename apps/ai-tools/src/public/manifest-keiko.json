@@ -3,7 +3,7 @@
   "short_name": "稽古",
   "description": "剣道の足さばきトレーナー",
   "theme_color": "#3b82f6",
-  "background_color": "#0f172a",
+  "background_color": "#2563eb",
   "display": "standalone",
   "orientation": "portrait",
   "start_url": "/keiko",

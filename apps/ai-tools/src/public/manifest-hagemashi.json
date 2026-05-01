@@ -3,7 +3,7 @@
   "short_name": "はげまし",
   "description": "AI励ましメッセージ生成",
   "theme_color": "#f97316",
-  "background_color": "#0f172a",
+  "background_color": "#f97316",
   "display": "standalone",
   "orientation": "portrait",
   "start_url": "/hagemashi",

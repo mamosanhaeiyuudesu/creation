@@ -3,7 +3,7 @@
   "short_name": "MLB",
   "description": "MLB日本人選手成績トラッカー",
   "theme_color": "#1e3a8a",
-  "background_color": "#0f172a",
+  "background_color": "#1d4ed8",
   "display": "standalone",
   "orientation": "portrait",
   "start_url": "/japanese-mlb-player",

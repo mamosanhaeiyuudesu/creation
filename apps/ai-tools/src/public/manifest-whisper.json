@@ -3,7 +3,7 @@
   "short_name": "Whisper",
   "description": "音声文字起こし・要約",
   "theme_color": "#8b5cf6",
-  "background_color": "#0f172a",
+  "background_color": "#8b5cf6",
   "display": "standalone",
   "orientation": "portrait",
   "start_url": "/whisper",
