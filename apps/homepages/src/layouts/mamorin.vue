@@ -4,7 +4,7 @@
       <div class="mm-header-inner">
         <nav class="mm-nav">
           <NuxtLink to="/homepages/mamorin" class="mm-nav-link">ホーム</NuxtLink>
-          <NuxtLink to="/homepages/mamorin/why-oyako" class="mm-nav-link">なぜ親子問題を扱うのか</NuxtLink>
+          <!-- <NuxtLink to="/homepages/mamorin/why-oyako" class="mm-nav-link">なぜ親子問題を扱うのか</NuxtLink> -->
           <NuxtLink to="/homepages/mamorin/voice" class="mm-nav-link">お客様の声</NuxtLink>
           <NuxtLink to="/homepages/mamorin/story" class="mm-nav-link">私の原体験</NuxtLink>
           <NuxtLink to="/homepages/mamorin/qa" class="mm-nav-link">Q&amp;A</NuxtLink>
@@ -16,7 +16,7 @@
       </div>
       <div class="mm-drawer" :class="{ open: menuOpen }" @click="menuOpen = false">
         <NuxtLink to="/homepages/mamorin" class="mm-drawer-link">ホーム</NuxtLink>
-        <NuxtLink to="/homepages/mamorin/why-oyako" class="mm-drawer-link">なぜ親子問題を扱うのか</NuxtLink>
+        <!-- <NuxtLink to="/homepages/mamorin/why-oyako" class="mm-drawer-link">なぜ親子問題を扱うのか</NuxtLink> -->
         <NuxtLink to="/homepages/mamorin/voice" class="mm-drawer-link">お客様の声</NuxtLink>
         <NuxtLink to="/homepages/mamorin/story" class="mm-drawer-link">私の原体験</NuxtLink>
         <NuxtLink to="/homepages/mamorin/qa" class="mm-drawer-link">Q&amp;A</NuxtLink>

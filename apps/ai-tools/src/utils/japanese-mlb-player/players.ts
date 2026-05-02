@@ -208,7 +208,7 @@ export const PITCHER_STATS: StatMeta[] = [
 ]
 
 export const PLAYER_COLORS: Record<string, string> = {
-  '660271': '#E63946',  // 大谷
+  '660271': '#7C3AED',  // 大谷
   '808967': '#2196F3',  // 山本
   '673540': '#4CAF50',  // 千賀
   '684007': '#FF9800',  // 今永

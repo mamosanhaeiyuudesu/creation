@@ -16,7 +16,8 @@
                 class="text-center py-2 px-3 text-xs font-medium whitespace-nowrap sticky top-0 z-20 bg-white"
               >
                 <span class="inline-flex items-center gap-1" :style="{ color: colors[player.id] }">
-                  <span class="w-2 h-2 rounded-full inline-block" :style="{ background: colors[player.id] }" />
+                  <span class="w-2 h-2 rounded-full inline-block flex-shrink-0" :style="{ background: colors[player.id] }" />
+                  <span v-if="isRecentlyUpdated(player.id)" class="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200">NEW</span>
                   {{ player.nameJa }}
                   <a
                     :href="`https://baseball.yahoo.co.jp/mlb/player/${player.sportnavi}/top`"
@@ -71,7 +72,7 @@
                 :key="player.id"
                 class="py-2 px-3 text-center font-mono text-sm"
               >
-                <span :class="getCellClass(player.id, stat.key, 'pitcher')">{{ formatStat(player.id, stat.key, stat.format, 'pitcher') }}</span><span class="text-[11px] text-slate-400 ml-0.5">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'pitcher') }}</span>
+                <span :class="getCellClass(player.id, stat.key, 'pitcher')" :style="getTopRankStyle(player.id, stat.key, stat.direction, 'pitcher')">{{ formatStat(player.id, stat.key, stat.format, 'pitcher') }}</span><span class="text-[11px] text-slate-400 ml-0.5">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'pitcher') }}</span>
               </td>
             </tr>
           </tbody>
@@ -95,7 +96,8 @@
                 class="text-center py-2 px-3 text-xs font-medium whitespace-nowrap sticky top-0 z-20 bg-white"
               >
                 <span class="inline-flex items-center gap-1" :style="{ color: colors[player.id] }">
-                  <span class="w-2 h-2 rounded-full inline-block" :style="{ background: colors[player.id] }" />
+                  <span class="w-2 h-2 rounded-full inline-block flex-shrink-0" :style="{ background: colors[player.id] }" />
+                  <span v-if="isRecentlyUpdated(player.id)" class="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200">NEW</span>
                   {{ player.nameJa }}
                   <a
                     :href="`https://baseball.yahoo.co.jp/mlb/player/${player.sportnavi}/top`"
@@ -150,7 +152,7 @@
                 :key="player.id"
                 class="py-2 px-3 text-center font-mono text-sm"
               >
-                <span :class="getCellClass(player.id, stat.key, 'batter')">{{ formatStat(player.id, stat.key, stat.format, 'batter') }}</span><span class="text-[11px] text-slate-400 ml-0.5">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'batter') }}</span>
+                <span :class="getCellClass(player.id, stat.key, 'batter')" :style="getTopRankStyle(player.id, stat.key, stat.direction, 'batter')">{{ formatStat(player.id, stat.key, stat.format, 'batter') }}</span><span class="text-[11px] text-slate-400 ml-0.5">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'batter') }}</span>
               </td>
             </tr>
           </tbody>
@@ -210,22 +212,45 @@ function getCellClass(playerId: string, key: string, type: 'pitcher' | 'batter')
   return val === null || val === undefined ? 'text-slate-400' : 'text-slate-800 font-semibold'
 }
 
-function getPlayerRankLabel(playerId: string, key: string, direction: 'high' | 'low', type: 'pitcher' | 'batter'): string {
+function getPlayerRank(playerId: string, key: string, direction: 'high' | 'low', type: 'pitcher' | 'batter'): number {
   const data = props.seasonDataMap.get(playerId)
-  if (!data) return ''
+  if (!data) return 999
   const stats = type === 'pitcher' ? data.currentPitcher : data.currentBatter
-  if (!stats) return ''
+  if (!stats) return 999
   const val = (stats as unknown as Record<string, unknown>)[key] as number | null
-  if (val === null || val === undefined) return ''
-
+  if (val === null || val === undefined) return 999
   const ctx = getLeagueBlock(type)[key]
-  if (!ctx) return ''
-
+  if (!ctx) return 999
   let rank = 1
   for (const v of ctx.sortedValues) {
     if (direction === 'high' ? v > val : v < val) rank++
     else break
   }
+  return rank
+}
+
+function getPlayerRankLabel(playerId: string, key: string, direction: 'high' | 'low', type: 'pitcher' | 'batter'): string {
+  const rank = getPlayerRank(playerId, key, direction, type)
+  if (rank === 999) return ''
   return `（${rank}位）`
+}
+
+const TOP_RANK_COLORS = ['#7F1D1D', '#991B1B', '#B91C1C', '#C42121', '#DC2626', '#E53333', '#EF4444', '#F26666', '#F87171', '#FCA5A5']
+
+function getTopRankStyle(playerId: string, key: string, direction: 'high' | 'low', type: 'pitcher' | 'batter'): string {
+  const rank = getPlayerRank(playerId, key, direction, type)
+  if (rank < 1 || rank > 10) return ''
+  return `color: ${TOP_RANK_COLORS[rank - 1]}`
+}
+
+function isRecentlyUpdated(playerId: string): boolean {
+  const data = props.seasonDataMap.get(playerId)
+  if (!data) return false
+  const date = data.currentBatter?.date ?? data.currentPitcher?.date
+  if (!date) return false
+  const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000)
+  const today = jstNow.toISOString().slice(0, 10)
+  const yesterday = new Date(jstNow.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  return date === today || date === yesterday
 }
 </script>

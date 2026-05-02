@@ -6,15 +6,13 @@
       <div class="mm-wrap">
         <div class="mm-hero-inner">
           <div class="mm-hero-text">
-            <p class="mm-hero-eyebrow">カウンセリング &amp; 感情フォーカス・セラピー / オンライン</p>
+            <p class="mm-hero-eyebrow">感情フォーカス・カウンセリング / オンライン</p>
             <h1 class="mm-hero-title">
               親への恨みを手放し、<br>
-              <em>自分を許せる</em>自分になる。
+              自分の人生を生きる
             </h1>
             <p class="mm-hero-sub">
-              親を恨みながら、そんな自分を責める——<br>
-              この二重の苦しさを、私自身が生きてきました。<br>
-              同じ場所にいるあなたと、解決までの道筋を一緒に歩みたいと思っています。
+              
             </p>
             <a class="mm-hero-cta" href="https://docs.google.com/forms/d/e/1FAIpQLSckcLkBNH9xEMSeS3_SuDznoShew41SF6Ja6Du7XHvS6-rwRg/viewform?usp=publish-editor" target="_blank" rel="noopener noreferrer">
               無料相談フォームへ
@@ -43,43 +41,15 @@
     <section id="for-you" class="mm-surface">
       <div class="mm-wrap">
         <p class="mm-section-label">For You</p>
-        <h2 class="mm-section-title">こんな人に</h2>
+        <h4 class="mm-section-title">親子関係が影響して、以下の問題を抱えてませんか？</h4>
         <div class="mm-for-you-inner">
           <ul class="mm-for-you-list">
-            <li><span class="mm-for-you-dash">—</span>父親、母親に対して、長年の怒りや恨みを抱えている</li>
-            <li><span class="mm-for-you-dash">—</span>親を恨んでいる自分を許せなくて、さらに自分を責めている</li>
-            <li><span class="mm-for-you-dash">—</span>親や自分を責め続けることに疲れた</li>
-            <li><span class="mm-for-you-dash">—</span>自己受容という言葉は知っているけど、どこから始めればいいかわからない</li>
-            <li><span class="mm-for-you-dash">—</span>父と息子の関係に悩む男性の方</li>
+            <li><span class="mm-for-you-dash">—</span>目上の人への反発心が強く、人間関係がうまく作れない。</li>
+            <li><span class="mm-for-you-dash">—</span>他人の目線を過度に意識して、自分を抑え込んでいる。</li>
+            <li><span class="mm-for-you-dash">—</span>頑張っても、自分を認められず、達成感を感じられない。</li>
           </ul>
           <img src="/images/mamorin.png" alt="" class="mm-for-you-photo">
         </div>
-      </div>
-    </section>
-
-    <!-- 3つの強み -->
-    <section>
-      <div class="mm-wrap">
-        <p class="mm-section-label">Voice</p>
-        <h2 class="mm-section-title">3つのポイント</h2>
-        <div class="mm-strength-list">
-          <div class="mm-strength-item">
-            <p class="mm-strength-num">01</p>
-            <h3 class="mm-strength-title">「同じ境遇の人がいる」という安心感を提供できる</h3>
-            <p class="mm-strength-body">親子問題は孤立しやすいテーマです。体験者同士のつながりが、「自分だけかもしれない」という孤独感を解消します。</p>
-          </div>
-          <div class="mm-strength-item">
-            <p class="mm-strength-num">02</p>
-            <h3 class="mm-strength-title">閉じた関係を「外から見る視点」を与えられる</h3>
-            <p class="mm-strength-body">「親と自分」という二人の閉じた関係に第三者の目が入ることで、初めて客観視できます。</p>
-          </div>
-          <div class="mm-strength-item">
-            <p class="mm-strength-num">03</p>
-            <h3 class="mm-strength-title">「許せない」から「歩み寄ってみよう」への自発的な変化を引き出せる</h3>
-            <p class="mm-strength-body">具体的な改善策を押しつけるのではなく、話を聞いてもらうだけで本人が自分から動き出します。</p>
-          </div>
-        </div>
-        <NuxtLink to="/voice" class="mm-cta-btn">お客様の声を読む</NuxtLink>
       </div>
     </section>
 
@@ -87,12 +57,12 @@
     <section id="services" class="mm-surface">
       <div class="mm-wrap">
         <p class="mm-section-label">Services</p>
-        <h2 class="mm-section-title">3つのアプローチ</h2>
+        <h2 class="mm-section-title">セッションの内容</h2>
         <div class="mm-service-grid">
           <div class="mm-service-card">
             <p class="mm-service-type">Service 01</p>
             <h3 class="mm-service-name">カウンセリング</h3>
-            <p class="mm-service-desc">まず、話すことから始めます。<br>親との関係や自分への怒り、誰にも言えなかったことを安心して話せる場で、感情を受け止めます。</p>
+            <p class="mm-service-desc">感情にフォーカスしながら、話すことから始めます。<br>怒りや悲しみをしっかり感じきることで、長年抱えてきた未消化の感情を解放することを目指します。</p>
             <ul class="mm-service-points">
               <li>傾聴・対話を中心とした60分セッション</li>
               <li>オンライン（ビデオ通話）対応</li>
@@ -100,28 +70,28 @@
               <li>初回無料相談あり（30分）</li>
             </ul>
           </div>
-          <div class="mm-service-card">
-            <p class="mm-service-type">Service 02</p>
-            <h3 class="mm-service-name">感情フォーカス・セラピー</h3>
-            <p class="mm-service-desc">見えていない感情に、名前をつける。<br>寂しさや罪悪感——隠されている感情を認めることが、自己受容の入り口です。</p>
-            <ul class="mm-service-points">
-              <li>感情の言語化・受容に特化した60分セッション</li>
-              <li>オンライン（ビデオ通話）対応</li>
-              <li>ネガティブな感情を認め、解放するセラピー</li>
-              <li>カウンセリングを一定数実施後が推奨</li>
-            </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- お客様の声 -->
+    <section>
+      <div class="mm-wrap">
+        <p class="mm-section-label">Voice</p>
+        <h2 class="mm-section-title">お客様の声</h2>
+        <div class="mm-strength-list">
+          <div class="mm-strength-item">
+            <p class="mm-strength-num">30代 男性</p>
+            <h3 class="mm-strength-title">「自分だけじゃなかったんだ」という一言に尽きます。</h3>
+            <p class="mm-strength-body">父親のことを、友人に話しても深く共感してもらえたことがなかった。まもりんさんと話して初めて、「親と自分」という閉じた関係が外に開いた感じがしました。ずっと抱えていた何かが、緩んだんです。</p>
           </div>
-          <div class="mm-service-card">
-            <p class="mm-service-type">Service 03</p>
-            <h3 class="mm-service-name">グループカウンセリング</h3>
-            <p class="mm-service-desc">「自分だけじゃなかった」という安心感を、体験する場所。<br>他の人のリアルな話を聞くだけで、視界が開けることがあります。</p>
-            <ul class="mm-service-points">
-              <li>正解を押し付けない、等身大の対話</li>
-              <li>オンライン参加・顔出しなしOK・秘密厳守</li>
-              <li>「こうあるべき」の呪縛を外して、素直に話せる場</li>
-            </ul>
+          <div class="mm-strength-item">
+            <p class="mm-strength-num">40代 女性</p>
+            <h3 class="mm-strength-title">「自分を可愛がりたかった」という言葉が、自分の口から出てきた。</h3>
+            <p class="mm-strength-body">感情がわからないまま日常に流されていた。セッションを通じて、奥に積み重なっていたものに気づき、「長い間詰まっていたものが、やっとすっと通り抜けていった」という感覚になりました。</p>
           </div>
         </div>
+        <NuxtLink to="/voice" class="mm-cta-btn">お客様の声を読む</NuxtLink>
       </div>
     </section>
 
@@ -155,7 +125,7 @@
     <section id="pricing">
       <div class="mm-wrap">
         <p class="mm-section-label">Pricing</p>
-        <h2 class="mm-section-title">シンプルな料金体系</h2>
+        <h2 class="mm-section-title">料金体系</h2>
         <div class="mm-price-grid">
           <div class="mm-price-row mm-price-row--first">
             <div class="mm-price-top">
@@ -176,34 +146,16 @@
               <p class="mm-price-detail">60分 / オンライン</p>
             </div>
             <div>
-              <p class="mm-price-amount">¥3,000 <span class="mm-price-unit">/ 回</span></p>
-            </div>
-          </div>
-          <div class="mm-price-row">
-            <div>
-              <p class="mm-price-name">感情フォーカス・セラピー</p>
-              <p class="mm-price-detail">60分 / オンライン</p>
-            </div>
-            <div>
               <p class="mm-price-amount">¥5,000 <span class="mm-price-unit">/ 回</span></p>
             </div>
           </div>
           <div class="mm-price-row">
             <div>
-              <p class="mm-price-name">グループカウンセリング</p>
-              <p class="mm-price-detail">60分 / オンライン</p>
-            </div>
-            <div>
-              <p class="mm-price-amount">¥2,000 <span class="mm-price-unit">/ 回</span></p>
-            </div>
-          </div>
-          <div class="mm-price-row">
-            <div>
               <p class="mm-price-name">継続パッケージ</p>
-              <p class="mm-price-detail">5回セット（カウンセリング）</p>
+              <p class="mm-price-detail">10回セット（カウンセリング）</p>
             </div>
             <div>
-              <p class="mm-price-amount">¥12,000 <span class="mm-price-unit">/ 5回</span></p>
+              <p class="mm-price-amount">¥40,000 <span class="mm-price-unit">/ 10回</span></p>
               <span class="mm-price-badge">20%お得</span>
             </div>
           </div>
@@ -218,22 +170,6 @@
         <h2 class="mm-section-title">よくある質問</h2>
         <p class="mm-story-para">「どんな人が対象？」「セッションでは何をするの？」「心理系の資格は持っていないの？」<br>気になる疑問にまとめてお答えしています。</p>
         <NuxtLink to="/qa" class="mm-cta-btn">よくある質問を見る</NuxtLink>
-      </div>
-    </section>
-
-    <!-- 対応できないケース -->
-    <section>
-      <div class="mm-wrap">
-        <p class="mm-section-label">Note</p>
-        <h2 class="mm-section-title">対応できないケースについて</h2>
-        <p class="mm-story-para">私のカウンセリングは、親子関係の葛藤・感情の整理・自己受容を主なテーマとしています。<br>以下のようなケースについては、専門の医療機関や臨床心理士・公認心理師への相談をお勧めしています。</p>
-        <ul class="mm-scope-list">
-          <li><span class="mm-scope-dot">·</span>うつ病・双極性障害など、精神科・心療内科での治療が必要と思われる状態</li>
-          <li><span class="mm-scope-dot">·</span>解離症状や、日常生活に支障をきたすほどのフラッシュバックが続いている状態</li>
-          <li><span class="mm-scope-dot">·</span>複雑性PTSD・重篤なトラウマへの専門的治療が必要と判断されるケース</li>
-          <li><span class="mm-scope-dot">·</span>自傷・自殺念慮が強く、緊急の危機介入が必要な状態</li>
-        </ul>
-        <p class="mm-scope-note">ご自身の状態に迷われている場合は、初回無料相談の中でお聞きし、より適切なサポート先をご一緒に考えます。</p>
       </div>
     </section>
 
