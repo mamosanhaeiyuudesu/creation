@@ -235,12 +235,10 @@ function getPlayerRankLabel(playerId: string, key: string, direction: 'high' | '
   return `（${rank}位）`
 }
 
-const TOP_RANK_COLORS = ['#7F1D1D', '#991B1B', '#B91C1C', '#C42121', '#DC2626', '#E53333', '#EF4444', '#F26666', '#F87171', '#FCA5A5']
-
 function getTopRankStyle(playerId: string, key: string, direction: 'high' | 'low', type: 'pitcher' | 'batter'): string {
   const rank = getPlayerRank(playerId, key, direction, type)
   if (rank < 1 || rank > 10) return ''
-  return `color: ${TOP_RANK_COLORS[rank - 1]}`
+  return 'color: #C42121'
 }
 
 function isRecentlyUpdated(playerId: string): boolean {
