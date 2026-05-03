@@ -8,6 +8,7 @@
     "start": "nuxt start"
   },
   "dependencies": {
+    "cytoscape": "^3.33.3",
     "echarts": "^5",
     "marked": "^17.0.4",
     "nuxt": "^3.13.2",

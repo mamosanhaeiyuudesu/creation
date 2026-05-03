@@ -4075,6 +4075,7 @@ __metadata:
     "@nuxtjs/tailwindcss": "npm:^6.14.0"
     "@types/marked": "npm:^6.0.0"
     "@vite-pwa/nuxt": "npm:^1.1.1"
+    cytoscape: "npm:^3.33.3"
     echarts: "npm:^5"
     marked: "npm:^17.0.4"
     nuxt: "npm:^3.13.2"
@@ -5173,6 +5174,13 @@ __metadata:
   version: 3.2.3
   resolution: "csstype@npm:3.2.3"
   checksum: 10c0/cd29c51e70fa822f1cecd8641a1445bed7063697469d35633b516e60fe8c1bde04b08f6c5b6022136bb669b64c63d4173af54864510fbb4ee23281801841a3ce
+  languageName: node
+  linkType: hard
+
+"cytoscape@npm:^3.33.3":
+  version: 3.33.3
+  resolution: "cytoscape@npm:3.33.3"
+  checksum: 10c0/f0d01f682d3e443cbeea9aa294ccd6934442362df3ce259e7b0fe3b9a8ce534d901840c503db8b53da814542bc1508f7f14a69e4fe725f919c25483a7200efe7
   languageName: node
   linkType: hard
 

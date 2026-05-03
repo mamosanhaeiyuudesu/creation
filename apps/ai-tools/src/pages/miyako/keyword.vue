@@ -124,15 +124,14 @@ onMounted(async () => {
       <!-- ローディング -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-4">
         <span class="w-8 h-8 rounded-full border-2 border-[#1A237E]/20 border-t-[#1A237E] animate-spin block" />
-        <p class="font-mono text-[10px] text-[#9aa3c0] tracking-[0.12em] uppercase">Searching "{{ searchedWord }}"...</p>
+        <p class="text-[12px] text-[#9aa3c0]">「{{ searchedWord }}」を検索中...</p>
       </div>
 
       <!-- 初期状態 -->
-      <div v-else-if="!searchedWord" class="flex flex-col items-center justify-center py-24 gap-4">
-        <div class="font-mono text-[11px] text-[#9aa3c0] leading-[1.9] text-center">
-          <span class="text-[#c5cad8]">$ </span>search <span class="text-[#a5b4fc]/60">&lt;keyword&gt;</span><br/>
-          <span class="text-[#c5cad8]">→ </span><span class="text-[#b8c2d8]">議会での議論の変遷を表示</span>
-        </div>
+      <div v-else-if="!searchedWord" class="flex flex-col items-center justify-center py-24 gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-30 text-[#1c2d5a]"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <p class="text-[15px] font-bold text-[#1c2d5a] text-center leading-snug">キーワードを入力して<br>議論の変遷をAI検索</p>
+        <p class="text-[11.5px] text-[#9aa3c0] text-center leading-relaxed">気になる言葉を入力すると、<br>宮古島市議会での議論の歴史をAIが解説します</p>
       </div>
 
       <!-- 結果 -->

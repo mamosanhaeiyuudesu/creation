@@ -7,20 +7,27 @@ interface AiTopic {
 
 defineProps<{
   selectedWord: string | null
+  selectedSession: string | null
   aiTopics: AiTopic[]
   aiLoading: boolean
+  hintMain?: string
+  hintSub?: string
 }>()
 </script>
 
 <template>
   <div class="bg-white border border-[#dde2ef] rounded-[8px] shadow-[0_2px_8px_rgba(28,45,90,0.07),0_0_0_1px_rgba(28,45,90,0.04)] overflow-hidden flex flex-col md:flex-1 md:min-h-0">
-    <div v-if="!selectedWord" class="flex items-center px-3.5 py-3">
-      <span class="font-mono text-[10px] text-[#9aa3c0] tracking-[0.06em]">// 単語をクリックして分析</span>
+    <div v-if="!selectedWord" class="hint-area">
+      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-3 opacity-35"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <p class="hint-main">{{ hintMain ?? 'クリックで議論をAI分析' }}</p>
+      <p v-if="hintSub" class="hint-sub">{{ hintSub }}</p>
     </div>
     <template v-else>
       <div class="flex items-center flex-shrink-0 bg-[#1c2d5a] text-white px-3.5 py-2.5" style="border-left: 3px solid #a5b4fc">
-        <span class="font-mono text-[8.5px] tracking-[0.2em] text-[#a5b4fc] uppercase mr-3 shrink-0">Analysis</span>
-        <span class="text-[12.5px] font-semibold tracking-[0.02em] truncate">「{{ selectedWord }}」の議論</span>
+        <span class="label-badge">分析</span>
+        <span class="text-[12.5px] font-semibold tracking-[0.02em] truncate">
+          <template v-if="selectedSession">{{ selectedSession }}年の</template>「{{ selectedWord }}」の議論
+        </span>
       </div>
       <div class="overflow-y-auto md:flex-1 md:min-h-0">
         <div v-if="aiLoading" class="flex items-center justify-center min-h-[80px]">
@@ -47,6 +54,41 @@ defineProps<{
 </template>
 
 <style scoped>
+.hint-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 20px;
+  text-align: center;
+  color: #1c2d5a;
+}
+
+.hint-main {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.55;
+  margin-bottom: 8px;
+  white-space: pre-line;
+}
+
+.hint-sub {
+  font-size: 11.5px;
+  color: #9aa3c0;
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+.label-badge {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #a5b4fc;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
 .ai-body {
   font-size: 13px;
   color: #1c2d5a;

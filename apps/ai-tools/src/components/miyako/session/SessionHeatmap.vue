@@ -13,7 +13,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'session-click': [session: string]
+  'word-click': [payload: { session: string; word: string }]
 }>()
 
 const CELL_WIDTH = 38
@@ -124,7 +124,10 @@ function render() {
 
   heatmapChart.on('click', (params: any) => {
     if (params.value[2] < 0) return
-    emit('session-click', sessions[params.value[0]])
+    emit('word-click', {
+      session: sessions[params.value[0]],
+      word: keywords[params.value[1]],
+    })
   })
 }
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineProps<{
-  activePage: 'session' | 'member' | 'keyword'
+  activePage: 'session' | 'member' | 'keyword' | 'network'
 }>()
 
 const route = useRoute()
@@ -32,14 +32,27 @@ const base = computed(() => {
         <!-- Desktop tabs (underline style) -->
         <div class="hidden md:flex items-stretch ml-1">
           <NuxtLink
-            v-if="activePage !== 'session'"
+            v-if="activePage !== 'network'"
             :to="base"
             class="tab-inactive group"
+          >
+            <span>全体像を見る</span>
+            <span class="tab-bar group-hover:opacity-50" />
+          </NuxtLink>
+          <span v-else class="tab-active">
+            <span>全体像を見る</span>
+            <span class="tab-bar opacity-100" />
+          </span>
+
+          <NuxtLink
+            v-if="activePage !== 'session'"
+            :to="`${base}/yearly`"
+            class="tab-inactive group border-l border-white/[0.06]"
           >
             <span>年で見る</span>
             <span class="tab-bar group-hover:opacity-50" />
           </NuxtLink>
-          <span v-else class="tab-active">
+          <span v-else class="tab-active border-l border-white/[0.06]">
             <span>年で見る</span>
             <span class="tab-bar opacity-100" />
           </span>
@@ -80,11 +93,18 @@ const base = computed(() => {
       <!-- Mobile tabs (second row) -->
       <div class="flex md:hidden border-t border-white/[0.07]">
         <NuxtLink
-          v-if="activePage !== 'session'"
+          v-if="activePage !== 'network'"
           :to="base"
           class="mobile-tab"
+        >全体像</NuxtLink>
+        <span v-else class="mobile-tab mobile-tab-active">全体像</span>
+
+        <NuxtLink
+          v-if="activePage !== 'session'"
+          :to="`${base}/yearly`"
+          class="mobile-tab border-l border-white/[0.07]"
         >年で見る</NuxtLink>
-        <span v-else class="mobile-tab mobile-tab-active">年で見る</span>
+        <span v-else class="mobile-tab mobile-tab-active border-l border-white/[0.07]">年で見る</span>
 
         <NuxtLink
           v-if="activePage !== 'member'"

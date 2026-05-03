@@ -117,7 +117,7 @@ function layoutWordcloud() {
         <span class="font-mono text-[8.5px] tracking-[0.18em] text-[#a5b4fc] uppercase shrink-0">Profile</span>
         <span class="text-[10px] text-[#dde2ef] shrink-0">|</span>
         <span class="text-[11.5px] font-semibold text-[#1c2d5a] tracking-[0.01em] truncate min-w-0">{{ speakerName }}（{{ category ? (CATEGORY_SHORT[category] ?? category) : '' }}）</span>
-        <span v-if="words.length" class="ml-auto shrink-0 font-mono text-[9.5px] text-[#6878a8] bg-[#f0f2f8] px-1.5 py-[2px] rounded-[3px]">{{ words.length }}w</span>
+        <span class="ml-auto shrink-0 text-[9.5px] text-[#a5b4fc] font-medium whitespace-nowrap">単語をクリックでAI分析</span>
       </div>
       <div class="p-0">
         <div ref="wcContainerRef" class="wordcloud-container">
@@ -140,10 +140,9 @@ function layoutWordcloud() {
     </template>
 
     <div v-else class="flex flex-col items-center justify-center min-h-[200px] gap-3 p-8 text-center">
-      <div class="font-mono text-[10.5px] text-[#9aa3c0] leading-[1.8]">
-        <span class="text-[#c5cad8]">$ </span>select <span class="text-[#a5b4fc]/60">cell</span> <span class="text-[#c5cad8]">from</span> heatmap<span class="blink">▋</span>
-      </div>
-      <p class="m-0 text-[11px] text-[#9aa3c0]">左のヒートマップのセルをクリック</p>
+      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-30 text-[#1c2d5a]"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      <p class="m-0 text-[14px] font-bold text-[#1c2d5a] leading-snug">ヒートマップのセルをクリックで<br>関連する単語を表示</p>
+      <p class="m-0 text-[11.5px] text-[#9aa3c0] leading-relaxed">議員×テーマのセルを選ぶと、<br>そのカテゴリに含まれる単語が表示されます</p>
     </div>
   </div>
 </template>
@@ -170,12 +169,4 @@ function layoutWordcloud() {
   opacity: 0.55 !important;
 }
 
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-.blink {
-  animation: blink 1.1s step-end infinite;
-  color: #a5b4fc;
-}
 </style>

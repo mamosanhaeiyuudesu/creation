@@ -298,8 +298,11 @@ onMounted(async () => {
 
         <MiyakoSessionAiPanel
           :selected-word="selectedWord"
+          :selected-session="null"
           :ai-topics="aiTopics"
           :ai-loading="aiLoading"
+          hint-main="ワードクラウドの単語をクリックで&#10;議員の発言をAI分析"
+          hint-sub="上の単語一覧から気になる単語を選ぶと、その議員がどのような文脈で発言してきたかをAIが解説します"
         />
       </div>
     </div>
