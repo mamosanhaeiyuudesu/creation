@@ -177,6 +177,11 @@ function deselectAll() {
             : 'border-transparent text-slate-500 hover:text-slate-700'"
         >{{ tab.label }}</button>
 
+        <div class="ml-auto hidden md:flex items-center pr-4 text-[11px] text-slate-400">
+          <span class="font-bold px-1 py-0.5 rounded mr-1" style="background:#FEE2E2; color:#C42121; border:1px solid #FCA5A5;">NEW!</span>
+          当日または前日に更新あり
+        </div>
+
         <div class="ml-auto flex items-center gap-1 md:hidden">
           <select
             :value="activeLeague"

@@ -245,7 +245,8 @@ function getTopRankStyle(playerId: string, key: string, direction: 'high' | 'low
 function isRecentlyUpdated(playerId: string): boolean {
   const data = props.seasonDataMap.get(playerId)
   if (!data) return false
-  const date = data.currentBatter?.date ?? data.currentPitcher?.date
+  const trend = data.trendBatter.length ? data.trendBatter : data.trendPitcher
+  const date = trend[trend.length - 1]?.date
   if (!date) return false
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000)
   const today = jstNow.toISOString().slice(0, 10)
