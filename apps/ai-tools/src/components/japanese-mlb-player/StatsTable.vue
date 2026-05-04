@@ -16,7 +16,7 @@
                 class="text-center py-2 px-3 text-xs font-medium whitespace-nowrap sticky top-0 z-20 bg-white"
               >
                 <span class="inline-flex items-center gap-1" :style="{ color: colors[player.id] }">
-                  <img v-if="isRecentlyUpdated(player.id)" src="/new_10785603.png" class="w-4 h-4 flex-shrink-0" alt="NEW" />
+                  <img v-if="isRecentlyUpdated(player.id, 'pitcher')" src="/new_10785603.png" class="w-5 h-5 flex-shrink-0" alt="NEW" />
                   {{ player.nameJa }}
                   <a
                     :href="`https://baseball.yahoo.co.jp/mlb/player/${player.sportnavi}/top`"
@@ -95,7 +95,7 @@
                 class="text-center py-2 px-3 text-xs font-medium whitespace-nowrap sticky top-0 z-20 bg-white"
               >
                 <span class="inline-flex items-center gap-1" :style="{ color: colors[player.id] }">
-                  <img v-if="isRecentlyUpdated(player.id)" src="/new_10785603.png" class="w-4 h-4 flex-shrink-0" alt="NEW" />
+                  <img v-if="isRecentlyUpdated(player.id, 'batter')" src="/new_10785603.png" class="w-5 h-5 flex-shrink-0" alt="NEW" />
                   {{ player.nameJa }}
                   <a
                     :href="`https://baseball.yahoo.co.jp/mlb/player/${player.sportnavi}/top`"
@@ -240,10 +240,10 @@ function getTopRankStyle(playerId: string, key: string, direction: 'high' | 'low
   return ''
 }
 
-function isRecentlyUpdated(playerId: string): boolean {
+function isRecentlyUpdated(playerId: string, type: 'batter' | 'pitcher'): boolean {
   const data = props.seasonDataMap.get(playerId)
   if (!data) return false
-  const trend = data.trendBatter.length ? data.trendBatter : data.trendPitcher
+  const trend = type === 'batter' ? data.trendBatter : data.trendPitcher
   const date = trend[trend.length - 1]?.date
   if (!date) return false
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000)
