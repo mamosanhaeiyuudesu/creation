@@ -24,7 +24,7 @@
             <span class="hero-eyebrow">Data Visualization &amp; Prototype Development</span>
             <h1 class="hero-catch">
               あなたのデータは、<br />
-              <span>宝の山かもしれない。</span>
+              <span>宝の山</span>
             </h1>
             <div class="hero-sub">
               <p>手元に眠っている数値データや文章、ちゃんと活かせていますか？</p>
@@ -191,6 +191,19 @@
               <div class="portfolio-feature">
                 <span class="feature-dot"></span>
                 <div class="feature-text">
+                  <strong>ネットワーク図で議論の全体像を把握</strong>
+                  キーワードや議員・テーマ間のつながりをネットワーク図で可視化。どのトピックがどう結びついているかを、直感的に読み取ることができます。
+                  <br>
+                  <a href="https://prototype.insightlens.jp/miyako/network" class="feature-link" target="_blank">
+                    ネットワーク図を見る
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </a>
+                  <img src="/images/miyako-network.png" alt="ネットワーク図のスクリーンショット" class="feature-screenshot" @click="openLightbox('/images/miyako-network.png', 'ネットワーク図のスクリーンショット')" />
+                </div>
+              </div>
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
                   <strong>年ごとの特徴的な話題ヒートマップ</strong>
                   TF-IDFスコアを使って、各年・各会期にどんなテーマが特徴的だったかをヒートマップで可視化。時代とともに移り変わる議会の関心を一目で読み取れます。
                   <br>
@@ -289,7 +302,7 @@
         <h2 class="section-title">データを「気づきに変える」エンジニア</h2>
         <div class="section-body">
           <p>
-            大手企業でデータ可視化・分析に15年以上携わってきたエンジニアです。
+            大手インターネット企業に15年勤務し、データ可視化・分析に携わってきたエンジニアです。
           </p>
           <p>
             ずっとやってきたのは、埋もれているデータを「見た人が何かに気づける」形に変えること。<br />
@@ -299,7 +312,7 @@
             「どう集計すれば面白いインサイトが出るか」「どう見せれば一番伝わるか」を、データの性質から一緒に考えるのが自分の仕事だと思っています。
           </p>
           <p>
-            大手IT企業の社員として、大規模トラフィックデータを活用した分析SaaSツールの企画・開発に従事。<br />
+            大手インターネット企業では、大規模トラフィックデータを活用した分析SaaSツールの企画・開発に従事。<br />
             性別・年齢・地域などの顧客属性データを軸に、ネットワーク図・散布図・棒グラフ・ヒートマップなど目的に応じた可視化手法を設計し、ユーザーが直感的にインサイトを得られるプロダクトを開発してきました。
           </p>
           <p>
@@ -314,6 +327,11 @@
             クライアントへのヒアリングからバックエンド（Python）・フロントエンド（Nuxt）まで一貫して自分一人で担当し、顧客の声を聞きながら試行錯誤で改善していくプロセスを得意としています。<br />
             近年は生成AIを活用した分析機能の実装にも取り組んでいます。
           </p>
+          <p>
+            桐蔭学園理数科卒、慶応義塾大学情報工学科卒業。<br>
+            趣味は子どもと始めた剣道、ベランダ農業。<br>
+            他に副業としてカウンセリングもやっています。
+            </p>
         </div>
       </div>
     </section>
@@ -467,10 +485,10 @@ onMounted(() => {
 })
 
 useHead({
-  title: 'Prototyper | あなたのデータは、宝の山かもしれない。',
+  title: 'data-biz | あなたのデータは宝の山',
   meta: [
     { name: 'description', content: 'データ可視化・プロトタイプ開発の相談窓口。手元に眠っているデータを、触れて気づきが得られるインタラクティブな可視化に変えます。大手企業でデータ可視化・分析に15年以上携わってきたエンジニアです。' },
-    { property: 'og:title', content: 'Prototyper | あなたのデータは、宝の山かもしれない。' },
+    { property: 'og:title', content: 'Prototyper | あなたのデータは、宝の山' },
     { property: 'og:description', content: 'データ可視化・プロトタイプ開発の相談窓口。手元に眠っているデータを、触れて気づきが得られるインタラクティブな可視化に変えます。' },
   ],
   link: [{ rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛠️</text></svg>` }],

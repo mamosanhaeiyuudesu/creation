@@ -24,7 +24,7 @@ const base = computed(() => {
           <div class="flex flex-col gap-[2px]">
             <span class="font-mono text-[11px] tracking-[0.22em] text-[#a5b4fc]/45 uppercase leading-none hidden sm:block">Miyakojima · Council Data</span>
             <h1 class="m-0 text-[clamp(15px,2.1vw,20px)] font-bold text-white tracking-[0.04em] leading-tight whitespace-nowrap">
-              議事録データ分析
+              宮古島市議会・議事録データ分析
             </h1>
           </div>
         </div>

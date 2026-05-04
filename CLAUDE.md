@@ -24,7 +24,7 @@ apps/
 |---|---|---|
 | mamorin | `/mamorin` | カウンセリング & 感情フォーカス・セラピー（個人ページ） |
 | kaito | `/kaito` | セラピスト「月ノ瀬 海倭」のランディングページ |
-| prototyper | `/prototyper` | データ可視化・プロトタイプ開発の相談窓口 |
+| prototyper | `/prototyper` | データ可視化の相談窓口 |
 | ai-consultant | `/ai-consultant` | AIと人間の協調をテーマにしたコンサルタントページ |
 
 ## コマンド
