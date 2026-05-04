@@ -74,7 +74,7 @@
               ref="titleInput"
               v-model="editingTitleValue"
               class="w-full bg-white/[0.07] border border-white/[0.2] rounded-md text-slate-50 text-base font-semibold px-2 py-0.5 outline-none focus:border-white/40 transition-colors font-[inherit]"
-              @keydown.enter.prevent="saveTitle"
+              @keydown.enter.prevent="(e) => { if (!e.isComposing) saveTitle() }"
               @keydown.escape="cancelTitle"
               @blur="saveTitle"
             />
