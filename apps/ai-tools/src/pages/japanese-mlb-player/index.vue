@@ -167,11 +167,12 @@ function deselectAll() {
     <main ref="mainRef" class="flex-1 overflow-y-auto bg-white">
       <!-- シーズン/年度別タブ -->
       <div class="flex border-b border-slate-200 bg-white sticky top-0 z-20">
+        <!-- PC: タブ -->
         <button
           v-for="tab in tabs"
           :key="tab.key"
           @click="activeTab = tab.key"
-          class="px-5 py-3 text-sm font-medium transition-colors duration-150 border-b-2 -mb-px"
+          class="hidden md:block px-5 py-3 text-sm font-medium transition-colors duration-150 border-b-2 -mb-px"
           :class="activeTab === tab.key
             ? 'border-blue-600 text-blue-600'
             : 'border-transparent text-slate-500 hover:text-slate-700'"
@@ -182,7 +183,15 @@ function deselectAll() {
           当日または前日に更新あり
         </div>
 
-        <div class="ml-auto flex items-center gap-1 md:hidden">
+        <!-- モバイル: select -->
+        <div class="flex flex-1 items-center justify-between px-2 md:hidden">
+          <select
+            :value="activeTab"
+            @change="activeTab = ($event.target as HTMLSelectElement).value as 'season' | 'yearly'"
+            class="text-xs text-slate-600 border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
+          >
+            <option v-for="tab in tabs" :key="tab.key" :value="tab.key">{{ tab.label }}</option>
+          </select>
           <select
             :value="activeLeague"
             @change="activeLeague = ($event.target as HTMLSelectElement).value as 'AL' | 'NL'"
@@ -192,7 +201,7 @@ function deselectAll() {
             <option value="NL">ナ・リーグ</option>
           </select>
           <button
-            class="px-4 py-3 text-sm text-slate-500 flex items-center gap-1"
+            class="px-3 py-1.5 text-sm text-slate-500 flex items-center gap-1"
             @click="openMobileMenu"
           >
             <span>選手 {{ selectedIds.length }}</span>
