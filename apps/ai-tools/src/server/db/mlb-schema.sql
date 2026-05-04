@@ -33,6 +33,7 @@ CREATE TABLE mlb_batter_stats (
   hits INTEGER,
   runs INTEGER,
   stolen_bases INTEGER,
+  bbk REAL,
   PRIMARY KEY (player_id, season, date)
 );
 
@@ -50,6 +51,8 @@ CREATE TABLE mlb_pitcher_stats (
   innings_pitched REAL,
   saves INTEGER,
   holds INTEGER,
+  fip REAL,
+  bbk REAL,
   PRIMARY KEY (player_id, season, date)
 );
 

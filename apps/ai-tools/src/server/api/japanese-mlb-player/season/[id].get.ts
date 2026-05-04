@@ -52,6 +52,7 @@ export default defineEventHandler(async (event) => {
     hits: r.hits as number | null,
     runs: r.runs as number | null,
     stolenBases: r.stolen_bases as number | null,
+    bbk: r.bbk as number | null,
   })
 
   const mapPitcher = (r: Record<string, unknown>) => ({
@@ -68,6 +69,8 @@ export default defineEventHandler(async (event) => {
     inningsPitched: r.innings_pitched as number | null,
     saves: r.saves as number | null,
     holds: r.holds as number | null,
+    fip: r.fip as number | null,
+    bbk: r.bbk as number | null,
   })
 
   return {

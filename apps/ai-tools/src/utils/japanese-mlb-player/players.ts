@@ -116,6 +116,14 @@ export const BATTER_STATS: StatMeta[] = [
     format: (v) => v === null ? '—' : (v as number).toFixed(1) + '%',
     chartMin: 0, chartMax: 45,
   },
+  {
+    key: 'bbk', label: 'BB/K',
+    fullName: 'BB/K = Walk-to-Strikeout Ratio',
+    description: '四球 ÷ 三振。選球眼とコンタクト能力の指標。1.0を超えると三振より四球が多い優秀な打者。高いほど良い。',
+    direction: 'high',
+    format: (v) => v === null ? '—' : (v as number).toFixed(2),
+    chartMin: 0, chartMax: 2.0,
+  },
 ]
 
 export const PITCHER_STATS: StatMeta[] = [
@@ -204,6 +212,23 @@ export const PITCHER_STATS: StatMeta[] = [
     direction: 'low',
     format: (v) => v === null ? '—' : (v as number).toFixed(1) + '%',
     chartMin: 0, chartMax: 20,
+  },
+  {
+    key: 'bbk', label: 'BB/K',
+    fullName: 'BB/K = Walk-to-Strikeout Ratio',
+    description: '与四球 ÷ 奪三振。制球力と奪三振能力のバランスを示す。低いほど良い投手。',
+    direction: 'low',
+    format: (v) => v === null ? '—' : (v as number).toFixed(2),
+    chartMin: 0, chartMax: 1.0,
+  },
+  // 守備独立
+  {
+    key: 'fip', label: 'FIP',
+    fullName: 'FIP = Fielding Independent Pitching',
+    description: '守備の影響を排除した「投手の自力」を測る指標。被本塁打・与四死球・奪三振のみで算出。低いほど良い。計算式: (13×被本塁打 + 3×(与四球+与死球) − 2×奪三振) ÷ 投球回 + 3.10',
+    direction: 'low',
+    format: (v) => v === null ? '—' : (v as number).toFixed(2),
+    chartMin: 0, chartMax: 6,
   },
 ]
 

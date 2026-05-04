@@ -64,19 +64,22 @@ async function fetchPlayerSplits(mlbId: string, params: Record<string, string>):
 // ── stat object → batter row ──
 function parseBatter(s: Record<string, unknown>, playerId: string, season: number, date: string) {
   const pa = parseNum(s.plateAppearances) ?? 0
+  const bb = parseNum(s.baseOnBalls) ?? 0
+  const so = parseNum(s.strikeOuts) ?? 0
   return {
     playerId, season, date,
     avg: parseNum(s.avg),
     obp: parseNum(s.obp),
     slg: parseNum(s.slg),
     ops: parseNum(s.ops),
-    bbPct: pct(parseNum(s.baseOnBalls) ?? 0, pa),
-    kPct: pct(parseNum(s.strikeOuts) ?? 0, pa),
+    bbPct: pct(bb, pa),
+    kPct: pct(so, pa),
     hr: parseNum(s.homeRuns),
     rbi: parseNum(s.rbi),
     hits: parseNum(s.hits),
     runs: parseNum(s.runs),
     stolenBases: parseNum(s.stolenBases),
+    bbk: so > 0 ? Math.round(bb / so * 100) / 100 : null,
   }
 }
 
@@ -84,18 +87,25 @@ function parseBatter(s: Record<string, unknown>, playerId: string, season: numbe
 function parsePitcher(s: Record<string, unknown>, playerId: string, season: number, date: string) {
   const bf = parseNum(s.battersFaced) ?? 0
   const ip = parseNum(s.inningsPitched)
+  const k = parseNum(s.strikeOuts) ?? 0
+  const bb = parseNum(s.baseOnBalls) ?? 0
+  const hbp = parseNum(s.hitByPitch) ?? 0
+  const hr = parseNum(s.homeRuns) ?? 0
+  const fip = ip && ip > 0 ? Math.round(((13 * hr + 3 * (bb + hbp) - 2 * k) / ip + 3.10) * 100) / 100 : null
   return {
     playerId, season, date,
     era: parseNum(s.era),
     whip: parseNum(s.whip),
-    kPct: pct(parseNum(s.strikeOuts) ?? 0, bf),
-    bbPct: pct(parseNum(s.baseOnBalls) ?? 0, bf),
+    kPct: pct(k, bf),
+    bbPct: pct(bb, bf),
     wins: parseNum(s.wins),
     losses: parseNum(s.losses),
-    strikeouts: parseNum(s.strikeOuts),
+    strikeouts: k,
     inningsPitched: ip,
     saves: parseNum(s.saves),
     holds: parseNum(s.holds),
+    fip,
+    bbk: k > 0 ? Math.round(bb / k * 100) / 100 : null,
   }
 }
 
@@ -185,6 +195,7 @@ export async function fetchBatterGameLog(mlbId: string, season: number) {
       playerId: mlbId, season, date, avg, obp, slg, ops,
       bbPct: pct(bb, pa), kPct: pct(so, pa),
       hr, rbi, hits: h, runs, stolenBases: sb,
+      bbk: so > 0 ? Math.round(bb / so * 100) / 100 : null,
     })
   }
   return results
@@ -196,7 +207,7 @@ export async function fetchPitcherGameLog(mlbId: string, season: number) {
   })
 
   let er = 0, hits = 0, bb = 0, so = 0, bf = 0, outs = 0
-  let wins = 0, losses = 0, saves = 0, holds = 0
+  let wins = 0, losses = 0, saves = 0, holds = 0, hr = 0, hbp = 0
   const results: ReturnType<typeof parsePitcher>[] = []
 
   for (const game of splits) {
@@ -211,6 +222,8 @@ export async function fetchPitcherGameLog(mlbId: string, season: number) {
     losses += parseNum(s.losses) ?? 0
     saves += parseNum(s.saves) ?? 0
     holds += parseNum(s.holds) ?? 0
+    hr += parseNum(s.homeRuns) ?? 0
+    hbp += parseNum(s.hitByPitch) ?? 0
 
     const date = game.date ?? ''
     if (!date) continue
@@ -219,12 +232,15 @@ export async function fetchPitcherGameLog(mlbId: string, season: number) {
     const era = innings > 0 ? Math.round(er / innings * 9 * 100) / 100 : null
     const whip = innings > 0 ? Math.round((hits + bb) / innings * 100) / 100 : null
     const ip = Math.round(innings * 3) / 3
+    const fip = innings > 0 ? Math.round(((13 * hr + 3 * (bb + hbp) - 2 * so) / innings + 3.10) * 100) / 100 : null
 
     results.push({
       playerId: mlbId, season, date, era, whip,
       kPct: pct(so, bf), bbPct: pct(bb, bf),
       wins, losses, strikeouts: so,
       inningsPitched: ip, saves, holds,
+      fip,
+      bbk: so > 0 ? Math.round(bb / so * 100) / 100 : null,
     })
   }
   return results
@@ -242,12 +258,15 @@ export async function fetchLeagueBatters(leagueId: number, season: number) {
   return (json?.stats?.[0]?.splits ?? []).map(split => {
     const s = split.stat
     const pa = parseNum(s.plateAppearances) ?? 0
+    const bb = parseNum(s.baseOnBalls) ?? 0
+    const so = parseNum(s.strikeOuts) ?? 0
     return {
       avg: parseNum(s.avg),
       obp: parseNum(s.obp),
       ops: parseNum(s.ops),
-      bbPct: pct(parseNum(s.baseOnBalls) ?? 0, pa),
-      kPct: pct(parseNum(s.strikeOuts) ?? 0, pa),
+      bbPct: pct(bb, pa),
+      kPct: pct(so, pa),
+      bbk: so > 0 ? Math.round(bb / so * 100) / 100 : null,
     }
   })
 }
@@ -262,11 +281,19 @@ export async function fetchLeaguePitchers(leagueId: number, season: number) {
   return (json?.stats?.[0]?.splits ?? []).map(split => {
     const s = split.stat
     const bf = parseNum(s.battersFaced) ?? 0
+    const k = parseNum(s.strikeOuts) ?? 0
+    const bb = parseNum(s.baseOnBalls) ?? 0
+    const hbp = parseNum(s.hitByPitch) ?? 0
+    const hr = parseNum(s.homeRuns) ?? 0
+    const ip = parseNum(s.inningsPitched)
+    const fip = ip && ip > 0 ? Math.round(((13 * hr + 3 * (bb + hbp) - 2 * k) / ip + 3.10) * 100) / 100 : null
     return {
       era: parseNum(s.era),
       whip: parseNum(s.whip),
-      kPct: pct(parseNum(s.strikeOuts) ?? 0, bf),
-      bbPct: pct(parseNum(s.baseOnBalls) ?? 0, bf),
+      kPct: pct(k, bf),
+      bbPct: pct(bb, bf),
+      fip,
+      bbk: k > 0 ? Math.round(bb / k * 100) / 100 : null,
     }
   })
 }

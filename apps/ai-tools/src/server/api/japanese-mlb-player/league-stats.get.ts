@@ -37,6 +37,7 @@ async function getLeagueBlock(leagueId: number, season: number): Promise<LeagueS
       hits:        computeSummary(batterCounts.map(s => s.hits), true) ?? undefined,
       runs:        computeSummary(batterCounts.map(s => s.runs), true) ?? undefined,
       stolenBases: computeSummary(batterCounts.map(s => s.stolenBases), true) ?? undefined,
+      bbk:         computeSummary(batters.map(s => s.bbk), true) ?? undefined,
     },
     pitcher: {
       era:            computeSummary(pitchers.map(s => s.era), false) ?? undefined,
@@ -49,6 +50,8 @@ async function getLeagueBlock(leagueId: number, season: number): Promise<LeagueS
       inningsPitched: computeSummary(pitcherCounts.map(s => s.inningsPitched), true) ?? undefined,
       saves:          computeSummary(pitcherCounts.map(s => s.saves), true) ?? undefined,
       holds:          computeSummary(pitcherCounts.map(s => s.holds), true) ?? undefined,
+      fip:            computeSummary(pitchers.map(s => s.fip), false) ?? undefined,
+      bbk:            computeSummary(pitchers.map(s => s.bbk), false) ?? undefined,
     },
   }
 }

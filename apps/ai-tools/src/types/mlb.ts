@@ -27,6 +27,7 @@ export interface BatterStats {
   hits: number | null
   runs: number | null
   stolenBases: number | null
+  bbk: number | null
 }
 
 export interface PitcherStats {
@@ -43,6 +44,8 @@ export interface PitcherStats {
   inningsPitched: number | null
   saves: number | null
   holds: number | null
+  fip: number | null
+  bbk: number | null
 }
 
 export interface StatMeta {
