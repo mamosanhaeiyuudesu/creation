@@ -207,7 +207,7 @@
                   <strong>年ごとの特徴的な話題ヒートマップ</strong>
                   TF-IDFスコアを使って、各年・各会期にどんなテーマが特徴的だったかをヒートマップで可視化。時代とともに移り変わる議会の関心を一目で読み取れます。
                   <br>
-                  <a href="https://prototype.insightlens.jp/miyako" class="feature-link" target="_blank">
+                  <a href="https://prototype.insightlens.jp/miyako/yearly" class="feature-link" target="_blank">
                     年別ヒートマップを見る
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </a>
