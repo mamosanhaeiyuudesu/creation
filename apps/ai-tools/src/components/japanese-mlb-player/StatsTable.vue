@@ -72,7 +72,7 @@
                 :key="player.id"
                 class="py-2 px-3 text-center font-mono text-sm"
               >
-                <span :class="getCellClass(player.id, stat.key, 'pitcher')" :style="getTopRankStyle(player.id, stat.key, stat.direction, 'pitcher')">{{ formatStat(player.id, stat.key, stat.format, 'pitcher') }}</span><span class="text-[11px] text-slate-400 ml-0.5">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'pitcher') }}</span><span v-if="getTrendArrow(player.id, stat.key, 'pitcher')" class="text-[22px] ml-0.5 font-bold leading-none" style="color: #C42121;">{{ getTrendArrow(player.id, stat.key, 'pitcher') }}</span>
+                <span :class="getCellClass(player.id, stat.key, 'pitcher')" :style="getTopRankStyle(player.id, stat.key, stat.direction, 'pitcher')">{{ formatStat(player.id, stat.key, stat.format, 'pitcher') }}</span><span class="text-[11px] text-slate-400 ml-0.5">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'pitcher') }}</span><span v-if="getTrendArrow(player.id, stat.key, 'pitcher')" class="text-[18px] ml-0.5 font-bold leading-none" style="color: #C42121;">{{ getTrendArrow(player.id, stat.key, 'pitcher') }}</span>
               </td>
             </tr>
           </tbody>
