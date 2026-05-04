@@ -207,7 +207,7 @@ function getCellClass(playerId: string, key: string, type: 'pitcher' | 'batter')
   const stats = type === 'pitcher' ? data.currentPitcher : data.currentBatter
   if (!stats) return 'text-slate-400'
   const val = (stats as unknown as Record<string, unknown>)[key]
-  return val === null || val === undefined ? 'text-slate-400' : 'text-slate-800 font-semibold'
+  return val === null || val === undefined ? 'text-slate-400' : 'text-[#8794A0] font-semibold'
 }
 
 function getPlayerRank(playerId: string, key: string, direction: 'high' | 'low', type: 'pitcher' | 'batter'): number {
@@ -236,7 +236,7 @@ function getPlayerRankLabel(playerId: string, key: string, direction: 'high' | '
 function getTopRankStyle(playerId: string, key: string, direction: 'high' | 'low', type: 'pitcher' | 'batter'): string {
   const rank = getPlayerRank(playerId, key, direction, type)
   if (rank >= 1 && rank <= 5) return 'color: #C42121'
-  if (rank >= 6 && rank <= 10) return 'color: #E07070'
+  if (rank >= 6 && rank <= 10) return 'color: #BA7373'
   return ''
 }
 
