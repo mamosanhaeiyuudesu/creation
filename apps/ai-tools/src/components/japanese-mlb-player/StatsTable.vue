@@ -72,7 +72,7 @@
                 :key="player.id"
                 class="py-2 px-3 text-center font-mono text-sm"
               >
-                <span :class="getCellClass(player.id, stat.key, 'pitcher')" :style="getTopRankStyle(player.id, stat.key, stat.direction, 'pitcher')">{{ formatStat(player.id, stat.key, stat.format, 'pitcher') }}</span><span class="text-[11px] text-slate-400 ml-0.5">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'pitcher') }}</span><span v-if="getTrendArrow(player.id, stat.key, 'pitcher')" class="text-[11px] ml-0.5 font-bold" style="color: #C42121;">{{ getTrendArrow(player.id, stat.key, 'pitcher') }}</span>
+                <span :class="getCellClass(player.id, stat.key, 'pitcher')" :style="getTopRankStyle(player.id, stat.key, stat.direction, 'pitcher')">{{ formatStat(player.id, stat.key, stat.format, 'pitcher') }}</span><span class="text-[11px] text-slate-400 ml-0.5">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'pitcher') }}</span><span v-if="getTrendArrow(player.id, stat.key, 'pitcher')" class="text-[22px] ml-0.5 font-bold leading-none" style="color: #C42121;">{{ getTrendArrow(player.id, stat.key, 'pitcher') }}</span>
               </td>
             </tr>
           </tbody>
@@ -152,7 +152,7 @@
                 :key="player.id"
                 class="py-2 px-3 text-center font-mono text-sm"
               >
-                <span :class="getCellClass(player.id, stat.key, 'batter')" :style="getTopRankStyle(player.id, stat.key, stat.direction, 'batter')">{{ formatStat(player.id, stat.key, stat.format, 'batter') }}</span><span class="text-[11px] text-slate-400 ml-0.5">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'batter') }}</span><span v-if="getTrendArrow(player.id, stat.key, 'batter')" class="text-[11px] ml-0.5 font-bold" style="color: #C42121;">{{ getTrendArrow(player.id, stat.key, 'batter') }}</span>
+                <span :class="getCellClass(player.id, stat.key, 'batter')" :style="getTopRankStyle(player.id, stat.key, stat.direction, 'batter')">{{ formatStat(player.id, stat.key, stat.format, 'batter') }}</span><span class="text-[11px] text-slate-400 ml-0.5">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'batter') }}</span><span v-if="getTrendArrow(player.id, stat.key, 'batter')" class="text-[22px] ml-0.5 font-bold leading-none" style="color: #C42121;">{{ getTrendArrow(player.id, stat.key, 'batter') }}</span>
               </td>
             </tr>
           </tbody>
@@ -237,8 +237,9 @@ function getPlayerRankLabel(playerId: string, key: string, direction: 'high' | '
 
 function getTopRankStyle(playerId: string, key: string, direction: 'high' | 'low', type: 'pitcher' | 'batter'): string {
   const rank = getPlayerRank(playerId, key, direction, type)
-  if (rank < 1 || rank > 10) return ''
-  return 'color: #C42121'
+  if (rank >= 1 && rank <= 5) return 'color: #C42121'
+  if (rank >= 6 && rank <= 10) return 'color: #E07070'
+  return ''
 }
 
 function isRecentlyUpdated(playerId: string): boolean {
