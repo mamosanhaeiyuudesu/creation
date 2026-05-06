@@ -14,10 +14,10 @@
     </div>
 
     <!-- チャート -->
-    <div ref="chartEl" class="w-full" style="height: 300px;" />
+    <div v-show="view === 'chart'" ref="chartEl" class="w-full" style="height: 300px;" />
 
     <!-- 年度テーブル -->
-    <div class="mt-6 overflow-x-auto">
+    <div v-show="view === 'table'" class="overflow-x-auto">
       <table class="w-full text-xs border-collapse">
         <thead>
           <tr class="border-b border-slate-200">
@@ -86,6 +86,7 @@ const props = defineProps<{
   selectedIds: string[]
   yearlyDataMap: Map<string, YearlyData>
   mode: 'pitcher' | 'batter' | 'mixed'
+  view: 'table' | 'chart'
 }>()
 
 const chartEl = ref<HTMLDivElement>()
@@ -343,9 +344,25 @@ watch(
   { deep: true }
 )
 
-onMounted(renderChart)
+watch(() => props.view, async (v) => {
+  if (v === 'chart') {
+    await nextTick()
+    chart?.resize()
+  }
+})
+
+let ro: ResizeObserver | null = null
+
+onMounted(async () => {
+  await renderChart()
+  if (chartEl.value) {
+    ro = new ResizeObserver(() => { chart?.resize() })
+    ro.observe(chartEl.value)
+  }
+})
 
 onBeforeUnmount(() => {
+  ro?.disconnect()
   chart?.dispose()
   chart = null
 })

@@ -156,9 +156,18 @@ watch(
   { deep: true }
 )
 
-onMounted(renderChart)
+let ro: ResizeObserver | null = null
+
+onMounted(async () => {
+  await renderChart()
+  if (chartEl.value) {
+    ro = new ResizeObserver(() => { chart?.resize() })
+    ro.observe(chartEl.value)
+  }
+})
 
 onBeforeUnmount(() => {
+  ro?.disconnect()
   chart?.dispose()
   chart = null
 })

@@ -180,6 +180,14 @@ export const PITCHER_STATS: StatMeta[] = [
     chartMin: 0, chartMax: 6,
   },
   {
+    key: 'fip', label: 'FIP',
+    fullName: 'FIP = Fielding Independent Pitching',
+    description: '守備の影響を排除した「投手の自力」を測る指標。被本塁打・与四死球・奪三振のみで算出。低いほど良い。計算式: (13×被本塁打 + 3×(与四球+与死球) − 2×奪三振) ÷ 投球回 + 3.10',
+    direction: 'low',
+    format: (v) => v === null ? '—' : (v as number).toFixed(2),
+    chartMin: 0, chartMax: 6,
+  },
+  {
     key: 'whip', label: '被出塁/回',
     fullName: 'WHIP = Walks plus Hits per Inning Pitched',
     description: '1イニングあたりの被安打＋与四球数。低いほど良い。',
@@ -220,15 +228,6 @@ export const PITCHER_STATS: StatMeta[] = [
     direction: 'low',
     format: (v) => v === null ? '—' : (v as number).toFixed(2),
     chartMin: 0, chartMax: 1.0,
-  },
-  // 守備独立
-  {
-    key: 'fip', label: 'FIP',
-    fullName: 'FIP = Fielding Independent Pitching',
-    description: '守備の影響を排除した「投手の自力」を測る指標。被本塁打・与四死球・奪三振のみで算出。低いほど良い。計算式: (13×被本塁打 + 3×(与四球+与死球) − 2×奪三振) ÷ 投球回 + 3.10',
-    direction: 'low',
-    format: (v) => v === null ? '—' : (v as number).toFixed(2),
-    chartMin: 0, chartMax: 6,
   },
 ]
 
