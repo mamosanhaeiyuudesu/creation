@@ -13,6 +13,7 @@ export function useMlbStats() {
   const lastSyncedAt = useState<string | null>('mlb-last-synced', () => null)
   const loadingIds = useState<Set<string>>('mlb-loading', () => new Set())
   const leagueLoading = useState<boolean>('mlb-league-loading', () => false)
+  const leagueFailed = useState<boolean>('mlb-league-failed', () => false)
   const failedIds = useState<Set<string>>('mlb-failed', () => new Set())
 
   const selectedPlayers = computed(() =>
@@ -91,15 +92,23 @@ export function useMlbStats() {
     }
   }
 
+  async function runLimited<T>(tasks: (() => Promise<T>)[], limit: number): Promise<void> {
+    let i = 0
+    async function worker() {
+      while (i < tasks.length) { await tasks[i++]() }
+    }
+    await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker))
+  }
+
   async function ensureSeasonData() {
     await Promise.all([
-      ...selectedIds.value.map(id => fetchSeason(id)),
+      runLimited(selectedIds.value.map(id => () => fetchSeason(id)), 4),
       ensureLeagueStats(),
     ])
   }
 
   async function ensureYearlyData() {
-    await Promise.all(selectedIds.value.map(id => fetchYearly(id)))
+    await runLimited(selectedIds.value.map(id => () => fetchYearly(id)), 4)
   }
 
   async function fetchMeta() {
@@ -110,13 +119,15 @@ export function useMlbStats() {
   }
 
   async function ensureLeagueStats() {
-    if (leagueStatsCache.value || leagueLoading.value) return
+    if (leagueStatsCache.value || leagueLoading.value || leagueFailed.value) return
     leagueLoading.value = true
     try {
       const data = await $fetch<AllLeagueStats>('/api/japanese-mlb-player/league-stats', {
         query: { season: currentSeason },
       })
       leagueStatsCache.value = data
+    } catch {
+      leagueFailed.value = true
     } finally {
       leagueLoading.value = false
     }
@@ -127,10 +138,14 @@ export function useMlbStats() {
   async function retryFailed() {
     const ids = [...failedIds.value]
     failedIds.value = new Set()
+    leagueFailed.value = false
     if (activeTab.value === 'season') {
-      await Promise.all([...ids.map(id => fetchSeason(id)), ensureLeagueStats()])
+      await Promise.all([
+        runLimited(ids.map(id => () => fetchSeason(id)), 4),
+        ensureLeagueStats(),
+      ])
     } else {
-      await Promise.all(ids.map(id => fetchYearly(id)))
+      await runLimited(ids.map(id => () => fetchYearly(id)), 4)
     }
   }
 
