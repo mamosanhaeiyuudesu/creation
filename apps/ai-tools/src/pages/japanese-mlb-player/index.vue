@@ -26,7 +26,7 @@ useHead({
 
 const tabs = [
   { key: 'season' as const, label: '今シーズン' },
-  { key: 'yearly' as const, label: '年度別推移' },
+  { key: 'yearly' as const, label: '年度別' },
 ]
 
 const route = useRoute()
@@ -258,7 +258,7 @@ function deselectAll() {
               <!-- モバイル: サブタブ -->
               <div class="md:hidden flex border-b border-slate-200 mb-4">
                 <button
-                  v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'trend', label: 'シーズン推移' }]"
+                  v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'trend', label: '推移グラフ' }]"
                   :key="v.key"
                   @click="pitcherView = v.key as 'table' | 'trend'"
                   class="flex-1 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors duration-150"
@@ -278,7 +278,7 @@ function deselectAll() {
                 />
               </div>
 
-              <!-- シーズン推移 -->
+              <!-- 推移グラフ -->
               <div :class="{ 'hidden md:block': pitcherView !== 'trend' }">
                 <h3 class="hidden md:block text-sm font-semibold text-slate-500 mb-3">推移グラフ</h3>
                 <TrendChart
@@ -298,7 +298,7 @@ function deselectAll() {
               <!-- モバイル: サブタブ -->
               <div class="md:hidden flex border-b border-slate-200 mb-4">
                 <button
-                  v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'trend', label: 'シーズン推移' }]"
+                  v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'trend', label: '推移グラフ' }]"
                   :key="v.key"
                   @click="batterView = v.key as 'table' | 'trend'"
                   class="flex-1 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors duration-150"
@@ -318,7 +318,7 @@ function deselectAll() {
                 />
               </div>
 
-              <!-- シーズン推移 -->
+              <!-- 推移グラフ -->
               <div :class="{ 'hidden md:block': batterView !== 'trend' }">
                 <h3 class="hidden md:block text-sm font-semibold text-slate-500 mb-3">推移グラフ</h3>
                 <TrendChart
