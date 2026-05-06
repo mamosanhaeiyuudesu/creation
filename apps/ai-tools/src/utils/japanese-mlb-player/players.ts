@@ -84,14 +84,14 @@ export const BATTER_STATS: StatMeta[] = [
     format: fmtAvg,
     chartMin: 0.20, chartMax: 0.50,
   },
-  {
-    key: 'slg', label: '長打率',
-    fullName: 'SLG = Slugging Percentage',
-    description: '塁打数 ÷ 打数。長打力の指標。高いほど良い。',
-    direction: 'high',
-    format: fmtAvg,
-    chartMin: 0.25, chartMax: 0.70,
-  },
+  // {
+  //   key: 'slg', label: '長打率',
+  //   fullName: 'SLG = Slugging Percentage',
+  //   description: '塁打数 ÷ 打数。長打力の指標。高いほど良い。',
+  //   direction: 'high',
+  //   format: fmtAvg,
+  //   chartMin: 0.25, chartMax: 0.70,
+  // },
   {
     key: 'ops', label: 'OPS',
     fullName: 'OPS = On-base Plus Slugging',

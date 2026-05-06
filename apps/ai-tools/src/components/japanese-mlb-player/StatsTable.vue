@@ -66,7 +66,10 @@
                 :key="player.id"
                 class="py-2 px-3 text-center font-mono text-sm"
               >
-                <span :class="getCellClass(player.id, stat.key, 'pitcher')" :style="getTopRankStyle(player.id, stat.key, stat.direction, 'pitcher')">{{ formatStat(player.id, stat.key, stat.format, 'pitcher') }}</span><span class="text-[11px] text-slate-400 ml-0.5">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'pitcher') }}</span>
+                <div class="flex flex-col items-center">
+                  <span :class="getCellClass(player.id, stat.key, 'pitcher')" :style="getTopRankStyle(player.id, stat.key, stat.direction, 'pitcher')">{{ formatStat(player.id, stat.key, stat.format, 'pitcher') }}</span>
+                  <span class="text-[11px] text-slate-400">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'pitcher') }}</span>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -140,7 +143,10 @@
                 :key="player.id"
                 class="py-2 px-3 text-center font-mono text-sm"
               >
-                <span :class="getCellClass(player.id, stat.key, 'batter')" :style="getTopRankStyle(player.id, stat.key, stat.direction, 'batter')">{{ formatStat(player.id, stat.key, stat.format, 'batter') }}</span><span class="text-[11px] text-slate-400 ml-0.5">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'batter') }}</span>
+                <div class="flex flex-col items-center">
+                  <span :class="getCellClass(player.id, stat.key, 'batter')" :style="getTopRankStyle(player.id, stat.key, stat.direction, 'batter')">{{ formatStat(player.id, stat.key, stat.format, 'batter') }}</span>
+                  <span class="text-[11px] text-slate-400">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'batter') }}</span>
+                </div>
               </td>
             </tr>
           </tbody>

@@ -2,7 +2,7 @@ import type { SeasonData, YearlyData, AllLeagueStats } from '~/types/mlb'
 import { PLAYERS } from '~/utils/japanese-mlb-player/players'
 
 export function useMlbStats() {
-  const DEFAULT_EXCLUDED = new Set(['673513', '506433']) // 松井・ダルビッシュ
+  const DEFAULT_EXCLUDED = new Set(['673513', '506433', '663457']) // 松井・ダルビッシュ・ヌートバー
   const selectedIds = useState<string[]>('mlb-selected', () => PLAYERS.map(p => p.id).filter(id => !DEFAULT_EXCLUDED.has(id)))
   const activeTab = useState<'season' | 'yearly'>('mlb-tab', () => 'season')
   const currentSeason = currentYearJST()
@@ -115,7 +115,7 @@ export function useMlbStats() {
     try {
       const data = await $fetch<{ lastSyncedAt: string | null }>('/api/japanese-mlb-player/meta')
       lastSyncedAt.value = data.lastSyncedAt
-    } catch {}
+    } catch { }
   }
 
   async function ensureLeagueStats() {
