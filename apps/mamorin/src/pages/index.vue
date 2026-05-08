@@ -81,18 +81,18 @@
             <h3 class="mm-strength-title">当事者であること</h3>
             <p class="mm-strength-body">
               私自身が、親との長年の葛藤を体験してきました。<br>
-              ふつうの親子関係を持てた人には理解しがたい体験が、言葉にしなくても即座に共有できます。<br>
+              ふつうの親子関係を持てた人には理解しがたい体験が、言葉にしなくても共有できます。<br>
               そして、それを乗り越えてきたからこそ、私自身の言動にも信頼性が生まれると考えています。
             </p>
           </div>
           <div class="mm-strength-item">
             <p class="mm-strength-num">02</p>
-            <h3 class="mm-strength-title">感情を大事にする</h3>
+            <h3 class="mm-strength-title">本当の感情に気づく
+            </h3>
             <p class="mm-strength-body">
-              自分がどんな感情を本当は感じているのかを認識することが、変わっていくためにとても大事なことだと考えています。<br>
-              多くの人は、自分が本当に感じている感情を感じないようにして生きています。<br>
-              しかし結果的に、その感情に振り回されて人生を苦しくなっていきます。<br>
-              セッションでは、本当に感じている感情を認識して受容していけるようサポートします。<br>
+              押し留めてきた感情を感じれるようになることが、変わっていくためにとても大事です。<br>
+              感情に気づき、向き合うことができると癒しが進みます。<br>
+              セッションでは、本当に感じている感情を受容していけるようサポートします。<br>
               これが自己受容につながっていきます。
             </p>
           </div>
@@ -104,7 +104,7 @@
     <section id="services" class="mm-surface">
       <div class="mm-wrap">
         <p class="mm-section-label">Services</p>
-        <h2 class="mm-section-title">セッションの内容</h2>
+        <h2 class="mm-section-title">サービスの内容</h2>
         <div class="mm-service-grid">
           <div class="mm-service-card">
             <p class="mm-service-type">Service 01</p>
@@ -239,12 +239,11 @@
         <p class="mm-section-label">Profile</p>
         <div class="mm-profile-inner">
           <h3 class="mm-profile-name">まもりん</h3>
-          <p class="mm-profile-role">Counselor / Emotion-Focused Therapist</p>
+          <p class="mm-profile-role">Counselor</p>
           <p class="mm-profile-bio">
             両親との長年の葛藤と、それを乗り越えたプロセスを自ら経験。<br>
-            心理学・セラピー・コーチングを学び、感情の言語化を通じた自己受容のアプローチを実践している。<br>
-            現在は子どもと共に生活を続ける父親でもあり、家族との関係を大切にしながら、同じ見えない痛みを抱える方の伴走をしたいと考えている。<br>
-            AI・IT分野のプロフェッショナルとしても活動しており、論理と感情の両方の視点を持つ。
+            心理学・セラピー・NLPなどを学び、傾聴をベースにした自己受容のアプローチを実践している。<br>
+            現在は妻・子ども3人と共に生活を続ける父親でもある。<br>
           </p>
         </div>
       </div>

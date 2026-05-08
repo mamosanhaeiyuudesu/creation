@@ -15,6 +15,8 @@ export function useMlbStats() {
   const leagueLoading = useState<boolean>('mlb-league-loading', () => false)
   const leagueFailed = useState<boolean>('mlb-league-failed', () => false)
   const failedIds = useState<Set<string>>('mlb-failed', () => new Set())
+  const seasonBatchLoading = useState<boolean>('mlb-season-batch-loading', () => false)
+  const yearlyBatchLoading = useState<boolean>('mlb-yearly-batch-loading', () => false)
 
   const selectedPlayers = computed(() =>
     selectedIds.value.map(id => PLAYERS.find(p => p.id === id)).filter(Boolean) as typeof PLAYERS
@@ -29,86 +31,79 @@ export function useMlbStats() {
     }
   }
 
-  async function fetchSeason(playerId: string) {
-    if (seasonCache.value.has(playerId) || loadingIds.value.has(playerId)) return
-    loadingIds.value = new Set([...loadingIds.value, playerId])
+  async function fetchSeasonBatch(ids: string[]) {
+    if (ids.length === 0) return
+    loadingIds.value = new Set([...loadingIds.value, ...ids])
     const cleared = new Set(failedIds.value)
-    cleared.delete(playerId)
+    ids.forEach(id => cleared.delete(id))
     failedIds.value = cleared
     try {
-      let lastError: unknown
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const data = await $fetch<SeasonData>(
-            `/api/japanese-mlb-player/season/${playerId}`,
-            { query: { season: currentSeason } }
-          )
-          const next = new Map(seasonCache.value)
-          next.set(playerId, data)
-          seasonCache.value = next
-          return
-        } catch (e) {
-          lastError = e
-          if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
-        }
+      const data = await $fetch<Record<string, SeasonData>>('/api/japanese-mlb-player/season-all', {
+        query: { season: currentSeason, ids: ids.join(',') },
+      })
+      const next = new Map(seasonCache.value)
+      for (const [id, playerData] of Object.entries(data)) {
+        next.set(id, playerData)
       }
-      throw lastError
+      seasonCache.value = next
     } catch {
-      failedIds.value = new Set([...failedIds.value, playerId])
+      failedIds.value = new Set([...failedIds.value, ...ids])
     } finally {
       const next = new Set(loadingIds.value)
-      next.delete(playerId)
+      ids.forEach(id => next.delete(id))
       loadingIds.value = next
     }
   }
 
-  async function fetchYearly(playerId: string) {
-    if (yearlyCache.value.has(playerId) || loadingIds.value.has(playerId)) return
-    loadingIds.value = new Set([...loadingIds.value, playerId])
+  async function fetchYearlyBatch(ids: string[]) {
+    if (ids.length === 0) return
+    loadingIds.value = new Set([...loadingIds.value, ...ids])
     const cleared = new Set(failedIds.value)
-    cleared.delete(playerId)
+    ids.forEach(id => cleared.delete(id))
     failedIds.value = cleared
     try {
-      let lastError: unknown
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const data = await $fetch<YearlyData>(`/api/japanese-mlb-player/yearly/${playerId}`)
-          const next = new Map(yearlyCache.value)
-          next.set(playerId, data)
-          yearlyCache.value = next
-          return
-        } catch (e) {
-          lastError = e
-          if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
-        }
+      const data = await $fetch<Record<string, YearlyData>>('/api/japanese-mlb-player/yearly-all', {
+        query: { ids: ids.join(',') },
+      })
+      const next = new Map(yearlyCache.value)
+      for (const [id, playerData] of Object.entries(data)) {
+        next.set(id, playerData)
       }
-      throw lastError
+      yearlyCache.value = next
     } catch {
-      failedIds.value = new Set([...failedIds.value, playerId])
+      failedIds.value = new Set([...failedIds.value, ...ids])
     } finally {
       const next = new Set(loadingIds.value)
-      next.delete(playerId)
+      ids.forEach(id => next.delete(id))
       loadingIds.value = next
     }
-  }
-
-  async function runLimited<T>(tasks: (() => Promise<T>)[], limit: number): Promise<void> {
-    let i = 0
-    async function worker() {
-      while (i < tasks.length) { await tasks[i++]() }
-    }
-    await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker))
   }
 
   async function ensureSeasonData() {
-    await Promise.all([
-      runLimited(selectedIds.value.map(id => () => fetchSeason(id)), 4),
-      ensureLeagueStats(),
-    ])
+    if (seasonBatchLoading.value) return
+    const toFetch = selectedIds.value.filter(id => !seasonCache.value.has(id) && !loadingIds.value.has(id))
+    if (toFetch.length === 0) {
+      await ensureLeagueStats()
+      return
+    }
+    seasonBatchLoading.value = true
+    try {
+      await Promise.all([fetchSeasonBatch(toFetch), ensureLeagueStats()])
+    } finally {
+      seasonBatchLoading.value = false
+    }
   }
 
   async function ensureYearlyData() {
-    await runLimited(selectedIds.value.map(id => () => fetchYearly(id)), 4)
+    if (yearlyBatchLoading.value) return
+    const toFetch = selectedIds.value.filter(id => !yearlyCache.value.has(id) && !loadingIds.value.has(id))
+    if (toFetch.length === 0) return
+    yearlyBatchLoading.value = true
+    try {
+      await fetchYearlyBatch(toFetch)
+    } finally {
+      yearlyBatchLoading.value = false
+    }
   }
 
   async function fetchMeta() {
@@ -133,19 +128,16 @@ export function useMlbStats() {
     }
   }
 
-  const hasFailed = computed(() => failedIds.value.size > 0)
+  const hasFailed = computed(() => failedIds.value.size > 0 || leagueFailed.value)
 
   async function retryFailed() {
     const ids = [...failedIds.value]
     failedIds.value = new Set()
     leagueFailed.value = false
     if (activeTab.value === 'season') {
-      await Promise.all([
-        runLimited(ids.map(id => () => fetchSeason(id)), 4),
-        ensureLeagueStats(),
-      ])
+      await Promise.all([fetchSeasonBatch(ids), ensureLeagueStats()])
     } else {
-      await runLimited(ids.map(id => () => fetchYearly(id)), 4)
+      await fetchYearlyBatch(ids)
     }
   }
 
@@ -176,8 +168,6 @@ export function useMlbStats() {
     lastSyncedAt,
     hasFailed,
     togglePlayer,
-    fetchSeason,
-    fetchYearly,
     fetchMeta,
     ensureSeasonData,
     ensureYearlyData,
