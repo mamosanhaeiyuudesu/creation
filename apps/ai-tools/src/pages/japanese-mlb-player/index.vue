@@ -3,6 +3,7 @@ import type { SeasonData, YearlyData } from '~/types/mlb'
 import { PLAYERS } from '~/utils/japanese-mlb-player/players'
 import MlbHeader from '~/components/japanese-mlb-player/MlbHeader.vue'
 import PlayerSidebar from '~/components/japanese-mlb-player/PlayerSidebar.vue'
+import RecentGames from '~/components/japanese-mlb-player/RecentGames.vue'
 import StatsTable from '~/components/japanese-mlb-player/StatsTable.vue'
 import TrendChart from '~/components/japanese-mlb-player/TrendChart.vue'
 import YearlyChart from '~/components/japanese-mlb-player/YearlyChart.vue'
@@ -25,6 +26,7 @@ useHead({
 })
 
 const tabs = [
+  { key: 'speed' as const, label: '速報' },
   { key: 'season' as const, label: '今シーズン' },
   { key: 'yearly' as const, label: '年度別' },
 ]
@@ -67,7 +69,7 @@ const batterYearlyView = ref<'table' | 'chart'>('table')
 watch([activeLeague, activeTab], ([league, tab]) => {
   const query: Record<string, string> = {}
   if (league !== 'NL') query.league = league
-  if (tab !== 'season') query.tab = tab
+  if (tab !== 'speed') query.tab = tab
   router.replace({ query })
 })
 
@@ -109,21 +111,25 @@ const batterIds = computed(() =>
 )
 
 watch(activeTab, async (tab) => {
-  if (tab === 'season') await ensureSeasonData()
-  else await ensureYearlyData()
+  if (tab === 'yearly') await ensureYearlyData()
+  else await ensureSeasonData()
 })
 
 watch(selectedIds, async () => {
-  if (activeTab.value === 'season') await ensureSeasonData()
-  else await ensureYearlyData()
+  if (activeTab.value === 'yearly') await ensureYearlyData()
+  else await ensureSeasonData()
 }, { deep: true })
 
 onMounted(async () => {
   fetchMeta()
-  if (route.query.tab === 'yearly') {
+  if (route.query.tab === 'season') {
+    activeTab.value = 'season'
+    await ensureSeasonData()
+  } else if (route.query.tab === 'yearly') {
     activeTab.value = 'yearly'
     await ensureYearlyData()
   } else {
+    activeTab.value = 'speed'
     await ensureSeasonData()
   }
 })
@@ -183,16 +189,12 @@ function deselectAll() {
             : 'border-transparent text-slate-500 hover:text-slate-700'"
         >{{ tab.label }}</button>
 
-        <div class="ml-auto hidden md:flex items-center pr-4 text-[11px] text-slate-400">
-          <img src="/new_10785603.png" class="w-5 h-5 mr-1" alt="NEW" />
-          当日または前日に更新あり
-        </div>
 
         <!-- モバイル: select -->
         <div class="flex flex-1 items-center justify-between px-2 md:hidden">
           <select
             :value="activeTab"
-            @change="activeTab = ($event.target as HTMLSelectElement).value as 'season' | 'yearly'"
+            @change="activeTab = ($event.target as HTMLSelectElement).value as 'speed' | 'season' | 'yearly'"
             class="text-xs text-slate-600 border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
           >
             <option v-for="tab in tabs" :key="tab.key" :value="tab.key">{{ tab.label }}</option>
@@ -243,8 +245,37 @@ function deselectAll() {
 
       <!-- コンテンツ -->
       <div class="p-5">
+        <!-- 速報 -->
+        <template v-if="activeTab === 'speed'">
+          <div v-if="selectedIds.length === 0" class="py-16 text-center text-slate-400 text-sm">
+            左のサイドバーで選手を選択してください
+          </div>
+          <template v-else>
+            <section v-if="pitcherIds.length" class="mb-10">
+              <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
+                投手 <span class="text-xs font-normal text-slate-400">（直近3試合）</span>
+              </h2>
+              <RecentGames
+                :player-ids="pitcherIds"
+                :season-data-map="seasonDataMap"
+                mode="pitcher"
+              />
+            </section>
+            <section v-if="batterIds.length">
+              <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
+                野手 <span class="text-xs font-normal text-slate-400">（直近6試合）</span>
+              </h2>
+              <RecentGames
+                :player-ids="batterIds"
+                :season-data-map="seasonDataMap"
+                mode="batter"
+              />
+            </section>
+          </template>
+        </template>
+
         <!-- 今シーズン -->
-        <template v-if="activeTab === 'season'">
+        <template v-else-if="activeTab === 'season'">
           <div v-if="selectedIds.length === 0" class="py-16 text-center text-slate-400 text-sm">
             左のサイドバーで選手を選択してください
           </div>
@@ -332,7 +363,7 @@ function deselectAll() {
         </template>
 
         <!-- 年度別推移 -->
-        <template v-else>
+        <template v-else-if="activeTab === 'yearly'">
           <div v-if="selectedIds.length === 0" class="py-16 text-center text-slate-400 text-sm">
             左のサイドバーで選手を選択してください
           </div>

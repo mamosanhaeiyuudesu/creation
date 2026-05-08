@@ -18,6 +18,10 @@ const mapBatter = (r: Record<string, unknown>): BatterStats => ({
   runs: r.runs as number | null,
   stolenBases: r.stolen_bases as number | null,
   bbk: r.bbk as number | null,
+  strikeouts: r.strikeouts as number | null,
+  walks: r.walks as number | null,
+  totalBases: r.total_bases as number | null,
+  atBats: r.at_bats as number | null,
 })
 
 const mapPitcher = (r: Record<string, unknown>): PitcherStats => ({
@@ -36,6 +40,7 @@ const mapPitcher = (r: Record<string, unknown>): PitcherStats => ({
   holds: r.holds as number | null,
   fip: r.fip as number | null,
   bbk: r.bbk as number | null,
+  runsAllowed: r.runs_allowed as number | null,
 })
 
 export default defineEventHandler(async (event): Promise<Record<string, YearlyData>> => {

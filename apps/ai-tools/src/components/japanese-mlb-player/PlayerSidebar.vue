@@ -11,8 +11,8 @@
         @click="$emit('update:league', lg.key)"
         class="flex-1 py-2 text-xs font-semibold transition-colors"
         :class="league === lg.key
-          ? 'bg-white/20 text-white'
-          : 'text-blue-300 hover:text-white hover:bg-white/10'"
+          ? 'text-white bg-white/20'
+          : 'text-white/40 hover:text-white/70 hover:bg-white/10'"
       >{{ lg.label }}</button>
     </div>
 

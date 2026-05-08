@@ -16,7 +16,6 @@
                 class="text-center py-2 px-3 text-xs font-medium whitespace-nowrap sticky top-0 z-20 bg-white"
               >
                 <span class="inline-flex items-center gap-1" :style="{ color: colors[player.id] }">
-                  <img v-if="isRecentlyUpdated(player.id, 'pitcher')" src="/new_10785603.png" class="w-5 h-5 flex-shrink-0" alt="NEW" />
                   {{ player.nameJa }}
                   <a
                     :href="`https://baseball.yahoo.co.jp/mlb/player/${player.sportnavi}/top`"
@@ -93,7 +92,6 @@
                 class="text-center py-2 px-3 text-xs font-medium whitespace-nowrap sticky top-0 z-20 bg-white"
               >
                 <span class="inline-flex items-center gap-1" :style="{ color: colors[player.id] }">
-                  <img v-if="isRecentlyUpdated(player.id, 'batter')" src="/new_10785603.png" class="w-5 h-5 flex-shrink-0" alt="NEW" />
                   {{ player.nameJa }}
                   <a
                     :href="`https://baseball.yahoo.co.jp/mlb/player/${player.sportnavi}/top`"

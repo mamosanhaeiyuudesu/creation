@@ -64,8 +64,14 @@ async function fetchPlayerSplits(mlbId: string, params: Record<string, string>):
 // ── stat object → batter row ──
 function parseBatter(s: Record<string, unknown>, playerId: string, season: number, date: string) {
   const pa = parseNum(s.plateAppearances) ?? 0
+  const ab = parseNum(s.atBats) ?? 0
   const bb = parseNum(s.baseOnBalls) ?? 0
   const so = parseNum(s.strikeOuts) ?? 0
+  const h = parseNum(s.hits) ?? 0
+  const dbl = parseNum(s.doubles) ?? 0
+  const tri = parseNum(s.triples) ?? 0
+  const hr = parseNum(s.homeRuns) ?? 0
+  const tb = (h - dbl - tri - hr) + 2 * dbl + 3 * tri + 4 * hr
   return {
     playerId, season, date,
     avg: parseNum(s.avg),
@@ -74,12 +80,16 @@ function parseBatter(s: Record<string, unknown>, playerId: string, season: numbe
     ops: parseNum(s.ops),
     bbPct: pct(bb, pa),
     kPct: pct(so, pa),
-    hr: parseNum(s.homeRuns),
+    hr: hr || null,
     rbi: parseNum(s.rbi),
-    hits: parseNum(s.hits),
+    hits: h || null,
     runs: parseNum(s.runs),
     stolenBases: parseNum(s.stolenBases),
     bbk: so > 0 ? Math.round(bb / so * 100) / 100 : null,
+    strikeouts: so || null,
+    walks: bb || null,
+    totalBases: tb || null,
+    atBats: ab || null,
   }
 }
 
@@ -106,6 +116,7 @@ function parsePitcher(s: Record<string, unknown>, playerId: string, season: numb
     holds: parseNum(s.holds),
     fip,
     bbk: k > 0 ? Math.round(bb / k * 100) / 100 : null,
+    runsAllowed: parseNum(s.runs),
   }
 }
 
@@ -158,7 +169,7 @@ export async function fetchBatterGameLog(mlbId: string, season: number) {
     stats: 'gameLog', season: String(season), sportId: '1', group: 'hitting',
   })
 
-  let h = 0, ab = 0, bb = 0, hbp = 0, sf = 0, so = 0, pa = 0, tb = 0
+  let h = 0, ab = 0, bb = 0, hbp = 0, sf = 0, so = 0, pa = 0, tb = 0  // ab = at-bats (打数)
   let hr = 0, rbi = 0, runs = 0, sb = 0
   const results: ReturnType<typeof parseBatter>[] = []
 
@@ -196,6 +207,10 @@ export async function fetchBatterGameLog(mlbId: string, season: number) {
       bbPct: pct(bb, pa), kPct: pct(so, pa),
       hr, rbi, hits: h, runs, stolenBases: sb,
       bbk: so > 0 ? Math.round(bb / so * 100) / 100 : null,
+      strikeouts: so || null,
+      walks: bb || null,
+      totalBases: tb || null,
+      atBats: ab || null,
     })
   }
   return results
@@ -206,13 +221,14 @@ export async function fetchPitcherGameLog(mlbId: string, season: number) {
     stats: 'gameLog', season: String(season), sportId: '1', group: 'pitching',
   })
 
-  let er = 0, hits = 0, bb = 0, so = 0, bf = 0, outs = 0
+  let er = 0, runsAllowed = 0, hits = 0, bb = 0, so = 0, bf = 0, outs = 0
   let wins = 0, losses = 0, saves = 0, holds = 0, hr = 0, hbp = 0
   const results: ReturnType<typeof parsePitcher>[] = []
 
   for (const game of splits) {
     const s = game.stat
     er += parseNum(s.earnedRuns) ?? 0
+    runsAllowed += parseNum(s.runs) ?? 0
     hits += parseNum(s.hits) ?? 0
     bb += parseNum(s.baseOnBalls) ?? 0
     so += parseNum(s.strikeOuts) ?? 0
@@ -241,6 +257,7 @@ export async function fetchPitcherGameLog(mlbId: string, season: number) {
       inningsPitched: ip, saves, holds,
       fip,
       bbk: so > 0 ? Math.round(bb / so * 100) / 100 : null,
+      runsAllowed: runsAllowed || null,
     })
   }
   return results
