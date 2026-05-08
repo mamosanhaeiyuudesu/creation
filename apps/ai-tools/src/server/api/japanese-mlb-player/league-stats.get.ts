@@ -65,9 +65,9 @@ export default defineEventHandler(async (event) => {
     return getDevLeagueStats()
   }
 
-  const [al, nl] = await Promise.all([
-    getLeagueBlock(103, season),
+  const [nl, al] = await Promise.all([
     getLeagueBlock(104, season),
+    getLeagueBlock(103, season),
   ])
 
   return { AL: al, NL: nl } satisfies AllLeagueStats

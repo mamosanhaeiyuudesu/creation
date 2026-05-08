@@ -102,8 +102,8 @@ const emit = defineEmits<{
 }>()
 
 const leagues = [
-  { key: 'AL' as const, label: 'ア・リーグ' },
   { key: 'NL' as const, label: 'ナ・リーグ' },
+  { key: 'AL' as const, label: 'ア・リーグ' },
 ]
 
 const pitchers = computed(() => PITCHER_PLAYERS.filter(p => p.league === props.league))

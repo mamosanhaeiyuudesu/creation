@@ -202,8 +202,8 @@ function deselectAll() {
             @change="activeLeague = ($event.target as HTMLSelectElement).value as 'AL' | 'NL'"
             class="text-xs text-slate-600 border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
           >
-            <option value="AL">ア・リーグ</option>
             <option value="NL">ナ・リーグ</option>
+            <option value="AL">ア・リーグ</option>
           </select>
           <button
             class="px-3 py-1.5 text-sm text-slate-500 flex items-center gap-1"
