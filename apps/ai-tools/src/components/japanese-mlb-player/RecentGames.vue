@@ -310,7 +310,7 @@ function isRecent(dateStr: string): boolean {
               <td class="px-4 py-2 whitespace-nowrap font-mono text-[10px] text-slate-400">{{ row.date }}</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.ab }}</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hits > 0 && isRecent(row.date) ? 'text-emerald-600' : '']">{{ row.hits }}</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hr > 0 && isRecent(row.date) ? 'text-amber-600 font-bold' : '']">{{ row.hr || '—' }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hr > 0 && isRecent(row.date) ? 'text-amber-600 font-bold' : '']">{{ row.hr }}</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.tb }}</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.rbi }}</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.runs }}</td>
