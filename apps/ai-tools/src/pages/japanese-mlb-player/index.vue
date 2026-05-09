@@ -61,10 +61,16 @@ async function handleRetry() {
   try { await retryFailed() } finally { isRetrying.value = false }
 }
 
-const pitcherView = ref<'table' | 'trend'>('table')
-const batterView = ref<'table' | 'trend'>('table')
-const pitcherYearlyView = ref<'table' | 'chart'>('table')
-const batterYearlyView = ref<'table' | 'chart'>('table')
+const mView = reactive({
+  nlPitcherSeason: 'table' as 'table' | 'trend',
+  nlBatterSeason: 'table' as 'table' | 'trend',
+  alPitcherSeason: 'table' as 'table' | 'trend',
+  alBatterSeason: 'table' as 'table' | 'trend',
+  nlPitcherYearly: 'table' as 'table' | 'chart',
+  nlBatterYearly: 'table' as 'table' | 'chart',
+  alPitcherYearly: 'table' as 'table' | 'chart',
+  alBatterYearly: 'table' as 'table' | 'chart',
+})
 
 watch([activeLeague, activeTab], ([league, tab]) => {
   const query: Record<string, string> = {}
@@ -107,6 +113,31 @@ const batterIds = computed(() =>
   selectedIds.value.filter(id => {
     const p = PLAYERS.find(pl => pl.id === id)
     return p?.league === activeLeague.value && (p?.position === 'batter' || p?.position === 'both')
+  })
+)
+
+const nlPitcherIds = computed(() =>
+  selectedIds.value.filter(id => {
+    const p = PLAYERS.find(pl => pl.id === id)
+    return p?.league === 'NL' && (p?.position === 'pitcher' || p?.position === 'both')
+  })
+)
+const nlBatterIds = computed(() =>
+  selectedIds.value.filter(id => {
+    const p = PLAYERS.find(pl => pl.id === id)
+    return p?.league === 'NL' && (p?.position === 'batter' || p?.position === 'both')
+  })
+)
+const alPitcherIds = computed(() =>
+  selectedIds.value.filter(id => {
+    const p = PLAYERS.find(pl => pl.id === id)
+    return p?.league === 'AL' && (p?.position === 'pitcher' || p?.position === 'both')
+  })
+)
+const alBatterIds = computed(() =>
+  selectedIds.value.filter(id => {
+    const p = PLAYERS.find(pl => pl.id === id)
+    return p?.league === 'AL' && (p?.position === 'batter' || p?.position === 'both')
   })
 )
 
@@ -199,14 +230,6 @@ function deselectAll() {
           >
             <option v-for="tab in tabs" :key="tab.key" :value="tab.key">{{ tab.label }}</option>
           </select>
-          <select
-            :value="activeLeague"
-            @change="activeLeague = ($event.target as HTMLSelectElement).value as 'AL' | 'NL'"
-            class="text-xs text-slate-600 border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
-          >
-            <option value="NL">ナ・リーグ</option>
-            <option value="AL">ア・リーグ</option>
-          </select>
           <button
             class="px-3 py-1.5 text-sm text-slate-500 flex items-center gap-1"
             @click="openMobileMenu"
@@ -222,7 +245,6 @@ function deselectAll() {
         <PlayerSidebar
           :selected-ids="selectedIds"
           :league="activeLeague"
-          :show-league="false"
           :closable="true"
           @toggle="mobileToggle"
           @select-all="selectAll"
@@ -245,210 +267,247 @@ function deselectAll() {
 
       <!-- コンテンツ -->
       <div class="p-5">
-        <!-- 速報 -->
-        <template v-if="activeTab === 'speed'">
-          <div v-if="selectedIds.length === 0" class="py-16 text-center text-slate-400 text-sm">
-            左のサイドバーで選手を選択してください
-          </div>
-          <template v-else>
-            <section v-if="pitcherIds.length" class="mb-10">
-              <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
-                投手 <span class="text-xs font-normal text-slate-400">（直近3試合）</span>
-              </h2>
-              <RecentGames
-                :player-ids="pitcherIds"
-                :season-data-map="seasonDataMap"
-                mode="pitcher"
-              />
-            </section>
-            <section v-if="batterIds.length">
-              <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
-                野手 <span class="text-xs font-normal text-slate-400">（直近6試合）</span>
-              </h2>
-              <RecentGames
-                :player-ids="batterIds"
-                :season-data-map="seasonDataMap"
-                mode="batter"
-              />
-            </section>
+
+        <!-- ===== モバイル: NL→AL順表示 ===== -->
+        <div class="md:hidden">
+          <!-- 速報 -->
+          <template v-if="activeTab === 'speed'">
+            <div v-if="selectedIds.length === 0" class="py-16 text-center text-slate-400 text-sm">
+              メニューから選手を選択してください
+            </div>
+            <template v-else>
+              <section v-if="nlPitcherIds.length" class="mb-10">
+                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
+                  ナ・リーグ 投手 <span class="text-xs font-normal text-slate-400">（直近3試合）</span>
+                </h2>
+                <RecentGames :player-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+              </section>
+              <section v-if="nlBatterIds.length" class="mb-10">
+                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
+                  ナ・リーグ 野手 <span class="text-xs font-normal text-slate-400">（直近6試合）</span>
+                </h2>
+                <RecentGames :player-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+              </section>
+              <section v-if="alPitcherIds.length" class="mb-10">
+                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
+                  ア・リーグ 投手 <span class="text-xs font-normal text-slate-400">（直近3試合）</span>
+                </h2>
+                <RecentGames :player-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+              </section>
+              <section v-if="alBatterIds.length">
+                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
+                  ア・リーグ 野手 <span class="text-xs font-normal text-slate-400">（直近6試合）</span>
+                </h2>
+                <RecentGames :player-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+              </section>
+            </template>
           </template>
-        </template>
 
-        <!-- 今シーズン -->
-        <template v-else-if="activeTab === 'season'">
-          <div v-if="selectedIds.length === 0" class="py-16 text-center text-slate-400 text-sm">
-            左のサイドバーで選手を選択してください
-          </div>
-          <template v-else>
-            <!-- ===== 投手 ===== -->
-            <section v-if="pitcherIds.length" class="mb-10">
-              <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
-                投手
-              </h2>
-
-              <!-- モバイル: サブタブ -->
-              <div class="md:hidden flex border-b border-slate-200 mb-4">
-                <button
-                  v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'trend', label: '推移グラフ' }]"
-                  :key="v.key"
-                  @click="pitcherView = v.key as 'table' | 'trend'"
-                  class="flex-1 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors duration-150"
-                  :class="pitcherView === v.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'"
-                >{{ v.label }}</button>
-              </div>
-
-              <!-- 成績比較 -->
-              <div class="mb-6" :class="{ 'hidden md:block': pitcherView !== 'table' }">
-                <h3 class="hidden md:block text-sm font-semibold text-slate-500 mb-3">成績比較</h3>
-                <StatsTable
-                  :selected-ids="selectedIds"
-                  :season-data-map="seasonDataMap"
-                  :league-stats="leagueStats"
-                  :league="activeLeague"
-                  mode="pitcher"
-                />
-              </div>
-
-              <!-- 推移グラフ -->
-              <div :class="{ 'hidden md:block': pitcherView !== 'trend' }">
-                <h3 class="hidden md:block text-sm font-semibold text-slate-500 mb-3">推移グラフ</h3>
-                <TrendChart
-                  :selected-ids="pitcherIds"
-                  :season-data-map="seasonDataMap"
-                  mode="pitcher"
-                />
-              </div>
-            </section>
-
-            <!-- ===== 野手 ===== -->
-            <section v-if="batterIds.length">
-              <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
-                野手
-              </h2>
-
-              <!-- モバイル: サブタブ -->
-              <div class="md:hidden flex border-b border-slate-200 mb-4">
-                <button
-                  v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'trend', label: '推移グラフ' }]"
-                  :key="v.key"
-                  @click="batterView = v.key as 'table' | 'trend'"
-                  class="flex-1 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors duration-150"
-                  :class="batterView === v.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'"
-                >{{ v.label }}</button>
-              </div>
-
-              <!-- 成績比較 -->
-              <div class="mb-6" :class="{ 'hidden md:block': batterView !== 'table' }">
-                <h3 class="hidden md:block text-sm font-semibold text-slate-500 mb-3">成績比較</h3>
-                <StatsTable
-                  :selected-ids="selectedIds"
-                  :season-data-map="seasonDataMap"
-                  :league-stats="leagueStats"
-                  :league="activeLeague"
-                  mode="batter"
-                />
-              </div>
-
-              <!-- 推移グラフ -->
-              <div :class="{ 'hidden md:block': batterView !== 'trend' }">
-                <h3 class="hidden md:block text-sm font-semibold text-slate-500 mb-3">推移グラフ</h3>
-                <TrendChart
-                  :selected-ids="batterIds"
-                  :season-data-map="seasonDataMap"
-                  mode="batter"
-                />
-              </div>
-            </section>
+          <!-- 今シーズン -->
+          <template v-else-if="activeTab === 'season'">
+            <div v-if="selectedIds.length === 0" class="py-16 text-center text-slate-400 text-sm">
+              メニューから選手を選択してください
+            </div>
+            <template v-else>
+              <section v-if="nlPitcherIds.length" class="mb-8">
+                <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ナ・リーグ 投手</h2>
+                <div class="flex border-b border-slate-200 mb-4">
+                  <button v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'trend', label: '推移グラフ' }]" :key="v.key"
+                    @click="mView.nlPitcherSeason = v.key as 'table' | 'trend'"
+                    class="flex-1 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors duration-150"
+                    :class="mView.nlPitcherSeason === v.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'"
+                  >{{ v.label }}</button>
+                </div>
+                <div v-if="mView.nlPitcherSeason === 'table'">
+                  <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="pitcher" />
+                </div>
+                <TrendChart v-else :selected-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+              </section>
+              <section v-if="nlBatterIds.length" class="mb-8">
+                <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ナ・リーグ 野手</h2>
+                <div class="flex border-b border-slate-200 mb-4">
+                  <button v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'trend', label: '推移グラフ' }]" :key="v.key"
+                    @click="mView.nlBatterSeason = v.key as 'table' | 'trend'"
+                    class="flex-1 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors duration-150"
+                    :class="mView.nlBatterSeason === v.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'"
+                  >{{ v.label }}</button>
+                </div>
+                <div v-if="mView.nlBatterSeason === 'table'">
+                  <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="batter" />
+                </div>
+                <TrendChart v-else :selected-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+              </section>
+              <section v-if="alPitcherIds.length" class="mb-8">
+                <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ア・リーグ 投手</h2>
+                <div class="flex border-b border-slate-200 mb-4">
+                  <button v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'trend', label: '推移グラフ' }]" :key="v.key"
+                    @click="mView.alPitcherSeason = v.key as 'table' | 'trend'"
+                    class="flex-1 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors duration-150"
+                    :class="mView.alPitcherSeason === v.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'"
+                  >{{ v.label }}</button>
+                </div>
+                <div v-if="mView.alPitcherSeason === 'table'">
+                  <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="pitcher" />
+                </div>
+                <TrendChart v-else :selected-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+              </section>
+              <section v-if="alBatterIds.length">
+                <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ア・リーグ 野手</h2>
+                <div class="flex border-b border-slate-200 mb-4">
+                  <button v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'trend', label: '推移グラフ' }]" :key="v.key"
+                    @click="mView.alBatterSeason = v.key as 'table' | 'trend'"
+                    class="flex-1 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors duration-150"
+                    :class="mView.alBatterSeason === v.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'"
+                  >{{ v.label }}</button>
+                </div>
+                <div v-if="mView.alBatterSeason === 'table'">
+                  <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="batter" />
+                </div>
+                <TrendChart v-else :selected-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+              </section>
+            </template>
           </template>
-        </template>
 
-        <!-- 年度別推移 -->
-        <template v-else-if="activeTab === 'yearly'">
-          <div v-if="selectedIds.length === 0" class="py-16 text-center text-slate-400 text-sm">
-            左のサイドバーで選手を選択してください
-          </div>
-          <template v-else>
-            <!-- ===== 投手 ===== -->
-            <section v-if="pitcherIds.length" class="mb-10">
-              <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
-                投手
-              </h2>
-
-              <!-- モバイル: サブタブ -->
-              <div class="md:hidden flex border-b border-slate-200 mb-4">
-                <button
-                  v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'chart', label: '推移グラフ' }]"
-                  :key="v.key"
-                  @click="pitcherYearlyView = v.key as 'table' | 'chart'"
-                  class="flex-1 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors duration-150"
-                  :class="pitcherYearlyView === v.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'"
-                >{{ v.label }}</button>
-              </div>
-
-              <!-- 成績比較 -->
-              <div class="mb-6" :class="{ 'hidden md:block': pitcherYearlyView !== 'table' }">
-                <h3 class="hidden md:block text-sm font-semibold text-slate-500 mb-3">成績比較</h3>
-                <YearlyChart
-                  :selected-ids="pitcherIds"
-                  :yearly-data-map="yearlyDataMap"
-                  mode="pitcher"
-                  view="table"
-                />
-              </div>
-
-              <!-- 推移グラフ -->
-              <div :class="{ 'hidden md:block': pitcherYearlyView !== 'chart' }">
-                <h3 class="hidden md:block text-sm font-semibold text-slate-500 mb-3">推移グラフ</h3>
-                <YearlyChart
-                  :selected-ids="pitcherIds"
-                  :yearly-data-map="yearlyDataMap"
-                  mode="pitcher"
-                  view="chart"
-                />
-              </div>
-            </section>
-
-            <!-- ===== 野手 ===== -->
-            <section v-if="batterIds.length">
-              <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
-                野手
-              </h2>
-
-              <!-- モバイル: サブタブ -->
-              <div class="md:hidden flex border-b border-slate-200 mb-4">
-                <button
-                  v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'chart', label: '推移グラフ' }]"
-                  :key="v.key"
-                  @click="batterYearlyView = v.key as 'table' | 'chart'"
-                  class="flex-1 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors duration-150"
-                  :class="batterYearlyView === v.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'"
-                >{{ v.label }}</button>
-              </div>
-
-              <!-- 成績比較 -->
-              <div class="mb-6" :class="{ 'hidden md:block': batterYearlyView !== 'table' }">
-                <h3 class="hidden md:block text-sm font-semibold text-slate-500 mb-3">成績比較</h3>
-                <YearlyChart
-                  :selected-ids="batterIds"
-                  :yearly-data-map="yearlyDataMap"
-                  mode="batter"
-                  view="table"
-                />
-              </div>
-
-              <!-- 推移グラフ -->
-              <div :class="{ 'hidden md:block': batterYearlyView !== 'chart' }">
-                <h3 class="hidden md:block text-sm font-semibold text-slate-500 mb-3">推移グラフ</h3>
-                <YearlyChart
-                  :selected-ids="batterIds"
-                  :yearly-data-map="yearlyDataMap"
-                  mode="batter"
-                  view="chart"
-                />
-              </div>
-            </section>
+          <!-- 年度別 -->
+          <template v-else-if="activeTab === 'yearly'">
+            <div v-if="selectedIds.length === 0" class="py-16 text-center text-slate-400 text-sm">
+              メニューから選手を選択してください
+            </div>
+            <template v-else>
+              <section v-if="nlPitcherIds.length" class="mb-8">
+                <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ナ・リーグ 投手</h2>
+                <div class="flex border-b border-slate-200 mb-4">
+                  <button v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'chart', label: '推移グラフ' }]" :key="v.key"
+                    @click="mView.nlPitcherYearly = v.key as 'table' | 'chart'"
+                    class="flex-1 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors duration-150"
+                    :class="mView.nlPitcherYearly === v.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'"
+                  >{{ v.label }}</button>
+                </div>
+                <YearlyChart :selected-ids="nlPitcherIds" :yearly-data-map="yearlyDataMap" mode="pitcher" :view="mView.nlPitcherYearly" />
+              </section>
+              <section v-if="nlBatterIds.length" class="mb-8">
+                <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ナ・リーグ 野手</h2>
+                <div class="flex border-b border-slate-200 mb-4">
+                  <button v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'chart', label: '推移グラフ' }]" :key="v.key"
+                    @click="mView.nlBatterYearly = v.key as 'table' | 'chart'"
+                    class="flex-1 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors duration-150"
+                    :class="mView.nlBatterYearly === v.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'"
+                  >{{ v.label }}</button>
+                </div>
+                <YearlyChart :selected-ids="nlBatterIds" :yearly-data-map="yearlyDataMap" mode="batter" :view="mView.nlBatterYearly" />
+              </section>
+              <section v-if="alPitcherIds.length" class="mb-8">
+                <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ア・リーグ 投手</h2>
+                <div class="flex border-b border-slate-200 mb-4">
+                  <button v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'chart', label: '推移グラフ' }]" :key="v.key"
+                    @click="mView.alPitcherYearly = v.key as 'table' | 'chart'"
+                    class="flex-1 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors duration-150"
+                    :class="mView.alPitcherYearly === v.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'"
+                  >{{ v.label }}</button>
+                </div>
+                <YearlyChart :selected-ids="alPitcherIds" :yearly-data-map="yearlyDataMap" mode="pitcher" :view="mView.alPitcherYearly" />
+              </section>
+              <section v-if="alBatterIds.length">
+                <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ア・リーグ 野手</h2>
+                <div class="flex border-b border-slate-200 mb-4">
+                  <button v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'chart', label: '推移グラフ' }]" :key="v.key"
+                    @click="mView.alBatterYearly = v.key as 'table' | 'chart'"
+                    class="flex-1 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors duration-150"
+                    :class="mView.alBatterYearly === v.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'"
+                  >{{ v.label }}</button>
+                </div>
+                <YearlyChart :selected-ids="alBatterIds" :yearly-data-map="yearlyDataMap" mode="batter" :view="mView.alBatterYearly" />
+              </section>
+            </template>
           </template>
-        </template>
+        </div>
+
+        <!-- ===== PC: リーグ選択で表示 ===== -->
+        <div class="hidden md:block">
+          <!-- 速報 -->
+          <template v-if="activeTab === 'speed'">
+            <div v-if="selectedIds.length === 0" class="py-16 text-center text-slate-400 text-sm">
+              左のサイドバーで選手を選択してください
+            </div>
+            <template v-else>
+              <section v-if="pitcherIds.length" class="mb-10">
+                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
+                  投手 <span class="text-xs font-normal text-slate-400">（直近3試合）</span>
+                </h2>
+                <RecentGames :player-ids="pitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+              </section>
+              <section v-if="batterIds.length">
+                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
+                  野手 <span class="text-xs font-normal text-slate-400">（直近6試合）</span>
+                </h2>
+                <RecentGames :player-ids="batterIds" :season-data-map="seasonDataMap" mode="batter" />
+              </section>
+            </template>
+          </template>
+
+          <!-- 今シーズン -->
+          <template v-else-if="activeTab === 'season'">
+            <div v-if="selectedIds.length === 0" class="py-16 text-center text-slate-400 text-sm">
+              左のサイドバーで選手を選択してください
+            </div>
+            <template v-else>
+              <section v-if="pitcherIds.length" class="mb-10">
+                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">投手</h2>
+                <div class="mb-6">
+                  <h3 class="text-sm font-semibold text-slate-500 mb-3">成績比較</h3>
+                  <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" :league="activeLeague" mode="pitcher" />
+                </div>
+                <div>
+                  <h3 class="text-sm font-semibold text-slate-500 mb-3">推移グラフ</h3>
+                  <TrendChart :selected-ids="pitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                </div>
+              </section>
+              <section v-if="batterIds.length">
+                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">野手</h2>
+                <div class="mb-6">
+                  <h3 class="text-sm font-semibold text-slate-500 mb-3">成績比較</h3>
+                  <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" :league="activeLeague" mode="batter" />
+                </div>
+                <div>
+                  <h3 class="text-sm font-semibold text-slate-500 mb-3">推移グラフ</h3>
+                  <TrendChart :selected-ids="batterIds" :season-data-map="seasonDataMap" mode="batter" />
+                </div>
+              </section>
+            </template>
+          </template>
+
+          <!-- 年度別推移 -->
+          <template v-else-if="activeTab === 'yearly'">
+            <div v-if="selectedIds.length === 0" class="py-16 text-center text-slate-400 text-sm">
+              左のサイドバーで選手を選択してください
+            </div>
+            <template v-else>
+              <section v-if="pitcherIds.length" class="mb-10">
+                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">投手</h2>
+                <div class="mb-6">
+                  <h3 class="text-sm font-semibold text-slate-500 mb-3">成績比較</h3>
+                  <YearlyChart :selected-ids="pitcherIds" :yearly-data-map="yearlyDataMap" mode="pitcher" view="table" />
+                </div>
+                <div>
+                  <h3 class="text-sm font-semibold text-slate-500 mb-3">推移グラフ</h3>
+                  <YearlyChart :selected-ids="pitcherIds" :yearly-data-map="yearlyDataMap" mode="pitcher" view="chart" />
+                </div>
+              </section>
+              <section v-if="batterIds.length">
+                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">野手</h2>
+                <div class="mb-6">
+                  <h3 class="text-sm font-semibold text-slate-500 mb-3">成績比較</h3>
+                  <YearlyChart :selected-ids="batterIds" :yearly-data-map="yearlyDataMap" mode="batter" view="table" />
+                </div>
+                <div>
+                  <h3 class="text-sm font-semibold text-slate-500 mb-3">推移グラフ</h3>
+                  <YearlyChart :selected-ids="batterIds" :yearly-data-map="yearlyDataMap" mode="batter" view="chart" />
+                </div>
+              </section>
+            </template>
+          </template>
+        </div>
+
       </div>
     </main>
   </div>

@@ -48,7 +48,7 @@ interface Card {
   pitcherRows?: PitcherRow[]
   batterRows?: BatterRow[]
   pitcherTotals?: { wins: number | null; losses: number | null; ip: string; era: string; k: number | null; bb: number | null; runsAllowed: number | null }
-  batterTotals?: { avg: number | null; ab: number | null; hits: number | null; hr: number | null; rbi: number | null; runs: number | null; so: number | null; walks: number | null; tb: number | null }
+  batterTotals?: { avg: number | null; obp: number | null; ops: number | null; ab: number | null; hits: number | null; hr: number | null; rbi: number | null; runs: number | null; so: number | null; walks: number | null; tb: number | null }
 }
 
 function buildPitcherTotals(data: SeasonData): Card['pitcherTotals'] {
@@ -70,6 +70,8 @@ function buildBatterTotals(data: SeasonData): Card['batterTotals'] {
   const c = data.currentBatter
   return {
     avg: c?.avg ?? null,
+    obp: c?.obp ?? null,
+    ops: c?.ops ?? null,
     ab: c?.atBats ?? null,
     hits: c?.hits ?? null,
     hr: c?.hr ?? null,
@@ -201,12 +203,21 @@ function isRecent(dateStr: string): boolean {
                 {{ card.pitcherTotals.wins ?? '-' }}勝 {{ card.pitcherTotals.losses ?? '-' }}敗
               </span>
               <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
+                {{ card.pitcherTotals.ip !== '-' ? card.pitcherTotals.ip + '回' : '-' }}
+              </span>
+              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
                 防御率 {{ card.pitcherTotals.era ?? '-' }}
               </span>
             </template>
             <template v-if="mode === 'batter' && card.batterTotals">
               <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
                 打率 {{ card.batterTotals.avg !== null ? card.batterTotals.avg.toFixed(3).replace(/^0/, '') : '-' }}
+              </span>
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
+                出塁率 {{ card.batterTotals.obp !== null ? card.batterTotals.obp.toFixed(3).replace(/^0/, '') : '-' }}
+              </span>
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
+                OPS {{ card.batterTotals.ops !== null ? card.batterTotals.ops.toFixed(3).replace(/^0/, '') : '-' }}
               </span>
               <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
                 {{ card.batterTotals.hr ?? '-' }} HR
@@ -299,7 +310,7 @@ function isRecent(dateStr: string): boolean {
               <td class="px-4 py-2 whitespace-nowrap font-mono text-[10px] text-slate-400">{{ row.date }}</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.ab }}</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hits > 0 && isRecent(row.date) ? 'text-emerald-600' : '']">{{ row.hits }}</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hr > 0 ? 'text-amber-600 font-bold' : '']">{{ row.hr || '—' }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hr > 0 && isRecent(row.date) ? 'text-amber-600 font-bold' : '']">{{ row.hr || '—' }}</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.tb }}</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.rbi }}</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.runs }}</td>
