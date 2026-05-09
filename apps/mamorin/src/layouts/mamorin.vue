@@ -2,14 +2,15 @@
   <div class="therapist-layout">
     <header class="mm-header">
       <div class="mm-header-inner">
-        <NuxtLink to="/" class="mm-logo">
+        <!-- <NuxtLink to="/" class="mm-logo">
           <span class="mm-yinyang">☯</span> まもりん
-        </NuxtLink>
+        </NuxtLink> -->
         <nav class="mm-nav">
           <a href="#voice" class="mm-nav-link">お客様の声</a>
           <a href="#profile" class="mm-nav-link">私について</a>
           <a href="#pricing" class="mm-nav-link">料金体系</a>
           <a href="#qa" class="mm-nav-link">Q&amp;A</a>
+          <a href="https://note.com/parent_child" target="_blank" rel="noopener noreferrer" class="mm-nav-link">ブログ</a>
           <a
             href="https://docs.google.com/forms/d/e/1FAIpQLSckcLkBNH9xEMSeS3_SuDznoShew41SF6Ja6Du7XHvS6-rwRg/viewform?usp=publish-editor"
             target="_blank"
@@ -31,6 +32,7 @@
         <a href="#profile" class="mm-drawer-link">私について</a>
         <a href="#pricing" class="mm-drawer-link">料金体系</a>
         <a href="#qa" class="mm-drawer-link">Q&amp;A</a>
+        <a href="https://note.com/parent_child" target="_blank" rel="noopener noreferrer" class="mm-drawer-link">ブログ</a>
         <a
           href="https://docs.google.com/forms/d/e/1FAIpQLSckcLkBNH9xEMSeS3_SuDznoShew41SF6Ja6Du7XHvS6-rwRg/viewform?usp=publish-editor"
           target="_blank"
