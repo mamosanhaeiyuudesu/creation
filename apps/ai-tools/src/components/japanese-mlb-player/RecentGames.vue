@@ -48,7 +48,7 @@ interface Card {
   pitcherRows?: PitcherRow[]
   batterRows?: BatterRow[]
   pitcherTotals?: { wins: number | null; losses: number | null; ip: string; era: string; k: number | null; bb: number | null; runsAllowed: number | null }
-  batterTotals?: { ab: number | null; hits: number | null; hr: number | null; rbi: number | null; runs: number | null; so: number | null; walks: number | null; tb: number | null }
+  batterTotals?: { avg: number | null; ab: number | null; hits: number | null; hr: number | null; rbi: number | null; runs: number | null; so: number | null; walks: number | null; tb: number | null }
 }
 
 function buildPitcherTotals(data: SeasonData): Card['pitcherTotals'] {
@@ -69,6 +69,7 @@ function buildPitcherTotals(data: SeasonData): Card['pitcherTotals'] {
 function buildBatterTotals(data: SeasonData): Card['batterTotals'] {
   const c = data.currentBatter
   return {
+    avg: c?.avg ?? null,
     ab: c?.atBats ?? null,
     hits: c?.hits ?? null,
     hr: c?.hr ?? null,
@@ -159,7 +160,7 @@ const numColor = 'rgb(135, 148, 160)'
     <div v-if="cards.length === 0" class="col-span-full py-8 text-sm" :style="{ color: numColor }">データがありません</div>
 
     <div v-for="card in cards" :key="card.id">
-      <div class="flex items-center gap-1.5 mb-2">
+      <div class="flex items-center gap-1.5 mb-2 flex-wrap">
         <span class="text-sm font-bold" :style="{ color: card.color }">{{ card.nameJa }}</span>
         <a
           v-if="card.sportnavi"
@@ -173,6 +174,12 @@ const numColor = 'rgb(135, 148, 160)'
             <path fill-rule="evenodd" d="M9 3a6 6 0 100 12A6 6 0 009 3zM1 9a8 8 0 1114.32 4.906l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387A8 8 0 011 9z" clip-rule="evenodd"/>
           </svg>
         </a>
+        <span v-if="mode === 'pitcher' && card.pitcherTotals" class="text-xs" :style="{ color: numColor }">
+          {{ card.pitcherTotals.wins ?? '-' }}勝{{ card.pitcherTotals.losses ?? '-' }}敗 防御率{{ card.pitcherTotals.era ?? '-' }}
+        </span>
+        <span v-if="mode === 'batter' && card.batterTotals" class="text-xs" :style="{ color: numColor }">
+          {{ card.batterTotals.avg !== null ? card.batterTotals.avg.toFixed(3).replace(/^0/, '') : '-' }} {{ card.batterTotals.hr ?? '-' }}HR {{ card.batterTotals.rbi ?? '-' }}打点 {{ card.batterTotals.runs ?? '-' }}得点
+        </span>
       </div>
 
       <div v-if="card.noData" class="text-xs py-1" :style="{ color: numColor }">読み込み中...</div>
@@ -183,12 +190,12 @@ const numColor = 'rgb(135, 148, 160)'
         <thead>
           <tr :style="{ color: numColor }">
             <th class="text-left pb-1 pr-6 font-medium whitespace-nowrap"></th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">結果</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">投球回</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">奪三振</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">四球</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">失点</th>
-            <th class="text-center pb-1 pl-3 font-medium whitespace-nowrap">自責点</th>
+            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">勝敗</th>
+            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">投回</th>
+            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">奪三</th>
+            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">四</th>
+            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">失</th>
+            <th class="text-center pb-1 pl-3 font-medium whitespace-nowrap">責</th>
           </tr>
         </thead>
         <tbody>
@@ -204,17 +211,6 @@ const numColor = 'rgb(135, 148, 160)'
             <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.runsAllowed }}</td>
             <td class="py-1.5 pl-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.er }}</td>
           </tr>
-          <tr class="border-t-2 border-slate-200 font-semibold">
-            <td class="py-1.5 pr-6 whitespace-nowrap" :style="{ color: numColor }">通算</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">
-              {{ card.pitcherTotals?.wins ?? '-' }}勝{{ card.pitcherTotals?.losses ?? '-' }}敗
-            </td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ card.pitcherTotals?.ip ?? '-' }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ card.pitcherTotals?.k ?? '-' }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ card.pitcherTotals?.bb ?? '-' }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ card.pitcherTotals?.runsAllowed ?? '-' }}</td>
-            <td class="py-1.5 pl-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ card.pitcherTotals?.era ?? '-' }}</td>
-          </tr>
         </tbody>
       </table>
       </div>
@@ -226,13 +222,13 @@ const numColor = 'rgb(135, 148, 160)'
           <tr :style="{ color: numColor }">
             <th class="text-left pb-1 pr-6 font-medium whitespace-nowrap"></th>
             <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">打数</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">安打</th>
+            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">安</th>
             <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">HR</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">塁打</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">打点</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">得点</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">三振</th>
-            <th class="text-center pb-1 pl-3 font-medium whitespace-nowrap">四球</th>
+            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">塁</th>
+            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">打</th>
+            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">得</th>
+            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">三</th>
+            <th class="text-center pb-1 pl-3 font-medium whitespace-nowrap">四</th>
           </tr>
         </thead>
         <tbody>
@@ -249,17 +245,6 @@ const numColor = 'rgb(135, 148, 160)'
             <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.runs }}</td>
             <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.so }}</td>
             <td class="py-1.5 pl-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.walks }}</td>
-          </tr>
-          <tr class="border-t-2 border-slate-200 font-semibold">
-            <td class="py-1.5 pr-6 whitespace-nowrap" :style="{ color: numColor }">通算</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ card.batterTotals?.ab ?? '-' }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ card.batterTotals?.hits ?? '-' }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ card.batterTotals?.hr ?? '-' }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ card.batterTotals?.tb ?? '-' }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ card.batterTotals?.rbi ?? '-' }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ card.batterTotals?.runs ?? '-' }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ card.batterTotals?.so ?? '-' }}</td>
-            <td class="py-1.5 pl-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ card.batterTotals?.walks ?? '-' }}</td>
           </tr>
         </tbody>
       </table>
