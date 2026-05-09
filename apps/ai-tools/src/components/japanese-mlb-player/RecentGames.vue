@@ -153,6 +153,16 @@ const cards = computed((): Card[] => {
 })
 
 const numColor = 'rgb(135, 148, 160)'
+
+function isRecent(dateStr: string): boolean {
+  if (!dateStr) return false
+  const parts = dateStr.split('/')
+  if (parts.length !== 2) return false
+  const now = new Date()
+  const gameDate = new Date(now.getFullYear(), parseInt(parts[0]) - 1, parseInt(parts[1]))
+  const diffDays = (now.getTime() - gameDate.getTime()) / 86400000
+  return diffDays >= 0 && diffDays < 2
+}
 </script>
 
 <template>
@@ -251,11 +261,11 @@ const numColor = 'rgb(135, 148, 160)'
                 >{{ row.result }}</span>
                 <span v-else class="text-slate-300 text-xs">—</span>
               </td>
-              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.pitcherRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.ip }}</td>
-              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.pitcherRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.k }}</td>
-              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.pitcherRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.bb }}</td>
-              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.pitcherRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.runsAllowed }}</td>
-              <td class="px-3 pr-4 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.pitcherRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.er }}</td>
+              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.ip }}</td>
+              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.k }}</td>
+              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.bb }}</td>
+              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.runsAllowed }}</td>
+              <td class="px-3 pr-4 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.er }}</td>
             </tr>
           </tbody>
         </table>
@@ -287,14 +297,14 @@ const numColor = 'rgb(135, 148, 160)'
               class="border-t border-slate-50 hover:bg-slate-50/60 transition-colors"
             >
               <td class="px-4 py-2 whitespace-nowrap font-mono text-[10px] text-slate-400">{{ row.date }}</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.ab }}</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hits > 0 && i === (card.batterRows?.length ?? 0) - 1 ? 'text-emerald-600' : '']">{{ row.hits }}</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hr > 0 ? 'text-amber-600 font-bold' : '']">{{ row.hr || '—' }}</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.tb }}</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.rbi }}</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.runs }}</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.so }}</td>
-              <td class="px-2 pr-4 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.walks }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.ab }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hits > 0 && isRecent(row.date) ? 'text-emerald-600' : '']">{{ row.hits }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hr > 0 ? 'text-amber-600 font-bold' : '']">{{ row.hr || '—' }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.tb }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.rbi }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.runs }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.so }}</td>
+              <td class="px-2 pr-4 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.walks }}</td>
             </tr>
           </tbody>
         </table>
