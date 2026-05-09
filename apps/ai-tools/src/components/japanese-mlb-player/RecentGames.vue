@@ -156,98 +156,148 @@ const numColor = 'rgb(135, 148, 160)'
 </script>
 
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-10 gap-y-7">
-    <div v-if="cards.length === 0" class="col-span-full py-8 text-sm" :style="{ color: numColor }">データがありません</div>
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div v-if="cards.length === 0" class="col-span-full py-12 text-center text-xs text-slate-400 tracking-wide">
+      データがありません
+    </div>
 
-    <div v-for="card in cards" :key="card.id">
-      <div class="flex items-center gap-1.5 mb-2 flex-wrap">
-        <span class="text-sm font-bold" :style="{ color: card.color }">{{ card.nameJa }}</span>
-        <a
-          v-if="card.sportnavi"
-          :href="`https://baseball.yahoo.co.jp/mlb/player/${card.sportnavi}/top`"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="text-slate-400 hover:text-slate-600 transition-colors"
-          title="スポナビで見る"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M9 3a6 6 0 100 12A6 6 0 009 3zM1 9a8 8 0 1114.32 4.906l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387A8 8 0 011 9z" clip-rule="evenodd"/>
-          </svg>
-        </a>
-        <span v-if="mode === 'pitcher' && card.pitcherTotals" class="text-xs" :style="{ color: numColor }">
-          {{ card.pitcherTotals.wins ?? '-' }}勝{{ card.pitcherTotals.losses ?? '-' }}敗 防御率{{ card.pitcherTotals.era ?? '-' }}
-        </span>
-        <span v-if="mode === 'batter' && card.batterTotals" class="text-xs" :style="{ color: numColor }">
-          {{ card.batterTotals.avg !== null ? card.batterTotals.avg.toFixed(3).replace(/^0/, '') : '-' }} {{ card.batterTotals.hr ?? '-' }}HR {{ card.batterTotals.rbi ?? '-' }}打点 {{ card.batterTotals.runs ?? '-' }}得点
-        </span>
+    <div
+      v-for="card in cards"
+      :key="card.id"
+      class="rounded-xl border border-slate-100 bg-white shadow-sm overflow-hidden"
+    >
+      <!-- カードヘッダー：プレイヤーカラーの左ライン -->
+      <div class="flex items-start gap-3 px-4 pt-3.5 pb-3 border-b border-slate-100" :style="{ borderLeft: `3px solid ${card.color}` }">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5">
+            <span class="text-sm font-bold tracking-tight leading-none" :style="{ color: card.color }">{{ card.nameJa }}</span>
+            <a
+              v-if="card.sportnavi"
+              :href="`https://baseball.yahoo.co.jp/mlb/player/${card.sportnavi}/top`"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-slate-300 hover:text-slate-500 transition-colors flex-shrink-0"
+              title="スポナビで見る"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9 3a6 6 0 100 12A6 6 0 009 3zM1 9a8 8 0 1114.32 4.906l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387A8 8 0 011 9z" clip-rule="evenodd"/>
+              </svg>
+            </a>
+          </div>
+          <!-- シーズン成績チップ -->
+          <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
+            <template v-if="mode === 'pitcher' && card.pitcherTotals">
+              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
+                {{ card.pitcherTotals.wins ?? '-' }}勝 {{ card.pitcherTotals.losses ?? '-' }}敗
+              </span>
+              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
+                防御率 {{ card.pitcherTotals.era ?? '-' }}
+              </span>
+            </template>
+            <template v-if="mode === 'batter' && card.batterTotals">
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
+                打率 {{ card.batterTotals.avg !== null ? card.batterTotals.avg.toFixed(3).replace(/^0/, '') : '-' }}
+              </span>
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
+                {{ card.batterTotals.hr ?? '-' }} HR
+              </span>
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
+                {{ card.batterTotals.rbi ?? '-' }} 打点
+              </span>
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
+                {{ card.batterTotals.runs ?? '-' }} 得点
+              </span>
+            </template>
+          </div>
+        </div>
       </div>
 
-      <div v-if="card.noData" class="text-xs py-1" :style="{ color: numColor }">読み込み中...</div>
+      <!-- ローディング -->
+      <div v-if="card.noData" class="px-4 py-5 space-y-2">
+        <div class="h-2 bg-slate-100 rounded animate-pulse w-3/4"></div>
+        <div class="h-2 bg-slate-100 rounded animate-pulse w-1/2"></div>
+        <div class="h-2 bg-slate-100 rounded animate-pulse w-2/3"></div>
+      </div>
 
       <!-- 投手テーブル -->
       <div v-else-if="mode === 'pitcher'" class="overflow-x-auto">
-      <table class="text-xs border-collapse">
-        <thead>
-          <tr :style="{ color: numColor }">
-            <th class="text-left pb-1 pr-6 font-medium whitespace-nowrap"></th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">勝敗</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">投回</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">奪三</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">四</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">失</th>
-            <th class="text-center pb-1 pl-3 font-medium whitespace-nowrap">責</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="card.pitcherRows?.length === 0">
-            <td colspan="7" class="py-1" :style="{ color: numColor }">試合なし</td>
-          </tr>
-          <tr v-for="row in card.pitcherRows" :key="row.date" class="border-t border-slate-100">
-            <td class="py-1.5 pr-6 whitespace-nowrap" :style="{ color: numColor }">{{ row.date }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap font-medium" :style="{ color: row.result === '勝' ? '#2563eb' : row.result === '負' ? '#dc2626' : numColor }">{{ row.result }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.ip }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.k }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.bb }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.runsAllowed }}</td>
-            <td class="py-1.5 pl-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.er }}</td>
-          </tr>
-        </tbody>
-      </table>
+        <table class="w-full text-[11px]">
+          <thead>
+            <tr class="bg-slate-50/80">
+              <th class="text-left px-4 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap"></th>
+              <th class="text-center px-3 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">勝敗</th>
+              <th class="text-center px-3 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">投回</th>
+              <th class="text-center px-3 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">奪三</th>
+              <th class="text-center px-3 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">四</th>
+              <th class="text-center px-3 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">失</th>
+              <th class="text-center px-3 pr-4 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">責</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="card.pitcherRows?.length === 0">
+              <td colspan="7" class="px-4 py-4 text-[10px] text-slate-400 text-center tracking-wide">試合なし</td>
+            </tr>
+            <tr
+              v-for="(row, i) in card.pitcherRows"
+              :key="row.date"
+              class="border-t border-slate-50 hover:bg-slate-50/60 transition-colors"
+            >
+              <td class="px-4 py-2 whitespace-nowrap font-mono text-[10px] text-slate-400">{{ row.date }}</td>
+              <td class="px-3 py-2 text-center whitespace-nowrap">
+                <span
+                  v-if="row.result !== '-'"
+                  class="inline-flex items-center justify-center w-8 h-5 rounded-full text-[10px] font-bold tracking-wide"
+                  :class="row.result === '勝' ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200' : 'bg-red-50 text-red-600 ring-1 ring-red-200'"
+                >{{ row.result }}</span>
+                <span v-else class="text-slate-300 text-xs">—</span>
+              </td>
+              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.pitcherRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.ip }}</td>
+              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.pitcherRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.k }}</td>
+              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.pitcherRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.bb }}</td>
+              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.pitcherRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.runsAllowed }}</td>
+              <td class="px-3 pr-4 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.pitcherRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.er }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <!-- 野手テーブル -->
       <div v-else-if="mode === 'batter'" class="overflow-x-auto">
-      <table class="text-xs border-collapse">
-        <thead>
-          <tr :style="{ color: numColor }">
-            <th class="text-left pb-1 pr-6 font-medium whitespace-nowrap"></th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">打数</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">安</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">HR</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">塁</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">打</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">得</th>
-            <th class="text-center pb-1 px-3 font-medium whitespace-nowrap">三</th>
-            <th class="text-center pb-1 pl-3 font-medium whitespace-nowrap">四</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="card.batterRows?.length === 0">
-            <td colspan="9" class="py-1" :style="{ color: numColor }">試合なし</td>
-          </tr>
-          <tr v-for="row in card.batterRows" :key="row.date" class="border-t border-slate-100">
-            <td class="py-1.5 pr-6 whitespace-nowrap" :style="{ color: numColor }">{{ row.date }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.ab }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.hits }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.hr }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.tb }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.rbi }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.runs }}</td>
-            <td class="py-1.5 px-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.so }}</td>
-            <td class="py-1.5 pl-3 text-center whitespace-nowrap" :style="{ color: numColor }">{{ row.walks }}</td>
-          </tr>
-        </tbody>
-      </table>
+        <table class="w-full text-[11px]">
+          <thead>
+            <tr class="bg-slate-50/80">
+              <th class="text-left px-4 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap"></th>
+              <th class="text-center px-2 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">打数</th>
+              <th class="text-center px-2 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">安</th>
+              <th class="text-center px-2 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">HR</th>
+              <th class="text-center px-2 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">塁</th>
+              <th class="text-center px-2 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">打</th>
+              <th class="text-center px-2 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">得</th>
+              <th class="text-center px-2 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">三</th>
+              <th class="text-center px-2 pr-4 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">四</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="card.batterRows?.length === 0">
+              <td colspan="9" class="px-4 py-4 text-[10px] text-slate-400 text-center tracking-wide">試合なし</td>
+            </tr>
+            <tr
+              v-for="(row, i) in card.batterRows"
+              :key="row.date"
+              class="border-t border-slate-50 hover:bg-slate-50/60 transition-colors"
+            >
+              <td class="px-4 py-2 whitespace-nowrap font-mono text-[10px] text-slate-400">{{ row.date }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.ab }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hits > 0 && i === (card.batterRows?.length ?? 0) - 1 ? 'text-emerald-600' : '']">{{ row.hits }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hr > 0 ? 'text-amber-600 font-bold' : '']">{{ row.hr || '—' }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.tb }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.rbi }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.runs }}</td>
+              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.so }}</td>
+              <td class="px-2 pr-4 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="i === (card.batterRows?.length ?? 0) - 1 ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.walks }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
