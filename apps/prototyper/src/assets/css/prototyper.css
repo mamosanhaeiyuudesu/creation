@@ -415,6 +415,86 @@
   border-bottom: 1px solid var(--c-border);
 }
 
+.about-intro {
+  font-size: 15px;
+  color: var(--c-text-muted);
+  line-height: 1.9;
+  margin-bottom: 28px;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.about-card {
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  padding: 24px 26px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.about-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--c-primary), var(--c-primary-light));
+}
+
+.about-card:hover {
+  border-color: rgba(27, 95, 217, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(27, 95, 217, 0.08);
+}
+
+.about-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.about-card-icon {
+  font-size: 16px;
+  opacity: 0.7;
+}
+
+.about-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--c-text);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.about-card-body {
+  font-size: 13.5px;
+  color: var(--c-text-muted);
+  line-height: 1.85;
+}
+
+.about-card-body p+p {
+  margin-top: 10px;
+}
+
+.about-profile {
+  margin-top: 20px;
+  padding: 14px 20px;
+  background: rgba(27, 95, 217, 0.04);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--c-text-muted);
+  line-height: 1.75;
+}
+
 /* ==========================================
    サービスカード
    ========================================== */
@@ -887,7 +967,7 @@
 
 .terms-payment-title {
   font-family: var(--f-mono);
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1145,6 +1225,10 @@
   }
 
   .terms-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-grid {
     grid-template-columns: 1fr;
   }
 }
