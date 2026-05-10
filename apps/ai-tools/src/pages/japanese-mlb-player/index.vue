@@ -280,25 +280,25 @@ function deselectAll() {
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
                   ナ・リーグ 投手 <span class="text-xs font-normal text-slate-400">（直近3試合）</span>
                 </h2>
-                <RecentGames :player-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                <RecentGames :player-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" league="NL" :league-stats="leagueStats" />
               </section>
               <section v-if="nlBatterIds.length" class="mb-10">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
                   ナ・リーグ 野手 <span class="text-xs font-normal text-slate-400">（直近6試合）</span>
                 </h2>
-                <RecentGames :player-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                <RecentGames :player-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" league="NL" :league-stats="leagueStats" />
               </section>
               <section v-if="alPitcherIds.length" class="mb-10">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
                   ア・リーグ 投手 <span class="text-xs font-normal text-slate-400">（直近3試合）</span>
                 </h2>
-                <RecentGames :player-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                <RecentGames :player-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" league="AL" :league-stats="leagueStats" />
               </section>
               <section v-if="alBatterIds.length">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
                   ア・リーグ 野手 <span class="text-xs font-normal text-slate-400">（直近6試合）</span>
                 </h2>
-                <RecentGames :player-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                <RecentGames :player-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" league="AL" :league-stats="leagueStats" />
               </section>
             </template>
           </template>
@@ -434,13 +434,13 @@ function deselectAll() {
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
                   投手 <span class="text-xs font-normal text-slate-400">（直近3試合）</span>
                 </h2>
-                <RecentGames :player-ids="pitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                <RecentGames :player-ids="pitcherIds" :season-data-map="seasonDataMap" mode="pitcher" :league="activeLeague" :league-stats="leagueStats" />
               </section>
               <section v-if="batterIds.length">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
                   野手 <span class="text-xs font-normal text-slate-400">（直近6試合）</span>
                 </h2>
-                <RecentGames :player-ids="batterIds" :season-data-map="seasonDataMap" mode="batter" />
+                <RecentGames :player-ids="batterIds" :season-data-map="seasonDataMap" mode="batter" :league="activeLeague" :league-stats="leagueStats" />
               </section>
             </template>
           </template>

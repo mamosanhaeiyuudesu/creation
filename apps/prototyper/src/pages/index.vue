@@ -389,33 +389,22 @@
 
           <div class="terms-card">
             <div class="terms-icon">🔄</div>
-            <h3 class="terms-card-title">修正対応</h3>
-            <p class="terms-card-body">プロトタイプの性質上、方向性の調整は歓迎します。<br />ただし初期合意を大幅に超える仕様変更・追加機能は別途ご相談になります。</p>
-          </div>
-
-          <div class="terms-card">
-            <div class="terms-icon">📋</div>
-            <h3 class="terms-card-title">開発スコープ</h3>
-            <p class="terms-card-body">ご依頼時に合意した機能・仕様のみを開発します。<br />追加機能の実装は都度お見積もりになります。</p>
+            <h3 class="terms-card-title">修正対応・開発スコープ</h3>
+            <p class="terms-card-body">プロトタイプの性質上、方向性の調整は歓迎します。<br />開発はご依頼時に合意した機能・仕様のみを対象とし、初期合意を大幅に超える仕様変更・追加機能は別途お見積もりになります。</p>
           </div>
 
           <div class="terms-card">
             <div class="terms-icon">🔐</div>
             <h3 class="terms-card-title">著作権</h3>
-            <p class="terms-card-body">納品物の著作権はクライアントに完全に譲渡します。<br />ただし制作者は、制作実績としてデモ画面・URLをポートフォリオに掲載する権利を留保します。</p>
+            <p class="terms-card-body">納品物の著作権はクライアントに完全に譲渡します。<br />ただし制作者は、制作実績としてデモ画面・URLをポートフォリオに掲載する権利を留保します。<br />掲載を希望されない場合はご相談ください。</p>
           </div>
 
           <div class="terms-card">
             <div class="terms-icon">💻</div>
             <h3 class="terms-card-title">動作環境</h3>
-            <p class="terms-card-body">Chrome・Firefox・Safari の最新版（PC）を動作保証の対象とします。<br />スマートフォン・タブレット対応が必要な場合は事前にお申し付けください。</p>
+            <p class="terms-card-body">Chromeの最新版（PC）を動作保証の対象とします。<br />スマートフォン対応が必要な場合は事前にお申し付けください。</p>
           </div>
 
-          <div class="terms-card">
-            <div class="terms-icon">✅</div>
-            <h3 class="terms-card-title">検収</h3>
-            <p class="terms-card-body">納品後14日以内にご報告いただいた不具合は無償で対応します。<br />それ以降の対応は有償となります。</p>
-          </div>
 
         </div>
 
