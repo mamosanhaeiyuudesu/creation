@@ -16,6 +16,8 @@ database_id = "a89cb679-8a17-4d46-9c90-dada3e35691b"
 # 初回セットアップ:
 #   wrangler d1 create whisper-db
 #   wrangler d1 execute whisper-db --file src/server/db/001_auth.sql
+# marriage records テーブル追加:
+#   wrangler d1 execute whisper-db --file src/server/db/009_marriage.sql
 
 [[d1_databases]]
 binding = "MLB_DB"
