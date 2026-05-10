@@ -390,7 +390,7 @@
           <div class="terms-card">
             <div class="terms-icon">🔄</div>
             <h3 class="terms-card-title">修正対応・開発スコープ</h3>
-            <p class="terms-card-body">プロトタイプの性質上、方向性の調整は歓迎します。<br />開発はご依頼時に合意した機能・仕様のみを対象とし、初期合意を大幅に超える仕様変更・追加機能は別途お見積もりになります。</p>
+            <p class="terms-card-body">開発はご依頼時に合意した機能・仕様のみを対象とし、初期合意を大幅に超える仕様変更・追加機能は別途お見積もりになります。<br />プロトタイプの性質上、方向性の調整は歓迎します。</p>
           </div>
 
           <div class="terms-card">

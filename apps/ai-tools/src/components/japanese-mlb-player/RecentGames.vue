@@ -180,7 +180,7 @@ function getPlayerRank(playerId: string, key: string, direction: 'high' | 'low')
 function rankStyle(rank: number): object {
   if (rank >= 1 && rank <= 5) return { color: '#C42121', fontWeight: '600' }
   if (rank >= 6 && rank <= 10) return { color: '#BA7373' }
-  return {}
+  return { color: '#64748b' }
 }
 
 function rankLabel(rank: number): string {
@@ -230,34 +230,34 @@ function isRecent(dateStr: string): boolean {
           <!-- シーズン成績チップ -->
           <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
             <template v-if="mode === 'pitcher' && card.pitcherTotals">
-              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
-                {{ card.pitcherTotals.wins ?? '-' }}勝<span :style="rankStyle(getPlayerRank(card.id, 'wins', 'high'))">{{ rankLabel(getPlayerRank(card.id, 'wins', 'high')) }}</span> {{ card.pitcherTotals.losses ?? '-' }}敗
+              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'wins', 'high'))">
+                {{ card.pitcherTotals.wins ?? '-' }}勝{{ rankLabel(getPlayerRank(card.id, 'wins', 'high')) }} {{ card.pitcherTotals.losses ?? '-' }}敗
               </span>
-              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
-                {{ card.pitcherTotals.ip !== '-' ? card.pitcherTotals.ip + '回' : '-' }}<span :style="rankStyle(getPlayerRank(card.id, 'inningsPitched', 'high'))">{{ rankLabel(getPlayerRank(card.id, 'inningsPitched', 'high')) }}</span>
+              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'inningsPitched', 'high'))">
+                {{ card.pitcherTotals.ip !== '-' ? card.pitcherTotals.ip + '回' : '-' }}{{ rankLabel(getPlayerRank(card.id, 'inningsPitched', 'high')) }}
               </span>
-              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
-                防御率 {{ card.pitcherTotals.era ?? '-' }}<span :style="rankStyle(getPlayerRank(card.id, 'era', 'low'))">{{ rankLabel(getPlayerRank(card.id, 'era', 'low')) }}</span>
+              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'era', 'low'))">
+                防御率 {{ card.pitcherTotals.era ?? '-' }}{{ rankLabel(getPlayerRank(card.id, 'era', 'low')) }}
               </span>
             </template>
             <template v-if="mode === 'batter' && card.batterTotals">
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
-                打率 {{ card.batterTotals.avg !== null ? card.batterTotals.avg.toFixed(3).replace(/^0/, '') : '-' }}<span :style="rankStyle(getPlayerRank(card.id, 'avg', 'high'))">{{ rankLabel(getPlayerRank(card.id, 'avg', 'high')) }}</span>
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'avg', 'high'))">
+                打率 {{ card.batterTotals.avg !== null ? card.batterTotals.avg.toFixed(3).replace(/^0/, '') : '-' }}{{ rankLabel(getPlayerRank(card.id, 'avg', 'high')) }}
               </span>
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
-                出塁率 {{ card.batterTotals.obp !== null ? card.batterTotals.obp.toFixed(3).replace(/^0/, '') : '-' }}<span :style="rankStyle(getPlayerRank(card.id, 'obp', 'high'))">{{ rankLabel(getPlayerRank(card.id, 'obp', 'high')) }}</span>
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'obp', 'high'))">
+                出塁率 {{ card.batterTotals.obp !== null ? card.batterTotals.obp.toFixed(3).replace(/^0/, '') : '-' }}{{ rankLabel(getPlayerRank(card.id, 'obp', 'high')) }}
               </span>
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
-                OPS {{ card.batterTotals.ops !== null ? card.batterTotals.ops.toFixed(3).replace(/^0/, '') : '-' }}<span :style="rankStyle(getPlayerRank(card.id, 'ops', 'high'))">{{ rankLabel(getPlayerRank(card.id, 'ops', 'high')) }}</span>
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'ops', 'high'))">
+                OPS {{ card.batterTotals.ops !== null ? card.batterTotals.ops.toFixed(3).replace(/^0/, '') : '-' }}{{ rankLabel(getPlayerRank(card.id, 'ops', 'high')) }}
               </span>
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
-                {{ card.batterTotals.hr ?? '-' }} HR<span :style="rankStyle(getPlayerRank(card.id, 'hr', 'high'))">{{ rankLabel(getPlayerRank(card.id, 'hr', 'high')) }}</span>
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'hr', 'high'))">
+                {{ card.batterTotals.hr ?? '-' }} HR{{ rankLabel(getPlayerRank(card.id, 'hr', 'high')) }}
               </span>
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
-                {{ card.batterTotals.rbi ?? '-' }} 打点<span :style="rankStyle(getPlayerRank(card.id, 'rbi', 'high'))">{{ rankLabel(getPlayerRank(card.id, 'rbi', 'high')) }}</span>
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'rbi', 'high'))">
+                {{ card.batterTotals.rbi ?? '-' }} 打点{{ rankLabel(getPlayerRank(card.id, 'rbi', 'high')) }}
               </span>
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 tracking-wide">
-                {{ card.batterTotals.runs ?? '-' }} 得点<span :style="rankStyle(getPlayerRank(card.id, 'runs', 'high'))">{{ rankLabel(getPlayerRank(card.id, 'runs', 'high')) }}</span>
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'runs', 'high'))">
+                {{ card.batterTotals.runs ?? '-' }} 得点{{ rankLabel(getPlayerRank(card.id, 'runs', 'high')) }}
               </span>
             </template>
           </div>
