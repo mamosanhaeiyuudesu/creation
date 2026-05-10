@@ -251,7 +251,7 @@ function isRecent(dateStr: string): boolean {
                 OPS {{ card.batterTotals.ops !== null ? card.batterTotals.ops.toFixed(3).replace(/^0/, '') : '-' }}{{ rankLabel(getPlayerRank(card.id, 'ops', 'high')) }}
               </span>
               <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'hr', 'high'))">
-                {{ card.batterTotals.hr ?? '-' }} HR{{ rankLabel(getPlayerRank(card.id, 'hr', 'high')) }}
+                {{ card.batterTotals.hr ?? 0 }} HR{{ rankLabel(getPlayerRank(card.id, 'hr', 'high')) }}
               </span>
               <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'rbi', 'high'))">
                 {{ card.batterTotals.rbi ?? '-' }} 打点{{ rankLabel(getPlayerRank(card.id, 'rbi', 'high')) }}
