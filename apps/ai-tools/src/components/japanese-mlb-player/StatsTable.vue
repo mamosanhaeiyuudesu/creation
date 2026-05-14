@@ -67,7 +67,7 @@
               >
                 <div class="flex flex-col items-center">
                   <span :class="getCellClass(player.id, stat.key, 'pitcher')" :style="getTopRankStyle(player.id, stat.key, stat.direction, 'pitcher')">{{ formatStat(player.id, stat.key, stat.format, 'pitcher') }}</span>
-                  <span class="text-[11px] text-slate-400">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'pitcher') }}</span>
+                  <span class="text-[11px]" :style="getRankLabelStyle(player.id, stat.key, stat.direction, 'pitcher')">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'pitcher') }}</span>
                 </div>
               </td>
             </tr>
@@ -143,7 +143,7 @@
               >
                 <div class="flex flex-col items-center">
                   <span :class="getCellClass(player.id, stat.key, 'batter')" :style="getTopRankStyle(player.id, stat.key, stat.direction, 'batter')">{{ formatStat(player.id, stat.key, stat.format, 'batter') }}</span>
-                  <span class="text-[11px] text-slate-400">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'batter') }}</span>
+                  <span class="text-[11px]" :style="getRankLabelStyle(player.id, stat.key, stat.direction, 'batter')">{{ getPlayerRankLabel(player.id, stat.key, stat.direction, 'batter') }}</span>
                 </div>
               </td>
             </tr>
@@ -271,9 +271,14 @@ function getPlayerRankLabel(playerId: string, key: string, direction: 'high' | '
 
 function getTopRankStyle(playerId: string, key: string, direction: 'high' | 'low', type: 'pitcher' | 'batter'): string {
   const rank = getPlayerRank(playerId, key, direction, type)
-  if (rank >= 1 && rank <= 5) return 'color: #C42121'
-  if (rank >= 6 && rank <= 10) return 'color: #BA7373'
+  if (rank >= 1 && rank <= 10) return 'color: #C42121'
   return ''
+}
+
+function getRankLabelStyle(playerId: string, key: string, direction: 'high' | 'low', type: 'pitcher' | 'batter'): string {
+  const rank = getPlayerRank(playerId, key, direction, type)
+  if (rank >= 1 && rank <= 10) return 'color: #C42121'
+  return 'color: #94a3b8'
 }
 
 function isRecentlyUpdated(playerId: string, type: 'batter' | 'pitcher'): boolean {
