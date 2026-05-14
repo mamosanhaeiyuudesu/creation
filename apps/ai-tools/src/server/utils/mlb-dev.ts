@@ -215,6 +215,23 @@ export function getDevPlayers() {
   return PLAYERS
 }
 
+export function getDevStandings(): Record<string, number> {
+  return {
+    // NL West
+    LAD: 1, SD: 2, ARI: 3, SF: 4, COL: 5,
+    // NL East
+    NYM: 1, ATL: 2, PHI: 3, MIA: 4, WSH: 5,
+    // NL Central
+    CHC: 1, MIL: 2, STL: 3, CIN: 4, PIT: 5,
+    // AL East
+    BOS: 2, NYY: 1, TOR: 3, TB: 4, BAL: 5,
+    // AL West
+    HOU: 1, SEA: 2, LAA: 3, OAK: 4, TEX: 5,
+    // AL Central
+    MIN: 1, CWS: 4, DET: 2, CLE: 3, KC: 5,
+  }
+}
+
 function makeSummary(leader: number, avg: number, count: number, higherIsBetter: boolean): LeagueStatSummary {
   const step = higherIsBetter ? -(leader - avg * 0.6) / count : (avg * 1.4 - leader) / count
   const values: number[] = []

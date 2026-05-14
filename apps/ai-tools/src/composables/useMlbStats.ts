@@ -10,6 +10,7 @@ export function useMlbStats() {
   const seasonCache = useState<Map<string, SeasonData>>('mlb-season-cache', () => new Map())
   const yearlyCache = useState<Map<string, YearlyData>>('mlb-yearly-cache', () => new Map())
   const leagueStatsCache = useState<AllLeagueStats | null>('mlb-league-stats', () => null)
+  const standingsCache = useState<Record<string, number> | null>('mlb-standings', () => null)
   const lastSyncedAt = useState<string | null>('mlb-last-synced', () => null)
   const loadingIds = useState<Set<string>>('mlb-loading', () => new Set())
   const leagueLoading = useState<boolean>('mlb-league-loading', () => false)
@@ -111,6 +112,12 @@ export function useMlbStats() {
       const data = await $fetch<{ lastSyncedAt: string | null }>('/api/japanese-mlb-player/meta')
       lastSyncedAt.value = data.lastSyncedAt
     } catch { }
+    try {
+      const data = await $fetch<Record<string, number>>('/api/japanese-mlb-player/standings', {
+        query: { season: currentSeason },
+      })
+      standingsCache.value = data
+    } catch { }
   }
 
   async function ensureLeagueStats() {
@@ -145,6 +152,10 @@ export function useMlbStats() {
     return leagueStatsCache.value
   }
 
+  function getStandings(): Record<string, number> | null {
+    return standingsCache.value
+  }
+
   function isLoading(id: string) {
     return loadingIds.value.has(id)
   }
@@ -177,5 +188,6 @@ export function useMlbStats() {
     getSeasonData,
     getYearlyData,
     getLeagueStats,
+    getStandings,
   }
 }

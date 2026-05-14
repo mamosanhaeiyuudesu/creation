@@ -359,6 +359,29 @@ export async function fetchLeaguePitcherCounts(leagueId: number, season: number)
     })
 }
 
+// チームの地区順位を取得 (abbreviation → divisionRank)
+export async function fetchDivisionStandings(season: number): Promise<Record<string, number>> {
+  interface StandingsJson {
+    records: Array<{
+      teamRecords: Array<{
+        team: { abbreviation: string }
+        divisionRank: string
+      }>
+    }>
+  }
+  const qs = new URLSearchParams({ leagueId: '103,104', season: String(season), standingsTypes: 'regularSeason' }).toString()
+  const json = await fetchJson<StandingsJson>(`${MLB_API}/standings?${qs}`)
+  if (!json) return {}
+  const result: Record<string, number> = {}
+  for (const record of json.records) {
+    for (const tr of record.teamRecords) {
+      const rank = parseInt(tr.divisionRank)
+      if (!isNaN(rank)) result[tr.team.abbreviation] = rank
+    }
+  }
+  return result
+}
+
 export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }

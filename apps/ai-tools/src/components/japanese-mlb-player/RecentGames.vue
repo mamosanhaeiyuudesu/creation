@@ -8,6 +8,7 @@ const props = defineProps<{
   mode: 'pitcher' | 'batter'
   leagueStats?: AllLeagueStats | null
   league?: 'AL' | 'NL'
+  standings?: Record<string, number> | null
 }>()
 
 const PITCHER_GAMES = 3
@@ -48,11 +49,20 @@ interface Card {
   nameJa: string
   color: string
   sportnavi: string
+  league: 'AL' | 'NL'
+  teamAbbr: string
+  teamShort: string
+  divisionRank: number | null
   noData: boolean
   pitcherRows?: PitcherRow[]
   batterRows?: BatterRow[]
   pitcherTotals?: { wins: number | null; losses: number | null; ip: string; era: string; k: number | null; bb: number | null; runsAllowed: number | null }
   batterTotals?: { avg: number | null; obp: number | null; ops: number | null; ab: number | null; hits: number | null; hr: number | null; rbi: number | null; runs: number | null; so: number | null; walks: number | null; tb: number | null }
+}
+
+function teamShortName(teamFull: string): string {
+  const parts = teamFull.split('・')
+  return parts[parts.length - 1]
 }
 
 function buildPitcherTotals(data: SeasonData): Card['pitcherTotals'] {
@@ -94,8 +104,12 @@ const cards = computed((): Card[] => {
     const nameJa = player?.nameJa ?? id
     const color = PLAYER_COLORS[id] ?? '#64748b'
     const sportnavi = player?.sportnavi ?? ''
+    const league = player?.league ?? 'NL'
+    const teamAbbr = player?.team ?? ''
+    const teamShort = player ? teamShortName(player.teamFull) : ''
+    const divisionRank = props.standings?.[teamAbbr] ?? null
 
-    if (!data) return { id, nameJa, color, sportnavi, noData: true }
+    if (!data) return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: true }
 
     if (props.mode === 'pitcher') {
       const trend = data.trendPitcher
@@ -114,7 +128,7 @@ const cards = computed((): Card[] => {
         const gameER = Math.max(0, Math.round(currER - prevER))
 
         const currBB = estimateCumBB(curr.strikeouts, curr.bbk)
-        const prevBB = estimateCumBB(prev?.strikeouts, prev?.bbk)
+        const prevBB = estimateCumBB(prev?.strikeouts ?? null, prev?.bbk ?? null)
 
         const currRA = curr.runsAllowed ?? 0
         const prevRA = prev?.runsAllowed ?? 0
@@ -131,7 +145,7 @@ const cards = computed((): Card[] => {
         }
       })
 
-      return { id, nameJa, color, sportnavi, noData: false, pitcherRows: rows, pitcherTotals: buildPitcherTotals(data) }
+      return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, pitcherRows: rows, pitcherTotals: buildPitcherTotals(data) }
     } else {
       const trend = data.trendBatter
       const n = Math.min(BATTER_GAMES, trend.length)
@@ -153,7 +167,7 @@ const cards = computed((): Card[] => {
         }
       })
 
-      return { id, nameJa, color, sportnavi, noData: false, batterRows: rows, batterTotals: buildBatterTotals(data) }
+      return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, batterRows: rows, batterTotals: buildBatterTotals(data) }
     }
   })
 })
@@ -223,6 +237,20 @@ function isRecent(dateStr: string): boolean {
                 <path fill-rule="evenodd" d="M9 3a6 6 0 100 12A6 6 0 009 3zM1 9a8 8 0 1114.32 4.906l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387A8 8 0 011 9z" clip-rule="evenodd"/>
               </svg>
             </a>
+            <!-- リーグ・チーム・順位 -->
+            <div class="ml-auto flex items-center gap-1.5 flex-shrink-0">
+              <span
+                class="w-[18px] h-[18px] rounded-full flex items-center justify-center text-[9px] font-black text-white leading-none shadow-sm"
+                :style="card.league === 'NL'
+                  ? 'background: linear-gradient(135deg, #1e3a8a, #2563eb)'
+                  : 'background: linear-gradient(135deg, #9f1239, #e11d48)'"
+              >{{ card.league === 'NL' ? 'ナ' : 'ア' }}</span>
+              <span class="text-[11px] text-slate-400 leading-none">{{ card.teamShort }}</span>
+              <template v-if="card.divisionRank !== null">
+                <span class="text-slate-200 text-[10px] leading-none">·</span>
+                <span class="text-[11px] font-semibold leading-none" :class="card.divisionRank === 1 ? 'text-amber-500' : 'text-slate-500'">{{ card.divisionRank }}位</span>
+              </template>
+            </div>
           </div>
           <!-- シーズン成績チップ -->
           <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">

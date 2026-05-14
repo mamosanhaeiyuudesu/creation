@@ -42,10 +42,10 @@ export default defineEventHandler(async (event) => {
       input: [
         {
           role: 'user',
-          content: `直近1週間の夫婦の記録:\n${summary}\n\nこの記録をもとに、ふたりへの温かいアドバイスを【厳密に10文字】で答えてください。余計な説明や前置きは不要です。10文字のアドバイスだけ返してください。`,
+          content: `直近1週間の夫婦の記録:\n${summary}\n\nこの記録をもとに、ふたりへの温かいアドバイスを20文字以内で答えてください。冒頭に理由を入れて「〜だから、〜しよう」のような形にしてください（例：「疲れているみたいだから、一緒に休もう」）。アドバイスだけ返してください。`,
         },
       ],
-      max_output_tokens: 30,
+      max_output_tokens: 50,
       temperature: 1.0,
     }, event, 'marriage-advice')
 
