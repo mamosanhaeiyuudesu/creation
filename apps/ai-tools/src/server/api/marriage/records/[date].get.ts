@@ -1,4 +1,5 @@
 import { getSessionUser, getAppDb } from '~/server/utils/auth'
+import { decryptComment } from '~/server/utils/encrypt'
 
 export default defineEventHandler(async (event) => {
   const user = await getSessionUser(event)
@@ -18,5 +19,5 @@ export default defineEventHandler(async (event) => {
     .first<{ date: string; mood: string; comment: string }>()
 
   if (!row) throw createError({ statusCode: 404, message: '記録が見つかりません' })
-  return row
+  return { ...row, comment: await decryptComment(event, row.comment) }
 })

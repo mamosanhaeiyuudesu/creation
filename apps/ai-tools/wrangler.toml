@@ -8,6 +8,7 @@ compatibility_date = "2025-12-31"
 #   wrangler secret put NUXT_OPENAI_API_KEY
 #   wrangler secret put NUXT_ANTHROPIC_API_KEY
 #   wrangler secret put NUXT_MIYAKO_VECTOR_STORE_ID
+#   wrangler secret put NUXT_ENCRYPTION_KEY  ← marriage コメント暗号化キー（32文字以上推奨）
 
 [[d1_databases]]
 binding = "WHISPER_DB"

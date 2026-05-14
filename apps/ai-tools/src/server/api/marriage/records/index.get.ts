@@ -1,4 +1,5 @@
 import { getSessionUser, getAppDb } from '~/server/utils/auth'
+import { decryptComment } from '~/server/utils/encrypt'
 
 export default defineEventHandler(async (event) => {
   const user = await getSessionUser(event)
@@ -25,5 +26,6 @@ export default defineEventHandler(async (event) => {
     .bind(user.id, from, to)
     .all<{ date: string; mood: string; comment: string }>()
 
-  return rows.results ?? []
+  const results = rows.results ?? []
+  return Promise.all(results.map(async r => ({ ...r, comment: await decryptComment(event, r.comment) })))
 })

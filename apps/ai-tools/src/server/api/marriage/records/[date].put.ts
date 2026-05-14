@@ -1,4 +1,5 @@
 import { getSessionUser, getAppDb } from '~/server/utils/auth'
+import { encryptComment } from '~/server/utils/encrypt'
 
 export default defineEventHandler(async (event) => {
   const user = await getSessionUser(event)
@@ -17,6 +18,8 @@ export default defineEventHandler(async (event) => {
   const db = getAppDb(event)
   if (!db) throw createError({ statusCode: 503, message: 'データベースが利用できません' })
 
+  const storedComment = await encryptComment(event, comment ?? '')
+
   await db
     .prepare(`
       INSERT INTO marriage_records (user_id, date, mood, comment)
@@ -26,7 +29,7 @@ export default defineEventHandler(async (event) => {
         comment = excluded.comment,
         updated_at = datetime('now')
     `)
-    .bind(user.id, date, mood, comment ?? '')
+    .bind(user.id, date, mood, storedComment)
     .run()
 
   return { date, mood, comment: comment ?? '' }

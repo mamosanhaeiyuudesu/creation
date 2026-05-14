@@ -1,5 +1,6 @@
 import { getSessionUser, getAppDb } from '~/server/utils/auth'
 import { getOpenAiKey, callOpenAi, extractText, wrapApiError } from '~/server/utils/openai'
+import { decryptComment } from '~/server/utils/encrypt'
 
 export default defineEventHandler(async (event) => {
   const user = await getSessionUser(event)
@@ -23,7 +24,8 @@ export default defineEventHandler(async (event) => {
     .bind(user.id, fmt(weekAgo), fmt(today))
     .all<{ date: string; mood: string; comment: string }>()
 
-  const records = rows.results ?? []
+  const raw = rows.results ?? []
+  const records = await Promise.all(raw.map(async r => ({ ...r, comment: await decryptComment(event, r.comment) })))
 
   const moodLabel = (m: string) => m === 'good' ? '良かった' : m === 'bad' ? '悪かった' : 'ふつう'
 
