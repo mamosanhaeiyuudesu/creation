@@ -1,14 +1,16 @@
 <template>
   <div class="flex items-start justify-center px-4 pt-4 lg:pt-8 min-h-full pb-8">
-    <div class="w-full max-w-[600px] bg-white/[0.04] border border-white/[0.08] rounded-2xl p-7 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-[10px] grid gap-4 ml-2.5">
+    <div class="relative w-full max-w-[600px] ml-2.5">
+      <div class="absolute inset-x-0 top-0 h-[2px] rounded-t-2xl bg-gradient-to-r from-sky-400 to-indigo-500 z-10" />
+      <div class="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl p-7 shadow-[0_20px_80px_rgba(0,0,0,0.35),0_0_40px_rgba(56,189,248,0.06)] backdrop-blur-[10px] grid gap-4">
 
       <!-- Header -->
-      <header class="flex items-start justify-between gap-3">
-        <div class="flex-1 text-center pl-10">
+      <header class="relative flex items-center justify-center">
+        <div class="text-center">
           <h1 class="m-0 text-[clamp(24px,4vw,32px)] font-bold bg-gradient-to-br from-sky-400 to-indigo-500 bg-clip-text text-transparent">whisper</h1>
           <p class="mt-2 mb-0 text-slate-400 text-base">音声を文字に変換</p>
         </div>
-        <div class="flex-shrink-0 -mt-3.5 -mr-3.5">
+        <div class="absolute right-0 top-1/2 -translate-y-1/2">
           <UserMenu
             v-if="!$dev && user"
             :username="user.username"
@@ -106,6 +108,7 @@
       </div>
 
       <HistoryTable :history="history" :copiedId="copiedHistoryId" @copy="copyHistory" @delete="deleteHistory" @updateTitle="updateHistoryTitle" />
+      </div>
     </div>
 
     <!-- Auth Modal -->

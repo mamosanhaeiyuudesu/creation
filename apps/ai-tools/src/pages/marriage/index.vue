@@ -1,84 +1,84 @@
 <template>
-  <div class="min-h-screen bg-[#0f172a] text-slate-100">
-    <AuthModal v-if="showAuthModal" accent="rose" />
+  <div class="flex items-start justify-center px-4 pt-4 lg:pt-8 min-h-full pb-8">
+    <div class="relative w-full max-w-[420px] ml-2.5">
+      <div class="absolute inset-x-0 top-0 h-[2px] rounded-t-2xl bg-gradient-to-r from-rose-400 to-pink-600 z-10" />
+      <div class="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl p-6 shadow-[0_20px_80px_rgba(0,0,0,0.35),0_0_40px_rgba(244,63,94,0.06)] backdrop-blur-[10px] grid gap-5">
 
-    <template v-if="showApp">
-      <header class="flex items-start justify-between gap-3 px-4 pt-5 pb-4">
-        <div class="flex-1 text-center pl-10">
-          <h1 class="text-2xl font-bold tracking-tight">💑 marriage</h1>
-          <p class="text-sm text-slate-400 mt-1">ふたりの日々を記録する</p>
-        </div>
-        <div class="flex-shrink-0 -mt-1 -mr-1">
-          <UserMenu
-            v-if="!$dev && user"
-            :username="user.username"
-            :items="menuItems"
-            accentFrom="#f43f5e"
-            accentTo="#db2777"
-          />
-        </div>
-      </header>
+        <template v-if="showApp">
+          <!-- Header -->
+          <header class="relative flex items-center justify-center">
+            <div class="text-center">
+              <h1 class="m-0 text-[clamp(22px,4vw,28px)] font-bold bg-gradient-to-br from-rose-400 to-pink-500 bg-clip-text text-transparent">💑 marriage</h1>
+              <p class="mt-1 mb-0 text-slate-400 text-sm">ふたりの日々を記録する</p>
+            </div>
+            <div class="absolute right-0 top-1/2 -translate-y-1/2">
+              <UserMenu
+                v-if="!$dev && user"
+                :username="user.username"
+                :items="menuItems"
+                accentFrom="#f43f5e"
+                accentTo="#db2777"
+              />
+            </div>
+          </header>
 
-      <main class="px-4 pb-10 max-w-sm mx-auto">
-        <!-- Month navigation -->
-        <div class="flex items-center justify-between mb-3">
-          <button
-            class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-2xl text-slate-300 leading-none"
-            @click="prevMonth"
-          >‹</button>
-          <h2 class="text-base font-semibold text-slate-100">
-            {{ currentYear }}年{{ currentMonth }}月
-          </h2>
-          <button
-            class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-2xl text-slate-300 leading-none"
-            @click="nextMonth"
-          >›</button>
-        </div>
-
-        <!-- Calendar grid -->
-        <div class="grid grid-cols-7 gap-1">
-          <!-- Day of week labels -->
-          <div
-            v-for="(label, i) in ['日', '月', '火', '水', '木', '金', '土']"
-            :key="label"
-            class="text-center text-xs py-1.5 font-medium"
-            :class="i === 0 ? 'text-rose-400' : i === 6 ? 'text-sky-400' : 'text-slate-500'"
-          >
-            {{ label }}
+          <!-- Month navigation -->
+          <div class="flex items-center justify-between">
+            <button
+              class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-2xl text-slate-300 leading-none"
+              @click="prevMonth"
+            >‹</button>
+            <h2 class="m-0 text-base font-semibold text-slate-100">
+              {{ currentYear }}年{{ currentMonth }}月
+            </h2>
+            <button
+              class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-2xl text-slate-300 leading-none"
+              @click="nextMonth"
+            >›</button>
           </div>
 
-          <!-- Leading empty cells -->
-          <div v-for="i in startOffset" :key="`pad-${i}`" class="aspect-square" />
+          <!-- Calendar grid -->
+          <div class="grid grid-cols-7 gap-1">
+            <div
+              v-for="(label, i) in ['日', '月', '火', '水', '木', '金', '土']"
+              :key="label"
+              class="text-center text-xs py-1.5 font-medium"
+              :class="i === 0 ? 'text-rose-400' : i === 6 ? 'text-sky-400' : 'text-slate-500'"
+            >{{ label }}</div>
 
-          <!-- Day cells -->
-          <button
-            v-for="day in daysInMonth"
-            :key="day"
-            class="aspect-square flex flex-col items-center justify-center rounded-xl transition-all active:scale-90 select-none"
-            :class="[
-              getDayRecord(day) ? 'bg-white/[0.07]' : 'hover:bg-white/[0.05]',
-              isToday(day) ? 'ring-1 ring-rose-400/60' : '',
-            ]"
-            @click="openModal(day)"
-          >
-            <span
-              class="text-[11px] leading-none font-medium"
-              :class="getDayOfWeekClass(day)"
-            >{{ day }}</span>
-            <span v-if="getDayRecord(day)" class="text-[18px] leading-none mt-0.5">
-              {{ moodEmoji(getDayRecord(day)!.mood) }}
-            </span>
-          </button>
-        </div>
+            <div v-for="i in startOffset" :key="`pad-${i}`" class="aspect-square" />
 
-        <!-- Legend -->
-        <div class="flex justify-center gap-5 mt-6 text-xs text-slate-500">
-          <span>😊 良かった</span>
-          <span>😐 ふつう</span>
-          <span>😔 悪かった</span>
-        </div>
-      </main>
-    </template>
+            <button
+              v-for="day in daysInMonth"
+              :key="day"
+              class="aspect-square flex flex-col items-center justify-center rounded-xl transition-all active:scale-90 select-none"
+              :class="[
+                getDayRecord(day) ? 'bg-white/[0.07]' : 'hover:bg-white/[0.05]',
+                isToday(day) ? 'ring-1 ring-rose-400/60' : '',
+              ]"
+              @click="openModal(day)"
+            >
+              <span
+                class="text-[11px] leading-none font-medium"
+                :class="getDayOfWeekClass(day)"
+              >{{ day }}</span>
+              <span v-if="getDayRecord(day)" class="text-[18px] leading-none mt-0.5">
+                {{ moodEmoji(getDayRecord(day)!.mood) }}
+              </span>
+            </button>
+          </div>
+
+          <!-- Legend -->
+          <div class="flex justify-center gap-5 text-xs text-slate-500">
+            <span>😊 良かった</span>
+            <span>😐 ふつう</span>
+            <span>😔 悪かった</span>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <AuthModal v-if="showAuthModal" accent="rose" />
 
     <!-- Input Modal -->
     <Teleport to="body">
@@ -89,13 +89,11 @@
           @click.self="closeModal"
         >
           <div class="w-full max-w-[400px] bg-[#1e293b] border border-white/10 rounded-t-3xl sm:rounded-2xl shadow-2xl p-6">
-            <!-- Date header -->
             <div class="text-center mb-5">
               <p class="text-xs text-slate-500">{{ currentYear }}年{{ currentMonth }}月</p>
               <h3 class="text-2xl font-bold text-slate-100 mt-0.5">{{ modal.day }}日</h3>
             </div>
 
-            <!-- Mood selection -->
             <div class="flex gap-2 mb-4">
               <button
                 v-for="m in moods"
@@ -109,7 +107,6 @@
               </button>
             </div>
 
-            <!-- Comment -->
             <textarea
               v-model="modal.comment"
               placeholder="コメント（任意）"
@@ -117,7 +114,6 @@
               class="w-full bg-white/[0.05] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 outline-none focus:border-white/20 transition-colors resize-none font-[inherit]"
             />
 
-            <!-- Actions -->
             <div class="flex gap-2 mt-4">
               <button
                 class="flex-1 py-3 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 bg-gradient-to-br from-rose-400 to-pink-600"

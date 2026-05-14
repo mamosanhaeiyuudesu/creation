@@ -259,10 +259,11 @@ onMounted(() => {
 
   <div class="min-h-screen pb-16 text-[#e2e8f0] text-sm">
     <!-- Header -->
-    <header class="sticky top-0 z-[100] bg-[rgba(15,23,42,0.92)] backdrop-blur-[12px] border-b border-white/[0.08]">
+    <header class="relative sticky top-0 z-[100] bg-[rgba(15,23,42,0.92)] backdrop-blur-[12px] border-b border-white/[0.08] shadow-[0_1px_0_0_rgba(16,185,129,0.08)]">
+      <div class="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-emerald-400 to-teal-500" />
       <!-- タイトル行 -->
       <div class="flex items-center gap-2 px-3 md:px-5 py-2 md:py-3.5">
-        <h1 class="flex-none m-0 text-xl font-bold bg-gradient-to-br from-sky-400 to-indigo-500 bg-clip-text text-transparent">タスクくん</h1>
+        <h1 class="flex-none m-0 text-xl font-bold bg-gradient-to-br from-emerald-400 to-teal-500 bg-clip-text text-transparent">タスクくん</h1>
         <!-- デスクトップ用コントロール -->
         <div v-if="hasCredentials" class="hidden md:flex items-center gap-2 ml-auto">
           <div class="flex items-center gap-1 mr-1">
@@ -326,7 +327,7 @@ onMounted(() => {
             </div>
           </div>
           <button
-            class="px-4 py-1.5 rounded-lg border-none bg-gradient-to-br from-sky-400 to-indigo-500 text-white text-[13px] font-semibold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:opacity-90 hover:enabled:-translate-y-px"
+            class="px-4 py-1.5 rounded-lg border-none bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-[13px] font-semibold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:opacity-90 hover:enabled:-translate-y-px"
             :disabled="loading"
             @click="load"
           >{{ loading ? '…' : '更新' }}</button>
@@ -392,7 +393,7 @@ onMounted(() => {
           </div>
         </div>
         <button
-          class="flex-shrink-0 px-3 py-1 rounded-lg border-none bg-gradient-to-br from-sky-400 to-indigo-500 text-white text-[12px] font-semibold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          class="flex-shrink-0 px-3 py-1 rounded-lg border-none bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-[12px] font-semibold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           :disabled="loading"
           @click="load"
         >{{ loading ? '…' : '更新' }}</button>
