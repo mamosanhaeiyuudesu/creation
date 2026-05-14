@@ -313,7 +313,12 @@ function isRecent(dateStr: string): boolean {
               :key="row.date"
               class="border-t border-slate-50 hover:bg-slate-50/60 transition-colors"
             >
-              <td class="px-4 py-2 whitespace-nowrap font-mono text-[12px] text-slate-400">{{ row.date }}</td>
+              <td class="px-4 py-2 whitespace-nowrap text-[12px]" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-400'">
+  <span class="inline-flex items-center gap-1">
+    <span class="font-mono">{{ row.date }}</span>
+    <span v-if="isRecent(row.date)" class="inline-flex items-center px-1 py-px rounded text-[8px] font-black tracking-wider text-white leading-none" style="background: #C42121;">NEW</span>
+  </span>
+</td>
               <td class="px-3 py-2 text-center whitespace-nowrap">
                 <span
                   v-if="row.result !== '-'"
@@ -357,7 +362,12 @@ function isRecent(dateStr: string): boolean {
               :key="row.date"
               class="border-t border-slate-50 hover:bg-slate-50/60 transition-colors"
             >
-              <td class="px-4 py-2 whitespace-nowrap font-mono text-[12px] text-slate-400">{{ row.date }}</td>
+              <td class="px-4 py-2 whitespace-nowrap text-[12px]" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-400'">
+  <span class="inline-flex items-center gap-1">
+    <span class="font-mono">{{ row.date }}</span>
+    <span v-if="isRecent(row.date)" class="inline-flex items-center px-1 py-px rounded text-[8px] font-black tracking-wider text-white leading-none" style="background: #C42121;">NEW</span>
+  </span>
+</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.ab }}</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hits > 0 && isRecent(row.date) ? 'text-emerald-600' : '']">{{ row.hits }}</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hr > 0 && isRecent(row.date) ? 'text-amber-600 font-bold' : '']">{{ row.hr }}</td>
