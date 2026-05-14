@@ -168,6 +168,11 @@ onMounted(async () => {
             : 'border-transparent text-slate-500 hover:text-slate-700'"
         >{{ tab.label }}</button>
 
+        <!-- 1〜10位の凡例 -->
+        <span class="ml-auto flex items-center px-3 pb-2.5 text-[10px] md:text-[11px] whitespace-nowrap" style="color: #C42121;">
+          1〜10位は赤文字
+        </span>
+
         <!-- 歯車ボタン（モバイルのみ） -->
         <button
           class="md:hidden flex-none px-3 py-2.5 text-slate-400 hover:text-slate-600 border-b-2 border-transparent -mb-px transition-colors"

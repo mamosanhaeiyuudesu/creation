@@ -227,33 +227,33 @@ function isRecent(dateStr: string): boolean {
           <!-- シーズン成績チップ -->
           <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
             <template v-if="mode === 'pitcher' && card.pitcherTotals">
-              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'wins', 'high'))">
+              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'wins', 'high'))">
                 {{ card.pitcherTotals.wins ?? '-' }}勝 {{ card.pitcherTotals.losses ?? '-' }}敗
               </span>
-              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'inningsPitched', 'high'))">
+              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'inningsPitched', 'high'))">
                 {{ card.pitcherTotals.ip !== '-' ? card.pitcherTotals.ip + '回' : '-' }}
               </span>
-              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'era', 'low'))">
+              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'era', 'low'))">
                 防御率 {{ card.pitcherTotals.era ?? '-' }}
               </span>
             </template>
             <template v-if="mode === 'batter' && card.batterTotals">
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'avg', 'high'))">
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'avg', 'high'))">
                 打率 {{ card.batterTotals.avg !== null ? card.batterTotals.avg.toFixed(3).replace(/^0/, '') : '-' }}
               </span>
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'obp', 'high'))">
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'obp', 'high'))">
                 出塁率 {{ card.batterTotals.obp !== null ? card.batterTotals.obp.toFixed(3).replace(/^0/, '') : '-' }}
               </span>
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'ops', 'high'))">
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'ops', 'high'))">
                 OPS {{ card.batterTotals.ops !== null ? card.batterTotals.ops.toFixed(3).replace(/^0/, '') : '-' }}
               </span>
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'hr', 'high'))">
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'hr', 'high'))">
                 {{ card.batterTotals.hr ?? 0 }} HR
               </span>
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'rbi', 'high'))">
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'rbi', 'high'))">
                 {{ card.batterTotals.rbi ?? '-' }} 打点
               </span>
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[10px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'runs', 'high'))">
+              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'runs', 'high'))">
                 {{ card.batterTotals.runs ?? '-' }} 得点
               </span>
             </template>
@@ -270,7 +270,7 @@ function isRecent(dateStr: string): boolean {
 
       <!-- 投手テーブル -->
       <div v-else-if="mode === 'pitcher'" class="overflow-x-auto">
-        <table class="w-full text-[11px]">
+        <table class="w-full text-[13px]">
           <thead>
             <tr class="bg-slate-50/80">
               <th class="text-left px-4 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap"></th>
@@ -291,7 +291,7 @@ function isRecent(dateStr: string): boolean {
               :key="row.date"
               class="border-t border-slate-50 hover:bg-slate-50/60 transition-colors"
             >
-              <td class="px-4 py-2 whitespace-nowrap font-mono text-[10px] text-slate-400">{{ row.date }}</td>
+              <td class="px-4 py-2 whitespace-nowrap font-mono text-[12px] text-slate-400">{{ row.date }}</td>
               <td class="px-3 py-2 text-center whitespace-nowrap">
                 <span
                   v-if="row.result !== '-'"
@@ -312,7 +312,7 @@ function isRecent(dateStr: string): boolean {
 
       <!-- 野手テーブル -->
       <div v-else-if="mode === 'batter'" class="overflow-x-auto">
-        <table class="w-full text-[11px]">
+        <table class="w-full text-[13px]">
           <thead>
             <tr class="bg-slate-50/80">
               <th class="text-left px-4 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap"></th>
@@ -335,7 +335,7 @@ function isRecent(dateStr: string): boolean {
               :key="row.date"
               class="border-t border-slate-50 hover:bg-slate-50/60 transition-colors"
             >
-              <td class="px-4 py-2 whitespace-nowrap font-mono text-[10px] text-slate-400">{{ row.date }}</td>
+              <td class="px-4 py-2 whitespace-nowrap font-mono text-[12px] text-slate-400">{{ row.date }}</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.ab }}</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hits > 0 && isRecent(row.date) ? 'text-emerald-600' : '']">{{ row.hits }}</td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hr > 0 && isRecent(row.date) ? 'text-amber-600 font-bold' : '']">{{ row.hr }}</td>
