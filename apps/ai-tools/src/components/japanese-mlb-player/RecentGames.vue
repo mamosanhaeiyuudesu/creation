@@ -327,7 +327,7 @@ function isRecent(dateStr: string): boolean {
               <td class="px-4 py-2 whitespace-nowrap text-[12px]" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-400'">
   <span class="inline-flex items-center gap-1">
     <span class="font-mono">{{ row.date }}</span>
-    <span v-if="isRecent(row.date)" class="inline-flex items-center px-1 py-px rounded text-[8px] font-black tracking-wider text-white leading-none" style="background: #C42121;">NEW</span>
+    <img v-if="isRecent(row.date)" src="/new_10785603.png" alt="NEW" class="w-4 h-4 object-contain flex-shrink-0" />
   </span>
 </td>
               <td class="px-3 py-2 text-center whitespace-nowrap">
@@ -376,7 +376,7 @@ function isRecent(dateStr: string): boolean {
               <td class="px-4 py-2 whitespace-nowrap text-[12px]" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-400'">
   <span class="inline-flex items-center gap-1">
     <span class="font-mono">{{ row.date }}</span>
-    <span v-if="isRecent(row.date)" class="inline-flex items-center px-1 py-px rounded text-[8px] font-black tracking-wider text-white leading-none" style="background: #C42121;">NEW</span>
+    <img v-if="isRecent(row.date)" src="/new_10785603.png" alt="NEW" class="w-4 h-4 object-contain flex-shrink-0" />
   </span>
 </td>
               <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.ab }}</td>
