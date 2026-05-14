@@ -191,12 +191,12 @@ function isRecent(dateStr: string): boolean {
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000)
   const gameDate = new Date(Date.UTC(jstNow.getUTCFullYear(), parseInt(parts[0]) - 1, parseInt(parts[1])))
   const diffDays = (jstNow.getTime() - gameDate.getTime()) / 86400000
-  return diffDays >= 0 && diffDays < 2
+  return diffDays >= 0 && diffDays < 1
 }
 </script>
 
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div v-if="cards.length === 0" class="col-span-full py-12 text-center text-xs text-slate-400 tracking-wide">
       データがありません
     </div>

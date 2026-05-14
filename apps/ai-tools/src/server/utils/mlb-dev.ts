@@ -3,25 +3,30 @@ import { PLAYERS } from '~/utils/japanese-mlb-player/players'
 import { nowJST } from '~/utils/jst'
 
 // 2026年現在成績サンプルデータ（ローカル開発用）
+// AL・NLのリーグ統計に対して 1〜5位・6〜10位・圏外が混在するよう設計
+// AL打者: 吉田→rank2-3、岡本→rank9-10、村上→圏外
+// NL打者: 大谷→rank1-3、鈴木→rank8-9、ヌートバー→圏外
 const CURRENT_BATTER: Record<string, Omit<BatterStats, 'playerId' | 'season' | 'date'>> = {
-  '807799': { avg: 0.278, obp: 0.362, slg: 0.480, ops: 0.842, bbPct: 12.8, kPct: 19.5, hr: 4,  rbi: 14, hits: 22, runs: 12, stolenBases: 0, bbk: 0.66, atBats: 79,  strikeouts: 18, walks: 12, totalBases: 38 },
-  '672960': { avg: 0.261, obp: 0.335, slg: 0.430, ops: 0.795, bbPct: 9.2,  kPct: 21.8, hr: 4,  rbi: 13, hits: 21, runs: 10, stolenBases: 1, bbk: 0.42, atBats: 80,  strikeouts: 19, walks: 8,  totalBases: 34 },
+  '807799': { avg: 0.283, obp: 0.365, slg: 0.493, ops: 0.858, bbPct: 12.3, kPct: 19.0, hr: 4,  rbi: 14, hits: 22, runs: 12, stolenBases: 0, bbk: 0.65, atBats: 79,  strikeouts: 18, walks: 12, totalBases: 38 },
+  '672960': { avg: 0.277, obp: 0.345, slg: 0.491, ops: 0.836, bbPct: 9.5,  kPct: 21.8, hr: 4,  rbi: 13, hits: 21, runs: 10, stolenBases: 1, bbk: 0.44, atBats: 80,  strikeouts: 19, walks: 8,  totalBases: 34 },
   '808959': { avg: 0.248, obp: 0.342, slg: 0.483, ops: 0.825, bbPct: 12.5, kPct: 27.3, hr: 5,  rbi: 15, hits: 20, runs: 11, stolenBases: 0, bbk: 0.46, atBats: 81,  strikeouts: 25, walks: 12, totalBases: 39 },
-  '673548': { avg: 0.287, obp: 0.358, slg: 0.471, ops: 0.858, bbPct: 10.1, kPct: 18.7, hr: 4,  rbi: 16, hits: 25, runs: 14, stolenBases: 3, bbk: 0.54, atBats: 87,  strikeouts: 18, walks: 10, totalBases: 41 },
-  '666971': { avg: 0.256, obp: 0.347, slg: 0.435, ops: 0.782, bbPct: 11.4, kPct: 21.2, hr: 3,  rbi: 10, hits: 20, runs: 13, stolenBases: 5, bbk: 0.54, atBats: 78,  strikeouts: 19, walks: 10, totalBases: 34 },
-  '660271': { avg: 0.240, obp: 0.364, slg: 0.438, ops: 0.802, bbPct: 14.3, kPct: 25.2, hr: 5,  rbi: 11, hits: 23, runs: 15, stolenBases: 1, bbk: 0.57, atBats: 96,  strikeouts: 28, walks: 16, totalBases: 42 },
+  '673548': { avg: 0.285, obp: 0.374, slg: 0.471, ops: 0.845, bbPct: 10.1, kPct: 18.7, hr: 4,  rbi: 16, hits: 25, runs: 14, stolenBases: 3, bbk: 0.54, atBats: 87,  strikeouts: 18, walks: 10, totalBases: 41 },
+  '663457': { avg: 0.258, obp: 0.342, slg: 0.410, ops: 0.752, bbPct: 10.5, kPct: 22.8, hr: 2,  rbi: 8,  hits: 18, runs: 10, stolenBases: 2, bbk: 0.46, atBats: 69,  strikeouts: 18, walks: 9,  totalBases: 28 },
+  '660271': { avg: 0.292, obp: 0.383, slg: 0.485, ops: 0.868, bbPct: 14.3, kPct: 25.2, hr: 5,  rbi: 11, hits: 23, runs: 15, stolenBases: 1, bbk: 0.57, atBats: 96,  strikeouts: 28, walks: 16, totalBases: 42 },
 }
 
+// NL投手: 佐々木→rank1、大谷→rank4、千賀→rank6、山本→rank8、今永→rank9、松井→rank10、ダル→圏外
+// AL投手: 今井→rank3、菊池→rank9
 const CURRENT_PITCHER: Record<string, Omit<PitcherStats, 'playerId' | 'season' | 'date'>> = {
-  '673540': { era: 2.43, whip: 1.01, kPct: 31.2, bbPct: 6.8, wins: 3, losses: 1, strikeouts: 38, inningsPitched: 33.1, saves: 0, holds: 0, fip: 2.71, bbk: 0.22, runsAllowed: 10 },
-  '684007': { era: 2.87, whip: 1.08, kPct: 28.4, bbPct: 5.2, wins: 3, losses: 1, strikeouts: 32, inningsPitched: 31.1, saves: 0, holds: 0, fip: 2.95, bbk: 0.18, runsAllowed: 11 },
-  '808963': { era: 2.18, whip: 0.94, kPct: 33.6, bbPct: 5.8, wins: 2, losses: 1, strikeouts: 35, inningsPitched: 29.0, saves: 0, holds: 0, fip: 2.40, bbk: 0.17, runsAllowed: 8  },
-  '660271': { era: 2.32, whip: 0.97, kPct: 35.1, bbPct: 6.9, wins: 2, losses: 1, strikeouts: 28, inningsPitched: 23.1, saves: 0, holds: 0, fip: 2.25, bbk: 0.20, runsAllowed: 7  },
-  '808967': { era: 2.62, whip: 1.04, kPct: 29.3, bbPct: 5.9, wins: 3, losses: 1, strikeouts: 30, inningsPitched: 30.2, saves: 0, holds: 0, fip: 2.75, bbk: 0.20, runsAllowed: 10 },
-  '673513': { era: 2.91, whip: 1.11, kPct: 28.1, bbPct: 7.8, wins: 2, losses: 0, strikeouts: 18, inningsPitched: 17.0, saves: 5, holds: 3, fip: 3.15, bbk: 0.28, runsAllowed: 7  },
-  '506433': { era: 3.22, whip: 1.09, kPct: 26.4, bbPct: 6.9, wins: 2, losses: 2, strikeouts: 28, inningsPitched: 28.0, saves: 0, holds: 0, fip: 3.30, bbk: 0.26, runsAllowed: 11 },
-  '579328': { era: 3.84, whip: 1.21, kPct: 22.3, bbPct: 8.1, wins: 2, losses: 2, strikeouts: 24, inningsPitched: 25.0, saves: 0, holds: 0, fip: 3.75, bbk: 0.36, runsAllowed: 12 },
-  '837227': { era: 3.42, whip: 1.14, kPct: 25.2, bbPct: 8.9, wins: 2, losses: 2, strikeouts: 22, inningsPitched: 23.2, saves: 0, holds: 0, fip: 3.50, bbk: 0.35, runsAllowed: 10 },
+  '673540': { era: 2.22, whip: 0.89, kPct: 38.0, bbPct: 6.5, wins: 4, losses: 1, strikeouts: 45, inningsPitched: 36.2, saves: 0, holds: 0, fip: 2.30, bbk: 0.17, runsAllowed: 10 },
+  '684007': { era: 2.44, whip: 0.94, kPct: 36.5, bbPct: 5.8, wins: 4, losses: 1, strikeouts: 41, inningsPitched: 33.0, saves: 0, holds: 0, fip: 2.55, bbk: 0.16, runsAllowed: 11 },
+  '808963': { era: 2.00, whip: 0.80, kPct: 39.8, bbPct: 5.2, wins: 4, losses: 0, strikeouts: 48, inningsPitched: 36.0, saves: 0, holds: 0, fip: 1.98, bbk: 0.13, runsAllowed: 9  },
+  '660271': { era: 2.11, whip: 0.85, kPct: 39.2, bbPct: 6.2, wins: 3, losses: 1, strikeouts: 35, inningsPitched: 29.2, saves: 0, holds: 0, fip: 2.08, bbk: 0.16, runsAllowed: 8  },
+  '808967': { era: 2.33, whip: 0.91, kPct: 37.3, bbPct: 6.1, wins: 4, losses: 1, strikeouts: 38, inningsPitched: 34.2, saves: 0, holds: 0, fip: 2.40, bbk: 0.16, runsAllowed: 10 },
+  '673513': { era: 2.49, whip: 0.97, kPct: 29.3, bbPct: 6.2, wins: 2, losses: 0, strikeouts: 20, inningsPitched: 18.1, saves: 6, holds: 4, fip: 2.65, bbk: 0.21, runsAllowed: 7  },
+  '506433': { era: 3.10, whip: 1.15, kPct: 26.4, bbPct: 7.0, wins: 3, losses: 2, strikeouts: 30, inningsPitched: 30.0, saves: 0, holds: 0, fip: 3.25, bbk: 0.27, runsAllowed: 12 },
+  '579328': { era: 3.56, whip: 1.08, kPct: 23.5, bbPct: 8.2, wins: 3, losses: 2, strikeouts: 26, inningsPitched: 27.0, saves: 0, holds: 0, fip: 3.70, bbk: 0.35, runsAllowed: 13 },
+  '837227': { era: 3.22, whip: 1.02, kPct: 26.8, bbPct: 7.5, wins: 3, losses: 2, strikeouts: 28, inningsPitched: 25.0, saves: 0, holds: 0, fip: 3.35, bbk: 0.28, runsAllowed: 11 },
 }
 
 // 年度別サンプルデータ
@@ -107,7 +112,9 @@ function generateTrendBatter(playerId: string, season: number): BatterStats[] {
   const rng = () => { s = (s * 9301 + 49297) % 233280; return s / 233280 - 0.5 }
   const games = 18
   for (let day = 1; day <= games; day++) {
-    const date = `2026-04-${day.toString().padStart(2, '0')}`
+    const d = new Date('2026-04-25T00:00:00Z')
+    d.setUTCDate(d.getUTCDate() + (day - 1))
+    const date = d.toISOString().slice(0, 10)
     const prog = day / games
     trend.push({
       playerId, season, date,
@@ -141,7 +148,9 @@ function generateTrendPitcher(playerId: string, season: number): PitcherStats[] 
   const rng = () => { s = (s * 9301 + 49297) % 233280; return s / 233280 - 0.5 }
   const games = 18
   for (let day = 1; day <= games; day++) {
-    const date = `2026-04-${day.toString().padStart(2, '0')}`
+    const d = new Date('2026-04-25T00:00:00Z')
+    d.setUTCDate(d.getUTCDate() + (day - 1))
+    const date = d.toISOString().slice(0, 10)
     const prog = day / games
     trend.push({
       playerId, season, date,
@@ -253,19 +262,24 @@ function makeLeagueBlock(
   }
 }
 
+// リーグ統計リーダー値をサンプル選手の実力帯に合わせて設定
+// AL打者: avg leader=0.285 → 吉田(0.283)rank3、岡本(0.277)rank10
+// NL打者: avg leader=0.293 → 大谷(0.292)rank2、鈴木(0.285)rank9
+// AL投手: era leader=3.10 → 今井(3.22)rank3、菊池(3.56)rank9
+// NL投手: era leader=2.00 → 佐々木(2.00)rank1、大谷(2.11)rank3、千賀(2.22)rank6、山本(2.33)rank8、今永(2.44)rank9、松井(2.49)rank10、ダル(3.10)圏外
 export function getDevLeagueStats(): AllLeagueStats {
   return {
     AL: makeLeagueBlock(
-      { avg: 0.345, obp: 0.420, slg: 0.620, ops: 1.050, bbPct: 17.2, kPct: 12.5, hr: 12, rbi: 38, hits: 42, runs: 32, stolenBases: 14 },
+      { avg: 0.285, obp: 0.385, slg: 0.570, ops: 0.860, bbPct: 17.2, kPct: 12.5, hr: 8, rbi: 28, hits: 35, runs: 24, stolenBases: 10 },
       { avg: 0.255, obp: 0.322, slg: 0.423, ops: 0.745, bbPct: 8.5,  kPct: 24.0 },
-      { era: 1.42, whip: 0.82, kPct: 38.5, bbPct: 3.8, fip: 1.65, wins: 5, losses: 1, strikeouts: 52, inningsPitched: 40.0, saves: 10, holds: 9 },
-      { era: 4.12, whip: 1.28, kPct: 22.8, bbPct: 8.2, fip: 4.05 },
+      { era: 3.10, whip: 1.00, kPct: 38.5, bbPct: 3.8, fip: 3.25, wins: 5, losses: 1, strikeouts: 40, inningsPitched: 35.0, saves: 8, holds: 7 },
+      { era: 5.50, whip: 1.28, kPct: 22.8, bbPct: 8.2, fip: 4.80 },
     ),
     NL: makeLeagueBlock(
-      { avg: 0.352, obp: 0.428, slg: 0.652, ops: 1.080, bbPct: 16.8, kPct: 11.8, hr: 11, rbi: 35, hits: 40, runs: 30, stolenBases: 12 },
+      { avg: 0.293, obp: 0.385, slg: 0.580, ops: 0.870, bbPct: 16.8, kPct: 11.8, hr: 8, rbi: 25, hits: 35, runs: 24, stolenBases: 8 },
       { avg: 0.252, obp: 0.318, slg: 0.420, ops: 0.738, bbPct: 8.2,  kPct: 24.5 },
-      { era: 1.38, whip: 0.80, kPct: 40.2, bbPct: 3.5, fip: 1.58, wins: 5, losses: 1, strikeouts: 55, inningsPitched: 42.0, saves: 9, holds: 8 },
-      { era: 4.08, whip: 1.25, kPct: 23.5, bbPct: 7.9, fip: 4.02 },
+      { era: 2.00, whip: 0.80, kPct: 40.2, bbPct: 3.5, fip: 1.98, wins: 5, losses: 1, strikeouts: 50, inningsPitched: 38.0, saves: 8, holds: 6 },
+      { era: 4.50, whip: 1.25, kPct: 23.5, bbPct: 7.9, fip: 4.02 },
     ),
   }
 }
