@@ -33,6 +33,7 @@ wrangler deploy  # Cloudflare Workersへデプロイ
 | `/deepheart` | カウンセリングチャット（ユーザー認証・会話履歴あり） |
 | `/ai-tools/miyako` | 宮古島市議会議事録 — キーワード×会期ヒートマップ＋AI解説パネル |
 | `/ai-tools/miyako/member` | 議員ごとのTF-IDFランキング（単語・カテゴリ別） |
+| `/marriage` | ふたりの日々を記録するカレンダー（ムード記録・コメント付き） |
 
 ## Cloudflare D1
 

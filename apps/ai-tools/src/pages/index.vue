@@ -29,7 +29,7 @@
 <script setup lang="ts">
 const tools = [
   // { path: '/snapreader', icon: '📸', name: 'SnapReader', desc: '画像を送って、数秒で要約' },
-  { path: '/whisper', icon: '🎙️', name: 'Whisper', desc: '音声を文字に自動変換' },
+  { path: '/whisper', icon: '🎙️', name: 'whisper', desc: '音声を文字に自動変換' },
   { path: '/hagemashi', icon: '💪', name: 'はげまし', desc: '話して、AIに励ましてもらおう' },
   { path: '/task', icon: '📋', name: 'タスクくん', desc: 'Trello の DOING / TODO / DONE をまとめて確認' },
   { path: '/marriage', icon: '💑', name: 'marriage', desc: '夫婦の日々を絵文字で記録するカレンダー' },

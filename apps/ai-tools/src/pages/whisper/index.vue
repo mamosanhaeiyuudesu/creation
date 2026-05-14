@@ -5,7 +5,7 @@
       <!-- Header -->
       <header class="flex items-start justify-between gap-3">
         <div class="flex-1 text-center pl-10">
-          <h1 class="m-0 text-[clamp(24px,4vw,32px)] font-bold bg-gradient-to-br from-sky-400 to-indigo-500 bg-clip-text text-transparent">Whisper</h1>
+          <h1 class="m-0 text-[clamp(24px,4vw,32px)] font-bold bg-gradient-to-br from-sky-400 to-indigo-500 bg-clip-text text-transparent">whisper</h1>
           <p class="mt-2 mb-0 text-slate-400 text-base">音声を文字に変換</p>
         </div>
         <div class="flex-shrink-0 -mt-3.5 -mr-3.5">
@@ -118,7 +118,7 @@ definePageMeta({ alias: ['/whisper', '/whisper/'] })
 import { ref, onMounted } from 'vue'
 
 useHead({
-  title: import.meta.dev ? 'Whisper (dev)' : 'Whisper',
+  title: import.meta.dev ? 'whisper (dev)' : 'whisper',
   link: [
     { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎙️</text></svg>` },
     { rel: 'manifest', href: '/manifest-whisper.json' },
@@ -126,7 +126,7 @@ useHead({
   ],
   meta: [
     { name: 'apple-mobile-web-app-capable', content: 'yes' },
-    { name: 'apple-mobile-web-app-title', content: 'Whisper' },
+    { name: 'apple-mobile-web-app-title', content: 'whisper' },
     { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
     { name: 'theme-color', content: '#8b5cf6' },
   ],

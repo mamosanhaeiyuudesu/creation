@@ -1,0 +1,14 @@
+{
+  "name": "marriage",
+  "short_name": "marriage",
+  "description": "ふたりの日々を記録するカレンダー",
+  "theme_color": "#db2777",
+  "background_color": "#db2777",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/marriage",
+  "scope": "/",
+  "icons": [
+    { "src": "/apple-touch-icon-marriage.png", "sizes": "192x192", "type": "image/png", "purpose": "any" }
+  ]
+}

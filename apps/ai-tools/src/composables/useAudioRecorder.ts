@@ -7,7 +7,7 @@ interface AudioRecorderOptions {
 
 // 20分以上の音声は分割して並列文字起こし
 const CHUNK_DURATION_SECONDS = 20 * 60
-// 8kHz モノラル WAV: 20分 ≈ 19.2MB (Whisper API 25MB制限以内)
+// 8kHz モノラル WAV: 20分 ≈ 19.2MB (whisper API 25MB制限以内)
 const WAV_SAMPLE_RATE = 8000
 
 function encodeWav(samples: Float32Array, sampleRate: number): Blob {

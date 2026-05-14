@@ -14,7 +14,7 @@ apps/
 
 ## どのディレクトリで作業するか
 
-`apps/ai-tools/` → キーワード: **miyako・snapreader・whisper・hagemashi・task・deepheart・mlb・ai-tools 全般**
+`apps/ai-tools/` → キーワード: **miyako・snapreader・whisper・hagemashi・task・deepheart・mlb・marriage・ai-tools 全般**
 
 `apps/homepages/` → キーワード: **homepages・kaito・mamorin・prototyper・ai-consultant**
 

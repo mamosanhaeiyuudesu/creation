@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
             })
         }
 
-        // OpenAI Whisper APIへ送信
+        // OpenAI whisper APIへ送信
         const whisperFormData = new FormData()
         whisperFormData.append('file', audioFile)
         whisperFormData.append('model', 'whisper-1')
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
                         errorMessage = body
                     }
                 }
-            } catch {}
+            } catch { }
             console.error('OpenAI API error:', errorMessage)
             throw createError({
                 statusCode: response.status,

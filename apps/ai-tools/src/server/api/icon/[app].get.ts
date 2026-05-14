@@ -8,6 +8,7 @@ const APP_COLORS: Record<string, [number, number, number]> = {
   hagemashi:  [0xf9, 0x73, 0x16],
   whisper:    [0x8b, 0x5c, 0xf6],
   task:       [0x10, 0xb9, 0x81],
+  marriage:   [0xdb, 0x27, 0x77],
 }
 
 function crc32(buf: Uint8Array): number {

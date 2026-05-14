@@ -1,6 +1,6 @@
 # AI Tools (Nuxt 3)
 
-複数の AI ツールを統合した Nuxt 3 アプリです。画像要約（SnapReader）と音声文字起こし（Whisper）を備えています。Cloudflare Workers へのデプロイ設定付き。
+複数の AI ツールを統合した Nuxt 3 アプリです。画像要約（SnapReader）と音声文字起こし（whisper）を備えています。Cloudflare Workers へのデプロイ設定付き。
 
 ## セットアップ
 
@@ -18,20 +18,20 @@
 - 画像をアップロードまたは撮影
 -. `.env` に `OPENAI_API_KEY` をセット。
 2. `npm run dev` で起動。
-3. ホームページからツール（SnapReader / Whisper）を選択。
+3. ホームページからツール（SnapReader / whisper）を選択。
 
 ### SnapReader 確認
 - 画像をアップロードまたはカメラで撮影。
 - 「要約を依頼する」を押下。
 - 全文書き起こし → 要約が表示されることを確認。
 
-### Whisper 確認
+### whisper 確認
 - 「🎙️」ボタンで録音開始。
 - 再度ボタンをクリックして文字起こし実行。
 - 日本語テキストが表示され
-### Whisper
+### whisper
 - 音声を録音
-- OpenAI の Whisper-1 で日本語に文字起こし
+- OpenAI の whisper-1 で日本語に文字起こし
 - API エンドポイント：`/api/whisper`
 
 ## 動作確認

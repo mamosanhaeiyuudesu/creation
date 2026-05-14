@@ -1,16 +1,17 @@
 <template>
   <div class="min-h-screen bg-[#0f172a] text-slate-100">
-    <AuthModal v-if="!isLoggedIn && checked" accent="sky" />
+    <AuthModal v-if="showAuthModal" accent="sky" />
 
-    <template v-if="isLoggedIn">
+    <template v-if="showApp">
       <header class="px-4 pt-6 pb-4 text-center">
         <h1 class="text-2xl font-bold tracking-tight">💑 marriage</h1>
         <p class="text-sm text-slate-400 mt-1">ふたりの日々を記録する</p>
         <button
+          v-if="!$dev && user"
           class="mt-1 text-xs text-slate-600 hover:text-slate-400 transition-colors"
           @click="handleLogout"
         >
-          {{ user?.username }} · ログアウト
+          {{ user.username }} · ログアウト
         </button>
       </header>
 
@@ -144,13 +145,43 @@
 </template>
 
 <script setup lang="ts">
+useHead({
+  title: import.meta.dev ? 'marriage (dev)' : 'marriage',
+  link: [
+    { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💑</text></svg>` },
+    { rel: 'manifest', href: '/manifest-marriage.json' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon-marriage.png' },
+  ],
+  meta: [
+    { name: 'apple-mobile-web-app-capable', content: 'yes' },
+    { name: 'apple-mobile-web-app-title', content: 'marriage' },
+    { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+    { name: 'theme-color', content: '#db2777' },
+  ],
+})
+
 interface MarriageRecord {
   date: string
   mood: string
   comment: string
 }
 
+const $dev = import.meta.dev
+const DEV_STORAGE_KEY = 'marriage-records-dev'
+
 const { user, isLoggedIn, checked, checkAuth, logout } = useAuth()
+
+const showAuthModal = computed(() => !$dev && !isLoggedIn.value && checked.value)
+const showApp = computed(() => $dev || isLoggedIn.value)
+
+// dev mode: localStorage helpers
+const loadAllDevRecords = (): MarriageRecord[] => {
+  if (!import.meta.client) return []
+  try { return JSON.parse(localStorage.getItem(DEV_STORAGE_KEY) ?? '[]') } catch { return [] }
+}
+const saveAllDevRecords = (recs: MarriageRecord[]) => {
+  if (import.meta.client) localStorage.setItem(DEV_STORAGE_KEY, JSON.stringify(recs))
+}
 
 const today = new Date()
 const currentYear = ref(today.getFullYear())
@@ -189,12 +220,17 @@ const getDayOfWeekClass = (day: number) => {
 const moodEmoji = (mood: string) => moods.find(m => m.value === mood)?.emoji ?? ''
 
 const fetchRecords = async () => {
+  if ($dev) {
+    const m = String(currentMonth.value).padStart(2, '0')
+    const prefix = `${currentYear.value}-${m}`
+    records.value = loadAllDevRecords().filter(r => r.date.startsWith(prefix))
+    return
+  }
   if (!isLoggedIn.value) return
   try {
-    const data = await $fetch<MarriageRecord[]>(
+    records.value = await $fetch<MarriageRecord[]>(
       `/api/marriage/records?year=${currentYear.value}&month=${currentMonth.value}`
     )
-    records.value = data
   } catch {
     records.value = []
   }
@@ -215,13 +251,7 @@ const isSaving = ref(false)
 
 const openModal = (day: number) => {
   const existing = getDayRecord(day)
-  modal.value = {
-    open: true,
-    day,
-    mood: existing?.mood ?? '',
-    comment: existing?.comment ?? '',
-    hasRecord: !!existing,
-  }
+  modal.value = { open: true, day, mood: existing?.mood ?? '', comment: existing?.comment ?? '', hasRecord: !!existing }
 }
 
 const closeModal = () => { modal.value.open = false }
@@ -231,13 +261,26 @@ const saveRecord = async () => {
   isSaving.value = true
   try {
     const date = getDateStr(modal.value.day)
-    const saved = await $fetch<MarriageRecord>(`/api/marriage/records/${date}`, {
-      method: 'PUT',
-      body: { mood: modal.value.mood, comment: modal.value.comment },
-    })
-    const idx = records.value.findIndex(r => r.date === date)
-    if (idx >= 0) records.value[idx] = saved
-    else records.value.push(saved)
+    const saved: MarriageRecord = { date, mood: modal.value.mood, comment: modal.value.comment }
+
+    if ($dev) {
+      const all = loadAllDevRecords()
+      const idx = all.findIndex(r => r.date === date)
+      if (idx >= 0) all[idx] = saved
+      else all.push(saved)
+      saveAllDevRecords(all)
+      const ri = records.value.findIndex(r => r.date === date)
+      if (ri >= 0) records.value[ri] = saved
+      else records.value.push(saved)
+    } else {
+      const result = await $fetch<MarriageRecord>(`/api/marriage/records/${date}`, {
+        method: 'PUT',
+        body: { mood: modal.value.mood, comment: modal.value.comment },
+      })
+      const idx = records.value.findIndex(r => r.date === date)
+      if (idx >= 0) records.value[idx] = result
+      else records.value.push(result)
+    }
     closeModal()
   } finally {
     isSaving.value = false
@@ -248,7 +291,11 @@ const deleteRecord = async () => {
   isSaving.value = true
   try {
     const date = getDateStr(modal.value.day)
-    await $fetch(`/api/marriage/records/${date}`, { method: 'DELETE' })
+    if ($dev) {
+      saveAllDevRecords(loadAllDevRecords().filter(r => r.date !== date))
+    } else {
+      await $fetch(`/api/marriage/records/${date}`, { method: 'DELETE' })
+    }
     records.value = records.value.filter(r => r.date !== date)
     closeModal()
   } finally {
@@ -258,13 +305,11 @@ const deleteRecord = async () => {
 
 const handleLogout = () => logout()
 
-watch([currentYear, currentMonth, isLoggedIn], () => {
-  if (isLoggedIn.value) fetchRecords()
-})
+watch([currentYear, currentMonth], fetchRecords)
 
 onMounted(async () => {
-  await checkAuth()
-  if (isLoggedIn.value) fetchRecords()
+  if (!$dev) await checkAuth()
+  fetchRecords()
 })
 </script>
 
