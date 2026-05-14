@@ -74,6 +74,15 @@
             <span>😐 ふつう</span>
             <span>😔 悪かった</span>
           </div>
+
+          <!-- Advice card -->
+          <div class="relative overflow-hidden rounded-2xl border border-rose-500/20 bg-gradient-to-br from-rose-500/[0.07] to-pink-500/[0.04] px-5 py-4">
+            <div class="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-rose-400/40 to-transparent" />
+            <p class="mb-1.5 text-[10px] font-medium uppercase tracking-widest text-rose-400/70">Weekly Advice</p>
+            <p v-if="advice === null" class="text-sm text-slate-500 animate-pulse">考え中…</p>
+            <p v-else-if="advice === ''" class="text-sm text-slate-500">記録が少ないので、まず記録を続けてみよう</p>
+            <p v-else class="text-base font-semibold text-slate-100 tracking-wide">{{ advice }}</p>
+          </div>
         </template>
       </div>
     </div>
@@ -307,11 +316,34 @@ const menuItems = [
   { icon: '🚪', label: 'ログアウト', action: logout },
 ]
 
+const advice = ref<string | null>(null)
+
+const fetchAdvice = async () => {
+  if (!$dev && !isLoggedIn.value) return
+  advice.value = null
+  if ($dev) {
+    const all = loadAllDevRecords()
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - 6)
+    const recent = all.filter(r => r.date >= cutoff.toISOString().slice(0, 10))
+    if (recent.length === 0) { advice.value = ''; return }
+    advice.value = 'ふたりの時間を大切に'
+    return
+  }
+  try {
+    const res = await $fetch<{ advice: string }>('/api/marriage/advice')
+    advice.value = res.advice
+  } catch {
+    advice.value = ''
+  }
+}
+
 watch([currentYear, currentMonth], fetchRecords)
 
 onMounted(async () => {
   if (!$dev) await checkAuth()
   fetchRecords()
+  fetchAdvice()
 })
 </script>
 
