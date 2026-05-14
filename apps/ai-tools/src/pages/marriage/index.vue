@@ -1,18 +1,22 @@
 <template>
   <div class="min-h-screen bg-[#0f172a] text-slate-100">
-    <AuthModal v-if="showAuthModal" accent="sky" />
+    <AuthModal v-if="showAuthModal" accent="rose" />
 
     <template v-if="showApp">
-      <header class="px-4 pt-6 pb-4 text-center">
-        <h1 class="text-2xl font-bold tracking-tight">💑 marriage</h1>
-        <p class="text-sm text-slate-400 mt-1">ふたりの日々を記録する</p>
-        <button
-          v-if="!$dev && user"
-          class="mt-1 text-xs text-slate-600 hover:text-slate-400 transition-colors"
-          @click="handleLogout"
-        >
-          {{ user.username }} · ログアウト
-        </button>
+      <header class="flex items-start justify-between gap-3 px-4 pt-5 pb-4">
+        <div class="flex-1 text-center pl-10">
+          <h1 class="text-2xl font-bold tracking-tight">💑 marriage</h1>
+          <p class="text-sm text-slate-400 mt-1">ふたりの日々を記録する</p>
+        </div>
+        <div class="flex-shrink-0 -mt-1 -mr-1">
+          <UserMenu
+            v-if="!$dev && user"
+            :username="user.username"
+            :items="menuItems"
+            accentFrom="#f43f5e"
+            accentTo="#db2777"
+          />
+        </div>
       </header>
 
       <main class="px-4 pb-10 max-w-sm mx-auto">
@@ -303,7 +307,9 @@ const deleteRecord = async () => {
   }
 }
 
-const handleLogout = () => logout()
+const menuItems = [
+  { icon: '🚪', label: 'ログアウト', action: logout },
+]
 
 watch([currentYear, currentMonth], fetchRecords)
 
