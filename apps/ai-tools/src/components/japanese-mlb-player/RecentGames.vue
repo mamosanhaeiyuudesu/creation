@@ -245,11 +245,11 @@ function isRecent(dateStr: string): boolean {
                   ? 'background: linear-gradient(135deg, #1e3a8a, #2563eb)'
                   : 'background: linear-gradient(135deg, #9f1239, #e11d48)'"
               >{{ card.league === 'NL' ? 'ナ' : 'ア' }}</span>
-              <span class="text-[11px] text-slate-400 leading-none">{{ card.teamShort }}</span>
-              <template v-if="card.divisionRank !== null">
-                <span class="text-slate-200 text-[10px] leading-none">·</span>
-                <span class="text-[11px] font-semibold leading-none" :class="card.divisionRank === 1 ? 'text-amber-500' : 'text-slate-500'">{{ card.divisionRank }}位</span>
-              </template>
+              <span class="text-[11px] font-semibold text-slate-400 leading-none">{{ card.teamShort }}</span>
+              <span
+                v-if="card.divisionRank !== null"
+                class="text-[11px] font-semibold leading-none ml-[-3px] text-slate-400"
+              >{{ card.divisionRank }}位</span>
             </div>
           </div>
           <!-- シーズン成績チップ -->
