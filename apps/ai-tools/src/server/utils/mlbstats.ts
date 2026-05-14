@@ -369,7 +369,7 @@ export async function fetchDivisionStandings(season: number): Promise<Record<str
       }>
     }>
   }
-  const qs = new URLSearchParams({ leagueId: '103,104', season: String(season), standingsTypes: 'regularSeason' }).toString()
+  const qs = new URLSearchParams({ leagueId: '103,104', season: String(season), hydrate: 'team' }).toString()
   const json = await fetchJson<StandingsJson>(`${MLB_API}/standings?${qs}`)
   if (!json) return {}
   const result: Record<string, number> = {}

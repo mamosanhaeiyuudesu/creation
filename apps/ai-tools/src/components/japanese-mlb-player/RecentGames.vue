@@ -239,13 +239,7 @@ function isRecent(dateStr: string): boolean {
             </a>
             <!-- リーグ・チーム・順位 -->
             <div class="ml-auto flex items-center gap-1.5 flex-shrink-0">
-              <span
-                class="w-[18px] h-[18px] rounded-full flex items-center justify-center text-[9px] font-black text-white leading-none shadow-sm"
-                :style="card.league === 'NL'
-                  ? 'background: linear-gradient(135deg, #1e3a8a, #2563eb)'
-                  : 'background: linear-gradient(135deg, #9f1239, #e11d48)'"
-              >{{ card.league === 'NL' ? 'ナ' : 'ア' }}</span>
-              <span class="text-[11px] font-semibold text-slate-400 leading-none">{{ card.teamShort }}</span>
+<span class="text-[11px] font-semibold text-slate-400 leading-none">{{ card.teamShort }}</span>
               <span
                 v-if="card.divisionRank !== null"
                 class="text-[11px] font-semibold leading-none ml-[-3px] text-slate-400"
