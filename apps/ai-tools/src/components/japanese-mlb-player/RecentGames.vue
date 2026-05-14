@@ -56,7 +56,7 @@ interface Card {
   noData: boolean
   pitcherRows?: PitcherRow[]
   batterRows?: BatterRow[]
-  pitcherTotals?: { wins: number | null; losses: number | null; ip: string; era: string; k: number | null; bb: number | null; runsAllowed: number | null }
+  pitcherTotals?: { wins: number | null; losses: number | null; ip: string; era: string; fip: string; k: number | null; bb: number | null; runsAllowed: number | null }
   batterTotals?: { avg: number | null; obp: number | null; ops: number | null; ab: number | null; hits: number | null; hr: number | null; rbi: number | null; runs: number | null; so: number | null; walks: number | null; tb: number | null }
 }
 
@@ -67,13 +67,14 @@ function teamShortName(teamFull: string): string {
 
 function buildPitcherTotals(data: SeasonData): Card['pitcherTotals'] {
   const c = data.currentPitcher
-  if (!c) return { wins: null, losses: null, ip: '-', era: '-', k: null, bb: null, runsAllowed: null }
+  if (!c) return { wins: null, losses: null, ip: '-', era: '-', fip: '-', k: null, bb: null, runsAllowed: null }
   const bb = c.strikeouts !== null && c.bbk !== null ? estimateCumBB(c.strikeouts, c.bbk) : null
   return {
     wins: c.wins,
     losses: c.losses,
     ip: c.inningsPitched !== null ? String(c.inningsPitched) : '-',
     era: c.era !== null ? c.era.toFixed(2) : '-',
+    fip: c.fip !== null && c.fip !== undefined ? c.fip.toFixed(2) : '-',
     k: c.strikeouts,
     bb,
     runsAllowed: c.runsAllowed,
@@ -264,10 +265,13 @@ function isRecent(dateStr: string): boolean {
                 {{ card.pitcherTotals.wins ?? '-' }}勝 {{ card.pitcherTotals.losses ?? '-' }}敗
               </span>
               <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'inningsPitched', 'high'))">
-                {{ card.pitcherTotals.ip !== '-' ? card.pitcherTotals.ip + '回' : '-' }}
+                投回 {{ card.pitcherTotals.ip ?? '-' }}
               </span>
               <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'era', 'low'))">
                 防御率 {{ card.pitcherTotals.era ?? '-' }}
+              </span>
+              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'fip', 'low'))">
+                FIP {{ card.pitcherTotals.fip ?? '-' }}
               </span>
             </template>
             <template v-if="mode === 'batter' && card.batterTotals">
