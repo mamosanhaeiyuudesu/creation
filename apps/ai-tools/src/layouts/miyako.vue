@@ -12,12 +12,12 @@ useHead({
     { property: 'og:type', content: 'website' },
     { property: 'og:title', content: '宮古議事録 — 宮古島市議会キーワード分析' },
     { property: 'og:description', content: '宮古島市議会の議事録をキーワード・議員・年度別に可視化するAI分析ツール' },
-    { property: 'og:image', content: `${origin}/pwa-512.png` },
+    { property: 'og:image', content: `${origin}/ogp-miyako.png` },
     { property: 'og:url', content: `${origin}/miyako` },
     { name: 'twitter:card', content: 'summary' },
     { name: 'twitter:title', content: '宮古議事録 — 宮古島市議会キーワード分析' },
     { name: 'twitter:description', content: '宮古島市議会の議事録をキーワード・議員・年度別に可視化するAI分析ツール' },
-    { name: 'twitter:image', content: `${origin}/pwa-512.png` },
+    { name: 'twitter:image', content: `${origin}/ogp-miyako.png` },
   ],
 })
 </script>
