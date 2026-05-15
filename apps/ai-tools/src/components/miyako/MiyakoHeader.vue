@@ -84,8 +84,29 @@ const base = computed(() => {
           </span>
         </div>
 
+        <!-- Mobile: feedback icon only -->
+        <div class="flex md:hidden items-center ml-auto pr-1">
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLSe9bfl-DXIf9VWKvbsq3WuWYC72N2PSJUMeAo83jG6UE_7YFw/viewform"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="feedback-link"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </a>
+        </div>
+
         <!-- Right slot -->
         <div class="hidden md:flex items-center flex-wrap gap-y-1.5 gap-x-4 ml-auto">
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLSe9bfl-DXIf9VWKvbsq3WuWYC72N2PSJUMeAo83jG6UE_7YFw/viewform"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="feedback-link"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            ご意見・お問い合わせ
+          </a>
           <slot />
         </div>
       </div>
@@ -93,18 +114,11 @@ const base = computed(() => {
       <!-- Mobile tabs (second row) -->
       <div class="flex md:hidden border-t border-white/[0.07]">
         <NuxtLink
-          v-if="activePage !== 'network'"
-          :to="base"
-          class="mobile-tab"
-        >全体像</NuxtLink>
-        <span v-else class="mobile-tab mobile-tab-active">全体像</span>
-
-        <NuxtLink
           v-if="activePage !== 'session'"
           :to="`${base}/yearly`"
-          class="mobile-tab border-l border-white/[0.07]"
+          class="mobile-tab"
         >年で見る</NuxtLink>
-        <span v-else class="mobile-tab mobile-tab-active border-l border-white/[0.07]">年で見る</span>
+        <span v-else class="mobile-tab mobile-tab-active">年で見る</span>
 
         <NuxtLink
           v-if="activePage !== 'member'"
@@ -185,5 +199,25 @@ const base = computed(() => {
 .mobile-tab-active {
   color: #a5b4fc;
   font-weight: 600;
+}
+
+.feedback-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.feedback-link:hover {
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(165, 180, 252, 0.45);
+  background: rgba(165, 180, 252, 0.07);
 }
 </style>
