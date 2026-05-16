@@ -261,6 +261,76 @@
           </div>
         </div>
 
+        <div class="portfolio-card">
+          <div class="portfolio-card-header">
+            <span class="portfolio-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              公開デモあり
+            </span>
+            <h3 class="portfolio-card-title">MLB 日本人選手成績ダッシュボード</h3>
+            <p class="portfolio-card-lead">
+              メジャーリーグで活躍する日本人選手の成績をリアルタイムに取得・集計し、速報・今シーズン・年度別の3つの切り口でインタラクティブに可視化したWebアプリです。
+            </p>
+          </div>
+          <div class="portfolio-card-body">
+            <div class="portfolio-features">
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>速報 ー 直近の試合成績</strong>
+                  各選手の最新試合成績をリアルタイムに反映。出場状況・打率・投球内容などを一覧で確認できます。
+                  <br>
+                  <a href="https://prototype.insightlens.jp/japanese-mlb-player" class="feature-link" target="_blank">
+                    速報を見る
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </a>
+                  <img src="/images/mlb-sokuhou.png" alt="速報のスクリーンショット" class="feature-screenshot" @click="openLightbox('/images/mlb-sokuhou.png', '速報のスクリーンショット')" />
+                </div>
+              </div>
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>今シーズン ー シーズン累計成績</strong>
+                  今シーズンの累計成績を選手ごとに集計。打者・投手それぞれの主要指標をわかりやすく表示します。
+                  <br>
+                  <a href="https://prototype.insightlens.jp/japanese-mlb-player?tab=season" class="feature-link" target="_blank">
+                    今シーズン成績を見る
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </a>
+                  <img src="/images/mlb-this.png" alt="今シーズン成績のスクリーンショット" class="feature-screenshot" @click="openLightbox('/images/mlb-this.png', '今シーズン成績のスクリーンショット')" />
+                </div>
+              </div>
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>年度別 ー キャリア推移</strong>
+                  選手ごとのシーズン別成績を年度軸で比較。キャリアの伸びや変化を時系列グラフで追えます。
+                  <br>
+                  <a href="https://prototype.insightlens.jp/japanese-mlb-player?tab=yearly" class="feature-link" target="_blank">
+                    年度別成績を見る
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </a>
+                  <img src="/images/mlb-yearly.png" alt="年度別成績のスクリーンショット" class="feature-screenshot" @click="openLightbox('/images/mlb-yearly.png', '年度別成績のスクリーンショット')" />
+                </div>
+              </div>
+            </div>
+
+            <div class="portfolio-tech">
+              <span class="tech-badge">Nuxt 3</span>
+              <span class="tech-badge">ECharts</span>
+              <span class="tech-badge">MLB Stats API</span>
+              <span class="tech-badge">Cloudflare Workers</span>
+              <span class="tech-badge">Cloudflare D1</span>
+              <span class="tech-badge">TypeScript</span>
+            </div>
+
+            <a href="https://prototype.insightlens.jp/japanese-mlb-player" class="portfolio-link" target="_blank">
+              デモを見る
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </div>
+        </div>
+
       </div>
     </section>
 
