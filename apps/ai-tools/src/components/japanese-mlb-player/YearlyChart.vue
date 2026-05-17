@@ -57,7 +57,7 @@
               :key="player.id"
               class="py-2 px-3 text-center font-mono text-slate-700"
             >
-              {{ getYearlyValue(player.id, year) }}<span v-if="isOutOfRange(player.id, year)" class="text-[9px] align-top ml-0.5 opacity-70">※</span>
+              {{ getYearlyValue(player.id, year) }}<span v-if="isOutOfRange(player.id, year)" class="text-[9px] align-top ml-0.5 text-amber-600 opacity-80">※</span>
             </td>
           </tr>
           <!-- 通算行 -->

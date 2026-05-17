@@ -316,6 +316,10 @@ async function searchNode(label: string, neighbors: string[]) {
 // ── 初期化 ──────────────────────────────────────────
 
 onMounted(async () => {
+  if (window.innerWidth < 768) {
+    router.replace('/miyako/yearly')
+    return
+  }
   pairs.value = await $fetch<Pair[]>('/data/pairs.json')
   loading.value = false
   await nextTick()
