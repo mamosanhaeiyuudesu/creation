@@ -11,8 +11,8 @@ const props = defineProps<{
   standings?: Record<string, number> | null
 }>()
 
-const PITCHER_GAMES = 3
-const BATTER_GAMES = 6
+const PITCHER_DAYS = 14
+const BATTER_DAYS = 7
 
 // trendPitcher の inningsPitched は outs/3 形式 (e.g. 20/3 ≈ 6.667 for 6.2 innings)
 function ipToTrueOuts(ip: number | null | undefined): number {
@@ -54,6 +54,7 @@ interface Card {
   teamShort: string
   divisionRank: number | null
   noData: boolean
+  hasRecentData: boolean
   pitcherRows?: PitcherRow[]
   batterRows?: BatterRow[]
   pitcherTotals?: { wins: number | null; losses: number | null; ip: string; era: string; fip: string; k: number | null; bb: number | null; runsAllowed: number | null }
@@ -110,13 +111,16 @@ const cards = computed((): Card[] => {
     const teamShort = player ? teamShortName(player.teamFull) : ''
     const divisionRank = props.standings?.[teamAbbr] ?? null
 
-    if (!data) return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: true }
+    if (!data) return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: true, hasRecentData: false }
 
     if (props.mode === 'pitcher') {
       const trend = data.trendPitcher
-      const n = Math.min(PITCHER_GAMES, trend.length)
-      const entries = trend.slice(-n)
-      const beforeFirst = trend.length > n ? trend[trend.length - n - 1] : null
+      const firstIdx = trend.findIndex(e => isWithinDays(e.date, PITCHER_DAYS))
+      if (firstIdx === -1) {
+        return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: false, pitcherRows: [], pitcherTotals: buildPitcherTotals(data) }
+      }
+      const entries = trend.slice(firstIdx)
+      const beforeFirst = firstIdx > 0 ? trend[firstIdx - 1] : null
 
       const rows: PitcherRow[] = entries.map((curr, i) => {
         const prev = i === 0 ? beforeFirst : entries[i - 1]
@@ -146,12 +150,15 @@ const cards = computed((): Card[] => {
         }
       })
 
-      return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, pitcherRows: rows, pitcherTotals: buildPitcherTotals(data) }
+      return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: true, pitcherRows: rows, pitcherTotals: buildPitcherTotals(data) }
     } else {
       const trend = data.trendBatter
-      const n = Math.min(BATTER_GAMES, trend.length)
-      const entries = trend.slice(-n)
-      const beforeFirst = trend.length > n ? trend[trend.length - n - 1] : null
+      const firstIdx = trend.findIndex(e => isWithinDays(e.date, BATTER_DAYS))
+      if (firstIdx === -1) {
+        return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: false, batterRows: [], batterTotals: buildBatterTotals(data) }
+      }
+      const entries = trend.slice(firstIdx)
+      const beforeFirst = firstIdx > 0 ? trend[firstIdx - 1] : null
 
       const rows: BatterRow[] = entries.map((curr, i) => {
         const prev = i === 0 ? beforeFirst : entries[i - 1]
@@ -168,7 +175,7 @@ const cards = computed((): Card[] => {
         }
       })
 
-      return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, batterRows: rows, batterTotals: buildBatterTotals(data) }
+      return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: true, batterRows: rows, batterTotals: buildBatterTotals(data) }
     }
   })
 })
@@ -208,6 +215,22 @@ function isRecent(dateStr: string): boolean {
   const diffDays = (jstNow.getTime() - gameDate.getTime()) / 86400000
   return diffDays >= 0 && diffDays < 1
 }
+
+function rawDateToJST(d: string | null | undefined): Date | null {
+  if (!d || !/^\d{4}-\d{2}-\d{2}/.test(d)) return null
+  const date = new Date(d.slice(0, 10) + 'T00:00:00Z')
+  date.setUTCDate(date.getUTCDate() + 1)
+  return date
+}
+
+function isWithinDays(d: string | null | undefined, days: number): boolean {
+  const gameDate = rawDateToJST(d)
+  if (!gameDate) return false
+  const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000)
+  const cutoff = new Date(Date.UTC(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate()))
+  cutoff.setUTCDate(cutoff.getUTCDate() - days)
+  return gameDate >= cutoff
+}
 </script>
 
 <template>
@@ -217,7 +240,7 @@ function isRecent(dateStr: string): boolean {
     </div>
 
     <div
-      v-for="card in cards"
+      v-for="card in cards.filter(c => c.noData || c.hasRecentData)"
       :key="card.id"
       class="rounded-xl border border-slate-100 bg-white shadow-sm overflow-hidden"
     >
