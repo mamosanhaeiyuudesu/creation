@@ -317,6 +317,19 @@ function isWithinDays(d: string | null | undefined, days: number): boolean {
                 {{ card.batterTotals.runs ?? '-' }} 得点
               </span>
             </template>
+            <a
+              :href="mode === 'pitcher'
+                ? (card.league === 'AL' ? 'https://baseball.yahoo.co.jp/mlb/stats/pitcher?gameKindId=1001' : 'https://baseball.yahoo.co.jp/mlb/stats/pitcher?gameKindId=1002')
+                : (card.league === 'AL' ? 'https://baseball.yahoo.co.jp/mlb/stats/batter?gameKindId=1001' : 'https://baseball.yahoo.co.jp/mlb/stats/batter?gameKindId=1002')"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-slate-300 hover:text-slate-500 transition-colors flex-shrink-0 ml-auto"
+              :title="mode === 'pitcher' ? 'リーグ投手成績を見る' : 'リーグ打者成績を見る'"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9 3a6 6 0 100 12A6 6 0 009 3zM1 9a8 8 0 1114.32 4.906l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387A8 8 0 011 9z" clip-rule="evenodd"/>
+              </svg>
+            </a>
           </div>
         </div>
       </div>
