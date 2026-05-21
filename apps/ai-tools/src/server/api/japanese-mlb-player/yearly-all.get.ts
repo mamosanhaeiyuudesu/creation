@@ -54,7 +54,7 @@ export default defineEventHandler(async (event): Promise<Record<string, YearlyDa
   const env = event.context.cloudflare?.env as Record<string, unknown> | undefined
   const db = env?.MLB_DB as D1Database | undefined
 
-  if (!db) {
+  if (import.meta.dev || !db) {
     const result: Record<string, YearlyData> = {}
     for (const id of ids) {
       const data = getDevYearlyData(id)

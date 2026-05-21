@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const env = event.context.cloudflare?.env as Record<string, unknown> | undefined
   const db = env?.MLB_DB as D1Database | undefined
 
-  if (!db) {
+  if (import.meta.dev || !db) {
     return getDevYearlyData(id)
   }
 
