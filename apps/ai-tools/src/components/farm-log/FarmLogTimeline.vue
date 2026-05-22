@@ -15,8 +15,6 @@ const chartBottomEl = ref<HTMLDivElement>()
 let chartTop: import('echarts').ECharts | null = null
 let chartBottom: import('echarts').ECharts | null = null
 
-const ACTIVITY_COLORS = ['#059669', '#059669', '#3b82f6']
-
 function tToTime(t: number): string {
   const epochMs = new Date(props.data.meta.startTime).getTime() + t * 1000
   return new Date(epochMs).toLocaleTimeString('ja-JP', {
@@ -86,7 +84,17 @@ function buildBottomOptions() {
 
   return {
     backgroundColor: 'transparent',
-    grid: { left: 56, right: 16, top: 12, bottom: 24 },
+    grid: { left: 56, right: 16, top: 36, bottom: 24 },
+    legend: {
+      top: 4,
+      right: 16,
+      textStyle: { color: '#9ca3af', fontSize: 11 },
+      inactiveColor: '#4b5563',
+      data: [
+        { name: '農作業', itemStyle: { color: '#059669' } },
+        { name: '車移動', itemStyle: { color: '#3b82f6' } },
+      ],
+    },
     xAxis: {
       type: 'category',
       data: xLabels,
@@ -108,22 +116,31 @@ function buildBottomOptions() {
       borderColor: '#374151',
       textStyle: { color: '#f3f4f6', fontSize: 12 },
       formatter: (params: unknown) => {
-        const ps = params as Array<{ value: number; dataIndex: number }>
+        const ps = params as Array<{ value: number | null; dataIndex: number; seriesName: string }>
         if (!ps?.length) return ''
         const p = track[ps[0].dataIndex]
         if (!p) return ''
-        const label = p.act === 2 ? '車移動' : '農作業'
-        return `<div style="font-size:11px;line-height:1.8">${tToTime(p.t)}<br>${label}　${p.spd.toFixed(1)} m/s</div>`
+        const active = ps.find(s => s.value !== null)
+        if (!active) return ''
+        return `<div style="font-size:11px;line-height:1.8">${tToTime(p.t)}<br>${active.seriesName}　${(active.value as number).toFixed(1)} m/s</div>`
       },
     },
-    series: [{
-      type: 'bar',
-      data: track.map(p => ({
-        value: p.spd,
-        itemStyle: { color: ACTIVITY_COLORS[p.act] },
-      })),
-      barMaxWidth: 4,
-    }],
+    series: [
+      {
+        name: '農作業',
+        type: 'bar',
+        data: track.map(p => p.act !== 2 ? p.spd : null),
+        itemStyle: { color: '#059669' },
+        barMaxWidth: 4,
+      },
+      {
+        name: '車移動',
+        type: 'bar',
+        data: track.map(p => p.act === 2 ? p.spd : null),
+        itemStyle: { color: '#3b82f6' },
+        barMaxWidth: 4,
+      },
+    ],
   }
 }
 
@@ -137,7 +154,6 @@ async function renderCharts() {
     if (!chartBottom) chartBottom = EC.init(chartBottomEl.value, undefined, { renderer: 'svg' })
     chartBottom.setOption(buildBottomOptions())
   }
-  // ズームを同期
   EC.connect([chartTop!, chartBottom!].filter(Boolean) as import('echarts').ECharts[])
 }
 
@@ -158,20 +174,16 @@ onUnmounted(() => {
 
 <template>
   <div class="space-y-4">
-    <div>
-      <div class="text-xs text-gray-500 mb-1 px-1 space-y-0.5">
+    <div class="bg-gray-800 rounded-xl p-4">
+      <div class="text-xs text-gray-500 mb-1 space-y-0.5">
         <div>体の動きの激しさ — スマホ加速度センサーから算出。値が大きいほど活発に体を動かしていたことを示します。</div>
         <div class="text-gray-600">目安：1=ゆっくり歩く　3=農作業・手作業　5=早歩き　7.5=小走り相当</div>
       </div>
       <div ref="chartTopEl" class="w-full" style="height: 200px;" />
     </div>
-    <div>
-      <div class="text-xs text-gray-500 mb-1 px-1 flex gap-3">
-        <span>移動速度</span>
-        <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-sm bg-emerald-600" /> 農作業</span>
-        <span class="flex items-center gap-1"><span class="inline-block w-2 h-2 rounded-sm bg-blue-500" /> 車移動</span>
-      </div>
-      <div ref="chartBottomEl" class="w-full" style="height: 160px;" />
+    <div class="bg-gray-800 rounded-xl p-4">
+      <div class="text-xs text-gray-500 mb-1">移動速度 — 凡例クリックで表示/非表示</div>
+      <div ref="chartBottomEl" class="w-full" style="height: 180px;" />
     </div>
   </div>
 </template>
