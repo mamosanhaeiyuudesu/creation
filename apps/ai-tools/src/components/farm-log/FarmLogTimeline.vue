@@ -54,11 +54,13 @@ function buildTopOptions() {
       borderColor: '#374151',
       textStyle: { color: '#f3f4f6', fontSize: 12 },
       formatter: (params: unknown) => {
-        const ps = params as Array<{ axisValue: string; value: number }>
+        const ps = params as Array<{ axisValue: string; value: unknown }>
         if (!ps?.length) return ''
         const idx = props.data.motion.findIndex(m => tToTime(m.t) === ps[0].axisValue)
         if (idx >= 0) emit('hoverTime', props.data.motion[idx].t)
-        return `<div style="font-size:11px;line-height:1.8">${ps[0].axisValue}<br>体動: ${ps[0].value.toFixed(2)}</div>`
+        const v = typeof ps[0].value === 'number' ? ps[0].value : null
+        if (v === null) return ''
+        return `<div style="font-size:11px;line-height:1.8">${ps[0].axisValue}<br>体動: ${v.toFixed(2)}</div>`
       },
     },
     series: [{
@@ -118,11 +120,11 @@ function buildBottomOptions() {
       borderColor: '#374151',
       textStyle: { color: '#f3f4f6', fontSize: 12 },
       formatter: (params: unknown) => {
-        const ps = params as Array<{ value: number | null; dataIndex: number; seriesName: string }>
+        const ps = params as Array<{ value: unknown; dataIndex: number; seriesName: string }>
         if (!ps?.length) return ''
         const p = track[ps[0].dataIndex]
         if (!p) return ''
-        const active = ps.find(s => s.value !== null)
+        const active = ps.find(s => typeof s.value === 'number' && s.value > 0)
         if (!active) return ''
         return `<div style="font-size:11px;line-height:1.8">${tToTime(p.t)}<br>${active.seriesName}　${(active.value as number).toFixed(1)} m/s</div>`
       },
@@ -180,9 +182,14 @@ function buildThirdOptions() {
       borderColor: '#374151',
       textStyle: { color: '#f3f4f6', fontSize: 12 },
       formatter: (params: unknown) => {
-        const ps = params as Array<{ axisValue: string; value: number }>
+        const ps = params as Array<{ axisValue: string; value: unknown; data: unknown }>
         if (!ps?.length) return ''
-        const v = ps[0].value
+        // bar+itemStyleオブジェクト形式では value が object になる場合があるため安全に取り出す
+        const raw = ps[0]?.value
+        const v = typeof raw === 'number' ? raw
+          : typeof (raw as any)?.value === 'number' ? (raw as any).value
+          : null
+        if (v === null) return ''
         if (v === 0) return `<div style="font-size:11px">${ps[0].axisValue}<br>移動中または静止</div>`
         return `<div style="font-size:11px;line-height:1.8">${ps[0].axisValue}<br>摘蕾推定強度: ${v.toFixed(2)}</div>`
       },
