@@ -95,7 +95,7 @@ function buildBottomOptions() {
       textStyle: { color: '#9ca3af', fontSize: 11 },
       inactiveColor: '#4b5563',
       data: [
-        { name: '農作業', itemStyle: { color: '#059669' } },
+        { name: '歩行移動', itemStyle: { color: '#059669' } },
         { name: '車移動', itemStyle: { color: '#3b82f6' } },
       ],
     },
@@ -131,7 +131,7 @@ function buildBottomOptions() {
     },
     series: [
       {
-        name: '農作業',
+        name: '歩行移動',
         type: 'bar',
         data: track.map(p => p.act !== 2 ? p.spd : null),
         itemStyle: { color: '#059669' },
