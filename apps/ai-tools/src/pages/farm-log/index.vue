@@ -82,7 +82,7 @@ onMounted(() => loadSessions())
 
       <!-- Timeline -->
       <div class="bg-gray-900 rounded-xl p-4">
-        <div class="text-xs text-gray-500 mb-1">タイムライン</div>
+        <!-- <div class="text-xs text-gray-500 mb-1">タイムライン</div> -->
         <FarmLogTimeline
           :data="data"
           :highlight-t="highlightT"

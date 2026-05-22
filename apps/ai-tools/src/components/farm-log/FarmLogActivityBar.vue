@@ -6,19 +6,19 @@ const props = defineProps<{ meta: FarmLogMeta }>()
 function formatDuration(sec: number) {
   const h = Math.floor(sec / 3600)
   const m = Math.floor((sec % 3600) / 60)
-  if (h > 0 && m > 0) return `${h}h ${m}m`
-  if (h > 0) return `${h}h`
-  return `${m}m`
+  if (h > 0 && m > 0) return `${h}時間${m}分`
+  if (h > 0) return `${h}時間`
+  return `${m}分`
 }
 
 const segments = computed(() => {
   const { stationarySec, budThinningSec, drivingSec } = props.meta.activitySummary
   const total = stationarySec + budThinningSec + drivingSec
   if (total === 0) return []
+  const farmSec = stationarySec + budThinningSec
   return [
-    { key: 'stationary', label: '静止', color: 'bg-gray-600', sec: stationarySec, pct: (stationarySec / total) * 100 },
-    { key: 'bud', label: '摘蕾', color: 'bg-emerald-600', sec: budThinningSec, pct: (budThinningSec / total) * 100 },
-    { key: 'driving', label: '移動', color: 'bg-blue-500', sec: drivingSec, pct: (drivingSec / total) * 100 },
+    { key: 'farm', label: '農作業', color: 'bg-emerald-600', sec: farmSec, pct: (farmSec / total) * 100 },
+    { key: 'driving', label: '車移動', color: 'bg-blue-500', sec: drivingSec, pct: (drivingSec / total) * 100 },
   ].filter(s => s.pct > 0)
 })
 </script>

@@ -19,6 +19,17 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo' })
 }
 
+// MET × 体重(60kg) × 時間(h) で推定カロリーを算出
+// 静止/農作業: MET 3.0（摘蕾など立ち仕事・手作業）、車移動: MET 2.0
+const estimatedCalories = computed(() => {
+  const { stationarySec, budThinningSec, drivingSec } = props.meta.activitySummary
+  const weight = 60
+  return Math.round(
+    3.0 * weight * ((stationarySec + budThinningSec) / 3600) +
+    2.0 * weight * (drivingSec / 3600)
+  )
+})
+
 const stats = computed(() => {
   const { meta } = props
   const total = meta.activitySummary.stationarySec + meta.activitySummary.budThinningSec + meta.activitySummary.drivingSec
@@ -45,9 +56,16 @@ const stats = computed(() => {
     },
     {
       icon: '🌱',
-      label: '摘蕾時間',
+      label: '農作業時間',
       value: formatDuration(meta.activitySummary.budThinningSec + meta.activitySummary.stationarySec),
-      sub: `移動 ${formatDuration(meta.activitySummary.drivingSec)}`,
+      sub: `車移動 ${formatDuration(meta.activitySummary.drivingSec)}`,
+    },
+    {
+      icon: '🔥',
+      label: '推定消費カロリー',
+      value: `${estimatedCalories.value.toLocaleString()} kcal`,
+      sub: '体重60kg・MET推定値',
+      wide: true as const,
     },
   ]
 })
@@ -58,7 +76,7 @@ const stats = computed(() => {
     <div
       v-for="stat in stats"
       :key="stat.label"
-      class="bg-gray-800 rounded-xl p-4 flex flex-col gap-1"
+      :class="['bg-gray-800 rounded-xl p-4 flex flex-col gap-1', stat.wide ? 'col-span-2' : '']"
     >
       <div class="text-2xl leading-none">{{ stat.icon }}</div>
       <div class="text-xs text-gray-400 mt-1">{{ stat.label }}</div>
