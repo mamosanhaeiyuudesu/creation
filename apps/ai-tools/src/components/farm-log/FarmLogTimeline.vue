@@ -12,8 +12,10 @@ const emit = defineEmits<{
 
 const chartTopEl = ref<HTMLDivElement>()
 const chartBottomEl = ref<HTMLDivElement>()
+const chartThirdEl = ref<HTMLDivElement>()
 let chartTop: import('echarts').ECharts | null = null
 let chartBottom: import('echarts').ECharts | null = null
+let chartThird: import('echarts').ECharts | null = null
 
 function tToTime(t: number): string {
   const epochMs = new Date(props.data.meta.startTime).getTime() + t * 1000
@@ -144,6 +146,62 @@ function buildBottomOptions() {
   }
 }
 
+function buildThirdOptions() {
+  const { track, motion } = props.data
+  const xLabels = motion.map(m => tToTime(m.t))
+
+  // 速度がほぼ0のとき = 体動の強さ、移動中は0
+  const data = motion.map((m, i) => {
+    const p = track[i]
+    return (!p || p.spd >= 0.5) ? 0 : m.std
+  })
+
+  return {
+    backgroundColor: 'transparent',
+    grid: { left: 56, right: 16, top: 12, bottom: 24 },
+    xAxis: {
+      type: 'category',
+      data: xLabels,
+      axisLabel: { color: '#9ca3af', fontSize: 11, interval: Math.floor(xLabels.length / 8) },
+      axisLine: { lineStyle: { color: '#374151' } },
+      splitLine: { show: false },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: '#9ca3af', fontSize: 10 },
+      splitLine: { lineStyle: { color: '#1f2937' } },
+      min: 0,
+    },
+    dataZoom: [{ type: 'inside', start: 0, end: 100 }],
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'line', lineStyle: { color: '#6b7280', type: 'dashed' } },
+      backgroundColor: '#1f2937',
+      borderColor: '#374151',
+      textStyle: { color: '#f3f4f6', fontSize: 12 },
+      formatter: (params: unknown) => {
+        const ps = params as Array<{ axisValue: string; value: number }>
+        if (!ps?.length) return ''
+        const v = ps[0].value
+        if (v === 0) return `<div style="font-size:11px">${ps[0].axisValue}<br>移動中または静止</div>`
+        return `<div style="font-size:11px;line-height:1.8">${ps[0].axisValue}<br>摘蕾推定強度: ${v.toFixed(2)}</div>`
+      },
+    },
+    series: [{
+      type: 'bar',
+      data: data.map(v => ({
+        value: v,
+        itemStyle: {
+          color: v >= 3 ? '#f59e0b'
+            : v >= 1 ? 'rgba(245,158,11,0.55)'
+            : 'rgba(245,158,11,0.15)',
+        },
+      })),
+      barMaxWidth: 4,
+    }],
+  }
+}
+
 async function renderCharts() {
   const EC = await import('echarts')
   if (chartTopEl.value) {
@@ -154,7 +212,11 @@ async function renderCharts() {
     if (!chartBottom) chartBottom = EC.init(chartBottomEl.value, undefined, { renderer: 'svg' })
     chartBottom.setOption(buildBottomOptions())
   }
-  EC.connect([chartTop!, chartBottom!].filter(Boolean) as import('echarts').ECharts[])
+  if (chartThirdEl.value) {
+    if (!chartThird) chartThird = EC.init(chartThirdEl.value, undefined, { renderer: 'svg' })
+    chartThird.setOption(buildThirdOptions())
+  }
+  EC.connect([chartTop!, chartBottom!, chartThird!].filter(Boolean) as import('echarts').ECharts[])
 }
 
 onMounted(() => renderCharts())
@@ -169,6 +231,7 @@ watch(() => props.highlightT, (t) => {
 onUnmounted(() => {
   chartTop?.dispose(); chartTop = null
   chartBottom?.dispose(); chartBottom = null
+  chartThird?.dispose(); chartThird = null
 })
 </script>
 
@@ -184,6 +247,13 @@ onUnmounted(() => {
     <div class="bg-gray-800 rounded-xl p-4">
       <div class="text-xs text-gray-500 mb-1">移動速度 — 凡例クリックで表示/非表示</div>
       <div ref="chartBottomEl" class="w-full" style="height: 180px;" />
+    </div>
+    <div class="bg-gray-800 rounded-xl p-4">
+      <div class="text-xs text-gray-500 mb-1 space-y-0.5">
+        <div>摘蕾推定 — <span class="text-amber-400">速度がほぼ0で体動が高い</span>時間帯を強調表示。その場で腕・体幹を動かして作業していた可能性が高い箇所です。</div>
+        <div class="text-gray-600">強調度：高（濃い琥珀色）→ 低（薄い）。移動中は表示なし。</div>
+      </div>
+      <div ref="chartThirdEl" class="w-full" style="height: 180px;" />
     </div>
   </div>
 </template>
