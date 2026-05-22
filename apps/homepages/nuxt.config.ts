@@ -5,6 +5,15 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-03-12',
   app: {
     head: {
+      script: [
+        { src: 'https://www.googletagmanager.com/gtag/js?id=G-JRBVTJYCEH', async: true },
+        {
+          innerHTML: `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-JRBVTJYCEH');`,
+        },
+      ],
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
       ],
