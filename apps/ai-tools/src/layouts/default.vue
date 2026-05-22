@@ -82,6 +82,7 @@ const tools = [
   { path: '/hagemashi', name: 'はげまし', icon: '💪' },
   { path: '/task', name: 'タスクくん', icon: '📋' },
   { path: '/marriage', name: 'marriage', icon: '💑' },
+  { path: '/tengu', name: '天狗問答', icon: '👺' },
   // { path: '/keiko', name: '稽古', icon: '⚔️' },
 ]
 

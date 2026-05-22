@@ -29,11 +29,12 @@
 <script setup lang="ts">
 const tools = [
   // { path: '/snapreader', icon: '📸', name: 'SnapReader', desc: '画像を送って、数秒で要約' },
-  { path: '/tengu', icon: '👺', name: '天狗問答', desc: '天狗が守る呪文を聞き出すプロンプト攻略ゲーム' },
   { path: '/whisper', icon: '🎙️', name: 'whisper', desc: '音声を文字に自動変換' },
   { path: '/hagemashi', icon: '💪', name: 'はげまし', desc: '話して、AIに励ましてもらおう' },
   { path: '/task', icon: '📋', name: 'タスクくん', desc: 'Trello の DOING / TODO / DONE をまとめて確認' },
   { path: '/marriage', icon: '💑', name: 'marriage', desc: '夫婦の日々を絵文字で記録するカレンダー' },
+  { path: '/tengu', icon: '👺', name: '天狗問答', desc: '天狗が守る呪文を聞き出すプロンプト攻略ゲーム' },
+  { path: '/farm-log', icon: '🌿', name: '農作業ログ', desc: 'スマホセンサーで記録した農作業の可視化' },
   // { path: '/keiko', icon: '⚔️', name: '稽古 — 足さばき', desc: '剣道の足さばきをランダム掛け声でトレーニング' },
 ]
 </script>
