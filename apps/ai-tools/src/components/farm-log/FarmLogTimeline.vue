@@ -11,15 +11,18 @@ const emit = defineEmits<{
 }>()
 
 const chartMotionEl = ref<HTMLDivElement>()
-const chartGyroEl = ref<HTMLDivElement>()
+// const chartGyroEl = ref<HTMLDivElement>()
 const chartSpeedEl = ref<HTMLDivElement>()
 const chartWorkEl = ref<HTMLDivElement>()
 const chartAltEl = ref<HTMLDivElement>()
 let chartMotion: import('echarts').ECharts | null = null
-let chartGyro: import('echarts').ECharts | null = null
+// let chartGyro: import('echarts').ECharts | null = null
 let chartSpeed: import('echarts').ECharts | null = null
 let chartWork: import('echarts').ECharts | null = null
 let chartAlt: import('echarts').ECharts | null = null
+
+// 全グラフ共有のズーム状態（EC.connect により全チャートが連動）
+const isZoomed = ref(false)
 
 function tToTime(t: number): string {
   const epochMs = new Date(props.data.meta.startTime).getTime() + t * 1000
@@ -105,44 +108,41 @@ function buildMotionOptions() {
   }
 }
 
-// ② ジャイロ強度（回転速度）
-function buildGyroOptions() {
-  const { gyro } = props.data
-  const xLabels = gyro.map(g => tToTime(g.t))
-  return {
-    backgroundColor: 'transparent',
-    grid: commonGrid(),
-    xAxis: commonXAxis(xLabels),
-    yAxis: {
-      type: 'value',
-      axisLabel: {
-        color: '#9ca3af', fontSize: 10,
-        formatter: (v: number) => `${v}`,
-      },
-      splitLine: { lineStyle: { color: '#1f2937' } },
-      min: 0,
-    },
-    dataZoom: [{ type: 'inside', start: 0, end: 100 }],
-    tooltip: {
-      ...commonTooltip(),
-      formatter: (params: unknown) => {
-        const ps = params as Array<{ axisValue: string; value: unknown }>
-        if (!ps?.length) return ''
-        const v = typeof ps[0].value === 'number' ? ps[0].value : null
-        if (v === null) return ''
-        return `<div style="font-size:11px;line-height:1.8">${ps[0].axisValue}<br>回転速度: ${v.toFixed(2)} rad/s</div>`
-      },
-    },
-    series: [{
-      type: 'line',
-      data: gyro.map(g => g.rms),
-      smooth: 0.3,
-      symbol: 'none',
-      lineStyle: { color: '#a78bfa', width: 1.5 },
-      areaStyle: { color: areaColor('#a78bfa', 0.35) },
-    }],
-  }
-}
+// ② ジャイロ強度（回転速度）— 一時コメントアウト
+// function buildGyroOptions() {
+//   const { gyro } = props.data
+//   const xLabels = gyro.map(g => tToTime(g.t))
+//   return {
+//     backgroundColor: 'transparent',
+//     grid: commonGrid(),
+//     xAxis: commonXAxis(xLabels),
+//     yAxis: {
+//       type: 'value',
+//       axisLabel: { color: '#9ca3af', fontSize: 10, formatter: (v: number) => `${v}` },
+//       splitLine: { lineStyle: { color: '#1f2937' } },
+//       min: 0,
+//     },
+//     dataZoom: [{ type: 'inside', start: 0, end: 100 }],
+//     tooltip: {
+//       ...commonTooltip(),
+//       formatter: (params: unknown) => {
+//         const ps = params as Array<{ axisValue: string; value: unknown }>
+//         if (!ps?.length) return ''
+//         const v = typeof ps[0].value === 'number' ? ps[0].value : null
+//         if (v === null) return ''
+//         return `<div style="font-size:11px;line-height:1.8">${ps[0].axisValue}<br>回転速度: ${v.toFixed(2)} rad/s</div>`
+//       },
+//     },
+//     series: [{
+//       type: 'line',
+//       data: gyro.map(g => g.rms),
+//       smooth: 0.3,
+//       symbol: 'none',
+//       lineStyle: { color: '#a78bfa', width: 1.5 },
+//       areaStyle: { color: areaColor('#a78bfa', 0.35) },
+//     }],
+//   }
+// }
 
 // ③ 移動速度
 function buildSpeedOptions() {
@@ -288,25 +288,46 @@ function buildAltOptions() {
   }
 }
 
+function watchZoom(chart: import('echarts').ECharts) {
+  chart.on('datazoom', (e: any) => {
+    const { start, end, batch } = e
+    const s = batch ? batch[0]?.start : start
+    const en = batch ? batch[0]?.end : end
+    isZoomed.value = !(s === 0 && en === 100)
+  })
+}
+
+function resetZoom() {
+  // EC.connect により1つにdispatchするだけで全グラフがリセットされる
+  chartMotion?.dispatchAction({ type: 'dataZoom', start: 0, end: 100 })
+  isZoomed.value = false
+}
+
 async function renderCharts() {
   const EC = await import('echarts')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const init = (el: HTMLDivElement | undefined, inst: import('echarts').ECharts | null, opts: any) => {
     if (!el) return inst
-    if (!inst) inst = EC.init(el, undefined, { renderer: 'svg' })
+    if (!inst) {
+      inst = EC.init(el, undefined, { renderer: 'svg' })
+      watchZoom(inst)
+    }
     inst.setOption(opts, true)
     return inst
   }
   chartMotion = init(chartMotionEl.value, chartMotion, buildMotionOptions())
-  chartGyro   = init(chartGyroEl.value,   chartGyro,   buildGyroOptions())
+  // chartGyro   = init(chartGyroEl.value,   chartGyro,   buildGyroOptions())
   chartSpeed  = init(chartSpeedEl.value,  chartSpeed,  buildSpeedOptions())
   chartWork   = init(chartWorkEl.value,   chartWork,   buildWorkOptions())
   chartAlt    = init(chartAltEl.value,    chartAlt,    buildAltOptions())
-  EC.connect([chartMotion, chartGyro, chartSpeed, chartWork, chartAlt].filter(Boolean) as import('echarts').ECharts[])
+  EC.connect([chartMotion, chartSpeed, chartWork, chartAlt].filter(Boolean) as import('echarts').ECharts[])
 }
 
 onMounted(() => renderCharts())
-watch(() => props.data, () => renderCharts())
+watch(() => props.data, () => {
+  isZoomed.value = false
+  renderCharts()
+})
 
 watch(() => props.highlightT, (t) => {
   if (!chartMotion || t === null) return
@@ -316,7 +337,7 @@ watch(() => props.highlightT, (t) => {
 
 onUnmounted(() => {
   chartMotion?.dispose(); chartMotion = null
-  chartGyro?.dispose();   chartGyro = null
+  // chartGyro?.dispose();   chartGyro = null
   chartSpeed?.dispose();  chartSpeed = null
   chartWork?.dispose();   chartWork = null
   chartAlt?.dispose();    chartAlt = null
@@ -326,45 +347,79 @@ onUnmounted(() => {
 <template>
   <div class="space-y-4">
     <!-- ① 体の動きの激しさ -->
-    <div class="bg-gray-800 rounded-xl p-4">
+    <div class="bg-gray-800 rounded-xl p-4 relative">
       <div class="flex items-center gap-2 mb-1">
         <span class="inline-block w-3 h-3 rounded-sm bg-emerald-500 flex-shrink-0" />
         <span class="text-xs text-gray-400 font-medium">体の動きの激しさ</span>
+        <button
+          v-if="isZoomed"
+          @click="resetZoom"
+          class="ml-auto text-xs text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 px-2 py-0.5 rounded transition-colors"
+        >
+          ズームリセット
+        </button>
       </div>
       <div class="text-xs text-gray-600 mb-2">加速度センサー由来。目安：1=ゆっくり歩く　3=農作業・手作業　5=早歩き　7.5=小走り</div>
       <div ref="chartMotionEl" class="w-full" style="height: 160px;" />
     </div>
 
-    <!-- ② ジャイロ強度 -->
-    <div class="bg-gray-800 rounded-xl p-4">
+    <!-- ② ジャイロ強度 — コメントアウト -->
+    <!--
+    <div class="bg-gray-800 rounded-xl p-4 relative">
       <div class="flex items-center gap-2 mb-1">
         <span class="inline-block w-3 h-3 rounded-sm bg-violet-400 flex-shrink-0" />
         <span class="text-xs text-gray-400 font-medium">回転・方向転換の激しさ</span>
+        <button v-if="isZoomed" @click="resetZoom" class="ml-auto text-xs text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 px-2 py-0.5 rounded transition-colors">ズームリセット</button>
       </div>
       <div class="text-xs text-gray-600 mb-2">ジャイロスコープ由来（rad/s）。腕を回す・方向転換が多いほど高くなります。</div>
       <div ref="chartGyroEl" class="w-full" style="height: 160px;" />
     </div>
+    -->
 
     <!-- ③ 移動速度 -->
-    <div class="bg-gray-800 rounded-xl p-4">
-      <div class="text-xs text-gray-500 mb-1">移動速度 — 凡例クリックで表示/非表示</div>
+    <div class="bg-gray-800 rounded-xl p-4 relative">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-gray-500">移動速度 — 凡例クリックで表示/非表示</span>
+        <button
+          v-if="isZoomed"
+          @click="resetZoom"
+          class="text-xs text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 px-2 py-0.5 rounded transition-colors"
+        >
+          ズームリセット
+        </button>
+      </div>
       <div ref="chartSpeedEl" class="w-full" style="height: 160px;" />
     </div>
 
     <!-- ④ 手作業推定 -->
-    <div class="bg-gray-800 rounded-xl p-4">
-      <div class="text-xs text-gray-500 mb-1">
-        手作業推定 —
-        <span class="text-amber-400">速度がほぼ0で体動が高い</span>時間帯。移動中は表示なし。
+    <div class="bg-gray-800 rounded-xl p-4 relative">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-gray-500">
+          手作業推定 — <span class="text-amber-400">速度がほぼ0で体動が高い</span>時間帯。移動中は表示なし。
+        </span>
+        <button
+          v-if="isZoomed"
+          @click="resetZoom"
+          class="ml-2 flex-shrink-0 text-xs text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 px-2 py-0.5 rounded transition-colors"
+        >
+          ズームリセット
+        </button>
       </div>
       <div ref="chartWorkEl" class="w-full" style="height: 160px;" />
     </div>
 
     <!-- ⑤ 標高プロフィール -->
-    <div class="bg-gray-800 rounded-xl p-4">
+    <div class="bg-gray-800 rounded-xl p-4 relative">
       <div class="flex items-center gap-2 mb-1">
         <span class="inline-block w-3 h-3 rounded-sm bg-orange-500 flex-shrink-0" />
         <span class="text-xs text-gray-400 font-medium">標高プロフィール</span>
+        <button
+          v-if="isZoomed"
+          @click="resetZoom"
+          class="ml-auto text-xs text-gray-400 hover:text-white bg-gray-700 hover:bg-gray-600 px-2 py-0.5 rounded transition-colors"
+        >
+          ズームリセット
+        </button>
       </div>
       <div class="text-xs text-gray-600 mb-2">GPS計測による高度の変化（誤差含む）</div>
       <div ref="chartAltEl" class="w-full" style="height: 140px;" />
