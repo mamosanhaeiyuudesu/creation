@@ -17,9 +17,15 @@ export interface MotionBucket {
   max: number
 }
 
+export interface GyroBucket {
+  t: number
+  rms: number      // 角速度ベクトル大きさのRMS (rad/s)
+}
+
 export interface FarmLogMeta {
   date: string
   label: string
+  activity: string
   startTime: string
   durationSec: number
   totalDistanceM: number
@@ -32,7 +38,7 @@ export interface FarmLogMeta {
   }
   activitySummary: {
     stationarySec: number
-    budThinningSec: number
+    walkingSec: number
     drivingSec: number
   }
 }
@@ -41,11 +47,13 @@ export interface FarmLogData {
   meta: FarmLogMeta
   track: GpsPoint[]
   motion: MotionBucket[]
+  gyro: GyroBucket[]
 }
 
 export interface FarmLogSession {
   date: string
   label: string
+  activity: string
   durationSec: number
   totalDistanceM: number
 }

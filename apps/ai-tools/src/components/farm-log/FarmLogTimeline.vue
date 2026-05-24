@@ -10,12 +10,16 @@ const emit = defineEmits<{
   hoverTime: [t: number | null]
 }>()
 
-const chartTopEl = ref<HTMLDivElement>()
-const chartBottomEl = ref<HTMLDivElement>()
-const chartThirdEl = ref<HTMLDivElement>()
-let chartTop: import('echarts').ECharts | null = null
-let chartBottom: import('echarts').ECharts | null = null
-let chartThird: import('echarts').ECharts | null = null
+const chartMotionEl = ref<HTMLDivElement>()
+const chartGyroEl = ref<HTMLDivElement>()
+const chartSpeedEl = ref<HTMLDivElement>()
+const chartWorkEl = ref<HTMLDivElement>()
+const chartAltEl = ref<HTMLDivElement>()
+let chartMotion: import('echarts').ECharts | null = null
+let chartGyro: import('echarts').ECharts | null = null
+let chartSpeed: import('echarts').ECharts | null = null
+let chartWork: import('echarts').ECharts | null = null
+let chartAlt: import('echarts').ECharts | null = null
 
 function tToTime(t: number): string {
   const epochMs = new Date(props.data.meta.startTime).getTime() + t * 1000
@@ -26,20 +30,51 @@ function tToTime(t: number): string {
   })
 }
 
-function buildTopOptions() {
+function commonXAxis(labels: string[]) {
+  return {
+    type: 'category' as const,
+    data: labels,
+    axisLabel: { color: '#9ca3af', fontSize: 11, interval: Math.floor(labels.length / 8) },
+    axisLine: { lineStyle: { color: '#374151' } },
+    splitLine: { show: false },
+  }
+}
+
+function commonGrid(hasLegend = false) {
+  return { left: 56, right: 16, top: hasLegend ? 36 : 12, bottom: 24 }
+}
+
+function commonTooltip() {
+  return {
+    trigger: 'axis' as const,
+    axisPointer: { type: 'line' as const, lineStyle: { color: '#6b7280', type: 'dashed' as const } },
+    backgroundColor: '#1f2937',
+    borderColor: '#374151',
+    textStyle: { color: '#f3f4f6', fontSize: 12 },
+  }
+}
+
+function areaColor(hex: string, alphaTop = 0.4, alphaBottom = 0.02) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return {
+    type: 'linear' as const, x: 0, y: 0, x2: 0, y2: 1,
+    colorStops: [
+      { offset: 0, color: `rgba(${r},${g},${b},${alphaTop})` },
+      { offset: 1, color: `rgba(${r},${g},${b},${alphaBottom})` },
+    ],
+  }
+}
+
+// ① 体の動きの激しさ（加速度）
+function buildMotionOptions() {
   const { motion } = props.data
   const xLabels = motion.map(m => tToTime(m.t))
-
   return {
     backgroundColor: 'transparent',
-    grid: { left: 56, right: 16, top: 12, bottom: 24 },
-    xAxis: {
-      type: 'category',
-      data: xLabels,
-      axisLabel: { color: '#9ca3af', fontSize: 11, interval: Math.floor(xLabels.length / 8) },
-      axisLine: { lineStyle: { color: '#374151' } },
-      splitLine: { show: false },
-    },
+    grid: commonGrid(),
+    xAxis: commonXAxis(xLabels),
     yAxis: {
       type: 'value',
       axisLabel: { color: '#9ca3af', fontSize: 10 },
@@ -48,11 +83,7 @@ function buildTopOptions() {
     },
     dataZoom: [{ type: 'inside', start: 0, end: 100 }],
     tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'line', lineStyle: { color: '#6b7280', type: 'dashed' } },
-      backgroundColor: '#1f2937',
-      borderColor: '#374151',
-      textStyle: { color: '#f3f4f6', fontSize: 12 },
+      ...commonTooltip(),
       formatter: (params: unknown) => {
         const ps = params as Array<{ axisValue: string; value: unknown }>
         if (!ps?.length) return ''
@@ -69,29 +100,59 @@ function buildTopOptions() {
       smooth: 0.3,
       symbol: 'none',
       lineStyle: { color: '#10b981', width: 1.5 },
-      areaStyle: {
-        color: {
-          type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-          colorStops: [
-            { offset: 0, color: 'rgba(16,185,129,0.4)' },
-            { offset: 1, color: 'rgba(16,185,129,0.02)' },
-          ],
-        },
-      },
+      areaStyle: { color: areaColor('#10b981') },
     }],
   }
 }
 
-function buildBottomOptions() {
-  const { track } = props.data
-  const xLabels = track.map(p => tToTime(p.t))
-
+// ② ジャイロ強度（回転速度）
+function buildGyroOptions() {
+  const { gyro } = props.data
+  const xLabels = gyro.map(g => tToTime(g.t))
   return {
     backgroundColor: 'transparent',
-    grid: { left: 56, right: 16, top: 36, bottom: 24 },
+    grid: commonGrid(),
+    xAxis: commonXAxis(xLabels),
+    yAxis: {
+      type: 'value',
+      axisLabel: {
+        color: '#9ca3af', fontSize: 10,
+        formatter: (v: number) => `${v}`,
+      },
+      splitLine: { lineStyle: { color: '#1f2937' } },
+      min: 0,
+    },
+    dataZoom: [{ type: 'inside', start: 0, end: 100 }],
+    tooltip: {
+      ...commonTooltip(),
+      formatter: (params: unknown) => {
+        const ps = params as Array<{ axisValue: string; value: unknown }>
+        if (!ps?.length) return ''
+        const v = typeof ps[0].value === 'number' ? ps[0].value : null
+        if (v === null) return ''
+        return `<div style="font-size:11px;line-height:1.8">${ps[0].axisValue}<br>回転速度: ${v.toFixed(2)} rad/s</div>`
+      },
+    },
+    series: [{
+      type: 'line',
+      data: gyro.map(g => g.rms),
+      smooth: 0.3,
+      symbol: 'none',
+      lineStyle: { color: '#a78bfa', width: 1.5 },
+      areaStyle: { color: areaColor('#a78bfa', 0.35) },
+    }],
+  }
+}
+
+// ③ 移動速度
+function buildSpeedOptions() {
+  const { track } = props.data
+  const xLabels = track.map(p => tToTime(p.t))
+  return {
+    backgroundColor: 'transparent',
+    grid: commonGrid(true),
     legend: {
-      top: 4,
-      right: 16,
+      top: 4, right: 16,
       textStyle: { color: '#9ca3af', fontSize: 11 },
       inactiveColor: '#4b5563',
       data: [
@@ -99,13 +160,7 @@ function buildBottomOptions() {
         { name: '車移動', itemStyle: { color: '#3b82f6' } },
       ],
     },
-    xAxis: {
-      type: 'category',
-      data: xLabels,
-      axisLabel: { color: '#9ca3af', fontSize: 11, interval: Math.floor(xLabels.length / 8) },
-      axisLine: { lineStyle: { color: '#374151' } },
-      splitLine: { show: false },
-    },
+    xAxis: commonXAxis(xLabels),
     yAxis: {
       type: 'value',
       axisLabel: { show: false },
@@ -114,11 +169,7 @@ function buildBottomOptions() {
     },
     dataZoom: [{ type: 'inside', start: 0, end: 100 }],
     tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'line', lineStyle: { color: '#6b7280', type: 'dashed' } },
-      backgroundColor: '#1f2937',
-      borderColor: '#374151',
-      textStyle: { color: '#f3f4f6', fontSize: 12 },
+      ...commonTooltip(),
       formatter: (params: unknown) => {
         const ps = params as Array<{ value: unknown; dataIndex: number; seriesName: string }>
         if (!ps?.length) return ''
@@ -148,26 +199,18 @@ function buildBottomOptions() {
   }
 }
 
-function buildThirdOptions() {
+// ④ 手作業推定（静止中の体動）
+function buildWorkOptions() {
   const { track, motion } = props.data
   const xLabels = motion.map(m => tToTime(m.t))
-
-  // 速度がほぼ0のとき = 体動の強さ、移動中は0
   const data = motion.map((m, i) => {
     const p = track[i]
     return (!p || p.spd >= 0.5) ? 0 : m.std
   })
-
   return {
     backgroundColor: 'transparent',
-    grid: { left: 56, right: 16, top: 12, bottom: 24 },
-    xAxis: {
-      type: 'category',
-      data: xLabels,
-      axisLabel: { color: '#9ca3af', fontSize: 11, interval: Math.floor(xLabels.length / 8) },
-      axisLine: { lineStyle: { color: '#374151' } },
-      splitLine: { show: false },
-    },
+    grid: commonGrid(),
+    xAxis: commonXAxis(xLabels),
     yAxis: {
       type: 'value',
       axisLabel: { color: '#9ca3af', fontSize: 10 },
@@ -176,22 +219,17 @@ function buildThirdOptions() {
     },
     dataZoom: [{ type: 'inside', start: 0, end: 100 }],
     tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'line', lineStyle: { color: '#6b7280', type: 'dashed' } },
-      backgroundColor: '#1f2937',
-      borderColor: '#374151',
-      textStyle: { color: '#f3f4f6', fontSize: 12 },
+      ...commonTooltip(),
       formatter: (params: unknown) => {
-        const ps = params as Array<{ axisValue: string; value: unknown; data: unknown }>
+        const ps = params as Array<{ axisValue: string; value: unknown }>
         if (!ps?.length) return ''
-        // bar+itemStyleオブジェクト形式では value が object になる場合があるため安全に取り出す
         const raw = ps[0]?.value
         const v = typeof raw === 'number' ? raw
           : typeof (raw as any)?.value === 'number' ? (raw as any).value
           : null
         if (v === null) return ''
         if (v === 0) return `<div style="font-size:11px">${ps[0].axisValue}<br>移動中または静止</div>`
-        return `<div style="font-size:11px;line-height:1.8">${ps[0].axisValue}<br>摘蕾推定強度: ${v.toFixed(2)}</div>`
+        return `<div style="font-size:11px;line-height:1.8">${ps[0].axisValue}<br>手作業推定強度: ${v.toFixed(2)}</div>`
       },
     },
     series: [{
@@ -209,58 +247,127 @@ function buildThirdOptions() {
   }
 }
 
+// ⑤ 標高プロフィール
+function buildAltOptions() {
+  const { track } = props.data
+  const xLabels = track.map(p => tToTime(p.t))
+  const altValues = track.map(p => p.alt)
+  const minAlt = Math.min(...altValues)
+  const maxAlt = Math.max(...altValues)
+  const padding = Math.max(2, Math.round((maxAlt - minAlt) * 0.1))
+  return {
+    backgroundColor: 'transparent',
+    grid: commonGrid(),
+    xAxis: commonXAxis(xLabels),
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: '#9ca3af', fontSize: 10, formatter: (v: number) => `${v}m` },
+      splitLine: { lineStyle: { color: '#1f2937' } },
+      min: minAlt - padding,
+      max: maxAlt + padding,
+    },
+    dataZoom: [{ type: 'inside', start: 0, end: 100 }],
+    tooltip: {
+      ...commonTooltip(),
+      formatter: (params: unknown) => {
+        const ps = params as Array<{ axisValue: string; value: unknown }>
+        if (!ps?.length) return ''
+        const v = ps[0]?.value
+        if (typeof v !== 'number') return ''
+        return `<div style="font-size:11px;line-height:1.8">${ps[0].axisValue}<br>標高: ${v} m</div>`
+      },
+    },
+    series: [{
+      type: 'line',
+      data: altValues,
+      smooth: 0.4,
+      symbol: 'none',
+      lineStyle: { color: '#f97316', width: 1.5 },
+      areaStyle: { color: areaColor('#f97316', 0.35) },
+    }],
+  }
+}
+
 async function renderCharts() {
   const EC = await import('echarts')
-  if (chartTopEl.value) {
-    if (!chartTop) chartTop = EC.init(chartTopEl.value, undefined, { renderer: 'svg' })
-    chartTop.setOption(buildTopOptions())
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const init = (el: HTMLDivElement | undefined, inst: import('echarts').ECharts | null, opts: any) => {
+    if (!el) return inst
+    if (!inst) inst = EC.init(el, undefined, { renderer: 'svg' })
+    inst.setOption(opts, true)
+    return inst
   }
-  if (chartBottomEl.value) {
-    if (!chartBottom) chartBottom = EC.init(chartBottomEl.value, undefined, { renderer: 'svg' })
-    chartBottom.setOption(buildBottomOptions())
-  }
-  if (chartThirdEl.value) {
-    if (!chartThird) chartThird = EC.init(chartThirdEl.value, undefined, { renderer: 'svg' })
-    chartThird.setOption(buildThirdOptions())
-  }
-  EC.connect([chartTop!, chartBottom!, chartThird!].filter(Boolean) as import('echarts').ECharts[])
+  chartMotion = init(chartMotionEl.value, chartMotion, buildMotionOptions())
+  chartGyro   = init(chartGyroEl.value,   chartGyro,   buildGyroOptions())
+  chartSpeed  = init(chartSpeedEl.value,  chartSpeed,  buildSpeedOptions())
+  chartWork   = init(chartWorkEl.value,   chartWork,   buildWorkOptions())
+  chartAlt    = init(chartAltEl.value,    chartAlt,    buildAltOptions())
+  EC.connect([chartMotion, chartGyro, chartSpeed, chartWork, chartAlt].filter(Boolean) as import('echarts').ECharts[])
 }
 
 onMounted(() => renderCharts())
 watch(() => props.data, () => renderCharts())
 
 watch(() => props.highlightT, (t) => {
-  if (!chartTop || t === null) return
+  if (!chartMotion || t === null) return
   const idx = props.data.motion.findIndex(m => m.t === t)
-  if (idx >= 0) chartTop.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: idx })
+  if (idx >= 0) chartMotion.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: idx })
 })
 
 onUnmounted(() => {
-  chartTop?.dispose(); chartTop = null
-  chartBottom?.dispose(); chartBottom = null
-  chartThird?.dispose(); chartThird = null
+  chartMotion?.dispose(); chartMotion = null
+  chartGyro?.dispose();   chartGyro = null
+  chartSpeed?.dispose();  chartSpeed = null
+  chartWork?.dispose();   chartWork = null
+  chartAlt?.dispose();    chartAlt = null
 })
 </script>
 
 <template>
   <div class="space-y-4">
+    <!-- ① 体の動きの激しさ -->
     <div class="bg-gray-800 rounded-xl p-4">
-      <div class="text-xs text-gray-500 mb-1 space-y-0.5">
-        <div>体の動きの激しさ — スマホ加速度センサーから算出。値が大きいほど活発に体を動かしていたことを示します。</div>
-        <div class="text-gray-600">目安：1=ゆっくり歩く　3=農作業・手作業　5=早歩き　7.5=小走り相当</div>
+      <div class="flex items-center gap-2 mb-1">
+        <span class="inline-block w-3 h-3 rounded-sm bg-emerald-500 flex-shrink-0" />
+        <span class="text-xs text-gray-400 font-medium">体の動きの激しさ</span>
       </div>
-      <div ref="chartTopEl" class="w-full" style="height: 200px;" />
+      <div class="text-xs text-gray-600 mb-2">加速度センサー由来。目安：1=ゆっくり歩く　3=農作業・手作業　5=早歩き　7.5=小走り</div>
+      <div ref="chartMotionEl" class="w-full" style="height: 160px;" />
     </div>
+
+    <!-- ② ジャイロ強度 -->
+    <div class="bg-gray-800 rounded-xl p-4">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="inline-block w-3 h-3 rounded-sm bg-violet-400 flex-shrink-0" />
+        <span class="text-xs text-gray-400 font-medium">回転・方向転換の激しさ</span>
+      </div>
+      <div class="text-xs text-gray-600 mb-2">ジャイロスコープ由来（rad/s）。腕を回す・方向転換が多いほど高くなります。</div>
+      <div ref="chartGyroEl" class="w-full" style="height: 160px;" />
+    </div>
+
+    <!-- ③ 移動速度 -->
     <div class="bg-gray-800 rounded-xl p-4">
       <div class="text-xs text-gray-500 mb-1">移動速度 — 凡例クリックで表示/非表示</div>
-      <div ref="chartBottomEl" class="w-full" style="height: 180px;" />
+      <div ref="chartSpeedEl" class="w-full" style="height: 160px;" />
     </div>
+
+    <!-- ④ 手作業推定 -->
     <div class="bg-gray-800 rounded-xl p-4">
-      <div class="text-xs text-gray-500 mb-1 space-y-0.5">
-        <div>摘蕾推定 — <span class="text-amber-400">速度がほぼ0で体動が高い</span>時間帯を強調表示。その場で腕・体幹を動かして作業していた可能性が高い箇所です。</div>
-        <div class="text-gray-600">強調度：高（濃い琥珀色）→ 低（薄い）。移動中は表示なし。</div>
+      <div class="text-xs text-gray-500 mb-1">
+        手作業推定 —
+        <span class="text-amber-400">速度がほぼ0で体動が高い</span>時間帯。移動中は表示なし。
       </div>
-      <div ref="chartThirdEl" class="w-full" style="height: 180px;" />
+      <div ref="chartWorkEl" class="w-full" style="height: 160px;" />
+    </div>
+
+    <!-- ⑤ 標高プロフィール -->
+    <div class="bg-gray-800 rounded-xl p-4">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="inline-block w-3 h-3 rounded-sm bg-orange-500 flex-shrink-0" />
+        <span class="text-xs text-gray-400 font-medium">標高プロフィール</span>
+      </div>
+      <div class="text-xs text-gray-600 mb-2">GPS計測による高度の変化（誤差含む）</div>
+      <div ref="chartAltEl" class="w-full" style="height: 140px;" />
     </div>
   </div>
 </template>

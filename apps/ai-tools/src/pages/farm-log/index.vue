@@ -5,7 +5,7 @@ definePageMeta({ ssr: false, layout: 'farm-log' })
 useHead({ title: '農作業ログ' })
 
 const sessions = ref<FarmLogSession[]>([])
-const selectedDate = ref<string>('')
+const selectedLabel = ref<string>('')
 const data = ref<FarmLogData | null>(null)
 const loading = ref(true)
 const highlightT = ref<number | null>(null)
@@ -14,16 +14,16 @@ async function loadSessions() {
   const index = await $fetch<FarmLogSession[]>('/data/farm-log/index.json')
   sessions.value = index
   if (index.length > 0) {
-    selectedDate.value = index[0].date
-    await loadSession(index[0].date)
+    selectedLabel.value = index[0].label
+    await loadSession(index[0].label)
   }
   loading.value = false
 }
 
-async function loadSession(date: string) {
+async function loadSession(label: string) {
   loading.value = true
-  selectedDate.value = date
-  data.value = await $fetch<FarmLogData>(`/data/farm-log/${date}.json`)
+  selectedLabel.value = label
+  data.value = await $fetch<FarmLogData>(`/data/farm-log/${label}.json`)
   loading.value = false
 }
 
@@ -39,7 +39,7 @@ onMounted(() => loadSessions())
         <FarmLogSessionPicker
           v-if="sessions.length > 0"
           :sessions="sessions"
-          :selected-date="selectedDate"
+          :selected-label="selectedLabel"
           @select="loadSession"
         />
       </div>
@@ -52,6 +52,13 @@ onMounted(() => loadSessions())
 
     <!-- Content -->
     <div v-else-if="data" class="p-4 max-w-6xl mx-auto space-y-4">
+      <!-- Activity label -->
+      <div v-if="data.meta.activity" class="flex items-center gap-2">
+        <span class="text-xs bg-emerald-900 text-emerald-300 px-2.5 py-1 rounded-full font-medium">
+          {{ data.meta.activity }}
+        </span>
+      </div>
+
       <!-- Activity bar -->
       <div class="bg-gray-900 rounded-xl p-4">
         <div class="text-xs text-gray-500 mb-2">活動内訳</div>
@@ -76,13 +83,12 @@ onMounted(() => loadSessions())
         </div>
         <div class="bg-gray-900 rounded-xl p-4">
           <div class="text-xs text-gray-500 mb-3">サマリー</div>
-          <FarmLogStatsGrid :meta="data.meta" />
+          <FarmLogStatsGrid :data="data" />
         </div>
       </div>
 
       <!-- Timeline -->
       <div class="bg-gray-900 rounded-xl p-4">
-        <!-- <div class="text-xs text-gray-500 mb-1">タイムライン</div> -->
         <FarmLogTimeline
           :data="data"
           :highlight-t="highlightT"

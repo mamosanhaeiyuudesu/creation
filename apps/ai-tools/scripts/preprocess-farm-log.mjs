@@ -4,12 +4,40 @@ import readline from 'readline'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const DATA_DIR = path.join(__dirname, '../../../2026-05-21_22-56-41')
+const SENSOR_DATA_DIR = path.join(__dirname, '../../../sensor_data')
 const OUT_DIR = path.join(__dirname, '../src/public/data/farm-log')
-const SESSION_DATE = '2026-05-22'
-const SESSION_LABEL = '2026-05-21_22-56-41'
-const RECORDING_EPOCH_MS = 1779404201726
 const BUCKET_SIZE = 10
+
+// セッション定義: { folder, date, activity, epochMs }
+const SESSIONS = [
+  {
+    folder: '2026-05-21_22-56-41',
+    date: '2026-05-22',
+    activity: '農園巡回',
+    epochMs: 1779404201726,
+  },
+  {
+    folder: '2026-05-22_21-08-57',
+    date: '2026-05-23',
+    activity: 'キウイ受粉',
+    epochMs: 1779484137532,
+  },
+  {
+    folder: '2026-05-23_06-19-57',
+    date: '2026-05-23',
+    activity: 'キウイ受粉',
+    epochMs: 1779517197425,
+  },
+  {
+    folder: '2026-05-23_21-21-29',
+    date: '2026-05-24',
+    activity: '草刈り',
+    epochMs: 1779571289468,
+  },
+]
+
+// コマンドライン引数でフォルダ名を指定した場合はそのセッションのみ処理
+const targetFolder = process.argv[2] || null
 
 function haversine(lat1, lng1, lat2, lng2) {
   const R = 6371000
@@ -27,10 +55,9 @@ function classifyActivity(speed) {
   return 2
 }
 
-// Location.csv header: time,seconds_elapsed,bearingAccuracy,speedAccuracy,verticalAccuracy,horizontalAccuracy,speed,bearing,altitude,longitude,latitude
-async function processLocation() {
+async function processLocation(dataDir) {
   console.log('  Reading Location.csv...')
-  const content = fs.readFileSync(path.join(DATA_DIR, 'Location.csv'), 'utf-8')
+  const content = fs.readFileSync(path.join(dataDir, 'Location.csv'), 'utf-8')
   const lines = content.trim().split('\n')
 
   const rows = []
@@ -105,13 +132,12 @@ async function processLocation() {
   }
 }
 
-// TotalAcceleration.csv header: time,seconds_elapsed,z,y,x
-async function processMotion() {
+async function processMotion(dataDir) {
   console.log('  Streaming TotalAcceleration.csv...')
   const bucketMap = new Map()
 
   const rl = readline.createInterface({
-    input: fs.createReadStream(path.join(DATA_DIR, 'TotalAcceleration.csv')),
+    input: fs.createReadStream(path.join(dataDir, 'TotalAcceleration.csv')),
     crlfDelay: Infinity,
   })
 
@@ -160,35 +186,89 @@ async function processMotion() {
   return motion
 }
 
-async function main() {
-  console.log('=== Farm Log Preprocessing ===')
-  console.log(`Data: ${DATA_DIR}`)
-  console.log(`Output: ${OUT_DIR}`)
-  console.log()
+// Gyroscope.csv header: time,seconds_elapsed,z,y,x (rad/s)
+async function processGyro(dataDir) {
+  console.log('  Streaming Gyroscope.csv...')
+  const bucketMap = new Map()
 
-  console.log('Phase 1: GPS track')
-  const { track, elevationGainM, boundingBox } = await processLocation()
+  const rl = readline.createInterface({
+    input: fs.createReadStream(path.join(dataDir, 'Gyroscope.csv')),
+    crlfDelay: Infinity,
+  })
+
+  let isHeader = true
+  let lineCount = 0
+  for await (const line of rl) {
+    if (isHeader) { isHeader = false; continue }
+    lineCount++
+
+    const p = line.split(',')
+    const t = parseFloat(p[1])
+    const z = parseFloat(p[2])
+    const y = parseFloat(p[3])
+    const x = parseFloat(p[4])
+    if (isNaN(t) || isNaN(x) || isNaN(y) || isNaN(z)) continue
+
+    const magSq = x * x + y * y + z * z
+    const bucket = Math.floor(t / BUCKET_SIZE)
+
+    if (!bucketMap.has(bucket)) bucketMap.set(bucket, { sumSq: 0, count: 0 })
+    const b = bucketMap.get(bucket)
+    b.sumSq += magSq
+    b.count++
+  }
+
+  console.log(`  Processed ${lineCount} gyro rows`)
+
+  const gyro = []
+  for (const [bucketIdx, b] of Array.from(bucketMap.entries()).sort((a, c) => a[0] - c[0])) {
+    gyro.push({
+      t: bucketIdx * BUCKET_SIZE,
+      rms: Math.round(Math.sqrt(b.sumSq / b.count) * 100) / 100,
+    })
+  }
+
+  return gyro
+}
+
+async function processSession(session) {
+  const { folder, date, activity, epochMs } = session
+  const dataDir = path.join(SENSOR_DATA_DIR, folder)
+
+  console.log(`\n=== Processing: ${folder} ===`)
+  console.log(`  Date: ${date}, Activity: ${activity}`)
+  console.log(`  Data: ${dataDir}`)
+
+  if (!fs.existsSync(dataDir)) {
+    console.error(`  ERROR: Directory not found: ${dataDir}`)
+    return null
+  }
+
+  console.log('\nPhase 1: GPS track')
+  const { track, elevationGainM, boundingBox } = await processLocation(dataDir)
   console.log(`  Track points: ${track.length}`)
   console.log(`  Elevation gain: ${elevationGainM}m`)
-  console.log(`  Bounds: ${boundingBox.minLat},${boundingBox.minLng} - ${boundingBox.maxLat},${boundingBox.maxLng}`)
-  console.log()
 
-  console.log('Phase 2: Motion intensity')
-  const motion = await processMotion()
+  console.log('\nPhase 2: Motion intensity')
+  const motion = await processMotion(dataDir)
   console.log(`  Motion buckets: ${motion.length}`)
-  console.log()
+
+  console.log('\nPhase 3: Gyroscope intensity')
+  const gyro = await processGyro(dataDir)
+  console.log(`  Gyro buckets: ${gyro.length}`)
 
   const durationSec = track.length > 0 ? track[track.length - 1].t + BUCKET_SIZE : 0
   const totalDistanceM = track.length > 0 ? track[track.length - 1].cumDist : 0
-  const startTime = new Date(RECORDING_EPOCH_MS).toISOString()
+  const startTime = new Date(epochMs).toISOString()
 
   const activitySec = [0, 0, 0]
   for (const p of track) activitySec[p.act] += BUCKET_SIZE
 
   const output = {
     meta: {
-      date: SESSION_DATE,
-      label: SESSION_LABEL,
+      date,
+      label: folder,
+      activity,
       startTime,
       durationSec,
       totalDistanceM,
@@ -196,39 +276,59 @@ async function main() {
       boundingBox,
       activitySummary: {
         stationarySec: activitySec[0],
-        budThinningSec: activitySec[1],
+        walkingSec: activitySec[1],
         drivingSec: activitySec[2],
       },
     },
     track,
     motion,
+    gyro,
   }
 
-  console.log('Phase 3: Writing output')
   fs.mkdirSync(OUT_DIR, { recursive: true })
-
-  const outPath = path.join(OUT_DIR, `${SESSION_DATE}.json`)
+  const outPath = path.join(OUT_DIR, `${folder}.json`)
   fs.writeFileSync(outPath, JSON.stringify(output))
   const sizeKB = (fs.statSync(outPath).size / 1024).toFixed(1)
-  console.log(`  ${outPath} (${sizeKB} KB)`)
+  console.log(`\n  Output: ${outPath} (${sizeKB} KB)`)
+  console.log(`  Duration: ${Math.round(durationSec / 60)}m | Distance: ${(totalDistanceM / 1000).toFixed(2)} km`)
 
+  return { date, label: folder, activity, durationSec, totalDistanceM }
+}
+
+async function main() {
+  const sessions = targetFolder
+    ? SESSIONS.filter(s => s.folder === targetFolder)
+    : SESSIONS
+
+  if (sessions.length === 0) {
+    console.error(`Session not found: ${targetFolder}`)
+    process.exit(1)
+  }
+
+  const results = []
+  for (const session of sessions) {
+    const result = await processSession(session)
+    if (result) results.push(result)
+  }
+
+  // index.json を更新
   const indexPath = path.join(OUT_DIR, 'index.json')
   let index = []
   if (fs.existsSync(indexPath)) {
     index = JSON.parse(fs.readFileSync(indexPath, 'utf-8'))
   }
-  index = index.filter(s => s.date !== SESSION_DATE)
-  index.push({ date: SESSION_DATE, label: SESSION_LABEL, durationSec, totalDistanceM })
-  index.sort((a, b) => b.date.localeCompare(a.date))
-  fs.writeFileSync(indexPath, JSON.stringify(index, null, 2))
-  console.log(`  ${indexPath}`)
 
-  console.log()
-  console.log('=== Summary ===')
-  console.log(`Duration: ${Math.round(durationSec / 60)}m (${(durationSec / 3600).toFixed(1)}h)`)
-  console.log(`Distance: ${(totalDistanceM / 1000).toFixed(2)} km`)
-  console.log(`Elevation gain: ${elevationGainM} m`)
-  console.log(`Stationary: ${Math.round(activitySec[0] / 60)}m | Bud thinning: ${Math.round(activitySec[1] / 60)}m | Driving: ${Math.round(activitySec[2] / 60)}m`)
+  for (const result of results) {
+    index = index.filter(s => s.label !== result.label)
+    index.push(result)
+  }
+  index.sort((a, b) => b.date.localeCompare(a.date) || b.label.localeCompare(a.label))
+
+  fs.writeFileSync(indexPath, JSON.stringify(index, null, 2))
+  console.log(`\n\nindex.json updated: ${index.length} sessions total`)
+  for (const s of index) {
+    console.log(`  ${s.date} [${s.label}] ${s.activity} - ${Math.round(s.durationSec / 60)}m`)
+  }
 }
 
 main().catch(err => { console.error(err); process.exit(1) })

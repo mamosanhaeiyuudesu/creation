@@ -12,10 +12,10 @@ function formatDuration(sec: number) {
 }
 
 const segments = computed(() => {
-  const { stationarySec, budThinningSec, drivingSec } = props.meta.activitySummary
-  const total = stationarySec + budThinningSec + drivingSec
+  const { stationarySec, walkingSec, drivingSec } = props.meta.activitySummary
+  const total = stationarySec + walkingSec + drivingSec
   if (total === 0) return []
-  const farmSec = stationarySec + budThinningSec
+  const farmSec = stationarySec + walkingSec
   return [
     { key: 'farm', label: '農作業', color: 'bg-emerald-600', sec: farmSec, pct: (farmSec / total) * 100 },
     { key: 'driving', label: '車移動', color: 'bg-blue-500', sec: drivingSec, pct: (drivingSec / total) * 100 },

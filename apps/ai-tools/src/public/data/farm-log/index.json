@@ -1,7 +1,29 @@
 [
   {
+    "date": "2026-05-24",
+    "label": "2026-05-23_21-21-29",
+    "activity": "草刈り",
+    "durationSec": 4240,
+    "totalDistanceM": 1576
+  },
+  {
+    "date": "2026-05-23",
+    "label": "2026-05-23_06-19-57",
+    "activity": "キウイ受粉",
+    "durationSec": 6540,
+    "totalDistanceM": 10217
+  },
+  {
+    "date": "2026-05-23",
+    "label": "2026-05-22_21-08-57",
+    "activity": "キウイ受粉",
+    "durationSec": 4000,
+    "totalDistanceM": 9965
+  },
+  {
     "date": "2026-05-22",
     "label": "2026-05-21_22-56-41",
+    "activity": "農園巡回",
     "durationSec": 22290,
     "totalDistanceM": 29904
   }
