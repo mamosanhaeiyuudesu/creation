@@ -454,12 +454,23 @@ export function useTaskBoards(
         const newStatus = taskForm.value.status
         const newListId = newStatus === 'doing' ? board.doingListId : board.todoListId
         const oldListId = status === 'doing' ? oldBoard.doingListId : oldBoard.todoListId
+        if (boardChanged && !newListId) throw new Error('対象リストが見つかりません')
         if (boardChanged || (newListId && newListId !== oldListId)) body.idList = newListId
         const raw = await trelloPut(`/cards/${card.id}`, body)
-        await syncImportantLabel(card.id, card, board, taskForm.value.isImportant)
         const updated = buildCard(raw)
-        updated.isImportant = taskForm.value.isImportant
-        updated.redLabelId = taskForm.value.isImportant ? (board.redLabelId ?? card.redLabelId) : null
+        if (boardChanged) {
+          // ボード移動後はラベルがリセットされるため、旧ボードのラベルIDを使わず再設定
+          if (taskForm.value.isImportant) {
+            const labelId = await ensureRedLabel(board)
+            await trelloPost(`/cards/${raw.id}/idLabels`, { value: labelId })
+            updated.isImportant = true
+            updated.redLabelId = labelId
+          }
+        } else {
+          await syncImportantLabel(card.id, card, board, taskForm.value.isImportant)
+          updated.isImportant = taskForm.value.isImportant
+          updated.redLabelId = taskForm.value.isImportant ? (board.redLabelId ?? card.redLabelId) : null
+        }
         const srcArr = status === 'doing' ? oldBoard.doing : oldBoard.todo
         const idx = srcArr.findIndex(c => c.id === card.id)
         if (!boardChanged && newStatus === status) {

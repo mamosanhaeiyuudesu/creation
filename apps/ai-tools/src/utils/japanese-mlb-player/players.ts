@@ -60,6 +60,14 @@ export const BATTER_STATS: StatMeta[] = [
     format: (v) => v === null ? '—' : `${Math.round(v as number)}点`,
     counting: true,
   },
+  {
+    key: 'totalBases', label: '塁打',
+    fullName: 'TB = Total Bases',
+    description: '塁打数。単打×1 + 二塁打×2 + 三塁打×3 + 本塁打×4。',
+    direction: 'high',
+    format: (v) => v === null ? '—' : `${Math.round(v as number)}塁打`,
+    counting: true,
+  },
   // {
   //   key: 'stolenBases', label: '盗塁',
   //   fullName: 'SB = Stolen Bases',
@@ -342,6 +350,20 @@ export const BATTER_RADAR_AXES: RadarAxis[] = [
     formatSource: (s) => {
       const hr = (s as BatterStats).hr
       return hr !== null ? `HR: ${Math.round(hr)}本` : 'HR: —'
+    },
+  },
+  {
+    key: 'totalbases',
+    label: '塁打',
+    description: '塁打数（TB）。400塁打をeliteとして正規化。',
+    normalize: (s) => {
+      const tb = (s as BatterStats).totalBases
+      if (tb === null) return null
+      return clamp(tb / 400 * 100, 0, 100)
+    },
+    formatSource: (s) => {
+      const tb = (s as BatterStats).totalBases
+      return tb !== null ? `TB: ${Math.round(tb)}塁打` : 'TB: —'
     },
   },
   {

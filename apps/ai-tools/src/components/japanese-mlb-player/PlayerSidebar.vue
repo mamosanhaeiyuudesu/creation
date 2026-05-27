@@ -91,22 +91,6 @@
       </div>
     </div>
 
-    <!-- 表示切り替え -->
-    <div v-if="showViewToggle" class="px-3 py-2.5 border-t border-blue-700 flex-shrink-0">
-      <p class="text-blue-300 text-[10px] font-semibold mb-1.5">表示</p>
-      <div class="flex rounded overflow-hidden border border-blue-600/60">
-        <button
-          v-for="v in viewOptions"
-          :key="v.key"
-          @click="$emit('update:view', v.key)"
-          class="flex-1 py-1.5 text-xs font-medium transition-colors"
-          :class="view === v.key
-            ? 'bg-white/20 text-white'
-            : 'text-white/50 hover:text-white/80 hover:bg-white/10'"
-        >{{ v.label }}</button>
-      </div>
-    </div>
-
     <!-- 閉じるボタン（モバイル） -->
     <div v-if="closable" class="p-3 border-t border-blue-700 flex-shrink-0">
       <button
@@ -122,25 +106,15 @@ import { PITCHER_PLAYERS, BATTER_PLAYERS, PLAYER_COLORS } from '~/utils/japanese
 
 const props = withDefaults(defineProps<{
   selectedIds: string[]
-  view?: 'table' | 'trend'
-  showViewToggle?: boolean
   closable?: boolean
 }>(), {
-  view: 'table',
-  showViewToggle: false,
   closable: false,
 })
 
 const emit = defineEmits<{
   toggle: [id: string]
-  'update:view': [value: 'table' | 'trend']
   close: []
 }>()
-
-const viewOptions = [
-  { key: 'table' as const, label: '成績比較' },
-  { key: 'trend' as const, label: 'レーダー' },
-]
 
 const nlPitchers = computed(() => PITCHER_PLAYERS.filter(p => p.league === 'NL'))
 const nlBatters  = computed(() => BATTER_PLAYERS.filter(p => p.league === 'NL'))

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div ref="chartEl" class="w-full" style="height: 360px;" />
+    <div ref="chartEl" class="w-full" style="height: 540px;" />
     <div v-if="!hasData" class="py-8 text-center text-slate-400 text-sm">データを読み込み中...</div>
   </div>
 </template>
