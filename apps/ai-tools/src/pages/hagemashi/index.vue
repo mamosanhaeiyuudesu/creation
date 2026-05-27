@@ -62,7 +62,7 @@
           </template>
 
           <!-- 励ます button -->
-          <button
+          <!-- <button
             v-if="!isRecording && !isPaused"
             class="w-20 h-20 rounded-full border-2 border-orange-500/50 bg-orange-500/[0.08] text-slate-50 flex flex-col items-center justify-center gap-1 transition-all disabled:opacity-35 disabled:cursor-not-allowed"
             :class="history.length > 0 && !isEncouraging ? 'cursor-pointer hover:bg-orange-500/[0.20] hover:border-orange-500/80 hover:scale-105' : ''"
@@ -71,7 +71,7 @@
           >
             <span class="text-2xl leading-none">💪</span>
             <span class="text-[10px] font-medium">励ます</span>
-          </button>
+          </button> -->
         </div>
         <div v-if="isRecording || duration > 0" class="text-xl text-red-500 font-mono font-semibold">
           {{ formatTime(duration) }}
@@ -653,11 +653,39 @@ const summarizeHistory = async (id: string) => {
   summarizingId.value = null
 }
 
+// --- 自動励まし ---
+const autoEncourage = async (text: string) => {
+  const profile = selectedProfile.value ?? profiles.value[0]
+  if (!profile) return
+  encourageResult.value = ''
+  encourageOpen.value = true
+  isEncouraging.value = true
+  try {
+    const res = await $fetch<{ result: string }>('/api/hagemashi/encourage', {
+      method: 'POST',
+      body: {
+        texts: [text],
+        encouragePrompt: profile.encouragePrompt,
+        charLimit: charLimit.value,
+      },
+    })
+    encourageResult.value = res.result
+    const title = await fetchEncourageTitle(res.result)
+    addEncourageHistory(res.result, title)
+    activeTab.value = 'encourage'
+  } catch (err) {
+    encourageResult.value = err instanceof Error ? err.message : '励ましの生成に失敗しました'
+  } finally {
+    isEncouraging.value = false
+  }
+}
+
 // --- 文字起こし後処理 ---
 const handleTranscribed = async (text: string) => {
   const [title, notes] = await Promise.all([fetchTitle(text), fetchBullets(text)])
   const id = addHistory(text, title)
   if (notes) updateHistoryNotes(id, notes)
+  await autoEncourage(notes || text)
 }
 
 // --- 録音 ---
