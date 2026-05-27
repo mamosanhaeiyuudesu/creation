@@ -5,7 +5,7 @@ import MlbHeader from '~/components/japanese-mlb-player/MlbHeader.vue'
 import PlayerSidebar from '~/components/japanese-mlb-player/PlayerSidebar.vue'
 import RecentGames from '~/components/japanese-mlb-player/RecentGames.vue'
 import StatsTable from '~/components/japanese-mlb-player/StatsTable.vue'
-import TrendChart from '~/components/japanese-mlb-player/TrendChart.vue'
+import RadarChart from '~/components/japanese-mlb-player/RadarChart.vue'
 import YearlyChart from '~/components/japanese-mlb-player/YearlyChart.vue'
 
 definePageMeta({ ssr: false, layout: 'japanese-mlb-player' })
@@ -245,22 +245,22 @@ onMounted(async () => {
               <section v-if="nlPitcherIds.length" class="mb-8">
                 <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ナ・リーグ 投手</h2>
                 <StatsTable v-if="mobileView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="pitcher" />
-                <TrendChart v-else :selected-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                <RadarChart v-else :selected-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
               </section>
               <section v-if="nlBatterIds.length" class="mb-8">
                 <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ナ・リーグ 野手</h2>
                 <StatsTable v-if="mobileView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="batter" />
-                <TrendChart v-else :selected-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                <RadarChart v-else :selected-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" />
               </section>
               <section v-if="alPitcherIds.length" class="mb-8">
                 <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ア・リーグ 投手</h2>
                 <StatsTable v-if="mobileView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="pitcher" />
-                <TrendChart v-else :selected-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                <RadarChart v-else :selected-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
               </section>
               <section v-if="alBatterIds.length">
                 <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ア・リーグ 野手</h2>
                 <StatsTable v-if="mobileView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="batter" />
-                <TrendChart v-else :selected-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                <RadarChart v-else :selected-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" />
               </section>
             </template>
           </template>
@@ -335,22 +335,22 @@ onMounted(async () => {
               <section v-if="nlPitcherIds.length" class="mb-10">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ナ・リーグ 投手</h2>
                 <StatsTable v-if="pcView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="pitcher" />
-                <TrendChart v-else :selected-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                <RadarChart v-else :selected-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
               </section>
               <section v-if="nlBatterIds.length" class="mb-10">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ナ・リーグ 野手</h2>
                 <StatsTable v-if="pcView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="batter" />
-                <TrendChart v-else :selected-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                <RadarChart v-else :selected-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" />
               </section>
               <section v-if="alPitcherIds.length" class="mb-10">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ア・リーグ 投手</h2>
                 <StatsTable v-if="pcView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="pitcher" />
-                <TrendChart v-else :selected-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                <RadarChart v-else :selected-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
               </section>
               <section v-if="alBatterIds.length">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ア・リーグ 野手</h2>
                 <StatsTable v-if="pcView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="batter" />
-                <TrendChart v-else :selected-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                <RadarChart v-else :selected-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" />
               </section>
             </template>
           </template>
@@ -521,7 +521,7 @@ onMounted(async () => {
               <p class="text-xs font-semibold text-slate-500 mb-2">表示</p>
               <div class="flex rounded-lg overflow-hidden border border-slate-200">
                 <button
-                  v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'trend', label: '推移グラフ' }]"
+                  v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'trend', label: 'レーダー' }]"
                   :key="v.key"
                   @click="mobileView = v.key as 'table' | 'trend'"
                   class="flex-1 py-2 text-sm font-medium transition-colors"
