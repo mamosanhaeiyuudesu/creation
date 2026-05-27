@@ -5,7 +5,7 @@ import MlbHeader from '~/components/japanese-mlb-player/MlbHeader.vue'
 import PlayerSidebar from '~/components/japanese-mlb-player/PlayerSidebar.vue'
 import RecentGames from '~/components/japanese-mlb-player/RecentGames.vue'
 import StatsTable from '~/components/japanese-mlb-player/StatsTable.vue'
-import TrendChart from '~/components/japanese-mlb-player/TrendChart.vue'
+import RadarChart from '~/components/japanese-mlb-player/RadarChart.vue'
 import YearlyChart from '~/components/japanese-mlb-player/YearlyChart.vue'
 
 definePageMeta({ ssr: false, layout: 'japanese-mlb-player' })
@@ -36,8 +36,7 @@ const router = useRouter()
 
 const settingsOpen = ref(false)
 const mainRef = ref<HTMLElement | null>(null)
-const pcView = ref<'table' | 'trend'>('table')
-const mobileView = ref<'table' | 'trend'>('table')
+const view = ref<'table' | 'trend'>('table')
 
 const {
   selectedIds,
@@ -151,10 +150,7 @@ onMounted(async () => {
     <PlayerSidebar
       class="hidden md:flex"
       :selected-ids="selectedIds"
-      :view="pcView"
-      :show-view-toggle="activeTab !== 'speed'"
       @toggle="togglePlayer"
-      @update:view="pcView = $event"
     />
 
     <main ref="mainRef" class="flex-1 overflow-y-auto bg-white">
@@ -170,22 +166,39 @@ onMounted(async () => {
             : 'border-transparent text-slate-500 hover:text-slate-700'"
         >{{ tab.label }}</button>
 
-        <!-- 1〜10位の凡例 -->
-        <span class="ml-auto flex items-center px-3 pb-2.5 text-[10px] md:text-[11px] whitespace-nowrap" style="color: #C42121;">
-          1〜10位は赤文字
-        </span>
+        <!-- 右側コントロール -->
+        <div class="ml-auto flex items-end flex-shrink-0">
+          <!-- 成績表/グラフ切り替え（season/yearly のみ。PCの今シーズンは常時両表示のため非表示） -->
+          <div v-if="activeTab !== 'speed'" :class="{ 'md:hidden': activeTab === 'season' }" class="self-center flex border border-slate-200 rounded overflow-hidden mx-1.5">
+            <button
+              @click="view = 'table'"
+              class="px-2 md:px-2.5 py-1 text-[10px] md:text-[11px] font-medium transition-colors"
+              :class="view === 'table' ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'"
+            >成績表</button>
+            <button
+              @click="view = 'trend'"
+              class="px-2 md:px-2.5 py-1 text-[10px] md:text-[11px] font-medium transition-colors border-l border-slate-200"
+              :class="view === 'trend' ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'"
+            >{{ activeTab === 'yearly' ? 'グラフ' : 'レーダー' }}</button>
+          </div>
 
-        <!-- 歯車ボタン（モバイルのみ） -->
-        <button
-          class="md:hidden flex-none px-3 py-2.5 text-slate-400 hover:text-slate-600 border-b-2 border-transparent -mb-px transition-colors"
-          @click="settingsOpen = true"
-          aria-label="選手・表示設定"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </button>
+          <!-- 1〜10位の凡例 -->
+          <span class="hidden md:flex items-center px-3 pb-2.5 text-[11px] whitespace-nowrap" style="color: #C42121;">
+            1〜10位は赤文字
+          </span>
+
+          <!-- 歯車ボタン（モバイルのみ） -->
+          <button
+            class="md:hidden flex-none px-3 py-2.5 text-slate-400 hover:text-slate-600 border-b-2 border-transparent -mb-px transition-colors"
+            @click="settingsOpen = true"
+            aria-label="選手・表示設定"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- エラーバナー -->
@@ -244,23 +257,23 @@ onMounted(async () => {
             <template v-else>
               <section v-if="nlPitcherIds.length" class="mb-8">
                 <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ナ・リーグ 投手</h2>
-                <StatsTable v-if="mobileView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="pitcher" />
-                <TrendChart v-else :selected-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                <StatsTable v-if="view === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="pitcher" />
+                <RadarChart v-else :selected-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
               </section>
               <section v-if="nlBatterIds.length" class="mb-8">
                 <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ナ・リーグ 野手</h2>
-                <StatsTable v-if="mobileView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="batter" />
-                <TrendChart v-else :selected-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                <StatsTable v-if="view === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="batter" />
+                <RadarChart v-else :selected-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" />
               </section>
               <section v-if="alPitcherIds.length" class="mb-8">
                 <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ア・リーグ 投手</h2>
-                <StatsTable v-if="mobileView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="pitcher" />
-                <TrendChart v-else :selected-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                <StatsTable v-if="view === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="pitcher" />
+                <RadarChart v-else :selected-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
               </section>
               <section v-if="alBatterIds.length">
                 <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ア・リーグ 野手</h2>
-                <StatsTable v-if="mobileView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="batter" />
-                <TrendChart v-else :selected-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                <StatsTable v-if="view === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="batter" />
+                <RadarChart v-else :selected-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" />
               </section>
             </template>
           </template>
@@ -273,19 +286,19 @@ onMounted(async () => {
             <template v-else>
               <section v-if="nlPitcherIds.length" class="mb-8">
                 <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ナ・リーグ 投手</h2>
-                <YearlyChart :selected-ids="nlPitcherIds" :yearly-data-map="yearlyDataMap" mode="pitcher" :view="mobileView === 'trend' ? 'chart' : 'table'" />
+                <YearlyChart :selected-ids="nlPitcherIds" :yearly-data-map="yearlyDataMap" mode="pitcher" :view="view === 'trend' ? 'chart' : 'table'" />
               </section>
               <section v-if="nlBatterIds.length" class="mb-8">
                 <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ナ・リーグ 野手</h2>
-                <YearlyChart :selected-ids="nlBatterIds" :yearly-data-map="yearlyDataMap" mode="batter" :view="mobileView === 'trend' ? 'chart' : 'table'" />
+                <YearlyChart :selected-ids="nlBatterIds" :yearly-data-map="yearlyDataMap" mode="batter" :view="view === 'trend' ? 'chart' : 'table'" />
               </section>
               <section v-if="alPitcherIds.length" class="mb-8">
                 <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ア・リーグ 投手</h2>
-                <YearlyChart :selected-ids="alPitcherIds" :yearly-data-map="yearlyDataMap" mode="pitcher" :view="mobileView === 'trend' ? 'chart' : 'table'" />
+                <YearlyChart :selected-ids="alPitcherIds" :yearly-data-map="yearlyDataMap" mode="pitcher" :view="view === 'trend' ? 'chart' : 'table'" />
               </section>
               <section v-if="alBatterIds.length">
                 <h2 class="text-base font-bold text-slate-800 mb-3 pb-2 border-b border-slate-200">ア・リーグ 野手</h2>
-                <YearlyChart :selected-ids="alBatterIds" :yearly-data-map="yearlyDataMap" mode="batter" :view="mobileView === 'trend' ? 'chart' : 'table'" />
+                <YearlyChart :selected-ids="alBatterIds" :yearly-data-map="yearlyDataMap" mode="batter" :view="view === 'trend' ? 'chart' : 'table'" />
               </section>
             </template>
           </template>
@@ -334,23 +347,47 @@ onMounted(async () => {
             <template v-else>
               <section v-if="nlPitcherIds.length" class="mb-10">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ナ・リーグ 投手</h2>
-                <StatsTable v-if="pcView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="pitcher" />
-                <TrendChart v-else :selected-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                <div class="flex gap-6 items-start">
+                  <div class="flex-1 min-w-0 overflow-x-auto">
+                    <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="pitcher" />
+                  </div>
+                  <div class="w-72 flex-shrink-0">
+                    <RadarChart :selected-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                  </div>
+                </div>
               </section>
               <section v-if="nlBatterIds.length" class="mb-10">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ナ・リーグ 野手</h2>
-                <StatsTable v-if="pcView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="batter" />
-                <TrendChart v-else :selected-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                <div class="flex gap-6 items-start">
+                  <div class="flex-1 min-w-0 overflow-x-auto">
+                    <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="batter" />
+                  </div>
+                  <div class="w-72 flex-shrink-0">
+                    <RadarChart :selected-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                  </div>
+                </div>
               </section>
               <section v-if="alPitcherIds.length" class="mb-10">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ア・リーグ 投手</h2>
-                <StatsTable v-if="pcView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="pitcher" />
-                <TrendChart v-else :selected-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                <div class="flex gap-6 items-start">
+                  <div class="flex-1 min-w-0 overflow-x-auto">
+                    <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="pitcher" />
+                  </div>
+                  <div class="w-72 flex-shrink-0">
+                    <RadarChart :selected-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                  </div>
+                </div>
               </section>
               <section v-if="alBatterIds.length">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ア・リーグ 野手</h2>
-                <StatsTable v-if="pcView === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="batter" />
-                <TrendChart v-else :selected-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                <div class="flex gap-6 items-start">
+                  <div class="flex-1 min-w-0 overflow-x-auto">
+                    <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="batter" />
+                  </div>
+                  <div class="w-72 flex-shrink-0">
+                    <RadarChart :selected-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                  </div>
+                </div>
               </section>
             </template>
           </template>
@@ -363,19 +400,19 @@ onMounted(async () => {
             <template v-else>
               <section v-if="nlPitcherIds.length" class="mb-10">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ナ・リーグ 投手</h2>
-                <YearlyChart :selected-ids="nlPitcherIds" :yearly-data-map="yearlyDataMap" mode="pitcher" :view="pcView === 'trend' ? 'chart' : 'table'" />
+                <YearlyChart :selected-ids="nlPitcherIds" :yearly-data-map="yearlyDataMap" mode="pitcher" :view="view === 'trend' ? 'chart' : 'table'" />
               </section>
               <section v-if="nlBatterIds.length" class="mb-10">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ナ・リーグ 野手</h2>
-                <YearlyChart :selected-ids="nlBatterIds" :yearly-data-map="yearlyDataMap" mode="batter" :view="pcView === 'trend' ? 'chart' : 'table'" />
+                <YearlyChart :selected-ids="nlBatterIds" :yearly-data-map="yearlyDataMap" mode="batter" :view="view === 'trend' ? 'chart' : 'table'" />
               </section>
               <section v-if="alPitcherIds.length" class="mb-10">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ア・リーグ 投手</h2>
-                <YearlyChart :selected-ids="alPitcherIds" :yearly-data-map="yearlyDataMap" mode="pitcher" :view="pcView === 'trend' ? 'chart' : 'table'" />
+                <YearlyChart :selected-ids="alPitcherIds" :yearly-data-map="yearlyDataMap" mode="pitcher" :view="view === 'trend' ? 'chart' : 'table'" />
               </section>
               <section v-if="alBatterIds.length">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ア・リーグ 野手</h2>
-                <YearlyChart :selected-ids="alBatterIds" :yearly-data-map="yearlyDataMap" mode="batter" :view="pcView === 'trend' ? 'chart' : 'table'" />
+                <YearlyChart :selected-ids="alBatterIds" :yearly-data-map="yearlyDataMap" mode="batter" :view="view === 'trend' ? 'chart' : 'table'" />
               </section>
             </template>
           </template>
@@ -516,21 +553,6 @@ onMounted(async () => {
               </div>
             </div>
 
-            <!-- 表示切り替え -->
-            <div class="px-4 py-3 border-t border-slate-200 flex-shrink-0">
-              <p class="text-xs font-semibold text-slate-500 mb-2">表示</p>
-              <div class="flex rounded-lg overflow-hidden border border-slate-200">
-                <button
-                  v-for="v in [{ key: 'table', label: '成績比較' }, { key: 'trend', label: '推移グラフ' }]"
-                  :key="v.key"
-                  @click="mobileView = v.key as 'table' | 'trend'"
-                  class="flex-1 py-2 text-sm font-medium transition-colors"
-                  :class="mobileView === v.key
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-slate-500 hover:bg-slate-50'"
-                >{{ v.label }}</button>
-              </div>
-            </div>
           </div>
       </div>
     </Transition>
