@@ -378,6 +378,7 @@ export function useTaskBoards(
         if (newStatus === 'done') {
           const putBody: Record<string, any> = { name: taskForm.value.name.trim(), desc: taskForm.value.desc.trim(), due: effectiveDue, dueComplete: true }
           if (boardChanged) putBody.idList = board.doneListId
+          if (boardChanged) putBody.idBoard = board.id
           await trelloPut(`/cards/${card.id}`, putBody)
           if (boardChanged) {
             if (dateKey && oldBoard.done[dateKey]) {
@@ -406,7 +407,7 @@ export function useTaskBoards(
         } else {
           const newListId = newStatus === 'doing' ? board.doingListId : board.todoListId
           if (!newListId) throw new Error('対象リストが見つかりません')
-          const raw = await trelloPut(`/cards/${card.id}`, { name: taskForm.value.name.trim(), desc: taskForm.value.desc.trim(), idList: newListId, dueComplete: false, due: dueIso || '' })
+          const raw = await trelloPut(`/cards/${card.id}`, { name: taskForm.value.name.trim(), desc: taskForm.value.desc.trim(), idList: newListId, ...(boardChanged ? { idBoard: board.id } : {}), dueComplete: false, due: dueIso || '' })
           if (dateKey && oldBoard.done[dateKey]) {
             const idx = oldBoard.done[dateKey].findIndex(c => c.id === card.id)
             if (idx >= 0) oldBoard.done[dateKey].splice(idx, 1)
@@ -432,8 +433,9 @@ export function useTaskBoards(
         if (isEditing.value && editTarget.value) {
           const { card, boardId: oldBoardId, status } = editTarget.value
           const oldBoard = boards.value.find(b => b.id === oldBoardId) ?? board
+          const boardChanged = oldBoardId !== taskForm.value.boardId
           const effectiveDue = dueIso || card.due || new Date().toISOString()
-          await trelloPut(`/cards/${card.id}`, { name: taskForm.value.name.trim(), desc: taskForm.value.desc.trim(), idList: board.doneListId, dueComplete: true, due: effectiveDue })
+          await trelloPut(`/cards/${card.id}`, { name: taskForm.value.name.trim(), desc: taskForm.value.desc.trim(), idList: board.doneListId, ...(boardChanged ? { idBoard: board.id } : {}), dueComplete: true, due: effectiveDue })
           const srcArr = status === 'doing' ? oldBoard.doing : oldBoard.todo
           const idx = srcArr.findIndex(c => c.id === card.id)
           if (idx >= 0) srcArr.splice(idx, 1)
@@ -456,6 +458,7 @@ export function useTaskBoards(
         const oldListId = status === 'doing' ? oldBoard.doingListId : oldBoard.todoListId
         if (boardChanged && !newListId) throw new Error('対象リストが見つかりません')
         if (boardChanged || (newListId && newListId !== oldListId)) body.idList = newListId
+        if (boardChanged) body.idBoard = board.id
         const raw = await trelloPut(`/cards/${card.id}`, body)
         const updated = buildCard(raw)
         if (boardChanged) {

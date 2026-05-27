@@ -168,8 +168,8 @@ onMounted(async () => {
 
         <!-- 右側コントロール -->
         <div class="ml-auto flex items-end flex-shrink-0">
-          <!-- 成績表/グラフ切り替え（season/yearly のみ） -->
-          <div v-if="activeTab !== 'speed'" class="self-center flex border border-slate-200 rounded overflow-hidden mx-1.5">
+          <!-- 成績表/グラフ切り替え（season/yearly のみ。PCの今シーズンは常時両表示のため非表示） -->
+          <div v-if="activeTab !== 'speed'" :class="{ 'md:hidden': activeTab === 'season' }" class="self-center flex border border-slate-200 rounded overflow-hidden mx-1.5">
             <button
               @click="view = 'table'"
               class="px-2 md:px-2.5 py-1 text-[10px] md:text-[11px] font-medium transition-colors"
@@ -347,23 +347,47 @@ onMounted(async () => {
             <template v-else>
               <section v-if="nlPitcherIds.length" class="mb-10">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ナ・リーグ 投手</h2>
-                <StatsTable v-if="view === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="pitcher" />
-                <RadarChart v-else :selected-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                <div class="flex gap-6 items-start">
+                  <div class="flex-1 min-w-0 overflow-x-auto">
+                    <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="pitcher" />
+                  </div>
+                  <div class="w-72 flex-shrink-0">
+                    <RadarChart :selected-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                  </div>
+                </div>
               </section>
               <section v-if="nlBatterIds.length" class="mb-10">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ナ・リーグ 野手</h2>
-                <StatsTable v-if="view === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="batter" />
-                <RadarChart v-else :selected-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                <div class="flex gap-6 items-start">
+                  <div class="flex-1 min-w-0 overflow-x-auto">
+                    <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="batter" />
+                  </div>
+                  <div class="w-72 flex-shrink-0">
+                    <RadarChart :selected-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                  </div>
+                </div>
               </section>
               <section v-if="alPitcherIds.length" class="mb-10">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ア・リーグ 投手</h2>
-                <StatsTable v-if="view === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="pitcher" />
-                <RadarChart v-else :selected-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                <div class="flex gap-6 items-start">
+                  <div class="flex-1 min-w-0 overflow-x-auto">
+                    <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="pitcher" />
+                  </div>
+                  <div class="w-72 flex-shrink-0">
+                    <RadarChart :selected-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
+                  </div>
+                </div>
               </section>
               <section v-if="alBatterIds.length">
                 <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">ア・リーグ 野手</h2>
-                <StatsTable v-if="view === 'table'" :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="batter" />
-                <RadarChart v-else :selected-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                <div class="flex gap-6 items-start">
+                  <div class="flex-1 min-w-0 overflow-x-auto">
+                    <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="batter" />
+                  </div>
+                  <div class="w-72 flex-shrink-0">
+                    <RadarChart :selected-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" />
+                  </div>
+                </div>
               </section>
             </template>
           </template>
