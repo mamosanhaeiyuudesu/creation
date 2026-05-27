@@ -369,34 +369,48 @@ export function useTaskBoards(
       const dueIso = taskForm.value.due ? new Date(taskForm.value.due).toISOString() : ''
 
       if (isEditing.value && editTarget.value?.status === 'done') {
-        const { card, dateKey } = editTarget.value
+        const { card, boardId: oldBoardId, dateKey } = editTarget.value
+        const oldBoard = boards.value.find(b => b.id === oldBoardId) ?? board
+        const boardChanged = oldBoardId !== taskForm.value.boardId
         const effectiveDue = dueIso || card.due || new Date().toISOString()
         const newStatus = taskForm.value.status
 
         if (newStatus === 'done') {
-          await trelloPut(`/cards/${card.id}`, { name: taskForm.value.name.trim(), desc: taskForm.value.desc.trim(), due: effectiveDue, dueComplete: true })
-          const newDateKey = toJSTDate(effectiveDue).toISOString().slice(0, 10)
-          if (dateKey && newDateKey !== dateKey) {
-            const oldArr = board.done[dateKey]
-            if (oldArr) {
-              const idx = oldArr.findIndex(c => c.id === card.id)
-              if (idx >= 0) oldArr.splice(idx, 1)
-              if (oldArr.length === 0) delete board.done[dateKey]
+          const putBody: Record<string, any> = { name: taskForm.value.name.trim(), desc: taskForm.value.desc.trim(), due: effectiveDue, dueComplete: true }
+          if (boardChanged) putBody.idList = board.doneListId
+          await trelloPut(`/cards/${card.id}`, putBody)
+          if (boardChanged) {
+            if (dateKey && oldBoard.done[dateKey]) {
+              const idx = oldBoard.done[dateKey].findIndex(c => c.id === card.id)
+              if (idx >= 0) oldBoard.done[dateKey].splice(idx, 1)
+              if (oldBoard.done[dateKey].length === 0) delete oldBoard.done[dateKey]
             }
             addToDoneTable(board, { ...card, name: taskForm.value.name.trim(), due: effectiveDue })
             rebuildAllDates()
-          } else if (dateKey && board.done[dateKey]) {
-            const idx = board.done[dateKey].findIndex(c => c.id === card.id)
-            if (idx >= 0) board.done[dateKey][idx].name = taskForm.value.name.trim()
+          } else {
+            const newDateKey = toJSTDate(effectiveDue).toISOString().slice(0, 10)
+            if (dateKey && newDateKey !== dateKey) {
+              const oldArr = oldBoard.done[dateKey]
+              if (oldArr) {
+                const idx = oldArr.findIndex(c => c.id === card.id)
+                if (idx >= 0) oldArr.splice(idx, 1)
+                if (oldArr.length === 0) delete oldBoard.done[dateKey]
+              }
+              addToDoneTable(board, { ...card, name: taskForm.value.name.trim(), due: effectiveDue })
+              rebuildAllDates()
+            } else if (dateKey && board.done[dateKey]) {
+              const idx = board.done[dateKey].findIndex(c => c.id === card.id)
+              if (idx >= 0) board.done[dateKey][idx].name = taskForm.value.name.trim()
+            }
           }
         } else {
           const newListId = newStatus === 'doing' ? board.doingListId : board.todoListId
           if (!newListId) throw new Error('対象リストが見つかりません')
           const raw = await trelloPut(`/cards/${card.id}`, { name: taskForm.value.name.trim(), desc: taskForm.value.desc.trim(), idList: newListId, dueComplete: false, due: dueIso || '' })
-          if (dateKey && board.done[dateKey]) {
-            const idx = board.done[dateKey].findIndex(c => c.id === card.id)
-            if (idx >= 0) board.done[dateKey].splice(idx, 1)
-            if (board.done[dateKey].length === 0) delete board.done[dateKey]
+          if (dateKey && oldBoard.done[dateKey]) {
+            const idx = oldBoard.done[dateKey].findIndex(c => c.id === card.id)
+            if (idx >= 0) oldBoard.done[dateKey].splice(idx, 1)
+            if (oldBoard.done[dateKey].length === 0) delete oldBoard.done[dateKey]
             rebuildAllDates()
           }
           const newCard = buildCard(raw)
@@ -416,10 +430,11 @@ export function useTaskBoards(
       if (taskForm.value.status === 'done') {
         if (!board.doneListId) throw new Error('Doneリストが見つかりません')
         if (isEditing.value && editTarget.value) {
-          const { card, status } = editTarget.value
+          const { card, boardId: oldBoardId, status } = editTarget.value
+          const oldBoard = boards.value.find(b => b.id === oldBoardId) ?? board
           const effectiveDue = dueIso || card.due || new Date().toISOString()
           await trelloPut(`/cards/${card.id}`, { name: taskForm.value.name.trim(), desc: taskForm.value.desc.trim(), idList: board.doneListId, dueComplete: true, due: effectiveDue })
-          const srcArr = status === 'doing' ? board.doing : board.todo
+          const srcArr = status === 'doing' ? oldBoard.doing : oldBoard.todo
           const idx = srcArr.findIndex(c => c.id === card.id)
           if (idx >= 0) srcArr.splice(idx, 1)
           addToDoneTable(board, { ...card, name: taskForm.value.name.trim(), due: effectiveDue })
@@ -433,19 +448,21 @@ export function useTaskBoards(
 
       const body: Record<string, any> = { name: taskForm.value.name.trim(), desc: taskForm.value.desc.trim(), due: dueIso }
       if (isEditing.value && editTarget.value) {
-        const { card, status } = editTarget.value
+        const { card, boardId: oldBoardId, status } = editTarget.value
+        const oldBoard = boards.value.find(b => b.id === oldBoardId) ?? board
+        const boardChanged = oldBoardId !== taskForm.value.boardId
         const newStatus = taskForm.value.status
         const newListId = newStatus === 'doing' ? board.doingListId : board.todoListId
-        const oldListId = status === 'doing' ? board.doingListId : board.todoListId
-        if (newListId && newListId !== oldListId) body.idList = newListId
+        const oldListId = status === 'doing' ? oldBoard.doingListId : oldBoard.todoListId
+        if (boardChanged || (newListId && newListId !== oldListId)) body.idList = newListId
         const raw = await trelloPut(`/cards/${card.id}`, body)
         await syncImportantLabel(card.id, card, board, taskForm.value.isImportant)
         const updated = buildCard(raw)
         updated.isImportant = taskForm.value.isImportant
         updated.redLabelId = taskForm.value.isImportant ? (board.redLabelId ?? card.redLabelId) : null
-        const srcArr = status === 'doing' ? board.doing : board.todo
+        const srcArr = status === 'doing' ? oldBoard.doing : oldBoard.todo
         const idx = srcArr.findIndex(c => c.id === card.id)
-        if (newStatus === status) {
+        if (!boardChanged && newStatus === status) {
           if (idx >= 0) srcArr[idx] = updated
         } else {
           if (idx >= 0) srcArr.splice(idx, 1)

@@ -139,7 +139,7 @@ const emit = defineEmits<{
 
 const viewOptions = [
   { key: 'table' as const, label: '成績比較' },
-  { key: 'trend' as const, label: '推移グラフ' },
+  { key: 'trend' as const, label: 'レーダー' },
 ]
 
 const nlPitchers = computed(() => PITCHER_PLAYERS.filter(p => p.league === 'NL'))

@@ -10,6 +10,7 @@ export interface Player {
   teamFull: string
   league: League
   sportnavi: string
+  role?: 'starter' | 'reliever'
 }
 
 export interface BatterStats {

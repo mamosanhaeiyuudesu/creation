@@ -1,22 +1,22 @@
-import type { Player, StatMeta } from '~/types/mlb'
+import type { Player, StatMeta, PitcherStats, BatterStats } from '~/types/mlb'
 
 export const PLAYERS: Player[] = [
   // ア・リーグ
   { id: '807799', nameJa: '吉田 正尚', nameEn: 'Masataka Yoshida', position: 'batter', team: 'BOS', teamFull: 'ボストン・レッドソックス', league: 'AL', sportnavi: '202100515' },
   { id: '672960', nameJa: '岡本 和真', nameEn: 'Kazuma Okamoto', position: 'batter', team: 'TOR', teamFull: 'トロント・ブルージェイズ', league: 'AL', sportnavi: '202101516' },
   { id: '808959', nameJa: '村上 宗隆', nameEn: 'Munetaka Murakami', position: 'batter', team: 'CWS', teamFull: 'シカゴ・ホワイトソックス', league: 'AL', sportnavi: '202101502' },
-  { id: '579328', nameJa: '菊池 雄星', nameEn: 'Yusei Kikuchi', position: 'pitcher', team: 'LAA', teamFull: 'ロサンゼルス・エンゼルス', league: 'AL', sportnavi: '2100956' },
-  { id: '837227', nameJa: '今井 達也', nameEn: 'Tatsuya Imai', position: 'pitcher', team: 'HOU', teamFull: 'ヒューストン・アストロズ', league: 'AL', sportnavi: '202101474' },
+  { id: '579328', nameJa: '菊池 雄星', nameEn: 'Yusei Kikuchi', position: 'pitcher', team: 'LAA', teamFull: 'ロサンゼルス・エンゼルス', league: 'AL', sportnavi: '2100956', role: 'starter' },
+  { id: '837227', nameJa: '今井 達也', nameEn: 'Tatsuya Imai', position: 'pitcher', team: 'HOU', teamFull: 'ヒューストン・アストロズ', league: 'AL', sportnavi: '202101474', role: 'starter' },
   // ナ・リーグ
-  { id: '673540', nameJa: '千賀 滉大', nameEn: 'Kodai Senga', position: 'pitcher', team: 'NYM', teamFull: 'ニューヨーク・メッツ', league: 'NL', sportnavi: '202100525' },
-  { id: '684007', nameJa: '今永 昇太', nameEn: 'Shota Imanaga', position: 'pitcher', team: 'CHC', teamFull: 'シカゴ・カブス', league: 'NL', sportnavi: '202101112' },
+  { id: '673540', nameJa: '千賀 滉大', nameEn: 'Kodai Senga', position: 'pitcher', team: 'NYM', teamFull: 'ニューヨーク・メッツ', league: 'NL', sportnavi: '202100525', role: 'starter' },
+  { id: '684007', nameJa: '今永 昇太', nameEn: 'Shota Imanaga', position: 'pitcher', team: 'CHC', teamFull: 'シカゴ・カブス', league: 'NL', sportnavi: '202101112', role: 'starter' },
   { id: '673548', nameJa: '鈴木 誠也', nameEn: 'Seiya Suzuki', position: 'batter', team: 'CHC', teamFull: 'シカゴ・カブス', league: 'NL', sportnavi: '202100102' },
   { id: '663457', nameJa: 'ラーズ・ヌートバー', nameEn: 'Lars Nootbaar', position: 'batter', team: 'STL', teamFull: 'セントルイス・カージナルス', league: 'NL', sportnavi: '2102188' },
-  { id: '808963', nameJa: '佐々木 朗希', nameEn: 'Roki Sasaki', position: 'pitcher', team: 'LAD', teamFull: 'ロサンゼルス・ドジャース', league: 'NL', sportnavi: '202101303' },
-  { id: '660271', nameJa: '大谷 翔平', nameEn: 'Shohei Ohtani', position: 'both', team: 'LAD', teamFull: 'ロサンゼルス・ドジャース', league: 'NL', sportnavi: '2100825' },
-  { id: '808967', nameJa: '山本 由伸', nameEn: 'Yoshinobu Yamamoto', position: 'pitcher', team: 'LAD', teamFull: 'ロサンゼルス・ドジャース', league: 'NL', sportnavi: '202101128' },
-  { id: '673513', nameJa: '松井 裕樹', nameEn: 'Yuki Matsui', position: 'pitcher', team: 'SD', teamFull: 'サンディエゴ・パドレス', league: 'NL', sportnavi: '202101125' },
-  { id: '506433', nameJa: 'ダルビッシュ 有', nameEn: 'Yu Darvish', position: 'pitcher', team: 'SD', teamFull: 'サンディエゴ・パドレス', league: 'NL', sportnavi: '2100954' },
+  { id: '808963', nameJa: '佐々木 朗希', nameEn: 'Roki Sasaki', position: 'pitcher', team: 'LAD', teamFull: 'ロサンゼルス・ドジャース', league: 'NL', sportnavi: '202101303', role: 'starter' },
+  { id: '660271', nameJa: '大谷 翔平', nameEn: 'Shohei Ohtani', position: 'both', team: 'LAD', teamFull: 'ロサンゼルス・ドジャース', league: 'NL', sportnavi: '2100825', role: 'starter' },
+  { id: '808967', nameJa: '山本 由伸', nameEn: 'Yoshinobu Yamamoto', position: 'pitcher', team: 'LAD', teamFull: 'ロサンゼルス・ドジャース', league: 'NL', sportnavi: '202101128', role: 'starter' },
+  { id: '673513', nameJa: '松井 裕樹', nameEn: 'Yuki Matsui', position: 'pitcher', team: 'SD', teamFull: 'サンディエゴ・パドレス', league: 'NL', sportnavi: '202101125', role: 'reliever' },
+  { id: '506433', nameJa: 'ダルビッシュ 有', nameEn: 'Yu Darvish', position: 'pitcher', team: 'SD', teamFull: 'サンディエゴ・パドレス', league: 'NL', sportnavi: '2100954', role: 'starter' },
 ]
 
 export const PITCHER_PLAYERS = PLAYERS.filter(p => p.position === 'pitcher' || p.position === 'both')
@@ -228,6 +228,177 @@ export const PITCHER_STATS: StatMeta[] = [
     direction: 'low',
     format: (v) => v === null ? '—' : (v as number).toFixed(2),
     chartMin: 0, chartMax: 1.0,
+  },
+]
+
+// --- レーダーチャート軸定義 ---
+
+export interface RadarAxis {
+  key: string
+  label: string
+  description: string
+  normalize: (stats: PitcherStats | BatterStats, role?: 'starter' | 'reliever') => number | null
+  formatSource: (stats: PitcherStats | BatterStats) => string
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi)
+
+const fmtIP = (v: number) => {
+  const full = Math.floor(v)
+  const thirds = Math.round((v - full) * 3)
+  return thirds === 0 ? `${full}回` : `${full}.${thirds}回`
+}
+
+export const PITCHER_RADAR_AXES: RadarAxis[] = [
+  {
+    key: 'stamina',
+    label: '体力',
+    description: '投球回数。先発はmax200回、中継ぎはmax80回で正規化。',
+    normalize: (s, role) => {
+      const ip = (s as PitcherStats).inningsPitched
+      if (ip === null) return null
+      const max = role === 'reliever' ? 80 : 200
+      return clamp(ip / max * 100, 0, 100)
+    },
+    formatSource: (s) => {
+      const ip = (s as PitcherStats).inningsPitched
+      return ip !== null ? `IP: ${fmtIP(ip)}` : 'IP: —'
+    },
+  },
+  {
+    key: 'suppression',
+    label: '抑える力',
+    description: 'ERAとFIPの平均を正規化（低いほど高スコア）。',
+    normalize: (s) => {
+      const p = s as PitcherStats
+      const eraScore = p.era !== null ? clamp((6 - p.era) / 6 * 100, 0, 100) : null
+      const fipScore = p.fip !== null ? clamp((6 - p.fip) / 6 * 100, 0, 100) : null
+      if (eraScore === null && fipScore === null) return null
+      if (eraScore === null) return fipScore
+      if (fipScore === null) return eraScore
+      return (eraScore + fipScore) / 2
+    },
+    formatSource: (s) => {
+      const p = s as PitcherStats
+      const era = p.era !== null ? p.era.toFixed(2) : '—'
+      const fip = p.fip !== null ? p.fip.toFixed(2) : '—'
+      return `ERA: ${era} / FIP: ${fip}`
+    },
+  },
+  {
+    key: 'strikeout',
+    label: '奪三振力',
+    description: '奪三振率（K%）。40%をeliteとして正規化。',
+    normalize: (s) => {
+      const kPct = (s as PitcherStats).kPct
+      if (kPct === null) return null
+      return clamp(kPct / 40 * 100, 0, 100)
+    },
+    formatSource: (s) => {
+      const kPct = (s as PitcherStats).kPct
+      return kPct !== null ? `K%: ${kPct.toFixed(1)}%` : 'K%: —'
+    },
+  },
+  {
+    key: 'control',
+    label: '制球力',
+    description: '与四球率（BB%）が低いほど高スコア。',
+    normalize: (s) => {
+      const bbPct = (s as PitcherStats).bbPct
+      if (bbPct === null) return null
+      return clamp((15 - bbPct) / 15 * 100, 0, 100)
+    },
+    formatSource: (s) => {
+      const bbPct = (s as PitcherStats).bbPct
+      return bbPct !== null ? `BB%: ${bbPct.toFixed(1)}%` : 'BB%: —'
+    },
+  },
+  {
+    key: 'hitprevention',
+    label: '打たれにくさ',
+    description: 'WHIPが低いほど高スコア。',
+    normalize: (s) => {
+      const whip = (s as PitcherStats).whip
+      if (whip === null) return null
+      return clamp((2.5 - whip) / 2.5 * 100, 0, 100)
+    },
+    formatSource: (s) => {
+      const whip = (s as PitcherStats).whip
+      return whip !== null ? `WHIP: ${whip.toFixed(2)}` : 'WHIP: —'
+    },
+  },
+]
+
+export const BATTER_RADAR_AXES: RadarAxis[] = [
+  {
+    key: 'power',
+    label: '長打力',
+    description: '本塁打数。60本塁打をeliteとして正規化。',
+    normalize: (s) => {
+      const hr = (s as BatterStats).hr
+      if (hr === null) return null
+      return clamp(hr / 60 * 100, 0, 100)
+    },
+    formatSource: (s) => {
+      const hr = (s as BatterStats).hr
+      return hr !== null ? `HR: ${Math.round(hr)}本` : 'HR: —'
+    },
+  },
+  {
+    key: 'onbase',
+    label: '出塁力',
+    description: '出塁率（OBP）。.200〜.500の範囲で正規化。',
+    normalize: (s) => {
+      const obp = (s as BatterStats).obp
+      if (obp === null) return null
+      return clamp((obp - 0.20) / (0.50 - 0.20) * 100, 0, 100)
+    },
+    formatSource: (s) => {
+      const obp = (s as BatterStats).obp
+      return obp !== null ? `OBP: ${obp.toFixed(3).replace(/^0/, '')}` : 'OBP: —'
+    },
+  },
+  {
+    key: 'hitting',
+    label: '打撃力',
+    description: '打率（AVG）。.150〜.400の範囲で正規化。',
+    normalize: (s) => {
+      const avg = (s as BatterStats).avg
+      if (avg === null) return null
+      return clamp((avg - 0.15) / (0.40 - 0.15) * 100, 0, 100)
+    },
+    formatSource: (s) => {
+      const avg = (s as BatterStats).avg
+      return avg !== null ? `AVG: ${avg.toFixed(3).replace(/^0/, '')}` : 'AVG: —'
+    },
+  },
+  {
+    key: 'eye',
+    label: '選球眼',
+    description: '四球率（BB%）。高いほど高スコア。',
+    normalize: (s) => {
+      const bbPct = (s as BatterStats).bbPct
+      if (bbPct === null) return null
+      return clamp(bbPct / 25 * 100, 0, 100)
+    },
+    formatSource: (s) => {
+      const bbPct = (s as BatterStats).bbPct
+      return bbPct !== null ? `BB%: ${bbPct.toFixed(1)}%` : 'BB%: —'
+    },
+  },
+  {
+    key: 'contact',
+    label: 'コンタクト',
+    description: '三振率（K%）が低いほど高スコア。',
+    normalize: (s) => {
+      const kPct = (s as BatterStats).kPct
+      if (kPct === null) return null
+      return clamp((38 - kPct) / (38 - 8) * 100, 0, 100)
+    },
+    formatSource: (s) => {
+      const kPct = (s as BatterStats).kPct
+      return kPct !== null ? `K%: ${kPct.toFixed(1)}%` : 'K%: —'
+    },
   },
 ]
 
