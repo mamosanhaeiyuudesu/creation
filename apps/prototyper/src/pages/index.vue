@@ -516,12 +516,9 @@
             <span class="cta-price-value">60分 / ¥5,000</span>
           </div>
           <div class="cta-buttons">
-            <a href="mailto:" class="btn-primary">
-              メールで相談する
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
-            </a>
-            <a href="https://prototype.insightlens.jp/miyako" class="btn-secondary" target="_blank">
-              デモを触ってみる
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSdBsT7TiFTC_zl8B7saQxM60-WcjHTpv7pz-ere34aQ_1YWsw/viewform?usp=publish-editor" class="btn-primary" target="_blank" rel="noopener noreferrer">
+              お問い合わせ
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </a>
           </div>
         </div>
