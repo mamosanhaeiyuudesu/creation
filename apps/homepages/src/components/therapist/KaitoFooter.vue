@@ -1,7 +1,7 @@
 <template>
   <footer class="site-footer">
     <div class="footer-inner">
-      <div>© 2024 月ノ瀬 海倭</div>
+      <div>© 2024 月ノ瀬 直</div>
       <div class="footer-sns" aria-label="SNSリンク">
         <a href="#" rel="noopener noreferrer">Instagram</a>
         <a href="#" rel="noopener noreferrer">Facebook</a>
