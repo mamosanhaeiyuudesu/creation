@@ -46,3 +46,23 @@ command = "npm run build"
 [assets]
 directory = ".output/public"
 
+# プレビュー環境（PR自動デプロイ用）
+# 本番と同じDBを参照（プレビュー用に別DBを用意する場合はIDを差し替える）
+[env.preview]
+name = "ai-tools-preview"
+
+[[env.preview.d1_databases]]
+binding = "WHISPER_DB"
+database_name = "whisper-db"
+database_id = "a89cb679-8a17-4d46-9c90-dada3e35691b"
+
+[[env.preview.d1_databases]]
+binding = "MLB_DB"
+database_name = "mlb-db"
+database_id = "7698b7b5-b0c8-4289-b19e-a99c669ca75f"
+
+[[env.preview.d1_databases]]
+binding = "DEEPHEART_DB"
+database_name = "deepheart-db"
+database_id = "afcdcced-79d2-4f3a-a0c5-bf86a21731a4"
+

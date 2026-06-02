@@ -83,6 +83,7 @@ const tools = [
   { path: '/task', name: 'タスクくん', icon: '📋' },
   { path: '/marriage', name: 'marriage', icon: '💑' },
   { path: '/tengu', name: '天狗問答', icon: '👺' },
+  { path: '/office', name: 'office', icon: '🏢' },
   // { path: '/keiko', name: '稽古', icon: '⚔️' },
 ]
 
