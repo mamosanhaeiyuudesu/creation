@@ -171,10 +171,13 @@ const cards = computed((): Card[] => {
         }
       })
 
-      // 直近登板のERA平均とシーズンERAを比較して調子評価
-      const recentAvgEra = entries.reduce((s, e) => s + (e.era ?? 0), 0) / entries.length
-      const seasonEra = data.currentPitcher?.era ?? null
-      const formScore = seasonEra !== null && seasonEra > 0 ? (seasonEra - recentAvgEra) / seasonEra : null
+      // 直近登板前後のERA変化で調子評価（下がった=好調、上がった=不調）
+      // 累積ERAを使うため trend avg と比べず beforeFirst→最終エントリの傾きを見る
+      const lastEra = entries[entries.length - 1]?.era ?? null
+      const prevEra = beforeFirst?.era ?? null
+      const formScore = lastEra !== null && prevEra !== null && prevEra > 0
+        ? (prevEra - lastEra) / prevEra
+        : null
       const form = getFormBadge(formScore)
 
       return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: true, form, pitcherRows: rows, pitcherTotals: buildPitcherTotals(data) }
@@ -204,10 +207,15 @@ const cards = computed((): Card[] => {
         }
       })
 
-      // 直近打席のavg平均とシーズンavgを比較して調子評価
-      const recentAvgVal = entries.reduce((s, e) => s + (e.avg ?? 0), 0) / entries.length
+      // 直近試合の実際の hits/ab から打率を算出してシーズン打率と比較
+      // （累積avgは最新値≒シーズンavgになるため rows の差分を使う）
+      const totalRecentAB = rows.reduce((s, r) => s + r.ab, 0)
+      const totalRecentHits = rows.reduce((s, r) => s + r.hits, 0)
+      const recentAvgVal = totalRecentAB >= 5 ? totalRecentHits / totalRecentAB : null
       const seasonAvg = data.currentBatter?.avg ?? null
-      const formScore = seasonAvg !== null && seasonAvg > 0 ? (recentAvgVal - seasonAvg) / seasonAvg : null
+      const formScore = recentAvgVal !== null && seasonAvg !== null && seasonAvg > 0
+        ? (recentAvgVal - seasonAvg) / seasonAvg
+        : null
       const form = getFormBadge(formScore)
 
       return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: true, form, batterRows: rows, batterTotals: buildBatterTotals(data) }

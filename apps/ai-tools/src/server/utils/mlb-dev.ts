@@ -115,7 +115,7 @@ const BATTER_FORM: Record<string, number> = {
 }
 
 const PITCHER_FORM: Record<string, number> = {
-  '808963': 1.30,  // 佐々木: 絶好調
+  '808963': 1.42,  // 佐々木: 絶好調
   '684007': 1.15,  // 山本: 好調
   '808967': 1.02,  // 今永: 普通
   '673540': 0.88,  // 千賀: 不調
@@ -147,11 +147,22 @@ function generateTrendBatter(playerId: string, season: number): BatterStats[] {
   let s = seed
   const rng = () => { s = (s * 9301 + 49297) % 233280; return s / 233280 - 0.5 }
 
+  // 直近試合の hits を formMod に合わせた累積値にする
+  // recentAvg = base.avg * formMod になるよう per-game hits を調整
+  const preHits = Math.round((base.avg ?? 0.250) * (base.atBats ?? 0) * preCount / games)
+  const hitsPerGameRecent = (base.avg ?? 0.250) * (base.atBats ?? 0) / games * formMod
+
   for (let i = 0; i < games; i++) {
     const date = gameDates[i]
     const isRecent = i >= preCount
     const prog = (i + 1) / games
+    const j = i - preCount + 1  // recent window 内の連番（1始まり）
     const avgBase = isRecent ? (base.avg ?? 0.250) * formMod : (base.avg ?? 0.250)
+    // hits: 直近試合はformMod反映の累積値、それ以前は線形
+    const cumHits = isRecent
+      ? preHits + Math.round(hitsPerGameRecent * j)
+      : Math.round((base.hits ?? 0) * prog)
+    const cumAB = Math.max(cumHits, Math.max(0, Math.round((base.atBats ?? 0) * prog + rng() * 2)))
     trend.push({
       playerId, season, date,
       avg:  Math.max(0.15, Math.min(0.480, avgBase + rng() * (isRecent ? 0.02 : 0.04) * (1 - prog * 0.5))),
@@ -162,11 +173,11 @@ function generateTrendBatter(playerId: string, season: number): BatterStats[] {
       kPct:  Math.max(8,  Math.min(38,  (base.kPct  ?? 22) + rng() * 4)),
       hr:          Math.round((base.hr          ?? 0) * prog + rng() * 0.5),
       rbi:         Math.round((base.rbi         ?? 0) * prog + rng() * 0.5),
-      hits:        Math.round((base.hits        ?? 0) * prog),
+      hits:        cumHits,
       runs:        Math.round((base.runs        ?? 0) * prog + rng() * 0.5),
       stolenBases: Math.round((base.stolenBases ?? 0) * prog),
       bbk: (() => { const kp = Math.max(8, Math.min(38, (base.kPct ?? 22) + rng() * 4)); return kp > 0 ? Math.round((base.bbPct ?? 8) / kp * 100) / 100 : null })(),
-      atBats:     Math.max(0, Math.round((base.atBats     ?? 0) * prog + rng() * 2)),
+      atBats:     cumAB,
       strikeouts: Math.max(0, Math.round((base.strikeouts ?? 0) * prog + rng() * 1)),
       walks:      Math.max(0, Math.round((base.walks      ?? 0) * prog + rng() * 1)),
       totalBases: Math.max(0, Math.round((base.totalBases ?? 0) * prog + rng() * 2)),
