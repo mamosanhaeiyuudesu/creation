@@ -46,3 +46,7 @@ command = "npm run build"
 [assets]
 directory = ".output/public"
 
+# プレビュー環境（PR自動デプロイ用）
+[env.preview]
+name = "ai-tools-preview"
+
