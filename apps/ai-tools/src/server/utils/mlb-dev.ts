@@ -103,22 +103,58 @@ const YEARLY_PITCHER: Record<string, Array<Omit<PitcherStats, 'playerId' | 'date
   ],
 }
 
+// 直近調子係数（> 1 = 好調、< 1 = 不調）
+// 野手: 直近5試合のavgに乗じる。投手: 直近2登板のeraを割る（値が低くなる = 好調）
+const BATTER_FORM: Record<string, number> = {
+  '807799': 1.18,  // 吉田: 好調
+  '672960': 0.86,  // 岡本: 不調
+  '808959': 0.62,  // 村上: 絶不調
+  '673548': 1.02,  // 鈴木: 普通
+  '663457': 1.25,  // ヌートバー: 絶好調
+  '660271': 1.30,  // 大谷: 絶好調（打者）
+}
+
+const PITCHER_FORM: Record<string, number> = {
+  '808963': 1.30,  // 佐々木: 絶好調
+  '684007': 1.15,  // 山本: 好調
+  '808967': 1.02,  // 今永: 普通
+  '673540': 0.88,  // 千賀: 不調
+  '660271': 1.15,  // 大谷: 好調（投手）
+  '673513': 0.72,  // 松井: 絶不調
+  '506433': 0.90,  // ダル: 不調
+  '579328': 0.82,  // 菊池: 絶不調
+  '837227': 1.18,  // 今井: 好調
+}
+
 function generateTrendBatter(playerId: string, season: number): BatterStats[] {
   const base = CURRENT_BATTER[playerId]
   if (!base) return []
+  // 直近5試合（5/20-6/1）が14日以内（6/2基準）に入るよう設定
+  // rawDateToJST が +1日するため、データ上の日付は実際のJST日付の前日
+  const preDates = [
+    '2026-04-02', '2026-04-05', '2026-04-08', '2026-04-11', '2026-04-15',
+    '2026-04-18', '2026-04-22', '2026-04-25', '2026-04-29',
+    '2026-05-03', '2026-05-06', '2026-05-09', '2026-05-12', '2026-05-15', '2026-05-17',
+  ]
+  const recentDates = ['2026-05-20', '2026-05-23', '2026-05-27', '2026-05-30', '2026-06-01']
+  const gameDates = [...preDates, ...recentDates]
+  const preCount = preDates.length
+  const games = gameDates.length
+
+  const formMod = BATTER_FORM[playerId] ?? 1.0
   const trend: BatterStats[] = []
   const seed = playerId.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
   let s = seed
   const rng = () => { s = (s * 9301 + 49297) % 233280; return s / 233280 - 0.5 }
-  const games = 18
-  for (let day = 1; day <= games; day++) {
-    const d = new Date('2026-04-25T00:00:00Z')
-    d.setUTCDate(d.getUTCDate() + (day - 1))
-    const date = d.toISOString().slice(0, 10)
-    const prog = day / games
+
+  for (let i = 0; i < games; i++) {
+    const date = gameDates[i]
+    const isRecent = i >= preCount
+    const prog = (i + 1) / games
+    const avgBase = isRecent ? (base.avg ?? 0.250) * formMod : (base.avg ?? 0.250)
     trend.push({
       playerId, season, date,
-      avg:  Math.max(0.15, Math.min(0.400, (base.avg  ?? 0.250) + rng() * 0.04 * (1 - prog * 0.5))),
+      avg:  Math.max(0.15, Math.min(0.480, avgBase + rng() * (isRecent ? 0.02 : 0.04) * (1 - prog * 0.5))),
       obp:  Math.max(0.22, Math.min(0.500, (base.obp  ?? 0.320) + rng() * 0.04 * (1 - prog * 0.5))),
       slg:  Math.max(0.25, Math.min(0.700, (base.slg  ?? 0.400) + rng() * 0.05 * (1 - prog * 0.5))),
       ops:  Math.max(0.55, Math.min(1.200, (base.ops  ?? 0.750) + rng() * 0.06 * (1 - prog * 0.5))),
@@ -142,19 +178,30 @@ function generateTrendBatter(playerId: string, season: number): BatterStats[] {
 function generateTrendPitcher(playerId: string, season: number): PitcherStats[] {
   const base = CURRENT_PITCHER[playerId]
   if (!base) return []
+  // 直近2登板（5/22・5/28）が14日以内（6/2基準）に入るよう設定
+  const preDates = [
+    '2026-04-03', '2026-04-08', '2026-04-13', '2026-04-18', '2026-04-24',
+    '2026-04-29', '2026-05-04', '2026-05-09', '2026-05-14', '2026-05-16',
+  ]
+  const recentDates = ['2026-05-22', '2026-05-28']
+  const gameDates = [...preDates, ...recentDates]
+  const preCount = preDates.length
+  const games = gameDates.length
+
+  const formMod = PITCHER_FORM[playerId] ?? 1.0
   const trend: PitcherStats[] = []
   const seed = playerId.split('').reduce((a, c) => a + c.charCodeAt(0), 1)
   let s = seed
   const rng = () => { s = (s * 9301 + 49297) % 233280; return s / 233280 - 0.5 }
-  const games = 18
-  for (let day = 1; day <= games; day++) {
-    const d = new Date('2026-04-25T00:00:00Z')
-    d.setUTCDate(d.getUTCDate() + (day - 1))
-    const date = d.toISOString().slice(0, 10)
-    const prog = day / games
+
+  for (let i = 0; i < games; i++) {
+    const date = gameDates[i]
+    const isRecent = i >= preCount
+    const prog = (i + 1) / games
+    const eraBase = isRecent ? (base.era ?? 3.5) / formMod : (base.era ?? 3.5)
     trend.push({
       playerId, season, date,
-      era:  Math.max(0.5, Math.min(8.0, (base.era  ?? 3.5) + rng() * 0.8 * (1 - prog * 0.6))),
+      era:  Math.max(0.5, Math.min(10.0, eraBase + rng() * (isRecent ? 0.3 : 0.8) * (1 - prog * 0.6))),
       whip: Math.max(0.5, Math.min(2.0, (base.whip ?? 1.2) + rng() * 0.2 * (1 - prog * 0.6))),
       kPct:  Math.max(10, Math.min(45, (base.kPct  ?? 25) + rng() * 5)),
       bbPct: Math.max(2,  Math.min(18, (base.bbPct ?? 8)  + rng() * 3)),

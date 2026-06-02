@@ -12,7 +12,9 @@ const props = defineProps<{
 }>()
 
 const PITCHER_DAYS = 14
-const BATTER_DAYS = 7
+const BATTER_DAYS = 14
+const PITCHER_MAX_GAMES = 2
+const BATTER_MAX_GAMES = 5
 
 // trendPitcher の inningsPitched は outs/3 形式 (e.g. 20/3 ≈ 6.667 for 6.2 innings)
 function ipToTrueOuts(ip: number | null | undefined): number {
@@ -44,6 +46,22 @@ function estimateCumBB(strikeouts: number | null, bbk: number | null): number {
 interface PitcherRow { date: string; result: '勝' | '負' | '-'; ip: string; runsAllowed: number; er: number; k: number; bb: number }
 interface BatterRow { date: string; ab: number; hits: number; hr: number; rbi: number; runs: number; so: number; walks: number; tb: number }
 
+interface FormBadge {
+  label: '絶好調' | '好調' | '普通' | '不調' | '絶不調'
+  icon: string
+  bgColor: string
+  textColor: string
+}
+
+function getFormBadge(score: number | null): FormBadge | null {
+  if (score === null) return null
+  if (score > 0.20) return { label: '絶好調', icon: '😁', bgColor: '#fef2f2', textColor: '#dc2626' }
+  if (score > 0.07) return { label: '好調',   icon: '😊', bgColor: '#f0fdf4', textColor: '#16a34a' }
+  if (score > -0.07) return { label: '普通',  icon: '😐', bgColor: '#f8fafc', textColor: '#475569' }
+  if (score > -0.20) return { label: '不調',  icon: '😕', bgColor: '#fffbeb', textColor: '#d97706' }
+  return { label: '絶不調', icon: '😞', bgColor: '#fdf4ff', textColor: '#7c3aed' }
+}
+
 interface Card {
   id: string
   nameJa: string
@@ -55,6 +73,7 @@ interface Card {
   divisionRank: number | null
   noData: boolean
   hasRecentData: boolean
+  form?: FormBadge | null
   pitcherRows?: PitcherRow[]
   batterRows?: BatterRow[]
   pitcherTotals?: { wins: number | null; losses: number | null; ip: string; era: string; fip: string; k: number | null; bb: number | null; runsAllowed: number | null }
@@ -117,10 +136,12 @@ const cards = computed((): Card[] => {
       const trend = data.trendPitcher
       const firstIdx = trend.findIndex(e => isWithinDays(e.date, PITCHER_DAYS))
       if (firstIdx === -1) {
-        return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: false, pitcherRows: [], pitcherTotals: buildPitcherTotals(data) }
+        return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: false, form: null, pitcherRows: [], pitcherTotals: buildPitcherTotals(data) }
       }
-      const entries = trend.slice(firstIdx)
-      const beforeFirst = firstIdx > 0 ? trend[firstIdx - 1] : null
+      const allRecent = trend.slice(firstIdx)
+      const entries = allRecent.slice(-PITCHER_MAX_GAMES)
+      const entryStartIdx = trend.indexOf(entries[0])
+      const beforeFirst = entryStartIdx > 0 ? trend[entryStartIdx - 1] : null
 
       const rows: PitcherRow[] = entries.map((curr, i) => {
         const prev = i === 0 ? beforeFirst : entries[i - 1]
@@ -150,15 +171,23 @@ const cards = computed((): Card[] => {
         }
       })
 
-      return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: true, pitcherRows: rows, pitcherTotals: buildPitcherTotals(data) }
+      // 直近登板のERA平均とシーズンERAを比較して調子評価
+      const recentAvgEra = entries.reduce((s, e) => s + (e.era ?? 0), 0) / entries.length
+      const seasonEra = data.currentPitcher?.era ?? null
+      const formScore = seasonEra !== null && seasonEra > 0 ? (seasonEra - recentAvgEra) / seasonEra : null
+      const form = getFormBadge(formScore)
+
+      return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: true, form, pitcherRows: rows, pitcherTotals: buildPitcherTotals(data) }
     } else {
       const trend = data.trendBatter
       const firstIdx = trend.findIndex(e => isWithinDays(e.date, BATTER_DAYS))
       if (firstIdx === -1) {
-        return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: false, batterRows: [], batterTotals: buildBatterTotals(data) }
+        return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: false, form: null, batterRows: [], batterTotals: buildBatterTotals(data) }
       }
-      const entries = trend.slice(firstIdx)
-      const beforeFirst = firstIdx > 0 ? trend[firstIdx - 1] : null
+      const allRecent = trend.slice(firstIdx)
+      const entries = allRecent.slice(-BATTER_MAX_GAMES)
+      const entryStartIdx = trend.indexOf(entries[0])
+      const beforeFirst = entryStartIdx > 0 ? trend[entryStartIdx - 1] : null
 
       const rows: BatterRow[] = entries.map((curr, i) => {
         const prev = i === 0 ? beforeFirst : entries[i - 1]
@@ -175,7 +204,13 @@ const cards = computed((): Card[] => {
         }
       })
 
-      return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: true, batterRows: rows, batterTotals: buildBatterTotals(data) }
+      // 直近打席のavg平均とシーズンavgを比較して調子評価
+      const recentAvgVal = entries.reduce((s, e) => s + (e.avg ?? 0), 0) / entries.length
+      const seasonAvg = data.currentBatter?.avg ?? null
+      const formScore = seasonAvg !== null && seasonAvg > 0 ? (recentAvgVal - seasonAvg) / seasonAvg : null
+      const form = getFormBadge(formScore)
+
+      return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: true, form, batterRows: rows, batterTotals: buildBatterTotals(data) }
     }
   })
 })
@@ -247,8 +282,17 @@ function isWithinDays(d: string | null | undefined, days: number): boolean {
       <!-- カードヘッダー：プレイヤーカラーの左ライン -->
       <div class="flex items-start gap-3 px-4 pt-3.5 pb-3 border-b border-slate-100" :style="{ borderLeft: `3px solid ${card.color}` }">
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-sm font-bold tracking-tight leading-none" :style="{ color: card.color }">{{ card.nameJa }}</span>
+            <span
+              v-if="card.form"
+              class="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none border"
+              :style="{ background: card.form.bgColor, color: card.form.textColor, borderColor: card.form.textColor + '33' }"
+              :title="`直近調子: ${card.form.label}`"
+            >
+              <span>{{ card.form.icon }}</span>
+              <span>{{ card.form.label }}</span>
+            </span>
             <a
               v-if="card.sportnavi"
               :href="`https://baseball.yahoo.co.jp/mlb/player/${card.sportnavi}/top`"
