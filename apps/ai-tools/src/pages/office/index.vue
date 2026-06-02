@@ -24,10 +24,8 @@
           :class="i === 0 ? 'text-rose-400' : i === 6 ? 'text-sky-400' : 'text-slate-500'"
         >{{ label }}</span>
 
-        <!-- Padding cells -->
         <span v-for="i in calStartOffset" :key="`pad-${i}`" />
 
-        <!-- Day cells -->
         <button
           v-for="day in calDaysInMonth"
           :key="day"
@@ -36,7 +34,6 @@
             isCalToday(day) ? 'ring-1 ring-sky-400/60 bg-sky-400/10' : 'hover:bg-white/[0.05]',
             isOfficeDay(calYear, calMonth, day) ? 'font-semibold' : 'text-slate-600',
           ]"
-          @click="jumpToDay(day)"
         >
           <span :class="getDayOfWeekColor(calYear, calMonth, day)">{{ day }}</span>
           <span v-if="hasRecord(calYear, calMonth, day)" class="text-[16px] leading-none mt-0.5">○</span>
@@ -92,19 +89,14 @@
             :class="todayRecord.checks[i] ? 'bg-sky-400/10' : 'hover:bg-white/[0.04]'"
             @click="toggleCheck(i)"
           >
-            <!-- Checkbox -->
             <div
               class="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200"
-              :class="todayRecord.checks[i]
-                ? 'bg-sky-400 border-sky-400'
-                : 'border-white/20'"
+              :class="todayRecord.checks[i] ? 'bg-sky-400 border-sky-400' : 'border-white/20'"
             >
               <svg v-if="todayRecord.checks[i]" class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-
-            <!-- Label -->
             <span
               class="text-base font-medium transition-colors"
               :class="todayRecord.checks[i] ? 'text-sky-300 line-through decoration-sky-400/50' : 'text-slate-200'"
@@ -120,11 +112,14 @@
             class="bg-transparent border border-white/[0.08] rounded-xl px-4 py-3 text-slate-200 text-sm placeholder-slate-600 resize-none focus:outline-none focus:border-sky-400/50 transition-colors"
             rows="3"
             placeholder="今日の一言メモ..."
-            @input="saveRecord"
+            @input="debouncedSave"
           />
         </div>
       </div>
     </main>
+
+    <!-- Auth modal -->
+    <AuthModal v-if="showAuthModal" accent="sky" />
 
     <!-- Celebration popup -->
     <Transition name="celebrate">
@@ -134,7 +129,6 @@
         @click="showCelebration = false"
       >
         <div class="relative bg-gradient-to-br from-[#0f172a] to-[#1e293b] border border-sky-400/30 rounded-3xl p-8 max-w-sm mx-4 text-center shadow-[0_0_80px_rgba(56,189,248,0.3)] animate-[pop_0.4s_cubic-bezier(0.34,1.56,0.64,1)]">
-          <!-- Confetti emoji rain -->
           <div class="text-5xl mb-2 animate-bounce">🎉</div>
           <div class="flex justify-center gap-2 text-3xl mb-4">
             <span class="animate-[wiggle_0.5s_ease_infinite]">⭐</span>
@@ -158,9 +152,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 useHead({ title: 'office — 出社記録' })
+
+const { $dev } = useNuxtApp()
 
 // ── Types ──────────────────────────────────────────────────
 type OfficeRecord = {
@@ -170,8 +166,8 @@ type OfficeRecord = {
 }
 
 // ── Constants ──────────────────────────────────────────────
-const OFFICE_DAYS = new Set([2, 3, 4]) // 火=2, 水=3, 木=4
-const START_DATE = new Date(2026, 5, 1) // 2026-06-01
+const OFFICE_DAYS = new Set([2, 3, 4])
+const START_DATE = new Date(2026, 5, 1)
 
 const checkItems = [
   { icon: '🚶', label: '出社' },
@@ -202,6 +198,19 @@ const CELEBRATIONS = [
   },
 ]
 
+// ── Auth ───────────────────────────────────────────────────
+const showAuthModal = ref(false)
+const isLoggedIn = ref(false)
+
+const checkAuth = async () => {
+  try {
+    await $fetch('/api/auth/me')
+    isLoggedIn.value = true
+  } catch {
+    showAuthModal.value = true
+  }
+}
+
 // ── State ──────────────────────────────────────────────────
 const today = new Date()
 const todayStr = today.toISOString().slice(0, 10)
@@ -213,6 +222,7 @@ const allRecords = ref<OfficeRecord[]>([])
 const showCelebration = ref(false)
 const celebrationTitle = ref('')
 const celebrationMessage = ref('')
+let saveTimer: ReturnType<typeof setTimeout> | null = null
 
 // ── Today info ──────────────────────────────────────────────
 const isTodayOfficeDay = computed(() => {
@@ -225,7 +235,7 @@ const todayLabel = computed(() => {
   return `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日（${dow}）`
 })
 
-const todayRecord = computed(() => {
+const todayRecord = computed<OfficeRecord>(() => {
   let rec = allRecords.value.find(r => r.date === todayStr)
   if (!rec) {
     rec = { date: todayStr, checks: Array(7).fill(false), comment: '' }
@@ -237,21 +247,19 @@ const todayRecord = computed(() => {
 const checkedCount = computed(() => todayRecord.value.checks.filter(Boolean).length)
 const progressPercent = computed(() => (checkedCount.value / checkItems.length) * 100)
 
-// ── Calendar helpers ────────────────────────────────────────
-const calDaysInMonth = computed(() =>
-  new Date(calYear.value, calMonth.value, 0).getDate()
-)
-const calStartOffset = computed(() =>
-  new Date(calYear.value, calMonth.value - 1, 1).getDay()
-)
+// ── Calendar ────────────────────────────────────────────────
+const calDaysInMonth = computed(() => new Date(calYear.value, calMonth.value, 0).getDate())
+const calStartOffset = computed(() => new Date(calYear.value, calMonth.value - 1, 1).getDay())
 
 const prevMonth = () => {
   if (calMonth.value === 1) { calYear.value--; calMonth.value = 12 }
   else calMonth.value--
+  fetchRecords()
 }
 const nextMonth = () => {
   if (calMonth.value === 12) { calYear.value++; calMonth.value = 1 }
   else calMonth.value++
+  fetchRecords()
 }
 
 const isCalToday = (day: number) =>
@@ -278,31 +286,64 @@ const hasRecord = (y: number, m: number, d: number) => {
   return rec && rec.checks.some(Boolean)
 }
 
-const jumpToDay = (day: number) => {
-  // just for UI feedback; sidebar-only feature
+// ── Dev fallback ────────────────────────────────────────────
+const DEV_KEY = 'office-records'
+const loadDevRecords = (): OfficeRecord[] => {
+  try { return JSON.parse(localStorage.getItem(DEV_KEY) ?? '[]') } catch { return [] }
+}
+const saveDevRecords = (recs: OfficeRecord[]) => {
+  localStorage.setItem(DEV_KEY, JSON.stringify(recs))
 }
 
-// ── Record persistence ──────────────────────────────────────
-const loadRecords = () => {
-  try {
-    const raw = localStorage.getItem('office-records')
-    if (raw) allRecords.value = JSON.parse(raw)
-  } catch {}
-}
-
-const saveRecord = () => {
-  try {
-    localStorage.setItem('office-records', JSON.stringify(allRecords.value))
-  } catch {}
-}
-
-// ── Checklist toggle ────────────────────────────────────────
-const toggleCheck = (i: number) => {
-  todayRecord.value.checks[i] = !todayRecord.value.checks[i]
-  saveRecord()
-  if (todayRecord.value.checks.every(Boolean)) {
-    triggerCelebration()
+// ── API ─────────────────────────────────────────────────────
+const fetchRecords = async () => {
+  if ($dev) {
+    allRecords.value = loadDevRecords()
+    return
   }
+  if (!isLoggedIn.value) return
+  try {
+    const rows = await $fetch<OfficeRecord[]>('/api/office/records', {
+      query: { year: calYear.value, month: calMonth.value },
+    })
+    // merge: keep other months, replace current month
+    const prefix = `${calYear.value}-${String(calMonth.value).padStart(2, '0')}`
+    allRecords.value = [
+      ...allRecords.value.filter(r => !r.date.startsWith(prefix)),
+      ...rows,
+    ]
+  } catch {}
+}
+
+const saveRecord = async () => {
+  const rec = todayRecord.value
+  if ($dev) {
+    const all = loadDevRecords()
+    const idx = all.findIndex(r => r.date === rec.date)
+    if (idx >= 0) all[idx] = rec
+    else all.push(rec)
+    saveDevRecords(all)
+    return
+  }
+  if (!isLoggedIn.value) return
+  try {
+    await $fetch(`/api/office/records/${rec.date}`, {
+      method: 'PUT',
+      body: { checks: rec.checks, comment: rec.comment },
+    })
+  } catch {}
+}
+
+const debouncedSave = () => {
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(saveRecord, 600)
+}
+
+// ── Checklist ────────────────────────────────────────────────
+const toggleCheck = async (i: number) => {
+  todayRecord.value.checks[i] = !todayRecord.value.checks[i]
+  await saveRecord()
+  if (todayRecord.value.checks.every(Boolean)) triggerCelebration()
 }
 
 const triggerCelebration = () => {
@@ -312,26 +353,22 @@ const triggerCelebration = () => {
   showCelebration.value = true
 }
 
-onMounted(loadRecords)
+onMounted(async () => {
+  if (!$dev) await checkAuth()
+  await fetchRecords()
+})
 </script>
 
 <style scoped>
-.celebrate-enter-active {
-  transition: opacity 0.3s ease;
-}
-.celebrate-leave-active {
-  transition: opacity 0.2s ease;
-}
+.celebrate-enter-active { transition: opacity 0.3s ease; }
+.celebrate-leave-active { transition: opacity 0.2s ease; }
 .celebrate-enter-from,
-.celebrate-leave-to {
-  opacity: 0;
-}
+.celebrate-leave-to { opacity: 0; }
 
 @keyframes pop {
   from { transform: scale(0.7); opacity: 0; }
   to   { transform: scale(1);   opacity: 1; }
 }
-
 @keyframes wiggle {
   0%, 100% { transform: rotate(-15deg) scale(1.1); }
   50%       { transform: rotate(15deg) scale(1.3); }
