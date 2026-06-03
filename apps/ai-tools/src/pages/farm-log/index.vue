@@ -84,6 +84,8 @@ async function loadWatchSessions() {
   } finally {
     watchLoading.value  = false
     watchInitialized.value = true
+    // ロード完了後に確定したラベルでURLを同期
+    if (watchSelectedLabel.value) syncUrl('watch', watchSelectedLabel.value)
   }
 }
 
@@ -105,7 +107,8 @@ async function selectWatchSession(label: string, updateUrl = true) {
 function switchTab(newTab: 'phone' | 'watch') {
   tab.value = newTab
   const session = newTab === 'watch' ? watchSelectedLabel.value : phoneSelectedLabel.value
-  if (session) syncUrl(newTab, session)
+  // セッションが確定済みならすぐに反映、未確定でも device だけ先に書く
+  syncUrl(newTab, session || '')
   if (newTab === 'watch' && !watchInitialized.value) {
     loadWatchSessions()
   }
