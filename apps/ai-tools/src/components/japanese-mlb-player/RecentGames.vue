@@ -28,6 +28,11 @@ function outsToDisplay(outs: number): string {
   return partial === 0 ? String(full) : `${full}.${partial}`
 }
 
+function parseIpToOuts(ip: string): number {
+  const [whole, partial] = ip.split('.')
+  return parseInt(whole || '0') * 3 + parseInt(partial || '0')
+}
+
 function formatDate(d: string | null | undefined): string {
   if (!d) return ''
   if (!/^\d{4}-\d{2}-\d{2}/.test(d)) return d
@@ -171,12 +176,13 @@ const cards = computed((): Card[] => {
         }
       })
 
-      // 直近登板前後のERA変化で調子評価（下がった=好調、上がった=不調）
-      // 累積ERAを使うため trend avg と比べず beforeFirst→最終エントリの傾きを見る
-      const lastEra = entries[entries.length - 1]?.era ?? null
-      const prevEra = beforeFirst?.era ?? null
-      const formScore = lastEra !== null && prevEra !== null && prevEra > 0
-        ? (prevEra - lastEra) / prevEra
+      // 直近登板の実績ERA（直近2登板の合計ER/IP）をリーグ平均ERAと比較して調子評価
+      const totalRecentER = rows.reduce((s, r) => s + r.er, 0)
+      const totalRecentOuts = rows.reduce((s, r) => s + parseIpToOuts(r.ip), 0)
+      const recentEra = totalRecentOuts > 0 ? (totalRecentER / totalRecentOuts) * 27 : null
+      const leagueAvgEra = props.leagueStats?.[league as 'AL' | 'NL']?.pitcher?.era?.leagueAvg ?? 4.50
+      const formScore = recentEra !== null
+        ? (leagueAvgEra - recentEra) / leagueAvgEra
         : null
       const form = getFormBadge(formScore)
 
@@ -207,14 +213,13 @@ const cards = computed((): Card[] => {
         }
       })
 
-      // 直近試合の実際の hits/ab から打率を算出してシーズン打率と比較
-      // （累積avgは最新値≒シーズンavgになるため rows の差分を使う）
+      // 直近試合の実際の hits/ab から打率を算出してリーグ平均打率と比較
       const totalRecentAB = rows.reduce((s, r) => s + r.ab, 0)
       const totalRecentHits = rows.reduce((s, r) => s + r.hits, 0)
       const recentAvgVal = totalRecentAB >= 5 ? totalRecentHits / totalRecentAB : null
-      const seasonAvg = data.currentBatter?.avg ?? null
-      const formScore = recentAvgVal !== null && seasonAvg !== null && seasonAvg > 0
-        ? (recentAvgVal - seasonAvg) / seasonAvg
+      const leagueAvgAvg = props.leagueStats?.[league as 'AL' | 'NL']?.batter?.avg?.leagueAvg ?? 0.252
+      const formScore = recentAvgVal !== null
+        ? (recentAvgVal - leagueAvgAvg) / leagueAvgAvg
         : null
       const form = getFormBadge(formScore)
 
