@@ -57,3 +57,69 @@ export interface FarmLogSession {
   durationSec: number
   totalDistanceM: number
 }
+
+// ---- Apple Watch ログ ----
+
+export interface WatchTrackPoint {
+  t: number        // 開始からの経過秒（10s単位）
+  lat: number
+  lng: number
+  alt: number      // GPS高度 (m)
+  spd: number      // m/s
+  act: string      // 'stationary' | 'walking' | 'cycling' | 'unknown'
+  cumDist: number  // 累積距離 (m)
+}
+
+export interface WatchHrPoint {
+  t: number
+  bpm: number
+}
+
+export interface WatchMotionBucket {
+  t: number
+  mean: number   // 加速度ベクトル大きさの平均 (G)
+  std: number    // 標準偏差（体動の激しさ）
+  max: number
+  pitch: number  // 平均ピッチ角 (rad)
+}
+
+export interface WatchLogMeta {
+  date: string
+  label: string
+  startTime: string
+  durationSec: number
+  totalDistanceM: number
+  elevationGainM: number
+  maxHR: number
+  avgHR: number
+  totalSteps: number
+  boundingBox: {
+    minLat: number
+    maxLat: number
+    minLng: number
+    maxLng: number
+  }
+  activitySummary: {
+    stationarySec: number
+    walkingSec: number
+    cyclingSec: number
+    unknownSec: number
+  }
+}
+
+export interface WatchLogData {
+  meta: WatchLogMeta
+  track: WatchTrackPoint[]
+  hr: WatchHrPoint[]
+  motion: WatchMotionBucket[]
+}
+
+export interface WatchLogSession {
+  date: string
+  label: string
+  durationSec: number
+  totalDistanceM: number
+  maxHR: number
+  avgHR: number
+  totalSteps: number
+}
