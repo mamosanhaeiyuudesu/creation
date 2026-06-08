@@ -1,5 +1,23 @@
 [
   {
+    "date": "2026-06-05",
+    "label": "watch-2026-06-05_12-51-54",
+    "durationSec": 3590,
+    "totalDistanceM": 730,
+    "maxHR": 141,
+    "avgHR": 107,
+    "totalSteps": 17912
+  },
+  {
+    "date": "2026-06-04",
+    "label": "watch-2026-06-04_13-09-47",
+    "durationSec": 1980,
+    "totalDistanceM": 1575,
+    "maxHR": 167,
+    "avgHR": 152,
+    "totalSteps": 13430
+  },
+  {
     "date": "2026-06-02",
     "label": "watch-2026-06-02_09-49-18",
     "durationSec": 1460,
