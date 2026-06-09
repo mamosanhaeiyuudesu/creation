@@ -20,7 +20,7 @@ export interface Board {
   desc: string
   doing: Card[]
   todo: Card[]
-  done: Record<string, { id: string; name: string }[]>
+  done: Record<string, { id: string; name: string; desc: string }[]>
   doingListId: string
   todoListId: string
   doneListId: string
@@ -208,7 +208,7 @@ export function useTaskBoards(
     const [ey, em] = endMonth.value.split('-').map(Number)
     if (due < new Date(sy, sm - 1, 1) || due > new Date(ey, em, 0, 23, 59, 59)) return
     const key = toJSTDate(due).toISOString().slice(0, 10)
-    ;(board.done[key] ??= []).push({ id: card.id, name: card.name })
+    ;(board.done[key] ??= []).push({ id: card.id, name: card.name, desc: card.desc ?? '' })
     rebuildAllDates()
   }
 
@@ -251,7 +251,7 @@ export function useTaskBoards(
                   const due = new Date(card.due)
                   if (due < rangeStart || due > rangeEnd) continue
                   const key = toJSTDate(due).toISOString().slice(0, 10)
-                  ;(board.done[key] ??= []).push({ id: card.id, name: card.name })
+                  ;(board.done[key] ??= []).push({ id: card.id, name: card.name, desc: card.desc ?? '' })
                 }
               }
             }),
