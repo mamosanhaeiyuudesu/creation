@@ -257,15 +257,25 @@ const fmtIP = (v: number) => {
   return thirds === 0 ? `${full}回` : `${full}.${thirds}回`
 }
 
+// MLBシーズン進行率（開幕4/1〜終了9/30）を0〜1で返す
+function seasonProgress(): number {
+  const now = new Date()
+  const year = now.getFullYear()
+  const start = new Date(year, 3, 1).getTime()  // 4/1
+  const end   = new Date(year, 9, 1).getTime()  // 10/1
+  return Math.min(Math.max((now.getTime() - start) / (end - start), 0.05), 1)
+}
+
 export const PITCHER_RADAR_AXES: RadarAxis[] = [
   {
     key: 'stamina',
     label: '体力',
-    description: '投球回数。先発はmax200回、中継ぎはmax80回で正規化。',
+    description: '投球回数。先発はmax200回、中継ぎはmax80回をシーズン進行率で補正して正規化。',
     normalize: (s, role) => {
       const ip = (s as PitcherStats).inningsPitched
       if (ip === null) return null
-      const max = role === 'reliever' ? 80 : 200
+      const fullMax = role === 'reliever' ? 80 : 200
+      const max = fullMax * seasonProgress()
       return clamp(ip / max * 100, 0, 100)
     },
     formatSource: (s) => {
@@ -323,7 +333,7 @@ export const PITCHER_RADAR_AXES: RadarAxis[] = [
   },
   {
     key: 'hitprevention',
-    label: '打たれにくさ',
+    label: '出塁阻止力',
     description: 'WHIPが低いほど高スコア。',
     normalize: (s) => {
       const whip = (s as PitcherStats).whip

@@ -518,7 +518,7 @@ const getDayMark = (y: number, m: number, d: number) => {
   if (!rec) return null
   if (rec.dayType === 'fu') return '不'
   if (rec.dayType === 'kyu') return '休'
-  if (rec.checks.some(Boolean)) return '○'
+  if (rec.checks.length === 7 && rec.checks.every(Boolean)) return '○'
   return null
 }
 
