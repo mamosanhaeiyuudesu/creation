@@ -1,6 +1,6 @@
 <template>
   <div class="relative" style="padding-right: 30px;">
-    <div ref="chartEl" class="w-full" style="height: 500px;" />
+    <div ref="chartEl" class="w-full" style="height: 450px;" />
     <div v-if="!hasData" class="py-8 text-center text-slate-400 text-sm">データを読み込み中...</div>
 
     <Teleport to="body">
@@ -177,11 +177,7 @@ async function renderChart() {
 
   chart.setOption({
     tooltip: { show: false },
-    legend: {
-      data: data.map(d => d.name),
-      textStyle: { fontSize: 11 },
-      top: 0,
-    },
+    legend: { show: false },
     radar: {
       indicator,
       shape: 'polygon',
