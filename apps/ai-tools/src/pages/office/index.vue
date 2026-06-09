@@ -31,18 +31,29 @@
           :key="day"
           class="aspect-square flex flex-col items-center justify-center rounded-lg text-xs transition-all"
           :class="[
-            isCalToday(day) ? 'ring-1 ring-sky-400/60 bg-sky-400/10' : 'hover:bg-white/[0.05]',
+            isCalSelected(day)
+              ? 'ring-2 ring-sky-400 bg-sky-400/15'
+              : isCalToday(day)
+                ? 'ring-1 ring-sky-400/60 bg-sky-400/10'
+                : 'hover:bg-white/[0.05]',
             isOfficeDay(calYear, calMonth, day) ? 'font-semibold' : 'text-slate-600',
           ]"
+          @click="selectDay(day)"
         >
           <span :class="getDayOfWeekColor(calYear, calMonth, day)">{{ day }}</span>
-          <span v-if="hasRecord(calYear, calMonth, day)" class="text-[16px] leading-none mt-0.5">○</span>
+          <span
+            v-if="getDayMark(calYear, calMonth, day)"
+            class="text-[11px] leading-none mt-0.5"
+            :class="getDayMarkColor(calYear, calMonth, day)"
+          >{{ getDayMark(calYear, calMonth, day) }}</span>
         </button>
       </div>
 
       <!-- Legend -->
       <div class="flex flex-col gap-1.5 text-xs text-slate-500 border-t border-white/[0.05] pt-4">
         <div class="flex items-center gap-2"><span class="text-slate-200">○</span> 出社済み</div>
+        <div class="flex items-center gap-2"><span class="text-amber-400 font-bold">不</span> 出社不要</div>
+        <div class="flex items-center gap-2"><span class="text-rose-400 font-bold">休</span> 有休取得</div>
         <div class="flex items-center gap-2"><span class="text-indigo-400 font-semibold">火水木</span> 出社日</div>
       </div>
     </aside>
@@ -56,16 +67,54 @@
       </div>
 
       <!-- Date display -->
-      <div class="w-full max-w-lg mb-5">
-        <div class="text-slate-400 text-sm">{{ todayLabel }}</div>
+      <div class="w-full max-w-lg mb-5 flex items-center gap-3">
+        <div class="text-slate-400 text-sm">{{ selectedDateLabel }}</div>
+        <button
+          v-if="selectedDateStr !== todayStr"
+          class="text-xs text-sky-400 hover:text-sky-300 transition-colors"
+          @click="goToToday"
+        >今日に戻る</button>
       </div>
 
-      <!-- Non-office day message -->
-      <div v-if="!isTodayOfficeDay" class="flex-1 flex items-center justify-center w-full">
-        <div class="text-center px-8">
-          <div class="text-6xl mb-6">🏠</div>
-          <p class="text-3xl font-bold text-slate-200 leading-snug">本日は出社しなくて良い日です</p>
-          <p class="mt-4 text-slate-500 text-base">ゆっくり休んでください 😊</p>
+      <!-- Non-office day -->
+      <div v-if="!isSelectedOfficeDay" class="w-full max-w-lg flex flex-col gap-4">
+        <!-- 不/休 toggle card -->
+        <div class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-lg flex flex-col gap-4">
+          <div class="text-sm text-slate-400 font-medium">📋 この日のステータス</div>
+          <div class="flex gap-3">
+            <button
+              class="flex-1 py-4 rounded-xl font-bold text-lg transition-all border-2"
+              :class="selectedRecord.dayType === 'fu'
+                ? 'bg-amber-400/20 border-amber-400 text-amber-300'
+                : 'bg-white/[0.04] border-white/[0.1] text-slate-400 hover:border-amber-400/50 hover:text-amber-400/70'"
+              @click="toggleDayType('fu')"
+            >
+              <div class="text-2xl mb-1">不</div>
+              <div class="text-xs font-normal">出社不要</div>
+            </button>
+            <button
+              class="flex-1 py-4 rounded-xl font-bold text-lg transition-all border-2"
+              :class="selectedRecord.dayType === 'kyu'
+                ? 'bg-rose-400/20 border-rose-400 text-rose-300'
+                : 'bg-white/[0.04] border-white/[0.1] text-slate-400 hover:border-rose-400/50 hover:text-rose-400/70'"
+              @click="toggleDayType('kyu')"
+            >
+              <div class="text-2xl mb-1">休</div>
+              <div class="text-xs font-normal">有休取得</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Comment -->
+        <div class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-lg flex flex-col gap-2">
+          <label class="text-sm text-slate-400 font-medium">💬 コメント</label>
+          <textarea
+            v-model="selectedRecord.comment"
+            class="bg-transparent border border-white/[0.08] rounded-xl px-4 py-3 text-slate-200 text-sm placeholder-slate-600 resize-none focus:outline-none focus:border-sky-400/50 transition-colors"
+            rows="3"
+            placeholder="今日の一言メモ..."
+            @input="debouncedSave"
+          />
         </div>
       </div>
 
@@ -86,20 +135,20 @@
             v-for="(item, i) in checkItems"
             :key="i"
             class="flex items-center gap-4 py-2.5 px-3 rounded-xl transition-all cursor-pointer select-none"
-            :class="todayRecord.checks[i] ? 'bg-sky-400/10' : 'hover:bg-white/[0.04]'"
+            :class="selectedRecord.checks[i] ? 'bg-sky-400/10' : 'hover:bg-white/[0.04]'"
             @click="toggleCheck(i)"
           >
             <div
               class="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200"
-              :class="todayRecord.checks[i] ? 'bg-sky-400 border-sky-400' : 'border-white/20'"
+              :class="selectedRecord.checks[i] ? 'bg-sky-400 border-sky-400' : 'border-white/20'"
             >
-              <svg v-if="todayRecord.checks[i]" class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+              <svg v-if="selectedRecord.checks[i]" class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <span
               class="text-base font-medium transition-colors"
-              :class="todayRecord.checks[i] ? 'text-sky-300 line-through decoration-sky-400/50' : 'text-slate-200'"
+              :class="selectedRecord.checks[i] ? 'text-sky-300 line-through decoration-sky-400/50' : 'text-slate-200'"
             >{{ item.icon }} {{ item.label }}</span>
           </div>
         </div>
@@ -108,7 +157,7 @@
         <div class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-lg flex flex-col gap-2">
           <label class="text-sm text-slate-400 font-medium">💬 コメント</label>
           <textarea
-            v-model="todayRecord.comment"
+            v-model="selectedRecord.comment"
             class="bg-transparent border border-white/[0.08] rounded-xl px-4 py-3 text-slate-200 text-sm placeholder-slate-600 resize-none focus:outline-none focus:border-sky-400/50 transition-colors"
             rows="3"
             placeholder="今日の一言メモ..."
@@ -163,6 +212,7 @@ type OfficeRecord = {
   date: string
   checks: boolean[]
   comment: string
+  dayType: string | null
 }
 
 // ── Constants ──────────────────────────────────────────────
@@ -217,6 +267,7 @@ const todayStr = today.toISOString().slice(0, 10)
 
 const calYear = ref(today.getFullYear())
 const calMonth = ref(today.getMonth() + 1)
+const selectedDateStr = ref(todayStr)
 
 const allRecords = ref<OfficeRecord[]>([])
 const showCelebration = ref(false)
@@ -224,27 +275,30 @@ const celebrationTitle = ref('')
 const celebrationMessage = ref('')
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 
-// ── Today info ──────────────────────────────────────────────
-const isTodayOfficeDay = computed(() => {
-  const dow = today.getDay()
-  return today >= START_DATE && OFFICE_DAYS.has(dow)
+// ── Selected date info ──────────────────────────────────────
+const selectedDateObj = computed(() => new Date(selectedDateStr.value + 'T00:00:00'))
+
+const isSelectedOfficeDay = computed(() => {
+  const dow = selectedDateObj.value.getDay()
+  return selectedDateObj.value >= START_DATE && OFFICE_DAYS.has(dow)
 })
 
-const todayLabel = computed(() => {
-  const dow = ['日', '月', '火', '水', '木', '金', '土'][today.getDay()]
-  return `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日（${dow}）`
+const selectedDateLabel = computed(() => {
+  const d = selectedDateObj.value
+  const dow = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()]
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日（${dow}）`
 })
 
-const todayRecord = computed<OfficeRecord>(() => {
-  let rec = allRecords.value.find(r => r.date === todayStr)
+const selectedRecord = computed<OfficeRecord>(() => {
+  let rec = allRecords.value.find(r => r.date === selectedDateStr.value)
   if (!rec) {
-    rec = { date: todayStr, checks: Array(7).fill(false), comment: '' }
+    rec = { date: selectedDateStr.value, checks: Array(7).fill(false), comment: '', dayType: null }
     allRecords.value.push(rec)
   }
   return rec
 })
 
-const checkedCount = computed(() => todayRecord.value.checks.filter(Boolean).length)
+const checkedCount = computed(() => selectedRecord.value.checks.filter(Boolean).length)
 const progressPercent = computed(() => (checkedCount.value / checkItems.length) * 100)
 
 // ── Calendar ────────────────────────────────────────────────
@@ -262,10 +316,27 @@ const nextMonth = () => {
   fetchRecords()
 }
 
+const selectDay = (day: number) => {
+  const ds = `${calYear.value}-${String(calMonth.value).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  selectedDateStr.value = ds
+}
+
+const goToToday = () => {
+  calYear.value = today.getFullYear()
+  calMonth.value = today.getMonth() + 1
+  selectedDateStr.value = todayStr
+  fetchRecords()
+}
+
 const isCalToday = (day: number) =>
   calYear.value === today.getFullYear() &&
   calMonth.value === today.getMonth() + 1 &&
   day === today.getDate()
+
+const isCalSelected = (day: number) => {
+  const ds = `${calYear.value}-${String(calMonth.value).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  return ds === selectedDateStr.value
+}
 
 const isOfficeDay = (y: number, m: number, d: number) => {
   const dt = new Date(y, m - 1, d)
@@ -280,10 +351,23 @@ const getDayOfWeekColor = (y: number, m: number, d: number) => {
   return 'text-slate-400'
 }
 
-const hasRecord = (y: number, m: number, d: number) => {
+const getDayMark = (y: number, m: number, d: number) => {
   const ds = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
   const rec = allRecords.value.find(r => r.date === ds)
-  return rec && rec.checks.some(Boolean)
+  if (!rec) return null
+  if (rec.dayType === 'fu') return '不'
+  if (rec.dayType === 'kyu') return '休'
+  if (rec.checks.some(Boolean)) return '○'
+  return null
+}
+
+const getDayMarkColor = (y: number, m: number, d: number) => {
+  const ds = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  const rec = allRecords.value.find(r => r.date === ds)
+  if (!rec) return ''
+  if (rec.dayType === 'fu') return 'text-amber-400 font-bold'
+  if (rec.dayType === 'kyu') return 'text-rose-400 font-bold'
+  return 'text-slate-200'
 }
 
 // ── Dev fallback ────────────────────────────────────────────
@@ -306,7 +390,6 @@ const fetchRecords = async () => {
     const rows = await $fetch<OfficeRecord[]>('/api/office/records', {
       query: { year: calYear.value, month: calMonth.value },
     })
-    // merge: keep other months, replace current month
     const prefix = `${calYear.value}-${String(calMonth.value).padStart(2, '0')}`
     allRecords.value = [
       ...allRecords.value.filter(r => !r.date.startsWith(prefix)),
@@ -316,7 +399,7 @@ const fetchRecords = async () => {
 }
 
 const saveRecord = async () => {
-  const rec = todayRecord.value
+  const rec = selectedRecord.value
   if ($dev) {
     const all = loadDevRecords()
     const idx = all.findIndex(r => r.date === rec.date)
@@ -329,7 +412,7 @@ const saveRecord = async () => {
   try {
     await $fetch(`/api/office/records/${rec.date}`, {
       method: 'PUT',
-      body: { checks: rec.checks, comment: rec.comment },
+      body: { checks: rec.checks, comment: rec.comment, dayType: rec.dayType },
     })
   } catch {}
 }
@@ -341,9 +424,14 @@ const debouncedSave = () => {
 
 // ── Checklist ────────────────────────────────────────────────
 const toggleCheck = async (i: number) => {
-  todayRecord.value.checks[i] = !todayRecord.value.checks[i]
+  selectedRecord.value.checks[i] = !selectedRecord.value.checks[i]
   await saveRecord()
-  if (todayRecord.value.checks.every(Boolean)) triggerCelebration()
+  if (selectedRecord.value.checks.every(Boolean)) triggerCelebration()
+}
+
+const toggleDayType = async (type: 'fu' | 'kyu') => {
+  selectedRecord.value.dayType = selectedRecord.value.dayType === type ? null : type
+  await saveRecord()
 }
 
 const triggerCelebration = () => {

@@ -21,13 +21,14 @@ export default defineEventHandler(async (event) => {
   const to = `${year}-${m}-${String(lastDay).padStart(2, '0')}`
 
   const rows = await db
-    .prepare('SELECT date, checks, comment FROM office_records WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY date')
+    .prepare('SELECT date, checks, comment, day_type FROM office_records WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY date')
     .bind(user.id, from, to)
-    .all<{ date: string; checks: string; comment: string }>()
+    .all<{ date: string; checks: string; comment: string; day_type: string | null }>()
 
   return (rows.results ?? []).map(r => ({
     date: r.date,
     checks: JSON.parse(r.checks) as boolean[],
     comment: r.comment,
+    dayType: r.day_type ?? null,
   }))
 })
