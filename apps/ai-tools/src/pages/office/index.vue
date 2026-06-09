@@ -1,6 +1,6 @@
 <template>
   <div class="flex min-h-full">
-    <!-- Left Sidebar: Calendar -->
+    <!-- Left Sidebar: Calendar (desktop only) -->
     <aside class="hidden md:flex flex-col w-72 flex-shrink-0 border-r border-white/[0.08] p-5 gap-5">
       <!-- Month navigation -->
       <div class="flex items-center justify-between">
@@ -58,8 +58,8 @@
       </div>
     </aside>
 
-    <!-- Main content -->
-    <main class="flex-1 flex flex-col items-center px-4 pt-4 pb-8">
+    <!-- Main content (desktop only) -->
+    <main class="hidden md:flex flex-1 flex-col items-center px-4 pt-4 pb-8">
       <!-- Title + Date -->
       <div class="w-full max-w-lg mb-4 flex items-center justify-between">
         <h1 class="m-0 text-2xl font-bold bg-gradient-to-br from-sky-400 to-indigo-500 bg-clip-text text-transparent">🏢 office</h1>
@@ -164,6 +164,173 @@
       </div>
     </main>
 
+    <!-- Mobile: Calendar view -->
+    <div v-show="mobileView === 'calendar'" class="md:hidden w-full flex items-start justify-center px-4 pt-4 pb-8">
+      <div class="w-full max-w-[420px]">
+        <div class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-lg flex flex-col gap-4">
+          <!-- Title -->
+          <h1 class="m-0 text-xl font-bold text-center bg-gradient-to-br from-sky-400 to-indigo-500 bg-clip-text text-transparent">🏢 office</h1>
+
+          <!-- Month navigation -->
+          <div class="flex items-center justify-between">
+            <button
+              class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-2xl text-slate-300"
+              @click="prevMonth"
+            >‹</button>
+            <span class="text-base font-semibold text-slate-100">{{ calYear }}年{{ calMonth }}月</span>
+            <button
+              class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-2xl text-slate-300"
+              @click="nextMonth"
+            >›</button>
+          </div>
+
+          <!-- Calendar grid -->
+          <div class="grid grid-cols-7 gap-1 text-center">
+            <span
+              v-for="(label, i) in ['日', '月', '火', '水', '木', '金', '土']"
+              :key="label"
+              class="text-[10px] font-medium py-1"
+              :class="i === 0 ? 'text-rose-400' : i === 6 ? 'text-sky-400' : 'text-slate-500'"
+            >{{ label }}</span>
+
+            <span v-for="i in calStartOffset" :key="`mpad-${i}`" />
+
+            <button
+              v-for="day in calDaysInMonth"
+              :key="day"
+              class="aspect-square flex flex-col items-center justify-center rounded-xl text-xs transition-all active:scale-90 select-none"
+              :class="[
+                isCalSelected(day)
+                  ? 'ring-2 ring-sky-400 bg-sky-400/15'
+                  : isCalToday(day)
+                    ? 'ring-1 ring-sky-400/60 bg-sky-400/10'
+                    : 'hover:bg-white/[0.05]',
+                isOfficeDay(calYear, calMonth, day) ? 'font-semibold' : 'text-slate-600',
+              ]"
+              @click="selectDayMobile(day)"
+            >
+              <span :class="getDayOfWeekColor(calYear, calMonth, day)">{{ day }}</span>
+              <span
+                v-if="getDayMark(calYear, calMonth, day)"
+                class="text-[11px] leading-none mt-0.5"
+                :class="getDayMarkColor(calYear, calMonth, day)"
+              >{{ getDayMark(calYear, calMonth, day) }}</span>
+            </button>
+          </div>
+
+          <!-- Legend -->
+          <div class="flex flex-col gap-1.5 text-xs text-slate-500 border-t border-white/[0.05] pt-4">
+            <div class="flex items-center gap-2"><span class="text-slate-200">○</span> 出社済み</div>
+            <div class="flex items-center gap-2"><span class="text-amber-400 font-bold">不</span> 出社不要</div>
+            <div class="flex items-center gap-2"><span class="text-rose-400 font-bold">休</span> 有休取得</div>
+            <div class="flex items-center gap-2"><span class="text-indigo-400 font-semibold">火水木</span> 出社日</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile: Detail view -->
+    <div v-show="mobileView === 'detail'" class="md:hidden w-full flex flex-col items-center px-4 pt-4 pb-8">
+      <!-- Back button + date -->
+      <div class="w-full max-w-lg mb-4 flex items-center gap-2">
+        <button
+          class="flex items-center gap-1 text-sm text-sky-400 hover:text-sky-300 transition-colors"
+          @click="mobileView = 'calendar'"
+        >‹ カレンダー</button>
+        <span class="flex-1 text-right text-slate-400 text-sm">{{ selectedDateLabel }}</span>
+      </div>
+
+      <!-- Non-office day message -->
+      <div v-if="!isSelectedOfficeDay" class="flex-1 flex items-center justify-center w-full">
+        <div class="text-center px-8">
+          <div class="text-6xl mb-6">🏠</div>
+          <p class="text-3xl font-bold text-slate-200 leading-snug">出社しなくて良い日です</p>
+          <p class="mt-4 text-slate-500 text-base">ゆっくり休んでください 😊</p>
+        </div>
+      </div>
+
+      <!-- Office day -->
+      <div v-else class="w-full max-w-lg flex flex-col gap-3">
+        <!-- 不/休 toggle -->
+        <div class="flex gap-2">
+          <button
+            class="flex-1 py-1.5 rounded-lg font-bold text-sm transition-all border"
+            :class="selectedRecord.dayType === 'fu'
+              ? 'bg-amber-400/20 border-amber-400 text-amber-300'
+              : 'bg-white/[0.04] border-white/[0.08] text-slate-500 hover:border-amber-400/50 hover:text-amber-400/70'"
+            @click="toggleDayType('fu')"
+          >
+            <span class="mr-1">不</span><span class="text-xs font-normal">出社不要</span>
+          </button>
+          <button
+            class="flex-1 py-1.5 rounded-lg font-bold text-sm transition-all border"
+            :class="selectedRecord.dayType === 'kyu'
+              ? 'bg-rose-400/20 border-rose-400 text-rose-300'
+              : 'bg-white/[0.04] border-white/[0.08] text-slate-500 hover:border-rose-400/50 hover:text-rose-400/70'"
+            @click="toggleDayType('kyu')"
+          >
+            <span class="mr-1">休</span><span class="text-xs font-normal">有休取得</span>
+          </button>
+        </div>
+
+        <!-- Status when 不 or 休 is set -->
+        <div v-if="selectedRecord.dayType" class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-6 shadow-lg text-center">
+          <div class="text-5xl font-extrabold mb-2" :class="selectedRecord.dayType === 'fu' ? 'text-amber-400' : 'text-rose-400'">
+            {{ selectedRecord.dayType === 'fu' ? '不' : '休' }}
+          </div>
+          <div class="text-slate-400 text-sm">{{ selectedRecord.dayType === 'fu' ? '出社不要の日として記録しました' : '有休取得として記録しました' }}</div>
+        </div>
+
+        <!-- Checklist (shown when no 不/休 set) -->
+        <template v-else>
+          <!-- Progress bar -->
+          <div class="w-full bg-white/[0.06] rounded-full h-2 overflow-hidden">
+            <div
+              class="h-full bg-gradient-to-r from-sky-400 to-indigo-500 rounded-full transition-all duration-500"
+              :style="{ width: `${progressPercent}%` }"
+            />
+          </div>
+          <div class="text-right text-xs text-slate-500">{{ checkedCount }} / {{ checkItems.length }} 完了</div>
+
+          <!-- Checklist card -->
+          <div class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 shadow-lg flex flex-col gap-1.5">
+            <div
+              v-for="(item, i) in checkItems"
+              :key="i"
+              class="flex items-center gap-3 py-1.5 px-3 rounded-xl transition-all cursor-pointer select-none"
+              :class="selectedRecord.checks[i] ? 'bg-sky-400/10' : 'hover:bg-white/[0.04]'"
+              @click="toggleCheck(i)"
+            >
+              <div
+                class="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200"
+                :class="selectedRecord.checks[i] ? 'bg-sky-400 border-sky-400' : 'border-white/20'"
+              >
+                <svg v-if="selectedRecord.checks[i]" class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span
+                class="text-base font-medium transition-colors"
+                :class="selectedRecord.checks[i] ? 'text-sky-300 line-through decoration-sky-400/50' : 'text-slate-200'"
+              >{{ item.icon }} {{ item.label }}</span>
+            </div>
+          </div>
+        </template>
+
+        <!-- Comment -->
+        <div class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-lg flex flex-col gap-2">
+          <label class="text-sm text-slate-400 font-medium">💬 コメント</label>
+          <textarea
+            v-model="selectedRecord.comment"
+            class="bg-transparent border border-white/[0.08] rounded-xl px-4 py-3 text-slate-200 text-sm placeholder-slate-600 resize-none focus:outline-none focus:border-sky-400/50 transition-colors"
+            rows="3"
+            placeholder="今日の一言メモ..."
+            @input="debouncedSave"
+          />
+        </div>
+      </div>
+    </div>
+
     <!-- Auth modal -->
     <AuthModal v-if="showAuthModal" accent="sky" />
 
@@ -265,6 +432,7 @@ const todayStr = today.toISOString().slice(0, 10)
 const calYear = ref(today.getFullYear())
 const calMonth = ref(today.getMonth() + 1)
 const selectedDateStr = ref(todayStr)
+const mobileView = ref<'calendar' | 'detail'>('calendar')
 
 const allRecords = ref<OfficeRecord[]>([])
 const showCelebration = ref(false)
@@ -316,6 +484,11 @@ const nextMonth = () => {
 const selectDay = (day: number) => {
   const ds = `${calYear.value}-${String(calMonth.value).padStart(2, '0')}-${String(day).padStart(2, '0')}`
   selectedDateStr.value = ds
+}
+
+const selectDayMobile = (day: number) => {
+  selectDay(day)
+  mobileView.value = 'detail'
 }
 
 const goToToday = () => {
