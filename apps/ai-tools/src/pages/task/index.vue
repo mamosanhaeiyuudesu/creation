@@ -82,6 +82,43 @@ watch(showAll, v => {
   window.history.replaceState({}, '', url.toString())
 })
 
+// --- Settings menu ---
+const showSettingsMenu = ref(false)
+
+function openSettingsMenu() { showSettingsMenu.value = !showSettingsMenu.value }
+function closeSettingsMenu() { showSettingsMenu.value = false }
+
+function escapeCsv(v: string): string {
+  const s = v ?? ''
+  return (s.includes(',') || s.includes('"') || s.includes('\n'))
+    ? '"' + s.replace(/"/g, '""') + '"'
+    : s
+}
+
+function downloadDone() {
+  closeSettingsMenu()
+  const rows: string[] = ['﻿完了日,ボード名,タスク名,概要']
+  const allEntries: { date: string; boardName: string; name: string; desc: string }[] = []
+  for (const board of boards.value) {
+    for (const [date, cards] of Object.entries(board.done)) {
+      for (const card of cards) {
+        allEntries.push({ date, boardName: board.name, name: card.name, desc: card.desc ?? '' })
+      }
+    }
+  }
+  allEntries.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0)
+  for (const r of allEntries) {
+    rows.push([r.date, r.boardName, r.name, r.desc].map(escapeCsv).join(','))
+  }
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `tasks-done-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 const praiseDialog = ref(false)
 const praiseDays = ref(3)
 const praiseDaysOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 60, 180, 365]
@@ -191,8 +228,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <!-- Month picker backdrop -->
-  <div v-if="pickerOpen || showMobilePeriod" class="fixed inset-0 z-40" @click="pickerOpen = null; showMobilePeriod = false" />
+  <!-- Backdrop (month picker / settings menu) -->
+  <div v-if="pickerOpen || showMobilePeriod || showSettingsMenu" class="fixed inset-0 z-40" @click="pickerOpen = null; showMobilePeriod = false; showSettingsMenu = false" />
 
   <!-- 称賛ダイアログ -->
   <div v-if="praiseDialog" class="fixed inset-0 z-[200] flex items-center justify-center">
@@ -332,11 +369,21 @@ onMounted(() => {
             @click="load"
           >{{ loading ? '…' : '更新' }}</button>
         </div>
-        <button
-          class="w-9 h-9 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-lg cursor-pointer flex items-center justify-center transition-all hover:bg-white/[0.12] hover:text-[#e2e8f0] ml-auto md:ml-0"
-          title="設定"
-          @click="openSettings"
-        >⚙</button>
+        <div class="relative ml-auto md:ml-0" @click.stop>
+          <button
+            class="w-9 h-9 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-lg cursor-pointer flex items-center justify-center transition-all hover:bg-white/[0.12] hover:text-[#e2e8f0]"
+            title="設定"
+            @click="openSettingsMenu"
+          >⚙</button>
+          <div v-if="showSettingsMenu" class="absolute right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-[200] min-w-[140px] py-1 overflow-hidden">
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openSettings(); closeSettingsMenu()">
+              <span>🔑</span> アカウント設定
+            </button>
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="downloadDone">
+              <span>⬇</span> ダウンロード
+            </button>
+          </div>
+        </div>
       </div>
       <!-- モバイル用コントロール行 -->
       <div v-if="hasCredentials" class="md:hidden flex items-center gap-2 px-3 pb-2">
@@ -397,6 +444,20 @@ onMounted(() => {
           :disabled="loading"
           @click="load"
         >{{ loading ? '…' : '更新' }}</button>
+        <div class="relative flex-shrink-0" @click.stop>
+          <button
+            class="w-8 h-8 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-base cursor-pointer flex items-center justify-center transition-all hover:bg-white/[0.12]"
+            @click="openSettingsMenu"
+          >⚙</button>
+          <div v-if="showSettingsMenu" class="absolute right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-[200] min-w-[140px] py-1 overflow-hidden">
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openSettings(); closeSettingsMenu()">
+              <span>🔑</span> アカウント設定
+            </button>
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="downloadDone">
+              <span>⬇</span> ダウンロード
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
