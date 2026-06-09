@@ -306,15 +306,22 @@ export const PITCHER_RADAR_AXES: RadarAxis[] = [
   {
     key: 'strikeout',
     label: '奪三振力',
-    description: '奪三振率（K%）。40%をeliteとして正規化。',
+    description: '奪三振率（K%）× 60% ＋ 奪三振数（シーズン300Kを上限としシーズン進行率で補正）× 40% の加重平均。',
     normalize: (s) => {
-      const kPct = (s as PitcherStats).kPct
-      if (kPct === null) return null
-      return clamp(kPct / 40 * 100, 0, 100)
+      const p = s as PitcherStats
+      const kPctScore = p.kPct !== null ? clamp(p.kPct / 40 * 100, 0, 100) : null
+      const kMax = 300 * seasonProgress()
+      const kScore = p.strikeouts !== null ? clamp(p.strikeouts / kMax * 100, 0, 100) : null
+      if (kPctScore === null && kScore === null) return null
+      if (kPctScore === null) return kScore
+      if (kScore === null) return kPctScore
+      return kPctScore * 0.6 + kScore * 0.4
     },
     formatSource: (s) => {
-      const kPct = (s as PitcherStats).kPct
-      return kPct !== null ? `K%: ${kPct.toFixed(1)}%` : 'K%: —'
+      const p = s as PitcherStats
+      const kPct = p.kPct !== null ? `${p.kPct.toFixed(1)}%` : '—'
+      const k = p.strikeouts !== null ? `${Math.round(p.strikeouts)}K` : '—'
+      return `K%: ${kPct}, ${k}`
     },
   },
   {
@@ -351,35 +358,28 @@ export const BATTER_RADAR_AXES: RadarAxis[] = [
   {
     key: 'power',
     label: '長打力',
-    description: '本塁打数。60本塁打をeliteとして正規化。',
+    description: 'HR × 60% + 長打率（SLG）× 40%。本塁打の純粋な威力と長打全般の破壊力を組み合わせた指標。SLGの範囲は .250〜.700。',
     normalize: (s) => {
-      const hr = (s as BatterStats).hr
-      if (hr === null) return null
-      return clamp(hr / 60 * 100, 0, 100)
+      const b = s as BatterStats
+      const hrMax = 60 * seasonProgress()
+      const hrScore = b.hr !== null ? clamp(b.hr / hrMax * 100, 0, 100) : null
+      const slgScore = b.slg !== null ? clamp((b.slg - 0.25) / (0.70 - 0.25) * 100, 0, 100) : null
+      if (hrScore === null && slgScore === null) return null
+      if (hrScore === null) return slgScore
+      if (slgScore === null) return hrScore
+      return hrScore * 0.6 + slgScore * 0.4
     },
     formatSource: (s) => {
-      const hr = (s as BatterStats).hr
-      return hr !== null ? `HR: ${Math.round(hr)}本` : 'HR: —'
-    },
-  },
-  {
-    key: 'totalbases',
-    label: '塁打',
-    description: '塁打数（TB）。400塁打をeliteとして正規化。',
-    normalize: (s) => {
-      const tb = (s as BatterStats).totalBases
-      if (tb === null) return null
-      return clamp(tb / 400 * 100, 0, 100)
-    },
-    formatSource: (s) => {
-      const tb = (s as BatterStats).totalBases
-      return tb !== null ? `TB: ${Math.round(tb)}塁打` : 'TB: —'
+      const b = s as BatterStats
+      const hr = b.hr !== null ? `${Math.round(b.hr)}本` : '—'
+      const slg = b.slg !== null ? b.slg.toFixed(3).replace(/^0/, '') : '—'
+      return `HR: ${hr}, SLG: ${slg}`
     },
   },
   {
     key: 'onbase',
     label: '出塁力',
-    description: '出塁率（OBP）。.200〜.500の範囲で正規化。',
+    description: '出塁率（OBP）。安打・四球・死球で塁に出た割合。.200〜.500の範囲で正規化。',
     normalize: (s) => {
       const obp = (s as BatterStats).obp
       if (obp === null) return null
@@ -393,21 +393,48 @@ export const BATTER_RADAR_AXES: RadarAxis[] = [
   {
     key: 'hitting',
     label: '打撃力',
-    description: '打率（AVG）。.150〜.400の範囲で正規化。',
+    description: '打率（AVG）× 60% + 安打数（シーズン200安打基準）× 40%。ヒッターとしての効率と量を組み合わせた指標。',
     normalize: (s) => {
-      const avg = (s as BatterStats).avg
-      if (avg === null) return null
-      return clamp((avg - 0.15) / (0.40 - 0.15) * 100, 0, 100)
+      const b = s as BatterStats
+      const avgScore = b.avg !== null ? clamp((b.avg - 0.15) / (0.40 - 0.15) * 100, 0, 100) : null
+      const hitsMax = 200 * seasonProgress()
+      const hitsScore = b.hits !== null ? clamp(b.hits / hitsMax * 100, 0, 100) : null
+      if (avgScore === null && hitsScore === null) return null
+      if (avgScore === null) return hitsScore
+      if (hitsScore === null) return avgScore
+      return avgScore * 0.6 + hitsScore * 0.4
     },
     formatSource: (s) => {
-      const avg = (s as BatterStats).avg
-      return avg !== null ? `AVG: ${avg.toFixed(3).replace(/^0/, '')}` : 'AVG: —'
+      const b = s as BatterStats
+      const avg = b.avg !== null ? b.avg.toFixed(3).replace(/^0/, '') : '—'
+      const hits = b.hits !== null ? `${Math.round(b.hits)}安打` : '—'
+      return `AVG: ${avg}, ${hits}`
+    },
+  },
+  {
+    key: 'runproduction',
+    label: '得点貢献',
+    description: '打点（RBI）× 50% + 得点 × 50%。シーズン進行率で補正（RBI上限130、得点上限115）。点を「返す力」と「取られる力」の両面から得点への総貢献を測る。',
+    normalize: (s) => {
+      const b = s as BatterStats
+      const rbiScore = b.rbi !== null ? clamp(b.rbi / (130 * seasonProgress()) * 100, 0, 100) : null
+      const runsScore = b.runs !== null ? clamp(b.runs / (115 * seasonProgress()) * 100, 0, 100) : null
+      if (rbiScore === null && runsScore === null) return null
+      if (rbiScore === null) return runsScore
+      if (runsScore === null) return rbiScore
+      return rbiScore * 0.5 + runsScore * 0.5
+    },
+    formatSource: (s) => {
+      const b = s as BatterStats
+      const rbi = b.rbi !== null ? `${Math.round(b.rbi)}打点` : '—'
+      const runs = b.runs !== null ? `${Math.round(b.runs)}得点` : '—'
+      return `${rbi}, ${runs}`
     },
   },
   {
     key: 'eye',
     label: '選球眼',
-    description: '四球率（BB%）。高いほど高スコア。',
+    description: '四球率（BB%）。四球を選んだ割合。25%をeliteとして正規化。高いほど良い。',
     normalize: (s) => {
       const bbPct = (s as BatterStats).bbPct
       if (bbPct === null) return null
@@ -421,7 +448,7 @@ export const BATTER_RADAR_AXES: RadarAxis[] = [
   {
     key: 'contact',
     label: 'コンタクト',
-    description: '三振率（K%）が低いほど高スコア。',
+    description: '三振率（K%）が低いほど高スコア。(38% − K%) ÷ 30% × 100 で正規化。8%をelite、38%を最低として換算。',
     normalize: (s) => {
       const kPct = (s as BatterStats).kPct
       if (kPct === null) return null

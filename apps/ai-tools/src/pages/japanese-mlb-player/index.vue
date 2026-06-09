@@ -351,7 +351,7 @@ onMounted(async () => {
                   <div class="flex-1 min-w-0 overflow-x-auto">
                     <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="pitcher" />
                   </div>
-                  <div class="w-72 flex-shrink-0">
+                  <div class="w-[420px] flex-shrink-0">
                     <RadarChart :selected-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
                   </div>
                 </div>
@@ -362,7 +362,7 @@ onMounted(async () => {
                   <div class="flex-1 min-w-0 overflow-x-auto">
                     <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="NL" mode="batter" />
                   </div>
-                  <div class="w-72 flex-shrink-0">
+                  <div class="w-[420px] flex-shrink-0">
                     <RadarChart :selected-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" />
                   </div>
                 </div>
@@ -373,7 +373,7 @@ onMounted(async () => {
                   <div class="flex-1 min-w-0 overflow-x-auto">
                     <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="pitcher" />
                   </div>
-                  <div class="w-72 flex-shrink-0">
+                  <div class="w-[420px] flex-shrink-0">
                     <RadarChart :selected-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" />
                   </div>
                 </div>
@@ -384,7 +384,7 @@ onMounted(async () => {
                   <div class="flex-1 min-w-0 overflow-x-auto">
                     <StatsTable :selected-ids="selectedIds" :season-data-map="seasonDataMap" :league-stats="leagueStats" league="AL" mode="batter" />
                   </div>
-                  <div class="w-72 flex-shrink-0">
+                  <div class="w-[420px] flex-shrink-0">
                     <RadarChart :selected-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" />
                   </div>
                 </div>
