@@ -76,82 +76,82 @@
         >今日に戻る</button>
       </div>
 
-      <!-- Non-office day -->
-      <div v-if="!isSelectedOfficeDay" class="w-full max-w-lg flex flex-col gap-4">
-        <!-- 不/休 toggle card -->
-        <div class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-lg flex flex-col gap-4">
-          <div class="text-sm text-slate-400 font-medium">📋 この日のステータス</div>
-          <div class="flex gap-3">
-            <button
-              class="flex-1 py-4 rounded-xl font-bold text-lg transition-all border-2"
-              :class="selectedRecord.dayType === 'fu'
-                ? 'bg-amber-400/20 border-amber-400 text-amber-300'
-                : 'bg-white/[0.04] border-white/[0.1] text-slate-400 hover:border-amber-400/50 hover:text-amber-400/70'"
-              @click="toggleDayType('fu')"
-            >
-              <div class="text-2xl mb-1">不</div>
-              <div class="text-xs font-normal">出社不要</div>
-            </button>
-            <button
-              class="flex-1 py-4 rounded-xl font-bold text-lg transition-all border-2"
-              :class="selectedRecord.dayType === 'kyu'
-                ? 'bg-rose-400/20 border-rose-400 text-rose-300'
-                : 'bg-white/[0.04] border-white/[0.1] text-slate-400 hover:border-rose-400/50 hover:text-rose-400/70'"
-              @click="toggleDayType('kyu')"
-            >
-              <div class="text-2xl mb-1">休</div>
-              <div class="text-xs font-normal">有休取得</div>
-            </button>
-          </div>
-        </div>
-
-        <!-- Comment -->
-        <div class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-lg flex flex-col gap-2">
-          <label class="text-sm text-slate-400 font-medium">💬 コメント</label>
-          <textarea
-            v-model="selectedRecord.comment"
-            class="bg-transparent border border-white/[0.08] rounded-xl px-4 py-3 text-slate-200 text-sm placeholder-slate-600 resize-none focus:outline-none focus:border-sky-400/50 transition-colors"
-            rows="3"
-            placeholder="今日の一言メモ..."
-            @input="debouncedSave"
-          />
+      <!-- Non-office day message -->
+      <div v-if="!isSelectedOfficeDay" class="flex-1 flex items-center justify-center w-full">
+        <div class="text-center px-8">
+          <div class="text-6xl mb-6">🏠</div>
+          <p class="text-3xl font-bold text-slate-200 leading-snug">出社しなくて良い日です</p>
+          <p class="mt-4 text-slate-500 text-base">ゆっくり休んでください 😊</p>
         </div>
       </div>
 
-      <!-- Office day checklist -->
+      <!-- Office day -->
       <div v-else class="w-full max-w-lg flex flex-col gap-4">
-        <!-- Progress bar -->
-        <div class="w-full bg-white/[0.06] rounded-full h-2 overflow-hidden">
-          <div
-            class="h-full bg-gradient-to-r from-sky-400 to-indigo-500 rounded-full transition-all duration-500"
-            :style="{ width: `${progressPercent}%` }"
-          />
-        </div>
-        <div class="text-right text-xs text-slate-500">{{ checkedCount }} / {{ checkItems.length }} 完了</div>
-
-        <!-- Checklist card -->
-        <div class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-lg flex flex-col gap-3">
-          <div
-            v-for="(item, i) in checkItems"
-            :key="i"
-            class="flex items-center gap-4 py-2.5 px-3 rounded-xl transition-all cursor-pointer select-none"
-            :class="selectedRecord.checks[i] ? 'bg-sky-400/10' : 'hover:bg-white/[0.04]'"
-            @click="toggleCheck(i)"
+        <!-- 不/休 toggle -->
+        <div class="flex gap-3">
+          <button
+            class="flex-1 py-3 rounded-xl font-bold text-base transition-all border-2"
+            :class="selectedRecord.dayType === 'fu'
+              ? 'bg-amber-400/20 border-amber-400 text-amber-300'
+              : 'bg-white/[0.04] border-white/[0.08] text-slate-500 hover:border-amber-400/50 hover:text-amber-400/70'"
+            @click="toggleDayType('fu')"
           >
-            <div
-              class="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200"
-              :class="selectedRecord.checks[i] ? 'bg-sky-400 border-sky-400' : 'border-white/20'"
-            >
-              <svg v-if="selectedRecord.checks[i]" class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <span
-              class="text-base font-medium transition-colors"
-              :class="selectedRecord.checks[i] ? 'text-sky-300 line-through decoration-sky-400/50' : 'text-slate-200'"
-            >{{ item.icon }} {{ item.label }}</span>
-          </div>
+            <span class="text-lg mr-1.5">不</span><span class="text-xs font-normal">出社不要</span>
+          </button>
+          <button
+            class="flex-1 py-3 rounded-xl font-bold text-base transition-all border-2"
+            :class="selectedRecord.dayType === 'kyu'
+              ? 'bg-rose-400/20 border-rose-400 text-rose-300'
+              : 'bg-white/[0.04] border-white/[0.08] text-slate-500 hover:border-rose-400/50 hover:text-rose-400/70'"
+            @click="toggleDayType('kyu')"
+          >
+            <span class="text-lg mr-1.5">休</span><span class="text-xs font-normal">有休取得</span>
+          </button>
         </div>
+
+        <!-- Status when 不 or 休 is set -->
+        <div v-if="selectedRecord.dayType" class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-6 shadow-lg text-center">
+          <div class="text-5xl font-extrabold mb-2" :class="selectedRecord.dayType === 'fu' ? 'text-amber-400' : 'text-rose-400'">
+            {{ selectedRecord.dayType === 'fu' ? '不' : '休' }}
+          </div>
+          <div class="text-slate-400 text-sm">{{ selectedRecord.dayType === 'fu' ? '出社不要の日として記録しました' : '有休取得として記録しました' }}</div>
+        </div>
+
+        <!-- Checklist (shown when no 不/休 set) -->
+        <template v-else>
+          <!-- Progress bar -->
+          <div class="w-full bg-white/[0.06] rounded-full h-2 overflow-hidden">
+            <div
+              class="h-full bg-gradient-to-r from-sky-400 to-indigo-500 rounded-full transition-all duration-500"
+              :style="{ width: `${progressPercent}%` }"
+            />
+          </div>
+          <div class="text-right text-xs text-slate-500">{{ checkedCount }} / {{ checkItems.length }} 完了</div>
+
+          <!-- Checklist card -->
+          <div class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-lg flex flex-col gap-3">
+            <div
+              v-for="(item, i) in checkItems"
+              :key="i"
+              class="flex items-center gap-4 py-2.5 px-3 rounded-xl transition-all cursor-pointer select-none"
+              :class="selectedRecord.checks[i] ? 'bg-sky-400/10' : 'hover:bg-white/[0.04]'"
+              @click="toggleCheck(i)"
+            >
+              <div
+                class="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200"
+                :class="selectedRecord.checks[i] ? 'bg-sky-400 border-sky-400' : 'border-white/20'"
+              >
+                <svg v-if="selectedRecord.checks[i]" class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span
+                class="text-base font-medium transition-colors"
+                :class="selectedRecord.checks[i] ? 'text-sky-300 line-through decoration-sky-400/50' : 'text-slate-200'"
+              >{{ item.icon }} {{ item.label }}</span>
+            </div>
+          </div>
+        </template>
 
         <!-- Comment -->
         <div class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-lg flex flex-col gap-2">
