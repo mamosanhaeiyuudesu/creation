@@ -369,7 +369,7 @@ import { ref, computed, onMounted } from 'vue'
 
 useHead({ title: 'office — 出社記録' })
 
-const { $dev } = useNuxtApp()
+const $dev = import.meta.dev
 
 // ── Types ──────────────────────────────────────────────────
 type OfficeRecord = {
@@ -413,17 +413,8 @@ const CELEBRATIONS = [
 ]
 
 // ── Auth ───────────────────────────────────────────────────
-const showAuthModal = ref(false)
-const isLoggedIn = ref(false)
-
-const checkAuth = async () => {
-  try {
-    await $fetch('/api/auth/me')
-    isLoggedIn.value = true
-  } catch {
-    showAuthModal.value = true
-  }
-}
+const { isLoggedIn, checked, checkAuth } = useAuth()
+const showAuthModal = computed(() => !$dev && !isLoggedIn.value && checked.value)
 
 // ── State ──────────────────────────────────────────────────
 const today = new Date()
