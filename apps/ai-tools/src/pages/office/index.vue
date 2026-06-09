@@ -83,26 +83,26 @@
       </div>
 
       <!-- Office day -->
-      <div v-else class="w-full max-w-lg flex flex-col gap-4">
+      <div v-else class="w-full max-w-lg flex flex-col gap-3">
         <!-- 不/休 toggle -->
-        <div class="flex gap-3">
+        <div class="flex gap-2">
           <button
-            class="flex-1 py-3 rounded-xl font-bold text-base transition-all border-2"
+            class="flex-1 py-1.5 rounded-lg font-bold text-sm transition-all border"
             :class="selectedRecord.dayType === 'fu'
               ? 'bg-amber-400/20 border-amber-400 text-amber-300'
               : 'bg-white/[0.04] border-white/[0.08] text-slate-500 hover:border-amber-400/50 hover:text-amber-400/70'"
             @click="toggleDayType('fu')"
           >
-            <span class="text-lg mr-1.5">不</span><span class="text-xs font-normal">出社不要</span>
+            <span class="mr-1">不</span><span class="text-xs font-normal">出社不要</span>
           </button>
           <button
-            class="flex-1 py-3 rounded-xl font-bold text-base transition-all border-2"
+            class="flex-1 py-1.5 rounded-lg font-bold text-sm transition-all border"
             :class="selectedRecord.dayType === 'kyu'
               ? 'bg-rose-400/20 border-rose-400 text-rose-300'
               : 'bg-white/[0.04] border-white/[0.08] text-slate-500 hover:border-rose-400/50 hover:text-rose-400/70'"
             @click="toggleDayType('kyu')"
           >
-            <span class="text-lg mr-1.5">休</span><span class="text-xs font-normal">有休取得</span>
+            <span class="mr-1">休</span><span class="text-xs font-normal">有休取得</span>
           </button>
         </div>
 
@@ -126,11 +126,11 @@
           <div class="text-right text-xs text-slate-500">{{ checkedCount }} / {{ checkItems.length }} 完了</div>
 
           <!-- Checklist card -->
-          <div class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-lg flex flex-col gap-3">
+          <div class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 shadow-lg flex flex-col gap-1.5">
             <div
               v-for="(item, i) in checkItems"
               :key="i"
-              class="flex items-center gap-4 py-2.5 px-3 rounded-xl transition-all cursor-pointer select-none"
+              class="flex items-center gap-3 py-1.5 px-3 rounded-xl transition-all cursor-pointer select-none"
               :class="selectedRecord.checks[i] ? 'bg-sky-400/10' : 'hover:bg-white/[0.04]'"
               @click="toggleCheck(i)"
             >
