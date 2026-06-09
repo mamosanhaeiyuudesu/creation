@@ -59,21 +59,18 @@
     </aside>
 
     <!-- Main content -->
-    <main class="flex-1 flex flex-col items-center px-4 pt-6 pb-12">
-      <!-- Title -->
-      <div class="w-full max-w-lg mb-6">
+    <main class="flex-1 flex flex-col items-center px-4 pt-4 pb-8">
+      <!-- Title + Date -->
+      <div class="w-full max-w-lg mb-4 flex items-center justify-between">
         <h1 class="m-0 text-2xl font-bold bg-gradient-to-br from-sky-400 to-indigo-500 bg-clip-text text-transparent">🏢 office</h1>
-        <p class="mt-1 mb-0 text-slate-400 text-sm">出社記録</p>
-      </div>
-
-      <!-- Date display -->
-      <div class="w-full max-w-lg mb-5 flex items-center gap-3">
-        <div class="text-slate-400 text-sm">{{ selectedDateLabel }}</div>
-        <button
-          v-if="selectedDateStr !== todayStr"
-          class="text-xs text-sky-400 hover:text-sky-300 transition-colors"
-          @click="goToToday"
-        >今日に戻る</button>
+        <div class="flex items-center gap-3">
+          <span class="text-slate-400 text-sm">{{ selectedDateLabel }}</span>
+          <button
+            v-if="selectedDateStr !== todayStr"
+            class="text-xs text-sky-400 hover:text-sky-300 transition-colors"
+            @click="goToToday"
+          >今日に戻る</button>
+        </div>
       </div>
 
       <!-- Non-office day message -->
