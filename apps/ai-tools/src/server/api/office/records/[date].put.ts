@@ -20,6 +20,20 @@ export default defineEventHandler(async (event) => {
   const db = getAppDb(event)
   if (!db) throw createError({ statusCode: 503, message: 'データベースが利用できません' })
 
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS office_records (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id    TEXT NOT NULL,
+      date       TEXT NOT NULL,
+      checks     TEXT NOT NULL DEFAULT '[]',
+      comment    TEXT NOT NULL DEFAULT '',
+      day_type   TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (user_id, date)
+    )
+  `).catch(() => {})
+
   const safeChecks = checks ?? []
   const safeComment = comment ?? ''
   const safeDayType = dayType !== undefined ? dayType : null
