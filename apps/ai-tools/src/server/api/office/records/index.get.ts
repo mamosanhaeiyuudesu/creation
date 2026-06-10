@@ -28,6 +28,8 @@ export default defineEventHandler(async (event) => {
       UNIQUE (user_id, date)
     )
   `).catch(() => {})
+  // 010_office.sql で作成済みのテーブルに day_type が無い場合に追加（既存なら無視）
+  await db.prepare('ALTER TABLE office_records ADD COLUMN day_type TEXT').run().catch(() => {})
 
   const m = String(month).padStart(2, '0')
   const from = `${year}-${m}-01`
