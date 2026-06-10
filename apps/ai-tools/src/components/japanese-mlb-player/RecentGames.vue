@@ -51,20 +51,44 @@ function estimateCumBB(strikeouts: number | null, bbk: number | null): number {
 interface PitcherRow { date: string; result: '勝' | '負' | '-'; ip: string; runsAllowed: number; er: number; k: number; bb: number }
 interface BatterRow { date: string; ab: number; hits: number; hr: number; rbi: number; runs: number; so: number; walks: number; tb: number }
 
+// パワプロ風調子アイコン（▲▲好調 ▲好 — 普通 ▼不 ▼▼絶不調）
+const FORM_ICONS = {
+  絶好調: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 26">
+    <defs><filter id="f-zk"><feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#dc2626" flood-opacity="0.5"/></filter></defs>
+    <polygon points="12,2 22,11 2,11" fill="#ef4444" filter="url(#f-zk)"/>
+    <polygon points="12,13 22,22 2,22" fill="#f97316" filter="url(#f-zk)"/>
+  </svg>`,
+  好調: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 22">
+    <defs><filter id="f-k"><feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#16a34a" flood-opacity="0.4"/></filter></defs>
+    <polygon points="12,3 22,19 2,19" fill="#22c55e" filter="url(#f-k)"/>
+  </svg>`,
+  普通: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 10">
+    <rect x="2" y="2.5" width="20" height="5" rx="2.5" fill="#94a3b8"/>
+  </svg>`,
+  不調: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 22">
+    <defs><filter id="f-f"><feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#2563eb" flood-opacity="0.4"/></filter></defs>
+    <polygon points="12,19 22,3 2,3" fill="#60a5fa" filter="url(#f-f)"/>
+  </svg>`,
+  絶不調: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 26">
+    <defs><filter id="f-zf"><feDropShadow dx="0" dy="1" stdDeviation="1.2" flood-color="#1e1b4b" flood-opacity="0.5"/></filter></defs>
+    <polygon points="12,13 22,2 2,2" fill="#6366f1" filter="url(#f-zf)"/>
+    <polygon points="12,24 22,13 2,13" fill="#3730a3" filter="url(#f-zf)"/>
+  </svg>`,
+} as const
+
+type FormLabel = keyof typeof FORM_ICONS
+
 interface FormBadge {
-  label: '絶好調' | '好調' | '普通' | '不調' | '絶不調'
-  icon: string
-  bgColor: string
-  textColor: string
+  label: FormLabel
 }
 
 function getFormBadge(score: number | null): FormBadge | null {
   if (score === null) return null
-  if (score > 0.20) return { label: '絶好調', icon: '😁', bgColor: '#fef2f2', textColor: '#dc2626' }
-  if (score > 0.07) return { label: '好調',   icon: '😊', bgColor: '#f0fdf4', textColor: '#16a34a' }
-  if (score > -0.07) return { label: '普通',  icon: '😐', bgColor: '#f8fafc', textColor: '#475569' }
-  if (score > -0.20) return { label: '不調',  icon: '😕', bgColor: '#fffbeb', textColor: '#d97706' }
-  return { label: '絶不調', icon: '😞', bgColor: '#fdf4ff', textColor: '#7c3aed' }
+  if (score > 0.20) return { label: '絶好調' }
+  if (score > 0.07) return { label: '好調' }
+  if (score > -0.07) return { label: '普通' }
+  if (score > -0.20) return { label: '不調' }
+  return { label: '絶不調' }
 }
 
 interface Card {
@@ -299,13 +323,10 @@ function isWithinDays(d: string | null | undefined, days: number): boolean {
             <span class="text-sm font-bold tracking-tight leading-none" :style="{ color: card.color }">{{ card.nameJa }}</span>
             <span
               v-if="card.form"
-              class="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none border"
-              :style="{ background: card.form.bgColor, color: card.form.textColor, borderColor: card.form.textColor + '33' }"
+              class="inline-flex items-center leading-none flex-shrink-0"
               :title="`直近調子: ${card.form.label}`"
-            >
-              <span>{{ card.form.icon }}</span>
-              <span>{{ card.form.label }}</span>
-            </span>
+              v-html="FORM_ICONS[card.form.label]"
+            />
             <a
               v-if="card.sportnavi"
               :href="`https://baseball.yahoo.co.jp/mlb/player/${card.sportnavi}/top`"
