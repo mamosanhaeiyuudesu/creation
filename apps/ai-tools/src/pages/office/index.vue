@@ -381,7 +381,7 @@ type OfficeRecord = {
 
 // ── Constants ──────────────────────────────────────────────
 const OFFICE_DAYS = new Set([2, 3, 4])
-const START_DATE = new Date(2026, 5, 1)
+const START_DATE = new Date(2026, 4, 1)
 
 const checkItems = [
   { icon: '🚶', label: '出社' },
