@@ -84,6 +84,7 @@ const tools = [
   // { path: '/marriage', name: 'marriage', icon: '💑' },
   // { path: '/tengu', name: '天狗問答', icon: '👺' },
   { path: '/office', name: 'office', icon: '🏢' },
+  { path: '/setsuyaku', name: '節約', icon: '💰' },
   // { path: '/keiko', name: '稽古', icon: '⚔️' },
 ]
 
