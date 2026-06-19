@@ -303,7 +303,7 @@ function isWithinDays(d: string | null | undefined, days: number): boolean {
               :style="{ background: card.form.bgColor, color: card.form.textColor, borderColor: card.form.textColor + '33' }"
               :title="`直近調子: ${card.form.label}`"
             >
-              <span>{{ card.form.icon }}</span>
+              <span class="text-[15px] leading-none">{{ card.form.icon }}</span>
               <span>{{ card.form.label }}</span>
             </span>
             <a

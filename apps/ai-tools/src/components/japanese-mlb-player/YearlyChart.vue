@@ -1,7 +1,7 @@
 <template>
   <div>
-    <!-- 指標ピル -->
-    <div class="flex flex-wrap gap-2 mb-4">
+    <!-- 指標ピル（テーブルビュー時のみ） -->
+    <div v-if="view === 'table'" class="flex flex-wrap gap-2 mb-4">
       <button
         v-for="stat in activeMeta"
         :key="stat.key"
@@ -79,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import type { YearlyData, BatterStats, PitcherStats } from '~/types/mlb'
+import type { YearlyData, BatterStats, PitcherStats, StatMeta } from '~/types/mlb'
 import { PITCHER_PLAYERS, BATTER_PLAYERS, PITCHER_STATS, BATTER_STATS, PLAYER_COLORS } from '~/utils/japanese-mlb-player/players'
 
 const props = defineProps<{
@@ -239,6 +239,108 @@ const hasOutOfRange = computed(() =>
   )
 )
 
+function getCareerRawNum(playerId: string, key: string): number | null {
+  const meta = activeMeta.value.find(m => m.key === key)
+  const d = props.yearlyDataMap.get(playerId)
+  if (!d) return null
+  const rows = props.mode === 'batter' ? d.yearlyBatter : d.yearlyPitcher
+
+  if (meta?.counting) {
+    const values = rows
+      .map(r => (r as unknown as Record<string, unknown>)[key] as number | null)
+      .filter((v): v is number => v !== null)
+    return values.length ? values.reduce((a, b) => a + b, 0) : null
+  }
+
+  if (props.mode !== 'batter') {
+    const pr = rows as PitcherStats[]
+    if (key === 'era') {
+      let er = 0, ip = 0
+      for (const r of pr)
+        if (r.era !== null && r.inningsPitched !== null && r.inningsPitched > 0)
+          { er += r.era * r.inningsPitched / 9; ip += r.inningsPitched }
+      return ip > 0 ? er * 9 / ip : null
+    }
+    if (key === 'whip') {
+      let hbb = 0, ip = 0
+      for (const r of pr)
+        if (r.whip !== null && r.inningsPitched !== null && r.inningsPitched > 0)
+          { hbb += r.whip * r.inningsPitched; ip += r.inningsPitched }
+      return ip > 0 ? hbb / ip : null
+    }
+    if (key === 'kPct') {
+      let k = 0, bf = 0
+      for (const r of pr)
+        if (r.kPct !== null && r.strikeouts !== null && r.kPct > 0)
+          { k += r.strikeouts; bf += r.strikeouts / (r.kPct / 100) }
+      return bf > 0 ? k / bf * 100 : null
+    }
+    let pN = 0, pIP = 0
+    for (const r of pr) {
+      const val = (r as unknown as Record<string, unknown>)[key] as number | null
+      if (val !== null && r.inningsPitched !== null && r.inningsPitched > 0)
+        { pN += val * r.inningsPitched; pIP += r.inningsPitched }
+    }
+    return pIP > 0 ? pN / pIP : null
+  }
+
+  const br = rows as BatterStats[]
+  const deriveAB = (r: BatterStats) =>
+    r.hits !== null && r.avg !== null && r.avg > 0 ? r.hits / r.avg : 0
+
+  if (key === 'avg') {
+    let h = 0, ab = 0
+    for (const r of br)
+      if (r.hits !== null && r.avg !== null && r.avg > 0)
+        { h += r.hits; ab += r.hits / r.avg }
+    return ab > 0 ? h / ab : null
+  }
+  if (key === 'slg') {
+    let tb = 0, ab = 0
+    for (const r of br) {
+      const a = deriveAB(r)
+      if (r.slg !== null && a > 0) { tb += r.slg * a; ab += a }
+    }
+    return ab > 0 ? tb / ab : null
+  }
+  if (key === 'ops') {
+    let obpW = 0, slgW = 0, ab = 0
+    for (const r of br) {
+      const a = deriveAB(r)
+      if (a > 0) {
+        if (r.obp !== null) obpW += r.obp * a
+        if (r.slg !== null) slgW += r.slg * a
+        ab += a
+      }
+    }
+    return ab > 0 ? (obpW + slgW) / ab : null
+  }
+  let bN = 0, bAB = 0
+  for (const r of br) {
+    const val = (r as unknown as Record<string, unknown>)[key] as number | null
+    const a = deriveAB(r)
+    if (val !== null && a > 0) { bN += val * a; bAB += a }
+  }
+  return bAB > 0 ? bN / bAB : null
+}
+
+function normalizeForRadar(val: number | null, meta: StatMeta, allVals: Array<number | null>): number {
+  if (val === null) return 0
+  const valid = allVals.filter((v): v is number => v !== null)
+  let min: number, max: number
+  if (meta.counting) {
+    min = 0
+    max = valid.length > 0 ? Math.max(...valid) : 1
+  } else {
+    min = meta.chartMin ?? (valid.length > 0 ? Math.min(...valid) : 0)
+    max = meta.chartMax ?? (valid.length > 0 ? Math.max(...valid) : 1)
+  }
+  if (max === min) return 50
+  let score = Math.max(0, Math.min(100, (val - min) / (max - min) * 100))
+  if (meta.direction === 'low') score = 100 - score
+  return score
+}
+
 async function renderChart() {
   if (!chartEl.value) return
   const EC = await import('echarts')
@@ -247,6 +349,76 @@ async function renderChart() {
     chart = EC.init(chartEl.value, undefined, { renderer: 'svg' })
   }
 
+  if (props.view === 'chart') {
+    // レーダーチャート（通算値）
+    const currentAxes = activeMeta.value
+    const playerData = props.selectedIds.map(id => {
+      const player = selectedPlayerList.value.find(p => p.id === id)
+      if (!player) return null
+      const rawValues = currentAxes.map(m => getCareerRawNum(id, m.key))
+      return { id, name: player.nameJa, rawValues }
+    }).filter((d): d is NonNullable<typeof d> => d !== null)
+
+    if (!playerData.length) { chart.clear(); return }
+
+    const normalizedData = playerData.map(pd => ({
+      ...pd,
+      values: currentAxes.map((m, i) => {
+        const allVals = playerData.map(p => p.rawValues[i])
+        return normalizeForRadar(pd.rawValues[i], m, allVals)
+      }),
+    }))
+
+    const indicator = currentAxes.map(m => ({ name: m.label, max: 100 }))
+
+    chart.setOption({
+      tooltip: {
+        trigger: 'item',
+        formatter: (params: unknown) => {
+          const p = params as { name: string }
+          const pd = playerData.find(d => d.name === p.name)
+          if (!pd) return p.name
+          const lines = currentAxes.map((m, i) => {
+            const raw = pd.rawValues[i]
+            return `${m.label}: <b>${raw !== null ? m.format(raw) : '—'}</b>`
+          })
+          return `<b>${p.name}</b><br/>${lines.join('<br/>')}`
+        },
+      },
+      legend: {
+        data: normalizedData.map(d => d.name),
+        textStyle: { fontSize: 11 },
+        bottom: 0,
+      },
+      radar: {
+        indicator,
+        shape: 'polygon',
+        center: ['50%', '47%'],
+        radius: '55%',
+        nameGap: 8,
+        name: { textStyle: { fontSize: 11, color: '#475569' } },
+        splitLine: { lineStyle: { color: '#e2e8f0', width: 1 } },
+        splitArea: { areaStyle: { color: ['rgba(241,245,249,0.6)', 'rgba(255,255,255,0)'] } },
+        axisLine: { lineStyle: { color: '#cbd5e1' } },
+      },
+      series: [{
+        type: 'radar',
+        data: normalizedData.map(d => ({
+          name: d.name,
+          value: d.values,
+          itemStyle: { color: PLAYER_COLORS[d.id] ?? '#64748b' },
+          lineStyle: { color: PLAYER_COLORS[d.id] ?? '#64748b', width: 2 },
+          areaStyle: { color: PLAYER_COLORS[d.id] ?? '#64748b', opacity: 0.08 },
+        })),
+      }],
+      grid: undefined,
+      xAxis: undefined,
+      yAxis: undefined,
+    }, true)
+    return
+  }
+
+  // 折れ線グラフ（年度別推移）
   const meta = activeMeta.value.find(m => m.key === selectedMetric.value)
   const years = allYears.value
   if (!years.length) { chart.clear(); return }
@@ -334,22 +506,20 @@ async function renderChart() {
         },
       },
     },
+    radar: undefined,
     series,
   }, true)
 }
 
 watch(
-  [() => props.selectedIds, () => props.yearlyDataMap, selectedMetric],
-  renderChart,
-  { deep: true }
-)
-
-watch(() => props.view, async (v) => {
-  if (v === 'chart') {
+  [() => props.selectedIds, () => props.yearlyDataMap, () => props.view, selectedMetric],
+  async () => {
     await nextTick()
     chart?.resize()
-  }
-})
+    await renderChart()
+  },
+  { deep: true }
+)
 
 let ro: ResizeObserver | null = null
 

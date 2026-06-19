@@ -46,6 +46,8 @@ const props = defineProps<{
 
 const chartEl = ref<HTMLDivElement>()
 let chart: import('echarts').ECharts | null = null
+const isMobile = ref(false)
+let mobileResizeHandler: (() => void) | null = null
 
 const axes = computed(() => props.mode === 'batter' ? BATTER_RADAR_AXES : PITCHER_RADAR_AXES)
 
@@ -175,14 +177,17 @@ async function renderChart() {
 
   const indicator = axesSnap.map(axis => ({ name: axis.label, max: 100 }))
 
+  const mobile = isMobile.value
   chart.setOption({
     tooltip: { show: false },
-    legend: { show: false },
+    legend: mobile
+      ? { show: true, data: data.map(d => d.name), textStyle: { fontSize: 11 }, bottom: 0 }
+      : { show: false },
     radar: {
       indicator,
       shape: 'polygon',
-      center: ['50%', '55%'],
-      radius: '62%',
+      center: ['50%', mobile ? '48%' : '55%'],
+      radius: mobile ? '55%' : '62%',
       nameGap: 8,
       name: { textStyle: { fontSize: 11, color: '#475569' } },
       splitLine: { lineStyle: { color: '#e2e8f0', width: 1 } },
@@ -204,7 +209,7 @@ async function renderChart() {
 }
 
 watch(
-  [() => props.selectedIds, () => props.seasonDataMap, () => props.mode],
+  [() => props.selectedIds, () => props.seasonDataMap, () => props.mode, isMobile],
   renderChart,
   { deep: true },
 )
@@ -212,6 +217,9 @@ watch(
 let ro: ResizeObserver | null = null
 
 onMounted(async () => {
+  mobileResizeHandler = () => { isMobile.value = window.innerWidth < 768 }
+  mobileResizeHandler()
+  window.addEventListener('resize', mobileResizeHandler)
   await renderChart()
   if (chartEl.value) {
     ro = new ResizeObserver(() => { chart?.resize() })
@@ -220,6 +228,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  if (mobileResizeHandler) window.removeEventListener('resize', mobileResizeHandler)
   ro?.disconnect()
   chart?.dispose()
   chart = null
