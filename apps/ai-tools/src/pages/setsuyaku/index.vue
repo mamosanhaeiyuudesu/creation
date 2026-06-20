@@ -84,10 +84,10 @@
             <div class="space-y-3">
               <textarea v-model="wantsInput" rows="2" placeholder="欲しいもの・なぜ欲しいかを書いてください"
                 class="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 resize-none" />
-              <div v-if="allGamanTags.length">
+              <div v-if="allTags.length">
                 <p class="text-xs text-slate-400 mb-1.5">タグで絞り込む（未選択 = 全件参照）</p>
                 <div class="flex flex-wrap gap-1.5">
-                  <button v-for="tag in allGamanTags" :key="tag" @click="toggleWantTag(tag)"
+                  <button v-for="tag in allTags" :key="tag" @click="toggleWantTag(tag)"
                     :class="wantTags.includes(tag) ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'text-slate-400 border-white/[0.12] hover:border-emerald-500/30 hover:text-emerald-400'"
                     class="px-2.5 py-0.5 text-xs rounded-full border transition-all">
                     {{ tag }}
@@ -110,14 +110,27 @@
 
           <!-- Records -->
           <div>
+            <div v-if="allTags.length" class="mb-3">
+              <p class="text-xs text-slate-500 mb-1.5">タグで絞り込む</p>
+              <div class="flex flex-wrap gap-1">
+                <button v-for="tag in allTags" :key="tag" @click="toggleGamanFilter(tag)"
+                  :class="gamanFilterTags.includes(tag) ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'text-slate-400 border-white/[0.12] hover:border-emerald-500/30 hover:text-emerald-400'"
+                  class="px-2.5 py-0.5 text-xs rounded-full border transition-all">
+                  {{ tag }}
+                </button>
+              </div>
+            </div>
             <div class="flex items-center justify-between mb-3">
-              <h3 class="text-sm font-semibold text-slate-300 m-0">我慢ログ（{{ gamanRecords.length }}件）</h3>
-              <span class="text-xs text-emerald-400 font-medium">合計 ¥{{ totalGaman.toLocaleString() }}</span>
+              <h3 class="text-sm font-semibold text-slate-300 m-0">
+                我慢ログ（{{ filteredGamanRecords.length }}件<template v-if="gamanFilterTags.length"> / {{ gamanRecords.length }}件中</template>）
+              </h3>
+              <span class="text-xs text-emerald-400 font-medium">合計 ¥{{ filteredGamanTotal.toLocaleString() }}</span>
             </div>
             <p v-if="gamanLoading" class="text-center py-6 text-slate-500 text-sm m-0">読み込み中...</p>
             <p v-else-if="!gamanRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">まだ記録がありません</p>
+            <p v-else-if="!filteredGamanRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">該当する記録がありません</p>
             <div class="space-y-2">
-              <div v-for="record in gamanRecords" :key="record.id"
+              <div v-for="record in filteredGamanRecords" :key="record.id"
                 class="flex items-start gap-3 p-3 bg-white/[0.03] border border-white/[0.06] rounded-xl">
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 mb-0.5 flex-wrap">
@@ -196,14 +209,27 @@
 
           <!-- Records -->
           <div>
+            <div v-if="allTags.length" class="mb-3">
+              <p class="text-xs text-slate-500 mb-1.5">タグで絞り込む</p>
+              <div class="flex flex-wrap gap-1">
+                <button v-for="tag in allTags" :key="tag" @click="toggleFukkatsuFilter(tag)"
+                  :class="fukkatsuFilterTags.includes(tag) ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'text-slate-400 border-white/[0.12] hover:border-emerald-500/30 hover:text-emerald-400'"
+                  class="px-2.5 py-0.5 text-xs rounded-full border transition-all">
+                  {{ tag }}
+                </button>
+              </div>
+            </div>
             <div class="flex items-center justify-between mb-3">
-              <h3 class="text-sm font-semibold text-slate-300 m-0">復活ログ（{{ fukkatsuRecords.length }}件）</h3>
-              <span class="text-xs text-emerald-400 font-medium">節約相当 ¥{{ totalFukkatsu.toLocaleString() }}</span>
+              <h3 class="text-sm font-semibold text-slate-300 m-0">
+                復活ログ（{{ filteredFukkatsuRecords.length }}件<template v-if="fukkatsuFilterTags.length"> / {{ fukkatsuRecords.length }}件中</template>）
+              </h3>
+              <span class="text-xs text-emerald-400 font-medium">節約相当 ¥{{ filteredFukkatsuTotal.toLocaleString() }}</span>
             </div>
             <p v-if="fukkatsuLoading" class="text-center py-6 text-slate-500 text-sm m-0">読み込み中...</p>
             <p v-else-if="!fukkatsuRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">まだ記録がありません</p>
+            <p v-else-if="!filteredFukkatsuRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">該当する記録がありません</p>
             <div class="space-y-2">
-              <div v-for="record in fukkatsuRecords" :key="record.id"
+              <div v-for="record in filteredFukkatsuRecords" :key="record.id"
                 class="flex items-start gap-3 p-3 bg-white/[0.03] border border-white/[0.06] rounded-xl">
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 mb-0.5 flex-wrap">
@@ -245,6 +271,18 @@ interface SetsuyakuRecord {
 
 const today = () => new Date().toISOString().slice(0, 10)
 
+const isDev = import.meta.dev
+
+function lsGet(key: string): SetsuyakuRecord[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || '[]')
+    return (parsed as SetsuyakuRecord[]).map(r => ({ ...r, tags: Array.isArray(r.tags) ? r.tags : [] }))
+  } catch { return [] }
+}
+function lsSet(key: string, records: SetsuyakuRecord[]) {
+  localStorage.setItem(key, JSON.stringify(records))
+}
+
 const activeTab = ref<'gaman' | 'fukkatsu'>('gaman')
 
 // ── 我慢ログ ──
@@ -254,15 +292,18 @@ const gamanSaving = ref(false)
 const gamanForm = ref({ name: '', price: 0, reason: '', date: today(), tags: [] as string[] })
 const gamanTagInput = ref('')
 
-const allGamanTags = computed(() => {
+const allTags = computed(() => {
   const set = new Set<string>()
   gamanRecords.value.forEach(r => r.tags.forEach(t => set.add(t)))
+  fukkatsuRecords.value.forEach(r => r.tags.forEach(t => set.add(t)))
   return [...set].sort()
 })
 
-const gamanTagSuggestions = computed(() =>
-  allGamanTags.value.filter(t => !gamanForm.value.tags.includes(t))
-)
+const gamanTagSuggestions = computed(() => {
+  const available = allTags.value.filter(t => !gamanForm.value.tags.includes(t))
+  const q = gamanTagInput.value.trim()
+  return q ? available.filter(t => t.includes(q)) : available
+})
 
 function addGamanTag() {
   const tag = gamanTagInput.value.trim()
@@ -271,6 +312,7 @@ function addGamanTag() {
 }
 function addGamanTagDirect(tag: string) {
   if (!gamanForm.value.tags.includes(tag)) gamanForm.value.tags.push(tag)
+  gamanTagInput.value = ''
 }
 function removeGamanFormTag(tag: string) {
   gamanForm.value.tags = gamanForm.value.tags.filter(t => t !== tag)
@@ -279,38 +321,68 @@ function removeGamanFormTag(tag: string) {
 async function fetchGaman() {
   gamanLoading.value = true
   try {
-    gamanRecords.value = await $fetch<SetsuyakuRecord[]>('/api/setsuyaku/gaman')
+    if (isDev) {
+      gamanRecords.value = lsGet('setsuyaku_gaman')
+    } else {
+      gamanRecords.value = await $fetch<SetsuyakuRecord[]>('/api/setsuyaku/gaman')
+    }
   } catch {}
   gamanLoading.value = false
 }
 
 async function saveGaman() {
   if (!gamanForm.value.name.trim() || gamanSaving.value) return
+  // 入力欄に未確定のタグがあれば自動で追加
+  const pendingTag = gamanTagInput.value.trim()
+  if (pendingTag && !gamanForm.value.tags.includes(pendingTag)) gamanForm.value.tags.push(pendingTag)
+  gamanTagInput.value = ''
   gamanSaving.value = true
   try {
-    const record = await $fetch<SetsuyakuRecord>('/api/setsuyaku/gaman', {
-      method: 'POST',
-      body: {
-        id: crypto.randomUUID(),
-        date: gamanForm.value.date,
-        name: gamanForm.value.name.trim(),
-        price: gamanForm.value.price || 0,
-        reason: gamanForm.value.reason.trim(),
-        tags: [...gamanForm.value.tags],
-      },
-    })
-    gamanRecords.value.unshift(record)
+    const record: SetsuyakuRecord = {
+      id: crypto.randomUUID(),
+      date: gamanForm.value.date,
+      name: gamanForm.value.name.trim(),
+      price: gamanForm.value.price || 0,
+      reason: gamanForm.value.reason.trim(),
+      tags: [...gamanForm.value.tags],
+    }
+    if (isDev) {
+      const stored = lsGet('setsuyaku_gaman')
+      stored.unshift(record)
+      lsSet('setsuyaku_gaman', stored)
+      gamanRecords.value.unshift(record)
+    } else {
+      const saved = await $fetch<SetsuyakuRecord>('/api/setsuyaku/gaman', { method: 'POST', body: record })
+      gamanRecords.value.unshift(saved)
+    }
     gamanForm.value = { name: '', price: 0, reason: '', date: today(), tags: [] }
   } catch {}
   gamanSaving.value = false
 }
 
 async function deleteGaman(id: string) {
-  await $fetch(`/api/setsuyaku/gaman/${id}`, { method: 'DELETE' }).catch(() => {})
+  if (!confirm('この記録を削除しますか？')) return
+  if (isDev) {
+    lsSet('setsuyaku_gaman', lsGet('setsuyaku_gaman').filter(r => r.id !== id))
+  } else {
+    await $fetch(`/api/setsuyaku/gaman/${id}`, { method: 'DELETE' }).catch(() => {})
+  }
   gamanRecords.value = gamanRecords.value.filter(r => r.id !== id)
 }
 
 const totalGaman = computed(() => gamanRecords.value.reduce((s, r) => s + r.price, 0))
+
+const gamanFilterTags = ref<string[]>([])
+function toggleGamanFilter(tag: string) {
+  const idx = gamanFilterTags.value.indexOf(tag)
+  if (idx === -1) gamanFilterTags.value.push(tag)
+  else gamanFilterTags.value.splice(idx, 1)
+}
+const filteredGamanRecords = computed(() => {
+  if (!gamanFilterTags.value.length) return gamanRecords.value
+  return gamanRecords.value.filter(r => r.tags.some(t => gamanFilterTags.value.includes(t)))
+})
+const filteredGamanTotal = computed(() => filteredGamanRecords.value.reduce((s, r) => s + r.price, 0))
 
 // ── 復活ログ ──
 const fukkatsuRecords = ref<SetsuyakuRecord[]>([])
@@ -319,15 +391,11 @@ const fukkatsuSaving = ref(false)
 const fukkatsuForm = ref({ name: '', price: 0, reason: '', date: today(), tags: [] as string[] })
 const fukkatsuTagInput = ref('')
 
-const allFukkatsuTags = computed(() => {
-  const set = new Set<string>()
-  fukkatsuRecords.value.forEach(r => r.tags.forEach(t => set.add(t)))
-  return [...set].sort()
+const fukkatsuTagSuggestions = computed(() => {
+  const available = allTags.value.filter(t => !fukkatsuForm.value.tags.includes(t))
+  const q = fukkatsuTagInput.value.trim()
+  return q ? available.filter(t => t.includes(q)) : available
 })
-
-const fukkatsuTagSuggestions = computed(() =>
-  allFukkatsuTags.value.filter(t => !fukkatsuForm.value.tags.includes(t))
-)
 
 function addFukkatsuTag() {
   const tag = fukkatsuTagInput.value.trim()
@@ -336,6 +404,7 @@ function addFukkatsuTag() {
 }
 function addFukkatsuTagDirect(tag: string) {
   if (!fukkatsuForm.value.tags.includes(tag)) fukkatsuForm.value.tags.push(tag)
+  fukkatsuTagInput.value = ''
 }
 function removeFukkatsuFormTag(tag: string) {
   fukkatsuForm.value.tags = fukkatsuForm.value.tags.filter(t => t !== tag)
@@ -344,38 +413,67 @@ function removeFukkatsuFormTag(tag: string) {
 async function fetchFukkatsu() {
   fukkatsuLoading.value = true
   try {
-    fukkatsuRecords.value = await $fetch<SetsuyakuRecord[]>('/api/setsuyaku/fukkatsu')
+    if (isDev) {
+      fukkatsuRecords.value = lsGet('setsuyaku_fukkatsu')
+    } else {
+      fukkatsuRecords.value = await $fetch<SetsuyakuRecord[]>('/api/setsuyaku/fukkatsu')
+    }
   } catch {}
   fukkatsuLoading.value = false
 }
 
 async function saveFukkatsu() {
   if (!fukkatsuForm.value.name.trim() || fukkatsuSaving.value) return
+  const pendingTag = fukkatsuTagInput.value.trim()
+  if (pendingTag && !fukkatsuForm.value.tags.includes(pendingTag)) fukkatsuForm.value.tags.push(pendingTag)
+  fukkatsuTagInput.value = ''
   fukkatsuSaving.value = true
   try {
-    const record = await $fetch<SetsuyakuRecord>('/api/setsuyaku/fukkatsu', {
-      method: 'POST',
-      body: {
-        id: crypto.randomUUID(),
-        date: fukkatsuForm.value.date,
-        name: fukkatsuForm.value.name.trim(),
-        price: fukkatsuForm.value.price || 0,
-        reason: fukkatsuForm.value.reason.trim(),
-        tags: [...fukkatsuForm.value.tags],
-      },
-    })
-    fukkatsuRecords.value.unshift(record)
+    const record: SetsuyakuRecord = {
+      id: crypto.randomUUID(),
+      date: fukkatsuForm.value.date,
+      name: fukkatsuForm.value.name.trim(),
+      price: fukkatsuForm.value.price || 0,
+      reason: fukkatsuForm.value.reason.trim(),
+      tags: [...fukkatsuForm.value.tags],
+    }
+    if (isDev) {
+      const stored = lsGet('setsuyaku_fukkatsu')
+      stored.unshift(record)
+      lsSet('setsuyaku_fukkatsu', stored)
+      fukkatsuRecords.value.unshift(record)
+    } else {
+      const saved = await $fetch<SetsuyakuRecord>('/api/setsuyaku/fukkatsu', { method: 'POST', body: record })
+      fukkatsuRecords.value.unshift(saved)
+    }
     fukkatsuForm.value = { name: '', price: 0, reason: '', date: today(), tags: [] }
   } catch {}
   fukkatsuSaving.value = false
 }
 
 async function deleteFukkatsu(id: string) {
-  await $fetch(`/api/setsuyaku/fukkatsu/${id}`, { method: 'DELETE' }).catch(() => {})
+  if (!confirm('この記録を削除しますか？')) return
+  if (isDev) {
+    lsSet('setsuyaku_fukkatsu', lsGet('setsuyaku_fukkatsu').filter(r => r.id !== id))
+  } else {
+    await $fetch(`/api/setsuyaku/fukkatsu/${id}`, { method: 'DELETE' }).catch(() => {})
+  }
   fukkatsuRecords.value = fukkatsuRecords.value.filter(r => r.id !== id)
 }
 
 const totalFukkatsu = computed(() => fukkatsuRecords.value.reduce((s, r) => s + r.price, 0))
+
+const fukkatsuFilterTags = ref<string[]>([])
+function toggleFukkatsuFilter(tag: string) {
+  const idx = fukkatsuFilterTags.value.indexOf(tag)
+  if (idx === -1) fukkatsuFilterTags.value.push(tag)
+  else fukkatsuFilterTags.value.splice(idx, 1)
+}
+const filteredFukkatsuRecords = computed(() => {
+  if (!fukkatsuFilterTags.value.length) return fukkatsuRecords.value
+  return fukkatsuRecords.value.filter(r => r.tags.some(t => fukkatsuFilterTags.value.includes(t)))
+})
+const filteredFukkatsuTotal = computed(() => filteredFukkatsuRecords.value.reduce((s, r) => s + r.price, 0))
 
 // ── AI アドバイス ──
 const wantsInput = ref('')
