@@ -1,5 +1,6 @@
 <template>
-  <div class="flex flex-col items-center px-4 pt-4 lg:pt-8 pb-12 min-h-screen">
+  <div class="flex flex-col items-center px-4 pt-4 lg:pt-8 pb-12 min-h-screen" @click="showSettingsMenu = false">
+    <div v-if="showSettingsMenu" class="fixed inset-0 z-40" @click="showSettingsMenu = false" />
     <div class="relative w-full max-w-[680px]">
       <div class="absolute inset-x-0 top-0 h-[2px] rounded-t-2xl bg-gradient-to-r from-emerald-500 to-teal-500 z-10" />
       <div class="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl p-6 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-[10px]">
@@ -9,20 +10,34 @@
           <div>
             <h1 class="m-0 text-[clamp(20px,4vw,26px)] font-bold bg-gradient-to-br from-emerald-400 to-teal-400 bg-clip-text text-transparent">節約</h1>
           </div>
-          <div class="text-right text-xs space-y-0.5">
-            <div class="flex items-center justify-end gap-1.5">
-              <span class="text-slate-500">節約</span>
-              <span class="text-emerald-400 font-medium tabular-nums">¥{{ totalSetsuyaku.toLocaleString() }}</span>
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-4 text-xs">
+              <div class="flex flex-col items-center gap-0.5">
+                <span class="text-slate-500">節約</span>
+                <span class="text-emerald-400 font-medium tabular-nums">¥{{ totalSetsuyaku.toLocaleString() }}</span>
+              </div>
+              <div class="flex flex-col items-center gap-0.5">
+                <span class="text-slate-500">浪費</span>
+                <span class="text-rose-400 font-medium tabular-nums">¥{{ totalRouhi.toLocaleString() }}</span>
+              </div>
+              <div class="flex flex-col items-center gap-0.5">
+                <span class="text-slate-500">差分</span>
+                <span :class="diffAmount >= 0 ? 'text-emerald-400' : 'text-rose-400'" class="font-semibold tabular-nums">
+                  {{ diffAmount >= 0 ? '+' : '' }}¥{{ diffAmount.toLocaleString() }}
+                </span>
+              </div>
             </div>
-            <div class="flex items-center justify-end gap-1.5">
-              <span class="text-slate-500">浪費</span>
-              <span class="text-rose-400 font-medium tabular-nums">¥{{ totalRouhi.toLocaleString() }}</span>
-            </div>
-            <div class="flex items-center justify-end gap-1.5">
-              <span class="text-slate-500">差分</span>
-              <span :class="diffAmount >= 0 ? 'text-emerald-400' : 'text-rose-400'" class="font-semibold tabular-nums">
-                {{ diffAmount >= 0 ? '+' : '' }}¥{{ diffAmount.toLocaleString() }}
-              </span>
+            <div class="relative self-center" @click.stop>
+              <button
+                class="w-8 h-8 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-base cursor-pointer flex items-center justify-center transition-all hover:bg-white/[0.12] hover:text-[#e2e8f0]"
+                title="設定"
+                @click="showSettingsMenu = !showSettingsMenu"
+              >⚙</button>
+              <div v-if="showSettingsMenu" class="absolute right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-[200] min-w-[140px] py-1 overflow-hidden">
+                <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); showSettingsMenu = false">
+                  <span>🚪</span> ログアウト
+                </button>
+              </div>
             </div>
           </div>
         </header>
@@ -600,6 +615,9 @@ function lsSetSodan(records: SodanRecord[]) {
 function lsSet(key: string, records: SetsuyakuRecord[]) {
   localStorage.setItem(key, JSON.stringify(records))
 }
+
+const { logout } = useAuth()
+const showSettingsMenu = ref(false)
 
 const activeTab = ref<'gaman' | 'fukkatsu' | 'rouhi' | 'sodan'>('gaman')
 

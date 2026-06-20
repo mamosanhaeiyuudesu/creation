@@ -1,5 +1,6 @@
 <template>
-  <div class="flex min-h-full">
+  <div class="flex min-h-full" @click="showSettingsMenu = false">
+    <div v-if="showSettingsMenu" class="fixed inset-0 z-40" @click="showSettingsMenu = false" />
     <!-- Left Sidebar: Calendar (desktop only) -->
     <aside class="hidden md:flex flex-col w-72 flex-shrink-0 border-r border-white/[0.08] p-5 gap-5">
       <!-- Month navigation -->
@@ -70,6 +71,18 @@
             class="text-xs text-sky-400 hover:text-sky-300 transition-colors"
             @click="goToToday"
           >今日に戻る</button>
+          <div class="relative" @click.stop>
+            <button
+              class="w-9 h-9 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-lg cursor-pointer flex items-center justify-center transition-all hover:bg-white/[0.12] hover:text-[#e2e8f0]"
+              title="設定"
+              @click="showSettingsMenu = !showSettingsMenu"
+            >⚙</button>
+            <div v-if="showSettingsMenu" class="absolute right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-[200] min-w-[140px] py-1 overflow-hidden">
+              <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); showSettingsMenu = false">
+                <span>🚪</span> ログアウト
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -169,7 +182,24 @@
       <div class="w-full max-w-[420px]">
         <div class="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5 shadow-lg flex flex-col gap-4">
           <!-- Title -->
-          <h1 class="m-0 text-xl font-bold text-center bg-gradient-to-br from-sky-400 to-indigo-500 bg-clip-text text-transparent">🏢 office</h1>
+          <div class="flex items-center justify-between">
+            <div class="flex-1" />
+            <h1 class="m-0 text-xl font-bold text-center bg-gradient-to-br from-sky-400 to-indigo-500 bg-clip-text text-transparent">🏢 office</h1>
+            <div class="flex-1 flex justify-end" @click.stop>
+              <div class="relative">
+                <button
+                  class="w-8 h-8 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-base cursor-pointer flex items-center justify-center transition-all hover:bg-white/[0.12]"
+                  title="設定"
+                  @click="showSettingsMenu = !showSettingsMenu"
+                >⚙</button>
+                <div v-if="showSettingsMenu" class="absolute right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-[200] min-w-[140px] py-1 overflow-hidden">
+                  <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); showSettingsMenu = false">
+                    <span>🚪</span> ログアウト
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- Month navigation -->
           <div class="flex items-center justify-between">
@@ -418,7 +448,7 @@ const CELEBRATIONS = [
 ]
 
 // ── Auth ───────────────────────────────────────────────────
-const { isLoggedIn, checked, checkAuth } = useAuth()
+const { isLoggedIn, checked, checkAuth, logout } = useAuth()
 const showAuthModal = computed(() => !$dev && !isLoggedIn.value && checked.value)
 
 // ── State ──────────────────────────────────────────────────
@@ -431,6 +461,7 @@ const selectedDateStr = ref(todayStr)
 const mobileView = ref<'calendar' | 'detail'>('calendar')
 
 const allRecords = ref<OfficeRecord[]>([])
+const showSettingsMenu = ref(false)
 const showCelebration = ref(false)
 const celebrationTitle = ref('')
 const celebrationMessage = ref('')

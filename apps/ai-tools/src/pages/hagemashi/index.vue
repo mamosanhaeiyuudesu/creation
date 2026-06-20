@@ -1,5 +1,6 @@
 <template>
-  <div class="flex flex-col items-center px-4 pt-4 lg:pt-8 pb-12 min-h-screen">
+  <div class="flex flex-col items-center px-4 pt-4 lg:pt-8 pb-12 min-h-screen" @click="showSettingsMenu = false">
+    <div v-if="showSettingsMenu" class="fixed inset-0 z-40" @click="showSettingsMenu = false" />
     <div class="relative w-full max-w-[600px] ml-2.5">
       <div class="absolute inset-x-0 top-0 h-[2px] rounded-t-2xl bg-gradient-to-r from-orange-500 to-pink-500 z-10" />
       <div class="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl p-7 shadow-[0_20px_80px_rgba(0,0,0,0.35),0_0_40px_rgba(249,115,22,0.06)] backdrop-blur-[10px] grid gap-4 max-h-[70dvh] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
@@ -10,14 +11,23 @@
           <h1 class="m-0 text-[clamp(24px,4vw,32px)] font-bold bg-gradient-to-br from-orange-500 to-pink-500 bg-clip-text text-transparent">はげまし</h1>
           <p class="mt-2 mb-0 text-slate-400 text-base">話して、励ましてもらおう</p>
         </div>
-        <div class="absolute right-0 top-1/2 -translate-y-1/2">
-          <UserMenu
-            v-if="!$dev && user"
-            :username="user.username"
-            :items="menuItems"
-            accentFrom="#f97316"
-            accentTo="#ec4899"
-          />
+        <div class="absolute right-0 top-1/2 -translate-y-1/2" @click.stop>
+          <button
+            class="w-9 h-9 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-lg cursor-pointer flex items-center justify-center transition-all hover:bg-white/[0.12] hover:text-[#e2e8f0]"
+            title="設定"
+            @click="showSettingsMenu = !showSettingsMenu"
+          >⚙</button>
+          <div v-if="showSettingsMenu" class="absolute right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-[200] min-w-[160px] py-1 overflow-hidden">
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openExportModal(); showSettingsMenu = false">
+              <span>📤</span> エクスポート
+            </button>
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openSettingsModal(); showSettingsMenu = false">
+              <span>💬</span> 励まし方の設定
+            </button>
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); showSettingsMenu = false">
+              <span>🚪</span> ログアウト
+            </button>
+          </div>
         </div>
       </header>
 
@@ -372,6 +382,7 @@ const makeDefaultProfile = (): HagemashiProfile => ({
 })
 
 const error = ref('')
+const showSettingsMenu = ref(false)
 const settingsOpen = ref(false)
 const selectOpen = ref(false)
 const selectedIds = ref<string[]>([])
@@ -409,12 +420,6 @@ const {
   deleteHistory: deleteEncourageHistory,
   copyHistory: copyEncourageHistory,
 } = useHistory('hagemashi-encourage-history', 'hagemashi-encourage')
-
-const menuItems = [
-  { icon: '📤', label: 'エクスポート', action: openExportModal },
-  { icon: '💬', label: '励まし方の設定', action: openSettingsModal },
-  { icon: '🚪', label: 'ログアウト', action: logout },
-]
 
 // --- プロファイル管理 ---
 onMounted(() => {

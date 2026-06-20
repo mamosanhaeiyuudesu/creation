@@ -1,10 +1,6 @@
 import { ref, computed } from 'vue'
 
-const LS_PROFILES = 'trello_profiles'
 const LS_ACTIVE = 'trello_active_profile'
-const LS_KEY_LEGACY = 'trello_key'
-const LS_TOKEN_LEGACY = 'trello_token'
-const LS_EXCLUDED_LEGACY = 'trello_excluded'
 
 export interface Profile {
   id: string
@@ -30,37 +26,36 @@ export function useTaskProfiles() {
 
   const showSettings = ref(false)
 
-  function init(fromUrl?: string) {
-    const stored = localStorage.getItem(LS_PROFILES)
-    if (stored) {
-      try { profiles.value = JSON.parse(stored) } catch {}
+  async function init(fromUrl?: string) {
+    try {
+      const fetched = await $fetch<Profile[]>('/api/task/profiles')
+      profiles.value = fetched
+    } catch {
+      profiles.value = []
     }
-    if (!profiles.value.length) {
-      const key = localStorage.getItem(LS_KEY_LEGACY) || ''
-      const token = localStorage.getItem(LS_TOKEN_LEGACY) || ''
-      const excluded = localStorage.getItem(LS_EXCLUDED_LEGACY) || ''
-      profiles.value = [{ id: '1', name: 'デフォルト', key, token, excluded }]
-      localStorage.setItem(LS_PROFILES, JSON.stringify(profiles.value))
-    }
+
     const fromStorage = localStorage.getItem(LS_ACTIVE)
     const preferred = fromUrl || fromStorage
     activeProfileId.value = (preferred && profiles.value.find(p => p.id === preferred))
       ? preferred
-      : profiles.value[0].id
-    localStorage.setItem(LS_ACTIVE, activeProfileId.value)
+      : (profiles.value[0]?.id ?? '')
+    if (activeProfileId.value) localStorage.setItem(LS_ACTIVE, activeProfileId.value)
   }
 
   function openSettings() {
     showSettings.value = true
   }
 
-  function applySettings(validProfiles: Profile[]) {
+  async function applySettings(validProfiles: Profile[]) {
     profiles.value = validProfiles
     if (!profiles.value.find(p => p.id === activeProfileId.value)) {
-      activeProfileId.value = profiles.value[0].id
+      activeProfileId.value = profiles.value[0]?.id ?? ''
     }
-    localStorage.setItem(LS_PROFILES, JSON.stringify(profiles.value))
     localStorage.setItem(LS_ACTIVE, activeProfileId.value)
+    await $fetch('/api/task/profiles', {
+      method: 'PUT',
+      body: { profiles: validProfiles },
+    })
     showSettings.value = false
   }
 

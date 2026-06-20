@@ -28,6 +28,9 @@ import type { HistoryItem } from '~/types/history'
 const route = useRoute()
 const isMounted = ref(false)
 
+const { isLoggedIn, checked, checkAuth, logout } = useAuth()
+const showAuthModal = computed(() => !import.meta.dev && !isLoggedIn.value && checked.value)
+
 const now = nowJST()
 const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 2, 1))
 const defaultStart = `${startDate.getUTCFullYear()}-${String(startDate.getUTCMonth() + 1).padStart(2, '0')}`
@@ -237,8 +240,18 @@ const showPendingDone = computed({
   set: (v: boolean) => { if (!v) pendingDone.value = null },
 })
 
-onMounted(() => {
-  init(route.query.profile as string | undefined)
+onMounted(async () => {
+  await checkAuth()
+  if (!isLoggedIn.value) return
+  await init(route.query.profile as string | undefined)
+  isMounted.value = true
+  if (hasCredentials.value) load()
+  else openSettings()
+})
+
+watch(isLoggedIn, async (v) => {
+  if (!v || isMounted.value) return
+  await init(route.query.profile as string | undefined)
   isMounted.value = true
   if (hasCredentials.value) load()
   else openSettings()
@@ -246,6 +259,9 @@ onMounted(() => {
 </script>
 
 <template>
+  <!-- 認証モーダル -->
+  <AuthModal v-if="showAuthModal" accent="sky" />
+
   <!-- Backdrop (month picker / settings menu) -->
   <div v-if="pickerOpen || showMobilePeriod || showSettingsMenu" class="fixed inset-0 z-40" @click="pickerOpen = null; showMobilePeriod = false; showSettingsMenu = false" />
 
@@ -467,12 +483,15 @@ onMounted(() => {
             title="設定"
             @click="openSettingsMenu"
           >⚙</button>
-          <div v-if="showSettingsMenu" class="absolute right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-[200] min-w-[140px] py-1 overflow-hidden">
+          <div v-if="showSettingsMenu" class="absolute right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-[200] min-w-[160px] py-1 overflow-hidden">
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openSettings(); closeSettingsMenu()">
               <span>🔑</span> アカウント設定
             </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="downloadDone">
               <span>⬇</span> ダウンロード
+            </button>
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); closeSettingsMenu()">
+              <span>🚪</span> ログアウト
             </button>
           </div>
         </div>
@@ -551,12 +570,15 @@ onMounted(() => {
             class="w-8 h-8 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-base cursor-pointer flex items-center justify-center transition-all hover:bg-white/[0.12]"
             @click="openSettingsMenu"
           >⚙</button>
-          <div v-if="showSettingsMenu" class="absolute right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-[200] min-w-[140px] py-1 overflow-hidden">
+          <div v-if="showSettingsMenu" class="absolute right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-[200] min-w-[160px] py-1 overflow-hidden">
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openSettings(); closeSettingsMenu()">
               <span>🔑</span> アカウント設定
             </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="downloadDone">
               <span>⬇</span> ダウンロード
+            </button>
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); closeSettingsMenu()">
+              <span>🚪</span> ログアウト
             </button>
           </div>
         </div>
