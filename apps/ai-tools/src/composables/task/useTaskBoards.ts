@@ -1,9 +1,17 @@
 import { ref, computed } from 'vue'
 import type { ComputedRef, Ref } from 'vue'
 
+export function parseTaskName(name: string): { displayName: string; effort: number } {
+  const m = name.match(/ (\d{1,2})$/)
+  if (m) return { displayName: name.slice(0, -m[0].length), effort: parseInt(m[1], 10) }
+  return { displayName: name, effort: 1 }
+}
+
 export interface Card {
   id: string
   name: string
+  displayName: string
+  effort: number
   desc: string
   due: string | null
   pos: number
@@ -87,7 +95,7 @@ export function useTaskBoards(
   // Task modal state
   const showTaskModal = ref(false)
   const editTarget = ref<EditTarget>(null)
-  const taskForm = ref({ name: '', desc: '', due: '', boardId: '', status: 'todo' as 'todo' | 'doing' | 'done', isImportant: false })
+  const taskForm = ref({ name: '', desc: '', due: '', boardId: '', status: 'todo' as 'todo' | 'doing' | 'done', isImportant: false, effort: 1 })
   const isEditing = computed(() => editTarget.value !== null)
   const modalTitle = computed(() => isEditing.value ? 'タスクを編集' : 'タスクを追加')
 
@@ -165,7 +173,8 @@ export function useTaskBoards(
 
   function buildCard(raw: any): Card {
     const redLabel = Array.isArray(raw.labels) ? raw.labels.find((l: any) => l.color === 'red') : null
-    const c: Card = { id: raw.id, name: raw.name, desc: raw.desc || '', due: raw.due || null, pos: raw.pos ?? 0, isOverdue: false, isUrgent: false, display: '', isImportant: !!redLabel, redLabelId: redLabel?.id ?? null }
+    const { displayName, effort } = parseTaskName(raw.name)
+    const c: Card = { id: raw.id, name: raw.name, displayName, effort, desc: raw.desc || '', due: raw.due || null, pos: raw.pos ?? 0, isOverdue: false, isUrgent: false, display: '', isImportant: !!redLabel, redLabelId: redLabel?.id ?? null }
     if (raw.due) Object.assign(c, timeRemaining(raw.due))
     return c
   }
@@ -340,22 +349,23 @@ export function useTaskBoards(
 
   function openAddTask(boardId: string, status: 'todo' | 'doing') {
     editTarget.value = null
-    taskForm.value = { name: '', desc: '', due: '', boardId, status, isImportant: false }
+    taskForm.value = { name: '', desc: '', due: '', boardId, status, isImportant: false, effort: 1 }
     showTaskModal.value = true
   }
 
   function openEditTask(card: Card, boardId: string, status: 'doing' | 'todo') {
     editTarget.value = { card, boardId, status }
-    taskForm.value = { name: card.name, desc: card.desc, due: card.due ? toLocalDatetimeInput(card.due) : '', boardId, status, isImportant: card.isImportant }
+    taskForm.value = { name: card.displayName, desc: card.desc, due: card.due ? toLocalDatetimeInput(card.due) : '', boardId, status, isImportant: card.isImportant, effort: card.effort }
     showTaskModal.value = true
   }
 
   function openEditDoneTask(item: { id: string; name: string }, dateKey: string, board: Board) {
+    const { displayName, effort } = parseTaskName(item.name)
     const dueForInput = dateKey + 'T12:00'
     const dueIso = new Date(dueForInput).toISOString()
-    const card: Card = { id: item.id, name: item.name, desc: '', due: dueIso, pos: 0, isOverdue: false, isUrgent: false, display: '', isImportant: false, redLabelId: null }
+    const card: Card = { id: item.id, name: item.name, displayName, effort, desc: '', due: dueIso, pos: 0, isOverdue: false, isUrgent: false, display: '', isImportant: false, redLabelId: null }
     editTarget.value = { card, boardId: board.id, status: 'done', dateKey }
-    taskForm.value = { name: item.name, desc: '', due: dueForInput, boardId: board.id, status: 'done', isImportant: false }
+    taskForm.value = { name: displayName, desc: '', due: dueForInput, boardId: board.id, status: 'done', isImportant: false, effort }
     showTaskModal.value = true
   }
 
@@ -367,6 +377,8 @@ export function useTaskBoards(
       const board = boards.value.find(b => b.id === taskForm.value.boardId)
       if (!board) throw new Error('ボードが見つかりません')
       const dueIso = taskForm.value.due ? new Date(taskForm.value.due).toISOString() : ''
+      const baseName = taskForm.value.name.trim()
+      const trelloName = taskForm.value.effort > 1 ? `${baseName} ${taskForm.value.effort}` : baseName
 
       if (isEditing.value && editTarget.value?.status === 'done') {
         const { card, boardId: oldBoardId, dateKey } = editTarget.value
@@ -376,7 +388,7 @@ export function useTaskBoards(
         const newStatus = taskForm.value.status
 
         if (newStatus === 'done') {
-          const putBody: Record<string, any> = { name: taskForm.value.name.trim(), desc: taskForm.value.desc.trim(), due: effectiveDue, dueComplete: true }
+          const putBody: Record<string, any> = { name: trelloName, desc: taskForm.value.desc.trim(), due: effectiveDue, dueComplete: true }
           if (boardChanged) putBody.idList = board.doneListId
           if (boardChanged) putBody.idBoard = board.id
           await trelloPut(`/cards/${card.id}`, putBody)
@@ -386,7 +398,7 @@ export function useTaskBoards(
               if (idx >= 0) oldBoard.done[dateKey].splice(idx, 1)
               if (oldBoard.done[dateKey].length === 0) delete oldBoard.done[dateKey]
             }
-            addToDoneTable(board, { ...card, name: taskForm.value.name.trim(), due: effectiveDue })
+            addToDoneTable(board, { ...card, name: trelloName, due: effectiveDue })
             rebuildAllDates()
           } else {
             const newDateKey = toJSTDate(effectiveDue).toISOString().slice(0, 10)
@@ -397,17 +409,17 @@ export function useTaskBoards(
                 if (idx >= 0) oldArr.splice(idx, 1)
                 if (oldArr.length === 0) delete oldBoard.done[dateKey]
               }
-              addToDoneTable(board, { ...card, name: taskForm.value.name.trim(), due: effectiveDue })
+              addToDoneTable(board, { ...card, name: trelloName, due: effectiveDue })
               rebuildAllDates()
             } else if (dateKey && board.done[dateKey]) {
               const idx = board.done[dateKey].findIndex(c => c.id === card.id)
-              if (idx >= 0) board.done[dateKey][idx].name = taskForm.value.name.trim()
+              if (idx >= 0) board.done[dateKey][idx].name = trelloName
             }
           }
         } else {
           const newListId = newStatus === 'doing' ? board.doingListId : board.todoListId
           if (!newListId) throw new Error('対象リストが見つかりません')
-          const raw = await trelloPut(`/cards/${card.id}`, { name: taskForm.value.name.trim(), desc: taskForm.value.desc.trim(), idList: newListId, ...(boardChanged ? { idBoard: board.id } : {}), dueComplete: false, due: dueIso || '' })
+          const raw = await trelloPut(`/cards/${card.id}`, { name: trelloName, desc: taskForm.value.desc.trim(), idList: newListId, ...(boardChanged ? { idBoard: board.id } : {}), dueComplete: false, due: dueIso || '' })
           if (dateKey && oldBoard.done[dateKey]) {
             const idx = oldBoard.done[dateKey].findIndex(c => c.id === card.id)
             if (idx >= 0) oldBoard.done[dateKey].splice(idx, 1)
@@ -435,20 +447,20 @@ export function useTaskBoards(
           const oldBoard = boards.value.find(b => b.id === oldBoardId) ?? board
           const boardChanged = oldBoardId !== taskForm.value.boardId
           const effectiveDue = dueIso || card.due || new Date().toISOString()
-          await trelloPut(`/cards/${card.id}`, { name: taskForm.value.name.trim(), desc: taskForm.value.desc.trim(), idList: board.doneListId, ...(boardChanged ? { idBoard: board.id } : {}), dueComplete: true, due: effectiveDue })
+          await trelloPut(`/cards/${card.id}`, { name: trelloName, desc: taskForm.value.desc.trim(), idList: board.doneListId, ...(boardChanged ? { idBoard: board.id } : {}), dueComplete: true, due: effectiveDue })
           const srcArr = status === 'doing' ? oldBoard.doing : oldBoard.todo
           const idx = srcArr.findIndex(c => c.id === card.id)
           if (idx >= 0) srcArr.splice(idx, 1)
-          addToDoneTable(board, { ...card, name: taskForm.value.name.trim(), due: effectiveDue })
+          addToDoneTable(board, { ...card, name: trelloName, due: effectiveDue })
         } else {
-          const raw = await trelloPost('/cards', { name: taskForm.value.name.trim(), desc: taskForm.value.desc.trim(), due: dueIso || new Date().toISOString(), dueComplete: true, idList: board.doneListId })
+          const raw = await trelloPost('/cards', { name: trelloName, desc: taskForm.value.desc.trim(), due: dueIso || new Date().toISOString(), dueComplete: true, idList: board.doneListId })
           addToDoneTable(board, buildCard(raw))
         }
         showTaskModal.value = false
         return
       }
 
-      const body: Record<string, any> = { name: taskForm.value.name.trim(), desc: taskForm.value.desc.trim(), due: dueIso }
+      const body: Record<string, any> = { name: trelloName, desc: taskForm.value.desc.trim(), due: dueIso }
       if (isEditing.value && editTarget.value) {
         const { card, boardId: oldBoardId, status } = editTarget.value
         const oldBoard = boards.value.find(b => b.id === oldBoardId) ?? board
@@ -487,7 +499,7 @@ export function useTaskBoards(
         const listId = taskForm.value.status === 'doing' ? board.doingListId : board.todoListId
         if (!listId) throw new Error('対象リストが見つかりません')
         body.idList = listId
-        const raw = await trelloPost('/cards', body)
+        const raw = await trelloPost('/cards', body)  // body.name already set to trelloName above
         const newCard = buildCard(raw)
         if (taskForm.value.isImportant) {
           const labelId = await ensureRedLabel(board)
@@ -509,7 +521,7 @@ export function useTaskBoards(
 
   async function deleteTask() {
     if (!editTarget.value) return
-    if (!confirm(`「${editTarget.value.card.name}」を削除しますか？`)) return
+    if (!confirm(`「${editTarget.value.card.displayName}」を削除しますか？`)) return
     saving.value = true
     error.value = ''
     try {

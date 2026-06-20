@@ -17,11 +17,13 @@ useHead({
   ],
 })
 import { useTaskProfiles } from '~/composables/task/useTaskProfiles'
-import { useTaskBoards, BOARD_COLORS } from '~/composables/task/useTaskBoards'
+import { useTaskBoards, BOARD_COLORS, parseTaskName } from '~/composables/task/useTaskBoards'
 import { useDragDrop } from '~/composables/task/useDragDrop'
 import { useMonthPicker } from '~/composables/task/useMonthPicker'
 import { useTaskStats } from '~/composables/task/useTaskStats'
 import type { DoneView } from '~/composables/task/useTaskStats'
+import { useHistory } from '~/composables/useHistory'
+import type { HistoryItem } from '~/types/history'
 
 const route = useRoute()
 const isMounted = ref(false)
@@ -127,6 +129,19 @@ const praiseCharsOptions = [500, 1000, 1500, 2000]
 const praiseFeedback = ref('')
 const praiseLoading = ref(false)
 const praiseError = ref('')
+
+const { history: praiseHistory, addHistory: addPraiseHistory } = useHistory('task-praise-history', 'task/praise')
+const showPraiseResult = ref(false)
+const showPraiseHistory = ref(false)
+const selectedPraiseItem = ref<HistoryItem | null>(null)
+const selectedPraiseSentences = computed(() => {
+  if (!selectedPraiseItem.value) return []
+  return selectedPraiseItem.value.text
+    .split('。')
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+    .map(s => s + '。')
+})
 const praiseSentences = computed(() =>
   praiseFeedback.value
     .split('。')
@@ -154,6 +169,7 @@ const praisePeriodFlat = computed(() => {
 
 async function generatePraise() {
   praiseDialog.value = false
+  showPraiseResult.value = true
   praiseLoading.value = true
   praiseFeedback.value = ''
   praiseError.value = ''
@@ -170,6 +186,8 @@ async function generatePraise() {
       },
     })
     praiseFeedback.value = res.feedback
+    const today = new Date().toISOString().slice(0, 10)
+    addPraiseHistory(res.feedback, `${today}（${praiseDays.value}日間）`)
   } catch (e: any) {
     praiseError.value = e?.data?.statusMessage || 'エラーが発生しました'
   } finally {
@@ -263,6 +281,70 @@ onMounted(() => {
     </div>
   </div>
 
+  <!-- 称賛結果ポップアップ -->
+  <div v-if="showPraiseResult" class="fixed inset-0 z-[200] flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showPraiseResult = false" />
+    <div class="relative bg-[#1e293b] border border-white/[0.12] rounded-2xl shadow-2xl w-[560px] max-w-[calc(100vw-2rem)] max-h-[80vh] flex flex-col" @click.stop>
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.08] flex-shrink-0">
+        <h3 class="text-[14px] font-semibold text-slate-200 m-0">AIからの称賛</h3>
+        <button class="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-300 text-xs cursor-pointer rounded hover:bg-white/[0.08]" @click="showPraiseResult = false">✕</button>
+      </div>
+      <div class="overflow-y-auto flex-1 px-5 py-4">
+        <div v-if="praiseLoading" class="flex flex-col gap-3">
+          <div class="h-4 rounded bg-white/[0.06] animate-pulse w-full" />
+          <div class="h-4 rounded bg-white/[0.06] animate-pulse w-4/5" />
+          <div class="h-4 rounded bg-white/[0.06] animate-pulse w-full" />
+          <div class="h-4 rounded bg-white/[0.06] animate-pulse w-3/4" />
+          <div class="h-4 rounded bg-white/[0.06] animate-pulse w-full" />
+          <div class="h-4 rounded bg-white/[0.06] animate-pulse w-3/5" />
+        </div>
+        <div v-else-if="praiseError" class="px-3.5 py-2.5 bg-red-500/12 border border-red-500/30 rounded-lg text-red-300 text-[13px]">⚠ {{ praiseError }}</div>
+        <div v-else-if="praiseFeedback" class="flex flex-col gap-1.5">
+          <p v-for="(s, i) in praiseSentences" :key="i" class="m-0 text-[15px] leading-relaxed text-slate-200">{{ s }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 称賛履歴モーダル -->
+  <div v-if="showPraiseHistory" class="fixed inset-0 z-[200] flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showPraiseHistory = false; selectedPraiseItem = null" />
+    <div class="relative bg-[#1e293b] border border-white/[0.12] rounded-2xl shadow-2xl w-[480px] max-w-[calc(100vw-2rem)] max-h-[80vh] flex flex-col" @click.stop>
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.08] flex-shrink-0">
+        <div class="flex items-center gap-2">
+          <button v-if="selectedPraiseItem" class="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-200 text-base cursor-pointer hover:bg-white/[0.08]" @click="selectedPraiseItem = null">‹</button>
+          <h3 class="text-[14px] font-semibold text-slate-200 m-0">{{ selectedPraiseItem ? selectedPraiseItem.title : '称賛履歴' }}</h3>
+        </div>
+        <button class="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-300 text-xs cursor-pointer rounded hover:bg-white/[0.08]" @click="showPraiseHistory = false; selectedPraiseItem = null">✕</button>
+      </div>
+      <div class="overflow-y-auto flex-1 p-4">
+        <template v-if="!selectedPraiseItem">
+          <div v-if="praiseHistory.length === 0" class="text-center py-10 text-slate-600 text-[13px]">履歴がありません</div>
+          <ul v-else class="list-none m-0 p-0 flex flex-col gap-2">
+            <li
+              v-for="item in praiseHistory"
+              :key="item.id"
+              class="rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3 cursor-pointer hover:bg-white/[0.07] transition-colors"
+              @click="selectedPraiseItem = item"
+            >
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[13px] font-semibold text-slate-200">{{ item.title }}</span>
+                <span class="text-[11px] text-slate-600 flex-shrink-0 ml-2">{{ item.timestamp.slice(0, 10) }}</span>
+              </div>
+              <p class="m-0 text-[12px] text-slate-500 leading-relaxed overflow-hidden" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">{{ item.text }}</p>
+            </li>
+          </ul>
+        </template>
+        <template v-else>
+          <div class="text-[11px] text-slate-600 mb-3">{{ selectedPraiseItem.timestamp.slice(0, 16).replace('T', ' ') }}</div>
+          <div class="px-4 py-3.5 bg-violet-500/[0.08] border border-violet-400/25 rounded-xl text-[14px] leading-relaxed text-slate-200 flex flex-col gap-1">
+            <p v-for="(s, i) in selectedPraiseSentences" :key="i" class="m-0">{{ s }}</p>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
   <!-- ボード編集ダイアログ -->
   <div v-if="showBoardEditModal" class="fixed inset-0 z-[200] flex items-center justify-center">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showBoardEditModal = false" />
@@ -303,6 +385,16 @@ onMounted(() => {
         <h1 class="flex-none m-0 text-xl font-bold bg-gradient-to-br from-emerald-400 to-teal-500 bg-clip-text text-transparent">タスクくん</h1>
         <!-- デスクトップ用コントロール -->
         <div v-if="hasCredentials" class="hidden md:flex items-center gap-2 ml-auto">
+          <button
+            class="px-3 py-1.5 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[12px] font-semibold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:opacity-90 hover:enabled:-translate-y-px"
+            :disabled="praiseLoading"
+            @click="praiseDialog = true"
+          >{{ praiseLoading ? '生成中…' : '称賛してもらう' }}</button>
+          <button
+            class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-[12px] font-medium cursor-pointer hover:bg-white/[0.12] hover:text-slate-200 transition-colors"
+            @click="showPraiseHistory = true"
+          >称賛履歴</button>
+          <div class="w-px h-4 bg-white/[0.1]" />
           <div class="flex items-center gap-1 mr-1">
             <button
               v-for="p in profiles"
@@ -387,6 +479,16 @@ onMounted(() => {
       </div>
       <!-- モバイル用コントロール行 -->
       <div v-if="hasCredentials" class="md:hidden flex items-center gap-2 px-3 pb-2">
+        <button
+          class="flex-shrink-0 px-2.5 py-1 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[11px] font-semibold cursor-pointer disabled:opacity-50"
+          :disabled="praiseLoading"
+          @click="praiseDialog = true"
+        >{{ praiseLoading ? '…' : '称賛' }}</button>
+        <button
+          class="flex-shrink-0 px-2.5 py-1 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-[11px] cursor-pointer hover:bg-white/[0.12]"
+          @click="showPraiseHistory = true"
+        >履歴</button>
+        <div class="w-px h-4 bg-white/[0.1] flex-shrink-0" />
         <select
           v-if="profiles.length > 1"
           :value="activeProfileId"
@@ -558,7 +660,10 @@ onMounted(() => {
                       @click.stop="markDone(card, board)"
                     />
                     <div class="flex-1 min-w-0">
-                      <span class="text-[13px] leading-snug text-white block">{{ card.name }}</span>
+                      <div class="flex items-baseline gap-1.5">
+                        <span class="text-[13px] leading-snug text-white">{{ card.displayName }}</span>
+                        <span v-if="card.effort > 1" class="inline-block px-1 rounded text-[10px] font-bold bg-sky-400/15 text-sky-400 flex-shrink-0">{{ card.effort }}</span>
+                      </div>
                       <span v-if="card.desc" class="text-[11px] text-slate-500 block mt-0.5 truncate">{{ card.desc }}</span>
                     </div>
                   </div>
@@ -621,7 +726,10 @@ onMounted(() => {
                       @click.stop="markDone(card, board)"
                     />
                     <div class="flex-1 min-w-0">
-                      <span class="text-[13px] leading-snug text-white block">{{ card.name }}</span>
+                      <div class="flex items-baseline gap-1.5">
+                        <span class="text-[13px] leading-snug text-white">{{ card.displayName }}</span>
+                        <span v-if="card.effort > 1" class="inline-block px-1 rounded text-[10px] font-bold bg-amber-500/15 text-amber-400 flex-shrink-0">{{ card.effort }}</span>
+                      </div>
                       <span v-if="card.desc" class="text-[11px] text-slate-500 block mt-0.5 truncate">{{ card.desc }}</span>
                     </div>
                   </div>
@@ -636,22 +744,6 @@ onMounted(() => {
                 @drop.prevent="onDropEnd(board.id, 'todo')"
               >＋</button>
             </div>
-          </div>
-        </section>
-
-        <!-- 称賛フィードバック (PC only) -->
-        <section class="hidden md:block px-5 pt-1.8">
-          <div class="flex items-center gap-3 mb-1.5">
-            <button
-              class="px-3.5 py-1.5 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[12px] font-semibold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:opacity-90 hover:enabled:-translate-y-px"
-              :disabled="praiseLoading"
-              @click="praiseDialog = true"
-            >{{ praiseLoading ? '生成中…' : 'AIに称賛してもらう' }}</button>
-          </div>
-          <div v-if="praiseError" class="px-3.5 py-2.5 bg-red-500/12 border border-red-500/30 rounded-lg text-red-300 text-[13px] mb-4">⚠ {{ praiseError }}</div>
-          <div v-else-if="praiseLoading" class="h-[56px] rounded-xl bg-white/[0.04] border border-white/[0.07] animate-pulse mb-4" />
-          <div v-else-if="praiseFeedback" class="px-4 py-3.5 bg-violet-500/[0.08] border border-violet-400/25 rounded-xl text-[14px] leading-relaxed text-slate-200 flex flex-col gap-1 mb-4">
-            <p v-for="(s, i) in praiseSentences" :key="i" class="m-0">{{ s }}</p>
           </div>
         </section>
 
@@ -702,7 +794,7 @@ onMounted(() => {
                             title="DOINGに戻す"
                             @click.stop="unmarkDone(item, date, board)"
                           >✓</button>
-                          <span class="leading-snug text-white text-[13px]">{{ item.name }}</span>
+                          <span class="leading-snug text-white text-[13px]">{{ parseTaskName(item.name).displayName }}</span>
                         </li>
                       </ul>
                     </td>
@@ -725,7 +817,7 @@ onMounted(() => {
                       <ul class="list-none m-0 p-0 mb-1 flex flex-col gap-1">
                         <li v-for="item in board.done[selectedDate]" :key="item.id" class="flex items-center gap-1.5 px-1.5 py-0.5 rounded border-l-2 cursor-pointer hover:brightness-125" :style="{ backgroundColor: boardColor(board) + '14', borderColor: boardColor(board) + '60' }" @click="openEditDoneTask(item, selectedDate, board)">
                           <button class="flex-shrink-0 w-3.5 h-3.5 rounded border border-white/40 bg-white/10 flex items-center justify-center text-white text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer" title="DOINGに戻す" @click.stop="unmarkDone(item, selectedDate, board)">✓</button>
-                          <span class="leading-snug text-white text-xs">{{ item.name }}</span>
+                          <span class="leading-snug text-white text-xs">{{ parseTaskName(item.name).displayName }}</span>
                         </li>
                       </ul>
                     </template>
@@ -819,7 +911,12 @@ onMounted(() => {
                       class="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-white/20 bg-white/[0.04] hover:border-emerald-400/60 hover:bg-emerald-400/10 transition-all cursor-pointer flex items-center justify-center"
                       @click.stop="markDone(card, board)"
                     />
-                    <span class="text-[14px] leading-snug text-white flex-1 min-w-0 break-words">{{ card.name }}</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-baseline gap-1.5">
+                        <span class="text-[14px] leading-snug text-white break-words">{{ card.displayName }}</span>
+                        <span v-if="card.effort > 1" class="inline-block px-1 rounded text-[10px] font-bold bg-amber-500/15 text-amber-400 flex-shrink-0">{{ card.effort }}</span>
+                      </div>
+                    </div>
                   </li>
                 </ul>
                 <button
@@ -862,7 +959,12 @@ onMounted(() => {
                       class="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-white/20 bg-white/[0.04] hover:border-emerald-400/60 hover:bg-emerald-400/10 transition-all cursor-pointer flex items-center justify-center"
                       @click.stop="markDone(card, board)"
                     />
-                    <span class="text-[14px] leading-snug text-white flex-1 min-w-0 break-words">{{ card.name }}</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-baseline gap-1.5">
+                        <span class="text-[14px] leading-snug text-white break-words">{{ card.displayName }}</span>
+                        <span v-if="card.effort > 1" class="inline-block px-1 rounded text-[10px] font-bold bg-sky-400/15 text-sky-400 flex-shrink-0">{{ card.effort }}</span>
+                      </div>
+                    </div>
                   </li>
                 </ul>
                 <button
@@ -874,22 +976,6 @@ onMounted(() => {
                   @drop.prevent="onDropEnd(board.id, 'doing')"
                 >＋</button>
               </div>
-            </div>
-          </div>
-
-          <!-- スマホ版 称賛フィードバック -->
-          <div class="mt-3 pt-3 border-t border-white/[0.06]">
-            <div class="flex items-center gap-2 mb-2">
-              <button
-                class="px-3 py-1 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[11px] font-semibold cursor-pointer disabled:opacity-50"
-                :disabled="praiseLoading"
-                @click="praiseDialog = true"
-              >{{ praiseLoading ? '…' : 'AIに称賛してもらう' }}</button>
-            </div>
-            <div v-if="praiseError" class="px-2.5 py-2 bg-red-500/12 border border-red-500/30 rounded-lg text-red-300 text-[12px]">⚠ {{ praiseError }}</div>
-            <div v-else-if="praiseLoading" class="h-12 rounded-xl bg-white/[0.04] border border-white/[0.07] animate-pulse" />
-            <div v-else-if="praiseFeedback" class="px-3 py-2.5 bg-violet-500/[0.08] border border-violet-400/25 rounded-xl text-[13px] leading-relaxed text-slate-200 flex flex-col gap-1">
-              <p v-for="(s, i) in praiseSentences" :key="i" class="m-0">{{ s }}</p>
             </div>
           </div>
 
@@ -916,7 +1002,7 @@ onMounted(() => {
                       title="DOINGに戻す"
                       @click.stop="unmarkDone(row.card, row.date, row.board)"
                     >✓</button>
-                    <span class="text-[14px] leading-snug text-white truncate" :style="{ color: boardColor(row.board) + 'cc' }">{{ row.card.name }}</span>
+                    <span class="text-[14px] leading-snug text-white truncate" :style="{ color: boardColor(row.board) + 'cc' }">{{ parseTaskName(row.card.name).displayName }}</span>
                   </li>
                 </ul>
               </div>

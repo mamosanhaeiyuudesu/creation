@@ -3,7 +3,7 @@ import { ref, watch } from 'vue'
 import type { Board } from '~/composables/task/useTaskBoards'
 import TaskDatePicker from './TaskDatePicker.vue'
 
-type TaskForm = { name: string; desc: string; due: string; boardId: string; status: 'todo' | 'doing' | 'done'; isImportant: boolean }
+type TaskForm = { name: string; desc: string; due: string; boardId: string; status: 'todo' | 'doing' | 'done'; isImportant: boolean; effort: number }
 
 const props = defineProps<{
   show: boolean
@@ -21,7 +21,7 @@ const emit = defineEmits<{
   delete: []
 }>()
 
-const form = ref<TaskForm>({ name: '', desc: '', due: '', boardId: '', status: 'todo', isImportant: false })
+const form = ref<TaskForm>({ name: '', desc: '', due: '', boardId: '', status: 'todo', isImportant: false, effort: 1 })
 
 watch(() => props.show, (v) => {
   if (v) form.value = { ...props.initialForm }
@@ -81,6 +81,22 @@ watch(() => props.show, (v) => {
               <option value="doing">DOING</option>
               <option value="done">DONE</option>
             </select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">工数</label>
+            <div class="flex items-center gap-1">
+              <button
+                type="button"
+                class="w-7 h-[38px] rounded-lg bg-white/[0.06] border border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/[0.12] transition-all cursor-pointer text-base leading-none"
+                @click="form.effort = Math.max(1, form.effort - 1)"
+              >−</button>
+              <span class="w-7 text-center text-[15px] font-bold text-slate-200 select-none">{{ form.effort }}</span>
+              <button
+                type="button"
+                class="w-7 h-[38px] rounded-lg bg-white/[0.06] border border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/[0.12] transition-all cursor-pointer text-base leading-none"
+                @click="form.effort = Math.min(99, form.effort + 1)"
+              >＋</button>
+            </div>
           </div>
         </div>
 
