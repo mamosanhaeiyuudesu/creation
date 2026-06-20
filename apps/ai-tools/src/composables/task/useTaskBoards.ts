@@ -105,6 +105,8 @@ export function useTaskBoards(
 
   const doingTotal = computed(() => boards.value.reduce((s, b) => s + b.doing.length, 0))
   const todoTotal = computed(() => boards.value.reduce((s, b) => s + b.todo.length, 0))
+  const doingEffort = computed(() => boards.value.reduce((s, b) => s + b.doing.reduce((a, c) => a + c.effort, 0), 0))
+  const todoEffort = computed(() => boards.value.reduce((s, b) => s + b.todo.reduce((a, c) => a + c.effort, 0), 0))
 
   // --- Trello API ---
   async function trelloGet(path: string) {
@@ -187,6 +189,18 @@ export function useTaskBoards(
 
   function doneTotal(board: Board) {
     return Object.values(board.done).reduce((s, arr) => s + arr.length, 0)
+  }
+
+  function doneEffort(board: Board) {
+    return Object.values(board.done).reduce((s, arr) => s + arr.reduce((a, c) => a + parseTaskName(c.name).effort, 0), 0)
+  }
+
+  function boardDoingEffort(board: Board) {
+    return board.doing.reduce((s, c) => s + c.effort, 0)
+  }
+
+  function boardTodoEffort(board: Board) {
+    return board.todo.reduce((s, c) => s + c.effort, 0)
   }
 
   function boardColor(board: Board): string {
@@ -558,9 +572,9 @@ export function useTaskBoards(
     openEditBoard, saveBoardMeta,
     showTaskModal, editTarget, taskForm, isEditing, modalTitle,
     pendingDone, pendingDueInput,
-    doingTotal, todoTotal,
+    doingTotal, todoTotal, doingEffort, todoEffort,
     trelloPut,
-    load, buildCard, formatDate, doneTotal, boardColor, boardBorderStyle, getArr,
+    load, buildCard, formatDate, doneTotal, doneEffort, boardDoingEffort, boardTodoEffort, boardColor, boardBorderStyle, getArr,
     rebuildAllDates, addToDoneTable,
     markDone, confirmMarkDone, unmarkDone,
     openAddTask, openEditTask, openEditDoneTask, saveTask, deleteTask,
