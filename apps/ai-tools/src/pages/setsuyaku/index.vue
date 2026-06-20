@@ -8,7 +8,6 @@
         <header class="flex items-center justify-between mb-6">
           <div>
             <h1 class="m-0 text-[clamp(20px,4vw,26px)] font-bold bg-gradient-to-br from-emerald-400 to-teal-400 bg-clip-text text-transparent">節約</h1>
-            <p class="mt-0.5 mb-0 text-slate-400 text-xs">買わない選択・使えるものを記録する</p>
           </div>
           <div class="text-right text-xs space-y-0.5">
             <div class="flex items-center justify-end gap-1.5">
@@ -134,12 +133,15 @@
                         <span class="text-sm font-medium text-slate-100">{{ record.name }}</span>
                         <span class="text-xs text-emerald-400">¥{{ record.price.toLocaleString() }}</span>
                       </div>
-                      <p class="text-xs text-slate-400 mb-1.5 leading-relaxed m-0">{{ record.reason }}</p>
-                      <div class="flex items-center gap-2 flex-wrap">
+                      <div class="flex items-center gap-2 flex-wrap mb-1.5">
                         <span v-for="tag in record.tags" :key="tag"
                           class="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400/70 text-[10px] rounded-full border border-emerald-500/20">{{ tag }}</span>
                         <span class="text-[10px] text-slate-500">{{ record.date }}</span>
+                        <button @click="toggleExpanded(record.id)" class="flex items-center gap-0.5 text-[10px] text-slate-500 hover:text-slate-300 transition-colors bg-transparent border-none cursor-pointer p-0 ml-auto">
+                          理由 {{ expandedIds.has(record.id) ? '▲' : '▼' }}
+                        </button>
                       </div>
+                      <p v-if="expandedIds.has(record.id)" class="text-xs text-slate-400 leading-relaxed m-0 mt-1 border-t border-white/[0.06] pt-1.5">{{ record.reason }}</p>
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
                       <button @click="startGamanEdit(record)" class="text-slate-500 hover:text-slate-300 text-[11px] border border-white/[0.08] rounded px-1.5 py-0.5 transition-colors bg-transparent cursor-pointer">編集</button>
@@ -267,12 +269,15 @@
                         <span class="text-sm font-medium text-slate-100">{{ record.name }}</span>
                         <span class="text-xs text-teal-400">¥{{ record.price.toLocaleString() }} 節約</span>
                       </div>
-                      <p class="text-xs text-slate-400 mb-1.5 leading-relaxed m-0">{{ record.reason }}</p>
-                      <div class="flex items-center gap-2 flex-wrap">
+                      <div class="flex items-center gap-2 flex-wrap mb-1.5">
                         <span v-for="tag in record.tags" :key="tag"
                           class="px-1.5 py-0.5 bg-teal-500/10 text-teal-400/70 text-[10px] rounded-full border border-teal-500/20">{{ tag }}</span>
                         <span class="text-[10px] text-slate-500">{{ record.date }}</span>
+                        <button @click="toggleExpanded(record.id)" class="flex items-center gap-0.5 text-[10px] text-slate-500 hover:text-slate-300 transition-colors bg-transparent border-none cursor-pointer p-0 ml-auto">
+                          理由 {{ expandedIds.has(record.id) ? '▲' : '▼' }}
+                        </button>
                       </div>
+                      <p v-if="expandedIds.has(record.id)" class="text-xs text-slate-400 leading-relaxed m-0 mt-1 border-t border-white/[0.06] pt-1.5">{{ record.reason }}</p>
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
                       <button @click="startFukkatsuEdit(record)" class="text-slate-500 hover:text-slate-300 text-[11px] border border-white/[0.08] rounded px-1.5 py-0.5 transition-colors bg-transparent cursor-pointer">編集</button>
@@ -400,12 +405,15 @@
                         <span class="text-sm font-medium text-slate-100">{{ record.name }}</span>
                         <span class="text-xs text-rose-400">¥{{ record.price.toLocaleString() }}</span>
                       </div>
-                      <p class="text-xs text-slate-400 mb-1.5 leading-relaxed m-0">{{ record.reason }}</p>
-                      <div class="flex items-center gap-2 flex-wrap">
+                      <div class="flex items-center gap-2 flex-wrap mb-1.5">
                         <span v-for="tag in record.tags" :key="tag"
                           class="px-1.5 py-0.5 bg-rose-500/10 text-rose-400/70 text-[10px] rounded-full border border-rose-500/20">{{ tag }}</span>
                         <span class="text-[10px] text-slate-500">{{ record.date }}</span>
+                        <button @click="toggleExpanded(record.id)" class="flex items-center gap-0.5 text-[10px] text-slate-500 hover:text-slate-300 transition-colors bg-transparent border-none cursor-pointer p-0 ml-auto">
+                          理由 {{ expandedIds.has(record.id) ? '▲' : '▼' }}
+                        </button>
                       </div>
+                      <p v-if="expandedIds.has(record.id)" class="text-xs text-slate-400 leading-relaxed m-0 mt-1 border-t border-white/[0.06] pt-1.5">{{ record.reason }}</p>
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
                       <button @click="startRouhiEdit(record)" class="text-slate-500 hover:text-slate-300 text-[11px] border border-white/[0.08] rounded px-1.5 py-0.5 transition-colors bg-transparent cursor-pointer">編集</button>
@@ -503,12 +511,15 @@
                       <button @click="deleteSodan(record.id)" class="text-slate-600 hover:text-red-400 text-sm transition-colors bg-transparent border-none cursor-pointer p-0">✕</button>
                     </div>
                   </div>
-                  <div v-if="record.tags.length" class="flex flex-wrap gap-1 mb-1.5">
+                  <div class="flex items-center gap-2 flex-wrap mb-1.5">
                     <span v-for="tag in record.tags" :key="tag"
                       class="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400/70 text-[10px] rounded-full border border-emerald-500/20">{{ tag }}</span>
+                    <span class="text-[10px] text-slate-500">{{ record.date }}</span>
+                    <button @click="toggleExpanded(record.id)" class="flex items-center gap-0.5 text-[10px] text-slate-500 hover:text-slate-300 transition-colors bg-transparent border-none cursor-pointer p-0 ml-auto">
+                      アドバイス {{ expandedIds.has(record.id) ? '▲' : '▼' }}
+                    </button>
                   </div>
-                  <p class="text-xs text-slate-400 leading-relaxed m-0 whitespace-pre-wrap">{{ record.result }}</p>
-                  <p class="text-[10px] text-slate-500 mt-1.5 m-0">{{ record.date }}</p>
+                  <p v-if="expandedIds.has(record.id)" class="text-xs text-slate-400 leading-relaxed m-0 whitespace-pre-wrap border-t border-white/[0.06] pt-1.5">{{ record.result }}</p>
                 </template>
                 <template v-else>
                   <div class="space-y-2">
@@ -560,6 +571,13 @@ interface SodanRecord {
 }
 
 const today = () => new Date().toISOString().slice(0, 10)
+
+useHead({
+  title: '節約',
+  link: [
+    { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>` },
+  ],
+})
 
 const isDev = import.meta.dev
 
@@ -1101,6 +1119,14 @@ async function getAdvice() {
   } finally {
     isAdvising.value = false
   }
+}
+
+const expandedIds = ref<Set<string>>(new Set())
+function toggleExpanded(id: string) {
+  const next = new Set(expandedIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  expandedIds.value = next
 }
 
 onMounted(() => {
