@@ -321,15 +321,6 @@
         <!-- ── Tab: 浪費ログ ── -->
         <div v-if="activeTab === 'rouhi'">
 
-          <!-- Tag filter -->
-          <div v-if="allTags.length" class="flex flex-wrap gap-1 mb-5">
-            <button v-for="tag in allTags" :key="tag" @click="toggleRouhiFilter(tag)"
-              :class="rouhiFilterTags.includes(tag) ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' : 'text-slate-400 border-white/[0.12] hover:border-rose-500/30 hover:text-rose-400'"
-              class="px-2.5 py-0.5 text-xs rounded-full border transition-all">
-              {{ tag }}
-            </button>
-          </div>
-
           <!-- Form -->
           <div class="space-y-3 mb-5">
             <div class="grid grid-cols-2 gap-3">
@@ -388,6 +379,13 @@
                 浪費ログ（{{ filteredRouhiRecords.length }}件<template v-if="rouhiFilterTags.length"> / {{ rouhiRecords.length }}件中</template>）
               </h3>
               <span class="text-xs text-rose-400 font-medium">合計 ¥{{ filteredRouhiTotal.toLocaleString() }}</span>
+            </div>
+            <div v-if="allTags.length" class="flex flex-wrap gap-1 mb-3">
+              <button v-for="tag in allTags" :key="tag" @click="toggleRouhiFilter(tag)"
+                :class="rouhiFilterTags.includes(tag) ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' : 'text-slate-400 border-white/[0.12] hover:border-rose-500/30 hover:text-rose-400'"
+                class="px-2.5 py-0.5 text-xs rounded-full border transition-all">
+                {{ tag }}
+              </button>
             </div>
             <p v-if="rouhiLoading" class="text-center py-6 text-slate-500 text-sm m-0">読み込み中...</p>
             <p v-else-if="!rouhiRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">まだ記録がありません</p>
