@@ -85,10 +85,12 @@ const tools = [
   // { path: '/tengu', name: '天狗問答', icon: '👺' },
   { path: '/office', name: 'office', icon: '🏢' },
   { path: '/setsuyaku', name: '節約', icon: '💰' },
+  { path: '/games', name: 'ゲーム', icon: '🎮' },
   // { path: '/keiko', name: '稽古', icon: '⚔️' },
 ]
 
-const isActive = (path: string): boolean => route.path === path
+const isActive = (path: string): boolean =>
+  path === '/' ? route.path === '/' : route.path.startsWith(path)
 </script>
 
 <style>
