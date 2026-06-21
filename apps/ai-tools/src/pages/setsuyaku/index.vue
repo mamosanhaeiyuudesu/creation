@@ -138,31 +138,25 @@
             <p v-if="gamanLoading" class="text-center py-6 text-slate-500 text-sm m-0">読み込み中...</p>
             <p v-else-if="!gamanRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">まだ記録がありません</p>
             <p v-else-if="!filteredGamanRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">該当する記録がありません</p>
-            <div class="space-y-2">
+            <div class="space-y-1.5">
               <div v-for="record in filteredGamanRecords" :key="record.id"
-                class="p-3 bg-white/[0.03] border border-white/[0.06] rounded-xl">
+                class="px-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-xl">
                 <template v-if="gamanEditingId !== record.id">
-                  <div class="flex items-start gap-3">
-                    <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2 mb-0.5 flex-wrap">
-                        <span class="text-sm font-medium text-slate-100">{{ record.name }}</span>
-                        <span class="text-xs text-emerald-400">¥{{ record.price.toLocaleString() }}</span>
-                      </div>
-                      <div class="flex items-center gap-2 flex-wrap mb-1.5">
-                        <span v-for="tag in record.tags" :key="tag"
-                          class="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400/70 text-[10px] rounded-full border border-emerald-500/20">{{ tag }}</span>
-                        <span class="text-[10px] text-slate-500">{{ record.date }}</span>
-                        <button @click="toggleExpanded(record.id)" class="flex items-center gap-0.5 text-[10px] text-slate-500 hover:text-slate-300 transition-colors bg-transparent border-none cursor-pointer p-0 ml-auto">
-                          理由 {{ expandedIds.has(record.id) ? '▲' : '▼' }}
-                        </button>
-                      </div>
-                      <p v-if="expandedIds.has(record.id)" class="text-xs text-slate-400 leading-relaxed m-0 mt-1 border-t border-white/[0.06] pt-1.5">{{ record.reason }}</p>
-                    </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm font-medium text-slate-100">{{ record.name }}</span>
+                    <span class="text-xs text-emerald-400">¥{{ record.price.toLocaleString() }}</span>
+                    <span v-for="tag in record.tags" :key="tag"
+                      class="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400/70 text-[10px] rounded-full border border-emerald-500/20">{{ tag }}</span>
+                    <span class="text-[10px] text-slate-500">{{ record.date }}</span>
+                    <button @click="toggleExpanded(record.id)" class="flex items-center gap-0.5 text-[10px] text-slate-500 hover:text-slate-300 transition-colors bg-transparent border-none cursor-pointer p-0">
+                      理由 {{ expandedIds.has(record.id) ? '▲' : '▼' }}
+                    </button>
+                    <div class="ml-auto flex items-center gap-1.5 flex-shrink-0">
                       <button @click="startGamanEdit(record)" class="text-slate-500 hover:text-slate-300 text-[11px] border border-white/[0.08] rounded px-1.5 py-0.5 transition-colors bg-transparent cursor-pointer">編集</button>
                       <button @click="deleteGaman(record.id)" class="text-slate-600 hover:text-red-400 text-sm transition-colors bg-transparent border-none cursor-pointer p-0">✕</button>
                     </div>
                   </div>
+                  <p v-if="expandedIds.has(record.id)" class="text-xs text-slate-400 leading-relaxed m-0 mt-1.5 border-t border-white/[0.06] pt-1.5">{{ record.reason }}</p>
                 </template>
                 <template v-else>
                   <div class="space-y-2">
@@ -274,31 +268,25 @@
             <p v-if="fukkatsuLoading" class="text-center py-6 text-slate-500 text-sm m-0">読み込み中...</p>
             <p v-else-if="!fukkatsuRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">まだ記録がありません</p>
             <p v-else-if="!filteredFukkatsuRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">該当する記録がありません</p>
-            <div class="space-y-2">
+            <div class="space-y-1.5">
               <div v-for="record in filteredFukkatsuRecords" :key="record.id"
-                class="p-3 bg-white/[0.03] border border-white/[0.06] rounded-xl">
+                class="px-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-xl">
                 <template v-if="fukkatsuEditingId !== record.id">
-                  <div class="flex items-start gap-3">
-                    <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2 mb-0.5 flex-wrap">
-                        <span class="text-sm font-medium text-slate-100">{{ record.name }}</span>
-                        <span class="text-xs text-teal-400">¥{{ record.price.toLocaleString() }} 節約</span>
-                      </div>
-                      <div class="flex items-center gap-2 flex-wrap mb-1.5">
-                        <span v-for="tag in record.tags" :key="tag"
-                          class="px-1.5 py-0.5 bg-teal-500/10 text-teal-400/70 text-[10px] rounded-full border border-teal-500/20">{{ tag }}</span>
-                        <span class="text-[10px] text-slate-500">{{ record.date }}</span>
-                        <button @click="toggleExpanded(record.id)" class="flex items-center gap-0.5 text-[10px] text-slate-500 hover:text-slate-300 transition-colors bg-transparent border-none cursor-pointer p-0 ml-auto">
-                          理由 {{ expandedIds.has(record.id) ? '▲' : '▼' }}
-                        </button>
-                      </div>
-                      <p v-if="expandedIds.has(record.id)" class="text-xs text-slate-400 leading-relaxed m-0 mt-1 border-t border-white/[0.06] pt-1.5">{{ record.reason }}</p>
-                    </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm font-medium text-slate-100">{{ record.name }}</span>
+                    <span class="text-xs text-teal-400">¥{{ record.price.toLocaleString() }} 節約</span>
+                    <span v-for="tag in record.tags" :key="tag"
+                      class="px-1.5 py-0.5 bg-teal-500/10 text-teal-400/70 text-[10px] rounded-full border border-teal-500/20">{{ tag }}</span>
+                    <span class="text-[10px] text-slate-500">{{ record.date }}</span>
+                    <button @click="toggleExpanded(record.id)" class="flex items-center gap-0.5 text-[10px] text-slate-500 hover:text-slate-300 transition-colors bg-transparent border-none cursor-pointer p-0">
+                      理由 {{ expandedIds.has(record.id) ? '▲' : '▼' }}
+                    </button>
+                    <div class="ml-auto flex items-center gap-1.5 flex-shrink-0">
                       <button @click="startFukkatsuEdit(record)" class="text-slate-500 hover:text-slate-300 text-[11px] border border-white/[0.08] rounded px-1.5 py-0.5 transition-colors bg-transparent cursor-pointer">編集</button>
                       <button @click="deleteFukkatsu(record.id)" class="text-slate-600 hover:text-red-400 text-sm transition-colors bg-transparent border-none cursor-pointer p-0">✕</button>
                     </div>
                   </div>
+                  <p v-if="expandedIds.has(record.id)" class="text-xs text-slate-400 leading-relaxed m-0 mt-1.5 border-t border-white/[0.06] pt-1.5">{{ record.reason }}</p>
                 </template>
                 <template v-else>
                   <div class="space-y-2">
@@ -410,31 +398,25 @@
             <p v-if="rouhiLoading" class="text-center py-6 text-slate-500 text-sm m-0">読み込み中...</p>
             <p v-else-if="!rouhiRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">まだ記録がありません</p>
             <p v-else-if="!filteredRouhiRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">該当する記録がありません</p>
-            <div class="space-y-2">
+            <div class="space-y-1.5">
               <div v-for="record in filteredRouhiRecords" :key="record.id"
-                class="p-3 bg-white/[0.03] border border-white/[0.06] rounded-xl">
+                class="px-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-xl">
                 <template v-if="rouhiEditingId !== record.id">
-                  <div class="flex items-start gap-3">
-                    <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2 mb-0.5 flex-wrap">
-                        <span class="text-sm font-medium text-slate-100">{{ record.name }}</span>
-                        <span class="text-xs text-rose-400">¥{{ record.price.toLocaleString() }}</span>
-                      </div>
-                      <div class="flex items-center gap-2 flex-wrap mb-1.5">
-                        <span v-for="tag in record.tags" :key="tag"
-                          class="px-1.5 py-0.5 bg-rose-500/10 text-rose-400/70 text-[10px] rounded-full border border-rose-500/20">{{ tag }}</span>
-                        <span class="text-[10px] text-slate-500">{{ record.date }}</span>
-                        <button @click="toggleExpanded(record.id)" class="flex items-center gap-0.5 text-[10px] text-slate-500 hover:text-slate-300 transition-colors bg-transparent border-none cursor-pointer p-0 ml-auto">
-                          理由 {{ expandedIds.has(record.id) ? '▲' : '▼' }}
-                        </button>
-                      </div>
-                      <p v-if="expandedIds.has(record.id)" class="text-xs text-slate-400 leading-relaxed m-0 mt-1 border-t border-white/[0.06] pt-1.5">{{ record.reason }}</p>
-                    </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm font-medium text-slate-100">{{ record.name }}</span>
+                    <span class="text-xs text-rose-400">¥{{ record.price.toLocaleString() }}</span>
+                    <span v-for="tag in record.tags" :key="tag"
+                      class="px-1.5 py-0.5 bg-rose-500/10 text-rose-400/70 text-[10px] rounded-full border border-rose-500/20">{{ tag }}</span>
+                    <span class="text-[10px] text-slate-500">{{ record.date }}</span>
+                    <button @click="toggleExpanded(record.id)" class="flex items-center gap-0.5 text-[10px] text-slate-500 hover:text-slate-300 transition-colors bg-transparent border-none cursor-pointer p-0">
+                      理由 {{ expandedIds.has(record.id) ? '▲' : '▼' }}
+                    </button>
+                    <div class="ml-auto flex items-center gap-1.5 flex-shrink-0">
                       <button @click="startRouhiEdit(record)" class="text-slate-500 hover:text-slate-300 text-[11px] border border-white/[0.08] rounded px-1.5 py-0.5 transition-colors bg-transparent cursor-pointer">編集</button>
                       <button @click="deleteRouhi(record.id)" class="text-slate-600 hover:text-red-400 text-sm transition-colors bg-transparent border-none cursor-pointer p-0">✕</button>
                     </div>
                   </div>
+                  <p v-if="expandedIds.has(record.id)" class="text-xs text-slate-400 leading-relaxed m-0 mt-1.5 border-t border-white/[0.06] pt-1.5">{{ record.reason }}</p>
                 </template>
                 <template v-else>
                   <div class="space-y-2">
@@ -515,26 +497,24 @@
             </div>
             <p v-if="!sodanRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">まだ相談履歴がありません</p>
             <p v-else-if="!filteredSodanRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">該当する履歴がありません</p>
-            <div class="space-y-2">
+            <div class="space-y-1.5">
               <div v-for="record in filteredSodanRecords" :key="record.id"
-                class="p-3 bg-white/[0.03] border border-white/[0.06] rounded-xl">
+                class="px-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-xl">
                 <template v-if="sodanEditingId !== record.id">
-                  <div class="flex items-start justify-between gap-2 mb-1.5">
-                    <p class="text-sm font-medium text-slate-100 m-0 leading-snug">{{ record.wants }}</p>
-                    <div class="flex items-center gap-2 flex-shrink-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm font-medium text-slate-100 leading-snug">{{ record.wants }}</span>
+                    <span v-for="tag in record.tags" :key="tag"
+                      class="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400/70 text-[10px] rounded-full border border-emerald-500/20">{{ tag }}</span>
+                    <span class="text-[10px] text-slate-500">{{ record.date }}</span>
+                    <button @click="toggleExpanded(record.id)" class="flex items-center gap-0.5 text-[10px] text-slate-500 hover:text-slate-300 transition-colors bg-transparent border-none cursor-pointer p-0">
+                      アドバイス {{ expandedIds.has(record.id) ? '▲' : '▼' }}
+                    </button>
+                    <div class="ml-auto flex items-center gap-1.5 flex-shrink-0">
                       <button @click="startSodanEdit(record)" class="text-slate-500 hover:text-slate-300 text-[11px] border border-white/[0.08] rounded px-1.5 py-0.5 transition-colors bg-transparent cursor-pointer">編集</button>
                       <button @click="deleteSodan(record.id)" class="text-slate-600 hover:text-red-400 text-sm transition-colors bg-transparent border-none cursor-pointer p-0">✕</button>
                     </div>
                   </div>
-                  <div class="flex items-center gap-2 flex-wrap mb-1.5">
-                    <span v-for="tag in record.tags" :key="tag"
-                      class="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400/70 text-[10px] rounded-full border border-emerald-500/20">{{ tag }}</span>
-                    <span class="text-[10px] text-slate-500">{{ record.date }}</span>
-                    <button @click="toggleExpanded(record.id)" class="flex items-center gap-0.5 text-[10px] text-slate-500 hover:text-slate-300 transition-colors bg-transparent border-none cursor-pointer p-0 ml-auto">
-                      アドバイス {{ expandedIds.has(record.id) ? '▲' : '▼' }}
-                    </button>
-                  </div>
-                  <p v-if="expandedIds.has(record.id)" class="text-xs text-slate-400 leading-relaxed m-0 whitespace-pre-wrap border-t border-white/[0.06] pt-1.5">{{ record.result }}</p>
+                  <p v-if="expandedIds.has(record.id)" class="text-xs text-slate-400 leading-relaxed m-0 mt-1.5 whitespace-pre-wrap border-t border-white/[0.06] pt-1.5">{{ record.result }}</p>
                 </template>
                 <template v-else>
                   <div class="space-y-2">
