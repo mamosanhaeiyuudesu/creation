@@ -477,7 +477,20 @@ watch(isLoggedIn, async (v) => {
             @click="load"
           >{{ loading ? '…' : '更新' }}</button>
         </div>
-        <div class="relative ml-auto md:ml-0" @click.stop>
+        <!-- モバイル: 称賛・履歴ボタン（タイトル行右側） -->
+        <div v-if="hasCredentials" class="md:hidden flex items-center gap-1.5 ml-auto">
+          <button
+            class="px-2.5 py-1 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[11px] font-semibold cursor-pointer disabled:opacity-50"
+            :disabled="praiseLoading"
+            @click="praiseDialog = true"
+          >{{ praiseLoading ? '…' : '称賛' }}</button>
+          <button
+            class="px-2.5 py-1 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-[11px] cursor-pointer"
+            @click="showPraiseHistory = true"
+          >履歴</button>
+        </div>
+        <!-- 歯車（常に1つ） -->
+        <div class="relative" :class="hasCredentials ? 'ml-2 md:ml-0' : 'ml-auto'" @click.stop>
           <button
             class="w-9 h-9 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-lg cursor-pointer flex items-center justify-center transition-all hover:bg-white/[0.12] hover:text-[#e2e8f0]"
             title="設定"
@@ -496,22 +509,12 @@ watch(isLoggedIn, async (v) => {
           </div>
         </div>
       </div>
-      <!-- モバイル用コントロール行 -->
+      <!-- モバイル用コントロール行（期間・更新・プロファイル・全件のみ） -->
       <div v-if="hasCredentials" class="md:hidden flex items-center gap-2 px-3 pb-2">
-        <button
-          class="flex-shrink-0 px-2.5 py-1 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[11px] font-semibold cursor-pointer disabled:opacity-50"
-          :disabled="praiseLoading"
-          @click="praiseDialog = true"
-        >{{ praiseLoading ? '…' : '称賛' }}</button>
-        <button
-          class="flex-shrink-0 px-2.5 py-1 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-[11px] cursor-pointer hover:bg-white/[0.12]"
-          @click="showPraiseHistory = true"
-        >履歴</button>
-        <div class="w-px h-4 bg-white/[0.1] flex-shrink-0" />
         <select
           v-if="profiles.length > 1"
           :value="activeProfileId"
-          class="bg-white/[0.06] border border-white/10 rounded-md px-2 py-1 text-[12px] text-[#e2e8f0] cursor-pointer flex-shrink-0 max-w-[110px]"
+          class="bg-white/[0.06] border border-white/10 rounded-md px-2 py-1 text-[12px] text-[#e2e8f0] cursor-pointer flex-shrink-0 max-w-[100px]"
           @change="switchProfile(($event.target as HTMLSelectElement).value)"
         >
           <option v-for="p in profiles" :key="p.id" :value="p.id" class="bg-[#1e293b] text-[#e2e8f0]">{{ p.name }}</option>
@@ -565,23 +568,6 @@ watch(isLoggedIn, async (v) => {
           :disabled="loading"
           @click="load"
         >{{ loading ? '…' : '更新' }}</button>
-        <div class="relative flex-shrink-0" @click.stop>
-          <button
-            class="w-8 h-8 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-base cursor-pointer flex items-center justify-center transition-all hover:bg-white/[0.12]"
-            @click="openSettingsMenu"
-          >⚙</button>
-          <div v-if="showSettingsMenu" class="absolute right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-[200] min-w-[160px] py-1 overflow-hidden">
-            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openSettings(); closeSettingsMenu()">
-              <span>🔑</span> アカウント設定
-            </button>
-            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="downloadDone">
-              <span>⬇</span> ダウンロード
-            </button>
-            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); closeSettingsMenu()">
-              <span>🚪</span> ログアウト
-            </button>
-          </div>
-        </div>
       </div>
     </header>
 
