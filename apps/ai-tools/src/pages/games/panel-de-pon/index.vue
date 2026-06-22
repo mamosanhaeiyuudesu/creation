@@ -142,7 +142,7 @@
     </h1>
 
     <!-- Board & leaderboard -->
-    <div class="flex gap-4 items-start">
+    <div class="flex gap-4 items-stretch">
       <!-- Game column -->
       <div class="flex flex-col items-start flex-shrink-0">
         <!-- Stage + score above board -->
@@ -233,7 +233,7 @@
       </div><!-- /game column -->
 
       <!-- Leaderboard -->
-      <div class="w-44 flex-shrink-0">
+      <div class="w-44 flex-shrink-0 flex flex-col">
         <div class="text-[10px] font-medium tracking-widest text-slate-500 mb-2 text-center">
           ランキング
         </div>
@@ -250,8 +250,24 @@
             <span class="font-mono text-right flex-1" :class="rec.rank === 1 ? 'text-amber-400' : 'text-slate-500'">{{ formatTime(rec.seconds) }}</span>
           </div>
         </div>
+
+        <!-- Stage selector -->
+        <div class="mt-auto pt-3">
+          <div class="text-[9px] text-slate-600 text-center mb-1.5">ステージ選択</div>
+          <div class="grid grid-cols-5 gap-1">
+            <button
+              v-for="n in STAGE_TARGETS.length" :key="n"
+              class="h-7 rounded-lg text-xs font-bold border transition-colors cursor-pointer"
+              :class="stage === n && phase !== 'idle'
+                ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-400'
+                : 'bg-black/40 border-white/10 text-slate-500 hover:bg-white/[0.10] hover:text-slate-200'"
+              @click="jumpToStage(n)"
+            >{{ n }}</button>
+          </div>
+        </div>
       </div>
     </div><!-- /board+leaderboard wrapper -->
+
 
     <!-- Mobile controls -->
     <div class="mt-5 flex flex-col items-center gap-4 lg:hidden">
@@ -308,6 +324,7 @@
         </span>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -734,7 +751,7 @@ function formatTime(s: number): string {
 function handleStart() {
   if      (phase.value === 'playing')    phase.value = 'paused'
   else if (phase.value === 'paused')     phase.value = 'playing'
-  else if (phase.value === 'idle' || phase.value === 'gameover') resetToStart()
+  else if (phase.value === 'idle' || phase.value === 'gameover') startGame()
   else if (phase.value === 'stageclear') goNextStage()
 }
 
@@ -801,6 +818,11 @@ function goNextStage() {
 
 function resetToStart() {
   stage.value = 1
+  startGame()
+}
+
+function jumpToStage(n: number) {
+  stage.value = n
   startGame()
 }
 

@@ -139,7 +139,7 @@
             <p v-else-if="!gamanRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">まだ記録がありません</p>
             <p v-else-if="!filteredGamanRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">該当する記録がありません</p>
             <div class="space-y-1.5">
-              <div v-for="record in filteredGamanRecords" :key="record.id"
+              <div v-for="record in pagedGamanRecords" :key="record.id"
                 class="px-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-xl">
                 <template v-if="gamanEditingId !== record.id">
                   <div class="flex items-center gap-2 flex-wrap">
@@ -192,6 +192,13 @@
                   </div>
                 </template>
               </div>
+            </div>
+            <div v-if="gamanTotalPages > 1" class="flex items-center justify-center gap-3 mt-3">
+              <button :disabled="gamanPage === 1" @click="gamanPage--"
+                class="px-3 py-1 text-xs text-slate-400 border border-white/[0.10] rounded-lg bg-transparent cursor-pointer hover:text-slate-200 hover:border-white/[0.20] disabled:opacity-30 disabled:cursor-not-allowed transition-all">← 前へ</button>
+              <span class="text-xs text-slate-500 tabular-nums">{{ gamanPage }} / {{ gamanTotalPages }}</span>
+              <button :disabled="gamanPage === gamanTotalPages" @click="gamanPage++"
+                class="px-3 py-1 text-xs text-slate-400 border border-white/[0.10] rounded-lg bg-transparent cursor-pointer hover:text-slate-200 hover:border-white/[0.20] disabled:opacity-30 disabled:cursor-not-allowed transition-all">次へ →</button>
             </div>
           </div>
         </div>
@@ -269,7 +276,7 @@
             <p v-else-if="!fukkatsuRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">まだ記録がありません</p>
             <p v-else-if="!filteredFukkatsuRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">該当する記録がありません</p>
             <div class="space-y-1.5">
-              <div v-for="record in filteredFukkatsuRecords" :key="record.id"
+              <div v-for="record in pagedFukkatsuRecords" :key="record.id"
                 class="px-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-xl">
                 <template v-if="fukkatsuEditingId !== record.id">
                   <div class="flex items-center gap-2 flex-wrap">
@@ -322,6 +329,13 @@
                   </div>
                 </template>
               </div>
+            </div>
+            <div v-if="fukkatsuTotalPages > 1" class="flex items-center justify-center gap-3 mt-3">
+              <button :disabled="fukkatsuPage === 1" @click="fukkatsuPage--"
+                class="px-3 py-1 text-xs text-slate-400 border border-white/[0.10] rounded-lg bg-transparent cursor-pointer hover:text-slate-200 hover:border-white/[0.20] disabled:opacity-30 disabled:cursor-not-allowed transition-all">← 前へ</button>
+              <span class="text-xs text-slate-500 tabular-nums">{{ fukkatsuPage }} / {{ fukkatsuTotalPages }}</span>
+              <button :disabled="fukkatsuPage === fukkatsuTotalPages" @click="fukkatsuPage++"
+                class="px-3 py-1 text-xs text-slate-400 border border-white/[0.10] rounded-lg bg-transparent cursor-pointer hover:text-slate-200 hover:border-white/[0.20] disabled:opacity-30 disabled:cursor-not-allowed transition-all">次へ →</button>
             </div>
           </div>
         </div>
@@ -399,7 +413,7 @@
             <p v-else-if="!rouhiRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">まだ記録がありません</p>
             <p v-else-if="!filteredRouhiRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">該当する記録がありません</p>
             <div class="space-y-1.5">
-              <div v-for="record in filteredRouhiRecords" :key="record.id"
+              <div v-for="record in pagedRouhiRecords" :key="record.id"
                 class="px-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-xl">
                 <template v-if="rouhiEditingId !== record.id">
                   <div class="flex items-center gap-2 flex-wrap">
@@ -453,6 +467,13 @@
                 </template>
               </div>
             </div>
+            <div v-if="rouhiTotalPages > 1" class="flex items-center justify-center gap-3 mt-3">
+              <button :disabled="rouhiPage === 1" @click="rouhiPage--"
+                class="px-3 py-1 text-xs text-slate-400 border border-white/[0.10] rounded-lg bg-transparent cursor-pointer hover:text-slate-200 hover:border-white/[0.20] disabled:opacity-30 disabled:cursor-not-allowed transition-all">← 前へ</button>
+              <span class="text-xs text-slate-500 tabular-nums">{{ rouhiPage }} / {{ rouhiTotalPages }}</span>
+              <button :disabled="rouhiPage === rouhiTotalPages" @click="rouhiPage++"
+                class="px-3 py-1 text-xs text-slate-400 border border-white/[0.10] rounded-lg bg-transparent cursor-pointer hover:text-slate-200 hover:border-white/[0.20] disabled:opacity-30 disabled:cursor-not-allowed transition-all">次へ →</button>
+            </div>
           </div>
         </div>
 
@@ -498,7 +519,7 @@
             <p v-if="!sodanRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">まだ相談履歴がありません</p>
             <p v-else-if="!filteredSodanRecords.length" class="text-center py-6 text-slate-500 text-sm m-0">該当する履歴がありません</p>
             <div class="space-y-1.5">
-              <div v-for="record in filteredSodanRecords" :key="record.id"
+              <div v-for="record in pagedSodanRecords" :key="record.id"
                 class="px-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded-xl">
                 <template v-if="sodanEditingId !== record.id">
                   <div class="flex items-center gap-2 flex-wrap">
@@ -537,6 +558,13 @@
                 </template>
               </div>
             </div>
+            <div v-if="sodanTotalPages > 1" class="flex items-center justify-center gap-3 mt-3">
+              <button :disabled="sodanPage === 1" @click="sodanPage--"
+                class="px-3 py-1 text-xs text-slate-400 border border-white/[0.10] rounded-lg bg-transparent cursor-pointer hover:text-slate-200 hover:border-white/[0.20] disabled:opacity-30 disabled:cursor-not-allowed transition-all">← 前へ</button>
+              <span class="text-xs text-slate-500 tabular-nums">{{ sodanPage }} / {{ sodanTotalPages }}</span>
+              <button :disabled="sodanPage === sodanTotalPages" @click="sodanPage++"
+                class="px-3 py-1 text-xs text-slate-400 border border-white/[0.10] rounded-lg bg-transparent cursor-pointer hover:text-slate-200 hover:border-white/[0.20] disabled:opacity-30 disabled:cursor-not-allowed transition-all">次へ →</button>
+            </div>
           </div>
         </div>
 
@@ -546,7 +574,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 
 interface SetsuyakuRecord {
   id: string
@@ -1126,6 +1154,35 @@ function toggleExpanded(id: string) {
   else next.add(id)
   expandedIds.value = next
 }
+
+// ── ページネーション ──
+const ITEMS_PER_PAGE = 10
+
+const gamanPage = ref(1)
+const fukkatsuPage = ref(1)
+const rouhiPage = ref(1)
+const sodanPage = ref(1)
+
+const gamanTotalPages = computed(() => Math.max(1, Math.ceil(filteredGamanRecords.value.length / ITEMS_PER_PAGE)))
+const fukkatsuTotalPages = computed(() => Math.max(1, Math.ceil(filteredFukkatsuRecords.value.length / ITEMS_PER_PAGE)))
+const rouhiTotalPages = computed(() => Math.max(1, Math.ceil(filteredRouhiRecords.value.length / ITEMS_PER_PAGE)))
+const sodanTotalPages = computed(() => Math.max(1, Math.ceil(filteredSodanRecords.value.length / ITEMS_PER_PAGE)))
+
+const pagedGamanRecords = computed(() => filteredGamanRecords.value.slice((gamanPage.value - 1) * ITEMS_PER_PAGE, gamanPage.value * ITEMS_PER_PAGE))
+const pagedFukkatsuRecords = computed(() => filteredFukkatsuRecords.value.slice((fukkatsuPage.value - 1) * ITEMS_PER_PAGE, fukkatsuPage.value * ITEMS_PER_PAGE))
+const pagedRouhiRecords = computed(() => filteredRouhiRecords.value.slice((rouhiPage.value - 1) * ITEMS_PER_PAGE, rouhiPage.value * ITEMS_PER_PAGE))
+const pagedSodanRecords = computed(() => filteredSodanRecords.value.slice((sodanPage.value - 1) * ITEMS_PER_PAGE, sodanPage.value * ITEMS_PER_PAGE))
+
+watch(gamanFilterTags, () => { gamanPage.value = 1 })
+watch(fukkatsuFilterTags, () => { fukkatsuPage.value = 1 })
+watch(rouhiFilterTags, () => { rouhiPage.value = 1 })
+watch(sodanFilterTags, () => { sodanPage.value = 1 })
+watch(activeTab, () => {
+  gamanPage.value = 1
+  fukkatsuPage.value = 1
+  rouhiPage.value = 1
+  sodanPage.value = 1
+})
 
 onMounted(() => {
   fetchGaman()
