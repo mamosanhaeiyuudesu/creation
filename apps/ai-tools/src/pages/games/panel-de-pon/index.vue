@@ -55,6 +55,44 @@
       </div>
     </Transition>
 
+    <!-- Name Entry Modal -->
+    <Transition name="ovl">
+      <div v-if="showNameEntry" class="fixed inset-0 bg-black/85 flex items-center justify-center z-[60] backdrop-blur-sm">
+        <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-amber-400/40 rounded-3xl p-8 text-center max-w-xs mx-4 shadow-[0_0_60px_rgba(251,191,36,0.2)]">
+          <div class="text-4xl mb-3">🏆</div>
+          <h2 class="m-0 text-xl font-bold text-amber-400 mb-1">記録達成！</h2>
+          <p class="text-slate-400 text-sm mb-1">ステージ {{ stage }} クリアタイム</p>
+          <p class="font-mono text-2xl font-bold text-white mb-4">{{ formatTime(clearSeconds) }}</p>
+          <p class="text-slate-500 text-xs mb-3">名前を3文字で入力（↑↓で変更・Enter登録）</p>
+
+          <div class="flex gap-2 justify-center mb-3">
+            <div
+              v-for="(ch, i) in nameChars" :key="i"
+              class="w-12 h-14 rounded-xl border-2 flex items-center justify-center text-2xl font-bold font-mono cursor-pointer transition-colors"
+              :class="nameInputIdx === i ? 'border-amber-400 bg-amber-400/10 text-amber-300' : 'border-slate-600 bg-white/[0.05] text-white'"
+              @click="nameInputIdx = i"
+            >{{ ch }}</div>
+          </div>
+
+          <div class="flex gap-2 justify-center mb-5">
+            <div v-for="(_, i) in nameChars" :key="i" class="flex flex-col items-center gap-1">
+              <button class="w-11 h-8 rounded-lg bg-white/[0.08] border border-white/10 text-white text-xs hover:bg-white/[0.15] transition-colors cursor-pointer" @click="changeLetter(i, 1); nameInputIdx = i">▲</button>
+              <button class="w-11 h-8 rounded-lg bg-white/[0.08] border border-white/10 text-white text-xs hover:bg-white/[0.15] transition-colors cursor-pointer" @click="changeLetter(i, -1); nameInputIdx = i">▼</button>
+            </div>
+          </div>
+
+          <button
+            class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-base cursor-pointer border-none hover:opacity-90 transition-opacity mb-2"
+            @click="submitRecord"
+          >登録する</button>
+          <button
+            class="w-full py-2 rounded-xl border border-slate-700 text-slate-500 text-sm cursor-pointer bg-transparent hover:bg-white/[0.04] transition-colors"
+            @click="showNameEntry = false"
+          >スキップ</button>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Header -->
     <div class="w-full max-w-[340px] flex items-center justify-between mb-2">
       <h1 class="m-0 text-base font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
@@ -84,6 +122,10 @@
       </Transition>
     </div>
 
+    <!-- Board, sidebar & leaderboard -->
+    <div class="flex gap-4 items-start">
+    <!-- Game column -->
+    <div class="flex flex-col items-start flex-shrink-0">
     <!-- Board + sidebar -->
     <div class="flex gap-2 items-start">
       <!-- Game board container -->
@@ -183,6 +225,28 @@
         }"
       />
     </div>
+    </div><!-- /game column -->
+
+      <!-- Leaderboard -->
+      <div class="w-44 flex-shrink-0">
+        <div class="text-[10px] font-medium tracking-widest text-slate-500 mb-2 text-center">
+          ST.{{ stage }} ランキング
+        </div>
+        <div v-if="recordsLoading" class="text-slate-600 text-xs text-center py-2">…</div>
+        <div v-else-if="records.length === 0" class="text-slate-600 text-xs text-center py-2">記録なし</div>
+        <div v-else class="flex flex-col gap-0.5">
+          <div
+            v-for="rec in records" :key="rec.rank"
+            class="flex items-center gap-1.5 px-1 py-0.5 rounded text-xs"
+            :class="rec.rank === 1 ? 'bg-amber-400/10' : ''"
+          >
+            <span class="text-[10px] w-4 text-right shrink-0" :class="rec.rank === 1 ? 'text-amber-400' : 'text-slate-600'">{{ rec.rank }}</span>
+            <span class="font-mono font-bold w-8 shrink-0" :class="rec.rank === 1 ? 'text-amber-300' : 'text-slate-300'">{{ rec.name }}</span>
+            <span class="font-mono text-right flex-1" :class="rec.rank === 1 ? 'text-amber-400' : 'text-slate-500'">{{ formatTime(rec.seconds) }}</span>
+          </div>
+        </div>
+      </div>
+    </div><!-- /board+leaderboard wrapper -->
 
     <!-- Mobile controls -->
     <div class="mt-5 flex flex-col items-center gap-4 lg:hidden">
@@ -243,7 +307,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 
 useHead({
@@ -293,6 +357,17 @@ const highScore  = ref(0)
 const savedStage = ref(1)
 const riseOffset = ref(0)   // 0..CELL pixels
 const isBusy     = ref(false) // true while flash/fall is processing
+
+// ── Leaderboard & record entry ─────────────────────────────────
+const stageStartTime = ref(0)
+const clearSeconds   = ref(0)
+const showNameEntry  = ref(false)
+const nameChars      = ref<string[]>(['A', 'A', 'A'])
+const nameInputIdx   = ref(0)
+
+type RecordRow = { rank: number; name: string; seconds: number; recorded_at: string }
+const records        = ref<RecordRow[]>([])
+const recordsLoading = ref(false)
 
 // ── Gamepad debug ─────────────────────────────────────────────
 const gpDebug = ref<{ btns: number[]; axes: Array<[number, number]> }>({ btns: [], axes: [] })
@@ -459,9 +534,11 @@ function processMatches(isChain: boolean) {
 
     // Check stage clear
     if (score.value >= stageTarget.value) {
+      clearSeconds.value = Math.round((Date.now() - stageStartTime.value) / 10) / 100
       phase.value = 'stageclear'
       isBusy.value = false
       saveProgress(stage.value + 1)
+      checkIsRecord()
       return
     }
     setTimeout(() => processMatches(true), 130)
@@ -574,6 +651,80 @@ function pollGamepad(now: number) {
   }
 }
 
+// ── Records ────────────────────────────────────────────────────
+async function fetchRecords(stageNum: number) {
+  recordsLoading.value = true
+  try {
+    const data = await $fetch<RecordRow[]>('/api/games/records', {
+      query: { game: 'panel-de-pon', stage: stageNum },
+    })
+    records.value = data
+  } catch {}
+  recordsLoading.value = false
+}
+
+async function checkIsRecord() {
+  try {
+    const data = await $fetch<RecordRow[]>('/api/games/records', {
+      query: { game: 'panel-de-pon', stage: stage.value },
+    })
+    records.value = data
+    const isRecord = data.length < 10 || clearSeconds.value < data[data.length - 1].seconds
+    if (isRecord) {
+      nameChars.value = ['A', 'A', 'A']
+      nameInputIdx.value = 0
+      showNameEntry.value = true
+    }
+  } catch {}
+}
+
+async function submitRecord() {
+  const name = nameChars.value.join('')
+  try {
+    await $fetch('/api/games/records', {
+      method: 'POST',
+      body: { game: 'panel-de-pon', stage: stage.value, name, seconds: clearSeconds.value },
+    })
+  } catch {}
+  showNameEntry.value = false
+  fetchRecords(stage.value)
+}
+
+function changeLetter(idx: number, delta: number) {
+  const code = nameChars.value[idx].charCodeAt(0) + delta
+  nameChars.value[idx] = String.fromCharCode(code > 90 ? 65 : code < 65 ? 90 : code)
+}
+
+function handleNameKey(e: KeyboardEvent) {
+  e.preventDefault()
+  const i = nameInputIdx.value
+  if (e.key === 'ArrowRight' || e.key === 'Tab') {
+    nameInputIdx.value = Math.min(2, i + 1)
+  } else if (e.key === 'ArrowLeft') {
+    nameInputIdx.value = Math.max(0, i - 1)
+  } else if (e.key === 'ArrowUp') {
+    changeLetter(i, 1)
+  } else if (e.key === 'ArrowDown') {
+    changeLetter(i, -1)
+  } else if (/^[a-zA-Z]$/.test(e.key)) {
+    nameChars.value[i] = e.key.toUpperCase()
+    if (i < 2) nameInputIdx.value = i + 1
+  } else if (e.key === 'Backspace') {
+    if (i > 0) { nameInputIdx.value = i - 1; nameChars.value[i - 1] = 'A' }
+  } else if (e.key === 'Enter') {
+    submitRecord()
+  } else if (e.key === 'Escape') {
+    showNameEntry.value = false
+  }
+}
+
+function formatTime(s: number): string {
+  if (s < 60) return s.toFixed(1) + 's'
+  const m = Math.floor(s / 60)
+  const sec = (s % 60).toFixed(1).padStart(4, '0')
+  return `${m}:${sec}`
+}
+
 function handleStart() {
   if      (phase.value === 'playing')    phase.value = 'paused'
   else if (phase.value === 'paused')     phase.value = 'playing'
@@ -632,7 +783,9 @@ function startGame() {
   const fillRows = 1 + stage.value
   cursor.value = { row: Math.max(1, ROWS - fillRows - 1), col: 2 }
   riseOffset.value = 0
+  showNameEntry.value = false
   phase.value = 'playing'
+  stageStartTime.value = Date.now()
 }
 
 function goNextStage() {
@@ -677,6 +830,7 @@ async function saveProgress(nextStage: number) {
 
 // ── Keyboard ───────────────────────────────────────────────────
 function handleKey(e: KeyboardEvent) {
+  if (showNameEntry.value) { handleNameKey(e); return }
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) {
     e.preventDefault()
   }
@@ -692,9 +846,12 @@ function handleKey(e: KeyboardEvent) {
 }
 
 // ── Lifecycle ──────────────────────────────────────────────────
+watch(stage, (s) => fetchRecords(s))
+
 onMounted(async () => {
   if (!import.meta.dev) await checkAuth()
   await loadProgress()
+  fetchRecords(stage.value)
   window.addEventListener('keydown', handleKey)
   prevTime = performance.now()
   animFrame = requestAnimationFrame(tick)

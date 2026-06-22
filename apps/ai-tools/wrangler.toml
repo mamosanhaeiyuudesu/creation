@@ -24,6 +24,8 @@ database_id = "a89cb679-8a17-4d46-9c90-dada3e35691b"
 #   wrangler d1 execute whisper-db --remote --file src/server/db/011_office_day_type.sql
 # game_progress テーブル追加:
 #   wrangler d1 execute whisper-db --remote --file src/server/db/015_game_progress.sql
+# game_records テーブル追加:
+#   wrangler d1 execute whisper-db --remote --file src/server/db/016_game_records.sql
 
 [[d1_databases]]
 binding = "MLB_DB"
