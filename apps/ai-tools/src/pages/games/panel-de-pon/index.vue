@@ -2,6 +2,16 @@
   <div class="flex flex-col items-center py-4 px-2 min-h-full select-none">
     <AuthModal v-if="showAuthModal" accent="sky" />
 
+    <!-- Pause overlay -->
+    <Transition name="ovl">
+      <div v-if="phase === 'paused'" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
+        <div class="text-center">
+          <div class="text-6xl mb-4">⏸</div>
+          <p class="text-slate-400 text-sm">スタートボタンで再開</p>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Stage Clear overlay -->
     <Transition name="ovl">
       <div v-if="phase === 'stageclear'" class="fixed inset-0 bg-black/75 flex items-center justify-center z-50 backdrop-blur-sm">
@@ -199,21 +209,35 @@
       </div>
     </div>
 
-    <!-- PC hint -->
-    <div class="mt-4 hidden lg:flex items-center gap-4 text-xs text-slate-500">
-      <span class="flex items-center gap-1.5">
-        <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">↑↓←→</kbd>
-        カーソル移動
-      </span>
-      <span class="flex items-center gap-1.5">
-        <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">Z</kbd>
-        <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">Space</kbd>
-        入替
-      </span>
-      <span class="flex items-center gap-1.5">
-        <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">X</kbd>
-        縦横切替
-      </span>
+    <!-- Controls hint -->
+    <div class="mt-4 flex flex-col items-center gap-2">
+      <!-- Gamepad status -->
+      <div class="flex items-center gap-1.5 text-xs" :class="gpConnected ? 'text-emerald-400' : 'text-slate-600'">
+        <span>🎮</span>
+        <span>{{ gpConnected ? 'コントローラー接続中' : 'コントローラー未接続（繋いでボタンを押すと認識）' }}</span>
+      </div>
+      <!-- Keyboard hint (PC only) -->
+      <div class="hidden lg:flex items-center gap-4 text-xs text-slate-500">
+        <span class="flex items-center gap-1.5">
+          <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">↑↓←→</kbd>
+          移動
+        </span>
+        <span class="flex items-center gap-1.5">
+          <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">Z</kbd>
+          <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">Space</kbd>
+          入替
+        </span>
+        <span class="flex items-center gap-1.5">
+          <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">X</kbd>
+          縦横切替
+        </span>
+        <span class="text-slate-700">｜</span>
+        <span class="flex items-center gap-1.5">
+          <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">Enter</kbd>
+          <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">Esc</kbd>
+          開始/停止
+        </span>
+      </div>
     </div>
   </div>
 </template>
@@ -261,7 +285,7 @@ const nextRow    = ref<Color[]>([])
 const flashSet   = ref(new Set<string>())
 const cursor     = ref({ row: 8, col: 2 })
 const cursorDir  = ref<'h' | 'v'>('h')  // h=横並び, v=縦並び
-const phase      = ref<'idle' | 'playing' | 'gameover' | 'stageclear'>('idle')
+const phase      = ref<'idle' | 'playing' | 'paused' | 'gameover' | 'stageclear'>('idle')
 const score      = ref(0)
 const stage      = ref(1)
 const chainLevel = ref(0)
@@ -269,6 +293,9 @@ const highScore  = ref(0)
 const savedStage = ref(1)
 const riseOffset = ref(0)   // 0..CELL pixels
 const isBusy     = ref(false) // true while flash/fall is processing
+
+// ── Gamepad debug ─────────────────────────────────────────────
+const gpDebug = ref<{ btns: number[]; axes: Array<[number, number]> }>({ btns: [], axes: [] })
 
 // ── Computed ──────────────────────────────────────────────────
 const stageTarget  = computed(() => STAGE_TARGETS[Math.min(stage.value - 1, STAGE_TARGETS.length - 1)])
@@ -475,11 +502,92 @@ function moveCursor(dr: number, dc: number) {
   }
 }
 
+// ── Gamepad ────────────────────────────────────────────────────
+const REPEAT_DELAY = 280  // ms ─ 押し続けてリピート開始するまでの時間
+const REPEAT_RATE  = 110  // ms ─ リピート間隔
+
+interface BtnState { held: boolean; heldAt: number; lastRepeat: number }
+const gpDir: Record<string, BtnState> = {}   // 方向系（リピートあり）
+const gpAct: Record<string, boolean>  = {}   // アクション系（エッジのみ）
+
+const gpConnected = ref(false)
+
+function pollGamepad(now: number) {
+  const gp = [...(navigator.getGamepads?.() ?? [])].find(g => g !== null)
+  gpConnected.value = !!gp
+  if (!gp) return
+
+  // ── デバッグ情報（閾値0.05で下方向の0.14も拾う） ──────────────
+  gpDebug.value = {
+    btns: Array.from(gp.buttons).map((b, i) => b.pressed ? i : -1).filter(i => i >= 0),
+    axes: Array.from(gp.axes).map((v, i) => (Math.abs(v) > 0.05 ? [i, v] as [number, number] : null)).filter(Boolean) as [number, number][],
+  }
+
+  // ── 十字キー検出 ──────────────────────────────────────────────
+  // このPS2アダプター: axes[0]=左右（左=-1, 右=+1）/ axes[1]=上下（上=-1, 下=+1）
+  // 標準マッピング buttons[12-15] も念のため併用
+  const THR = 0.5
+  const dUp    = (gp.buttons[12]?.pressed ?? false) || (gp.axes[1] ?? 0) < -THR
+  const dDown  = (gp.buttons[13]?.pressed ?? false) || (gp.axes[1] ?? 0) >  THR
+  const dLeft  = (gp.buttons[14]?.pressed ?? false) || (gp.axes[0] ?? 0) < -THR
+  const dRight = (gp.buttons[15]?.pressed ?? false) || (gp.axes[0] ?? 0) >  THR
+
+  const dpadState: Record<string, boolean> = { up: dUp, down: dDown, left: dLeft, right: dRight }
+  const dpadDelta: Record<string, [number, number]> = {
+    up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1],
+  }
+
+  for (const [key, [dr, dc]] of Object.entries(dpadDelta)) {
+    const pressed = dpadState[key]
+    const s = gpDir[key] ?? { held: false, heldAt: 0, lastRepeat: 0 }
+    if (pressed) {
+      if (!s.held) {
+        moveCursor(dr, dc)
+        gpDir[key] = { held: true, heldAt: now, lastRepeat: now }
+      } else if (now - s.heldAt > REPEAT_DELAY && now - s.lastRepeat > REPEAT_RATE) {
+        moveCursor(dr, dc)
+        gpDir[key] = { ...s, lastRepeat: now }
+      }
+    } else {
+      gpDir[key] = { held: false, heldAt: 0, lastRepeat: 0 }
+    }
+  }
+
+  // ── アクションボタン（エッジ検出のみ） ────────────────────────
+  // A=0: 入替 / B=1: 縦横切替
+  // Start: PS2アダプターによってindex違うので 6〜11 を全部試す
+  const startPressed = [6, 7, 8, 9, 10, 11].some(i => gp.buttons[i]?.pressed ?? false)
+  const actMap: Record<string, boolean> = {
+    // ○=1: 入替 / ✕(0 or 2): 縦横切替
+    swap:      gp.buttons[1]?.pressed ?? false,
+    toggleDir: (gp.buttons[0]?.pressed ?? false) || (gp.buttons[2]?.pressed ?? false),
+    start:     startPressed,
+  }
+
+  for (const [key, pressed] of Object.entries(actMap)) {
+    if (pressed && !gpAct[key]) {
+      if (key === 'swap')      doSwap()
+      if (key === 'toggleDir') toggleDir()
+      if (key === 'start')     handleStart()
+    }
+    gpAct[key] = pressed
+  }
+}
+
+function handleStart() {
+  if      (phase.value === 'playing')    phase.value = 'paused'
+  else if (phase.value === 'paused')     phase.value = 'playing'
+  else if (phase.value === 'idle' || phase.value === 'gameover') resetToStart()
+  else if (phase.value === 'stageclear') goNextStage()
+}
+
 // ── Rise loop ──────────────────────────────────────────────────
 let animFrame: number | null = null
 let prevTime = 0
 
 function tick(now: number) {
+  pollGamepad(now)
+
   if (phase.value === 'playing' && !isBusy.value && !flashSet.value.size) {
     const dt = Math.min(now - prevTime, 80)
     riseOffset.value += riseSpeedPx.value * dt / 1000
@@ -579,6 +687,7 @@ function handleKey(e: KeyboardEvent) {
     case 'ArrowDown':  moveCursor( 1, 0); break
     case 'z': case 'Z': case ' ': doSwap(); break
     case 'x': case 'X': toggleDir(); break
+    case 'Escape': case 'Enter': handleStart(); break
   }
 }
 
