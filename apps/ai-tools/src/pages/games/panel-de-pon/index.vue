@@ -17,9 +17,7 @@
       <div v-if="phase === 'stageclear'" class="fixed inset-0 bg-black/75 flex items-center justify-center z-50 backdrop-blur-sm">
         <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-emerald-400/40 rounded-3xl p-8 text-center max-w-xs mx-4 shadow-[0_0_60px_rgba(52,211,153,0.25)]">
           <div class="text-5xl mb-3">🎉</div>
-          <h2 class="m-0 text-2xl font-bold text-emerald-400 mb-1">ステージ {{ stage }} クリア！</h2>
-          <p class="text-slate-400 text-sm mb-1">スコア: {{ score.toLocaleString() }}</p>
-          <p class="text-slate-500 text-xs mb-6">ハイスコア: {{ highScore.toLocaleString() }}</p>
+          <h2 class="m-0 text-2xl font-bold text-emerald-400 mb-6">ステージ {{ stage }} クリア！</h2>
           <button
             v-if="stage < STAGE_TARGETS.length"
             class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-base cursor-pointer border-none hover:opacity-90 transition-opacity"
@@ -40,17 +38,15 @@
         <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-red-400/40 rounded-3xl p-8 text-center max-w-xs mx-4 shadow-[0_0_60px_rgba(248,113,113,0.2)]">
           <div class="text-5xl mb-3">💀</div>
           <h2 class="m-0 text-2xl font-bold text-red-400 mb-1">ゲームオーバー</h2>
-          <p class="text-slate-400 text-sm mb-1">スコア: {{ score.toLocaleString() }}</p>
-          <p class="text-slate-500 text-xs mb-6">ハイスコア: {{ highScore.toLocaleString() }}</p>
+          <p class="text-slate-400 text-sm mb-6">ステージ {{ stage }}</p>
           <button
             class="w-full py-3 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 text-white font-bold text-base cursor-pointer border-none hover:opacity-90 transition-opacity mb-2"
-            @click="resetToStart"
-          >リトライ（ステージ1から）</button>
+            @click="startGame"
+          >このステージからリトライ</button>
           <button
-            v-if="savedStage > 1"
-            class="w-full py-2.5 rounded-xl border border-slate-600 text-slate-300 text-sm font-medium cursor-pointer bg-transparent hover:bg-white/[0.06] transition-colors"
-            @click="resumeFromSaved"
-          >ステージ {{ savedStage }} から再開</button>
+            class="w-full py-2.5 rounded-xl border border-slate-600 text-slate-400 text-sm font-medium cursor-pointer bg-transparent hover:bg-white/[0.06] transition-colors"
+            @click="resetToStart"
+          >ステージ1から</button>
         </div>
       </div>
     </Transition>
@@ -753,10 +749,7 @@ function resetToStart() {
   startGame()
 }
 
-function resumeFromSaved() {
-  stage.value = savedStage.value
-  startGame()
-}
+
 
 // ── Progress ───────────────────────────────────────────────────
 async function loadProgress() {
