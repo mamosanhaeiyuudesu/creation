@@ -89,6 +89,53 @@
       </div>
     </Transition>
 
+    <!-- Ranking Popup -->
+    <Transition name="ovl">
+      <div
+        v-if="showRankingPopup"
+        class="fixed inset-0 bg-black/85 flex items-center justify-center z-[70] backdrop-blur-sm"
+        @click.self="showRankingPopup = false"
+      >
+        <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-slate-700/60 rounded-3xl p-6 text-center w-72 mx-4 shadow-[0_0_60px_rgba(0,0,0,0.6)]">
+          <div class="text-3xl mb-2">🏆</div>
+          <h2 class="m-0 text-lg font-bold text-slate-200 mb-1">ステージ {{ stage }} ランキング</h2>
+          <p class="text-slate-500 text-xs mb-4">あなたの記録: {{ formatTime(submittedSeconds) }}</p>
+
+          <div class="flex flex-col gap-1 text-left mb-5">
+            <div
+              v-for="rec in records" :key="rec.rank"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm transition-colors"
+              :class="rec.rank === submittedRank
+                ? 'bg-amber-400/15 border border-amber-400/50'
+                : 'bg-white/[0.03]'"
+            >
+              <span
+                class="w-5 text-right font-bold text-[11px] shrink-0"
+                :class="rec.rank === submittedRank ? 'text-amber-300' : rec.rank === 1 ? 'text-amber-400' : 'text-slate-600'"
+              >{{ rec.rank }}</span>
+              <span
+                class="font-mono font-bold w-10 shrink-0"
+                :class="rec.rank === submittedRank ? 'text-amber-200' : 'text-slate-300'"
+              >{{ rec.name }}</span>
+              <span
+                class="flex-1 font-mono text-right"
+                :class="rec.rank === submittedRank ? 'text-amber-300' : 'text-slate-500'"
+              >{{ formatTime(rec.seconds) }}</span>
+              <span
+                v-if="rec.rank === submittedRank"
+                class="text-[9px] font-bold text-amber-400 bg-amber-400/20 px-1.5 py-0.5 rounded-full shrink-0"
+              >NEW</span>
+            </div>
+          </div>
+
+          <button
+            class="w-full py-2.5 rounded-xl bg-white/[0.07] border border-white/10 text-slate-300 font-medium text-sm cursor-pointer hover:bg-white/[0.12] transition-colors"
+            @click="showRankingPopup = false"
+          >閉じる</button>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Header -->
     <h1 class="m-0 text-base font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent mb-3">
       🎴 パネルでポン
@@ -324,8 +371,11 @@ const nameChars      = ref<string[]>(['A', 'A', 'A'])
 const nameInputIdx   = ref(0)
 
 type RecordRow = { rank: number; name: string; seconds: number; recorded_at: string }
-const records        = ref<RecordRow[]>([])
-const recordsLoading = ref(false)
+const records         = ref<RecordRow[]>([])
+const recordsLoading  = ref(false)
+const showRankingPopup = ref(false)
+const submittedRank   = ref<number | null>(null)
+const submittedSeconds = ref(0)
 
 // ── Gamepad debug ─────────────────────────────────────────────
 const gpDebug = ref<{ btns: number[]; axes: Array<[number, number]> }>({ btns: [], axes: [] })
@@ -631,14 +681,19 @@ async function checkIsRecord() {
 
 async function submitRecord() {
   const name = nameChars.value.join('')
+  submittedSeconds.value = clearSeconds.value
   try {
-    await $fetch('/api/games/records', {
+    const res = await $fetch<{ ok: boolean; rank: number | null }>('/api/games/records', {
       method: 'POST',
       body: { game: 'panel-de-pon', stage: stage.value, name, seconds: clearSeconds.value },
     })
-  } catch {}
+    submittedRank.value = res.rank
+  } catch {
+    submittedRank.value = null
+  }
   showNameEntry.value = false
-  fetchRecords(stage.value)
+  await fetchRecords(stage.value)
+  showRankingPopup.value = true
 }
 
 function changeLetter(idx: number, delta: number) {
