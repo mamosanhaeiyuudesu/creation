@@ -94,143 +94,105 @@
     </Transition>
 
     <!-- Header -->
-    <div class="w-full max-w-[340px] flex items-center justify-between mb-2">
-      <h1 class="m-0 text-base font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-        🎴 パネルでポン
-      </h1>
-      <div class="flex items-center gap-2 text-xs text-slate-500">
-        <span class="text-slate-400 font-semibold">ST.{{ stage }}/{{ STAGE_TARGETS.length }}</span>
-        <span class="text-slate-700">|</span>
-        <span>Best {{ highScore.toLocaleString() }}</span>
-      </div>
-    </div>
+    <h1 class="m-0 text-base font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent mb-3">
+      🎴 パネルでポン
+    </h1>
 
-    <!-- Score bar -->
-    <div class="w-full max-w-[340px] flex items-center gap-2 mb-2">
-      <span class="text-lg font-bold text-white w-20 text-right">{{ score.toLocaleString() }}</span>
-      <div class="flex-1 bg-white/[0.08] rounded-full h-2 overflow-hidden">
-        <div
-          class="h-full bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full transition-all duration-300"
-          :style="{ width: `${progressPct}%` }"
-        />
-      </div>
-      <span class="text-xs text-slate-600 w-14">{{ stageTarget.toLocaleString() }}</span>
-      <Transition name="chain">
-        <span v-if="chainLevel >= 2" class="text-xs font-bold text-amber-400 w-16 text-right animate-bounce">
-          {{ chainLevel }}チェーン!
-        </span>
-      </Transition>
-    </div>
-
-    <!-- Board, sidebar & leaderboard -->
+    <!-- Board & leaderboard -->
     <div class="flex gap-4 items-start">
-    <!-- Game column -->
-    <div class="flex flex-col items-start flex-shrink-0">
-    <!-- Board + sidebar -->
-    <div class="flex gap-2 items-start">
-      <!-- Game board container -->
-      <div
-        class="relative border-2 border-slate-700 rounded-lg overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.7)] flex-shrink-0"
-        :style="{ width: `${COLS * CELL}px`, height: `${ROWS * CELL}px` }"
-      >
-        <!-- Inner board (transforms for rise effect) -->
-        <div
-          class="absolute top-0 left-0"
-          :style="{
-            width: `${COLS * CELL}px`,
-            transform: `translateY(${-riseOffset}px)`,
-          }"
-        >
-          <!-- Panel rows (ROWS+1 total: ROWS from grid + nextRow) -->
-          <div v-for="(row, r) in allRows" :key="r" class="flex">
+      <!-- Game column -->
+      <div class="flex flex-col items-start flex-shrink-0">
+        <!-- Stage + score above board -->
+        <div class="flex items-center gap-3 mb-1.5">
+          <span class="text-sm font-bold text-slate-300">ステージ {{ stage }}</span>
+          <Transition name="chain">
+            <span v-if="chainLevel >= 2" class="text-xs font-bold text-amber-400 animate-bounce">{{ chainLevel }}チェーン!</span>
+          </Transition>
+        </div>
+
+        <!-- Vertical score meter + board -->
+        <div class="flex gap-2 items-start">
+          <!-- Vertical score meter -->
+          <div class="flex flex-col items-center gap-1 flex-shrink-0" :style="{ height: `${ROWS * CELL}px` }">
+            <div class="text-[9px] text-slate-600 leading-none font-mono">
+              {{ stageTarget >= 1000 ? (stageTarget / 1000).toFixed(1) + 'k' : stageTarget }}
+            </div>
+            <div class="relative flex-1 overflow-hidden" style="width: 8px; background: rgba(255,255,255,0.06); border-radius: 4px;">
+              <div
+                class="absolute bottom-0 left-0 w-full transition-all duration-300"
+                style="border-radius: 4px; background: linear-gradient(to top, #10b981, #2dd4bf)"
+                :style="{ height: `${progressPct}%` }"
+              />
+            </div>
+            <div class="text-[9px] text-slate-700 leading-none font-mono">0</div>
+          </div>
+
+          <!-- Game board container -->
+          <div
+            class="relative border-2 border-slate-700 rounded-lg overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.7)] flex-shrink-0"
+            :style="{ width: `${COLS * CELL}px`, height: `${ROWS * CELL}px` }"
+          >
+            <!-- Inner board (transforms for rise effect) -->
             <div
-              v-for="(color, c) in row"
-              :key="c"
-              class="panel-cell"
-              :class="{ 'panel-flashing': r < ROWS && flashSet.has(`${r},${c}`) }"
-              :style="cellStyle(color)"
+              class="absolute top-0 left-0"
+              :style="{
+                width: `${COLS * CELL}px`,
+                transform: `translateY(${-riseOffset}px)`,
+              }"
             >
-              <span v-if="color" class="panel-sym">{{ PANEL_CFG[color as Color].sym }}</span>
+              <!-- Panel rows (ROWS+1 total: ROWS from grid + nextRow) -->
+              <div v-for="(row, r) in allRows" :key="r" class="flex">
+                <div
+                  v-for="(color, c) in row"
+                  :key="c"
+                  class="panel-cell"
+                  :class="{ 'panel-flashing': r < ROWS && flashSet.has(`${r},${c}`) }"
+                  :style="cellStyle(color)"
+                >
+                  <span v-if="color" class="panel-sym">{{ PANEL_CFG[color as Color].sym }}</span>
+                </div>
+              </div>
+
+              <!-- Cursor -->
+              <div
+                v-if="phase === 'playing' || phase === 'idle'"
+                class="pointer-events-none absolute z-10 cursor-box"
+                :style="{
+                  left: `${cursor.col * CELL}px`,
+                  top: `${cursor.row * CELL}px`,
+                  width:  cursorDir === 'h' ? `${2 * CELL}px` : `${CELL}px`,
+                  height: cursorDir === 'h' ? `${CELL}px`     : `${2 * CELL}px`,
+                }"
+              />
+            </div>
+
+            <!-- Danger flash overlay -->
+            <div
+              v-if="isDanger"
+              class="absolute inset-0 pointer-events-none animate-[dangerPulse_0.5s_ease_infinite]"
+              style="background: rgba(239,68,68,0.08)"
+            />
+
+            <!-- Idle overlay -->
+            <div
+              v-if="phase === 'idle'"
+              class="absolute inset-0 bg-black/60 flex items-center justify-center"
+            >
+              <button
+                class="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-lg border-none cursor-pointer hover:opacity-90 transition-opacity shadow-lg"
+                @click="startGame"
+              >
+                {{ savedStage > 1 ? `ステージ${savedStage}から再開` : 'スタート' }}
+              </button>
             </div>
           </div>
-
-          <!-- Cursor -->
-          <div
-            v-if="phase === 'playing' || phase === 'idle'"
-            class="pointer-events-none absolute z-10 cursor-box"
-            :style="{
-              left: `${cursor.col * CELL}px`,
-              top: `${cursor.row * CELL}px`,
-              width:  cursorDir === 'h' ? `${2 * CELL}px` : `${CELL}px`,
-              height: cursorDir === 'h' ? `${CELL}px`     : `${2 * CELL}px`,
-            }"
-          />
         </div>
-
-        <!-- Danger flash overlay -->
-        <div
-          v-if="isDanger"
-          class="absolute inset-0 pointer-events-none animate-[dangerPulse_0.5s_ease_infinite]"
-          style="background: rgba(239,68,68,0.08)"
-        />
-
-        <!-- Idle overlay -->
-        <div
-          v-if="phase === 'idle'"
-          class="absolute inset-0 bg-black/60 flex items-center justify-center"
-        >
-          <button
-            class="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-lg border-none cursor-pointer hover:opacity-90 transition-opacity shadow-lg"
-            @click="startGame"
-          >
-            {{ savedStage > 1 ? `ST.${savedStage} から再開` : 'スタート' }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Sidebar -->
-      <div class="flex flex-col gap-3 w-14 flex-shrink-0">
-        <div class="text-center">
-          <div class="text-[10px] text-slate-500 mb-1 font-medium tracking-widest">NEXT</div>
-          <div class="flex flex-col gap-px">
-            <div
-              v-for="(color, i) in nextRow"
-              :key="i"
-              class="rounded-sm mx-auto"
-              :style="{ width: '16px', height: '13px', background: PANEL_CFG[color].bg }"
-            />
-          </div>
-        </div>
-
-        <div v-if="phase === 'playing'" class="text-center mt-2">
-          <div class="text-[10px] text-slate-600 mb-1">速度</div>
-          <div class="text-xs text-slate-400 font-mono">
-            {{ riseSpeedLabel }}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- NEXT row preview (matches board width) -->
-    <div class="flex gap-0 mt-px" :style="{ width: `${COLS * CELL}px` }">
-      <div
-        v-for="(color, i) in nextRow"
-        :key="i"
-        class="border-t border-l border-r border-slate-700/50"
-        :style="{
-          width: `${CELL}px`,
-          height: '6px',
-          background: PANEL_CFG[color].bg,
-          opacity: 0.5,
-        }"
-      />
-    </div>
-    </div><!-- /game column -->
+      </div><!-- /game column -->
 
       <!-- Leaderboard -->
       <div class="w-44 flex-shrink-0">
         <div class="text-[10px] font-medium tracking-widest text-slate-500 mb-2 text-center">
-          ST.{{ stage }} ランキング
+          ランキング
         </div>
         <div v-if="recordsLoading" class="text-slate-600 text-xs text-center py-2">…</div>
         <div v-else-if="records.length === 0" class="text-slate-600 text-xs text-center py-2">記録なし</div>
@@ -332,10 +294,10 @@ const PANEL_CFG: Record<Color, { sym: string; bg: string; lt: string; dk: string
 }
 
 // Score targets per stage (cumulative within each stage)
-const STAGE_TARGETS = [400, 900, 1800, 3200, 5000]
+const STAGE_TARGETS = [300, 550, 850, 1200, 1600, 2100, 2700, 3400, 4200, 5200]
 
 // Rise speed: px/sec per stage
-const RISE_SPEEDS = [14, 20, 28, 38, 50]
+const RISE_SPEEDS = [13, 16, 19, 22, 26, 30, 35, 40, 46, 53]
 
 const FLASH_MS = 550
 
@@ -379,13 +341,6 @@ const allRows      = computed<(Color | null)[][]>(() =>
   grid.value.length ? [...grid.value, nextRow.value as (Color | null)[]] : []
 )
 const riseSpeedPx  = computed(() => RISE_SPEEDS[Math.min(stage.value - 1, RISE_SPEEDS.length - 1)])
-const riseSpeedLabel = computed(() => {
-  const speed = riseSpeedPx.value
-  if (speed <= 14) return '遅い'
-  if (speed <= 22) return '普通'
-  if (speed <= 32) return '速い'
-  return '爆速'
-})
 const isDanger = computed(() =>
   phase.value === 'playing' && grid.value[1]?.some(c => c !== null)
 )
@@ -429,8 +384,8 @@ function makeRow(): Color[] {
 
 function initGrid(): (Color | null)[][] {
   const g: (Color | null)[][] = Array.from({ length: ROWS }, () => Array(COLS).fill(null) as (Color | null)[])
-  // ステージが上がるほど初期パネルを増やす（1→2行、5→6行）
-  const fillRows = 1 + stage.value  // ST1=2行, ST2=3行, ... ST5=6行
+  // ステージが上がるほど初期パネルを増やす（ST1=2行〜ST7+=8行）
+  const fillRows = Math.min(1 + stage.value, 8)
   const startRow = ROWS - fillRows
   for (let r = startRow; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
