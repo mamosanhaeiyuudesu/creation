@@ -136,16 +136,23 @@
       </div>
     </Transition>
 
+    <!-- Portrait warning (mobile only, hidden in landscape) -->
+    <div class="portrait-notice lg:hidden fixed inset-0 bg-black/90 z-[80] flex items-center justify-center flex-col gap-4 text-center p-6">
+      <div class="text-5xl">📱</div>
+      <p class="text-white text-xl font-bold">端末を横にしてください</p>
+      <p class="text-slate-400 text-sm">このゲームは横画面でお楽しみください</p>
+    </div>
+
     <!-- Header -->
     <h1 class="m-0 text-base font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent mb-3">
       🎴 パネルでポン
     </h1>
 
     <!-- Board area: mobile=[dpad|game|buttons], desktop=[game|leaderboard] -->
-    <div class="flex items-center gap-1 lg:gap-4 lg:items-stretch">
+    <div class="flex items-center w-full lg:w-auto lg:gap-4 lg:items-stretch px-3 lg:px-0">
 
       <!-- D-pad (mobile only, left side) -->
-      <div class="flex-shrink-0 lg:hidden">
+      <div class="flex-1 flex items-center justify-start lg:hidden">
         <div class="grid grid-cols-3" style="width: 153px; gap: 6px">
           <div />
           <button class="dpad-sm" @touchstart.prevent="moveCursor(-1, 0)">▲</button>
@@ -160,7 +167,7 @@
       </div>
 
       <!-- Game column -->
-      <div class="flex flex-col items-center lg:items-start flex-shrink-0">
+      <div class="flex-none flex flex-col items-center lg:items-start">
         <!-- Stage + score above board -->
         <div class="flex items-center gap-3 mb-1.5">
           <span class="text-sm font-bold text-slate-300">ステージ {{ stage }}</span>
@@ -264,9 +271,11 @@
       </div><!-- /game column -->
 
       <!-- Action buttons (mobile only, right side) -->
-      <div class="flex-shrink-0 lg:hidden flex flex-row gap-3">
-        <button class="dpad-action" @touchstart.prevent="toggleDir">{{ cursorDir === 'h' ? '⇄' : '⇅' }}</button>
-        <button class="dpad-action dpad-action--swap" @touchstart.prevent="doSwap">入替</button>
+      <div class="flex-1 flex items-center justify-end lg:hidden">
+        <div class="flex flex-row gap-3">
+          <button class="dpad-action" @touchstart.prevent="toggleDir">{{ cursorDir === 'h' ? '⇄' : '⇅' }}</button>
+          <button class="dpad-action dpad-action--swap" @touchstart.prevent="doSwap">入替</button>
+        </div>
       </div>
 
       <!-- Leaderboard (desktop only) -->
@@ -1002,6 +1011,16 @@ onUnmounted(() => {
 
 @media (max-width: 1023px) {
   .panel-cell { font-size: 13px; }
+}
+
+/* Portrait warning: visible in portrait, hidden in landscape */
+.portrait-notice {
+  display: flex;
+}
+@media (orientation: landscape) {
+  .portrait-notice {
+    display: none;
+  }
 }
 
 /* Overlay transitions */
