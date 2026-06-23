@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col items-center py-4 px-2 min-h-full select-none">
+  <div class="flex flex-col items-center py-4 px-0 lg:px-2 min-h-full select-none">
     <AuthModal v-if="showAuthModal" accent="sky" />
 
     <!-- Pause overlay -->
@@ -141,10 +141,26 @@
       🎴 パネルでポン
     </h1>
 
-    <!-- Board & leaderboard -->
-    <div class="flex gap-4 items-stretch">
+    <!-- Board area: mobile=[dpad|game|buttons], desktop=[game|leaderboard] -->
+    <div class="flex items-center gap-1 lg:gap-4 lg:items-stretch">
+
+      <!-- D-pad (mobile only, left side) -->
+      <div class="flex-shrink-0 lg:hidden">
+        <div class="grid grid-cols-3" style="width: 153px; gap: 6px">
+          <div />
+          <button class="dpad-sm" @touchstart.prevent="moveCursor(-1, 0)">▲</button>
+          <div />
+          <button class="dpad-sm" @touchstart.prevent="moveCursor(0, -1)">◄</button>
+          <div style="width:45px;height:45px" />
+          <button class="dpad-sm" @touchstart.prevent="moveCursor(0, 1)">►</button>
+          <div />
+          <button class="dpad-sm" @touchstart.prevent="moveCursor(1, 0)">▼</button>
+          <div />
+        </div>
+      </div>
+
       <!-- Game column -->
-      <div class="flex flex-col items-start flex-shrink-0">
+      <div class="flex flex-col items-center lg:items-start flex-shrink-0">
         <!-- Stage + score above board -->
         <div class="flex items-center gap-3 mb-1.5">
           <span class="text-sm font-bold text-slate-300">ステージ {{ stage }}</span>
@@ -155,8 +171,8 @@
 
         <!-- Vertical score meter + board -->
         <div class="flex gap-2 items-start">
-          <!-- Vertical score meter -->
-          <div class="flex flex-col items-center gap-1 flex-shrink-0" :style="{ height: `${ROWS * CELL}px` }">
+          <!-- Vertical score meter (desktop only) -->
+          <div class="hidden lg:flex flex-col items-center gap-1 flex-shrink-0" :style="{ height: `${ROWS * CELL}px` }">
             <div class="text-[9px] text-slate-600 leading-none font-mono">
               {{ stageTarget >= 1000 ? (stageTarget / 1000).toFixed(1) + 'k' : stageTarget }}
             </div>
@@ -222,18 +238,39 @@
               class="absolute inset-0 bg-black/60 flex items-center justify-center"
             >
               <button
-                class="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-lg border-none cursor-pointer hover:opacity-90 transition-opacity shadow-lg"
+                class="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-base border-none cursor-pointer hover:opacity-90 transition-opacity shadow-lg"
                 @click="startGame"
               >
-                {{ savedStage > 1 ? `ステージ${savedStage}から再開` : 'スタート' }}
+                {{ savedStage > 1 ? `ST${savedStage}から再開` : 'スタート' }}
               </button>
             </div>
           </div>
         </div>
+
+        <!-- Stage selector (mobile only, below board) -->
+        <div class="lg:hidden mt-2 w-full">
+          <div class="text-[9px] text-slate-600 text-center mb-1.5">ステージ選択</div>
+          <div class="grid grid-cols-5 gap-1">
+            <button
+              v-for="n in STAGE_TARGETS.length" :key="n"
+              class="h-7 rounded-lg text-xs font-bold border transition-colors cursor-pointer"
+              :class="stage === n && phase !== 'idle'
+                ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-400'
+                : 'bg-black/40 border-white/10 text-slate-500 hover:bg-white/[0.10] hover:text-slate-200'"
+              @click="jumpToStage(n)"
+            >{{ n }}</button>
+          </div>
+        </div>
       </div><!-- /game column -->
 
-      <!-- Leaderboard -->
-      <div class="w-44 flex-shrink-0 flex flex-col">
+      <!-- Action buttons (mobile only, right side) -->
+      <div class="flex-shrink-0 lg:hidden flex flex-col gap-5">
+        <button class="dpad-action" @touchstart.prevent="toggleDir">{{ cursorDir === 'h' ? '⇄' : '⇅' }}</button>
+        <button class="dpad-action dpad-action--swap" @touchstart.prevent="doSwap">入替</button>
+      </div>
+
+      <!-- Leaderboard (desktop only) -->
+      <div class="hidden lg:flex w-44 flex-shrink-0 flex-col">
         <div class="text-[10px] font-medium tracking-widest text-slate-500 mb-2 text-center">
           ランキング
         </div>
@@ -251,7 +288,7 @@
           </div>
         </div>
 
-        <!-- Stage selector -->
+        <!-- Stage selector (desktop) -->
         <div class="mt-auto pt-3">
           <div class="text-[9px] text-slate-600 text-center mb-1.5">ステージ選択</div>
           <div class="grid grid-cols-5 gap-1">
@@ -266,33 +303,7 @@
           </div>
         </div>
       </div>
-    </div><!-- /board+leaderboard wrapper -->
-
-
-    <!-- Mobile controls -->
-    <div class="mt-5 flex flex-col items-center gap-4 lg:hidden">
-      <div class="grid grid-cols-3 gap-1.5" style="width: 138px">
-        <div />
-        <button class="dpad" @touchstart.prevent="moveCursor(-1, 0)">▲</button>
-        <div />
-        <button class="dpad" @touchstart.prevent="moveCursor(0, -1)">◄</button>
-        <div class="w-10 h-10" />
-        <button class="dpad" @touchstart.prevent="moveCursor(0, 1)">►</button>
-        <div />
-        <button class="dpad" @touchstart.prevent="moveCursor(1, 0)">▼</button>
-        <div />
-      </div>
-      <div class="flex gap-3">
-        <button
-          class="w-14 h-14 rounded-2xl border border-white/20 text-slate-300 text-base font-bold cursor-pointer bg-white/[0.06] active:scale-95 transition-transform"
-          @touchstart.prevent="toggleDir"
-        >{{ cursorDir === 'h' ? '⇄' : '⇅' }}</button>
-        <button
-          class="px-8 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-xl border-none cursor-pointer shadow-lg active:scale-95 transition-transform"
-          @touchstart.prevent="doSwap"
-        >入替</button>
-      </div>
-    </div>
+    </div><!-- /board area -->
 
     <!-- Controls hint -->
     <div class="mt-4 flex flex-col items-center gap-2">
@@ -340,7 +351,10 @@ useHead({
 // ── Constants ─────────────────────────────────────────────────
 const COLS = 6
 const ROWS = 12
-const CELL = 40  // px
+
+const isMobile = ref(false)
+const checkMobile = () => { isMobile.value = window.innerWidth < 1024 }
+const CELL = computed(() => isMobile.value ? 28 : 40)
 
 const COLORS = ['r', 'b', 'y', 'g', 'p'] as const
 type Color = (typeof COLORS)[number]
@@ -412,8 +426,8 @@ const isDanger = computed(() =>
 function cellStyle(color: Color | null): Record<string, string> {
   if (!color) {
     return {
-      width: `${CELL}px`,
-      height: `${CELL}px`,
+      width: `${CELL.value}px`,
+      height: `${CELL.value}px`,
       background: 'rgba(0,0,0,0.35)',
       borderRight: '1px solid rgba(255,255,255,0.04)',
       borderBottom: '1px solid rgba(255,255,255,0.04)',
@@ -422,8 +436,8 @@ function cellStyle(color: Color | null): Record<string, string> {
   }
   const cfg = PANEL_CFG[color]
   return {
-    width: `${CELL}px`,
-    height: `${CELL}px`,
+    width: `${CELL.value}px`,
+    height: `${CELL.value}px`,
     background: `linear-gradient(145deg, ${cfg.lt} 0%, ${cfg.bg} 40%, ${cfg.dk} 100%)`,
     borderTop: `2px solid ${cfg.lt}`,
     borderLeft: `2px solid ${cfg.lt}`,
@@ -766,8 +780,8 @@ function tick(now: number) {
     const dt = Math.min(now - prevTime, 80)
     riseOffset.value += riseSpeedPx.value * dt / 1000
 
-    if (riseOffset.value >= CELL) {
-      riseOffset.value -= CELL
+    if (riseOffset.value >= CELL.value) {
+      riseOffset.value -= CELL.value
       shiftUp()
     }
   }
@@ -874,6 +888,8 @@ function handleKey(e: KeyboardEvent) {
 watch(stage, (s) => fetchRecords(s))
 
 onMounted(async () => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
   if (!import.meta.dev) await checkAuth()
   await loadProgress()
   fetchRecords(stage.value)
@@ -883,6 +899,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
   window.removeEventListener('keydown', handleKey)
   if (animFrame) cancelAnimationFrame(animFrame)
   if (chainTimer) clearTimeout(chainTimer)
@@ -944,6 +961,48 @@ onUnmounted(() => {
   transition: background 0.1s;
 }
 .dpad:active { background: rgba(255,255,255,0.2); }
+
+.dpad-sm {
+  width: 45px;
+  height: 45px;
+  border-radius: 9px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #e2e8f0;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s;
+}
+.dpad-sm:active { background: rgba(255,255,255,0.2); }
+
+.dpad-action {
+  width: 51px;
+  height: 51px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #e2e8f0;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+}
+.dpad-action:active { transform: scale(0.92); }
+.dpad-action--swap {
+  background: linear-gradient(135deg, #10b981, #14b8a6);
+  border-color: transparent;
+  color: #fff;
+}
+
+@media (max-width: 1023px) {
+  .panel-cell { font-size: 13px; }
+}
 
 /* Overlay transitions */
 .ovl-enter-active, .ovl-leave-active { transition: opacity 0.25s ease; }
