@@ -146,12 +146,12 @@
 
       <!-- D-pad (mobile only, left side) -->
       <div class="flex-shrink-0 lg:hidden">
-        <div class="grid grid-cols-3" style="width: 98px; gap: 4px">
+        <div class="grid grid-cols-3" style="width: 153px; gap: 6px">
           <div />
           <button class="dpad-sm" @touchstart.prevent="moveCursor(-1, 0)">▲</button>
           <div />
           <button class="dpad-sm" @touchstart.prevent="moveCursor(0, -1)">◄</button>
-          <div style="width:30px;height:30px" />
+          <div style="width:45px;height:45px" />
           <button class="dpad-sm" @touchstart.prevent="moveCursor(0, 1)">►</button>
           <div />
           <button class="dpad-sm" @touchstart.prevent="moveCursor(1, 0)">▼</button>
@@ -264,7 +264,7 @@
       </div><!-- /game column -->
 
       <!-- Action buttons (mobile only, right side) -->
-      <div class="flex-shrink-0 lg:hidden flex flex-col gap-3">
+      <div class="flex-shrink-0 lg:hidden flex flex-col gap-5">
         <button class="dpad-action" @touchstart.prevent="toggleDir">{{ cursorDir === 'h' ? '⇄' : '⇅' }}</button>
         <button class="dpad-action dpad-action--swap" @touchstart.prevent="doSwap">入替</button>
       </div>
@@ -963,13 +963,13 @@ onUnmounted(() => {
 .dpad:active { background: rgba(255,255,255,0.2); }
 
 .dpad-sm {
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
+  width: 45px;
+  height: 45px;
+  border-radius: 9px;
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(255,255,255,0.12);
   color: #e2e8f0;
-  font-size: 12px;
+  font-size: 18px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -979,13 +979,13 @@ onUnmounted(() => {
 .dpad-sm:active { background: rgba(255,255,255,0.2); }
 
 .dpad-action {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+  width: 51px;
+  height: 51px;
+  border-radius: 12px;
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(255,255,255,0.15);
   color: #e2e8f0;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: bold;
   cursor: pointer;
   display: flex;
