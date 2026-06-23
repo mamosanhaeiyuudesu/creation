@@ -254,20 +254,6 @@
           </div>
         </div>
 
-        <!-- Stage selector (mobile only, below board) -->
-        <div class="lg:hidden mt-2 w-full">
-          <div class="text-[9px] text-slate-600 text-center mb-1.5">ステージ選択</div>
-          <div class="grid grid-cols-5 gap-1">
-            <button
-              v-for="n in STAGE_TARGETS.length" :key="n"
-              class="h-7 rounded-lg text-xs font-bold border transition-colors cursor-pointer"
-              :class="stage === n && phase !== 'idle'
-                ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-400'
-                : 'bg-black/40 border-white/10 text-slate-500 hover:bg-white/[0.10] hover:text-slate-200'"
-              @click="jumpToStage(n)"
-            >{{ n }}</button>
-          </div>
-        </div>
       </div><!-- /game column -->
 
       <!-- Action buttons (mobile only, right side) -->
@@ -313,6 +299,21 @@
         </div>
       </div>
     </div><!-- /board area -->
+
+    <!-- Stage selector (mobile only, below board area) -->
+    <div class="lg:hidden mt-2 px-3 w-full">
+      <div class="text-[9px] text-slate-600 text-center mb-1.5">ステージ選択</div>
+      <div class="grid grid-cols-5 gap-1">
+        <button
+          v-for="n in STAGE_TARGETS.length" :key="n"
+          class="h-7 rounded-lg text-xs font-bold border transition-colors cursor-pointer"
+          :class="stage === n && phase !== 'idle'
+            ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-400'
+            : 'bg-black/40 border-white/10 text-slate-500 hover:bg-white/[0.10] hover:text-slate-200'"
+          @click="jumpToStage(n)"
+        >{{ n }}</button>
+      </div>
+    </div>
 
     <!-- Controls hint -->
     <div class="mt-4 flex flex-col items-center gap-2">
