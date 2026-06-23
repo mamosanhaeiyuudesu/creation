@@ -88,28 +88,30 @@
               <textarea v-model="gamanForm.reason" rows="2" placeholder="例: 読む時間がないから、電子書籍で十分だから"
                 class="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 resize-none" />
             </div>
-            <div>
-              <label class="text-xs text-slate-400 mb-1 block">日付</label>
-              <input v-model="gamanForm.date" type="date"
-                class="bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500/50" />
-            </div>
-            <div>
-              <label class="text-xs text-slate-400 mb-1 block">タグ</label>
-              <div v-if="gamanForm.tags.length" class="flex flex-wrap gap-1.5 mb-2">
-                <span v-for="tag in gamanForm.tags" :key="tag"
-                  class="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/15 text-emerald-400 text-xs rounded-full border border-emerald-500/30">
-                  {{ tag }}
-                  <button @click="removeGamanFormTag(tag)" class="text-emerald-400/60 hover:text-emerald-300 leading-none ml-0.5">×</button>
-                </span>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-400 mb-1 block">日付</label>
+                <input v-model="gamanForm.date" type="date"
+                  class="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500/50" />
               </div>
-              <input v-model="gamanTagInput" @keydown.enter.prevent="addGamanTag" type="text"
-                placeholder="タグを入力してEnter（例: 本、家電）"
-                class="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50" />
-              <div v-if="gamanTagSuggestions.length" class="flex flex-wrap gap-1 mt-2">
-                <button v-for="tag in gamanTagSuggestions" :key="tag" @click="addGamanTagDirect(tag)"
-                  class="px-2 py-0.5 text-xs text-slate-400 border border-white/[0.08] rounded-full hover:border-emerald-500/30 hover:text-emerald-400 transition-colors">
-                  + {{ tag }}
-                </button>
+              <div>
+                <label class="text-xs text-slate-400 mb-1 block">タグ</label>
+                <div v-if="gamanForm.tags.length" class="flex flex-wrap gap-1.5 mb-2">
+                  <span v-for="tag in gamanForm.tags" :key="tag"
+                    class="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/15 text-emerald-400 text-xs rounded-full border border-emerald-500/30">
+                    {{ tag }}
+                    <button @click="removeGamanFormTag(tag)" class="text-emerald-400/60 hover:text-emerald-300 leading-none ml-0.5">×</button>
+                  </span>
+                </div>
+                <input v-model="gamanTagInput" @keydown.enter.prevent="addGamanTag" type="text"
+                  placeholder="タグ（Enter）"
+                  class="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50" />
+                <div v-if="gamanTagSuggestions.length" class="flex flex-wrap gap-1 mt-2">
+                  <button v-for="tag in gamanTagSuggestions" :key="tag" @click="addGamanTagDirect(tag)"
+                    class="px-2 py-0.5 text-xs text-slate-400 border border-white/[0.08] rounded-full hover:border-emerald-500/30 hover:text-emerald-400 transition-colors">
+                    + {{ tag }}
+                  </button>
+                </div>
               </div>
             </div>
             <button @click="saveGaman" :disabled="!gamanForm.name.trim() || !gamanForm.price || !gamanForm.reason.trim() || gamanSaving"
@@ -225,28 +227,30 @@
               <textarea v-model="fukkatsuForm.reason" rows="2" placeholder="例: 新しいものを買わずに済んだ、まだ使えると気づいた"
                 class="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 resize-none" />
             </div>
-            <div>
-              <label class="text-xs text-slate-400 mb-1 block">日付</label>
-              <input v-model="fukkatsuForm.date" type="date"
-                class="bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500/50" />
-            </div>
-            <div>
-              <label class="text-xs text-slate-400 mb-1 block">タグ</label>
-              <div v-if="fukkatsuForm.tags.length" class="flex flex-wrap gap-1.5 mb-2">
-                <span v-for="tag in fukkatsuForm.tags" :key="tag"
-                  class="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/15 text-emerald-400 text-xs rounded-full border border-emerald-500/30">
-                  {{ tag }}
-                  <button @click="removeFukkatsuFormTag(tag)" class="text-emerald-400/60 hover:text-emerald-300 leading-none ml-0.5">×</button>
-                </span>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-400 mb-1 block">日付</label>
+                <input v-model="fukkatsuForm.date" type="date"
+                  class="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500/50" />
               </div>
-              <input v-model="fukkatsuTagInput" @keydown.enter.prevent="addFukkatsuTag" type="text"
-                placeholder="タグを入力してEnter（例: 家電、衣類）"
-                class="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50" />
-              <div v-if="fukkatsuTagSuggestions.length" class="flex flex-wrap gap-1 mt-2">
-                <button v-for="tag in fukkatsuTagSuggestions" :key="tag" @click="addFukkatsuTagDirect(tag)"
-                  class="px-2 py-0.5 text-xs text-slate-400 border border-white/[0.08] rounded-full hover:border-emerald-500/30 hover:text-emerald-400 transition-colors">
-                  + {{ tag }}
-                </button>
+              <div>
+                <label class="text-xs text-slate-400 mb-1 block">タグ</label>
+                <div v-if="fukkatsuForm.tags.length" class="flex flex-wrap gap-1.5 mb-2">
+                  <span v-for="tag in fukkatsuForm.tags" :key="tag"
+                    class="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/15 text-emerald-400 text-xs rounded-full border border-emerald-500/30">
+                    {{ tag }}
+                    <button @click="removeFukkatsuFormTag(tag)" class="text-emerald-400/60 hover:text-emerald-300 leading-none ml-0.5">×</button>
+                  </span>
+                </div>
+                <input v-model="fukkatsuTagInput" @keydown.enter.prevent="addFukkatsuTag" type="text"
+                  placeholder="タグ（Enter）"
+                  class="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50" />
+                <div v-if="fukkatsuTagSuggestions.length" class="flex flex-wrap gap-1 mt-2">
+                  <button v-for="tag in fukkatsuTagSuggestions" :key="tag" @click="addFukkatsuTagDirect(tag)"
+                    class="px-2 py-0.5 text-xs text-slate-400 border border-white/[0.08] rounded-full hover:border-emerald-500/30 hover:text-emerald-400 transition-colors">
+                    + {{ tag }}
+                  </button>
+                </div>
               </div>
             </div>
             <button @click="saveFukkatsu" :disabled="!fukkatsuForm.name.trim() || !fukkatsuForm.price || !fukkatsuForm.reason.trim() || fukkatsuSaving"
@@ -362,28 +366,30 @@
               <textarea v-model="rouhiForm.reason" rows="2" placeholder="例: セールで安かったから、なんとなく欲しくなった"
                 class="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-500/50 resize-none" />
             </div>
-            <div>
-              <label class="text-xs text-slate-400 mb-1 block">日付</label>
-              <input v-model="rouhiForm.date" type="date"
-                class="bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-rose-500/50" />
-            </div>
-            <div>
-              <label class="text-xs text-slate-400 mb-1 block">タグ</label>
-              <div v-if="rouhiForm.tags.length" class="flex flex-wrap gap-1.5 mb-2">
-                <span v-for="tag in rouhiForm.tags" :key="tag"
-                  class="flex items-center gap-1 px-2 py-0.5 bg-rose-500/15 text-rose-400 text-xs rounded-full border border-rose-500/30">
-                  {{ tag }}
-                  <button @click="removeRouhiFormTag(tag)" class="text-rose-400/60 hover:text-rose-300 leading-none ml-0.5">×</button>
-                </span>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-400 mb-1 block">日付</label>
+                <input v-model="rouhiForm.date" type="date"
+                  class="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-rose-500/50" />
               </div>
-              <input v-model="rouhiTagInput" @keydown.enter.prevent="addRouhiTag" type="text"
-                placeholder="タグを入力してEnter（例: 衝動買い、食費）"
-                class="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-500/50" />
-              <div v-if="rouhiTagSuggestions.length" class="flex flex-wrap gap-1 mt-2">
-                <button v-for="tag in rouhiTagSuggestions" :key="tag" @click="addRouhiTagDirect(tag)"
-                  class="px-2 py-0.5 text-xs text-slate-400 border border-white/[0.08] rounded-full hover:border-rose-500/30 hover:text-rose-400 transition-colors">
-                  + {{ tag }}
-                </button>
+              <div>
+                <label class="text-xs text-slate-400 mb-1 block">タグ</label>
+                <div v-if="rouhiForm.tags.length" class="flex flex-wrap gap-1.5 mb-2">
+                  <span v-for="tag in rouhiForm.tags" :key="tag"
+                    class="flex items-center gap-1 px-2 py-0.5 bg-rose-500/15 text-rose-400 text-xs rounded-full border border-rose-500/30">
+                    {{ tag }}
+                    <button @click="removeRouhiFormTag(tag)" class="text-rose-400/60 hover:text-rose-300 leading-none ml-0.5">×</button>
+                  </span>
+                </div>
+                <input v-model="rouhiTagInput" @keydown.enter.prevent="addRouhiTag" type="text"
+                  placeholder="タグ（Enter）"
+                  class="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-500/50" />
+                <div v-if="rouhiTagSuggestions.length" class="flex flex-wrap gap-1 mt-2">
+                  <button v-for="tag in rouhiTagSuggestions" :key="tag" @click="addRouhiTagDirect(tag)"
+                    class="px-2 py-0.5 text-xs text-slate-400 border border-white/[0.08] rounded-full hover:border-rose-500/30 hover:text-rose-400 transition-colors">
+                    + {{ tag }}
+                  </button>
+                </div>
               </div>
             </div>
             <button @click="saveRouhi" :disabled="!rouhiForm.name.trim() || !rouhiForm.price || !rouhiForm.reason.trim() || rouhiSaving"

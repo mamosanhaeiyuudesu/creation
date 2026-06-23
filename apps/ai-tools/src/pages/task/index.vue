@@ -597,8 +597,13 @@ watch(isLoggedIn, async (v) => {
       @confirm="confirmMarkDone"
     />
 
+    <!-- Loading state -->
+    <div v-if="!isMounted" class="flex items-center justify-center min-h-[60vh]">
+      <div class="w-7 h-7 border-2 border-emerald-400/40 border-t-emerald-400 rounded-full animate-spin" />
+    </div>
+
     <!-- No credentials -->
-    <div v-if="isMounted && !hasCredentials" class="flex flex-col items-center justify-center gap-3 min-h-[60vh] text-slate-500">
+    <div v-else-if="isMounted && !hasCredentials" class="flex flex-col items-center justify-center gap-3 min-h-[60vh] text-slate-500">
       <div class="text-5xl">🔑</div>
       <p class="m-0">APIキーが未設定です</p>
       <button class="px-4 py-2 rounded-lg border-none bg-gradient-to-br from-sky-400 to-indigo-500 text-white text-[13px] font-semibold cursor-pointer" @click="openSettings">設定を開く</button>
