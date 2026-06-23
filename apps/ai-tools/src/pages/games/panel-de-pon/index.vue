@@ -264,7 +264,7 @@
       </div><!-- /game column -->
 
       <!-- Action buttons (mobile only, right side) -->
-      <div class="flex-shrink-0 lg:hidden flex flex-col gap-5">
+      <div class="flex-shrink-0 lg:hidden flex flex-row gap-3">
         <button class="dpad-action" @touchstart.prevent="toggleDir">{{ cursorDir === 'h' ? '⇄' : '⇅' }}</button>
         <button class="dpad-action dpad-action--swap" @touchstart.prevent="doSwap">入替</button>
       </div>
