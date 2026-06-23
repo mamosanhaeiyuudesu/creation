@@ -149,7 +149,7 @@
     </h1>
 
     <!-- Board area: mobile=[dpad|game|buttons], desktop=[game|leaderboard] -->
-    <div class="flex items-center w-full lg:w-auto lg:gap-4 lg:items-stretch px-3 lg:px-0">
+    <div class="flex items-end w-full lg:w-auto lg:gap-4 lg:items-stretch px-3 lg:px-0">
 
       <!-- D-pad (mobile only, left side) -->
       <div class="flex-1 flex items-center justify-start lg:hidden">
