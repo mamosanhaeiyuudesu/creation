@@ -4,10 +4,16 @@
 
     <!-- Pause overlay -->
     <Transition name="ovl">
-      <div v-if="phase === 'paused'" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
+      <div v-if="phase === 'paused'" class="fixed inset-0 bg-black flex items-center justify-center z-50">
         <div class="text-center">
           <div class="text-6xl mb-4">⏸</div>
-          <p class="text-slate-400 text-sm">スタートボタンで再開</p>
+          <p class="text-slate-600 text-xs mb-6">スタートボタンでも再開できます</p>
+          <div class="flex flex-col gap-3 w-52">
+            <button
+              class="w-full py-2.5 rounded-xl border border-slate-600 text-slate-400 text-sm font-medium cursor-pointer bg-transparent hover:bg-white/[0.06] transition-colors"
+              @click="startGame"
+            >このステージを最初から</button>
+          </div>
         </div>
       </div>
     </Transition>
