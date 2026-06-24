@@ -19,7 +19,7 @@ export function useHistory(storageKey: string, app?: string) {
 
   // ローカル開発またはappが未指定の場合はlocalStorageを使用
   if (import.meta.dev || !app) {
-    onMounted(() => {
+    const loadHistory = () => {
       const stored = localStorage.getItem(storageKey)
       if (stored) {
         try {
@@ -33,7 +33,9 @@ export function useHistory(storageKey: string, app?: string) {
           history.value = []
         }
       }
-    })
+    }
+
+    onMounted(loadHistory)
 
     const saveHistory = () => {
       localStorage.setItem(storageKey, JSON.stringify(history.value))
@@ -75,7 +77,7 @@ export function useHistory(storageKey: string, app?: string) {
       saveHistory()
     }
 
-    return { history, copiedHistoryId, addHistory, updateHistory, updateHistoryNotes, updateHistoryTitle, deleteHistory, copyHistory }
+    return { history, copiedHistoryId, addHistory, updateHistory, updateHistoryNotes, updateHistoryTitle, deleteHistory, copyHistory, loadHistory }
   }
 
   // 本番環境: APIを使用
@@ -139,5 +141,5 @@ export function useHistory(storageKey: string, app?: string) {
     $fetch(`/api/app-history/${id}`, { method: 'DELETE' }).catch(console.error)
   }
 
-  return { history, copiedHistoryId, addHistory, updateHistory, updateHistoryNotes, updateHistoryTitle, deleteHistory, copyHistory }
+  return { history, copiedHistoryId, addHistory, updateHistory, updateHistoryNotes, updateHistoryTitle, deleteHistory, copyHistory, loadHistory }
 }

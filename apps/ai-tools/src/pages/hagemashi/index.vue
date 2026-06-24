@@ -17,7 +17,7 @@
             title="設定"
             @click="showSettingsMenu = !showSettingsMenu"
           >⚙</button>
-          <div v-if="showSettingsMenu" class="absolute right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-[200] min-w-[160px] py-1 overflow-hidden">
+          <div v-if="showSettingsMenu" class="absolute right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-[200] min-w-[140px] py-1 overflow-hidden">
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openExportModal(); showSettingsMenu = false">
               <span>📤</span> エクスポート
             </button>
@@ -128,6 +128,22 @@
             <span v-if="isTokenizing" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
             {{ isTokenizing ? '集計中...' : '再集計' }}
           </button>
+          <template v-if="activeTab === 'summary'">
+            <div v-if="migrateConfirming" class="flex items-center gap-1.5">
+              <span class="text-xs text-slate-400">本当に再生成する？</span>
+              <button class="px-2 py-1 rounded-md text-xs border-none bg-orange-500/20 text-orange-300 cursor-pointer hover:bg-orange-500/35 transition-colors" @click="migrateConfirming = false; runMigrate()">実行</button>
+              <button class="px-2 py-1 rounded-md text-xs border border-white/10 bg-transparent text-slate-400 cursor-pointer hover:bg-white/[0.08] transition-colors" @click="migrateConfirming = false">キャンセル</button>
+            </div>
+            <button
+              v-else
+              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+              :disabled="isMigrating || history.length === 0"
+              @click="migrateConfirming = true"
+            >
+              <span v-if="isMigrating" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
+              {{ migrateStatus || '再生成' }}
+            </button>
+          </template>
         </div>
         <HistoryTable
           v-if="activeTab === 'transcription'"
@@ -426,6 +442,9 @@ const ENCOURAGE_PROMPTS = {
 
 const error = ref('')
 const showSettingsMenu = ref(false)
+const isMigrating = ref(false)
+const migrateStatus = ref('')
+const migrateConfirming = ref(false)
 const selectOpen = ref(false)
 const selectedIds = ref<string[]>([])
 const encourageOpen = ref(false)
@@ -477,13 +496,15 @@ interface WordEntry { word: string; count: number }
 const wordRanking = ref<WordEntry[]>([])
 const isTokenizing = ref(false)
 
+const WORD_STOPLIST = new Set(['今日', '自分', '本当', '非常', '最近', '昨日'])
+
 function extractWords(text: string): string[] {
   const words: string[] = []
   const kanjiRe = /[一-鿿㐀-䶿]{2,}/g
   const katakanaRe = /[゠-ヿ]{2,}/g
   let m
-  while ((m = kanjiRe.exec(text)) !== null) words.push(m[0])
-  while ((m = katakanaRe.exec(text)) !== null) words.push(m[0])
+  while ((m = kanjiRe.exec(text)) !== null) if (!WORD_STOPLIST.has(m[0])) words.push(m[0])
+  while ((m = katakanaRe.exec(text)) !== null) if (!WORD_STOPLIST.has(m[0])) words.push(m[0])
   return words
 }
 
@@ -518,7 +539,7 @@ if (!$dev) {
   onMounted(checkAuth)
 }
 
-const { history, copiedHistoryId, addHistory, updateHistoryNotes, updateHistoryTitle, deleteHistory, copyHistory } = useHistory('hagemashi-history', 'hagemashi')
+const { history, copiedHistoryId, addHistory, updateHistoryNotes, updateHistoryTitle, deleteHistory, copyHistory, loadHistory } = useHistory('hagemashi-history', 'hagemashi')
 const {
   history: encourageHistory,
   copiedHistoryId: copiedEncourageId,
@@ -691,6 +712,24 @@ const runEncourage = async () => {
     encourageResult.value = err instanceof Error ? err.message : 'はげましの生成に失敗しました'
   } finally {
     isEncouraging.value = false
+  }
+}
+
+// --- 一括マイグレーション ---
+const runMigrate = async () => {
+  if (isMigrating.value) return
+  isMigrating.value = true
+  migrateStatus.value = '移行中...'
+  try {
+    const res = await $fetch<{ migrated: number; skipped: number; total: number }>('/api/hagemashi/migrate', { method: 'POST' })
+    migrateStatus.value = `完了 ${res.migrated}件`
+    if (res.migrated > 0) await loadHistory()
+    setTimeout(() => { migrateStatus.value = '' }, 4000)
+  } catch {
+    migrateStatus.value = '失敗'
+    setTimeout(() => { migrateStatus.value = '' }, 3000)
+  } finally {
+    isMigrating.value = false
   }
 }
 
