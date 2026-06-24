@@ -150,17 +150,21 @@
         />
         <!-- 中間データタブ -->
         <div v-else-if="activeTab === 'summary'" class="py-2">
-          <div v-if="summaryItems.length === 0" class="text-center text-slate-500 text-sm py-10">
+          <div v-if="summaryRows.length === 0" class="text-center text-slate-500 text-sm py-10">
             録音を文字起こしすると中間データが生成されます
           </div>
-          <div v-else class="flex flex-col gap-3">
+          <div v-else class="flex flex-col gap-0">
             <div
-              v-for="item in summaryItems"
-              :key="item.id"
-              class="px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] flex flex-col gap-1"
+              v-for="row in summaryRows"
+              :key="row.id"
+              class="flex items-start gap-2.5 px-1 py-2 border-b border-white/[0.05] last:border-b-0 hover:bg-white/[0.03] transition-colors"
             >
-              <span class="text-[11px] text-slate-500">{{ formatSummaryDate(item.timestamp) }}</span>
-              <p class="m-0 text-sm text-slate-200 leading-relaxed">{{ item.notes }}</p>
+              <span class="text-[11px] text-slate-500 shrink-0 w-[38px] pt-[2px] tabular-nums">{{ row.date }}</span>
+              <span
+                class="text-[10px] font-semibold shrink-0 px-1.5 py-0.5 rounded-md mt-[1px]"
+                :class="row.sentiment === 'ポジ' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-orange-500/15 text-orange-400'"
+              >{{ row.sentiment }}</span>
+              <span class="text-sm text-slate-200 leading-relaxed">{{ row.text }}</span>
             </div>
           </div>
         </div>
@@ -666,7 +670,7 @@ const fetchEncourageTitle = async (text: string): Promise<string> => {
 const runEncourage = async () => {
   const items = history.value.filter(item => selectedIds.value.includes(item.id))
   if (!items.length) return
-  const texts = items.map(item => item.notes || item.text)
+  const texts = items.map(item => getNotesText(item))
   encourageResult.value = ''
   encourageOpen.value = true
   isEncouraging.value = true
@@ -697,17 +701,32 @@ const copyResult = async () => {
 }
 
 // --- 中間データ ---
-const summaryItems = computed(() =>
-  history.value.filter(item => item.notes)
+interface SummaryNote { sentiment: 'ポジ' | 'ネガ'; text: string }
+
+const parseSummaryNote = (notes: string | undefined): SummaryNote | null => {
+  if (!notes) return null
+  try {
+    const parsed = JSON.parse(notes)
+    if (parsed.text) return { sentiment: parsed.sentiment ?? 'ポジ', text: parsed.text }
+  } catch {}
+  return null
+}
+
+const summaryRows = computed(() =>
+  history.value
+    .map(item => {
+      const parsed = parseSummaryNote(item.notes)
+      if (!parsed) return null
+      const d = toJSTDate(item.timestamp)
+      const date = `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`
+      return { id: item.id, date, sentiment: parsed.sentiment, text: parsed.text }
+    })
+    .filter(Boolean) as { id: string; date: string; sentiment: 'ポジ' | 'ネガ'; text: string }[]
 )
 
-const formatSummaryDate = (iso: string): string => {
-  const d = toJSTDate(iso)
-  const mo = String(d.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(d.getUTCDate()).padStart(2, '0')
-  const h = String(d.getUTCHours()).padStart(2, '0')
-  const mi = String(d.getUTCMinutes()).padStart(2, '0')
-  return `${mo}/${day} ${h}:${mi}`
+const getNotesText = (item: { text: string; notes?: string }): string => {
+  const parsed = parseSummaryNote(item.notes)
+  return parsed?.text ?? item.text
 }
 
 const fetchSummary = async (text: string): Promise<string> => {

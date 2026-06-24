@@ -22,12 +22,17 @@ export default defineEventHandler(async (event) => {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 128,
-        system: `以下の発話内容を、1〜2文の自然な日本語でまとめてください。
-- 何をした・何があったかという事実と、どんな気持ちだったかを含める
-- 例：「今日はAIエージェントの長期記憶を実装した。思ったより複雑で疲れたが達成感があった。」
-- 余計な前置きや説明は不要。本文のみ返す
-- 日本語で出力する`,
+        max_tokens: 256,
+        system: `以下の発話内容を分析し、JSONのみを返してください。
+{
+  "sentiment": "ポジ" または "ネガ",
+  "text": "1〜2文の要約（何をした・何があったか＋気持ちを含む）"
+}
+
+ルール:
+- sentiment は全体的にポジティブなら "ポジ"、ネガティブまたは辛い内容なら "ネガ"
+- text は自然な日本語で1〜2文。前置きなし
+- JSONのみ返す。余計な説明不要`,
         messages: [{ role: 'user', content: body.text }],
       }),
     })
@@ -41,7 +46,10 @@ export default defineEventHandler(async (event) => {
     }
 
     const data = await response.json()
-    const notes = data?.content?.[0]?.text ?? ''
+    const raw = data?.content?.[0]?.text ?? ''
+    // JSONパース検証してからnotesに渡す
+    const parsed = JSON.parse(raw)
+    const notes = JSON.stringify({ sentiment: parsed.sentiment ?? 'ポジ', text: parsed.text ?? '' })
     return { notes }
   } catch (err) {
     return wrapApiError(err, '中間データの生成に失敗しました')
