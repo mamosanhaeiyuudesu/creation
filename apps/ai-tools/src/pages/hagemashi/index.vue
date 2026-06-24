@@ -173,14 +173,48 @@
             <div
               v-for="row in summaryRows"
               :key="row.id"
-              class="flex items-start gap-2.5 px-1 py-2 border-b border-white/[0.05] last:border-b-0 hover:bg-white/[0.03] transition-colors"
+              class="flex flex-col gap-2 px-1 py-2 border-b border-white/[0.05] last:border-b-0"
             >
-              <span class="text-[11px] text-slate-500 shrink-0 w-[38px] pt-[2px] tabular-nums">{{ row.date }}</span>
-              <span
-                class="text-[10px] font-semibold shrink-0 px-1.5 py-0.5 rounded-md mt-[1px]"
-                :class="row.sentiment === 'ポジ' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-orange-500/15 text-orange-400'"
-              >{{ row.sentiment }}</span>
-              <span class="text-sm text-slate-200 leading-relaxed">{{ row.text }}</span>
+              <!-- 表示モード -->
+              <template v-if="editingSummaryId !== row.id">
+                <div class="flex items-start gap-2.5 group">
+                  <span class="text-[11px] text-slate-500 shrink-0 w-[38px] pt-[2px] tabular-nums">{{ row.date }}</span>
+                  <span
+                    class="text-[10px] font-semibold shrink-0 px-1.5 py-0.5 rounded-md mt-[1px]"
+                    :class="row.sentiment === 'ポジ' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-orange-500/15 text-orange-400'"
+                  >{{ row.sentiment }}</span>
+                  <span class="text-sm text-slate-200 leading-relaxed flex-1">{{ row.text }}</span>
+                  <button
+                    class="shrink-0 w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer border-none bg-transparent opacity-0 group-hover:opacity-100"
+                    @click="startEditSummary(row)"
+                  >✏️</button>
+                </div>
+              </template>
+              <!-- 編集モード -->
+              <template v-else>
+                <div class="flex items-center gap-2 px-0.5">
+                  <span class="text-[11px] text-slate-500 shrink-0 w-[38px] tabular-nums">{{ row.date }}</span>
+                  <button
+                    class="text-[10px] font-semibold shrink-0 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer border-none"
+                    :class="editingSentiment === 'ポジ' ? 'bg-emerald-500/30 text-emerald-300' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'"
+                    @click="editingSentiment = 'ポジ'"
+                  >ポジ</button>
+                  <button
+                    class="text-[10px] font-semibold shrink-0 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer border-none"
+                    :class="editingSentiment === 'ネガ' ? 'bg-orange-500/30 text-orange-300' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'"
+                    @click="editingSentiment = 'ネガ'"
+                  >ネガ</button>
+                </div>
+                <textarea
+                  v-model="editingText"
+                  class="w-full bg-white/[0.05] border border-orange-500/40 rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-none leading-relaxed"
+                  rows="3"
+                />
+                <div class="flex justify-end gap-1.5">
+                  <button class="px-3 py-1 rounded-lg border border-white/10 bg-transparent text-slate-400 text-xs cursor-pointer hover:bg-white/[0.08] transition-colors" @click="cancelSummary">キャンセル</button>
+                  <button class="px-3 py-1 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-xs font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="saveSummary(row.id)">保存</button>
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -742,6 +776,26 @@ const copyResult = async () => {
 
 // --- 中間データ ---
 interface SummaryNote { sentiment: 'ポジ' | 'ネガ'; text: string }
+
+const editingSummaryId = ref<string | null>(null)
+const editingSentiment = ref<'ポジ' | 'ネガ'>('ポジ')
+const editingText = ref('')
+
+const startEditSummary = (row: { id: string; sentiment: 'ポジ' | 'ネガ'; text: string }) => {
+  editingSummaryId.value = row.id
+  editingSentiment.value = row.sentiment
+  editingText.value = row.text
+}
+
+const cancelSummary = () => {
+  editingSummaryId.value = null
+}
+
+const saveSummary = (id: string) => {
+  const notes = JSON.stringify({ sentiment: editingSentiment.value, text: editingText.value })
+  updateHistoryNotes(id, notes)
+  editingSummaryId.value = null
+}
 
 const parseSummaryNote = (notes: string | undefined): SummaryNote | null => {
   if (!notes) return null

@@ -19,9 +19,14 @@
           >
             <td class="py-1.5 px-2 text-slate-300 border-b border-white/[0.04] whitespace-nowrap last:border-b-0 w-[110px]">{{ formatDate(item.timestamp) }}</td>
             <td
-              class="py-1.5 px-2 text-slate-200 border-b border-white/[0.04] overflow-hidden text-ellipsis whitespace-nowrap max-w-0 cursor-pointer hover:text-orange-400 transition-colors"
+              class="py-1.5 px-2 text-slate-200 border-b border-white/[0.04] overflow-hidden max-w-0 cursor-pointer hover:text-orange-400 transition-colors"
               @click="selectedItem = item"
-            >{{ item.title }}</td>
+            >
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="truncate">{{ item.title }}</span>
+                <span class="text-[10px] text-slate-600 shrink-0 tabular-nums">{{ item.text.length.toLocaleString() }}</span>
+              </div>
+            </td>
             <td class="py-1.5 px-2 text-slate-300 border-b border-white/[0.04] text-center w-8">
               <button
                 class="bg-transparent border-none cursor-pointer p-1 rounded text-[13px] leading-none transition-colors hover:bg-white/[0.08]"
