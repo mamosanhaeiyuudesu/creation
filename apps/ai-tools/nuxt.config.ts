@@ -26,7 +26,6 @@ gtag('config', 'G-JRBVTJYCEH');`,
   },
   modules: ['@nuxtjs/tailwindcss', '@vite-pwa/nuxt'],
   pwa: {
-    registerType: 'autoUpdate',
     manifest: false,
     workbox: {
       navigateFallback: null,
@@ -39,7 +38,7 @@ gtag('config', 'G-JRBVTJYCEH');`,
       ],
     },
     devOptions: {
-      enabled: true,
+      enabled: false,
       type: 'module',
     },
   },
