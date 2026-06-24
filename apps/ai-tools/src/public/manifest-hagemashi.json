@@ -1,7 +1,7 @@
 {
   "name": "はげまし",
   "short_name": "はげまし",
-  "description": "AI励ましメッセージ生成",
+  "description": "AIはげましメッセージ生成",
   "theme_color": "#f97316",
   "background_color": "#f97316",
   "display": "standalone",
@@ -9,6 +9,11 @@
   "start_url": "/hagemashi",
   "scope": "/",
   "icons": [
-    { "src": "/apple-touch-icon-hagemashi.png", "sizes": "192x192", "type": "image/png", "purpose": "any" }
+    {
+      "src": "/apple-touch-icon-hagemashi.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ]
 }

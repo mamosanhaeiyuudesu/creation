@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
-        system: `${body.encouragePrompt || '話した内容を踏まえて、温かく励ましてください。'}\n\n返答は日本語で${body.charLimit ?? 500}文字程度にまとめること。`,
+        system: `${body.encouragePrompt || '話した内容を踏まえて、温かくはげましてください。'}\n\n返答は日本語で${body.charLimit ?? 500}文字程度にまとめること。`,
         messages: [{ role: 'user', content: userContent }],
       }),
     })
@@ -44,6 +44,6 @@ export default defineEventHandler(async (event) => {
     const text = data?.content?.[0]?.text ?? ''
     return { result: text }
   } catch (err) {
-    return wrapApiError(err, '励ましの生成に失敗しました')
+    return wrapApiError(err, 'はげましの生成に失敗しました')
   }
 })

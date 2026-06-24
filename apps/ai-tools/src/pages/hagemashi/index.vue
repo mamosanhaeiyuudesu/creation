@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col items-center px-4 pt-4 lg:pt-8 pb-12 min-h-screen" @click="showSettingsMenu = false">
     <div v-if="showSettingsMenu" class="fixed inset-0 z-40" @click="showSettingsMenu = false" />
-    <div class="relative w-full max-w-[600px] ml-2.5">
+    <div class="relative z-50 w-full max-w-[600px] ml-2.5">
       <div class="absolute inset-x-0 top-0 h-[2px] rounded-t-2xl bg-gradient-to-r from-orange-500 to-pink-500 z-10" />
       <div class="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl p-7 shadow-[0_20px_80px_rgba(0,0,0,0.35),0_0_40px_rgba(249,115,22,0.06)] backdrop-blur-[10px] grid gap-4 max-h-[70dvh] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
 
@@ -9,7 +9,7 @@
       <header class="relative flex items-center justify-center">
         <div class="text-center">
           <h1 class="m-0 text-[clamp(24px,4vw,32px)] font-bold bg-gradient-to-br from-orange-500 to-pink-500 bg-clip-text text-transparent">はげまし</h1>
-          <p class="mt-2 mb-0 text-slate-400 text-base">話して、励ましてもらおう</p>
+          <p class="mt-2 mb-0 text-slate-400 text-base">話して、はげましてもらおう</p>
         </div>
         <div class="absolute right-0 top-1/2 -translate-y-1/2" @click.stop>
           <button
@@ -22,7 +22,7 @@
               <span>📤</span> エクスポート
             </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openSettingsModal(); showSettingsMenu = false">
-              <span>💬</span> 励まし方の設定
+              <span>💬</span> はげまし方の設定
             </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); showSettingsMenu = false">
               <span>🚪</span> ログアウト
@@ -71,17 +71,17 @@
             </button>
           </template>
 
-          <!-- 励ます button -->
-          <!-- <button
-            v-if="!isRecording && !isPaused"
+          <!-- はげます button -->
+          <button
+            v-if="!isRecording && !isPaused && !isProcessing"
             class="w-20 h-20 rounded-full border-2 border-orange-500/50 bg-orange-500/[0.08] text-slate-50 flex flex-col items-center justify-center gap-1 transition-all disabled:opacity-35 disabled:cursor-not-allowed"
             :class="history.length > 0 && !isEncouraging ? 'cursor-pointer hover:bg-orange-500/[0.20] hover:border-orange-500/80 hover:scale-105' : ''"
             :disabled="history.length === 0 || isEncouraging"
             @click="onEncourageClick"
           >
             <span class="text-2xl leading-none">💪</span>
-            <span class="text-[10px] font-medium">励ます</span>
-          </button> -->
+            <span class="text-[10px] font-medium">はげます</span>
+          </button>
         </div>
         <div v-if="isRecording || duration > 0" class="text-xl text-red-500 font-mono font-semibold">
           {{ formatTime(duration) }}
@@ -96,7 +96,7 @@
 
       <!-- History tabs -->
       <div v-if="history.length > 0 || encourageHistory.length > 0" class="mt-1 min-w-0">
-        <div class="flex items-center gap-0 mb-3 border-b border-white/[0.08]">
+        <div class="flex items-center gap-0 border-b border-white/[0.08]">
           <button
             class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
             :class="activeTab === 'transcription' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
@@ -106,7 +106,23 @@
             class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
             :class="activeTab === 'encourage' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
             @click="activeTab = 'encourage'"
-          >励まし</button>
+          >はげまし</button>
+          <button
+            class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
+            :class="activeTab === 'words' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
+            @click="activeTab = 'words'"
+          >単語</button>
+        </div>
+        <div class="flex items-center justify-end h-8 mb-1">
+          <button
+            v-if="activeTab === 'words'"
+            class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+            :disabled="isTokenizing || history.length === 0"
+            @click="reTokenize"
+          >
+            <span v-if="isTokenizing" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
+            {{ isTokenizing ? '集計中...' : '再集計' }}
+          </button>
         </div>
         <HistoryTable
           v-if="activeTab === 'transcription'"
@@ -122,7 +138,7 @@
           @updateTitle="updateHistoryTitle"
         />
         <HistoryTable
-          v-else
+          v-else-if="activeTab === 'encourage'"
           :history="encourageHistory"
           :copiedId="copiedEncourageId"
           :hideHeader="true"
@@ -131,6 +147,28 @@
           @delete="deleteEncourageHistory"
           @updateTitle="updateEncourageHistoryTitle"
         />
+        <div v-else class="py-2">
+          <div v-if="wordRanking.length === 0" class="text-center text-slate-500 text-sm py-10">
+            再集計ボタンを押すと単語ランキングを生成します
+          </div>
+          <div v-else class="flex flex-col gap-0.5">
+            <div
+              v-for="(entry, i) in wordRanking.slice(0, 80)"
+              :key="entry.word"
+              class="flex items-center gap-2.5 px-1 py-1 rounded-lg hover:bg-white/[0.04] transition-colors"
+            >
+              <span class="text-[11px] text-slate-600 w-6 text-right shrink-0 tabular-nums">{{ i + 1 }}</span>
+              <span class="text-sm text-slate-200 font-medium w-[7em] shrink-0 truncate">{{ entry.word }}</span>
+              <div class="flex-1 h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                <div
+                  class="h-full bg-gradient-to-r from-orange-500 to-pink-500 rounded-full"
+                  :style="{ width: `${(entry.count / wordRanking[0].count) * 100}%` }"
+                />
+              </div>
+              <span class="text-[11px] text-slate-500 shrink-0 w-5 text-right tabular-nums">{{ entry.count }}</span>
+            </div>
+          </div>
+        </div>
       </div>
       </div>
     </div>
@@ -138,11 +176,11 @@
     <!-- Auth Modal -->
     <AuthModal v-if="!$dev && checked && !isLoggedIn" accent="orange" />
 
-    <!-- Settings Modal（励まし方プロファイル） -->
+    <!-- Settings Modal（はげまし方プロファイル） -->
     <div v-if="settingsOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="settingsOpen = false">
       <div class="w-full max-w-[520px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
-          <h2 class="m-0 text-lg text-slate-50 font-semibold">励まし方の設定</h2>
+          <h2 class="m-0 text-lg text-slate-50 font-semibold">はげまし方の設定</h2>
           <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="settingsOpen = false">✕</button>
         </div>
 
@@ -173,12 +211,12 @@
             />
           </div>
           <div class="flex flex-col gap-1.5">
-            <label class="text-[13px] font-medium text-slate-400">励まし方の指示</label>
+            <label class="text-[13px] font-medium text-slate-400">はげまし方の指示</label>
             <textarea
               v-model="editingProfiles[editingTabIdx].encouragePrompt"
               class="bg-white/[0.05] border border-white/[0.12] rounded-lg text-slate-50 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-y leading-relaxed"
               rows="5"
-              placeholder="励まし方の指示を入力..."
+              placeholder="はげまし方の指示を入力..."
             />
           </div>
           <div class="flex justify-start">
@@ -201,7 +239,7 @@
     <div v-if="profileSelectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="profileSelectOpen = false">
       <div class="w-full max-w-[360px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col">
         <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
-          <h2 class="m-0 text-base text-slate-50 font-semibold">励まし方を選択</h2>
+          <h2 class="m-0 text-base text-slate-50 font-semibold">はげまし方を選択</h2>
           <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="profileSelectOpen = false">✕</button>
         </div>
         <div class="px-4 py-3 flex flex-col gap-2">
@@ -258,16 +296,29 @@
           </label>
         </div>
         <div class="px-6 pt-3 pb-4 border-t border-white/[0.08] flex flex-col gap-3">
-          <!-- アクションボタン -->
-          <div class="flex items-center justify-end">
-            <div class="flex gap-2">
-              <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="selectOpen = false">キャンセル</button>
+          <!-- 文字数選択 -->
+          <div class="flex items-center gap-2.5">
+            <span class="text-xs text-slate-500 shrink-0">文字数</span>
+            <div class="flex gap-1.5">
               <button
-                class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-                :disabled="selectedIds.length === 0"
-                @click="confirmSelect"
-              >💪 励ます</button>
+                v-for="n in [500, 1000, 2000]"
+                :key="n"
+                class="px-3 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer"
+                :class="charLimit === n
+                  ? 'border-orange-500/60 bg-orange-500/15 text-orange-300'
+                  : 'border-white/10 bg-transparent text-slate-500 hover:text-slate-300 hover:border-white/20'"
+                @click="charLimit = n"
+              >{{ n }}</button>
             </div>
+          </div>
+          <!-- アクションボタン -->
+          <div class="flex items-center justify-end gap-2">
+            <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="selectOpen = false">キャンセル</button>
+            <button
+              class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+              :disabled="selectedIds.length === 0"
+              @click="confirmSelect"
+            >💪 はげます</button>
           </div>
         </div>
       </div>
@@ -312,13 +363,13 @@
     <div v-if="encourageOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="encourageOpen = false">
       <div class="w-full max-w-[600px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
-          <h2 class="m-0 text-lg text-slate-50 font-semibold">💪 励まし</h2>
+          <h2 class="m-0 text-lg text-slate-50 font-semibold">💪 はげまし</h2>
           <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="encourageOpen = false">✕</button>
         </div>
         <div class="px-6 py-5 overflow-y-auto flex flex-col gap-3 flex-1">
           <div v-if="isEncouraging" class="flex items-center justify-center gap-2.5 py-8 text-slate-400 text-sm">
             <span class="w-5 h-5 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
-            励ましを考えています...
+            はげましを考えています...
           </div>
           <div v-else class="text-[#e2e8f0] text-sm leading-relaxed [&_h1]:text-slate-50 [&_h2]:text-slate-50 [&_h3]:text-slate-50 [&_h2]:text-[15px] [&_h2]:my-4 [&_p]:m-0 [&_p]:mb-2.5 [&_ul]:m-0 [&_ul]:mb-2.5 [&_ul]:pl-5 [&_li]:mb-1 [&_strong]:text-slate-50 [&_strong]:font-semibold [&_hr]:border-none [&_hr]:border-t [&_hr]:border-white/[0.08] [&_hr]:my-3" v-html="parsedResult" />
         </div>
@@ -333,7 +384,7 @@
 
 <script setup lang="ts">
 definePageMeta({ alias: ['/hagemashi', '/hagemashi/'] })
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { marked } from 'marked'
 
 useHead({
@@ -392,10 +443,51 @@ const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
 const summarizingId = ref<string | null>(null)
-const activeTab = ref<'transcription' | 'encourage'>('transcription')
+const activeTab = ref<'transcription' | 'encourage' | 'words'>('transcription')
 const charLimit = ref(1000)
 const profileSelectOpen = ref(false)
 const selectedProfile = ref<HagemashiProfile | null>(null)
+
+const LS_WORD_RANKING = 'hagemashi-word-ranking'
+
+interface WordEntry { word: string; count: number }
+const wordRanking = ref<WordEntry[]>([])
+const isTokenizing = ref(false)
+
+function extractWords(text: string): string[] {
+  const words: string[] = []
+  const kanjiRe = /[一-鿿㐀-䶿]{2,}/g
+  const katakanaRe = /[゠-ヿ]{2,}/g
+  let m
+  while ((m = kanjiRe.exec(text)) !== null) words.push(m[0])
+  while ((m = katakanaRe.exec(text)) !== null) words.push(m[0])
+  return words
+}
+
+async function reTokenize() {
+  if (isTokenizing.value) return
+  isTokenizing.value = true
+  await new Promise(r => setTimeout(r, 0))
+  try {
+    const freq = new Map<string, number>()
+    for (const item of history.value) {
+      for (const w of extractWords(item.text)) {
+        freq.set(w, (freq.get(w) ?? 0) + 1)
+      }
+    }
+    const sorted = [...freq.entries()]
+      .map(([word, count]) => ({ word, count }))
+      .sort((a, b) => b.count - a.count)
+    wordRanking.value = sorted
+    if ($dev) {
+      localStorage.setItem(LS_WORD_RANKING, JSON.stringify(sorted))
+    } else {
+      $fetch('/api/hagemashi/word-ranking', { method: 'POST', body: { words: sorted } }).catch(console.error)
+    }
+  } finally {
+    isTokenizing.value = false
+  }
+}
 
 // プロファイル一覧
 const profiles = ref<HagemashiProfile[]>([])
@@ -443,7 +535,32 @@ onMounted(() => {
   }
   // 最初のプロファイルをデフォルト選択
   selectedProfile.value = profiles.value[0]
+
+  // 単語ランキング読み込み（dev: localStorage）
+  if ($dev) {
+    const cachedRanking = localStorage.getItem(LS_WORD_RANKING)
+    if (cachedRanking) {
+      try { wordRanking.value = JSON.parse(cachedRanking) } catch {}
+    }
+  }
 })
+
+// 単語ランキング読み込み（本番: API）
+if (!$dev) {
+  watch(
+    isLoggedIn,
+    async (loggedIn) => {
+      if (!loggedIn) { wordRanking.value = []; return }
+      try {
+        const data = await $fetch<WordEntry[]>('/api/hagemashi/word-ranking')
+        wordRanking.value = data
+      } catch {
+        wordRanking.value = []
+      }
+    },
+    { immediate: true }
+  )
+}
 
 function saveProfiles() {
   localStorage.setItem(LS_PROFILES, JSON.stringify(profiles.value))
@@ -602,12 +719,17 @@ const fetchEncourageTitle = async (text: string): Promise<string> => {
   }
 }
 
-// --- 励まし実行 ---
+// --- はげまし実行 ---
 const runEncourage = async () => {
-  const texts = history.value
-    .filter(item => selectedIds.value.includes(item.id))
-    .map(item => item.notes || item.text)
-  if (!texts.length) return
+  const items = history.value.filter(item => selectedIds.value.includes(item.id))
+  if (!items.length) return
+  // ノートがない項目は先に生成してから使う
+  const texts = await Promise.all(items.map(async (item) => {
+    if (item.notes) return item.notes
+    const notes = await fetchBullets(item.text)
+    if (notes) updateHistoryNotes(item.id, notes)
+    return notes || item.text
+  }))
   const profile = selectedProfile.value ?? profiles.value[0]
   encourageResult.value = ''
   encourageOpen.value = true
@@ -626,7 +748,7 @@ const runEncourage = async () => {
     addEncourageHistory(res.result, title)
     activeTab.value = 'encourage'
   } catch (err) {
-    encourageResult.value = err instanceof Error ? err.message : '励ましの生成に失敗しました'
+    encourageResult.value = err instanceof Error ? err.message : 'はげましの生成に失敗しました'
   } finally {
     isEncouraging.value = false
   }
@@ -657,7 +779,7 @@ const summarizeHistory = async (id: string) => {
   summarizingId.value = null
 }
 
-// --- 自動励まし ---
+// --- 自動はげまし ---
 const autoEncourage = async (text: string) => {
   const profile = selectedProfile.value ?? profiles.value[0]
   if (!profile) return
@@ -678,7 +800,7 @@ const autoEncourage = async (text: string) => {
     addEncourageHistory(res.result, title)
     activeTab.value = 'encourage'
   } catch (err) {
-    encourageResult.value = err instanceof Error ? err.message : '励ましの生成に失敗しました'
+    encourageResult.value = err instanceof Error ? err.message : 'はげましの生成に失敗しました'
   } finally {
     isEncouraging.value = false
   }
@@ -689,7 +811,6 @@ const handleTranscribed = async (text: string) => {
   const [title, notes] = await Promise.all([fetchTitle(text), fetchBullets(text)])
   const id = addHistory(text, title)
   if (notes) updateHistoryNotes(id, notes)
-  await autoEncourage(notes || text)
 }
 
 // --- 録音 ---
