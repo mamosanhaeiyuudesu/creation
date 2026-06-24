@@ -7,7 +7,6 @@
           <tr>
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-[110px] whitespace-nowrap">日時</th>
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08]">タイトル</th>
-            <th v-if="summarizable && !noSummarizeColumn" class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-8 text-center whitespace-nowrap">要約</th>
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-8 text-center whitespace-nowrap">コピー</th>
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-[52px] text-center">削除</th>
           </tr>
@@ -23,19 +22,6 @@
               class="py-1.5 px-2 text-slate-200 border-b border-white/[0.04] overflow-hidden text-ellipsis whitespace-nowrap max-w-0 cursor-pointer hover:text-orange-400 transition-colors"
               @click="selectedItem = item"
             >{{ item.title }}</td>
-            <td v-if="summarizable && !noSummarizeColumn" class="py-1.5 px-2 text-slate-300 border-b border-white/[0.04] text-center w-8">
-              <button
-                v-if="!item.notes"
-                class="bg-transparent border-none cursor-pointer p-1 rounded text-[13px] leading-none transition-colors hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed"
-                title="要点を箇条書きでまとめる"
-                :disabled="summarizingId === item.id"
-                @click.stop="$emit('summarize', item.id)"
-              >
-                <span v-if="summarizingId === item.id" class="w-3 h-3 rounded-full border border-slate-400/30 border-t-slate-400 animate-spin inline-block" />
-                <span v-else>📝</span>
-              </button>
-              <span v-else class="text-green-400 text-[13px]" title="要点メモあり">✓</span>
-            </td>
             <td class="py-1.5 px-2 text-slate-300 border-b border-white/[0.04] text-center w-8">
               <button
                 class="bg-transparent border-none cursor-pointer p-1 rounded text-[13px] leading-none transition-colors hover:bg-white/[0.08]"
@@ -98,26 +84,6 @@
           />
           <pre v-else class="m-0 text-[#e2e8f0] text-sm leading-relaxed whitespace-pre-wrap font-[inherit]">{{ selectedItem.text }}</pre>
 
-          <!-- 要約メモ -->
-          <template v-if="summarizable">
-            <div class="border-t border-white/[0.08] pt-4">
-              <div v-if="selectedItem.notes" class="flex flex-col gap-2">
-                <p class="m-0 text-[11px] font-medium text-slate-500 uppercase tracking-wide">要点メモ</p>
-                <pre class="m-0 text-slate-300 text-xs leading-relaxed whitespace-pre-wrap font-[inherit]">{{ selectedItem.notes }}</pre>
-              </div>
-              <div v-else class="flex items-center gap-3">
-                <p class="m-0 text-xs text-slate-500">要点メモがありません</p>
-                <button
-                  class="px-3 py-1.5 rounded-lg border border-white/15 bg-transparent text-slate-400 text-xs cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-                  :disabled="summarizingId === selectedItem.id"
-                  @click="$emit('summarize', selectedItem.id)"
-                >
-                  <span v-if="summarizingId === selectedItem.id" class="w-3 h-3 rounded-full border border-slate-400/30 border-t-slate-400 animate-spin block" />
-                  {{ summarizingId === selectedItem.id ? '要約中...' : '📝 要約' }}
-                </button>
-              </div>
-            </div>
-          </template>
         </div>
         <div class="flex justify-between items-center gap-2 px-6 py-4 pb-5 border-t border-white/[0.08]">
           <div
@@ -156,15 +122,11 @@ const props = defineProps<{
   copiedId: string | null
   hideHeader?: boolean
   markdown?: boolean
-  summarizable?: boolean
-  summarizingId?: string | null
-  noSummarizeColumn?: boolean
 }>()
 
 const emit = defineEmits<{
   copy: [item: HistoryItem]
   delete: [id: string]
-  summarize: [id: string]
   updateTitle: [id: string, title: string]
 }>()
 

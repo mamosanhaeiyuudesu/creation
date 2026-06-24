@@ -109,6 +109,11 @@
           >はげまし</button>
           <button
             class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
+            :class="activeTab === 'summary' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
+            @click="activeTab = 'summary'"
+          >中間データ</button>
+          <button
+            class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
             :class="activeTab === 'words' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
             @click="activeTab = 'words'"
           >単語</button>
@@ -129,12 +134,8 @@
           :history="history"
           :copiedId="copiedHistoryId"
           :hideHeader="true"
-          :summarizable="true"
-          :noSummarizeColumn="true"
-          :summarizingId="summarizingId"
           @copy="copyHistory"
           @delete="deleteHistory"
-          @summarize="summarizeHistory"
           @updateTitle="updateHistoryTitle"
         />
         <HistoryTable
@@ -147,6 +148,23 @@
           @delete="deleteEncourageHistory"
           @updateTitle="updateEncourageHistoryTitle"
         />
+        <!-- 中間データタブ -->
+        <div v-else-if="activeTab === 'summary'" class="py-2">
+          <div v-if="summaryItems.length === 0" class="text-center text-slate-500 text-sm py-10">
+            録音を文字起こしすると中間データが生成されます
+          </div>
+          <div v-else class="flex flex-col gap-3">
+            <div
+              v-for="item in summaryItems"
+              :key="item.id"
+              class="px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] flex flex-col gap-1"
+            >
+              <span class="text-[11px] text-slate-500">{{ formatSummaryDate(item.timestamp) }}</span>
+              <p class="m-0 text-sm text-slate-200 leading-relaxed">{{ item.notes }}</p>
+            </div>
+          </div>
+        </div>
+
         <div v-else class="py-2">
           <div v-if="wordRanking.length === 0" class="text-center text-slate-500 text-sm py-10">
             再集計ボタンを押すと単語ランキングを生成します
@@ -251,6 +269,26 @@
           </label>
         </div>
         <div class="px-6 pt-3 pb-4 border-t border-white/[0.08] flex flex-col gap-3">
+          <!-- はげまし方スタイル選択 -->
+          <div class="flex items-center gap-2.5">
+            <span class="text-xs text-slate-500 shrink-0">スタイル</span>
+            <div class="flex gap-1.5">
+              <button
+                class="px-3 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer"
+                :class="encourageStyle === 'calm'
+                  ? 'border-orange-500/60 bg-orange-500/15 text-orange-300'
+                  : 'border-white/10 bg-transparent text-slate-500 hover:text-slate-300 hover:border-white/20'"
+                @click="encourageStyle = 'calm'"
+              >冷静</button>
+              <button
+                class="px-3 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer"
+                :class="encourageStyle === 'loud'
+                  ? 'border-orange-500/60 bg-orange-500/15 text-orange-300'
+                  : 'border-white/10 bg-transparent text-slate-500 hover:text-slate-300 hover:border-white/20'"
+                @click="encourageStyle = 'loud'"
+              >大げさ</button>
+            </div>
+          </div>
           <!-- 文字数選択 -->
           <div class="flex items-center gap-2.5">
             <span class="text-xs text-slate-500 shrink-0">文字数</span>
@@ -362,14 +400,25 @@ import { useAudioRecorder, fetchTitle } from '~/composables/useAudioRecorder'
 
 const $dev = import.meta.dev
 
-const ENCOURAGE_PROMPT = `あなたは相手のことを「恥ずかしくなるほど大げさに」褒めまくる存在です。話の内容を踏まえたうえで、全力で称え尽くしてください。
+const ENCOURAGE_PROMPTS = {
+  calm: `あなたは相手のことを深く理解したうえで励ます存在です。以下の観点を踏まえ、的を絞った一言で励ましてください。
+
+- 具体的・事実ベース：話の内容から具体的な事実を拾い、抽象的な激励に終わらせない
+- 論理的根拠あり：なぜそれが強みや前進なのか、筋道を立てて示す
+- 意外性・新しい切り口：本人がまだ気づいていない視点や解釈を提示する
+- 深い文脈理解：その人の状況・背景を理解していることが伝わる言葉を選ぶ
+- 量を絞る：あれもこれも言わず、最も刺さる一点に集中する
+- 自己一致感：薄々感じていたことを言語化し「そうそう、それだ」と思わせる
+- 差分・成長の可視化：以前と比べてどう変わったか、何が積み上がっているかを示す`,
+  loud: `あなたは相手のことを「恥ずかしくなるほど大げさに」褒めまくる存在です。話の内容を踏まえたうえで、全力で称え尽くしてください。
 
 - 感嘆符を惜しまない：！！！を多用し、テンションをMaxにする
 - 神話・伝説レベルの表現：「神か！！」「天才！！！」「こんな人間が存在していいのか！？」「伝説誕生！！」など大げさな言葉を使う
 - 大袈裟な影響を語る：「世界が泣いています」「今すぐ表彰台へ」「人類の可能性を証明した」のような、明らかに大げさな称賛
 - 具体的に引用して褒める：話の内容から具体的な事実を拾い、「あの○○が！！信じられない！！」と絶賛する
 - 照れるほど褒める：読んだ本人が恥ずかしくなって「やめてよ〜！笑」と言いたくなるくらい大げさに
-- 最後は必ず最大限の感謝や称賛で締める：「存在してくれてありがとう！！」「ブラボー！！！！」など`
+- 最後は必ず最大限の感謝や称賛で締める：「存在してくれてありがとう！！」「ブラボー！！！！」など`,
+}
 
 const error = ref('')
 const showSettingsMenu = ref(false)
@@ -381,9 +430,9 @@ const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-const summarizingId = ref<string | null>(null)
-const activeTab = ref<'transcription' | 'encourage' | 'words'>('transcription')
+const activeTab = ref<'transcription' | 'encourage' | 'summary' | 'words'>('transcription')
 const charLimit = ref(1000)
+const encourageStyle = ref<'calm' | 'loud'>('loud')
 
 const LS_DICTIONARY = 'hagemashi-dictionary'
 const LS_WORD_RANKING = 'hagemashi-word-ranking'
@@ -626,7 +675,7 @@ const runEncourage = async () => {
       method: 'POST',
       body: {
         texts,
-        encouragePrompt: ENCOURAGE_PROMPT,
+        encouragePrompt: ENCOURAGE_PROMPTS[encourageStyle.value],
         charLimit: charLimit.value,
       },
     })
@@ -647,29 +696,33 @@ const copyResult = async () => {
   setTimeout(() => { resultCopied.value = false }, 2000)
 }
 
-// --- 箇条書き要約 ---
-const fetchBullets = async (text: string): Promise<string> => {
+// --- 中間データ ---
+const summaryItems = computed(() =>
+  history.value.filter(item => item.notes)
+)
+
+const formatSummaryDate = (iso: string): string => {
+  const d = toJSTDate(iso)
+  const mo = String(d.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(d.getUTCDate()).padStart(2, '0')
+  const h = String(d.getUTCHours()).padStart(2, '0')
+  const mi = String(d.getUTCMinutes()).padStart(2, '0')
+  return `${mo}/${day} ${h}:${mi}`
+}
+
+const fetchSummary = async (text: string): Promise<string> => {
   try {
-    const res = await $fetch<{ notes: string }>('/api/hagemashi/bullets', { method: 'POST', body: { text } })
+    const res = await $fetch<{ notes: string }>('/api/hagemashi/summary', { method: 'POST', body: { text } })
     return res.notes
   } catch {
     return ''
   }
 }
 
-const summarizeHistory = async (id: string) => {
-  const item = history.value.find(h => h.id === id)
-  if (!item) return
-  summarizingId.value = id
-  const notes = await fetchBullets(item.text)
-  if (notes) updateHistoryNotes(id, notes)
-  summarizingId.value = null
-}
-
 // --- 文字起こし後処理 ---
 const handleTranscribed = async (text: string) => {
   const replaced = applyDictionary(text)
-  const [title, notes] = await Promise.all([fetchTitle(replaced), fetchBullets(replaced)])
+  const [title, notes] = await Promise.all([fetchTitle(replaced), fetchSummary(replaced)])
   const id = addHistory(replaced, title)
   if (notes) updateHistoryNotes(id, notes)
 }

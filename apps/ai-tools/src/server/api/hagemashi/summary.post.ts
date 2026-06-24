@@ -22,11 +22,11 @@ export default defineEventHandler(async (event) => {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 512,
-        system: `以下の発話内容から、後でAIが分析しやすいように要点を箇条書きでまとめてください。
-- 簡潔に、1行1項目で記載する
-- 事実・感情・課題・状況を区別して整理する
-- 余計なコメントや前置きは不要。箇条書きのみ返す
+        max_tokens: 128,
+        system: `以下の発話内容を、1〜2文の自然な日本語でまとめてください。
+- 何をした・何があったかという事実と、どんな気持ちだったかを含める
+- 例：「今日はAIエージェントの長期記憶を実装した。思ったより複雑で疲れたが達成感があった。」
+- 余計な前置きや説明は不要。本文のみ返す
 - 日本語で出力する`,
         messages: [{ role: 'user', content: body.text }],
       }),
@@ -44,6 +44,6 @@ export default defineEventHandler(async (event) => {
     const notes = data?.content?.[0]?.text ?? ''
     return { notes }
   } catch (err) {
-    return wrapApiError(err, '要約の生成に失敗しました')
+    return wrapApiError(err, '中間データの生成に失敗しました')
   }
 })
