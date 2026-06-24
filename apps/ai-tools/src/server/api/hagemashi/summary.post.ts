@@ -47,8 +47,9 @@ export default defineEventHandler(async (event) => {
 
     const data = await response.json()
     const raw = data?.content?.[0]?.text ?? ''
-    // JSONパース検証してからnotesに渡す
-    const parsed = JSON.parse(raw)
+    const stripped = raw.replace(/```(?:json)?/g, '').trim()
+    const match = stripped.match(/\{[\s\S]*\}/)
+    const parsed = JSON.parse(match ? match[0] : stripped)
     const notes = JSON.stringify({ sentiment: parsed.sentiment ?? 'ポジ', text: parsed.text ?? '' })
     return { notes }
   } catch (err) {

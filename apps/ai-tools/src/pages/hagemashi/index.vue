@@ -101,17 +101,17 @@
             class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
             :class="activeTab === 'transcription' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
             @click="activeTab = 'transcription'"
-          >文字起こし</button>
+          ><span class="sm:hidden">文字起</span><span class="hidden sm:inline">文字起こし</span></button>
           <button
             class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
             :class="activeTab === 'encourage' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
             @click="activeTab = 'encourage'"
-          >はげまし</button>
+          ><span class="sm:hidden">はげ</span><span class="hidden sm:inline">はげまし</span></button>
           <button
             class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
             :class="activeTab === 'summary' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
             @click="activeTab = 'summary'"
-          >中間データ</button>
+          ><span class="sm:hidden">中間</span><span class="hidden sm:inline">中間データ</span></button>
           <button
             class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
             :class="activeTab === 'words' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
@@ -721,8 +721,9 @@ const runMigrate = async () => {
   isMigrating.value = true
   migrateStatus.value = '移行中...'
   try {
-    const res = await $fetch<{ migrated: number; skipped: number; total: number }>('/api/hagemashi/migrate', { method: 'POST' })
-    migrateStatus.value = `完了 ${res.migrated}件`
+    const res = await $fetch<{ migrated: number; skipped: number; total: number; errors: string[] }>('/api/hagemashi/migrate', { method: 'POST' })
+    migrateStatus.value = `完了 ${res.migrated}/${res.total}件`
+    if (res.errors?.length) console.warn('migrate errors:', res.errors)
     if (res.migrated > 0) await loadHistory()
     setTimeout(() => { migrateStatus.value = '' }, 4000)
   } catch {

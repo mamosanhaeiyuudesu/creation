@@ -1,5 +1,12 @@
 import { getSessionUser } from '~/server/utils/auth'
 
+function extractJson(raw: string): { sentiment: string; text: string } {
+  const stripped = raw.replace(/```(?:json)?/g, '').trim()
+  const match = stripped.match(/\{[\s\S]*\}/)
+  if (!match) throw new Error(`no JSON object found in: ${stripped.slice(0, 80)}`)
+  return JSON.parse(match[0])
+}
+
 export default defineEventHandler(async (event) => {
   const user = await getSessionUser(event)
   if (!user) throw createError({ statusCode: 401, message: '未ログイン' })
@@ -11,15 +18,18 @@ export default defineEventHandler(async (event) => {
   if (!anthropicApiKey) throw createError({ statusCode: 500, message: 'API keyが設定されていません' })
 
   const rows = await db
-    .prepare("SELECT id, text, notes FROM app_history WHERE user_id = ? AND app = 'hagemashi' AND notes != ''")
+    .prepare("SELECT id, text, notes FROM app_history WHERE user_id = ? AND app = 'hagemashi'")
     .bind(user.id)
     .all<{ id: string; text: string; notes: string }>()
 
   const targets = (rows.results ?? []).filter(r => {
+    if (!r.notes) return true
     try { const p = JSON.parse(r.notes); return !p.text } catch { return true }
   })
 
   let migrated = 0
+  const errors: string[] = []
+
   for (const row of targets) {
     try {
       const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -42,15 +52,18 @@ export default defineEventHandler(async (event) => {
 - sentiment は全体的にポジティブなら "ポジ"、ネガティブまたは辛い内容なら "ネガ"
 - text は自然な日本語で1〜2文。前置きなし
 - JSONのみ返す。余計な説明不要`,
-          messages: [{ role: 'user', content: row.text }],
+          messages: [{ role: 'user', content: row.text || '（内容なし）' }],
         }),
       })
 
-      if (!response.ok) continue
+      if (!response.ok) {
+        errors.push(`${row.id}: HTTP ${response.status}`)
+        continue
+      }
 
       const data = await response.json()
       const raw = data?.content?.[0]?.text ?? ''
-      const parsed = JSON.parse(raw)
+      const parsed = extractJson(raw)
       const notes = JSON.stringify({ sentiment: parsed.sentiment ?? 'ポジ', text: parsed.text ?? '' })
 
       await db
@@ -59,10 +72,10 @@ export default defineEventHandler(async (event) => {
         .run()
 
       migrated++
-    } catch {
-      // 1件失敗しても続行
+    } catch (e) {
+      errors.push(`${row.id}: ${e instanceof Error ? e.message : String(e)}`)
     }
   }
 
-  return { migrated, skipped: targets.length - migrated, total: targets.length }
+  return { migrated, skipped: targets.length - migrated, total: targets.length, errors }
 })
