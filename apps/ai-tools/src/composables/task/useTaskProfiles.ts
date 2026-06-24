@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 
 const LS_ACTIVE = 'trello_active_profile'
+const LS_PROFILES_DEV = 'trello_profiles_dev'
 
 export interface Profile {
   id: string
@@ -27,11 +28,19 @@ export function useTaskProfiles() {
   const showSettings = ref(false)
 
   async function init(fromUrl?: string) {
-    try {
-      const fetched = await $fetch<Profile[]>('/api/task/profiles')
-      profiles.value = fetched
-    } catch {
-      profiles.value = []
+    if (import.meta.dev) {
+      try {
+        profiles.value = JSON.parse(localStorage.getItem(LS_PROFILES_DEV) ?? '[]')
+      } catch {
+        profiles.value = []
+      }
+    } else {
+      try {
+        const fetched = await $fetch<Profile[]>('/api/task/profiles')
+        profiles.value = fetched
+      } catch {
+        profiles.value = []
+      }
     }
 
     const fromStorage = localStorage.getItem(LS_ACTIVE)
@@ -52,10 +61,14 @@ export function useTaskProfiles() {
       activeProfileId.value = profiles.value[0]?.id ?? ''
     }
     localStorage.setItem(LS_ACTIVE, activeProfileId.value)
-    await $fetch('/api/task/profiles', {
-      method: 'PUT',
-      body: { profiles: validProfiles },
-    })
+    if (import.meta.dev) {
+      localStorage.setItem(LS_PROFILES_DEV, JSON.stringify(validProfiles))
+    } else {
+      await $fetch('/api/task/profiles', {
+        method: 'PUT',
+        body: { profiles: validProfiles },
+      })
+    }
     showSettings.value = false
   }
 

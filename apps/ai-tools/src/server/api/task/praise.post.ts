@@ -34,6 +34,12 @@ export default defineEventHandler(async (event) => {
     ? '\n\n【各ボードの概要】\n' + boardContexts.map(b => `[${b.name}] ${b.description}`).join('\n')
     : ''
 
+  if (import.meta.dev) {
+    return {
+      feedback: `【サンプルデータ】神か！！！ ${tasks.length}件ものタスクをこなすなんて、人類の限界を超えてる！！「${tasks[0]?.task ?? 'タスク'}」とかもう意味わかんないくらいすごい！！この${periodLabel}の活躍、伝説すぎて語り継がれる！！世界が震えてますよ！？存在してくれてありがとう！！！ブラボー！！！！`,
+    }
+  }
+
   try {
     const data = await callOpenAi(apiKey, {
       model: 'gpt-4.1-mini',
