@@ -21,8 +21,8 @@
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openExportModal(); showSettingsMenu = false">
               <span>📤</span> エクスポート
             </button>
-            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openSettingsModal(); showSettingsMenu = false">
-              <span>💬</span> はげまし方の設定
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="dictionaryOpen = true; showSettingsMenu = false">
+              <span>📖</span> 辞書設定
             </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); showSettingsMenu = false">
               <span>🚪</span> ログアウト
@@ -77,7 +77,7 @@
             class="w-20 h-20 rounded-full border-2 border-orange-500/50 bg-orange-500/[0.08] text-slate-50 flex flex-col items-center justify-center gap-1 transition-all disabled:opacity-35 disabled:cursor-not-allowed"
             :class="history.length > 0 && !isEncouraging ? 'cursor-pointer hover:bg-orange-500/[0.20] hover:border-orange-500/80 hover:scale-105' : ''"
             :disabled="history.length === 0 || isEncouraging"
-            @click="onEncourageClick"
+            @click="openSelectModal"
           >
             <span class="text-2xl leading-none">💪</span>
             <span class="text-[10px] font-medium">はげます</span>
@@ -176,84 +176,42 @@
     <!-- Auth Modal -->
     <AuthModal v-if="!$dev && checked && !isLoggedIn" accent="orange" />
 
-    <!-- Settings Modal（はげまし方プロファイル） -->
-    <div v-if="settingsOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="settingsOpen = false">
-      <div class="w-full max-w-[520px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
+    <!-- 辞書設定モーダル -->
+    <div v-if="dictionaryOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="dictionaryOpen = false">
+      <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
-          <h2 class="m-0 text-lg text-slate-50 font-semibold">はげまし方の設定</h2>
-          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="settingsOpen = false">✕</button>
+          <div>
+            <h2 class="m-0 text-lg text-slate-50 font-semibold">📖 辞書設定</h2>
+            <p class="m-0 mt-0.5 text-xs text-slate-500">よみを単語に自動変換（文字起こし時に適用）</p>
+          </div>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="dictionaryOpen = false">✕</button>
         </div>
-
-        <!-- Profile tabs -->
-        <div class="flex items-center gap-0 px-6 pt-4 border-b border-white/[0.08] overflow-x-auto [scrollbar-width:none]">
-          <button
-            v-for="(p, i) in editingProfiles"
-            :key="p.id"
-            class="px-3 pb-3 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap"
-            :class="editingTabIdx === i ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
-            @click="editingTabIdx = i"
-          >{{ p.name || `設定${i + 1}` }}</button>
-          <button
-            class="pb-3 px-2 -mb-px border-b-2 border-transparent text-slate-500 hover:text-orange-400 transition-colors text-lg leading-none"
-            title="設定を追加"
-            @click="addEditingProfile"
-          >+</button>
-        </div>
-
-        <!-- Profile form -->
-        <div v-if="editingProfiles[editingTabIdx]" class="px-6 py-5 overflow-y-auto flex flex-col gap-4 flex-1">
-          <div class="flex flex-col gap-1.5">
-            <label class="text-[13px] font-medium text-slate-400">設定名</label>
+        <div class="px-4 py-3 overflow-y-auto flex flex-col gap-2 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
+          <div v-if="editingDictionary.length === 0" class="text-center text-slate-600 text-sm py-6">
+            エントリがありません
+          </div>
+          <div v-for="(entry, i) in editingDictionary" :key="i" class="flex items-center gap-2">
             <input
-              v-model="editingProfiles[editingTabIdx].name"
-              class="bg-white/[0.05] border border-white/[0.12] rounded-lg text-slate-50 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit]"
-              placeholder="例：優しめ、厳しめ"
+              v-model="entry.yomi"
+              class="flex-1 bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit]"
+              placeholder="よみ（例：あきら）"
             />
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <label class="text-[13px] font-medium text-slate-400">はげまし方の指示</label>
-            <textarea
-              v-model="editingProfiles[editingTabIdx].encouragePrompt"
-              class="bg-white/[0.05] border border-white/[0.12] rounded-lg text-slate-50 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-y leading-relaxed"
-              rows="5"
-              placeholder="はげまし方の指示を入力..."
+            <span class="text-slate-600 shrink-0">→</span>
+            <input
+              v-model="entry.word"
+              class="flex-1 bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit]"
+              placeholder="単語（例：アキラ）"
             />
+            <button class="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border-none bg-transparent" @click="editingDictionary.splice(i, 1)">✕</button>
           </div>
-          <div class="flex justify-start">
-            <button
-              class="px-4 py-2 rounded-lg border border-red-500/40 bg-transparent text-red-400 text-xs cursor-pointer hover:bg-red-500/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              :disabled="editingProfiles.length <= 1"
-              @click="deleteEditingProfile(editingTabIdx)"
-            >この設定を削除</button>
-          </div>
-        </div>
-
-        <div class="flex justify-end gap-2 px-6 py-4 pb-5 border-t border-white/[0.08]">
-          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="settingsOpen = false">キャンセル</button>
-          <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="saveSettings">保存</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- プロファイル選択ポップアップ（2つ以上の場合） -->
-    <div v-if="profileSelectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="profileSelectOpen = false">
-      <div class="w-full max-w-[360px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col">
-        <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
-          <h2 class="m-0 text-base text-slate-50 font-semibold">はげまし方を選択</h2>
-          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="profileSelectOpen = false">✕</button>
-        </div>
-        <div class="px-4 py-3 flex flex-col gap-2">
           <button
-            v-for="p in profiles"
-            :key="p.id"
-            class="flex items-center justify-between px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.03] text-left cursor-pointer hover:bg-white/[0.08] hover:border-orange-500/40 transition-all"
-            @click="selectProfileAndOpenModal(p)"
-          >
-            <span class="text-sm text-slate-200 font-medium">{{ p.name }}</span>
-          </button>
+            class="mt-1 w-full py-2 rounded-lg border border-dashed border-white/15 text-slate-500 text-sm cursor-pointer hover:border-orange-500/40 hover:text-slate-300 transition-all bg-transparent"
+            @click="editingDictionary.push({ yomi: '', word: '' })"
+          >+ 追加</button>
         </div>
-        <div class="px-6 pb-4 pt-1">
-          <button class="w-full py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="profileSelectOpen = false">キャンセル</button>
+        <div class="flex justify-end gap-2 px-6 py-4 border-t border-white/[0.08]">
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="dictionaryOpen = false">キャンセル</button>
+          <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="saveDictionary">保存</button>
         </div>
       </div>
     </div>
@@ -262,10 +220,7 @@
     <div v-if="selectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="selectOpen = false">
       <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
-          <div>
-            <h2 class="m-0 text-lg text-slate-50 font-semibold">励ます対象を選択</h2>
-            <p v-if="selectedProfile" class="m-0 mt-0.5 text-xs text-slate-500">{{ selectedProfile.name }}</p>
-          </div>
+          <h2 class="m-0 text-lg text-slate-50 font-semibold">はげます対象を選択</h2>
           <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="selectOpen = false">✕</button>
         </div>
         <div class="px-4 py-3 overflow-y-auto flex flex-col gap-1 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
@@ -359,7 +314,7 @@
       </div>
     </div>
 
-    <!-- Encourage result modal -->
+    <!-- はげまし結果モーダル -->
     <div v-if="encourageOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="encourageOpen = false">
       <div class="w-full max-w-[600px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
@@ -407,16 +362,7 @@ import { useAudioRecorder, fetchTitle } from '~/composables/useAudioRecorder'
 
 const $dev = import.meta.dev
 
-interface HagemashiProfile {
-  id: string
-  name: string
-  encouragePrompt: string
-}
-
-const LS_PROFILES = 'hagemashi-profiles'
-const LS_SETTINGS_LEGACY = 'hagemashi-settings'
-
-const DEFAULT_PROMPT = `あなたは相手のことを「恥ずかしくなるほど大げさに」褒めまくる存在です。話の内容を踏まえたうえで、全力で称え尽くしてください。
+const ENCOURAGE_PROMPT = `あなたは相手のことを「恥ずかしくなるほど大げさに」褒めまくる存在です。話の内容を踏まえたうえで、全力で称え尽くしてください。
 
 - 感嘆符を惜しまない：！！！を多用し、テンションをMaxにする
 - 神話・伝説レベルの表現：「神か！！」「天才！！！」「こんな人間が存在していいのか！？」「伝説誕生！！」など大げさな言葉を使う
@@ -425,15 +371,8 @@ const DEFAULT_PROMPT = `あなたは相手のことを「恥ずかしくなる�
 - 照れるほど褒める：読んだ本人が恥ずかしくなって「やめてよ〜！笑」と言いたくなるくらい大げさに
 - 最後は必ず最大限の感謝や称賛で締める：「存在してくれてありがとう！！」「ブラボー！！！！」など`
 
-const makeDefaultProfile = (): HagemashiProfile => ({
-  id: Date.now().toString(),
-  name: 'デフォルト',
-  encouragePrompt: DEFAULT_PROMPT,
-})
-
 const error = ref('')
 const showSettingsMenu = ref(false)
-const settingsOpen = ref(false)
 const selectOpen = ref(false)
 const selectedIds = ref<string[]>([])
 const encourageOpen = ref(false)
@@ -445,10 +384,41 @@ const isEncouraging = ref(false)
 const summarizingId = ref<string | null>(null)
 const activeTab = ref<'transcription' | 'encourage' | 'words'>('transcription')
 const charLimit = ref(1000)
-const profileSelectOpen = ref(false)
-const selectedProfile = ref<HagemashiProfile | null>(null)
 
+const LS_DICTIONARY = 'hagemashi-dictionary'
 const LS_WORD_RANKING = 'hagemashi-word-ranking'
+
+interface DictionaryEntry { yomi: string; word: string }
+const dictionary = ref<DictionaryEntry[]>([])
+const dictionaryOpen = ref(false)
+const editingDictionary = ref<DictionaryEntry[]>([])
+
+watch(dictionaryOpen, (open) => {
+  if (open) editingDictionary.value = dictionary.value.map(e => ({ ...e }))
+})
+
+async function saveDictionary() {
+  const entries = editingDictionary.value.filter(e => e.yomi && e.word)
+  dictionary.value = entries
+  if ($dev) {
+    localStorage.setItem(LS_DICTIONARY, JSON.stringify(entries))
+  } else {
+    await $fetch('/api/hagemashi/dictionary', { method: 'POST', body: { entries } }).catch(console.error)
+  }
+  dictionaryOpen.value = false
+}
+
+function getWhisperPrompt(): string {
+  return dictionary.value.map(e => e.word).filter(Boolean).join(', ')
+}
+
+function applyDictionary(text: string): string {
+  let result = text
+  for (const { yomi, word } of dictionary.value) {
+    if (yomi && word) result = result.replaceAll(yomi, word)
+  }
+  return result
+}
 
 interface WordEntry { word: string; count: number }
 const wordRanking = ref<WordEntry[]>([])
@@ -489,14 +459,7 @@ async function reTokenize() {
   }
 }
 
-// プロファイル一覧
-const profiles = ref<HagemashiProfile[]>([])
-
-// 設定モーダル用の編集コピー
-const editingProfiles = ref<HagemashiProfile[]>([])
-const editingTabIdx = ref(0)
-
-const { user, isLoggedIn, checked, checkAuth, logout } = useAuth()
+const { isLoggedIn, checked, checkAuth, logout } = useAuth()
 
 if (!$dev) {
   onMounted(checkAuth)
@@ -512,31 +475,13 @@ const {
   copyHistory: copyEncourageHistory,
 } = useHistory('hagemashi-encourage-history', 'hagemashi-encourage')
 
-// --- プロファイル管理 ---
 onMounted(() => {
-  const stored = localStorage.getItem(LS_PROFILES)
-  if (stored) {
-    try {
-      profiles.value = JSON.parse(stored)
-    } catch {}
-  }
-  if (!profiles.value.length) {
-    // レガシー設定から移行
-    const legacy = localStorage.getItem(LS_SETTINGS_LEGACY)
-    const p = makeDefaultProfile()
-    if (legacy) {
-      try {
-        const parsed = JSON.parse(legacy)
-        if (parsed.encouragePrompt) p.encouragePrompt = parsed.encouragePrompt
-      } catch {}
+  if ($dev) {
+    const storedDict = localStorage.getItem(LS_DICTIONARY)
+    if (storedDict) {
+      try { dictionary.value = JSON.parse(storedDict) } catch {}
     }
-    profiles.value = [p]
-    localStorage.setItem(LS_PROFILES, JSON.stringify(profiles.value))
   }
-  // 最初のプロファイルをデフォルト選択
-  selectedProfile.value = profiles.value[0]
-
-  // 単語ランキング読み込み（dev: localStorage）
   if ($dev) {
     const cachedRanking = localStorage.getItem(LS_WORD_RANKING)
     if (cachedRanking) {
@@ -545,55 +490,20 @@ onMounted(() => {
   }
 })
 
-// 単語ランキング読み込み（本番: API）
 if (!$dev) {
   watch(
     isLoggedIn,
     async (loggedIn) => {
-      if (!loggedIn) { wordRanking.value = []; return }
-      try {
-        const data = await $fetch<WordEntry[]>('/api/hagemashi/word-ranking')
-        wordRanking.value = data
-      } catch {
-        wordRanking.value = []
-      }
+      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; return }
+      const [ranking, dict] = await Promise.allSettled([
+        $fetch<WordEntry[]>('/api/hagemashi/word-ranking'),
+        $fetch<DictionaryEntry[]>('/api/hagemashi/dictionary'),
+      ])
+      wordRanking.value = ranking.status === 'fulfilled' ? ranking.value : []
+      dictionary.value = dict.status === 'fulfilled' ? dict.value : []
     },
     { immediate: true }
   )
-}
-
-function saveProfiles() {
-  localStorage.setItem(LS_PROFILES, JSON.stringify(profiles.value))
-}
-
-function openSettingsModal() {
-  editingProfiles.value = profiles.value.map(p => ({ ...p }))
-  editingTabIdx.value = 0
-  settingsOpen.value = true
-}
-
-function addEditingProfile() {
-  const p = makeDefaultProfile()
-  p.id = Date.now().toString()
-  p.name = `設定${editingProfiles.value.length + 1}`
-  editingProfiles.value.push(p)
-  editingTabIdx.value = editingProfiles.value.length - 1
-}
-
-function deleteEditingProfile(idx: number) {
-  if (editingProfiles.value.length <= 1) return
-  editingProfiles.value.splice(idx, 1)
-  editingTabIdx.value = Math.min(editingTabIdx.value, editingProfiles.value.length - 1)
-}
-
-const saveSettings = () => {
-  profiles.value = editingProfiles.value.map(p => ({ ...p }))
-  saveProfiles()
-  // 選択中プロファイルが削除されていたらリセット
-  if (selectedProfile.value && !profiles.value.find(p => p.id === selectedProfile.value!.id)) {
-    selectedProfile.value = profiles.value[0]
-  }
-  settingsOpen.value = false
 }
 
 const parsedResult = computed(() => marked.parse(encourageResult.value || '') as string)
@@ -657,22 +567,6 @@ function downloadExport() {
   exportOpen.value = false
 }
 
-// --- 励ます起点 ---
-function onEncourageClick() {
-  if (profiles.value.length <= 1) {
-    selectedProfile.value = profiles.value[0] ?? null
-    openSelectModal()
-  } else {
-    profileSelectOpen.value = true
-  }
-}
-
-function selectProfileAndOpenModal(p: HagemashiProfile) {
-  selectedProfile.value = p
-  profileSelectOpen.value = false
-  openSelectModal()
-}
-
 // --- 履歴選択モーダル ---
 const allSelected = computed(() => history.value.length > 0 && selectedIds.value.length === history.value.length)
 const someSelected = computed(() => selectedIds.value.length > 0 && selectedIds.value.length < history.value.length)
@@ -723,14 +617,7 @@ const fetchEncourageTitle = async (text: string): Promise<string> => {
 const runEncourage = async () => {
   const items = history.value.filter(item => selectedIds.value.includes(item.id))
   if (!items.length) return
-  // ノートがない項目は先に生成してから使う
-  const texts = await Promise.all(items.map(async (item) => {
-    if (item.notes) return item.notes
-    const notes = await fetchBullets(item.text)
-    if (notes) updateHistoryNotes(item.id, notes)
-    return notes || item.text
-  }))
-  const profile = selectedProfile.value ?? profiles.value[0]
+  const texts = items.map(item => item.notes || item.text)
   encourageResult.value = ''
   encourageOpen.value = true
   isEncouraging.value = true
@@ -739,7 +626,7 @@ const runEncourage = async () => {
       method: 'POST',
       body: {
         texts,
-        encouragePrompt: profile.encouragePrompt,
+        encouragePrompt: ENCOURAGE_PROMPT,
         charLimit: charLimit.value,
       },
     })
@@ -779,37 +666,11 @@ const summarizeHistory = async (id: string) => {
   summarizingId.value = null
 }
 
-// --- 自動はげまし ---
-const autoEncourage = async (text: string) => {
-  const profile = selectedProfile.value ?? profiles.value[0]
-  if (!profile) return
-  encourageResult.value = ''
-  encourageOpen.value = true
-  isEncouraging.value = true
-  try {
-    const res = await $fetch<{ result: string }>('/api/hagemashi/encourage', {
-      method: 'POST',
-      body: {
-        texts: [text],
-        encouragePrompt: profile.encouragePrompt,
-        charLimit: charLimit.value,
-      },
-    })
-    encourageResult.value = res.result
-    const title = await fetchEncourageTitle(res.result)
-    addEncourageHistory(res.result, title)
-    activeTab.value = 'encourage'
-  } catch (err) {
-    encourageResult.value = err instanceof Error ? err.message : 'はげましの生成に失敗しました'
-  } finally {
-    isEncouraging.value = false
-  }
-}
-
 // --- 文字起こし後処理 ---
 const handleTranscribed = async (text: string) => {
-  const [title, notes] = await Promise.all([fetchTitle(text), fetchBullets(text)])
-  const id = addHistory(text, title)
+  const replaced = applyDictionary(text)
+  const [title, notes] = await Promise.all([fetchTitle(replaced), fetchBullets(replaced)])
+  const id = addHistory(replaced, title)
   if (notes) updateHistoryNotes(id, notes)
 }
 
@@ -817,5 +678,6 @@ const handleTranscribed = async (text: string) => {
 const { isRecording, isPaused, isProcessing, duration, formatTime, startRecording, pauseRecording, resumeRecording, transcribeRecording, cancelRecording } = useAudioRecorder({
   onTranscribed: handleTranscribed,
   onError: (msg) => { error.value = msg },
+  getPrompt: getWhisperPrompt,
 })
 </script>

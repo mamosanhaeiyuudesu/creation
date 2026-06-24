@@ -3,6 +3,7 @@ import { ref } from 'vue'
 interface AudioRecorderOptions {
   onTranscribed: (text: string) => Promise<void> | void
   onError: (message: string) => void
+  getPrompt?: () => string
 }
 
 // 20分以上の音声は分割して並列文字起こし
@@ -36,7 +37,7 @@ function encodeWav(samples: Float32Array, sampleRate: number): Blob {
 /**
  * 音声Blobを文字起こしする。20分以上の場合は20分ごとに分割して並列処理する。
  */
-export async function splitAndTranscribeBlob(blob: Blob, filename: string): Promise<string> {
+export async function splitAndTranscribeBlob(blob: Blob, filename: string, prompt?: string): Promise<string> {
   const arrayBuf = await blob.arrayBuffer()
   const audioCtx = new AudioContext()
   const audioBuffer = await audioCtx.decodeAudioData(arrayBuf)
@@ -46,6 +47,7 @@ export async function splitAndTranscribeBlob(blob: Blob, filename: string): Prom
   if (audioBuffer.duration <= CHUNK_DURATION_SECONDS) {
     const fd = new FormData()
     fd.append('audio', blob, filename)
+    if (prompt) fd.append('prompt', prompt)
     const res = await $fetch<{ text: string }>('/api/whisper', { method: 'POST', body: fd })
     return res.text
   }
@@ -82,6 +84,7 @@ export async function splitAndTranscribeBlob(blob: Blob, filename: string): Prom
     const wavBlob = encodeWav(rendered.getChannelData(0), WAV_SAMPLE_RATE)
     const fd = new FormData()
     fd.append('audio', wavBlob, `chunk_${idx}.wav`)
+    if (prompt) fd.append('prompt', prompt)
     const res = await $fetch<{ text: string }>('/api/whisper', { method: 'POST', body: fd })
     return res.text
   }
@@ -93,7 +96,7 @@ export async function splitAndTranscribeBlob(blob: Blob, filename: string): Prom
   return results.join('\n')
 }
 
-export const useAudioRecorder = ({ onTranscribed, onError }: AudioRecorderOptions) => {
+export const useAudioRecorder = ({ onTranscribed, onError, getPrompt }: AudioRecorderOptions) => {
   const isRecording = ref(false)
   const isPaused = ref(false)
   const isProcessing = ref(false)
@@ -150,7 +153,7 @@ export const useAudioRecorder = ({ onTranscribed, onError }: AudioRecorderOption
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
       isProcessing.value = true
       try {
-        const text = await splitAndTranscribeBlob(audioBlob, 'recording.webm')
+        const text = await splitAndTranscribeBlob(audioBlob, 'recording.webm', getPrompt?.())
         await onTranscribed(text)
       } catch (err) {
         onError(err instanceof Error ? err.message : '予期しないエラーが発生しました')

@@ -15,11 +15,13 @@ export default defineEventHandler(async (event) => {
         }
 
         // OpenAI whisper APIへ送信
+        const prompt = formData.get('prompt') as string | null
         const whisperFormData = new FormData()
         whisperFormData.append('file', audioFile)
         whisperFormData.append('model', 'whisper-1')
         whisperFormData.append('language', 'ja')
         whisperFormData.append('response_format', 'verbose_json')
+        if (prompt) whisperFormData.append('prompt', prompt)
 
         const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
             method: 'POST',
