@@ -160,12 +160,40 @@
         />
         <!-- 中間データタブ -->
         <div v-else-if="activeTab === 'summary'" class="py-2">
+          <div v-if="summaryRows.length > 0" class="flex items-center gap-2 mb-3">
+            <input
+              v-model="summarySearchQuery"
+              type="search"
+              placeholder="検索..."
+              class="flex-1 bg-white/[0.05] border border-white/[0.08] rounded-lg text-slate-200 text-xs px-2.5 py-1.5 outline-none focus:border-orange-500/60 transition-colors placeholder-slate-600 font-[inherit]"
+            />
+            <div class="flex gap-1 shrink-0">
+              <button
+                class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer"
+                :class="summaryFilter === 'all' ? 'border-white/20 bg-white/10 text-slate-200' : 'border-white/[0.06] bg-transparent text-slate-500 hover:text-slate-300'"
+                @click="summaryFilter = 'all'"
+              >全件</button>
+              <button
+                class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer"
+                :class="summaryFilter === 'ポジ' ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-400' : 'border-white/[0.06] bg-transparent text-slate-500 hover:text-slate-300'"
+                @click="summaryFilter = summaryFilter === 'ポジ' ? 'all' : 'ポジ'"
+              >ポジ</button>
+              <button
+                class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer"
+                :class="summaryFilter === 'ネガ' ? 'border-orange-500/60 bg-orange-500/15 text-orange-400' : 'border-white/[0.06] bg-transparent text-slate-500 hover:text-slate-300'"
+                @click="summaryFilter = summaryFilter === 'ネガ' ? 'all' : 'ネガ'"
+              >ネガ</button>
+            </div>
+          </div>
           <div v-if="summaryRows.length === 0" class="text-center text-slate-500 text-sm py-10">
             録音を文字起こしすると中間データが生成されます
           </div>
+          <div v-else-if="filteredSummaryRows.length === 0" class="text-center text-slate-500 text-sm py-10">
+            条件に一致する項目がありません
+          </div>
           <div v-else class="flex flex-col gap-0">
             <div
-              v-for="(row, rowIndex) in summaryRows"
+              v-for="(row, rowIndex) in filteredSummaryRows"
               :key="`${row.id}-${rowIndex}`"
               class="flex flex-col gap-2 px-1 py-2 border-b border-white/[0.05] last:border-b-0"
             >
@@ -858,6 +886,9 @@ const copyResult = async () => {
 }
 
 // --- 中間データ ---
+const summarySearchQuery = ref('')
+const summaryFilter = ref<'all' | 'ポジ' | 'ネガ'>('all')
+
 interface SummaryNoteItem { sentiment: 'ポジ' | 'ネガ'; text: string }
 interface SummaryNoteNew { items: SummaryNoteItem[] }
 interface SummaryNoteOld { sentiment: 'ポジ' | 'ネガ'; text: string }
@@ -909,6 +940,15 @@ const summaryRows = computed(() => {
     }
   }
   return rows
+})
+
+const filteredSummaryRows = computed(() => {
+  const q = summarySearchQuery.value.trim().toLowerCase()
+  return summaryRows.value.filter(row => {
+    if (summaryFilter.value !== 'all' && row.sentiment !== summaryFilter.value) return false
+    if (q && !row.text.toLowerCase().includes(q)) return false
+    return true
+  })
 })
 
 const deleteSummaryRow = (id: string, itemIndex: number | null) => {
