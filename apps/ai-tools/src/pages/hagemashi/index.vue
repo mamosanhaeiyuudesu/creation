@@ -178,11 +178,17 @@
                     :class="row.sentiment === 'ポジ' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-orange-500/15 text-orange-400'"
                   >{{ row.sentiment }}</span>
                   <span class="text-sm text-slate-200 leading-relaxed flex-1">{{ row.text }}</span>
-                  <button
-                    v-if="row.isEditable"
-                    class="shrink-0 w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer border-none bg-transparent opacity-0 group-hover:opacity-100"
-                    @click="startEditSummary({ id: `${row.id}-${rowIndex}`, sentiment: row.sentiment, text: row.text })"
-                  >✏️</button>
+                  <div class="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
+                    <button
+                      v-if="row.isEditable"
+                      class="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer border-none bg-transparent"
+                      @click="startEditSummary({ id: `${row.id}-${rowIndex}`, sentiment: row.sentiment, text: row.text })"
+                    >✏️</button>
+                    <button
+                      class="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border-none bg-transparent"
+                      @click="deleteSummaryRow(row.id, row.itemIndex)"
+                    >✕</button>
+                  </div>
                 </div>
               </template>
               <!-- 編集モード（旧形式のみ） -->
@@ -341,7 +347,7 @@
           <!-- 文字数選択 -->
           <div class="flex items-center gap-2.5">
             <span class="text-xs text-slate-500 shrink-0">文字数</span>
-            <div class="flex gap-1.5">
+            <div class="flex gap-1.5 items-center">
               <button
                 v-for="n in [500, 1000, 2000]"
                 :key="n"
@@ -351,6 +357,13 @@
                   : 'border-white/10 bg-transparent text-slate-500 hover:text-slate-300 hover:border-white/20'"
                 @click="charLimit = n"
               >{{ n }}</button>
+              <input
+                type="number"
+                v-model.number="charLimit"
+                min="100"
+                max="10000"
+                class="w-16 bg-white/[0.05] border border-white/10 rounded-lg text-slate-300 text-xs px-2 py-1 outline-none focus:border-orange-500 transition-colors font-[inherit] text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
             </div>
           </div>
           <!-- アクションボタン -->
@@ -880,22 +893,36 @@ const parseSummaryNote = (notes: string | undefined): SummaryNoteNew | SummaryNo
 }
 
 const summaryRows = computed(() => {
-  const rows: { id: string; date: string; sentiment: 'ポジ' | 'ネガ'; text: string; isEditable: boolean }[] = []
+  const rows: { id: string; date: string; sentiment: 'ポジ' | 'ネガ'; text: string; isEditable: boolean; itemIndex: number | null }[] = []
   for (const item of history.value) {
     const parsed = parseSummaryNote(item.notes)
     if (!parsed) continue
     const d = toJSTDate(item.timestamp)
     const date = `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`
     if ('items' in parsed) {
-      for (const n of parsed.items) {
-        if (n.text) rows.push({ id: item.id, date, sentiment: n.sentiment, text: n.text, isEditable: false })
+      for (let i = 0; i < parsed.items.length; i++) {
+        const n = parsed.items[i]
+        if (n.text) rows.push({ id: item.id, date, sentiment: n.sentiment, text: n.text, isEditable: false, itemIndex: i })
       }
     } else {
-      rows.push({ id: item.id, date, sentiment: parsed.sentiment, text: parsed.text, isEditable: true })
+      rows.push({ id: item.id, date, sentiment: parsed.sentiment, text: parsed.text, isEditable: true, itemIndex: null })
     }
   }
   return rows
 })
+
+const deleteSummaryRow = (id: string, itemIndex: number | null) => {
+  if (itemIndex === null) {
+    updateHistoryNotes(id, '')
+  } else {
+    const item = history.value.find(h => h.id === id)
+    if (!item) return
+    const parsed = parseSummaryNote(item.notes)
+    if (!parsed || !('items' in parsed)) return
+    const newItems = parsed.items.filter((_, i) => i !== itemIndex)
+    updateHistoryNotes(id, JSON.stringify({ items: newItems }))
+  }
+}
 
 const getNotesText = (item: { text: string; notes?: string }): string => {
   const parsed = parseSummaryNote(item.notes)
