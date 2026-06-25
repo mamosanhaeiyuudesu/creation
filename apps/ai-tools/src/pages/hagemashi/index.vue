@@ -129,16 +129,10 @@
             {{ isTokenizing ? '集計中...' : '再集計' }}
           </button>
           <template v-if="activeTab === 'summary'">
-            <div v-if="migrateConfirming" class="flex items-center gap-1.5">
-              <span class="text-xs text-slate-400">本当に再生成する？</span>
-              <button class="px-2 py-1 rounded-md text-xs border-none bg-orange-500/20 text-orange-300 cursor-pointer hover:bg-orange-500/35 transition-colors" @click="migrateConfirming = false; runMigrate()">実行</button>
-              <button class="px-2 py-1 rounded-md text-xs border border-white/10 bg-transparent text-slate-400 cursor-pointer hover:bg-white/[0.08] transition-colors" @click="migrateConfirming = false">キャンセル</button>
-            </div>
             <button
-              v-else
               class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
               :disabled="isMigrating || history.length === 0"
-              @click="migrateConfirming = true"
+              @click="openMigrateSelect"
             >
               <span v-if="isMigrating" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
               {{ migrateStatus || '再生成' }}
@@ -171,12 +165,12 @@
           </div>
           <div v-else class="flex flex-col gap-0">
             <div
-              v-for="row in summaryRows"
-              :key="row.id"
+              v-for="(row, rowIndex) in summaryRows"
+              :key="`${row.id}-${rowIndex}`"
               class="flex flex-col gap-2 px-1 py-2 border-b border-white/[0.05] last:border-b-0"
             >
               <!-- 表示モード -->
-              <template v-if="editingSummaryId !== row.id">
+              <template v-if="editingSummaryId !== `${row.id}-${rowIndex}`">
                 <div class="flex items-start gap-2.5 group">
                   <span class="text-[11px] text-slate-500 shrink-0 w-[38px] pt-[2px] tabular-nums">{{ row.date }}</span>
                   <span
@@ -185,12 +179,13 @@
                   >{{ row.sentiment }}</span>
                   <span class="text-sm text-slate-200 leading-relaxed flex-1">{{ row.text }}</span>
                   <button
+                    v-if="row.isEditable"
                     class="shrink-0 w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer border-none bg-transparent opacity-0 group-hover:opacity-100"
-                    @click="startEditSummary(row)"
+                    @click="startEditSummary({ id: `${row.id}-${rowIndex}`, sentiment: row.sentiment, text: row.text })"
                   >✏️</button>
                 </div>
               </template>
-              <!-- 編集モード -->
+              <!-- 編集モード（旧形式のみ） -->
               <template v-else>
                 <div class="flex items-center gap-2 px-0.5">
                   <span class="text-[11px] text-slate-500 shrink-0 w-[38px] tabular-nums">{{ row.date }}</span>
@@ -406,6 +401,54 @@
       </div>
     </div>
 
+    <!-- 中間データ再生成 選択モーダル -->
+    <div v-if="migrateSelectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="migrateSelectOpen = false">
+      <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
+          <div>
+            <h2 class="m-0 text-lg text-slate-50 font-semibold">中間データを再生成</h2>
+            <p class="m-0 mt-0.5 text-xs text-slate-500">対象の文字起こしを選択してください</p>
+          </div>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="migrateSelectOpen = false">✕</button>
+        </div>
+        <div class="px-4 py-3 overflow-y-auto flex flex-col gap-1 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
+          <label class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer border-b border-white/[0.06] mb-1 hover:bg-white/[0.05] transition-colors">
+            <input
+              type="checkbox"
+              class="w-4 h-4 shrink-0 accent-orange-500 cursor-pointer"
+              :checked="migrateAllSelected"
+              :indeterminate="migrateSomeSelected"
+              @change="toggleMigrateAll"
+            />
+            <span class="text-xs text-slate-400 font-medium">全て選択</span>
+          </label>
+          <label
+            v-for="item in history"
+            :key="item.id"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors"
+            :class="migrateSelectedIds.includes(item.id) ? 'bg-orange-500/15' : 'hover:bg-white/[0.05]'"
+          >
+            <input
+              type="checkbox"
+              class="w-4 h-4 shrink-0 accent-orange-500 cursor-pointer"
+              :checked="migrateSelectedIds.includes(item.id)"
+              @change="toggleMigrateSelect(item.id)"
+            />
+            <span class="text-xs text-slate-400 whitespace-nowrap">{{ formatSelectDate(item.timestamp) }}</span>
+            <span class="text-sm text-slate-200 truncate">{{ item.title || item.text.slice(0, 40) }}</span>
+          </label>
+        </div>
+        <div class="flex justify-end gap-2 px-6 py-4 border-t border-white/[0.08]">
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="migrateSelectOpen = false">キャンセル</button>
+          <button
+            class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            :disabled="migrateSelectedIds.length === 0"
+            @click="runMigrateSelected"
+          >再生成</button>
+        </div>
+      </div>
+    </div>
+
     <!-- はげまし結果モーダル -->
     <div v-if="encourageOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="encourageOpen = false">
       <div class="w-full max-w-[600px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
@@ -478,7 +521,8 @@ const error = ref('')
 const showSettingsMenu = ref(false)
 const isMigrating = ref(false)
 const migrateStatus = ref('')
-const migrateConfirming = ref(false)
+const migrateSelectOpen = ref(false)
+const migrateSelectedIds = ref<string[]>([])
 const selectOpen = ref(false)
 const selectedIds = ref<string[]>([])
 const encourageOpen = ref(false)
@@ -749,23 +793,49 @@ const runEncourage = async () => {
   }
 }
 
-// --- 一括マイグレーション ---
-const runMigrate = async () => {
-  if (isMigrating.value) return
+// --- 中間データ再生成 ---
+const migrateAllSelected = computed(() => history.value.length > 0 && migrateSelectedIds.value.length === history.value.length)
+const migrateSomeSelected = computed(() => migrateSelectedIds.value.length > 0 && migrateSelectedIds.value.length < history.value.length)
+
+const toggleMigrateAll = () => {
+  if (migrateAllSelected.value) migrateSelectedIds.value = []
+  else migrateSelectedIds.value = history.value.map(i => i.id)
+}
+
+const toggleMigrateSelect = (id: string) => {
+  const idx = migrateSelectedIds.value.indexOf(id)
+  if (idx === -1) migrateSelectedIds.value.push(id)
+  else migrateSelectedIds.value.splice(idx, 1)
+}
+
+const openMigrateSelect = () => {
+  migrateSelectedIds.value = history.value.map(i => i.id)
+  migrateSelectOpen.value = true
+}
+
+const runMigrateSelected = async () => {
+  migrateSelectOpen.value = false
+  const targets = history.value.filter(i => migrateSelectedIds.value.includes(i.id))
+  if (!targets.length || isMigrating.value) return
   isMigrating.value = true
-  migrateStatus.value = '移行中...'
-  try {
-    const res = await $fetch<{ migrated: number; skipped: number; total: number; errors: string[] }>('/api/hagemashi/migrate', { method: 'POST' })
-    migrateStatus.value = `完了 ${res.migrated}/${res.total}件`
-    if (res.errors?.length) console.warn('migrate errors:', res.errors)
-    if (res.migrated > 0) await loadHistory()
-    setTimeout(() => { migrateStatus.value = '' }, 4000)
-  } catch {
-    migrateStatus.value = '失敗'
-    setTimeout(() => { migrateStatus.value = '' }, 3000)
-  } finally {
-    isMigrating.value = false
+  let done = 0
+  migrateStatus.value = `0/${targets.length}件...`
+  for (const item of targets) {
+    try {
+      const res = await $fetch<{ notes: string }>('/api/hagemashi/summary', {
+        method: 'POST',
+        body: { text: item.text },
+      })
+      if (res.notes) updateHistoryNotes(item.id, res.notes)
+    } catch (e) {
+      console.error(e)
+    }
+    done++
+    migrateStatus.value = `${done}/${targets.length}件...`
   }
+  migrateStatus.value = `完了 ${done}/${targets.length}件`
+  setTimeout(() => { migrateStatus.value = '' }, 4000)
+  isMigrating.value = false
 }
 
 const copyResult = async () => {
@@ -775,7 +845,9 @@ const copyResult = async () => {
 }
 
 // --- 中間データ ---
-interface SummaryNote { sentiment: 'ポジ' | 'ネガ'; text: string }
+interface SummaryNoteItem { sentiment: 'ポジ' | 'ネガ'; text: string }
+interface SummaryNoteNew { items: SummaryNoteItem[] }
+interface SummaryNoteOld { sentiment: 'ポジ' | 'ネガ'; text: string }
 
 const editingSummaryId = ref<string | null>(null)
 const editingSentiment = ref<'ポジ' | 'ネガ'>('ポジ')
@@ -797,30 +869,39 @@ const saveSummary = (id: string) => {
   editingSummaryId.value = null
 }
 
-const parseSummaryNote = (notes: string | undefined): SummaryNote | null => {
+const parseSummaryNote = (notes: string | undefined): SummaryNoteNew | SummaryNoteOld | null => {
   if (!notes) return null
   try {
     const parsed = JSON.parse(notes)
+    if (Array.isArray(parsed.items)) return { items: parsed.items }
     if (parsed.text) return { sentiment: parsed.sentiment ?? 'ポジ', text: parsed.text }
   } catch {}
   return null
 }
 
-const summaryRows = computed(() =>
-  history.value
-    .map(item => {
-      const parsed = parseSummaryNote(item.notes)
-      if (!parsed) return null
-      const d = toJSTDate(item.timestamp)
-      const date = `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`
-      return { id: item.id, date, sentiment: parsed.sentiment, text: parsed.text }
-    })
-    .filter(Boolean) as { id: string; date: string; sentiment: 'ポジ' | 'ネガ'; text: string }[]
-)
+const summaryRows = computed(() => {
+  const rows: { id: string; date: string; sentiment: 'ポジ' | 'ネガ'; text: string; isEditable: boolean }[] = []
+  for (const item of history.value) {
+    const parsed = parseSummaryNote(item.notes)
+    if (!parsed) continue
+    const d = toJSTDate(item.timestamp)
+    const date = `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`
+    if ('items' in parsed) {
+      for (const n of parsed.items) {
+        if (n.text) rows.push({ id: item.id, date, sentiment: n.sentiment, text: n.text, isEditable: false })
+      }
+    } else {
+      rows.push({ id: item.id, date, sentiment: parsed.sentiment, text: parsed.text, isEditable: true })
+    }
+  }
+  return rows
+})
 
 const getNotesText = (item: { text: string; notes?: string }): string => {
   const parsed = parseSummaryNote(item.notes)
-  return parsed?.text ?? item.text
+  if (!parsed) return item.text
+  if ('items' in parsed) return parsed.items.map(n => n.text).join('\n')
+  return parsed.text
 }
 
 const fetchSummary = async (text: string): Promise<string> => {

@@ -1,6 +1,6 @@
 import { getSessionUser } from '~/server/utils/auth'
 
-function extractJson(raw: string): { sentiment: string; text: string } {
+function extractJson(raw: string): { items?: { sentiment: string; text: string }[]; sentiment?: string; text?: string } {
   const stripped = raw.replace(/```(?:json)?/g, '').trim()
   const match = stripped.match(/\{[\s\S]*\}/)
   if (!match) throw new Error(`no JSON object found in: ${stripped.slice(0, 80)}`)
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
 
   const targets = (rows.results ?? []).filter(r => {
     if (!r.notes) return true
-    try { const p = JSON.parse(r.notes); return !p.text } catch { return true }
+    try { const p = JSON.parse(r.notes); return !p.text && !p.items } catch { return true }
   })
 
   let migrated = 0
@@ -41,16 +41,22 @@ export default defineEventHandler(async (event) => {
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 256,
-          system: `以下の発話内容を分析し、JSONのみを返してください。
+          max_tokens: 1024,
+          system: `以下の発話内容を分析し、重要なポイントをJSONで返してください。
+
+形式:
 {
-  "sentiment": "ポジ" または "ネガ",
-  "text": "1〜2文の要約（何をした・何があったか＋気持ちを含む）"
+  "items": [
+    { "sentiment": "ポジ" または "ネガ", "text": "具体的な内容（1〜3文）" }
+  ]
 }
 
 ルール:
-- sentiment は全体的にポジティブなら "ポジ"、ネガティブまたは辛い内容なら "ネガ"
-- text は自然な日本語で1〜2文。前置きなし
+- 発話内容から意味のある情報・出来事・気持ちを全て抽出し、ポイントごとに1エントリ作る
+- 各テキストは具体的で詳しく書く（1〜3文）。抽象的なまとめ方はしない
+- トピックや気持ちが複数あれば複数エントリにする（制限なし）
+- 「えー」「うーん」など内容のない発話だけの場合は items を空配列にする
+- sentiment はそのポイントがポジティブなら "ポジ"、ネガティブ・辛い内容なら "ネガ"
 - JSONのみ返す。余計な説明不要`,
           messages: [{ role: 'user', content: row.text || '（内容なし）' }],
         }),
@@ -64,7 +70,16 @@ export default defineEventHandler(async (event) => {
       const data = await response.json()
       const raw = data?.content?.[0]?.text ?? ''
       const parsed = extractJson(raw)
-      const notes = JSON.stringify({ sentiment: parsed.sentiment ?? 'ポジ', text: parsed.text ?? '' })
+
+      let notes: string
+      if (Array.isArray(parsed.items)) {
+        notes = JSON.stringify({ items: parsed.items.map((item: { sentiment?: string; text?: string }) => ({
+          sentiment: item.sentiment === 'ポジ' ? 'ポジ' : 'ネガ',
+          text: item.text ?? '',
+        })).filter((item: { text: string }) => item.text) })
+      } else {
+        notes = JSON.stringify({ sentiment: parsed.sentiment ?? 'ポジ', text: parsed.text ?? '' })
+      }
 
       await db
         .prepare('UPDATE app_history SET notes = ? WHERE id = ? AND user_id = ?')
