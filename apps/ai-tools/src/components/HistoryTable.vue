@@ -5,15 +5,22 @@
       <table class="w-full border-collapse text-xs">
         <thead class="sticky top-0 bg-[rgba(15,23,42,0.95)] z-[1]">
           <tr>
-            <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-[110px] whitespace-nowrap">日時</th>
+            <th
+              class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-[110px] whitespace-nowrap cursor-pointer select-none hover:text-slate-300 transition-colors"
+              @click="toggleSort('timestamp')"
+            >日時 <span class="text-[10px] opacity-60">{{ sortIcon('timestamp') }}</span></th>
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08]">タイトル</th>
+            <th
+              class="py-1.5 px-2 text-right text-slate-500 font-medium border-b border-white/[0.08] w-[56px] whitespace-nowrap cursor-pointer select-none hover:text-slate-300 transition-colors"
+              @click="toggleSort('length')"
+            >文字数 <span class="text-[10px] opacity-60">{{ sortIcon('length') }}</span></th>
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-8 text-center whitespace-nowrap">コピー</th>
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-[52px] text-center">削除</th>
           </tr>
         </thead>
         <tbody>
           <tr
-            v-for="item in history"
+            v-for="item in sortedHistory"
             :key="item.id"
             class="hover:[&>td]:bg-white/[0.03]"
           >
@@ -22,11 +29,9 @@
               class="py-1.5 px-2 text-slate-200 border-b border-white/[0.04] overflow-hidden max-w-0 cursor-pointer hover:text-orange-400 transition-colors"
               @click="selectedItem = item"
             >
-              <div class="flex items-center gap-1.5 min-w-0">
-                <span class="truncate">{{ item.title }}</span>
-                <span class="text-[10px] text-slate-600 shrink-0 tabular-nums">{{ item.text.length.toLocaleString() }}</span>
-              </div>
+              <span class="truncate block">{{ item.title }}</span>
             </td>
+            <td class="py-1.5 px-2 text-slate-500 border-b border-white/[0.04] text-right w-[56px] tabular-nums whitespace-nowrap">{{ item.text.length.toLocaleString() }}</td>
             <td class="py-1.5 px-2 text-slate-300 border-b border-white/[0.04] text-center w-8">
               <button
                 class="bg-transparent border-none cursor-pointer p-1 rounded text-[13px] leading-none transition-colors hover:bg-white/[0.08]"
@@ -128,6 +133,31 @@ const props = defineProps<{
   hideHeader?: boolean
   markdown?: boolean
 }>()
+
+type SortKey = 'timestamp' | 'length'
+type SortDir = 'asc' | 'desc'
+const sortKey = ref<SortKey>('timestamp')
+const sortDir = ref<SortDir>('desc')
+
+const toggleSort = (key: SortKey) => {
+  if (sortKey.value === key) sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  else { sortKey.value = key; sortDir.value = 'desc' }
+}
+
+const sortIcon = (key: SortKey) => {
+  if (sortKey.value !== key) return '⇅'
+  return sortDir.value === 'asc' ? '↑' : '↓'
+}
+
+const sortedHistory = computed(() => {
+  const arr = [...props.history]
+  arr.sort((a, b) => {
+    const va = sortKey.value === 'timestamp' ? new Date(a.timestamp).getTime() : a.text.length
+    const vb = sortKey.value === 'timestamp' ? new Date(b.timestamp).getTime() : b.text.length
+    return sortDir.value === 'asc' ? va - vb : vb - va
+  })
+  return arr
+})
 
 const emit = defineEmits<{
   copy: [item: HistoryItem]
