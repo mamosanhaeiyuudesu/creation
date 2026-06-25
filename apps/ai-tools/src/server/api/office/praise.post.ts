@@ -10,10 +10,47 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: 'Anthropic API key is not configured.' })
   }
 
-  const isComplete = body.checkedCount === body.totalCount
-  const context = isComplete
-    ? `全${body.totalCount}個のチェックをコンプリートした（「${body.checkLabel}」が最後のチェック）`
-    : `${body.totalCount}個中${body.checkedCount}個目のチェック「${body.checkLabel}」を達成した`
+  const isShusshaCheck = body.checkLabel === '出社'
+  const isKitakuCheck = body.checkLabel === '帰宅'
+  const jikanMatch = body.checkLabel.match(/^(\d+)時間経過$/)
+
+  const JSON_FORMAT = `以下のJSONのみ返してください:
+{
+  "title": "キャッチーな褒め言葉（15文字以内、！多め）",
+  "message": "褒めメッセージ（2〜3文、大げさ・ユニーク・具体的に）"
+}
+JSONのみ。余計な説明不要。`
+
+  let systemPrompt: string
+  let context: string
+
+  const HELL_PREMISE = '職場は地獄のようにしんどい場所という前提で、その過酷な環境を生き抜いていることを大げさに称えてください。'
+
+  if (isShusshaCheck) {
+    context = '地獄のような職場に今日も出勤した'
+    systemPrompt = `${HELL_PREMISE}
+「行きたくないのに来た」「それだけで十分すごい」という切り口で、出勤したこと自体を褒めてください。
+毎回全く違うユニークな表現・切り口・テンションにしてください。
+${JSON_FORMAT}`
+  } else if (jikanMatch) {
+    const hours = jikanMatch[1]
+    context = `地獄のような職場で${hours}時間耐え続けた`
+    systemPrompt = `${HELL_PREMISE}
+「${hours}時間もあの場所に居続けた」忍耐力・精神力・生命力を称えてください。
+毎回全く違うユニークな表現・切り口・テンションにしてください。
+${JSON_FORMAT}`
+  } else if (isKitakuCheck) {
+    context = '地獄のような職場での1日を生き延びて帰宅した'
+    systemPrompt = `${HELL_PREMISE}
+「生き延びた」「脱出した」「今日も勝った」という切り口で、帰宅できたことを大げさに褒め称えてください。
+毎回全く違うユニークな表現・切り口・テンションにしてください。
+${JSON_FORMAT}`
+  } else {
+    context = `地獄のような職場で「${body.checkLabel}」を達成した`
+    systemPrompt = `${HELL_PREMISE}
+毎回全く違うユニークな表現・切り口・テンションにしてください。
+${JSON_FORMAT}`
+  }
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -25,14 +62,7 @@ export default defineEventHandler(async (event) => {
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 256,
-      system: `勤怠管理アプリでチェックを達成したユーザーを大げさに褒めてください。
-毎回全く違うユニークな表現・切り口・テンションにしてください。
-以下のJSONのみ返してください:
-{
-  "title": "キャッチーな褒め言葉（15文字以内、！多め）",
-  "message": "褒めメッセージ（2〜3文、大げさ・ユニーク・具体的に）"
-}
-JSONのみ。余計な説明不要。`,
+      system: systemPrompt,
       messages: [{
         role: 'user',
         content: context,

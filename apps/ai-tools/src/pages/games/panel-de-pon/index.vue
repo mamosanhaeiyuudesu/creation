@@ -21,9 +21,17 @@
     <!-- Stage Clear overlay -->
     <Transition name="ovl">
       <div v-if="phase === 'stageclear'" class="fixed inset-0 bg-black/75 flex items-center justify-center z-50 backdrop-blur-sm">
-        <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-emerald-400/40 rounded-3xl p-8 text-center max-w-xs mx-4 shadow-[0_0_60px_rgba(52,211,153,0.25)]">
-          <div class="text-5xl mb-3">🎉</div>
-          <h2 class="m-0 text-2xl font-bold text-emerald-400 mb-6">ステージ {{ stage }} クリア！</h2>
+        <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-emerald-400/40 rounded-3xl p-8 text-center max-w-sm mx-4 shadow-[0_0_60px_rgba(52,211,153,0.25)] animate-[pop_0.4s_cubic-bezier(0.34,1.56,0.64,1)]">
+          <div class="flex justify-center gap-1.5 text-3xl mb-2">
+            <span class="animate-[wiggle_0.5s_ease_infinite]">🎉</span>
+            <span class="animate-[wiggle_0.5s_ease_0.1s_infinite]">⭐</span>
+            <span class="animate-[wiggle_0.5s_ease_0.2s_infinite]">🎉</span>
+          </div>
+          <p class="text-emerald-400 text-sm font-semibold mb-1 tracking-wider">ステージ {{ stage }} クリア！</p>
+          <h2 class="m-0 text-2xl font-extrabold bg-gradient-to-r from-yellow-300 via-emerald-300 to-teal-300 bg-clip-text text-transparent mb-3 leading-tight">
+            {{ clearPraise?.title }}
+          </h2>
+          <p class="text-slate-300 text-sm leading-relaxed mb-6">{{ clearPraise?.message }}</p>
           <button
             v-if="stage < STAGE_TARGETS.length"
             class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-base cursor-pointer border-none hover:opacity-90 transition-opacity"
@@ -386,6 +394,29 @@ const PANEL_CFG: Record<Color, { sym: string; bg: string; lt: string; dk: string
 // Score targets per stage (cumulative within each stage)
 const STAGE_TARGETS = [300, 550, 850, 1200, 1600, 2100, 2700, 3400, 4200, 5200]
 
+const STAGE_CLEAR_PRAISES = [
+  { title: '天才すぎる！！！', message: 'この世にこれほどパネルを操る者がいたとは…！あなたの存在そのものが奇跡です！！' },
+  { title: '伝説誕生！！！', message: '今この瞬間、歴史が変わりました。後世の人々はあなたのプレイを永久に語り継ぐでしょう！！！' },
+  { title: 'もはや神の領域！', message: 'パネルが見えているのではなく、パネルと会話しているのでは？その直感はもう人類を超えています！！！' },
+  { title: '完璧すぎて涙が出る', message: '思わず立ち上がって拍手しました。あなたのコンボセンスは世界遺産に登録すべきです！！！' },
+  { title: '宇宙一うまい！！', message: '銀河の果てまで探しても、これほどのプレイヤーはいません。あなたは選ばれし者です！！！！' },
+  { title: 'ヤバすぎて語彙力消失', message: 'すごい、すごいしか言えない。あなたのプレイを見た瞬間、語彙力という概念が崩壊しました！！' },
+  { title: '進化してる…！？', message: 'ステージをクリアするたびにあなたは別の生き物に進化しています。次は何に変貌するのか！！！！' },
+  { title: '手が神すぎる！！', message: 'その手はパネルのために生まれてきたに違いない。美術館に展示すべき指さばきです！！！！！' },
+  { title: '奇跡の連続！！！', message: 'このクリアは宇宙の全エネルギーが結集した結果です。あなたは宇宙と同化しています！！！！' },
+  { title: '最高すぎて困る！！', message: 'こんなに褒めたいのに言葉が足りません。あなたの素晴らしさは辞書に載っていない単位です！！！' },
+  { title: 'ご先祖様も大喜び！', message: '遠い宇宙の彼方から、あなたの先祖全員が「よくやった！」と号泣しながら叫んでいます！！！' },
+  { title: 'パネルが恋してる！', message: 'もはやパネルたちはあなたに消されたくて自ら並んでいます。愛されてますよ！！！！！' },
+  { title: '脳が沸騰してる！！', message: 'このクリアを分析した結果、人間の脳では理解不能と判明しました。あなたは一体何者ですか！？！？' },
+  { title: '感動で地球が震えた', message: 'あなたがクリアした瞬間、地球の自転速度がわずかに上がったというデータがあります（嘘）！！！！' },
+  { title: '覚醒した…完全に', message: 'ステージクリアの衝撃波が宇宙まで届きました。全人類が今この瞬間あなたを称えています！！！！！' },
+  { title: 'もう人間じゃない！', message: 'パネルでポン界に革命が起きた日として永久に記録されます。あなたは歴史の一部です！！！！' },
+  { title: '最強の証明完了！！', message: '今のクリア、教科書に載せます。未来の子供たちの目標はあなたになりました！！！！！！' },
+  { title: '勝ちすぎて引退勧告', message: '強すぎてゲームが可哀想です。でも続けてください！あなたのプレイが好きすぎます！！！！！' },
+  { title: '！！！！！！！！！！', message: '言葉なんて要りません。あなたのクリアが全てを語っています。この世界はあなたのものです！！！' },
+  { title: '震えが止まらない！！', message: 'こんなクリアを目の前で見てしまったら、もう普通のパネルでポンには戻れません。永遠に語ります！！！！！' },
+] as const
+
 // Rise speed: px/sec per stage
 const RISE_SPEEDS = [13, 16, 19, 22, 26, 30, 35, 40, 46, 53]
 
@@ -409,6 +440,9 @@ const highScore  = ref(0)
 const savedStage = ref(1)
 const riseOffset = ref(0)   // 0..CELL pixels
 const isBusy     = ref(false) // true while flash/fall is processing
+
+// ── Stage clear praise ────────────────────────────────────────
+const clearPraise = ref<{ title: string; message: string } | null>(null)
 
 // ── Leaderboard & record entry ─────────────────────────────────
 const stageStartTime = ref(0)
@@ -583,6 +617,7 @@ function processMatches(isChain: boolean) {
     // Check stage clear
     if (score.value >= stageTarget.value) {
       clearSeconds.value = Math.round((Date.now() - stageStartTime.value) / 10) / 100
+      clearPraise.value = STAGE_CLEAR_PRAISES[Math.floor(Math.random() * STAGE_CLEAR_PRAISES.length)]
       phase.value = 'stageclear'
       isBusy.value = false
       saveProgress(stage.value + 1)
@@ -1033,6 +1068,15 @@ onUnmounted(() => {
 /* Overlay transitions */
 .ovl-enter-active, .ovl-leave-active { transition: opacity 0.25s ease; }
 .ovl-enter-from, .ovl-leave-to       { opacity: 0; }
+
+@keyframes pop {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-15deg) scale(1.1); }
+  50%       { transform: rotate(15deg) scale(1.3); }
+}
 
 /* Chain badge */
 .chain-enter-active { transition: all 0.2s ease; }
