@@ -10028,6 +10028,14 @@ __metadata:
   languageName: node
   linkType: hard
 
+"sakubun@workspace:apps/sakubun":
+  version: 0.0.0-use.local
+  resolution: "sakubun@workspace:apps/sakubun"
+  dependencies:
+    nuxt: "npm:^3.13.2"
+  languageName: unknown
+  linkType: soft
+
 "sax@npm:^1.4.1":
   version: 1.4.3
   resolution: "sax@npm:1.4.3"

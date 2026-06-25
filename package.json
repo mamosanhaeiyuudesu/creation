@@ -6,19 +6,21 @@
   ],
   "scripts": {
     "dev": "yarn workspace ai-tools dev",
-    "dev:all": "concurrently \"NUXT_DEVTOOLS_PORT=24670 yarn workspace ai-tools dev\" \"NUXT_DEVTOOLS_PORT=24671 yarn workspace homepages dev --port 3001\" \"NUXT_DEVTOOLS_PORT=24672 yarn workspace prototyper dev --port 3002\" \"NUXT_DEVTOOLS_PORT=24673 yarn workspace mamorin dev --port 3003\" \"NUXT_DEVTOOLS_PORT=24674 yarn workspace kaito dev --port 3004\" \"NUXT_DEVTOOLS_PORT=24675 yarn workspace ai-consultant dev --port 3005\"",
+    "dev:all": "concurrently \"NUXT_DEVTOOLS_PORT=24670 yarn workspace ai-tools dev\" \"NUXT_DEVTOOLS_PORT=24671 yarn workspace homepages dev --port 3001\" \"NUXT_DEVTOOLS_PORT=24672 yarn workspace prototyper dev --port 3002\" \"NUXT_DEVTOOLS_PORT=24673 yarn workspace mamorin dev --port 3003\" \"NUXT_DEVTOOLS_PORT=24674 yarn workspace kaito dev --port 3004\" \"NUXT_DEVTOOLS_PORT=24675 yarn workspace ai-consultant dev --port 3005\" \"NUXT_DEVTOOLS_PORT=24676 yarn workspace sakubun dev --port 3006\"",
     "dev:tools": "yarn workspace ai-tools dev",
     "dev:homepages": "yarn workspace homepages dev --port 3001",
     "dev:prototyper": "yarn workspace prototyper dev --port 3002",
     "dev:mamorin": "yarn workspace mamorin dev --port 3003",
     "dev:kaito": "yarn workspace kaito dev --port 3004",
     "dev:ai-consultant": "yarn workspace ai-consultant dev --port 3005",
+    "dev:sakubun": "yarn workspace sakubun dev --port 3006",
     "build:tools": "yarn workspace ai-tools build",
     "build:homepages": "yarn workspace homepages build",
     "build:prototyper": "yarn workspace prototyper build",
     "build:mamorin": "yarn workspace mamorin build",
     "build:kaito": "yarn workspace kaito build",
-    "build:ai-consultant": "yarn workspace ai-consultant build"
+    "build:ai-consultant": "yarn workspace ai-consultant build",
+    "build:sakubun": "yarn workspace sakubun build"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

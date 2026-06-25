@@ -118,17 +118,43 @@
             @click="activeTab = 'words'"
           >単語</button>
         </div>
-        <div class="flex items-center justify-end h-8 mb-1">
-          <button
-            v-if="activeTab === 'words'"
-            class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-            :disabled="isTokenizing || history.length === 0"
-            @click="reTokenize"
-          >
-            <span v-if="isTokenizing" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
-            {{ isTokenizing ? '集計中...' : '再集計' }}
-          </button>
-          <template v-if="activeTab === 'summary'">
+        <div class="flex items-center gap-2 mb-1 min-h-8">
+          <template v-if="activeTab === 'summary' && summaryRows.length > 0">
+            <input
+              v-model="summarySearchQuery"
+              type="search"
+              placeholder="検索..."
+              class="w-1/3 bg-white/[0.05] border border-white/[0.08] rounded-lg text-slate-200 text-xs px-2.5 py-1 outline-none focus:border-orange-500/60 transition-colors placeholder-slate-600 font-[inherit]"
+            />
+            <div class="flex gap-1 shrink-0">
+              <button
+                class="px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer"
+                :class="summaryFilter === 'all' ? 'border-white/20 bg-white/10 text-slate-200' : 'border-white/[0.06] bg-transparent text-slate-500 hover:text-slate-300'"
+                @click="summaryFilter = 'all'"
+              >全件</button>
+              <button
+                class="px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer"
+                :class="summaryFilter === 'ポジ' ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-400' : 'border-white/[0.06] bg-transparent text-slate-500 hover:text-slate-300'"
+                @click="summaryFilter = summaryFilter === 'ポジ' ? 'all' : 'ポジ'"
+              >ポジ</button>
+              <button
+                class="px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer"
+                :class="summaryFilter === 'ネガ' ? 'border-orange-500/60 bg-orange-500/15 text-orange-400' : 'border-white/[0.06] bg-transparent text-slate-500 hover:text-slate-300'"
+                @click="summaryFilter = summaryFilter === 'ネガ' ? 'all' : 'ネガ'"
+              >ネガ</button>
+            </div>
+            <div class="flex-1" />
+            <button
+              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
+              :disabled="isMigrating || history.length === 0"
+              @click="openMigrateSelect"
+            >
+              <span v-if="isMigrating" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
+              {{ migrateStatus || '再生成' }}
+            </button>
+          </template>
+          <template v-else-if="activeTab === 'summary'">
+            <div class="flex-1" />
             <button
               class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
               :disabled="isMigrating || history.length === 0"
@@ -138,6 +164,15 @@
               {{ migrateStatus || '再生成' }}
             </button>
           </template>
+          <button
+            v-if="activeTab === 'words'"
+            class="ml-auto px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+            :disabled="isTokenizing || history.length === 0"
+            @click="reTokenize"
+          >
+            <span v-if="isTokenizing" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
+            {{ isTokenizing ? '集計中...' : '再集計' }}
+          </button>
         </div>
         <HistoryTable
           v-if="activeTab === 'transcription'"
@@ -160,31 +195,6 @@
         />
         <!-- 中間データタブ -->
         <div v-else-if="activeTab === 'summary'" class="py-2">
-          <div v-if="summaryRows.length > 0" class="flex items-center gap-2 mb-3">
-            <input
-              v-model="summarySearchQuery"
-              type="search"
-              placeholder="検索..."
-              class="flex-1 bg-white/[0.05] border border-white/[0.08] rounded-lg text-slate-200 text-xs px-2.5 py-1.5 outline-none focus:border-orange-500/60 transition-colors placeholder-slate-600 font-[inherit]"
-            />
-            <div class="flex gap-1 shrink-0">
-              <button
-                class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer"
-                :class="summaryFilter === 'all' ? 'border-white/20 bg-white/10 text-slate-200' : 'border-white/[0.06] bg-transparent text-slate-500 hover:text-slate-300'"
-                @click="summaryFilter = 'all'"
-              >全件</button>
-              <button
-                class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer"
-                :class="summaryFilter === 'ポジ' ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-400' : 'border-white/[0.06] bg-transparent text-slate-500 hover:text-slate-300'"
-                @click="summaryFilter = summaryFilter === 'ポジ' ? 'all' : 'ポジ'"
-              >ポジ</button>
-              <button
-                class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer"
-                :class="summaryFilter === 'ネガ' ? 'border-orange-500/60 bg-orange-500/15 text-orange-400' : 'border-white/[0.06] bg-transparent text-slate-500 hover:text-slate-300'"
-                @click="summaryFilter = summaryFilter === 'ネガ' ? 'all' : 'ネガ'"
-              >ネガ</button>
-            </div>
-          </div>
           <div v-if="summaryRows.length === 0" class="text-center text-slate-500 text-sm py-10">
             録音を文字起こしすると中間データが生成されます
           </div>
@@ -208,18 +218,17 @@
                   <span class="text-sm text-slate-200 leading-relaxed flex-1">{{ row.text }}</span>
                   <div class="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
                     <button
-                      v-if="row.isEditable"
                       class="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer border-none bg-transparent"
-                      @click="startEditSummary({ id: `${row.id}-${rowIndex}`, sentiment: row.sentiment, text: row.text })"
+                      @click="startEditSummary({ id: `${row.id}-${rowIndex}`, sentiment: row.sentiment, text: row.text, itemIndex: row.itemIndex })"
                     >✏️</button>
                     <button
                       class="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border-none bg-transparent"
-                      @click="deleteSummaryRow(row.id, row.itemIndex)"
+                      @click="deletingSummaryTarget = { id: row.id, itemIndex: row.itemIndex }"
                     >✕</button>
                   </div>
                 </div>
               </template>
-              <!-- 編集モード（旧形式のみ） -->
+              <!-- 編集モード -->
               <template v-else>
                 <div class="flex items-center gap-2 px-0.5">
                   <span class="text-[11px] text-slate-500 shrink-0 w-[38px] tabular-nums">{{ row.date }}</span>
@@ -486,6 +495,17 @@
             :disabled="migrateSelectedIds.length === 0"
             @click="runMigrateSelected"
           >再生成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 中間データ削除確認 -->
+    <div v-if="deletingSummaryTarget" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="deletingSummaryTarget = null">
+      <div class="w-full max-w-[300px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-5">
+        <p class="m-0 text-slate-200 text-sm text-center">このデータを削除しますか？</p>
+        <div class="flex justify-center gap-2">
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="deletingSummaryTarget = null">キャンセル</button>
+          <button class="px-5 py-2 rounded-lg border-none bg-red-500/80 text-slate-50 text-sm font-medium cursor-pointer hover:bg-red-500 transition-colors" @click="confirmDeleteSummaryRow">削除</button>
         </div>
       </div>
     </div>
@@ -896,21 +916,42 @@ interface SummaryNoteOld { sentiment: 'ポジ' | 'ネガ'; text: string }
 const editingSummaryId = ref<string | null>(null)
 const editingSentiment = ref<'ポジ' | 'ネガ'>('ポジ')
 const editingText = ref('')
+const editingItemIndex = ref<number | null>(null)
+const deletingSummaryTarget = ref<{ id: string; itemIndex: number | null } | null>(null)
 
-const startEditSummary = (row: { id: string; sentiment: 'ポジ' | 'ネガ'; text: string }) => {
+const startEditSummary = (row: { id: string; sentiment: 'ポジ' | 'ネガ'; text: string; itemIndex: number | null }) => {
   editingSummaryId.value = row.id
   editingSentiment.value = row.sentiment
   editingText.value = row.text
+  editingItemIndex.value = row.itemIndex
 }
 
 const cancelSummary = () => {
   editingSummaryId.value = null
+  editingItemIndex.value = null
 }
 
 const saveSummary = (id: string) => {
-  const notes = JSON.stringify({ sentiment: editingSentiment.value, text: editingText.value })
-  updateHistoryNotes(id, notes)
+  if (editingItemIndex.value !== null) {
+    const item = history.value.find(h => h.id === id)
+    if (!item) return
+    const parsed = parseSummaryNote(item.notes)
+    if (!parsed || !('items' in parsed)) return
+    const newItems = parsed.items.map((n, i) =>
+      i === editingItemIndex.value ? { sentiment: editingSentiment.value, text: editingText.value } : n
+    )
+    updateHistoryNotes(id, JSON.stringify({ items: newItems }))
+  } else {
+    updateHistoryNotes(id, JSON.stringify({ sentiment: editingSentiment.value, text: editingText.value }))
+  }
   editingSummaryId.value = null
+  editingItemIndex.value = null
+}
+
+const confirmDeleteSummaryRow = () => {
+  if (!deletingSummaryTarget.value) return
+  deleteSummaryRow(deletingSummaryTarget.value.id, deletingSummaryTarget.value.itemIndex)
+  deletingSummaryTarget.value = null
 }
 
 const parseSummaryNote = (notes: string | undefined): SummaryNoteNew | SummaryNoteOld | null => {
@@ -924,7 +965,7 @@ const parseSummaryNote = (notes: string | undefined): SummaryNoteNew | SummaryNo
 }
 
 const summaryRows = computed(() => {
-  const rows: { id: string; date: string; sentiment: 'ポジ' | 'ネガ'; text: string; isEditable: boolean; itemIndex: number | null }[] = []
+  const rows: { id: string; date: string; sentiment: 'ポジ' | 'ネガ'; text: string; itemIndex: number | null }[] = []
   for (const item of history.value) {
     const parsed = parseSummaryNote(item.notes)
     if (!parsed) continue
@@ -933,10 +974,10 @@ const summaryRows = computed(() => {
     if ('items' in parsed) {
       for (let i = 0; i < parsed.items.length; i++) {
         const n = parsed.items[i]
-        if (n.text) rows.push({ id: item.id, date, sentiment: n.sentiment, text: n.text, isEditable: false, itemIndex: i })
+        if (n.text) rows.push({ id: item.id, date, sentiment: n.sentiment, text: n.text, itemIndex: i })
       }
     } else {
-      rows.push({ id: item.id, date, sentiment: parsed.sentiment, text: parsed.text, isEditable: true, itemIndex: null })
+      rows.push({ id: item.id, date, sentiment: parsed.sentiment, text: parsed.text, itemIndex: null })
     }
   }
   return rows
