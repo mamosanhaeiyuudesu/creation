@@ -378,10 +378,18 @@
             <span class="animate-[wiggle_0.5s_ease_0.1s_infinite]">🌟</span>
             <span class="animate-[wiggle_0.5s_ease_0.2s_infinite]">⭐</span>
           </div>
-          <h2 class="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 via-sky-300 to-indigo-300 bg-clip-text text-transparent mb-3 leading-tight">
-            {{ celebrationTitle }}
-          </h2>
-          <p class="text-slate-300 text-sm leading-relaxed mb-6">{{ celebrationMessage }}</p>
+          <template v-if="celebrationLoading">
+            <div class="flex items-center justify-center gap-2 py-6 text-slate-400 text-sm">
+              <span class="w-5 h-5 rounded-full border-2 border-sky-400/30 border-t-sky-400 animate-spin block" />
+              褒め言葉を考えています...
+            </div>
+          </template>
+          <template v-else>
+            <h2 class="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 via-sky-300 to-indigo-300 bg-clip-text text-transparent mb-3 leading-tight">
+              {{ celebrationTitle }}
+            </h2>
+            <p class="text-slate-300 text-sm leading-relaxed mb-6">{{ celebrationMessage }}</p>
+          </template>
           <button
             class="w-full py-3 rounded-2xl font-bold text-base bg-gradient-to-r from-sky-500 to-indigo-600 text-white hover:opacity-90 transition-opacity"
             @click="showCelebration = false"
@@ -428,24 +436,6 @@ const checkItems = [
   { icon: '👋', label: '帰宅' },
 ]
 
-const CELEBRATIONS = [
-  {
-    title: '完璧すぎる！！神か！！',
-    message: 'あなたは今日、完全無欠の出社を成し遂げました！！もはや伝説です！！この偉業は永遠に語り継がれるべきです！！ブラボー！！！！',
-  },
-  {
-    title: 'やばい、天才！！！',
-    message: 'フル出社を完遂するなんて…信じられない！！あなたの努力と根性、そして輝かしいその背中を見て、世界中が泣いています！！本当にすごすぎる！！',
-  },
-  {
-    title: '伝説誕生！！！🔥🔥🔥',
-    message: 'こんな人間が存在していいのか！！？全チェックコンプリートとは…まさに神話級の偉業！！今すぐ表彰台に上がってください！！世界が認めます！！',
-  },
-  {
-    title: 'もう最高すぎる！！！✨',
-    message: 'お疲れ様どころじゃない！！あなたは今日、人類の可能性を証明しました！！帰宅まで完璧にこなすその姿勢、一生尊敬します！！ありがとう、存在してくれて！！',
-  },
-]
 
 // ── Auth ───────────────────────────────────────────────────
 const { isLoggedIn, checked, checkAuth, logout } = useAuth()
@@ -463,6 +453,7 @@ const mobileView = ref<'calendar' | 'detail'>('calendar')
 const allRecords = ref<OfficeRecord[]>([])
 const showSettingsMenu = ref(false)
 const showCelebration = ref(false)
+const celebrationLoading = ref(false)
 const celebrationTitle = ref('')
 const celebrationMessage = ref('')
 let saveTimer: ReturnType<typeof setTimeout> | null = null
@@ -621,9 +612,10 @@ const debouncedSave = () => {
 
 // ── Checklist ────────────────────────────────────────────────
 const toggleCheck = async (i: number) => {
-  selectedRecord.value.checks[i] = !selectedRecord.value.checks[i]
+  const turningOn = !selectedRecord.value.checks[i]
+  selectedRecord.value.checks[i] = turningOn
   await saveRecord()
-  if (selectedRecord.value.checks.every(Boolean)) triggerCelebration()
+  if (turningOn) triggerCelebration(i)
 }
 
 const toggleDayType = async (type: 'fu' | 'kyu') => {
@@ -631,11 +623,25 @@ const toggleDayType = async (type: 'fu' | 'kyu') => {
   await saveRecord()
 }
 
-const triggerCelebration = () => {
-  const pick = CELEBRATIONS[Math.floor(Math.random() * CELEBRATIONS.length)]
-  celebrationTitle.value = pick.title
-  celebrationMessage.value = pick.message
+const triggerCelebration = (checkIndex: number) => {
+  celebrationTitle.value = ''
+  celebrationMessage.value = ''
+  celebrationLoading.value = true
   showCelebration.value = true
+  const item = checkItems[checkIndex]
+  const checkedCount = selectedRecord.value.checks.filter(Boolean).length
+  $fetch<{ title: string; message: string }>('/api/office/praise', {
+    method: 'POST',
+    body: { checkLabel: item.label, checkedCount, totalCount: checkItems.length },
+  }).then(res => {
+    celebrationTitle.value = res.title
+    celebrationMessage.value = res.message
+  }).catch(() => {
+    celebrationTitle.value = 'すごい！！'
+    celebrationMessage.value = 'よくできました！！'
+  }).finally(() => {
+    celebrationLoading.value = false
+  })
 }
 
 onMounted(async () => {
