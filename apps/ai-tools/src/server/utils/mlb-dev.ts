@@ -126,17 +126,31 @@ const PITCHER_FORM: Record<string, number> = {
   '837227': 1.18,  // 今井: 好調
 }
 
+// 速報タブ用: 選手ごとの直近試合日（rawDateToJSTが+1日するため実際のJST日付の前日を指定）
+// '2026-06-25' → JST 6/26（今日・NEWバッジ表示）
+// '2026-06-24' → JST 6/25（昨日）
+// '2026-06-23' → JST 6/24（一昨日、2日以内の境界）
+// 空配列 → 直近2日以内に試合なし → 速報タブで非表示
+const BATTER_RECENT_DATES: Record<string, string[]> = {
+  '807799': ['2026-06-24', '2026-06-25'], // 吉田: 昨日+今日 → 今日分表示 NEW
+  '672960': ['2026-06-23', '2026-06-24'], // 岡本: 一昨日+昨日 → 昨日分表示
+  '808959': [],                            // 村上: オフ → 非表示
+  '673548': ['2026-06-24', '2026-06-25'], // 鈴木誠也: 昨日+今日 → 今日分表示 NEW
+  '663457': ['2026-06-24', '2026-06-25'], // ヌートバー: 昨日+今日 → 今日分表示 NEW
+  '660271': ['2026-06-24', '2026-06-25'], // 大谷(打): 昨日+今日 → 今日分表示 NEW
+}
+
 function generateTrendBatter(playerId: string, season: number): BatterStats[] {
   const base = CURRENT_BATTER[playerId]
   if (!base) return []
-  // 直近5試合（5/20-6/1）が14日以内（6/2基準）に入るよう設定
-  // rawDateToJST が +1日するため、データ上の日付は実際のJST日付の前日
   const preDates = [
-    '2026-04-02', '2026-04-05', '2026-04-08', '2026-04-11', '2026-04-15',
-    '2026-04-18', '2026-04-22', '2026-04-25', '2026-04-29',
-    '2026-05-03', '2026-05-06', '2026-05-09', '2026-05-12', '2026-05-15', '2026-05-17',
+    '2026-04-02', '2026-04-05', '2026-04-09', '2026-04-12', '2026-04-16',
+    '2026-04-19', '2026-04-23', '2026-04-26', '2026-04-30',
+    '2026-05-04', '2026-05-08', '2026-05-12', '2026-05-16', '2026-05-20',
+    '2026-05-23', '2026-05-27', '2026-05-31',
+    '2026-06-03', '2026-06-07', '2026-06-11', '2026-06-15', '2026-06-19',
   ]
-  const recentDates = ['2026-05-20', '2026-05-23', '2026-05-27', '2026-05-30', '2026-06-01']
+  const recentDates = BATTER_RECENT_DATES[playerId] ?? []
   const gameDates = [...preDates, ...recentDates]
   const preCount = preDates.length
   const games = gameDates.length
@@ -147,8 +161,6 @@ function generateTrendBatter(playerId: string, season: number): BatterStats[] {
   let s = seed
   const rng = () => { s = (s * 9301 + 49297) % 233280; return s / 233280 - 0.5 }
 
-  // 直近試合の hits を formMod に合わせた累積値にする
-  // recentAvg = base.avg * formMod になるよう per-game hits を調整
   const preHits = Math.round((base.avg ?? 0.250) * (base.atBats ?? 0) * preCount / games)
   const hitsPerGameRecent = (base.avg ?? 0.250) * (base.atBats ?? 0) / games * formMod
 
@@ -156,9 +168,8 @@ function generateTrendBatter(playerId: string, season: number): BatterStats[] {
     const date = gameDates[i]
     const isRecent = i >= preCount
     const prog = (i + 1) / games
-    const j = i - preCount + 1  // recent window 内の連番（1始まり）
+    const j = i - preCount + 1
     const avgBase = isRecent ? (base.avg ?? 0.250) * formMod : (base.avg ?? 0.250)
-    // hits: 直近試合はformMod反映の累積値、それ以前は線形
     const cumHits = isRecent
       ? preHits + Math.round(hitsPerGameRecent * j)
       : Math.round((base.hits ?? 0) * prog)
@@ -186,15 +197,33 @@ function generateTrendBatter(playerId: string, season: number): BatterStats[] {
   return trend
 }
 
+// 速報タブ用: 選手ごとの直近登板日（rawDateToJSTが+1日するため実際のJST日付の前日を指定）
+// '2026-06-25' → JST 6/26（今日・NEWバッジ表示）
+// '2026-06-24' → JST 6/25（昨日）
+// '2026-06-23' → JST 6/24（一昨日、2日以内の境界）
+// 空配列 → 直近2日以内に登板なし → 速報タブで非表示
+// 複数日ある場合は最新1件のみ表示（PITCHER_MAX_GAMES=1のため）
+const PITCHER_RECENT_DATES: Record<string, string[]> = {
+  '808963': ['2026-06-25'],                             // 佐々木朗希: 今日先発 NEW
+  '684007': ['2026-06-25'],                             // 今永昇太: 今日先発 NEW
+  '808967': [],                                         // 山本由伸: 登板なし → 非表示
+  '673540': ['2026-06-24'],                             // 千賀滉大: 昨日先発
+  '660271': ['2026-06-24'],                             // 大谷(投): 昨日先発
+  '673513': ['2026-06-23', '2026-06-24', '2026-06-25'], // 松井(RP): 3連投 → 最新の今日分のみ表示 NEW
+  '506433': [],                                         // ダルビッシュ: 登板なし → 非表示
+  '579328': [],                                         // 菊池雄星: 登板なし → 非表示
+  '837227': ['2026-06-24'],                             // 今井達也: 昨日先発
+}
+
 function generateTrendPitcher(playerId: string, season: number): PitcherStats[] {
   const base = CURRENT_PITCHER[playerId]
   if (!base) return []
-  // 直近2登板（5/22・5/28）が14日以内（6/2基準）に入るよう設定
   const preDates = [
-    '2026-04-03', '2026-04-08', '2026-04-13', '2026-04-18', '2026-04-24',
-    '2026-04-29', '2026-05-04', '2026-05-09', '2026-05-14', '2026-05-16',
+    '2026-04-03', '2026-04-09', '2026-04-15', '2026-04-21', '2026-04-27',
+    '2026-05-03', '2026-05-09', '2026-05-15', '2026-05-21', '2026-05-27',
+    '2026-06-02', '2026-06-08', '2026-06-14', '2026-06-20',
   ]
-  const recentDates = ['2026-05-22', '2026-05-28']
+  const recentDates = PITCHER_RECENT_DATES[playerId] ?? []
   const gameDates = [...preDates, ...recentDates]
   const preCount = preDates.length
   const games = gameDates.length

@@ -9,4 +9,7 @@ export default defineNuxtConfig({
   devtools: {
     enabled: false,
   },
+  nitro: {
+    preset: 'cloudflare_module',
+  },
 });

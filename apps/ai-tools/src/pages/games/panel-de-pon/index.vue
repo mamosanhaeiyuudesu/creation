@@ -75,6 +75,16 @@
           <p class="font-mono text-2xl font-bold text-white mb-4">{{ formatTime(clearSeconds) }}</p>
           <p class="text-slate-500 text-xs mb-3">名前を3文字で入力（↑↓で変更・Enter登録）</p>
 
+          <!-- Name suggestions from leaderboard -->
+          <div v-if="suggestedNames.length > 0" class="flex flex-wrap gap-1.5 justify-center mb-3">
+            <button
+              v-for="name in suggestedNames"
+              :key="name"
+              class="px-3 py-1 rounded-lg bg-white/[0.08] border border-white/10 text-slate-300 font-mono text-sm hover:bg-amber-400/20 hover:border-amber-400/40 hover:text-amber-300 transition-colors cursor-pointer"
+              @click="selectSuggestedName(name)"
+            >{{ name }}</button>
+          </div>
+
           <div class="flex gap-2 justify-center mb-3">
             <div
               v-for="(ch, i) in nameChars" :key="i"
@@ -457,6 +467,27 @@ const recordsLoading  = ref(false)
 const showRankingPopup = ref(false)
 const submittedRank   = ref<number | null>(null)
 const submittedSeconds = ref(0)
+
+// ── Name suggestions ──────────────────────────────────────────
+const suggestedNames = computed(() => {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const rec of records.value) {
+    if (!seen.has(rec.name)) {
+      seen.add(rec.name)
+      result.push(rec.name)
+      if (result.length >= 5) break
+    }
+  }
+  return result
+})
+
+function selectSuggestedName(name: string) {
+  const chars = name.split('').slice(0, 3)
+  while (chars.length < 3) chars.push('A')
+  nameChars.value = chars
+  submitRecord()
+}
 
 // ── Gamepad debug ─────────────────────────────────────────────
 const gpDebug = ref<{ btns: number[]; axes: Array<[number, number]> }>({ btns: [], axes: [] })

@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "nuxt dev",
-    "build": "nuxt generate",
-    "preview": "npx serve .output/public"
+    "build": "nuxt build",
+    "preview": "wrangler dev"
   },
   "dependencies": {
     "nuxt": "^3.13.2"

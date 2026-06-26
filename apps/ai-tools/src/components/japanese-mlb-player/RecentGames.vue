@@ -11,10 +11,10 @@ const props = defineProps<{
   standings?: Record<string, number> | null
 }>()
 
-const PITCHER_DAYS = 14
-const BATTER_DAYS = 14
-const PITCHER_MAX_GAMES = 2
-const BATTER_MAX_GAMES = 5
+const PITCHER_DAYS = 1
+const BATTER_DAYS = 1
+const PITCHER_MAX_GAMES = 1
+const BATTER_MAX_GAMES = 1
 
 // trendPitcher の inningsPitched は outs/3 形式 (e.g. 20/3 ≈ 6.667 for 6.2 innings)
 function ipToTrueOuts(ip: number | null | undefined): number {
@@ -48,8 +48,8 @@ function estimateCumBB(strikeouts: number | null, bbk: number | null): number {
   return Math.round(strikeouts * bbk)
 }
 
-interface PitcherRow { date: string; result: '勝' | '負' | '-'; ip: string; runsAllowed: number; er: number; k: number; bb: number }
-interface BatterRow { date: string; ab: number; hits: number; hr: number; rbi: number; runs: number; so: number; walks: number; tb: number }
+interface PitcherRow { date: string; result: '勝' | '負' | '-'; ip: string; runsAllowed: number; er: number }
+interface BatterRow { date: string; ab: number; hits: number; hr: number; rbi: number; runs: number }
 
 interface FormBadge {
   label: '絶好調' | '好調' | '普通' | '不調' | '絶不調'
@@ -81,7 +81,7 @@ interface Card {
   form?: FormBadge | null
   pitcherRows?: PitcherRow[]
   batterRows?: BatterRow[]
-  pitcherTotals?: { wins: number | null; losses: number | null; ip: string; era: string; fip: string; k: number | null; bb: number | null; runsAllowed: number | null }
+  pitcherTotals?: { wins: number | null; losses: number | null; ip: string; era: string; fip: string; k: number | null; bb: number | null; runsAllowed: number | null; eraDirection: 'up' | 'down' | null }
   batterTotals?: { avg: number | null; obp: number | null; ops: number | null; ab: number | null; hits: number | null; hr: number | null; rbi: number | null; runs: number | null; so: number | null; walks: number | null; tb: number | null }
 }
 
@@ -90,9 +90,11 @@ function teamShortName(teamFull: string): string {
   return parts[parts.length - 1]
 }
 
-function buildPitcherTotals(data: SeasonData): Card['pitcherTotals'] {
+type PitcherTotals = NonNullable<Card['pitcherTotals']>
+
+function buildPitcherTotals(data: SeasonData): PitcherTotals {
   const c = data.currentPitcher
-  if (!c) return { wins: null, losses: null, ip: '-', era: '-', fip: '-', k: null, bb: null, runsAllowed: null }
+  if (!c) return { wins: null, losses: null, ip: '-', era: '-', fip: '-', k: null, bb: null, runsAllowed: null, eraDirection: null }
   const bb = c.strikeouts !== null && c.bbk !== null ? estimateCumBB(c.strikeouts, c.bbk) : null
   return {
     wins: c.wins,
@@ -103,6 +105,7 @@ function buildPitcherTotals(data: SeasonData): Card['pitcherTotals'] {
     k: c.strikeouts,
     bb,
     runsAllowed: c.runsAllowed,
+    eraDirection: null,
   }
 }
 
@@ -158,9 +161,6 @@ const cards = computed((): Card[] => {
         const prevER = prev ? (prev.era ?? 0) * prevOuts / 27 : 0
         const gameER = Math.max(0, Math.round(currER - prevER))
 
-        const currBB = estimateCumBB(curr.strikeouts, curr.bbk)
-        const prevBB = estimateCumBB(prev?.strikeouts ?? null, prev?.bbk ?? null)
-
         const currRA = curr.runsAllowed ?? 0
         const prevRA = prev?.runsAllowed ?? 0
         const gameWins = Math.max(0, (curr.wins ?? 0) - (prev?.wins ?? 0))
@@ -171,8 +171,6 @@ const cards = computed((): Card[] => {
           ip: outsToDisplay(gameOuts),
           runsAllowed: Math.max(0, currRA - prevRA),
           er: gameER,
-          k: Math.max(0, (curr.strikeouts ?? 0) - (prev?.strikeouts ?? 0)),
-          bb: Math.max(0, currBB - prevBB),
         }
       })
 
@@ -186,7 +184,15 @@ const cards = computed((): Card[] => {
         : null
       const form = getFormBadge(formScore)
 
-      return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: true, form, pitcherRows: rows, pitcherTotals: buildPitcherTotals(data) }
+      const baseTotals = buildPitcherTotals(data)
+      const eraDirection: 'up' | 'down' | null = (() => {
+        if (!entries.length || !beforeFirst) return null
+        const currEra = entries[entries.length - 1].era
+        const prevEra = beforeFirst.era
+        if (currEra === null || prevEra === null) return null
+        return currEra < prevEra ? 'down' : currEra > prevEra ? 'up' : null
+      })()
+      return { id, nameJa, color, sportnavi, league, teamAbbr, teamShort, divisionRank, noData: false, hasRecentData: true, form, pitcherRows: rows, pitcherTotals: { ...baseTotals, eraDirection } }
     } else {
       const trend = data.trendBatter
       const firstIdx = trend.findIndex(e => isWithinDays(e.date, BATTER_DAYS))
@@ -207,9 +213,6 @@ const cards = computed((): Card[] => {
           hr: Math.max(0, (curr.hr ?? 0) - (prev?.hr ?? 0)),
           rbi: Math.max(0, (curr.rbi ?? 0) - (prev?.rbi ?? 0)),
           runs: Math.max(0, (curr.runs ?? 0) - (prev?.runs ?? 0)),
-          so: Math.max(0, (curr.strikeouts ?? 0) - (prev?.strikeouts ?? 0)),
-          walks: Math.max(0, (curr.walks ?? 0) - (prev?.walks ?? 0)),
-          tb: Math.max(0, (curr.totalBases ?? 0) - (prev?.totalBases ?? 0)),
         }
       })
 
@@ -228,7 +231,10 @@ const cards = computed((): Card[] => {
   })
 })
 
-const numColor = 'rgb(135, 148, 160)'
+function shortName(nameJa: string): string {
+  if (nameJa.includes('・')) return nameJa.split('・').pop() ?? nameJa
+  return nameJa.split(' ')[0]
+}
 
 function getPlayerRank(playerId: string, key: string, direction: 'high' | 'low'): number {
   if (!props.leagueStats || !props.league) return 999
@@ -282,211 +288,103 @@ function isWithinDays(d: string | null | undefined, days: number): boolean {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div v-if="cards.length === 0" class="col-span-full py-12 text-center text-xs text-slate-400 tracking-wide">
+  <div>
+    <div v-if="cards.length === 0" class="py-6 text-center text-xs text-slate-400 tracking-wide">
       データがありません
     </div>
+    <div v-else class="rounded-lg border border-slate-100 bg-white overflow-hidden">
+      <div class="overflow-x-auto">
+      <div class="min-w-max">
+      <template v-for="card in cards.filter(c => c.noData || c.hasRecentData)" :key="card.id">
 
-    <div
-      v-for="card in cards.filter(c => c.noData || c.hasRecentData)"
-      :key="card.id"
-      class="rounded-xl border border-slate-100 bg-white shadow-sm overflow-hidden"
-    >
-      <!-- カードヘッダー：プレイヤーカラーの左ライン -->
-      <div class="flex items-start gap-3 px-4 pt-3.5 pb-3 border-b border-slate-100" :style="{ borderLeft: `3px solid ${card.color}` }">
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="text-sm font-bold tracking-tight leading-none" :style="{ color: card.color }">{{ card.nameJa }}</span>
-            <span
-              v-if="card.form"
-              class="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none border"
-              :style="{ background: card.form.bgColor, color: card.form.textColor, borderColor: card.form.textColor + '33' }"
-              :title="`直近調子: ${card.form.label}`"
-            >
-              <span class="text-[15px] leading-none">{{ card.form.icon }}</span>
-              <span>{{ card.form.label }}</span>
-            </span>
-            <a
-              v-if="card.sportnavi"
-              :href="`https://baseball.yahoo.co.jp/mlb/player/${card.sportnavi}/top`"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-slate-300 hover:text-slate-500 transition-colors flex-shrink-0"
-              title="スポナビで見る"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M9 3a6 6 0 100 12A6 6 0 009 3zM1 9a8 8 0 1114.32 4.906l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387A8 8 0 011 9z" clip-rule="evenodd"/>
-              </svg>
-            </a>
-            <!-- リーグ・チーム・順位 -->
-            <div class="ml-auto flex items-center gap-1.5 flex-shrink-0">
-              <span class="text-[11px] font-semibold text-slate-400 leading-none">
-                {{ card.teamShort }}{{ card.divisionRank !== null ? `（${card.divisionRank}位）` : '' }}
-              </span>
-              <a
-                :href="card.league === 'NL'
-                  ? 'https://baseball.yahoo.co.jp/mlb/standings/detail/1002'
-                  : 'https://baseball.yahoo.co.jp/mlb/standings/detail/1001'"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-slate-300 hover:text-slate-500 transition-colors flex-shrink-0"
-                title="順位表を見る"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M9 3a6 6 0 100 12A6 6 0 009 3zM1 9a8 8 0 1114.32 4.906l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387A8 8 0 011 9z" clip-rule="evenodd"/>
-                </svg>
-              </a>
-            </div>
-          </div>
-          <!-- シーズン成績チップ -->
-          <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
-            <template v-if="mode === 'pitcher' && card.pitcherTotals">
-              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'wins', 'high'))">
-                {{ card.pitcherTotals.wins ?? '-' }}勝 {{ card.pitcherTotals.losses ?? '-' }}敗
-              </span>
-              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'inningsPitched', 'high'))">
-                投回 {{ card.pitcherTotals.ip ?? '-' }}
-              </span>
-              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'era', 'low'))">
-                防御率 {{ card.pitcherTotals.era ?? '-' }}
-              </span>
-              <span class="inline-flex items-center gap-0.5 rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'fip', 'low'))">
-                FIP {{ card.pitcherTotals.fip ?? '-' }}
-              </span>
-            </template>
-            <template v-if="mode === 'batter' && card.batterTotals">
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'avg', 'high'))">
-                打率 {{ card.batterTotals.avg !== null ? card.batterTotals.avg.toFixed(3).replace(/^0/, '') : '-' }}
-              </span>
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'obp', 'high'))">
-                出塁率 {{ card.batterTotals.obp !== null ? card.batterTotals.obp.toFixed(3).replace(/^0/, '') : '-' }}
-              </span>
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'ops', 'high'))">
-                OPS {{ card.batterTotals.ops !== null ? card.batterTotals.ops.toFixed(3).replace(/^0/, '') : '-' }}
-              </span>
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'hr', 'high'))">
-                {{ card.batterTotals.hr ?? 0 }} HR
-              </span>
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'rbi', 'high'))">
-                {{ card.batterTotals.rbi ?? '-' }} 打点
-              </span>
-              <span class="inline-flex items-center rounded-md bg-slate-50 border border-slate-100 px-1.5 py-0.5 text-[12px] font-medium tracking-wide" :style="rankStyle(getPlayerRank(card.id, 'runs', 'high'))">
-                {{ card.batterTotals.runs ?? '-' }} 得点
-              </span>
-            </template>
-            <a
-              :href="mode === 'pitcher'
-                ? (card.league === 'AL' ? 'https://baseball.yahoo.co.jp/mlb/stats/pitcher?gameKindId=1001' : 'https://baseball.yahoo.co.jp/mlb/stats/pitcher?gameKindId=1002')
-                : (card.league === 'AL' ? 'https://baseball.yahoo.co.jp/mlb/stats/batter?gameKindId=1001' : 'https://baseball.yahoo.co.jp/mlb/stats/batter?gameKindId=1002')"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-slate-300 hover:text-slate-500 transition-colors flex-shrink-0 ml-auto"
-              :title="mode === 'pitcher' ? 'リーグ投手成績を見る' : 'リーグ打者成績を見る'"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M9 3a6 6 0 100 12A6 6 0 009 3zM1 9a8 8 0 1114.32 4.906l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387A8 8 0 011 9z" clip-rule="evenodd"/>
-              </svg>
-            </a>
-          </div>
+        <!-- ローディング -->
+        <div
+          v-if="card.noData"
+          class="flex items-center gap-3 px-3 py-2.5 border-b border-slate-50 last:border-b-0 animate-pulse"
+          :style="{ borderLeft: `2px solid ${card.color}` }"
+        >
+          <div class="w-16 h-2.5 bg-slate-100 rounded"></div>
+          <div class="w-8 h-2.5 bg-slate-100 rounded"></div>
+          <div class="w-32 h-2.5 bg-slate-100 rounded"></div>
+          <div class="w-px h-3 bg-slate-100 mx-1"></div>
+          <div class="w-24 h-2.5 bg-slate-100 rounded"></div>
         </div>
-      </div>
 
-      <!-- ローディング -->
-      <div v-if="card.noData" class="px-4 py-5 space-y-2">
-        <div class="h-2 bg-slate-100 rounded animate-pulse w-3/4"></div>
-        <div class="h-2 bg-slate-100 rounded animate-pulse w-1/2"></div>
-        <div class="h-2 bg-slate-100 rounded animate-pulse w-2/3"></div>
-      </div>
+        <!-- 投手行 -->
+        <div
+          v-else-if="mode === 'pitcher' && card.pitcherRows?.[0]"
+          class="flex items-center gap-x-2 px-3 py-2 border-b border-slate-50 last:border-b-0 hover:bg-slate-50/50 transition-colors whitespace-nowrap"
+          :style="{ borderLeft: `2px solid ${card.color}` }"
+        >
+          <!-- 選手名 -->
+          <span class="text-[12px] font-bold w-[68px] flex-shrink-0 truncate leading-tight" :style="{ color: card.color }">{{ shortName(card.nameJa) }}</span>
+          <!-- チーム・順位 -->
+          <span class="text-[11px] text-slate-400 w-[40px] flex-shrink-0 leading-tight">{{ card.teamAbbr }}<span v-if="card.divisionRank !== null" class="text-[10px]"> {{ card.divisionRank }}位</span></span>
+          <!-- ゲーム成績 -->
+          <div class="flex items-center gap-x-2 flex-shrink-0 w-[174px]">
+            <span class="text-[11px] font-mono text-slate-500 w-[26px]">{{ card.pitcherRows[0].date }}</span>
+            <span
+              v-if="card.pitcherRows[0].result !== '-'"
+              class="inline-flex items-center justify-center w-[18px] h-[16px] rounded text-[10px] font-bold flex-shrink-0"
+              :class="card.pitcherRows[0].result === '勝' ? 'bg-red-50 text-red-600 ring-1 ring-red-200' : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'"
+            >{{ card.pitcherRows[0].result }}</span>
+            <span v-else class="text-[11px] text-slate-300 w-[18px] text-center flex-shrink-0">—</span>
+            <span class="text-[12px] font-mono tabular-nums text-slate-700 w-[34px] flex-shrink-0">{{ card.pitcherRows[0].ip }}<span class="text-[10px] text-slate-400">回</span></span>
+            <span class="text-[12px] font-mono tabular-nums text-slate-600 w-[22px] flex-shrink-0">{{ card.pitcherRows[0].runsAllowed }}<span class="text-[10px] text-slate-400">失</span></span>
+            <span class="text-[12px] font-mono tabular-nums text-slate-600 w-[22px] flex-shrink-0">{{ card.pitcherRows[0].er }}<span class="text-[10px] text-slate-400">責</span></span>
+          </div>
 
-      <!-- 投手テーブル -->
-      <div v-else-if="mode === 'pitcher'" class="overflow-x-auto">
-        <table class="w-full text-[13px]">
-          <thead>
-            <tr class="bg-slate-50/80">
-              <th class="text-left px-4 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap"></th>
-              <th class="text-center px-3 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">勝敗</th>
-              <th class="text-center px-3 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">投回</th>
-              <th class="text-center px-3 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">奪三</th>
-              <th class="text-center px-3 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">四</th>
-              <th class="text-center px-3 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">失</th>
-              <th class="text-center px-3 pr-4 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">責</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="card.pitcherRows?.length === 0">
-              <td colspan="7" class="px-4 py-4 text-[10px] text-slate-400 text-center tracking-wide">試合なし</td>
-            </tr>
-            <tr
-              v-for="(row, i) in card.pitcherRows"
-              :key="row.date"
-              class="border-t border-slate-50 hover:bg-slate-50/60 transition-colors"
-            >
-              <td class="px-4 py-2 whitespace-nowrap text-[12px]" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-400'">
-  <span class="inline-flex items-center gap-1">
-    <span class="font-mono">{{ row.date }}</span>
-    <img v-if="isRecent(row.date)" src="/new_10785603.png" alt="NEW" class="w-6 h-6 object-contain flex-shrink-0" />
-  </span>
-</td>
-              <td class="px-3 py-2 text-center whitespace-nowrap">
-                <span
-                  v-if="row.result !== '-'"
-                  class="inline-flex items-center justify-center w-8 h-5 rounded-full text-[10px] font-bold tracking-wide"
-                  :class="row.result === '勝' ? 'bg-red-50 text-red-700 ring-1 ring-red-200' : 'bg-slate-50 text-slate-500 ring-1 ring-slate-200'"
-                >{{ row.result }}</span>
-                <span v-else class="text-slate-300 text-xs">—</span>
-              </td>
-              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.ip }}</td>
-              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.k }}</td>
-              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.bb }}</td>
-              <td class="px-3 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.runsAllowed }}</td>
-              <td class="px-3 pr-4 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.er }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+          <div class="w-px h-3 bg-slate-200 flex-shrink-0 ml-4"></div>
 
-      <!-- 野手テーブル -->
-      <div v-else-if="mode === 'batter'" class="overflow-x-auto">
-        <table class="w-full text-[13px]">
-          <thead>
-            <tr class="bg-slate-50/80">
-              <th class="text-left px-4 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap"></th>
-              <th class="text-center px-2 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">打数</th>
-              <th class="text-center px-2 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">安</th>
-              <th class="text-center px-2 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">HR</th>
-              <th class="text-center px-2 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">塁</th>
-              <th class="text-center px-2 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">打</th>
-              <th class="text-center px-2 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">得</th>
-              <th class="text-center px-2 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">三</th>
-              <th class="text-center px-2 pr-4 py-2 font-medium text-[10px] tracking-widest text-slate-400 uppercase whitespace-nowrap">四</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="card.batterRows?.length === 0">
-              <td colspan="9" class="px-4 py-4 text-[10px] text-slate-400 text-center tracking-wide">試合なし</td>
-            </tr>
-            <tr
-              v-for="(row, i) in card.batterRows"
-              :key="row.date"
-              class="border-t border-slate-50 hover:bg-slate-50/60 transition-colors"
-            >
-              <td class="px-4 py-2 whitespace-nowrap text-[12px]" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-400'">
-  <span class="inline-flex items-center gap-1">
-    <span class="font-mono">{{ row.date }}</span>
-    <img v-if="isRecent(row.date)" src="/new_10785603.png" alt="NEW" class="w-4 h-4 object-contain flex-shrink-0" />
-  </span>
-</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.ab }}</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hits > 0 && isRecent(row.date) ? 'text-emerald-600' : '']">{{ row.hits }}</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="[isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500', row.hr > 0 && isRecent(row.date) ? 'text-amber-600 font-bold' : '']">{{ row.hr }}</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.tb }}</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.rbi }}</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.runs }}</td>
-              <td class="px-2 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.so }}</td>
-              <td class="px-2 pr-4 py-2 text-center whitespace-nowrap font-mono tabular-nums" :class="isRecent(row.date) ? 'text-slate-700 font-semibold' : 'text-slate-500'">{{ row.walks }}</td>
-            </tr>
-          </tbody>
-        </table>
+          <!-- シーズン計: 勝敗・ERA↑↓ -->
+          <span class="text-[11px] text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'wins', 'high'))">{{ card.pitcherTotals?.wins ?? '-' }}勝{{ card.pitcherTotals?.losses ?? '-' }}敗</span>
+          <span class="text-[11px] font-mono text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'era', 'low'))">
+            ERA{{ card.pitcherTotals?.era ?? '-' }}<span
+              v-if="card.pitcherTotals?.eraDirection"
+              class="font-bold"
+              :class="card.pitcherTotals.eraDirection === 'down' ? 'text-emerald-500' : 'text-red-400'"
+            >{{ card.pitcherTotals.eraDirection === 'down' ? '↓' : '↑' }}</span>
+          </span>
+        </div>
+
+        <!-- 野手行 -->
+        <div
+          v-else-if="mode === 'batter' && card.batterRows?.[0]"
+          class="flex items-center gap-x-2 px-3 py-2 border-b border-slate-50 last:border-b-0 hover:bg-slate-50/50 transition-colors whitespace-nowrap"
+          :style="{ borderLeft: `2px solid ${card.color}` }"
+        >
+          <!-- 選手名 -->
+          <span class="text-[12px] font-bold w-[68px] flex-shrink-0 truncate leading-tight" :style="{ color: card.color }">{{ shortName(card.nameJa) }}</span>
+          <!-- チーム・順位 -->
+          <span class="text-[11px] text-slate-400 w-[40px] flex-shrink-0 leading-tight">{{ card.teamAbbr }}<span v-if="card.divisionRank !== null" class="text-[10px]"> {{ card.divisionRank }}位</span></span>
+          <!-- ゲーム成績 -->
+          <div class="flex items-center gap-x-2 flex-shrink-0">
+            <span class="text-[11px] font-mono text-slate-500 w-[26px] flex-shrink-0">{{ card.batterRows[0].date }}</span>
+            <span class="text-[12px] font-mono tabular-nums text-slate-700 w-[22px] flex-shrink-0">{{ card.batterRows[0].ab }}<span class="text-[10px] text-slate-400">打</span></span>
+            <span
+              class="text-[12px] font-mono tabular-nums w-[20px] flex-shrink-0"
+              :class="card.batterRows[0].hits > 0 ? 'text-emerald-600 font-semibold' : 'text-slate-600'"
+            >{{ card.batterRows[0].hits }}<span class="text-[10px] text-slate-400">安</span></span>
+            <span
+              class="text-[12px] font-mono tabular-nums w-[24px] flex-shrink-0"
+              :class="card.batterRows[0].hr > 0 ? 'text-amber-600 font-bold' : 'text-slate-600'"
+            >{{ card.batterRows[0].hr }}<span class="text-[10px] text-slate-400">HR</span></span>
+            <span class="text-[12px] font-mono tabular-nums text-slate-600 w-[22px] flex-shrink-0">{{ card.batterRows[0].rbi }}<span class="text-[10px] text-slate-400">打</span></span>
+            <span class="text-[12px] font-mono tabular-nums text-slate-600 w-[20px] flex-shrink-0">{{ card.batterRows[0].runs }}<span class="text-[10px] text-slate-400">得</span></span>
+          </div>
+
+          <div class="w-px h-3 bg-slate-200 flex-shrink-0 ml-4"></div>
+
+          <!-- シーズン計: 打率・安打・HR・打点・得点 -->
+          <span class="text-[11px] font-mono text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'avg', 'high'))">{{ card.batterTotals?.avg !== null && card.batterTotals?.avg !== undefined ? card.batterTotals.avg.toFixed(3).replace(/^0/, '') : '-' }}</span>
+          <span class="text-[11px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'hits', 'high'))">{{ card.batterTotals?.hits ?? '-' }}<span class="text-[10px] text-slate-400">安</span></span>
+          <span class="text-[11px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'hr', 'high'))">{{ card.batterTotals?.hr ?? 0 }}<span class="text-[10px] text-slate-400">本</span></span>
+          <span class="text-[11px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'rbi', 'high'))">{{ card.batterTotals?.rbi ?? '-' }}<span class="text-[10px] text-slate-400">打</span></span>
+          <span class="text-[11px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'runs', 'high'))">{{ card.batterTotals?.runs ?? '-' }}<span class="text-[10px] text-slate-400">得</span></span>
+        </div>
+
+      </template>
+      </div>
       </div>
     </div>
   </div>

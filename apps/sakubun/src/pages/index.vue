@@ -9,23 +9,27 @@
     </header>
 
     <main>
-      <section class="sk-hero">
-        <div class="sk-wrap">
-          <p class="sk-hero-label">About</p>
-          <p class="sk-hero-desc">
-            日々考えていること、感じたことを文章にしています。
-          </p>
-        </div>
-      </section>
-
-      <section class="sk-articles">
-        <div class="sk-wrap">
-          <p class="sk-section-label">Articles</p>
-          <div class="sk-article-list">
-            <p style="font-family: var(--f-sans); font-size: 14px; color: var(--c-text-dim); padding: 20px;">
-              まだ記事がありません。
-            </p>
-          </div>
+      <section aria-label="記事一覧">
+        <div class="sk-gallery">
+          <NuxtLink
+            v-for="(article, i) in articles"
+            :key="article.id"
+            :to="`/articles/${article.id}`"
+            class="sk-gallery-item"
+          >
+            <img
+              :src="`/images/${article.id}.png`"
+              :alt="article.title"
+              :loading="i < 4 ? 'eager' : 'lazy'"
+              class="sk-gallery-img"
+            />
+            <div class="sk-gallery-overlay" aria-hidden="true">
+              <span class="sk-gallery-title">{{ article.title }}</span>
+              <span v-if="likeCounts[article.id]" class="sk-gallery-likes">
+                ♥ {{ likeCounts[article.id] }}
+              </span>
+            </div>
+          </NuxtLink>
         </div>
       </section>
     </main>
@@ -40,7 +44,19 @@
 </template>
 
 <script setup lang="ts">
+import { articles } from '~/data/articles'
+
 definePageMeta({ layout: 'sakubun' })
+
+const { data: likeData } = await useFetch<{ counts: Record<string, number> }>('/api/sakubun/likes')
+const likeCounts = computed<Record<number, number>>(() => {
+  const raw = likeData.value?.counts ?? {}
+  const result: Record<number, number> = {}
+  for (const [k, v] of Object.entries(raw)) {
+    if (v > 0) result[Number(k)] = v
+  }
+  return result
+})
 
 useHead({
   title: '作文',
@@ -52,7 +68,3 @@ useHead({
   ],
 })
 </script>
-
-<style>
-/* */
-</style>

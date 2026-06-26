@@ -117,6 +117,11 @@
             :class="activeTab === 'words' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
             @click="activeTab = 'words'"
           >単語</button>
+          <button
+            class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
+            :class="activeTab === 'profile' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
+            @click="activeTab = 'profile'"
+          ><span class="sm:hidden">プロフ</span><span class="hidden sm:inline">プロファイリング</span></button>
         </div>
         <div class="flex items-center gap-2 mb-1 min-h-8">
           <template v-if="activeTab === 'summary' && summaryRows.length > 0">
@@ -172,6 +177,15 @@
           >
             <span v-if="isTokenizing" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
             {{ isTokenizing ? '集計中...' : '再集計' }}
+          </button>
+          <button
+            v-if="activeTab === 'profile'"
+            class="ml-auto px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+            :disabled="isProfileLoading"
+            @click="generateProfile"
+          >
+            <span v-if="isProfileLoading" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
+            {{ isProfileLoading ? '生成中...' : '更新' }}
           </button>
         </div>
         <HistoryTable
@@ -253,6 +267,32 @@
                   <button class="px-3 py-1 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-xs font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="saveSummary(row.id)">保存</button>
                 </div>
               </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- プロファイリングタブ -->
+        <div v-else-if="activeTab === 'profile'" class="py-2">
+          <div v-if="isProfileLoading" class="flex items-center justify-center gap-2 py-10 text-slate-400 text-sm">
+            <span class="w-4 h-4 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
+            プロファイルを生成中...
+          </div>
+          <div v-else-if="!profileData" class="text-center text-slate-500 text-sm py-10">
+            更新ボタンを押してプロファイルを生成してください
+          </div>
+          <div v-else class="flex flex-col gap-3">
+            <div class="text-right text-[11px] text-slate-600">最終更新: {{ profileGeneratedAt }}</div>
+            <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
+              <div class="text-xs font-semibold text-orange-400 mb-1.5">✨ 強み</div>
+              <p class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileData.strengths }}</p>
+            </div>
+            <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
+              <div class="text-xs font-semibold text-sky-400 mb-1.5">🔄 傾向</div>
+              <p class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileData.tendencies }}</p>
+            </div>
+            <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
+              <div class="text-xs font-semibold text-emerald-400 mb-1.5">💡 アドバイス</div>
+              <p class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileData.advice }}</p>
             </div>
           </div>
         </div>
@@ -592,12 +632,13 @@ const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-const activeTab = ref<'transcription' | 'encourage' | 'summary' | 'words'>('transcription')
+const activeTab = ref<'transcription' | 'encourage' | 'summary' | 'words' | 'profile'>('transcription')
 const charLimit = ref(1000)
 const encourageStyle = ref<'calm' | 'loud'>('loud')
 
 const LS_DICTIONARY = 'hagemashi-dictionary'
 const LS_WORD_RANKING = 'hagemashi-word-ranking'
+const LS_PROFILE = 'hagemashi-profile'
 
 interface DictionaryEntry { yomi: string; word: string }
 const dictionary = ref<DictionaryEntry[]>([])
@@ -629,6 +670,38 @@ function applyDictionary(text: string): string {
     if (yomi && word) result = result.replaceAll(yomi, word)
   }
   return result
+}
+
+interface ProfileData { strengths: string; tendencies: string; advice: string; generatedAt: string }
+const profileData = ref<ProfileData | null>(null)
+const isProfileLoading = ref(false)
+
+const profileGeneratedAt = computed(() => {
+  if (!profileData.value?.generatedAt) return ''
+  const d = toJSTDate(profileData.value.generatedAt)
+  return `${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
+})
+
+const generateProfile = async () => {
+  if (isProfileLoading.value) return
+  isProfileLoading.value = true
+  try {
+    const res = await $fetch<ProfileData>('/api/hagemashi/profile', {
+      method: 'POST',
+      body: {
+        summaryItems: summaryRows.value.map(r => ({ sentiment: r.sentiment, text: r.text, date: r.date })),
+        wordRanking: wordRanking.value.slice(0, 50),
+      },
+    })
+    profileData.value = res
+    if ($dev) {
+      localStorage.setItem(LS_PROFILE, JSON.stringify(res))
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    isProfileLoading.value = false
+  }
 }
 
 interface WordEntry { word: string; count: number }
@@ -701,19 +774,27 @@ onMounted(() => {
       try { wordRanking.value = JSON.parse(cachedRanking) } catch {}
     }
   }
+  if ($dev) {
+    const cachedProfile = localStorage.getItem(LS_PROFILE)
+    if (cachedProfile) {
+      try { profileData.value = JSON.parse(cachedProfile) } catch {}
+    }
+  }
 })
 
 if (!$dev) {
   watch(
     isLoggedIn,
     async (loggedIn) => {
-      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; return }
-      const [ranking, dict] = await Promise.allSettled([
+      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileData.value = null; return }
+      const [ranking, dict, profile] = await Promise.allSettled([
         $fetch<WordEntry[]>('/api/hagemashi/word-ranking'),
         $fetch<DictionaryEntry[]>('/api/hagemashi/dictionary'),
+        $fetch<ProfileData | null>('/api/hagemashi/profile'),
       ])
       wordRanking.value = ranking.status === 'fulfilled' ? ranking.value : []
       dictionary.value = dict.status === 'fulfilled' ? dict.value : []
+      profileData.value = profile.status === 'fulfilled' ? profile.value : null
     },
     { immediate: true }
   )

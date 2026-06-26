@@ -26,7 +26,7 @@ useHead({
 })
 
 const tabs = [
-  { key: 'speed' as const, label: '直近' },
+  { key: 'speed' as const, label: '速報' },
   { key: 'season' as const, label: '今シーズン' },
   { key: 'yearly' as const, label: '年度別' },
 ]
@@ -222,28 +222,20 @@ onMounted(async () => {
               右上の歯車ボタンから選手を選択してください
             </div>
             <template v-else>
-              <section v-if="nlPitcherIds.length" class="mb-10">
-                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
-                  ナ・リーグ 投手 <span class="text-xs font-normal text-slate-400">（直近2週間）</span>
-                </h2>
+              <section v-if="nlPitcherIds.length" class="mb-3">
+                <h2 class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">ナ・リーグ 投手</h2>
                 <RecentGames :player-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" league="NL" :league-stats="leagueStats" :standings="standings" />
               </section>
-              <section v-if="nlBatterIds.length" class="mb-10">
-                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
-                  ナ・リーグ 野手 <span class="text-xs font-normal text-slate-400">（直近1週間）</span>
-                </h2>
+              <section v-if="nlBatterIds.length" class="mb-3">
+                <h2 class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">ナ・リーグ 野手</h2>
                 <RecentGames :player-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" league="NL" :league-stats="leagueStats" :standings="standings" />
               </section>
-              <section v-if="alPitcherIds.length" class="mb-10">
-                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
-                  ア・リーグ 投手 <span class="text-xs font-normal text-slate-400">（直近2週間）</span>
-                </h2>
+              <section v-if="alPitcherIds.length" class="mb-3">
+                <h2 class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">ア・リーグ 投手</h2>
                 <RecentGames :player-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" league="AL" :league-stats="leagueStats" :standings="standings" />
               </section>
               <section v-if="alBatterIds.length">
-                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
-                  ア・リーグ 野手 <span class="text-xs font-normal text-slate-400">（直近1週間）</span>
-                </h2>
+                <h2 class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">ア・リーグ 野手</h2>
                 <RecentGames :player-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" league="AL" :league-stats="leagueStats" :standings="standings" />
               </section>
             </template>
@@ -312,28 +304,20 @@ onMounted(async () => {
               左のサイドバーで選手を選択してください
             </div>
             <template v-else>
-              <section v-if="nlPitcherIds.length" class="mb-10">
-                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
-                  ナ・リーグ 投手 <span class="text-xs font-normal text-slate-400">（直近2週間）</span>
-                </h2>
+              <section v-if="nlPitcherIds.length" class="mb-3">
+                <h2 class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">ナ・リーグ 投手</h2>
                 <RecentGames :player-ids="nlPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" league="NL" :league-stats="leagueStats" :standings="standings" />
               </section>
-              <section v-if="nlBatterIds.length" class="mb-10">
-                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
-                  ナ・リーグ 野手 <span class="text-xs font-normal text-slate-400">（直近1週間）</span>
-                </h2>
+              <section v-if="nlBatterIds.length" class="mb-3">
+                <h2 class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">ナ・リーグ 野手</h2>
                 <RecentGames :player-ids="nlBatterIds" :season-data-map="seasonDataMap" mode="batter" league="NL" :league-stats="leagueStats" :standings="standings" />
               </section>
-              <section v-if="alPitcherIds.length" class="mb-10">
-                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
-                  ア・リーグ 投手 <span class="text-xs font-normal text-slate-400">（直近2週間）</span>
-                </h2>
+              <section v-if="alPitcherIds.length" class="mb-3">
+                <h2 class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">ア・リーグ 投手</h2>
                 <RecentGames :player-ids="alPitcherIds" :season-data-map="seasonDataMap" mode="pitcher" league="AL" :league-stats="leagueStats" :standings="standings" />
               </section>
               <section v-if="alBatterIds.length">
-                <h2 class="text-base font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
-                  ア・リーグ 野手 <span class="text-xs font-normal text-slate-400">（直近1週間）</span>
-                </h2>
+                <h2 class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">ア・リーグ 野手</h2>
                 <RecentGames :player-ids="alBatterIds" :season-data-map="seasonDataMap" mode="batter" league="AL" :league-stats="leagueStats" :standings="standings" />
               </section>
             </template>

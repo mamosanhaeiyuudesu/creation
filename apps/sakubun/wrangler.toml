@@ -1,0 +1,25 @@
+name = "sakubun"
+main = ".output/server/index.mjs"
+compatibility_date = "2026-03-12"
+
+[[d1_databases]]
+binding = "SAKUBUN_DB"
+database_name = "sakubun-db"
+database_id = "6660dba1-10b4-4cef-be3e-08904f6e33a1"
+# 初回セットアップ:
+#   wrangler d1 create sakubun-db  ← database_id をここに貼る
+#   wrangler d1 execute sakubun-db --remote --file src/server/db/001_sakubun.sql
+
+[build]
+command = "yarn build"
+
+[assets]
+directory = ".output/public"
+
+[env.preview]
+name = "sakubun-preview"
+
+[[env.preview.d1_databases]]
+binding = "SAKUBUN_DB"
+database_name = "sakubun-db"
+database_id = "6660dba1-10b4-4cef-be3e-08904f6e33a1"
