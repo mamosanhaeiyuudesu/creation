@@ -13,10 +13,6 @@
               class="w-full py-2.5 rounded-xl border border-slate-600 text-slate-400 text-sm font-medium cursor-pointer bg-transparent hover:bg-white/[0.06] transition-colors"
               @click="gameMode === 'puzzle' ? startPuzzle() : startGame()"
             >このステージを最初から</button>
-            <button
-              class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-600 text-xs cursor-pointer bg-transparent hover:bg-white/[0.04] transition-colors"
-              @click="backToIdle"
-            >モード選択に戻る</button>
           </div>
         </div>
       </div>
@@ -750,19 +746,17 @@ const showRankingPopup = ref(false)
 const submittedRank   = ref<number | null>(null)
 const submittedSeconds = ref(0)
 
-// ── Name suggestions ──────────────────────────────────────────
-const suggestedNames = computed(() => {
-  const seen = new Set<string>()
-  const result: string[] = []
-  for (const rec of records.value) {
-    if (!seen.has(rec.name)) {
-      seen.add(rec.name)
-      result.push(rec.name)
-      if (result.length >= 5) break
-    }
-  }
-  return result
-})
+// ── Name suggestions（全ステージ・両モード共通の使用頻度上位） ──────
+const suggestedNames = ref<string[]>([])
+
+async function fetchPopularNames() {
+  try {
+    const data = await $fetch<string[]>('/api/games/popular-names', {
+      query: { game: 'panel-de-pon' },
+    })
+    suggestedNames.value = data
+  } catch {}
+}
 
 function selectSuggestedName(name: string) {
   const chars = name.split('').slice(0, 3)
@@ -1075,6 +1069,7 @@ async function checkIsRecord() {
     if (isRecord) {
       nameChars.value = ['A', 'A', 'A']
       nameInputIdx.value = 0
+      await fetchPopularNames()
       showNameEntry.value = true
     }
   } catch {}
