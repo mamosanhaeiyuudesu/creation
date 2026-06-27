@@ -292,7 +292,7 @@
             <!-- Ready overlay (board only) -->
             <Transition name="ovl">
               <div v-if="phase === 'ready'" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center z-20 gap-2">
-                <div class="text-slate-300 text-sm font-medium">{{ gameMode === 'puzzle' ? `パズル ST${stage}` : `ステージ ${stage}` }}</div>
+                <div class="text-slate-300 text-sm font-medium">{{ gameMode === 'puzzle' ? `パズル ${stage}` : `ステージ ${stage}` }}</div>
                 <div class="text-slate-500 text-xs">スタートを押してください</div>
               </div>
             </Transition>
