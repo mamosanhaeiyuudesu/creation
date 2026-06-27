@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;500;700&family=Noto+Sans+JP:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 .sk-page {
-  --c-bg: #faf9f6;
-  --c-bg-surface: #f3f1ec;
+  --c-bg: #fde8d8;
+  --c-bg-surface: #f9d4bb;
   --c-border: rgba(60, 40, 20, 0.10);
   --c-border-strong: rgba(60, 40, 20, 0.18);
   --c-primary: #3c2814;
