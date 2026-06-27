@@ -29,7 +29,14 @@
       </div>
     </nav>
 
-    <div class="ar-scroll-area">
+    <Transition name="ar-hint-fade">
+      <div v-if="showHint" class="ar-hint" aria-hidden="true">
+        <span class="ar-hint-arrow">‹</span>
+        <span class="ar-hint-label">続きを読む</span>
+      </div>
+    </Transition>
+
+    <div class="ar-scroll-area" ref="scrollAreaRef" @scroll.passive="onScrollArea">
       <article v-if="article" class="ar-inner">
         <h1 class="ar-title">{{ article.title }}</h1>
         <div class="ar-body">
@@ -110,6 +117,20 @@ const article = getArticle(id)
 const paragraphs = computed(() =>
   article?.body.split('\n').filter((l) => l.trim() !== '') ?? []
 )
+
+// Scroll hint
+const scrollAreaRef = ref<HTMLElement | null>(null)
+const showHint = ref(false)
+
+onMounted(() => {
+  const el = scrollAreaRef.value
+  if (!el) return
+  showHint.value = el.scrollWidth > el.clientWidth
+})
+
+function onScrollArea() {
+  showHint.value = false
+}
 
 // Like state
 const liked = ref(false)
@@ -328,13 +349,16 @@ useHead({
   padding-top: 53px;
   overflow-x: scroll;
   overflow-y: hidden;
+  direction: rtl;
 }
 
 .ar-inner {
   height: calc(100vh - 53px);
   display: inline-flex;
-  flex-direction: row;
+  flex-direction: column;
   writing-mode: vertical-rl;
+  text-orientation: upright;
+  direction: ltr;
   padding: 56px 72px 56px 80px;
 }
 
@@ -344,7 +368,9 @@ useHead({
   color: #1e1208;
   letter-spacing: 0.12em;
   line-height: 1.6;
-  margin-block-end: 56px;
+  margin-block-end: 28px;
+  padding-block-end: 28px;
+  border-block-end: 1px solid rgba(60, 40, 20, 0.20);
 }
 
 .ar-body { display: contents; }
@@ -355,7 +381,15 @@ useHead({
   color: #2a1a0a;
   line-height: 2.4;
   letter-spacing: 0.08em;
-  margin-block-end: 40px;
+  margin-block-end: 20px;
+  padding-block-end: 20px;
+  border-block-end: 1px solid rgba(60, 40, 20, 0.12);
+}
+
+.ar-para:last-child {
+  border-block-end: none;
+  padding-block-end: 0;
+  margin-block-end: 0;
 }
 
 /* Not found */
@@ -549,6 +583,46 @@ useHead({
   line-height: 1.9;
   white-space: pre-wrap;
 }
+
+/* Scroll hint */
+.ar-hint {
+  position: fixed;
+  left: 0;
+  top: 53px;
+  bottom: 0;
+  width: 64px;
+  z-index: 15;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(to right, rgba(250, 248, 244, 0.95) 50%, transparent);
+  animation: ar-hint-slide 2s ease-in-out infinite;
+}
+
+.ar-hint-arrow {
+  font-size: 22px;
+  color: #8a7060;
+  line-height: 1;
+}
+
+.ar-hint-label {
+  writing-mode: vertical-rl;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 10px;
+  color: #8a7060;
+  letter-spacing: 0.12em;
+}
+
+@keyframes ar-hint-slide {
+  0%, 100% { transform: translateX(4px); opacity: 0.6; }
+  50% { transform: translateX(-4px); opacity: 1; }
+}
+
+.ar-hint-fade-leave-active { transition: opacity 0.5s ease; }
+.ar-hint-fade-leave-to { opacity: 0; }
 
 /* Drawer transition */
 .ar-drawer-enter-active { transition: opacity 0.25s ease; }

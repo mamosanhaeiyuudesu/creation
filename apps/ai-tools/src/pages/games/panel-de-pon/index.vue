@@ -11,8 +11,12 @@
           <div class="flex flex-col gap-3 w-52">
             <button
               class="w-full py-2.5 rounded-xl border border-slate-600 text-slate-400 text-sm font-medium cursor-pointer bg-transparent hover:bg-white/[0.06] transition-colors"
-              @click="startGame"
+              @click="gameMode === 'puzzle' ? startPuzzle() : startGame()"
             >このステージを最初から</button>
+            <button
+              class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-600 text-xs cursor-pointer bg-transparent hover:bg-white/[0.04] transition-colors"
+              @click="backToIdle"
+            >モード選択に戻る</button>
           </div>
         </div>
       </div>
@@ -160,6 +164,53 @@
       </div>
     </Transition>
 
+    <!-- Puzzle Clear overlay -->
+    <Transition name="ovl">
+      <div v-if="phase === 'puzzleclear'" class="fixed inset-0 bg-black/75 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-violet-400/40 rounded-3xl p-8 text-center max-w-sm mx-4 shadow-[0_0_60px_rgba(167,139,250,0.25)] animate-[pop_0.4s_cubic-bezier(0.34,1.56,0.64,1)]">
+          <div class="flex justify-center gap-1.5 text-3xl mb-2">
+            <span class="animate-[wiggle_0.5s_ease_infinite]">🧩</span>
+            <span class="animate-[wiggle_0.5s_ease_0.1s_infinite]">✨</span>
+            <span class="animate-[wiggle_0.5s_ease_0.2s_infinite]">🧩</span>
+          </div>
+          <p class="text-violet-400 text-sm font-semibold mb-1 tracking-wider">パズル ST{{ stage }} クリア！</p>
+          <h2 class="m-0 text-2xl font-extrabold bg-gradient-to-r from-violet-300 via-purple-300 to-pink-300 bg-clip-text text-transparent mb-3 leading-tight">
+            {{ clearPraise?.title }}
+          </h2>
+          <p class="text-slate-300 text-sm leading-relaxed mb-6">{{ clearPraise?.message }}</p>
+          <button
+            v-if="stage < PUZZLE_STAGES.length"
+            class="w-full py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white font-bold text-base cursor-pointer border-none hover:opacity-90 transition-opacity"
+            @click="goNextPuzzle"
+          >次のパズルへ →</button>
+          <button
+            v-else
+            class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-base cursor-pointer border-none hover:opacity-90 transition-opacity"
+            @click="() => { stage = 1; startPuzzle() }"
+          >🏆 全クリア！最初から</button>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Puzzle Fail overlay -->
+    <Transition name="ovl">
+      <div v-if="phase === 'puzzlefail'" class="fixed inset-0 bg-black/75 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-orange-400/40 rounded-3xl p-8 text-center max-w-xs mx-4 shadow-[0_0_60px_rgba(251,146,60,0.2)]">
+          <div class="text-5xl mb-3">😵</div>
+          <h2 class="m-0 text-2xl font-bold text-orange-400 mb-1">手数切れ</h2>
+          <p class="text-slate-400 text-sm mb-6">パズル ST{{ stage }}</p>
+          <button
+            class="w-full py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-base cursor-pointer border-none hover:opacity-90 transition-opacity mb-2"
+            @click="startPuzzle"
+          >もう一度</button>
+          <button
+            class="w-full py-2.5 rounded-xl border border-slate-600 text-slate-400 text-sm font-medium cursor-pointer bg-transparent hover:bg-white/[0.06] transition-colors"
+            @click="backToIdle"
+          >モード選択に戻る</button>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Portrait warning (mobile only, hidden in landscape) -->
     <div class="portrait-notice lg:hidden fixed inset-0 bg-black/90 z-[80] flex items-center justify-center flex-col gap-4 text-center p-6">
       <div class="text-5xl">📱</div>
@@ -170,6 +221,9 @@
     <!-- Header -->
     <h1 class="m-0 text-base font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent mb-3">
       🎴 パネルでポン
+      <span v-if="phase !== 'idle'" class="text-xs font-semibold ml-1" :class="gameMode === 'puzzle' ? 'text-violet-400' : 'text-emerald-400'">
+        — {{ gameMode === 'puzzle' ? 'パズルモード' : 'ステージモード' }}
+      </span>
     </h1>
 
     <!-- Board area: mobile=[dpad|game|buttons], desktop=[game|leaderboard] -->
@@ -194,7 +248,7 @@
       <div class="flex-none flex flex-col items-center lg:items-start">
         <!-- Stage + score above board -->
         <div class="flex items-center gap-3 mb-1.5">
-          <span class="text-sm font-bold text-slate-300">ステージ {{ stage }}</span>
+          <span class="text-sm font-bold text-slate-300">{{ gameMode === 'puzzle' ? 'パズル' : 'ステージ' }} {{ stage }}</span>
           <Transition name="chain">
             <span v-if="chainLevel >= 2" class="text-xs font-bold text-amber-400 animate-bounce">{{ chainLevel }}チェーン!</span>
           </Transition>
@@ -202,8 +256,8 @@
 
         <!-- Vertical score meter + board -->
         <div class="flex gap-2 items-start">
-          <!-- Vertical score meter (desktop only) -->
-          <div class="hidden lg:flex flex-col items-center gap-1 flex-shrink-0" :style="{ height: `${ROWS * CELL}px` }">
+          <!-- Vertical score meter (desktop only, normal mode) -->
+          <div v-if="gameMode === 'normal'" class="hidden lg:flex flex-col items-center gap-1 flex-shrink-0" :style="{ height: `${ROWS * CELL}px` }">
             <div class="text-[9px] text-slate-600 leading-none font-mono">
               {{ stageTarget >= 1000 ? (stageTarget / 1000).toFixed(1) + 'k' : stageTarget }}
             </div>
@@ -263,17 +317,38 @@
               style="background: rgba(239,68,68,0.08)"
             />
 
+            <!-- Moves left (puzzle mode, top-right big number) -->
+            <div
+              v-if="gameMode === 'puzzle' && phase === 'playing'"
+              class="absolute top-1.5 right-2 z-20 pointer-events-none text-right leading-none"
+            >
+              <div class="text-[9px] font-medium tracking-widest text-slate-400/80">のこり</div>
+              <div
+                class="font-extrabold tabular-nums drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] transition-colors"
+                :class="movesLeft <= 1 ? 'text-red-400 animate-pulse' : 'text-violet-300'"
+                style="font-size: 2.75rem"
+              >{{ movesLeft }}</div>
+            </div>
+
             <!-- Idle overlay -->
             <div
               v-if="phase === 'idle'"
-              class="absolute inset-0 bg-black/60 flex items-center justify-center"
+              class="absolute inset-0 bg-black/70 flex items-center justify-center"
             >
-              <button
-                class="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-base border-none cursor-pointer hover:opacity-90 transition-opacity shadow-lg"
-                @click="startGame"
-              >
-                {{ savedStage > 1 ? `ST${savedStage}から再開` : 'スタート' }}
-              </button>
+              <div class="flex flex-col gap-3 items-center px-4">
+                <p class="text-slate-400 text-xs tracking-widest mb-1">モードを選択</p>
+                <button
+                  class="w-40 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-sm border-none cursor-pointer hover:opacity-90 transition-opacity shadow-lg"
+                  @click="selectMode('normal')"
+                >
+                  🎮 ステージ
+                  <span v-if="savedStage > 1" class="block text-[10px] font-normal opacity-80 mt-0.5">ST{{ savedStage }}から再開</span>
+                </button>
+                <button
+                  class="w-40 py-3 rounded-2xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-bold text-sm border-none cursor-pointer hover:opacity-90 transition-opacity shadow-lg"
+                  @click="selectMode('puzzle')"
+                >🧩 パズル</button>
+              </div>
             </div>
           </div>
         </div>
@@ -288,8 +363,8 @@
         </div>
       </div>
 
-      <!-- Leaderboard (desktop only) -->
-      <div class="hidden lg:flex w-44 flex-shrink-0 flex-col">
+      <!-- Leaderboard (desktop only, normal mode) -->
+      <div v-if="gameMode === 'normal'" class="hidden lg:flex w-44 flex-shrink-0 flex-col">
         <div class="text-[10px] font-medium tracking-widest text-slate-500 mb-2 text-center">
           ランキング
         </div>
@@ -312,10 +387,35 @@
           <div class="text-[9px] text-slate-600 text-center mb-1.5">ステージ選択</div>
           <div class="grid grid-cols-5 gap-1">
             <button
-              v-for="n in STAGE_TARGETS.length" :key="n"
+              v-for="n in stageCount" :key="n"
               class="h-7 rounded-lg text-xs font-bold border transition-colors cursor-pointer"
               :class="stage === n && phase !== 'idle'
                 ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-400'
+                : 'bg-black/40 border-white/10 text-slate-500 hover:bg-white/[0.10] hover:text-slate-200'"
+              @click="jumpToStage(n)"
+            >{{ n }}</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Puzzle side panel (desktop only, puzzle mode) -->
+      <div v-if="gameMode === 'puzzle'" class="hidden lg:flex w-44 flex-shrink-0 flex-col">
+        <div class="text-[10px] font-medium tracking-widest text-violet-400/70 mb-2 text-center">
+          パズルモード
+        </div>
+        <p class="text-slate-600 text-[11px] leading-relaxed text-center px-2">
+          制限手数内に<br>すべてのパネルを消そう！
+        </p>
+
+        <!-- Puzzle selector (desktop, bottom-right) -->
+        <div class="mt-auto pt-3">
+          <div class="text-[9px] text-slate-600 text-center mb-1.5">パズル選択</div>
+          <div class="grid grid-cols-5 gap-1">
+            <button
+              v-for="n in stageCount" :key="n"
+              class="h-7 rounded-lg text-xs font-bold border transition-colors cursor-pointer"
+              :class="stage === n && phase !== 'idle'
+                ? 'bg-violet-500/20 border-violet-400/50 text-violet-300'
                 : 'bg-black/40 border-white/10 text-slate-500 hover:bg-white/[0.10] hover:text-slate-200'"
               @click="jumpToStage(n)"
             >{{ n }}</button>
@@ -326,13 +426,15 @@
 
     <!-- Stage selector (mobile only, below board area) -->
     <div class="lg:hidden mt-2 px-3 w-full">
-      <div class="text-[9px] text-slate-600 text-center mb-1.5">ステージ選択</div>
+      <div class="text-[9px] text-slate-600 text-center mb-1.5">{{ gameMode === 'puzzle' ? 'パズル選択' : 'ステージ選択' }}</div>
       <div class="grid grid-cols-5 gap-1">
         <button
-          v-for="n in STAGE_TARGETS.length" :key="n"
+          v-for="n in stageCount" :key="n"
           class="h-7 rounded-lg text-xs font-bold border transition-colors cursor-pointer"
           :class="stage === n && phase !== 'idle'
-            ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-400'
+            ? (gameMode === 'puzzle'
+                ? 'bg-violet-500/20 border-violet-400/50 text-violet-300'
+                : 'bg-emerald-500/20 border-emerald-400/50 text-emerald-400')
             : 'bg-black/40 border-white/10 text-slate-500 hover:bg-white/[0.10] hover:text-slate-200'"
           @click="jumpToStage(n)"
         >{{ n }}</button>
@@ -432,6 +534,138 @@ const RISE_SPEEDS = [13, 16, 19, 22, 26, 30, 35, 40, 46, 53]
 
 const FLASH_MS = 550
 
+// ── Puzzle stages ──────────────────────────────────────────────
+function makePuzzleGrid(rows: Partial<Record<number, (Color | null)[]>>): (Color | null)[][] {
+  const g: (Color | null)[][] = Array.from({ length: ROWS }, () => Array<Color | null>(COLS).fill(null))
+  for (const [rowStr, cells] of Object.entries(rows)) {
+    if (cells) g[parseInt(rowStr)] = cells
+  }
+  return g
+}
+
+interface PuzzleStage { moves: number; grid: (Color | null)[][] }
+
+// 全ステージ総当たりでクリア可能性を検証済み（最短手数 ≦ 制限手数）
+const PUZZLE_STAGES: PuzzleStage[] = [
+  // ST1: 最短1手
+  { moves: 2, grid: makePuzzleGrid({ 11: ['r','r','b','r','b','b'] }) },
+  // ST2: 最短3手
+  { moves: 3, grid: makePuzzleGrid({
+    10: [null,'r','r',null,'r',null],
+    11: ['r','b','r','r','b','b'],
+  }) },
+  // ST3: 最短4手
+  { moves: 5, grid: makePuzzleGrid({
+    10: [null,'r','g','b','r',null],
+    11: ['b','r','b','g','g',null],
+  }) },
+  // ST4: 最短4手
+  { moves: 5, grid: makePuzzleGrid({
+    10: [null,'g',null,'r',null,'b'],
+    11: ['g','g','r','r','b','b'],
+  }) },
+  // ST5: 最短5手
+  { moves: 6, grid: makePuzzleGrid({
+    10: ['g','r',null,'r','g',null],
+    11: ['r','g','r','g','r',null],
+  }) },
+  // ST6: 最短5手
+  { moves: 6, grid: makePuzzleGrid({
+    9:  [null,null,'g',null,null,null],
+    10: ['g','r',null,'r','g',null],
+    11: ['r','g','r','g','r','g'],
+  }) },
+  // ST7: 最短6手
+  { moves: 7, grid: makePuzzleGrid({
+    9:  [null,'b',null,null,'b',null],
+    10: ['b','r','g','g','r','b'],
+    11: ['r','b','r','r','b','g'],
+  }) },
+  // ST8: 最短6手
+  { moves: 7, grid: makePuzzleGrid({
+    9:  ['g','y',null,null,'y','g'],
+    10: ['y','g','r','r','g','y'],
+    11: ['g','y','r','y','g','r'],
+  }) },
+  // ST9: 最短7手
+  { moves: 8, grid: makePuzzleGrid({
+    10: ['y',null,'r',null,null,'y'],
+    11: ['r','y','y','r','r','y'],
+  }) },
+  // ST10: 最短7手
+  { moves: 8, grid: makePuzzleGrid({
+    8:  [null,'g',null,null,'g',null],
+    9:  ['g','r','p','p','r','g'],
+    10: ['r','p','g','g','p','r'],
+    11: ['p','g','r','r','g','p'],
+  }) },
+  // ST11: 最短5手
+  { moves: 6, grid: makePuzzleGrid({
+    9:  [null,null,'y',null,null,null],
+    10: ['y','b',null,'b','y',null],
+    11: ['b','y','b','y','b','y'],
+  }) },
+  // ST12: 最短5手
+  { moves: 6, grid: makePuzzleGrid({
+    9:  [null,'p',null,null,'p',null],
+    10: ['p','r',null,'r','p',null],
+    11: ['r','p','r','p','r','p'],
+  }) },
+  // ST13: 最短5手
+  { moves: 6, grid: makePuzzleGrid({
+    9:  [null,'g',null,null,'g',null],
+    10: ['g','y',null,'y','g',null],
+    11: ['y','g','y','g','y','g'],
+  }) },
+  // ST14: 最短6手
+  { moves: 7, grid: makePuzzleGrid({
+    9:  [null,'b',null,'y',null,null],
+    10: ['b','r','y','y','r',null],
+    11: ['r','b','r','b','r','y'],
+  }) },
+  // ST15: 最短6手
+  { moves: 7, grid: makePuzzleGrid({
+    9:  [null,'y',null,null,'y',null],
+    10: ['y','g','p','p','g','y'],
+    11: ['g','y','g','g','y','p'],
+  }) },
+  // ST16: 最短7手
+  { moves: 8, grid: makePuzzleGrid({
+    9:  [null,'r',null,null,'y',null],
+    10: ['r','b','y','y','b','r'],
+    11: ['b','r','b','b','r','y'],
+  }) },
+  // ST17: 最短7手
+  { moves: 8, grid: makePuzzleGrid({
+    9:  [null,'p',null,null,'b',null],
+    10: ['p','y','b','b','y','p'],
+    11: ['y','p','y','y','p','b'],
+  }) },
+  // ST18: 最短7手
+  { moves: 8, grid: makePuzzleGrid({
+    9:  [null,'r',null,null,'b',null],
+    10: ['r','g','b','b','g','r'],
+    11: ['g','r','g','g','r','b'],
+  }) },
+  // ST19: 最短8手
+  { moves: 9, grid: makePuzzleGrid({
+    10: [null,'g','r','g','r',null],
+    11: ['g','r','g','r','g','r'],
+  }) },
+  // ST20: 最短8手
+  { moves: 9, grid: makePuzzleGrid({
+    10: [null,'r','g','r','g',null],
+    11: ['r','g','r','g','r','g'],
+  }) },
+]
+
+const PUZZLE_CLEAR_PRAISES = [
+  { title: '完璧な解法！！', message: '鮮やかな手順でクリア！まるで詰将棋の名人のようです！！' },
+  { title: '天才パズラー！', message: 'この解法を見つけられる人は世界にほとんどいません！！' },
+  { title: '閃きが光る！！', message: '迷いのない一手一手に、あなたの才能が輝いています！！' },
+  { title: '神の一手！！！', message: 'その手順、教科書に載せます。未来のパズラーの目標です！！' },
+]
+
 // ── Auth ──────────────────────────────────────────────────────
 const { isLoggedIn, checked, checkAuth } = useAuth()
 const showAuthModal = computed(() => !import.meta.dev && !isLoggedIn.value && checked.value)
@@ -442,7 +676,7 @@ const nextRow    = ref<Color[]>([])
 const flashSet   = ref(new Set<string>())
 const cursor     = ref({ row: 8, col: 2 })
 const cursorDir  = ref<'h' | 'v'>('h')  // h=横並び, v=縦並び
-const phase      = ref<'idle' | 'playing' | 'paused' | 'gameover' | 'stageclear'>('idle')
+const phase      = ref<'idle' | 'playing' | 'paused' | 'gameover' | 'stageclear' | 'puzzleclear' | 'puzzlefail'>('idle')
 const score      = ref(0)
 const stage      = ref(1)
 const chainLevel = ref(0)
@@ -450,6 +684,9 @@ const highScore  = ref(0)
 const savedStage = ref(1)
 const riseOffset = ref(0)   // 0..CELL pixels
 const isBusy     = ref(false) // true while flash/fall is processing
+
+const gameMode   = ref<'normal' | 'puzzle'>('normal')
+const movesLeft  = ref(0)
 
 // ── Stage clear praise ────────────────────────────────────────
 const clearPraise = ref<{ title: string; message: string } | null>(null)
@@ -493,6 +730,7 @@ function selectSuggestedName(name: string) {
 const gpDebug = ref<{ btns: number[]; axes: Array<[number, number]> }>({ btns: [], axes: [] })
 
 // ── Computed ──────────────────────────────────────────────────
+const stageCount   = computed(() => gameMode.value === 'puzzle' ? PUZZLE_STAGES.length : STAGE_TARGETS.length)
 const stageTarget  = computed(() => STAGE_TARGETS[Math.min(stage.value - 1, STAGE_TARGETS.length - 1)])
 const progressPct  = computed(() => Math.min(100, (score.value / stageTarget.value) * 100))
 const allRows      = computed<(Color | null)[][]>(() =>
@@ -620,6 +858,7 @@ function processMatches(isChain: boolean) {
     } else {
       chainLevel.value = 0
       isBusy.value = false
+      checkPuzzle()
     }
     return
   }
@@ -645,8 +884,8 @@ function processMatches(isChain: boolean) {
     applyGravity(g)
     grid.value = g
 
-    // Check stage clear
-    if (score.value >= stageTarget.value) {
+    // Check stage clear (normal mode only)
+    if (gameMode.value === 'normal' && score.value >= stageTarget.value) {
       clearSeconds.value = Math.round((Date.now() - stageStartTime.value) / 10) / 100
       clearPraise.value = STAGE_CLEAR_PRAISES[Math.floor(Math.random() * STAGE_CLEAR_PRAISES.length)]
       phase.value = 'stageclear'
@@ -670,6 +909,7 @@ function doSwap() {
     ;[g[row][col], g[row + 1][col]] = [g[row + 1][col], g[row][col]]
   }
   grid.value = g
+  if (gameMode.value === 'puzzle') movesLeft.value--
   processMatches(false)
 }
 
@@ -845,10 +1085,15 @@ function formatTime(s: number): string {
 }
 
 function handleStart() {
-  if      (phase.value === 'playing')    phase.value = 'paused'
-  else if (phase.value === 'paused')     phase.value = 'playing'
-  else if (phase.value === 'idle' || phase.value === 'gameover') startGame()
-  else if (phase.value === 'stageclear') goNextStage()
+  if      (phase.value === 'playing')      phase.value = 'paused'
+  else if (phase.value === 'paused')       phase.value = 'playing'
+  else if (phase.value === 'idle' || phase.value === 'gameover') {
+    if (gameMode.value === 'puzzle') startPuzzle()
+    else startGame()
+  }
+  else if (phase.value === 'stageclear')   goNextStage()
+  else if (phase.value === 'puzzleclear')  goNextPuzzle()
+  else if (phase.value === 'puzzlefail')   startPuzzle()
 }
 
 // ── Rise loop ──────────────────────────────────────────────────
@@ -858,7 +1103,7 @@ let prevTime = 0
 function tick(now: number) {
   pollGamepad(now)
 
-  if (phase.value === 'playing' && !isBusy.value && !flashSet.value.size) {
+  if (phase.value === 'playing' && !isBusy.value && !flashSet.value.size && gameMode.value === 'normal') {
     const dt = Math.min(now - prevTime, 80)
     riseOffset.value += riseSpeedPx.value * dt / 1000
 
@@ -919,7 +1164,54 @@ function resetToStart() {
 
 function jumpToStage(n: number) {
   stage.value = n
-  startGame()
+  if (gameMode.value === 'puzzle') startPuzzle()
+  else startGame()
+}
+
+function selectMode(mode: 'normal' | 'puzzle') {
+  gameMode.value = mode
+  stage.value = 1
+  if (mode === 'puzzle') startPuzzle()
+  else startGame()
+}
+
+function startPuzzle() {
+  const ps = PUZZLE_STAGES[stage.value - 1]
+  if (!ps) return
+  if (chainTimer) clearTimeout(chainTimer)
+  flashSet.value = new Set()
+  chainLevel.value = 0
+  isBusy.value = false
+  score.value = 0
+  grid.value = ps.grid.map(r => [...r])
+  nextRow.value = makeRow()
+  cursor.value = { row: ROWS - 2, col: 2 }
+  riseOffset.value = 0
+  movesLeft.value = ps.moves
+  showNameEntry.value = false
+  phase.value = 'playing'
+}
+
+function goNextPuzzle() {
+  stage.value = Math.min(stage.value + 1, PUZZLE_STAGES.length)
+  startPuzzle()
+}
+
+function backToIdle() {
+  phase.value = 'idle'
+}
+
+function checkPuzzle() {
+  if (gameMode.value !== 'puzzle' || phase.value !== 'playing') return
+  const allEmpty = grid.value.every(row => row.every(c => c === null))
+  if (allEmpty) {
+    clearPraise.value = PUZZLE_CLEAR_PRAISES[Math.floor(Math.random() * PUZZLE_CLEAR_PRAISES.length)]
+    phase.value = 'puzzleclear'
+    return
+  }
+  if (movesLeft.value <= 0) {
+    phase.value = 'puzzlefail'
+  }
 }
 
 
@@ -967,7 +1259,7 @@ function handleKey(e: KeyboardEvent) {
 }
 
 // ── Lifecycle ──────────────────────────────────────────────────
-watch(stage, (s) => fetchRecords(s))
+watch(stage, (s) => { if (gameMode.value === 'normal') fetchRecords(s) })
 
 onMounted(async () => {
   checkMobile()

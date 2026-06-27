@@ -295,36 +295,68 @@
                 <p v-else class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileHistory[0].strengths }}</p>
               </div>
               <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
-                <div class="text-xs font-semibold text-sky-400 mb-1.5">🔄 傾向</div>
-                <p class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileHistory[0].tendencies }}</p>
+                <div class="text-xs font-semibold text-sky-400 mb-2">🔄 傾向</div>
+                <template v-if="Array.isArray(profileHistory[0].tendencies)">
+                  <div v-for="(t, ti) in profileHistory[0].tendencies" :key="ti" :class="ti < profileHistory[0].tendencies.length - 1 ? 'mb-3' : ''">
+                    <div class="text-sm font-semibold text-slate-100 mb-1">■ {{ t.title }}</div>
+                    <p class="m-0 text-sm text-slate-300 leading-relaxed">{{ t.content }}</p>
+                  </div>
+                </template>
+                <p v-else class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileHistory[0].tendencies }}</p>
               </div>
               <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
-                <div class="text-xs font-semibold text-emerald-400 mb-1.5">💡 アドバイス</div>
-                <p class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileHistory[0].advice }}</p>
+                <div class="text-xs font-semibold text-emerald-400 mb-2">💡 アドバイス</div>
+                <template v-if="Array.isArray(profileHistory[0].advice)">
+                  <div v-for="(a, ai) in profileHistory[0].advice" :key="ai" :class="ai < profileHistory[0].advice.length - 1 ? 'mb-3' : ''">
+                    <div class="text-sm font-semibold text-slate-100 mb-1">■ {{ a.title }}</div>
+                    <p class="m-0 text-sm text-slate-300 leading-relaxed">{{ a.content }}</p>
+                  </div>
+                </template>
+                <p v-else class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileHistory[0].advice }}</p>
               </div>
             </div>
             <!-- 過去のプロファイル履歴 -->
-            <div v-if="profileHistory.length > 1" class="flex flex-col gap-2">
+            <div v-if="profileHistory.length > 1" class="flex flex-col gap-1.5">
               <div class="text-[11px] text-slate-600 border-t border-white/[0.06] pt-3">過去のプロファイル</div>
-              <div v-for="(p, pi) in profileHistory.slice(1)" :key="pi" class="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3 flex flex-col gap-2">
-                <div class="text-[11px] text-slate-600">{{ formatProfileDate(p.generatedAt) }}</div>
-                <div>
-                  <div class="text-[11px] font-semibold text-orange-400/70 mb-1">✨ 強み</div>
-                  <template v-if="Array.isArray(p.strengths)">
-                    <div v-for="(s, si) in p.strengths" :key="si" :class="si < p.strengths.length - 1 ? 'mb-2' : ''">
-                      <div class="text-xs font-semibold text-slate-300 mb-0.5">■ {{ s.title }}</div>
-                      <p class="m-0 text-xs text-slate-400 leading-relaxed">{{ s.content }}</p>
-                    </div>
-                  </template>
-                  <p v-else class="m-0 text-xs text-slate-400 leading-relaxed">{{ p.strengths }}</p>
-                </div>
-                <div>
-                  <div class="text-[11px] font-semibold text-sky-400/70 mb-0.5">🔄 傾向</div>
-                  <p class="m-0 text-xs text-slate-400 leading-relaxed">{{ p.tendencies }}</p>
-                </div>
-                <div>
-                  <div class="text-[11px] font-semibold text-emerald-400/70 mb-0.5">💡 アドバイス</div>
-                  <p class="m-0 text-xs text-slate-400 leading-relaxed">{{ p.advice }}</p>
+              <div v-for="(p, pi) in profileHistory.slice(1)" :key="pi" class="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden">
+                <button
+                  class="w-full flex items-center justify-between px-3 py-2.5 cursor-pointer bg-transparent border-none transition-colors hover:bg-white/[0.04]"
+                  @click="toggleProfileHistory(pi)"
+                >
+                  <div class="text-[11px] text-slate-500">{{ formatProfileDate(p.generatedAt) }}</div>
+                  <div class="text-slate-600 text-[10px] transition-transform duration-200" :style="expandedProfileIndices.has(pi) ? 'transform: rotate(180deg)' : ''">▼</div>
+                </button>
+                <div v-if="expandedProfileIndices.has(pi)" class="px-3 pb-3 flex flex-col gap-2 border-t border-white/[0.05]">
+                  <div class="mt-2">
+                    <div class="text-[11px] font-semibold text-orange-400/70 mb-1">✨ 強み</div>
+                    <template v-if="Array.isArray(p.strengths)">
+                      <div v-for="(s, si) in p.strengths" :key="si" :class="si < p.strengths.length - 1 ? 'mb-2' : ''">
+                        <div class="text-xs font-semibold text-slate-300 mb-0.5">■ {{ s.title }}</div>
+                        <p class="m-0 text-xs text-slate-400 leading-relaxed">{{ s.content }}</p>
+                      </div>
+                    </template>
+                    <p v-else class="m-0 text-xs text-slate-400 leading-relaxed">{{ p.strengths }}</p>
+                  </div>
+                  <div>
+                    <div class="text-[11px] font-semibold text-sky-400/70 mb-1">🔄 傾向</div>
+                    <template v-if="Array.isArray(p.tendencies)">
+                      <div v-for="(t, ti) in p.tendencies" :key="ti" :class="ti < p.tendencies.length - 1 ? 'mb-2' : ''">
+                        <div class="text-xs font-semibold text-slate-300 mb-0.5">■ {{ t.title }}</div>
+                        <p class="m-0 text-xs text-slate-400 leading-relaxed">{{ t.content }}</p>
+                      </div>
+                    </template>
+                    <p v-else class="m-0 text-xs text-slate-400 leading-relaxed">{{ p.tendencies }}</p>
+                  </div>
+                  <div>
+                    <div class="text-[11px] font-semibold text-emerald-400/70 mb-1">💡 アドバイス</div>
+                    <template v-if="Array.isArray(p.advice)">
+                      <div v-for="(a, ai) in p.advice" :key="ai" :class="ai < p.advice.length - 1 ? 'mb-2' : ''">
+                        <div class="text-xs font-semibold text-slate-300 mb-0.5">■ {{ a.title }}</div>
+                        <p class="m-0 text-xs text-slate-400 leading-relaxed">{{ a.content }}</p>
+                      </div>
+                    </template>
+                    <p v-else class="m-0 text-xs text-slate-400 leading-relaxed">{{ p.advice }}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -707,9 +739,15 @@ function applyDictionary(text: string): string {
 }
 
 interface StrengthItem { title: string; content: string }
-interface ProfileData { strengths: StrengthItem[] | string; tendencies: string; advice: string; generatedAt: string }
+interface ProfileData { strengths: StrengthItem[] | string; tendencies: StrengthItem[] | string; advice: StrengthItem[] | string; generatedAt: string }
 const profileHistory = ref<ProfileData[]>([])
 const isProfileLoading = ref(false)
+const expandedProfileIndices = ref(new Set<number>())
+const toggleProfileHistory = (i: number) => {
+  if (expandedProfileIndices.value.has(i)) expandedProfileIndices.value.delete(i)
+  else expandedProfileIndices.value.add(i)
+  expandedProfileIndices.value = new Set(expandedProfileIndices.value)
+}
 
 const formatProfileDate = (iso: string): string => {
   if (!iso) return ''
