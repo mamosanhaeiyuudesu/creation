@@ -130,11 +130,9 @@
 .sk-gallery-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    155deg,
-    transparent 35%,
-    rgba(15, 8, 3, 0.52) 100%
-  );
+  background: linear-gradient(155deg,
+      transparent 35%,
+      rgba(15, 8, 3, 0.52) 100%);
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
@@ -165,13 +163,16 @@
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
+
   .sk-gallery-item,
   .sk-gallery-img {
     transition: none;
   }
+
   .sk-gallery-item:hover {
     transform: none;
   }
+
   .sk-gallery-item:hover .sk-gallery-img {
     transform: none;
   }

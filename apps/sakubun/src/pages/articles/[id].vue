@@ -235,7 +235,7 @@ useHead({
 .ar-dim {
   position: fixed;
   inset: 0;
-  background: rgba(250, 248, 244, 0.80);
+  background: rgba(250, 248, 244, 0.92);
   z-index: 1;
 }
 

@@ -409,7 +409,7 @@
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center">
               <span class="text-emerald-400 font-bold text-xl leading-none">{{ score }}</span>
-              <span class="text-slate-600 text-xs leading-none mt-1.5">/ {{ stageTarget >= 1000 ? (stageTarget / 1000).toFixed(1) + 'k' : stageTarget }}</span>
+              <span class="text-slate-600 text-xs leading-none mt-1.5">/ {{ stageTarget }}</span>
             </div>
           </div>
         </div>
