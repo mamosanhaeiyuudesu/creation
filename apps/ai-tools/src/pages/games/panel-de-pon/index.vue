@@ -289,6 +289,14 @@
               />
             </div>
 
+            <!-- Ready overlay (board only) -->
+            <Transition name="ovl">
+              <div v-if="phase === 'ready'" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center z-20 gap-2">
+                <div class="text-slate-300 text-sm font-medium">{{ gameMode === 'puzzle' ? `パズル ST${stage}` : `ステージ ${stage}` }}</div>
+                <div class="text-slate-500 text-xs">スタートを押してください</div>
+              </div>
+            </Transition>
+
             <!-- Pause overlay (board only) -->
             <Transition name="ovl">
               <div v-if="phase === 'paused'" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center z-20 gap-3">
@@ -375,7 +383,7 @@
         </div>
 
         <!-- Circular score meter (desktop, normal mode) -->
-        <div v-if="phase === 'playing' || phase === 'stageclear' || phase === 'gameover'" class="flex flex-col items-center pt-2 pb-3">
+        <div v-if="phase === 'ready' || phase === 'playing' || phase === 'stageclear' || phase === 'gameover'" class="flex flex-col items-center pt-2 pb-3">
           <div class="relative w-36 h-36">
             <svg width="144" height="144" viewBox="0 0 144 144">
               <!-- track -->
@@ -710,7 +718,7 @@ const nextRow    = ref<Color[]>([])
 const flashSet   = ref(new Set<string>())
 const cursor     = ref({ row: 8, col: 2 })
 const cursorDir  = ref<'h' | 'v'>('h')  // h=横並び, v=縦並び
-const phase      = ref<'idle' | 'playing' | 'paused' | 'gameover' | 'stageclear' | 'puzzleclear' | 'puzzlefail'>('idle')
+const phase      = ref<'idle' | 'ready' | 'playing' | 'paused' | 'gameover' | 'stageclear' | 'puzzleclear' | 'puzzlefail'>('idle')
 const score      = ref(0)
 const stage      = ref(1)
 const chainLevel = ref(0)
@@ -1135,7 +1143,8 @@ function formatDate(s: string): string {
 }
 
 function handleStart() {
-  if      (phase.value === 'playing')      phase.value = 'paused'
+  if      (phase.value === 'ready')        { phase.value = 'playing'; stageStartTime.value = Date.now() }
+  else if (phase.value === 'playing')      phase.value = 'paused'
   else if (phase.value === 'paused')       phase.value = 'playing'
   else if (phase.value === 'idle' || phase.value === 'gameover') {
     if (gameMode.value === 'puzzle') startPuzzle()
@@ -1198,8 +1207,7 @@ function startGame() {
   cursor.value = { row: Math.max(1, ROWS - fillRows - 1), col: 2 }
   riseOffset.value = 0
   showNameEntry.value = false
-  phase.value = 'playing'
-  stageStartTime.value = Date.now()
+  phase.value = 'ready'
 }
 
 function goNextStage() {
@@ -1239,8 +1247,7 @@ function startPuzzle() {
   riseOffset.value = 0
   movesLeft.value = ps.moves
   showNameEntry.value = false
-  phase.value = 'playing'
-  stageStartTime.value = Date.now()
+  phase.value = 'ready'
 }
 
 function goNextPuzzle() {
