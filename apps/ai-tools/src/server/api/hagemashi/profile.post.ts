@@ -3,6 +3,8 @@ import { wrapApiError } from '~/server/utils/openai'
 
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string; date: string }
 interface WordEntry { word: string; count: number }
+interface StrengthItem { title: string; content: string }
+interface ProfileItem { strengths: StrengthItem[] | string; tendencies: string; advice: string; generatedAt: string }
 
 export default defineEventHandler(async (event) => {
   const db = event.context.cloudflare?.env?.WHISPER_DB
@@ -33,12 +35,14 @@ export default defineEventHandler(async (event) => {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
+        max_tokens: 2048,
         system: `あなたは日々の記録からユーザーの特性を分析するプロファイリングの専門家です。
 提供されたデータ（日々の気持ち・状況の記録と頻出単語）をもとに、ユーザーの強み・傾向・アドバイスを日本語で分析してください。
 
 必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
-{"strengths":"強みの説明（200字以内）","tendencies":"傾向の説明（200字以内）","advice":"アドバイス（200字以内）"}`,
+{"strengths":[{"title":"強みのタイトル","content":"説明（200字以内）"},{"title":"強みのタイトル2","content":"説明（200字以内）"}],"tendencies":"傾向の説明（400字以内）","advice":"アドバイス（400字以内）"}
+
+strengths は2〜3項目で、それぞれ具体的なタイトルと内容を記述してください。`,
         messages: [{ role: 'user', content: userContent }],
       }),
     })
@@ -51,7 +55,7 @@ export default defineEventHandler(async (event) => {
     const data = await response.json()
     const text = (data?.content?.[0]?.text ?? '').trim()
 
-    let parsed: { strengths: string; tendencies: string; advice: string }
+    let parsed: { strengths: StrengthItem[] | string; tendencies: string; advice: string }
     try {
       parsed = JSON.parse(text)
     } catch {
@@ -60,16 +64,31 @@ export default defineEventHandler(async (event) => {
       parsed = JSON.parse(match[0])
     }
 
-    const profileData = { ...parsed, generatedAt: new Date().toISOString() }
+    const newProfile: ProfileItem = { ...parsed, generatedAt: new Date().toISOString() }
 
     if (db && user) {
+      const existing = await db
+        .prepare('SELECT data FROM hagemashi_profiles WHERE user_id = ?')
+        .bind(user.id)
+        .first() as { data: string } | null
+
+      let profiles: ProfileItem[] = []
+      if (existing) {
+        try {
+          const raw = JSON.parse(existing.data)
+          profiles = Array.isArray(raw) ? raw : [raw]
+        } catch {}
+      }
+
+      profiles = [newProfile, ...profiles].slice(0, 10)
+
       await db
         .prepare("INSERT OR REPLACE INTO hagemashi_profiles (user_id, data, updated_at) VALUES (?, ?, datetime('now'))")
-        .bind(user.id, JSON.stringify(profileData))
+        .bind(user.id, JSON.stringify(profiles))
         .run()
     }
 
-    return profileData
+    return newProfile
   } catch (err) {
     return wrapApiError(err, 'プロファイリングの生成に失敗しました')
   }

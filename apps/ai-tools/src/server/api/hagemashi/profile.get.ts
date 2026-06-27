@@ -12,11 +12,13 @@ export default defineEventHandler(async (event) => {
     .bind(user.id)
     .first() as { data: string } | null
 
-  if (!row) return null
+  if (!row) return { profiles: [] }
 
   try {
-    return JSON.parse(row.data)
+    const raw = JSON.parse(row.data)
+    const profiles = Array.isArray(raw) ? raw : [raw]
+    return { profiles }
   } catch {
-    return null
+    return { profiles: [] }
   }
 })

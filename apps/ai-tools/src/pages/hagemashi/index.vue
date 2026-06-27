@@ -277,22 +277,56 @@
             <span class="w-4 h-4 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
             プロファイルを生成中...
           </div>
-          <div v-else-if="!profileData" class="text-center text-slate-500 text-sm py-10">
+          <div v-else-if="profileHistory.length === 0" class="text-center text-slate-500 text-sm py-10">
             更新ボタンを押してプロファイルを生成してください
           </div>
-          <div v-else class="flex flex-col gap-3">
-            <div class="text-right text-[11px] text-slate-600">最終更新: {{ profileGeneratedAt }}</div>
-            <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
-              <div class="text-xs font-semibold text-orange-400 mb-1.5">✨ 強み</div>
-              <p class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileData.strengths }}</p>
+          <div v-else class="flex flex-col gap-4">
+            <!-- 最新プロファイル -->
+            <div class="flex flex-col gap-3">
+              <div class="text-right text-[11px] text-slate-600">最終更新: {{ formatProfileDate(profileHistory[0].generatedAt) }}</div>
+              <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
+                <div class="text-xs font-semibold text-orange-400 mb-2">✨ 強み</div>
+                <template v-if="Array.isArray(profileHistory[0].strengths)">
+                  <div v-for="(s, si) in profileHistory[0].strengths" :key="si" :class="si < profileHistory[0].strengths.length - 1 ? 'mb-3' : ''">
+                    <div class="text-sm font-semibold text-slate-100 mb-1">■ {{ s.title }}</div>
+                    <p class="m-0 text-sm text-slate-300 leading-relaxed">{{ s.content }}</p>
+                  </div>
+                </template>
+                <p v-else class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileHistory[0].strengths }}</p>
+              </div>
+              <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
+                <div class="text-xs font-semibold text-sky-400 mb-1.5">🔄 傾向</div>
+                <p class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileHistory[0].tendencies }}</p>
+              </div>
+              <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
+                <div class="text-xs font-semibold text-emerald-400 mb-1.5">💡 アドバイス</div>
+                <p class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileHistory[0].advice }}</p>
+              </div>
             </div>
-            <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
-              <div class="text-xs font-semibold text-sky-400 mb-1.5">🔄 傾向</div>
-              <p class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileData.tendencies }}</p>
-            </div>
-            <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
-              <div class="text-xs font-semibold text-emerald-400 mb-1.5">💡 アドバイス</div>
-              <p class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileData.advice }}</p>
+            <!-- 過去のプロファイル履歴 -->
+            <div v-if="profileHistory.length > 1" class="flex flex-col gap-2">
+              <div class="text-[11px] text-slate-600 border-t border-white/[0.06] pt-3">過去のプロファイル</div>
+              <div v-for="(p, pi) in profileHistory.slice(1)" :key="pi" class="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3 flex flex-col gap-2">
+                <div class="text-[11px] text-slate-600">{{ formatProfileDate(p.generatedAt) }}</div>
+                <div>
+                  <div class="text-[11px] font-semibold text-orange-400/70 mb-1">✨ 強み</div>
+                  <template v-if="Array.isArray(p.strengths)">
+                    <div v-for="(s, si) in p.strengths" :key="si" :class="si < p.strengths.length - 1 ? 'mb-2' : ''">
+                      <div class="text-xs font-semibold text-slate-300 mb-0.5">■ {{ s.title }}</div>
+                      <p class="m-0 text-xs text-slate-400 leading-relaxed">{{ s.content }}</p>
+                    </div>
+                  </template>
+                  <p v-else class="m-0 text-xs text-slate-400 leading-relaxed">{{ p.strengths }}</p>
+                </div>
+                <div>
+                  <div class="text-[11px] font-semibold text-sky-400/70 mb-0.5">🔄 傾向</div>
+                  <p class="m-0 text-xs text-slate-400 leading-relaxed">{{ p.tendencies }}</p>
+                </div>
+                <div>
+                  <div class="text-[11px] font-semibold text-emerald-400/70 mb-0.5">💡 アドバイス</div>
+                  <p class="m-0 text-xs text-slate-400 leading-relaxed">{{ p.advice }}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -672,15 +706,16 @@ function applyDictionary(text: string): string {
   return result
 }
 
-interface ProfileData { strengths: string; tendencies: string; advice: string; generatedAt: string }
-const profileData = ref<ProfileData | null>(null)
+interface StrengthItem { title: string; content: string }
+interface ProfileData { strengths: StrengthItem[] | string; tendencies: string; advice: string; generatedAt: string }
+const profileHistory = ref<ProfileData[]>([])
 const isProfileLoading = ref(false)
 
-const profileGeneratedAt = computed(() => {
-  if (!profileData.value?.generatedAt) return ''
-  const d = toJSTDate(profileData.value.generatedAt)
+const formatProfileDate = (iso: string): string => {
+  if (!iso) return ''
+  const d = toJSTDate(iso)
   return `${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
-})
+}
 
 const generateProfile = async () => {
   if (isProfileLoading.value) return
@@ -693,9 +728,9 @@ const generateProfile = async () => {
         wordRanking: wordRanking.value.slice(0, 50),
       },
     })
-    profileData.value = res
+    profileHistory.value = [res, ...profileHistory.value]
     if ($dev) {
-      localStorage.setItem(LS_PROFILE, JSON.stringify(res))
+      localStorage.setItem(LS_PROFILE, JSON.stringify(profileHistory.value))
     }
   } catch (e) {
     console.error(e)
@@ -777,7 +812,10 @@ onMounted(() => {
   if ($dev) {
     const cachedProfile = localStorage.getItem(LS_PROFILE)
     if (cachedProfile) {
-      try { profileData.value = JSON.parse(cachedProfile) } catch {}
+      try {
+        const raw = JSON.parse(cachedProfile)
+        profileHistory.value = Array.isArray(raw) ? raw : [raw]
+      } catch {}
     }
   }
 })
@@ -786,15 +824,15 @@ if (!$dev) {
   watch(
     isLoggedIn,
     async (loggedIn) => {
-      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileData.value = null; return }
+      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; return }
       const [ranking, dict, profile] = await Promise.allSettled([
         $fetch<WordEntry[]>('/api/hagemashi/word-ranking'),
         $fetch<DictionaryEntry[]>('/api/hagemashi/dictionary'),
-        $fetch<ProfileData | null>('/api/hagemashi/profile'),
+        $fetch<{ profiles: ProfileData[] }>('/api/hagemashi/profile'),
       ])
       wordRanking.value = ranking.status === 'fulfilled' ? ranking.value : []
       dictionary.value = dict.status === 'fulfilled' ? dict.value : []
-      profileData.value = profile.status === 'fulfilled' ? profile.value : null
+      profileHistory.value = profile.status === 'fulfilled' ? (profile.value?.profiles ?? []) : []
     },
     { immediate: true }
   )
