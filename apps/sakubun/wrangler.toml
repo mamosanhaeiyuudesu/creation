@@ -2,6 +2,12 @@ name = "sakubun"
 main = ".output/server/index.mjs"
 compatibility_date = "2026-03-12"
 
+# カスタムドメイン（insightlens.jp は同一 Cloudflare アカウントの Zone である必要あり）
+# デプロイ時に DNS レコードと SSL 証明書が自動作成される
+routes = [
+  { pattern = "sakubun.insightlens.jp", custom_domain = true }
+]
+
 [[d1_databases]]
 binding = "SAKUBUN_DB"
 database_name = "sakubun-db"

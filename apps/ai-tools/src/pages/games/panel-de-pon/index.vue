@@ -73,9 +73,9 @@
     <Transition name="ovl">
       <div v-if="showNameEntry" class="fixed inset-0 bg-black/85 flex items-center justify-center z-[60] backdrop-blur-sm">
         <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-amber-400/40 rounded-3xl p-8 text-center max-w-xs mx-4 shadow-[0_0_60px_rgba(251,191,36,0.2)]">
-          <div class="text-4xl mb-3">🏆</div>
-          <h2 class="m-0 text-xl font-bold text-amber-400 mb-1">記録達成！</h2>
-          <p class="text-slate-400 text-sm mb-1">ステージ {{ stage }} クリアタイム</p>
+          <div class="text-4xl mb-3">{{ gameMode === 'puzzle' ? '🧩' : '🏆' }}</div>
+          <h2 class="m-0 text-xl font-bold text-amber-400 mb-1">{{ gameMode === 'puzzle' ? 'クリア記録！' : '記録達成！' }}</h2>
+          <p class="text-slate-400 text-sm mb-1">{{ gameMode === 'puzzle' ? `パズル ST${stage}` : `ステージ ${stage}` }} クリアタイム</p>
           <p class="font-mono text-2xl font-bold text-white mb-4">{{ formatTime(clearSeconds) }}</p>
           <p class="text-slate-500 text-xs mb-3">名前を3文字で入力（↑↓で変更・Enter登録）</p>
 
@@ -125,8 +125,10 @@
         @click.self="showRankingPopup = false"
       >
         <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-slate-700/60 rounded-3xl p-6 text-center w-72 mx-4 shadow-[0_0_60px_rgba(0,0,0,0.6)]">
-          <div class="text-3xl mb-2">🏆</div>
-          <h2 class="m-0 text-lg font-bold text-slate-200 mb-1">ステージ {{ stage }} ランキング</h2>
+          <div class="text-3xl mb-2">{{ gameMode === 'puzzle' ? '🧩' : '🏆' }}</div>
+          <h2 class="m-0 text-lg font-bold text-slate-200 mb-1">
+            {{ gameMode === 'puzzle' ? `パズル ST${stage} 最新記録` : `ステージ ${stage} ランキング` }}
+          </h2>
           <p class="text-slate-500 text-xs mb-4">あなたの記録: {{ formatTime(submittedSeconds) }}</p>
 
           <div class="flex flex-col gap-1 text-left mb-5">
@@ -145,6 +147,7 @@
                 class="font-mono font-bold w-10 shrink-0"
                 :class="rec.rank === submittedRank ? 'text-amber-200' : 'text-slate-300'"
               >{{ rec.name }}</span>
+              <span class="font-mono text-[10px] text-slate-600 shrink-0">{{ formatDate(rec.recorded_at) }}</span>
               <span
                 class="flex-1 font-mono text-right"
                 :class="rec.rank === submittedRank ? 'text-amber-300' : 'text-slate-500'"
@@ -378,6 +381,7 @@
           >
             <span class="text-[10px] w-4 text-right shrink-0" :class="rec.rank === 1 ? 'text-amber-400' : 'text-slate-600'">{{ rec.rank }}</span>
             <span class="font-mono font-bold w-8 shrink-0" :class="rec.rank === 1 ? 'text-amber-300' : 'text-slate-300'">{{ rec.name }}</span>
+            <span class="font-mono text-[9px] text-slate-600 shrink-0">{{ formatDate(rec.recorded_at) }}</span>
             <span class="font-mono text-right flex-1" :class="rec.rank === 1 ? 'text-amber-400' : 'text-slate-500'">{{ formatTime(rec.seconds) }}</span>
           </div>
         </div>
@@ -403,9 +407,26 @@
         <div class="text-[10px] font-medium tracking-widest text-violet-400/70 mb-2 text-center">
           パズルモード
         </div>
-        <p class="text-slate-600 text-[11px] leading-relaxed text-center px-2">
+        <p class="text-slate-600 text-[11px] leading-relaxed text-center px-2 mb-3">
           制限手数内に<br>すべてのパネルを消そう！
         </p>
+
+        <!-- 最新クリア記録（上位10件） -->
+        <div class="text-[10px] font-medium tracking-widest text-slate-500 mb-2 text-center">最新クリア</div>
+        <div v-if="recordsLoading" class="text-slate-600 text-xs text-center py-2">…</div>
+        <div v-else-if="records.length === 0" class="text-slate-600 text-xs text-center py-2">記録なし</div>
+        <div v-else class="flex flex-col gap-0.5">
+          <div
+            v-for="rec in records" :key="rec.rank"
+            class="flex items-center gap-1.5 px-1 py-0.5 rounded text-xs"
+            :class="rec.rank === 1 ? 'bg-violet-400/10' : ''"
+          >
+            <span class="text-[10px] w-4 text-right shrink-0" :class="rec.rank === 1 ? 'text-violet-300' : 'text-slate-600'">{{ rec.rank }}</span>
+            <span class="font-mono font-bold w-8 shrink-0" :class="rec.rank === 1 ? 'text-violet-200' : 'text-slate-300'">{{ rec.name }}</span>
+            <span class="font-mono text-[9px] text-slate-600 shrink-0">{{ formatDate(rec.recorded_at) }}</span>
+            <span class="font-mono text-right flex-1" :class="rec.rank === 1 ? 'text-violet-300' : 'text-slate-500'">{{ formatTime(rec.seconds) }}</span>
+          </div>
+        </div>
 
         <!-- Puzzle selector (desktop, bottom-right) -->
         <div class="mt-auto pt-3">
@@ -697,6 +718,10 @@ const clearSeconds   = ref(0)
 const showNameEntry  = ref(false)
 const nameChars      = ref<string[]>(['A', 'A', 'A'])
 const nameInputIdx   = ref(0)
+
+// パズルは通常ステージと別キーで保存（最新順ランキング）
+const recordGame  = computed(() => gameMode.value === 'puzzle' ? 'panel-de-pon-puzzle' : 'panel-de-pon')
+const recordOrder = computed(() => gameMode.value === 'puzzle' ? 'recent' : 'fast')
 
 type RecordRow = { rank: number; name: string; seconds: number; recorded_at: string }
 const records         = ref<RecordRow[]>([])
@@ -1010,7 +1035,7 @@ async function fetchRecords(stageNum: number) {
   recordsLoading.value = true
   try {
     const data = await $fetch<RecordRow[]>('/api/games/records', {
-      query: { game: 'panel-de-pon', stage: stageNum },
+      query: { game: recordGame.value, stage: stageNum, order: recordOrder.value },
     })
     records.value = data
   } catch {}
@@ -1020,10 +1045,13 @@ async function fetchRecords(stageNum: number) {
 async function checkIsRecord() {
   try {
     const data = await $fetch<RecordRow[]>('/api/games/records', {
-      query: { game: 'panel-de-pon', stage: stage.value },
+      query: { game: recordGame.value, stage: stage.value, order: recordOrder.value },
     })
     records.value = data
-    const isRecord = data.length < 10 || clearSeconds.value < data[data.length - 1].seconds
+    // ステージは上位10位以内なら、パズルは常に名前入力可能
+    const isRecord = gameMode.value === 'puzzle'
+      || data.length < 10
+      || clearSeconds.value < data[data.length - 1].seconds
     if (isRecord) {
       nameChars.value = ['A', 'A', 'A']
       nameInputIdx.value = 0
@@ -1038,9 +1066,10 @@ async function submitRecord() {
   try {
     const res = await $fetch<{ ok: boolean; rank: number | null }>('/api/games/records', {
       method: 'POST',
-      body: { game: 'panel-de-pon', stage: stage.value, name, seconds: clearSeconds.value },
+      body: { game: recordGame.value, stage: stage.value, name, seconds: clearSeconds.value },
     })
-    submittedRank.value = res.rank
+    // パズルは最新順なので登録直後は必ず1位
+    submittedRank.value = gameMode.value === 'puzzle' ? 1 : res.rank
   } catch {
     submittedRank.value = null
   }
@@ -1082,6 +1111,15 @@ function formatTime(s: number): string {
   const m = Math.floor(s / 60)
   const sec = (s % 60).toFixed(1).padStart(4, '0')
   return `${m}:${sec}`
+}
+
+// recorded_at（UTCの "YYYY-MM-DD HH:MM:SS"）を JST の "24/5/3" 形式に
+function formatDate(s: string): string {
+  if (!s) return ''
+  const d = new Date(s.replace(' ', 'T') + 'Z')
+  if (isNaN(d.getTime())) return ''
+  const jst = new Date(d.getTime() + 9 * 3600 * 1000)
+  return `${String(jst.getUTCFullYear()).slice(2)}/${jst.getUTCMonth() + 1}/${jst.getUTCDate()}`
 }
 
 function handleStart() {
@@ -1190,6 +1228,7 @@ function startPuzzle() {
   movesLeft.value = ps.moves
   showNameEntry.value = false
   phase.value = 'playing'
+  stageStartTime.value = Date.now()
 }
 
 function goNextPuzzle() {
@@ -1205,8 +1244,10 @@ function checkPuzzle() {
   if (gameMode.value !== 'puzzle' || phase.value !== 'playing') return
   const allEmpty = grid.value.every(row => row.every(c => c === null))
   if (allEmpty) {
+    clearSeconds.value = Math.round((Date.now() - stageStartTime.value) / 10) / 100
     clearPraise.value = PUZZLE_CLEAR_PRAISES[Math.floor(Math.random() * PUZZLE_CLEAR_PRAISES.length)]
     phase.value = 'puzzleclear'
+    checkIsRecord()
     return
   }
   if (movesLeft.value <= 0) {
@@ -1259,7 +1300,7 @@ function handleKey(e: KeyboardEvent) {
 }
 
 // ── Lifecycle ──────────────────────────────────────────────────
-watch(stage, (s) => { if (gameMode.value === 'normal') fetchRecords(s) })
+watch([stage, gameMode], () => fetchRecords(stage.value))
 
 onMounted(async () => {
   checkMobile()
