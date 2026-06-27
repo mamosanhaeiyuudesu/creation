@@ -222,12 +222,22 @@
     </div>
 
     <!-- Header -->
-    <h1 class="m-0 text-base font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent mb-3">
-      🎴 パネルでポン
-      <span v-if="phase !== 'idle'" class="text-xs font-semibold ml-1" :class="gameMode === 'puzzle' ? 'text-violet-400' : 'text-emerald-400'">
-        — {{ gameMode === 'puzzle' ? 'パズルモード' : 'ステージモード' }}
-      </span>
-    </h1>
+    <div class="flex items-center gap-3 mb-3">
+      <h1 class="m-0 text-base font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+        🎴 パネルでポン
+        <span v-if="phase !== 'idle'" class="text-xs font-semibold ml-1" :class="gameMode === 'puzzle' ? 'text-violet-400' : 'text-emerald-400'">
+          — {{ gameMode === 'puzzle' ? 'パズルモード' : 'ステージモード' }}
+        </span>
+      </h1>
+      <button
+        v-if="phase !== 'idle'"
+        class="px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer"
+        :class="gameMode === 'puzzle'
+          ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-400 hover:bg-emerald-500/25'
+          : 'bg-violet-500/15 border-violet-400/40 text-violet-400 hover:bg-violet-500/25'"
+        @click="selectMode(gameMode === 'puzzle' ? 'normal' : 'puzzle')"
+      >{{ gameMode === 'puzzle' ? '🎮 ステージへ' : '🧩 パズルへ' }}</button>
+    </div>
 
     <!-- Board area: mobile=[dpad|game|buttons], desktop=[game|leaderboard] -->
     <div class="flex items-end w-full lg:w-auto lg:gap-4 lg:items-stretch px-3 lg:px-0">
@@ -257,23 +267,8 @@
           </Transition>
         </div>
 
-        <!-- Vertical score meter + board -->
+        <!-- board -->
         <div class="flex gap-2 items-start">
-          <!-- Vertical score meter (desktop only, normal mode) -->
-          <div v-if="gameMode === 'normal'" class="hidden lg:flex flex-col items-center gap-1 flex-shrink-0" :style="{ height: `${ROWS * CELL}px` }">
-            <div class="text-[9px] text-slate-600 leading-none font-mono">
-              {{ stageTarget >= 1000 ? (stageTarget / 1000).toFixed(1) + 'k' : stageTarget }}
-            </div>
-            <div class="relative flex-1 overflow-hidden" style="width: 8px; background: rgba(255,255,255,0.06); border-radius: 4px;">
-              <div
-                class="absolute bottom-0 left-0 w-full transition-all duration-300"
-                style="border-radius: 4px; background: linear-gradient(to top, #10b981, #2dd4bf)"
-                :style="{ height: `${progressPct}%` }"
-              />
-            </div>
-            <div class="text-[9px] text-slate-700 leading-none font-mono">0</div>
-          </div>
-
           <!-- Game board container -->
           <div
             class="relative border-2 border-slate-700 rounded-lg overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.7)] flex-shrink-0"
@@ -386,8 +381,40 @@
           </div>
         </div>
 
+        <!-- Circular score meter (desktop, normal mode) -->
+        <div v-if="phase === 'playing' || phase === 'stageclear' || phase === 'gameover'" class="mt-auto flex flex-col items-center pt-3 pb-2">
+          <div class="relative w-20 h-20">
+            <svg width="80" height="80" viewBox="0 0 80 80">
+              <!-- track -->
+              <circle cx="40" cy="40" r="33" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7"/>
+              <!-- progress -->
+              <circle
+                cx="40" cy="40" r="33"
+                fill="none"
+                stroke="url(#scoreGrad)"
+                stroke-width="7"
+                stroke-linecap="round"
+                stroke-dasharray="207.3"
+                :stroke-dashoffset="207.3 * (1 - progressPct / 100)"
+                transform="rotate(-90 40 40)"
+                style="transition: stroke-dashoffset 0.3s ease"
+              />
+              <defs>
+                <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#10b981"/>
+                  <stop offset="100%" stop-color="#2dd4bf"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span class="text-emerald-400 font-bold text-sm leading-none">{{ score }}</span>
+              <span class="text-slate-600 text-[9px] leading-none mt-0.5">/ {{ stageTarget >= 1000 ? (stageTarget / 1000).toFixed(1) + 'k' : stageTarget }}</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Stage selector (desktop) -->
-        <div class="mt-auto pt-3">
+        <div :class="(phase === 'playing' || phase === 'stageclear' || phase === 'gameover') ? 'pt-0' : 'mt-auto pt-3'">
           <div class="text-[9px] text-slate-600 text-center mb-1.5">ステージ選択</div>
           <div class="grid grid-cols-5 gap-1">
             <button
@@ -404,13 +431,6 @@
 
       <!-- Puzzle side panel (desktop only, puzzle mode) -->
       <div v-if="gameMode === 'puzzle'" class="hidden lg:flex w-44 flex-shrink-0 flex-col">
-        <div class="text-[10px] font-medium tracking-widest text-violet-400/70 mb-2 text-center">
-          パズルモード
-        </div>
-        <p class="text-slate-600 text-[11px] leading-relaxed text-center px-2 mb-3">
-          制限手数内に<br>すべてのパネルを消そう！
-        </p>
-
         <!-- 最新クリア記録（上位10件） -->
         <div class="text-[10px] font-medium tracking-widest text-slate-500 mb-2 text-center">最新クリア</div>
         <div v-if="recordsLoading" class="text-slate-600 text-xs text-center py-2">…</div>
