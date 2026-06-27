@@ -378,21 +378,21 @@
         </div>
 
         <!-- Circular score meter (desktop, normal mode) -->
-        <div v-if="phase === 'playing' || phase === 'stageclear' || phase === 'gameover'" class="mt-auto flex flex-col items-center pt-3 pb-2">
-          <div class="relative w-20 h-20">
-            <svg width="80" height="80" viewBox="0 0 80 80">
+        <div v-if="phase === 'playing' || phase === 'stageclear' || phase === 'gameover'" class="flex flex-col items-center pt-2 pb-3">
+          <div class="relative w-36 h-36">
+            <svg width="144" height="144" viewBox="0 0 144 144">
               <!-- track -->
-              <circle cx="40" cy="40" r="33" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7"/>
+              <circle cx="72" cy="72" r="60" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="12"/>
               <!-- progress -->
               <circle
-                cx="40" cy="40" r="33"
+                cx="72" cy="72" r="60"
                 fill="none"
                 stroke="url(#scoreGrad)"
-                stroke-width="7"
+                stroke-width="12"
                 stroke-linecap="round"
-                stroke-dasharray="207.3"
-                :stroke-dashoffset="207.3 * (1 - progressPct / 100)"
-                transform="rotate(-90 40 40)"
+                stroke-dasharray="377.0"
+                :stroke-dashoffset="377.0 * (1 - progressPct / 100)"
+                transform="rotate(-90 72 72)"
                 style="transition: stroke-dashoffset 0.3s ease"
               />
               <defs>
@@ -403,14 +403,14 @@
               </defs>
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center">
-              <span class="text-emerald-400 font-bold text-sm leading-none">{{ score }}</span>
-              <span class="text-slate-600 text-[9px] leading-none mt-0.5">/ {{ stageTarget >= 1000 ? (stageTarget / 1000).toFixed(1) + 'k' : stageTarget }}</span>
+              <span class="text-emerald-400 font-bold text-xl leading-none">{{ score }}</span>
+              <span class="text-slate-600 text-xs leading-none mt-1.5">/ {{ stageTarget >= 1000 ? (stageTarget / 1000).toFixed(1) + 'k' : stageTarget }}</span>
             </div>
           </div>
         </div>
 
         <!-- Stage selector (desktop) -->
-        <div :class="(phase === 'playing' || phase === 'stageclear' || phase === 'gameover') ? 'pt-0' : 'mt-auto pt-3'">
+        <div class="mt-auto">
           <div class="text-[9px] text-slate-600 text-center mb-1.5">ステージ選択</div>
           <div class="grid grid-cols-5 gap-1">
             <button
