@@ -2,21 +2,6 @@
   <div class="flex flex-col items-center py-4 px-0 lg:px-2 min-h-full select-none">
     <AuthModal v-if="showAuthModal" accent="sky" />
 
-    <!-- Pause overlay -->
-    <Transition name="ovl">
-      <div v-if="phase === 'paused'" class="fixed inset-0 bg-black flex items-center justify-center z-50">
-        <div class="text-center">
-          <div class="text-6xl mb-4">⏸</div>
-          <p class="text-slate-600 text-xs mb-6">スタートボタンでも再開できます</p>
-          <div class="flex flex-col gap-3 w-52">
-            <button
-              class="w-full py-2.5 rounded-xl border border-slate-600 text-slate-400 text-sm font-medium cursor-pointer bg-transparent hover:bg-white/[0.06] transition-colors"
-              @click="gameMode === 'puzzle' ? startPuzzle() : startGame()"
-            >このステージを最初から</button>
-          </div>
-        </div>
-      </div>
-    </Transition>
 
     <!-- Stage Clear overlay -->
     <Transition name="ovl">
@@ -303,6 +288,18 @@
                 }"
               />
             </div>
+
+            <!-- Pause overlay (board only) -->
+            <Transition name="ovl">
+              <div v-if="phase === 'paused'" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center z-20 gap-3">
+                <div class="text-4xl">⏸</div>
+                <p class="text-slate-400 text-xs">スタートで再開</p>
+                <button
+                  class="mt-1 px-4 py-1.5 rounded-xl border border-slate-600 text-slate-400 text-xs font-medium cursor-pointer bg-transparent hover:bg-white/[0.08] transition-colors"
+                  @click="gameMode === 'puzzle' ? startPuzzle() : startGame()"
+                >最初から</button>
+              </div>
+            </Transition>
 
             <!-- Danger flash overlay -->
             <div
