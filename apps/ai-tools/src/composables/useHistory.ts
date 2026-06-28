@@ -41,9 +41,9 @@ export function useHistory(storageKey: string, app?: string) {
       localStorage.setItem(storageKey, JSON.stringify(history.value))
     }
 
-    const addHistory = (text: string, title: string): string => {
+    const addHistory = (text: string, title: string, notes?: string): string => {
       const id = Date.now().toString()
-      history.value.unshift({ id, timestamp: new Date().toISOString(), text, title })
+      history.value.unshift({ id, timestamp: new Date().toISOString(), text, title, notes })
       saveHistory()
       return id
     }
@@ -101,13 +101,13 @@ export function useHistory(storageKey: string, app?: string) {
     { immediate: true }
   )
 
-  const addHistory = (text: string, title: string): string => {
+  const addHistory = (text: string, title: string, notes?: string): string => {
     const id = Date.now().toString()
     const timestamp = new Date().toISOString()
-    history.value.unshift({ id, timestamp, text, title })
+    history.value.unshift({ id, timestamp, text, title, notes })
     $fetch('/api/app-history', {
       method: 'POST',
-      body: { app, id, text, title, timestamp },
+      body: { app, id, text, title, timestamp, notes },
     }).catch(console.error)
     return id
   }

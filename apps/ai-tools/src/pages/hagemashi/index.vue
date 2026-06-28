@@ -1182,8 +1182,7 @@ const fetchSummary = async (text: string): Promise<string> => {
 const handleTranscribed = async (text: string) => {
   const replaced = applyDictionary(text)
   const [title, notes] = await Promise.all([fetchTitle(replaced), fetchSummary(replaced)])
-  const id = addHistory(replaced, title)
-  if (notes) updateHistoryNotes(id, notes)
+  addHistory(replaced, title, notes || undefined)
 }
 
 // --- 録音 ---
