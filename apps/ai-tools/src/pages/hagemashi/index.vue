@@ -171,7 +171,12 @@
           </template>
           <button
             v-if="activeTab === 'words'"
-            class="ml-auto px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+            class="ml-auto px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all"
+            @click="stoplistOpen = true"
+          >除外単語</button>
+          <button
+            v-if="activeTab === 'words'"
+            class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
             :disabled="isTokenizing || history.length === 0"
             @click="reTokenize"
           >
@@ -382,6 +387,11 @@
                 />
               </div>
               <span class="text-[11px] text-slate-500 shrink-0 w-5 text-right tabular-nums">{{ entry.count }}</span>
+              <button
+                class="shrink-0 px-1.5 py-0.5 rounded text-[10px] text-slate-600 hover:text-slate-200 hover:bg-white/[0.08] transition-colors cursor-pointer border-none bg-transparent"
+                title="除外に追加"
+                @click="addToStoplist(entry.word)"
+              >除外</button>
             </div>
           </div>
         </div>
@@ -616,6 +626,51 @@
       </div>
     </div>
 
+    <!-- 除外単語モーダル -->
+    <div v-if="stoplistOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="stoplistOpen = false">
+      <div class="w-full max-w-[420px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
+          <div>
+            <h2 class="m-0 text-lg text-slate-50 font-semibold">除外単語</h2>
+            <p class="m-0 mt-0.5 text-xs text-slate-500">単語ランキングから除外する単語を管理</p>
+          </div>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="stoplistOpen = false">✕</button>
+        </div>
+        <div class="px-4 py-4 overflow-y-auto flex flex-col gap-3 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
+          <div v-if="editingStoplist.length === 0" class="text-center text-slate-600 text-sm py-4">
+            除外単語がありません
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <div
+              v-for="(word, i) in editingStoplist"
+              :key="i"
+              class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.10] text-sm text-slate-300"
+            >
+              <span>{{ word }}</span>
+              <button class="w-4 h-4 flex items-center justify-center text-slate-500 hover:text-red-400 transition-colors cursor-pointer border-none bg-transparent text-[10px] leading-none" @click="editingStoplist.splice(i, 1)">✕</button>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 pt-1 border-t border-white/[0.06]">
+            <input
+              v-model="newStopword"
+              type="text"
+              placeholder="単語を追加..."
+              class="flex-1 bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit]"
+              @keydown.enter="addStopwordInput"
+            />
+            <button
+              class="px-3 py-2 rounded-lg border border-white/10 bg-white/[0.04] text-slate-300 text-sm cursor-pointer hover:bg-white/[0.10] transition-colors shrink-0"
+              @click="addStopwordInput"
+            >追加</button>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 px-6 py-4 border-t border-white/[0.08]">
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="stoplistOpen = false">キャンセル</button>
+          <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="saveStoplistModal">保存して再集計</button>
+        </div>
+      </div>
+    </div>
+
     <!-- はげまし結果モーダル -->
     <div v-if="encourageOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="encourageOpen = false">
       <div class="w-full max-w-[600px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
@@ -781,15 +836,56 @@ interface WordEntry { word: string; count: number }
 const wordRanking = ref<WordEntry[]>([])
 const isTokenizing = ref(false)
 
-const WORD_STOPLIST = new Set(['今日', '自分', '本当', '非常', '最近', '昨日'])
+const LS_STOPLIST = 'hagemashi-stoplist'
+const DEFAULT_STOPLIST = ['今日', '自分', '本当', '非常', '最近', '昨日', '意味', '結構', '頑張', '一緒', '面白', '大事', '普通', '必要', '部分', '話聞', '最後']
+const stoplist = ref<string[]>([...DEFAULT_STOPLIST])
+const stoplistSet = computed(() => new Set(stoplist.value))
+const stoplistOpen = ref(false)
+const editingStoplist = ref<string[]>([])
+const newStopword = ref('')
+
+watch(stoplistOpen, (open) => {
+  if (open) { editingStoplist.value = [...stoplist.value]; newStopword.value = '' }
+})
+
+function saveStoplist() {
+  if ($dev) {
+    localStorage.setItem(LS_STOPLIST, JSON.stringify(stoplist.value))
+  } else {
+    $fetch('/api/hagemashi/stoplist', { method: 'POST', body: { words: stoplist.value } }).catch(console.error)
+  }
+}
+
+function saveStoplistModal() {
+  stoplist.value = editingStoplist.value.filter(w => w.trim())
+  saveStoplist()
+  stoplistOpen.value = false
+  reTokenize()
+}
+
+function addToStoplist(word: string) {
+  if (!stoplist.value.includes(word)) {
+    stoplist.value.push(word)
+    saveStoplist()
+    reTokenize()
+  }
+}
+
+function addStopwordInput() {
+  const w = newStopword.value.trim()
+  if (w && !editingStoplist.value.includes(w)) {
+    editingStoplist.value.push(w)
+    newStopword.value = ''
+  }
+}
 
 function extractWords(text: string): string[] {
   const words: string[] = []
   const kanjiRe = /[一-鿿㐀-䶿]{2,}/g
   const katakanaRe = /[゠-ヿ]{2,}/g
   let m
-  while ((m = kanjiRe.exec(text)) !== null) if (!WORD_STOPLIST.has(m[0])) words.push(m[0])
-  while ((m = katakanaRe.exec(text)) !== null) if (!WORD_STOPLIST.has(m[0])) words.push(m[0])
+  while ((m = kanjiRe.exec(text)) !== null) if (!stoplistSet.value.has(m[0])) words.push(m[0])
+  while ((m = katakanaRe.exec(text)) !== null) if (!stoplistSet.value.has(m[0])) words.push(m[0])
   return words
 }
 
@@ -836,6 +932,12 @@ const {
 
 onMounted(() => {
   if ($dev) {
+    const storedStoplist = localStorage.getItem(LS_STOPLIST)
+    if (storedStoplist) {
+      try { stoplist.value = JSON.parse(storedStoplist) } catch {}
+    }
+  }
+  if ($dev) {
     const storedDict = localStorage.getItem(LS_DICTIONARY)
     if (storedDict) {
       try { dictionary.value = JSON.parse(storedDict) } catch {}
@@ -862,15 +964,17 @@ if (!$dev) {
   watch(
     isLoggedIn,
     async (loggedIn) => {
-      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; return }
-      const [ranking, dict, profile] = await Promise.allSettled([
+      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; stoplist.value = [...DEFAULT_STOPLIST]; return }
+      const [ranking, dict, profile, sl] = await Promise.allSettled([
         $fetch<WordEntry[]>('/api/hagemashi/word-ranking'),
         $fetch<DictionaryEntry[]>('/api/hagemashi/dictionary'),
         $fetch<{ profiles: ProfileData[] }>('/api/hagemashi/profile'),
+        $fetch<string[]>('/api/hagemashi/stoplist'),
       ])
       wordRanking.value = ranking.status === 'fulfilled' ? ranking.value : []
       dictionary.value = dict.status === 'fulfilled' ? dict.value : []
       profileHistory.value = profile.status === 'fulfilled' ? (profile.value?.profiles ?? []) : []
+      stoplist.value = (sl.status === 'fulfilled' && sl.value.length > 0) ? sl.value : [...DEFAULT_STOPLIST]
     },
     { immediate: true }
   )
