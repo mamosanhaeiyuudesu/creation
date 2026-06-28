@@ -42,6 +42,6 @@ const pages = [
   { url: 'http://localhost:3004', icon: '🌊', name: 'kaito', desc: 'セラピスト月ノ瀬 直' },
   { url: 'http://localhost:3002', icon: '🛠️', name: 'Prototyper', desc: 'データ可視化・プロトタイプ開発の相談窓口' },
   { url: 'http://localhost:3005', icon: '🤝', name: 'AI Consultant', desc: 'AIと人間の協調を、一緒に考える。' },
-  { url: 'http://localhost:3006', icon: '✍️', name: 'sakubun', desc: '書いたものをまとめています' },
+  { url: 'http://localhost:3006', icon: '✍️', name: 'sakubun', desc: '本当の思いだけを綴っていきます' },
 ]
 </script>

@@ -445,7 +445,6 @@
             <span class="text-[10px] w-4 text-right shrink-0" :class="rec.rank === 1 ? 'text-violet-300' : 'text-slate-600'">{{ rec.rank }}</span>
             <span class="font-mono font-bold w-8 shrink-0" :class="rec.rank === 1 ? 'text-violet-200' : 'text-slate-300'">{{ rec.name }}</span>
             <span class="font-mono text-[9px] text-slate-600 shrink-0">{{ formatDate(rec.recorded_at) }}</span>
-            <span class="font-mono text-right flex-1" :class="rec.rank === 1 ? 'text-violet-300' : 'text-slate-500'">{{ formatTime(rec.seconds) }}</span>
           </div>
         </div>
 

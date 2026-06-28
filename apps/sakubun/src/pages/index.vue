@@ -3,8 +3,8 @@
 
     <header class="sk-header">
       <div class="sk-header-inner">
-        <h1 class="sk-site-name">作文</h1>
-        <p class="sk-site-sub">書いたものをまとめています</p>
+        <h1 class="sk-site-name">心の作文</h1>
+        <p class="sk-site-sub">本当の思いだけを綴っていきます</p>
       </div>
     </header>
 
@@ -36,7 +36,7 @@
 
     <footer class="sk-footer">
       <div class="sk-footer-inner">
-        <span>&copy; 2026 作文</span>
+        <span>&copy; 2026 心の作文</span>
       </div>
     </footer>
 
@@ -59,9 +59,9 @@ const likeCounts = computed<Record<number, number>>(() => {
 })
 
 useHead({
-  title: '作文',
+  title: '心の作文',
   meta: [
-    { name: 'description', content: '書いたものをまとめています。' },
+    { name: 'description', content: '本当の思いだけを綴っていきます。' },
   ],
   link: [
     { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✍</text></svg>` },
