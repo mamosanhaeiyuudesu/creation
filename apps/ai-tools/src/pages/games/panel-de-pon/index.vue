@@ -943,7 +943,7 @@ function processMatches(isChain: boolean) {
 
 // ── Swap ───────────────────────────────────────────────────────
 function doSwap() {
-  if (phase.value !== 'playing') return
+  if (phase.value !== 'playing' || isBusy.value) return
   const { row, col } = cursor.value
   const g = grid.value.map(r => [...r])
   if (cursorDir.value === 'h') {
