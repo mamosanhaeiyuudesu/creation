@@ -29,6 +29,8 @@ gtag('config', 'G-JRBVTJYCEH');`,
     manifest: false,
     workbox: {
       navigateFallback: null,
+      // Web Push（push / notificationclick）ハンドラを追加で読み込む
+      importScripts: ['/sw-push.js'],
       globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
       runtimeCaching: [
         {
@@ -46,6 +48,9 @@ gtag('config', 'G-JRBVTJYCEH');`,
     openaiApiKey: '',
     anthropicApiKey: '',
     miyakoVectorStoreId: '',
+    vapidPublicKey: '',
+    vapidPrivateKey: '',
+    vapidSubject: '',
   },
   nitro: {
     preset: 'cloudflare_module',
@@ -54,6 +59,8 @@ gtag('config', 'G-JRBVTJYCEH');`,
     },
     scheduledTasks: {
       '0 * * * *': ['mlb-sync'],
+      // 30分ごと（各ユーザーが選んだ時刻・分に合わせて送信判定）
+      '0,30 * * * *': ['hagemashi-push'],
     },
     devServer: {
       // @ts-ignore — Nitro の型定義に maxBodySize がないが、h3 dev server では有効

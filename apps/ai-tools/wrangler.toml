@@ -9,6 +9,10 @@ compatibility_date = "2025-12-31"
 #   wrangler secret put NUXT_ANTHROPIC_API_KEY
 #   wrangler secret put NUXT_MIYAKO_VECTOR_STORE_ID
 #   wrangler secret put NUXT_ENCRYPTION_KEY  ← marriage コメント暗号化キー（32文字以上推奨）
+#   wrangler secret put NUXT_VAPID_PUBLIC_KEY   ← hagemashi Web Push（VAPID 公開鍵 base64url）
+#   wrangler secret put NUXT_VAPID_PRIVATE_KEY  ← hagemashi Web Push（VAPID 秘密鍵 base64url）
+#   wrangler secret put NUXT_VAPID_SUBJECT      ← 連絡先（例: mailto:you@example.com）
+# VAPID 鍵は `npx web-push generate-vapid-keys` で生成できる
 
 [[d1_databases]]
 binding = "WHISPER_DB"
@@ -26,6 +30,8 @@ database_id = "a89cb679-8a17-4d46-9c90-dada3e35691b"
 #   wrangler d1 execute whisper-db --remote --file src/server/db/015_game_progress.sql
 # game_records テーブル追加:
 #   wrangler d1 execute whisper-db --remote --file src/server/db/016_game_records.sql
+# hagemashi プッシュ通知テーブル追加:
+#   wrangler d1 execute whisper-db --remote --file src/server/db/020_hagemashi_push.sql
 
 [[d1_databases]]
 binding = "MLB_DB"
@@ -43,9 +49,9 @@ database_id = "afcdcced-79d2-4f3a-a0c5-bf86a21731a4"
 #   wrangler d1 create deepheart-db
 #   wrangler d1 execute deepheart-db --file src/server/db/003_deepheart.sql
 
-# Cron Trigger（1時間ごと）
+# Cron Trigger（mlb-sync=毎時 / hagemashi-push=30分ごと）
 [triggers]
-crons = ["0 * * * *"]
+crons = ["0 * * * *", "0,30 * * * *"]
 
 [build]
 command = "npm run build"

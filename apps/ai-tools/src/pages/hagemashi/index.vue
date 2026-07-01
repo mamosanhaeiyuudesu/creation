@@ -24,6 +24,9 @@
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="dictionaryOpen = true; showSettingsMenu = false">
               <span>📖</span> 辞書設定
             </button>
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="pushSettingsOpen = true; showSettingsMenu = false">
+              <span>🔔</span> 通知設定
+            </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); showSettingsMenu = false">
               <span>🚪</span> ログアウト
             </button>
@@ -442,6 +445,92 @@
       </div>
     </div>
 
+    <!-- 通知設定モーダル -->
+    <div v-if="pushSettingsOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="pushSettingsOpen = false">
+      <div class="w-full max-w-[440px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
+          <div>
+            <h2 class="m-0 text-lg text-slate-50 font-semibold">🔔 通知設定</h2>
+            <p class="m-0 mt-0.5 text-xs text-slate-500">最近の傾向をふまえて励ましたり、記録を促します</p>
+          </div>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="pushSettingsOpen = false">✕</button>
+        </div>
+        <div class="px-6 py-4 overflow-y-auto flex flex-col gap-4 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
+          <!-- 非対応 -->
+          <div v-if="!push.supported.value" class="text-sm text-slate-400 bg-white/[0.04] border border-white/[0.08] rounded-xl p-3">
+            この端末・ブラウザはプッシュ通知に対応していません。
+          </div>
+          <!-- iOS: ホーム画面追加が必要 -->
+          <div v-else-if="push.needsInstall.value" class="text-sm text-amber-300/90 bg-amber-500/10 border border-amber-500/25 rounded-xl p-3 leading-relaxed">
+            iPhone / iPad では、通知を使うために <b>ホーム画面に追加</b> したこのアプリから開く必要があります。<br />
+            共有ボタン → 「ホーム画面に追加」から追加してください。
+          </div>
+          <template v-else>
+            <!-- ON/OFF -->
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm text-slate-100 font-medium">プッシュ通知</div>
+                <div class="text-xs text-slate-500 mt-0.5">{{ push.subscribed.value && push.prefs.value.enabled ? '有効' : '無効' }}</div>
+              </div>
+              <button
+                class="px-4 py-1.5 rounded-lg text-sm font-medium border transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                :class="push.subscribed.value && push.prefs.value.enabled
+                  ? 'border-white/15 bg-transparent text-slate-300 hover:bg-white/[0.06]'
+                  : 'border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 hover:opacity-90'"
+                :disabled="push.busy.value"
+                @click="togglePush"
+              >
+                <span v-if="push.busy.value" class="w-3.5 h-3.5 rounded-full border border-white/30 border-t-white animate-spin block" />
+                {{ push.subscribed.value && push.prefs.value.enabled ? 'オフにする' : 'オンにする' }}
+              </button>
+            </div>
+
+            <div v-if="push.error.value" class="text-xs text-red-300 bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2">{{ push.error.value }}</div>
+
+            <!-- 詳細設定（有効時のみ） -->
+            <div v-if="push.prefs.value.enabled" class="flex flex-col gap-4 pt-1">
+              <label class="flex items-center justify-between gap-3">
+                <span class="text-sm text-slate-300">通知する時刻</span>
+                <div class="flex items-center gap-1.5">
+                  <select v-model.number="push.prefs.value.hour" class="bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-1.5 outline-none focus:border-orange-500 transition-colors">
+                    <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}</option>
+                  </select>
+                  <span class="text-slate-500">:</span>
+                  <select v-model.number="push.prefs.value.minute" class="bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-1.5 outline-none focus:border-orange-500 transition-colors">
+                    <option :value="0">00</option>
+                    <option :value="30">30</option>
+                  </select>
+                </div>
+              </label>
+              <label class="flex items-center justify-between gap-3">
+                <span class="text-sm text-slate-300">通知の間隔</span>
+                <select v-model.number="push.prefs.value.minIntervalDays" class="bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-1.5 outline-none focus:border-orange-500 transition-colors">
+                  <option :value="0">毎回</option>
+                  <option :value="1">1日に1回まで</option>
+                  <option :value="3">3日に1回まで</option>
+                  <option :value="7">1週間に1回まで</option>
+                </select>
+              </label>
+              <label class="flex items-center justify-between gap-3">
+                <span class="text-sm text-slate-300">記録がないと促す</span>
+                <select v-model.number="push.prefs.value.nudgeAfterSilentDays" class="bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-1.5 outline-none focus:border-orange-500 transition-colors">
+                  <option :value="2">2日</option>
+                  <option :value="3">3日</option>
+                  <option :value="5">5日</option>
+                  <option :value="7">1週間</option>
+                </select>
+              </label>
+              <p class="m-0 text-[11px] text-slate-600 leading-relaxed">通知は選んだ時間帯（{{ push.prefs.value.timezone }}）に届きます。最近の記録があれば傾向をふまえた励まし、しばらく記録がなければ音声入力のお誘いが届きます。</p>
+            </div>
+          </template>
+        </div>
+        <div v-if="push.supported.value && !push.needsInstall.value && push.prefs.value.enabled" class="flex justify-end gap-2 px-6 py-4 border-t border-white/[0.08]">
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="pushSettingsOpen = false">閉じる</button>
+          <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40" :disabled="push.busy.value" @click="savePushPrefs">保存</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 履歴選択ポップアップ -->
     <div v-if="selectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="selectOpen = false">
       <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
@@ -716,6 +805,7 @@ useHead({
 import { useHistory } from '~/composables/useHistory'
 import { useAuth } from '~/composables/useAuth'
 import { useAudioRecorder, fetchTitle } from '~/composables/useAudioRecorder'
+import { usePushNotifications } from '~/composables/usePushNotifications'
 
 const $dev = import.meta.dev
 
@@ -741,6 +831,26 @@ const ENCOURAGE_PROMPTS = {
 
 const error = ref('')
 const showSettingsMenu = ref(false)
+
+// プッシュ通知
+const pushSettingsOpen = ref(false)
+const push = usePushNotifications()
+async function togglePush() {
+  if (push.subscribed.value && push.prefs.value.enabled) {
+    await push.disable()
+  } else {
+    await push.enable()
+  }
+}
+async function savePushPrefs() {
+  try {
+    await push.savePrefs()
+    pushSettingsOpen.value = false
+  } catch (e: any) {
+    push.error.value = e?.message || '保存に失敗しました'
+  }
+}
+onMounted(() => { push.init() })
 const isMigrating = ref(false)
 const migrateStatus = ref('')
 const migrateSelectOpen = ref(false)
