@@ -48,12 +48,30 @@ function daysBetween(a: Date, b: Date): number {
   return Math.abs(a.getTime() - b.getTime()) / (24 * 3600 * 1000)
 }
 
-async function generateEncouragement(apiKey: string, texts: string[]): Promise<string> {
-  const userContent = texts.map((t, i) => `【記録${i + 1}】\n${t}`).join('\n\n')
+// notes JSON（中間データ）を読みやすいテキストに変換
+function parseNotesToText(notes: string | null): string {
+  if (!notes) return ''
+  try {
+    const parsed = JSON.parse(notes) as { items?: { sentiment?: string; text?: string }[]; sentiment?: string; text?: string }
+    if (Array.isArray(parsed.items) && parsed.items.length > 0) {
+      return parsed.items
+        .map((item) => `[${item.sentiment ?? ''}] ${item.text ?? ''}`)
+        .join('\n')
+    }
+    // 旧形式フォールバック
+    if (parsed.text) return `[${parsed.sentiment ?? ''}] ${parsed.text}`
+  } catch {
+    return notes
+  }
+  return ''
+}
+
+async function generateEncouragement(apiKey: string, notesList: string[]): Promise<string> {
+  const userContent = notesList.map((t, i) => `【記録${i + 1}】\n${t}`).join('\n\n')
   const system =
-    'あなたは相手に寄り添うカウンセラーです。以下は相手が最近書き留めた記録です。' +
-    '最近の傾向（気分・出来事・がんばり）を読み取り、プッシュ通知として届く短い励ましメッセージを作成してください。' +
-    '通知本文なので日本語で60文字以内、前向きで具体的に、絵文字は使わないこと。メッセージ本文だけを返すこと。'
+    'あなたは相手に寄り添うカウンセラーです。以下は相手の最近の出来事・気持ちを[ポジ]/[ネガ]で分類した記録です。' +
+    '全体の傾向（何をがんばっているか、どんな感情が多いか）を読み取り、プッシュ通知として届く励ましメッセージを作成してください。' +
+    '日本語で60文字以内、具体的な内容に触れて前向きに、絵文字は使わないこと。メッセージ本文だけを返すこと。'
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -143,8 +161,11 @@ export default defineTask({
             tag: 'hagemashi-nudge',
           }
         } else {
-          // 記録あり → 傾向分析の励まし
-          const texts = rows.map((r: HistoryRow) => (r.notes || r.text || '').trim()).filter(Boolean).slice(0, 5)
+          // 記録あり → 中間データ（notes）を優先して傾向分析、なければ文字起こし本文
+          const texts = rows
+            .map((r: HistoryRow) => parseNotesToText(r.notes) || r.text?.trim() || '')
+            .filter(Boolean)
+            .slice(0, 5)
           let body = 'あなたのペースで大丈夫。今日もおつかれさまです。'
           if (texts.length && anthropicApiKey) {
             const generated = await generateEncouragement(anthropicApiKey, texts).catch(() => '')
