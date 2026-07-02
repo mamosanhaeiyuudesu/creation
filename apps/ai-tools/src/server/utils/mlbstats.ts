@@ -15,6 +15,7 @@ export const MLB_DEBUT_SEASONS: Record<string, number> = {
   '672960': 2026,  // 岡本和真
   '808959': 2026,  // 村上宗隆
   '837227': 2026,  // 今井達也
+  '608372': 2025,  // 菅野智之
 }
 
 interface MlbSplit {
