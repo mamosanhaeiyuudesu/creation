@@ -32,12 +32,12 @@ self.addEventListener('notificationclick', (event) => {
   try { pushId = new URL(url, self.location.origin).searchParams.get('push') || '' } catch (_e) {}
 
   event.waitUntil((async () => {
-    if (pushId) {
-      try {
-        const cache = await caches.open('hagemashi-pending')
-        await cache.put('/__pending-push', new Response(pushId))
-      } catch (_e) {}
-    }
+    // 診断: notificationclick が発火したこと自体を CacheStorage に記録
+    try {
+      const cache = await caches.open('hagemashi-pending')
+      await cache.put('/__click-log', new Response('clicked@' + new Date().toISOString() + ' pushId=' + pushId))
+      if (pushId) await cache.put('/__pending-push', new Response(pushId))
+    } catch (_e) {}
 
     const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
     const client = clientList.find((c) => c.url.includes('/hagemashi'))

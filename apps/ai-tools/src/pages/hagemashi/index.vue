@@ -1,5 +1,12 @@
 <template>
   <div class="flex flex-col items-center px-4 pt-4 lg:pt-8 pb-12 min-h-screen" @click="showSettingsMenu = false">
+    <!-- 診断パネル（切り分け後に削除） -->
+    <div class="fixed top-0 left-0 z-[999] bg-black/85 text-[10px] text-lime-300 font-mono px-2 py-1.5 max-w-[95vw] break-all leading-tight border-b border-r border-lime-500/40" @click.stop>
+      <div>URL: {{ route.fullPath }}</div>
+      <div>vis:{{ dbg.visibility }} msg:{{ dbg.message }} pull:{{ dbg.pullCalls }} sw:{{ dbg.sw }}</div>
+      <div>pulled: {{ dbg.lastPulled }}</div>
+      <button class="mt-0.5 px-1.5 py-0.5 bg-lime-500/20 border border-lime-500/40 rounded text-lime-200" @click="dbgManualCheck">check cache</button>
+    </div>
     <div v-if="showSettingsMenu" class="fixed inset-0 z-40" @click="showSettingsMenu = false" />
     <div class="relative z-50 w-full max-w-[600px] ml-2.5">
       <div class="absolute inset-x-0 top-0 h-[2px] rounded-t-2xl bg-gradient-to-r from-orange-500 to-pink-500 z-10" />
@@ -805,7 +812,7 @@
 
 <script setup lang="ts">
 definePageMeta({ alias: ['/hagemashi', '/hagemashi/'] })
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { marked } from 'marked'
 
 useHead({
@@ -920,19 +927,37 @@ function closePushModal() {
   }
 }
 
+// === 診断用デバッグパネル（原因切り分け後に削除する） ===
+const dbg = reactive({
+  visibility: 0,   // visibilitychange(visible) の発火回数
+  message: 0,      // SW postMessage 受信回数
+  pullCalls: 0,    // pullPendingPush 呼び出し回数
+  lastPulled: '(none)', // CacheStorage から読めた pushId
+  sw: '?',         // ServiceWorker 登録状態
+})
+async function dbgManualCheck() {
+  try {
+    const cache = await caches.open('hagemashi-pending')
+    const pend = await cache.match('/__pending-push')
+    const log = await cache.match('/__click-log')
+    const pendTxt = pend ? await pend.text() : '(empty)'
+    const logTxt = log ? await log.text() : '(no click log)'
+    dbg.lastPulled = `pend=${pendTxt} | ${logTxt}`
+  } catch (e) { dbg.lastPulled = 'err:' + String(e) }
+}
+
 // iOS PWA 対策：通知タップ時に URL を渡せないため、SW が CacheStorage に残した pushId を拾い、
 // URL の ?push= に反映することで上記 watch に合流させる。
-// - 完全終了→起動: onMounted で呼ぶ
-// - バックグラウンド→前面復帰: visibilitychange で呼ぶ
-// - 起動中: SW からの postMessage で呼ぶ
 async function pullPendingPush() {
-  if (!('caches' in window)) return
+  dbg.pullCalls++
+  if (!('caches' in window)) { dbg.lastPulled = 'no-caches-api'; return }
   let id = ''
   try {
     const cache = await caches.open('hagemashi-pending')
     const res = await cache.match('/__pending-push')
     if (res) { id = (await res.text()).trim(); await cache.delete('/__pending-push') }
-  } catch {}
+  } catch (e) { dbg.lastPulled = 'err:' + String(e); return }
+  dbg.lastPulled = id ? `got:${id}` : 'empty'
   if (id && route.query.push !== id) {
     router.replace({ query: { ...route.query, push: id } })
   }
@@ -942,12 +967,19 @@ onMounted(() => {
   push.init()
   pullPendingPush()
   if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then((r) => { dbg.sw = r ? 'registered' : 'none' })
     navigator.serviceWorker.addEventListener('message', (ev: MessageEvent) => {
+      dbg.message++
       if (ev.data?.type === 'hagemashi-push-click') pullPendingPush()
     })
+  } else {
+    dbg.sw = 'unsupported'
   }
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') pullPendingPush()
+    if (document.visibilityState === 'visible') {
+      dbg.visibility++
+      pullPendingPush()
+    }
   })
 })
 const isMigrating = ref(false)
