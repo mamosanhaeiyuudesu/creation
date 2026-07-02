@@ -29,9 +29,6 @@ gtag('config', 'G-JRBVTJYCEH');`,
     manifest: false,
     workbox: {
       navigateFallback: null,
-      // Web Push（push / notificationclick）ハンドラを追加で読み込む
-      // ?v= を上げると sw.js の内容が変わり、iOS でも SW 更新が確実に走る（sw-push.js 変更時は必ず上げる）
-      importScripts: ['/sw-push.js?v=7'],
       globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
       runtimeCaching: [
         {
@@ -49,9 +46,6 @@ gtag('config', 'G-JRBVTJYCEH');`,
     openaiApiKey: '',
     anthropicApiKey: '',
     miyakoVectorStoreId: '',
-    vapidPublicKey: '',
-    vapidPrivateKey: '',
-    vapidSubject: '',
   },
   nitro: {
     preset: 'cloudflare_module',
@@ -60,8 +54,6 @@ gtag('config', 'G-JRBVTJYCEH');`,
     },
     scheduledTasks: {
       '0 * * * *': ['mlb-sync'],
-      // 15分ごと（各ユーザーが選んだ時刻・分に合わせて送信判定）
-      '*/15 * * * *': ['hagemashi-push'],
     },
     devServer: {
       // @ts-ignore — Nitro の型定義に maxBodySize がないが、h3 dev server では有効

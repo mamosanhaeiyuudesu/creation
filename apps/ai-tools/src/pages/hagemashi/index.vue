@@ -1,12 +1,5 @@
 <template>
   <div class="flex flex-col items-center px-4 pt-4 lg:pt-8 pb-12 min-h-screen" @click="showSettingsMenu = false">
-    <!-- 診断パネル（切り分け後に削除） -->
-    <div class="fixed top-0 left-0 z-[999] bg-black/85 text-[10px] text-lime-300 font-mono px-2 py-1.5 max-w-[95vw] break-all leading-tight border-b border-r border-lime-500/40" @click.stop>
-      <div>URL: {{ route.fullPath }}</div>
-      <div>vis:{{ dbg.visibility }} msg:{{ dbg.message }} pull:{{ dbg.pullCalls }} sw:{{ dbg.sw }}</div>
-      <div>pulled: {{ dbg.lastPulled }}</div>
-      <button class="mt-0.5 px-1.5 py-0.5 bg-lime-500/20 border border-lime-500/40 rounded text-lime-200" @click="dbgManualCheck">check cache</button>
-    </div>
     <div v-if="showSettingsMenu" class="fixed inset-0 z-40" @click="showSettingsMenu = false" />
     <div class="relative z-50 w-full max-w-[600px] ml-2.5">
       <div class="absolute inset-x-0 top-0 h-[2px] rounded-t-2xl bg-gradient-to-r from-orange-500 to-pink-500 z-10" />
@@ -30,9 +23,6 @@
             </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="dictionaryOpen = true; showSettingsMenu = false">
               <span>📖</span> 辞書設定
-            </button>
-            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="pushSettingsOpen = true; showSettingsMenu = false">
-              <span>🔔</span> 通知設定
             </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); showSettingsMenu = false">
               <span>🚪</span> ログアウト
@@ -452,99 +442,6 @@
       </div>
     </div>
 
-    <!-- 通知設定モーダル -->
-    <div v-if="pushSettingsOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="pushSettingsOpen = false">
-      <div class="w-full max-w-[440px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
-        <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
-          <div>
-            <h2 class="m-0 text-lg text-slate-50 font-semibold">🔔 通知設定</h2>
-            <p class="m-0 mt-0.5 text-xs text-slate-500">最近の傾向をふまえて励ましたり、記録を促します</p>
-          </div>
-          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="pushSettingsOpen = false">✕</button>
-        </div>
-        <div class="px-6 py-4 overflow-y-auto flex flex-col gap-4 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
-          <!-- 非対応 -->
-          <div v-if="!push.supported.value" class="text-sm text-slate-400 bg-white/[0.04] border border-white/[0.08] rounded-xl p-3">
-            この端末・ブラウザはプッシュ通知に対応していません。
-          </div>
-          <!-- iOS: ホーム画面追加が必要 -->
-          <div v-else-if="push.needsInstall.value" class="text-sm text-amber-300/90 bg-amber-500/10 border border-amber-500/25 rounded-xl p-3 leading-relaxed">
-            iPhone / iPad では、通知を使うために <b>ホーム画面に追加</b> したこのアプリから開く必要があります。<br />
-            共有ボタン → 「ホーム画面に追加」から追加してください。
-          </div>
-          <template v-else>
-            <!-- ON/OFF -->
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="text-sm text-slate-100 font-medium">プッシュ通知</div>
-                <div class="text-xs text-slate-500 mt-0.5">{{ push.subscribed.value && push.prefs.value.enabled ? '有効' : '無効' }}</div>
-              </div>
-              <button
-                class="px-4 py-1.5 rounded-lg text-sm font-medium border transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-                :class="push.subscribed.value && push.prefs.value.enabled
-                  ? 'border-white/15 bg-transparent text-slate-300 hover:bg-white/[0.06]'
-                  : 'border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 hover:opacity-90'"
-                :disabled="push.busy.value"
-                @click="togglePush"
-              >
-                <span v-if="push.busy.value" class="w-3.5 h-3.5 rounded-full border border-white/30 border-t-white animate-spin block" />
-                {{ push.subscribed.value && push.prefs.value.enabled ? 'オフにする' : 'オンにする' }}
-              </button>
-            </div>
-
-            <div v-if="push.error.value" class="text-xs text-red-300 bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2">{{ push.error.value }}</div>
-
-            <!-- 詳細設定（有効時のみ） -->
-            <div v-if="push.prefs.value.enabled" class="flex flex-col gap-4 pt-1">
-              <label class="flex items-center justify-between gap-3">
-                <span class="text-sm text-slate-300">通知する時刻</span>
-                <div class="flex items-center gap-1.5">
-                  <select v-model.number="push.prefs.value.hour" class="bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-1.5 outline-none focus:border-orange-500 transition-colors">
-                    <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}</option>
-                  </select>
-                  <span class="text-slate-500">:</span>
-                  <select v-model.number="push.prefs.value.minute" class="bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-1.5 outline-none focus:border-orange-500 transition-colors">
-                    <option v-for="m in [0, 15, 30, 45]" :key="m" :value="m">{{ String(m).padStart(2, '0') }}</option>
-                  </select>
-                </div>
-              </label>
-              <label class="flex items-center justify-between gap-3">
-                <span class="text-sm text-slate-300">通知の間隔</span>
-                <select v-model.number="push.prefs.value.minIntervalDays" class="bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-1.5 outline-none focus:border-orange-500 transition-colors">
-                  <option :value="0">毎回</option>
-                  <option :value="1">1日に1回まで</option>
-                  <option :value="3">3日に1回まで</option>
-                  <option :value="7">1週間に1回まで</option>
-                </select>
-              </label>
-              <label class="flex items-center justify-between gap-3">
-                <span class="text-sm text-slate-300">記録がないと促す</span>
-                <select v-model.number="push.prefs.value.nudgeAfterSilentDays" class="bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-1.5 outline-none focus:border-orange-500 transition-colors">
-                  <option :value="2">2日</option>
-                  <option :value="3">3日</option>
-                  <option :value="5">5日</option>
-                  <option :value="7">1週間</option>
-                </select>
-              </label>
-              <p class="m-0 text-[11px] text-slate-600 leading-relaxed">通知は選んだ時間帯（{{ push.prefs.value.timezone }}）に届きます。最近の記録があれば傾向をふまえた励まし、しばらく記録がなければ音声入力のお誘いが届きます。</p>
-            </div>
-          </template>
-        </div>
-        <div v-if="push.supported.value && !push.needsInstall.value && push.prefs.value.enabled" class="flex flex-col gap-2 px-6 py-4 border-t border-white/[0.08]">
-          <div class="flex justify-between gap-2">
-            <button class="px-4 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all disabled:opacity-40 flex items-center gap-1.5" :disabled="pushTestBusy" @click="sendTestPush">
-              <span v-if="pushTestBusy" class="w-3.5 h-3.5 rounded-full border border-slate-400/30 border-t-slate-400 animate-spin block" />
-              テスト送信
-            </button>
-            <div class="flex gap-2">
-              <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="pushSettingsOpen = false">閉じる</button>
-              <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40" :disabled="push.busy.value" @click="savePushPrefs">保存</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- 履歴選択ポップアップ -->
     <div v-if="selectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="selectOpen = false">
       <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
@@ -794,25 +691,12 @@
         </div>
       </div>
     </div>
-
-    <!-- Push 通知メッセージモーダル -->
-    <div v-if="pushLogModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[150]" @click.self="closePushModal">
-      <div class="w-full max-w-[400px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-4">
-        <div class="flex items-center justify-between">
-          <h2 class="m-0 text-base text-slate-50 font-semibold">{{ pushLogEntry?.title ?? 'はげまし' }}</h2>
-          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="closePushModal">✕</button>
-        </div>
-        <p class="m-0 text-slate-200 text-sm leading-relaxed">{{ pushLogEntry?.text }}</p>
-        <div class="text-[11px] text-slate-600">{{ formatPushLogDate(pushLogEntry?.created_at) }}</div>
-        <button class="w-full py-2.5 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="closePushModal">閉じる</button>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 definePageMeta({ alias: ['/hagemashi', '/hagemashi/'] })
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { marked } from 'marked'
 
 useHead({
@@ -832,11 +716,8 @@ useHead({
 import { useHistory } from '~/composables/useHistory'
 import { useAuth } from '~/composables/useAuth'
 import { useAudioRecorder, fetchTitle } from '~/composables/useAudioRecorder'
-import { usePushNotifications } from '~/composables/usePushNotifications'
 
 const $dev = import.meta.dev
-const route = useRoute()
-const router = useRouter()
 
 const ENCOURAGE_PROMPTS = {
   calm: `あなたは相手のことを深く理解したうえで励ます存在です。以下の観点を踏まえ、的を絞った一言で励ましてください。
@@ -860,133 +741,6 @@ const ENCOURAGE_PROMPTS = {
 
 const error = ref('')
 const showSettingsMenu = ref(false)
-
-// プッシュ通知
-const pushSettingsOpen = ref(false)
-
-interface PushLogEntry { title: string; text: string; created_at: string }
-const pushLogModal = ref(false)
-const pushLogEntry = ref<PushLogEntry | null>(null)
-
-function formatPushLogDate(createdAt?: string): string {
-  if (!createdAt) return ''
-  const d = new Date(createdAt.replace(' ', 'T') + 'Z')
-  const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000)
-  const mo = String(jst.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(jst.getUTCDate()).padStart(2, '0')
-  const h = String(jst.getUTCHours()).padStart(2, '0')
-  const mi = String(jst.getUTCMinutes()).padStart(2, '0')
-  return `${mo}/${day} ${h}:${mi}`
-}
-const push = usePushNotifications()
-async function togglePush() {
-  if (push.subscribed.value && push.prefs.value.enabled) {
-    await push.disable()
-  } else {
-    await push.enable()
-  }
-}
-async function savePushPrefs() {
-  try {
-    await push.savePrefs()
-    pushSettingsOpen.value = false
-  } catch (e: any) {
-    push.error.value = e?.message || '保存に失敗しました'
-  }
-}
-
-const pushTestBusy = ref(false)
-async function sendTestPush() {
-  pushTestBusy.value = true
-  try {
-    await $fetch('/api/hagemashi/push/test', { method: 'POST' })
-  } catch (e) {
-    console.error(e)
-  } finally {
-    pushTestBusy.value = false
-  }
-}
-// URL の ?push=<id> を「唯一の状態源」として監視 → モーダル表示
-async function showPushEntry(id: string) {
-  try {
-    pushLogEntry.value = await $fetch<PushLogEntry>(`/api/hagemashi/push/log/${id}`)
-    pushLogModal.value = true
-  } catch {}
-}
-watch(() => route.query.push, (id) => {
-  if (id && typeof id === 'string' && (isLoggedIn.value || $dev)) showPushEntry(id)
-}, { immediate: true })
-
-// push モーダルを閉じたら URL から push を除去
-function closePushModal() {
-  pushLogModal.value = false
-  if (route.query.push) {
-    const q = { ...route.query }
-    delete q.push
-    router.replace({ query: q })
-  }
-}
-
-// === 診断用デバッグパネル（原因切り分け後に削除する） ===
-const dbg = reactive({
-  visibility: 0,   // visibilitychange(visible) の発火回数
-  message: 0,      // SW postMessage 受信回数
-  pullCalls: 0,    // pullPendingPush 呼び出し回数
-  lastPulled: '(none)', // CacheStorage から読めた pushId
-  sw: '?',         // ServiceWorker 登録状態
-})
-async function dbgManualCheck() {
-  try {
-    const cache = await caches.open('hagemashi-pending')
-    const pend = await cache.match('/__pending-push')
-    const pushLog = await cache.match('/__push-log')
-    const clickLog = await cache.match('/__click-log')
-    const pendTxt = pend ? await pend.text() : '(empty)'
-    const pushTxt = pushLog ? await pushLog.text() : '(no push log)'
-    const clickTxt = clickLog ? await clickLog.text() : '(no click log)'
-    dbg.lastPulled = `pend=${pendTxt} || ${pushTxt} || ${clickTxt}`
-  } catch (e) { dbg.lastPulled = 'err:' + String(e) }
-}
-
-// iOS PWA 対策：通知タップ時に URL を渡せないため、SW が CacheStorage に残した pushId を拾い、
-// URL の ?push= に反映することで上記 watch に合流させる。
-async function pullPendingPush() {
-  dbg.pullCalls++
-  if (!('caches' in window)) { dbg.lastPulled = 'no-caches-api'; return }
-  let id = ''
-  try {
-    const cache = await caches.open('hagemashi-pending')
-    const res = await cache.match('/__pending-push')
-    if (res) { id = (await res.text()).trim(); await cache.delete('/__pending-push') }
-  } catch (e) { dbg.lastPulled = 'err:' + String(e); return }
-  dbg.lastPulled = id ? `got:${id}` : 'empty'
-  if (id && route.query.push !== id) {
-    router.replace({ query: { ...route.query, push: id } })
-  }
-}
-
-onMounted(() => {
-  push.init()
-  pullPendingPush()
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistration().then((r) => { dbg.sw = r ? 'registered' : 'none' })
-    navigator.serviceWorker.addEventListener('message', (ev: MessageEvent) => {
-      dbg.message++
-      if (ev.data?.type === 'hagemashi-push-click') pullPendingPush()
-    })
-  } else {
-    dbg.sw = 'unsupported'
-  }
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      dbg.visibility++
-      pullPendingPush()
-    }
-  })
-  // iOS で visibilitychange が不安定なため focus / pageshow でも拾う
-  window.addEventListener('focus', () => { dbg.visibility++; pullPendingPush() })
-  window.addEventListener('pageshow', () => { dbg.visibility++; pullPendingPush() })
-})
 const isMigrating = ref(false)
 const migrateStatus = ref('')
 const migrateSelectOpen = ref(false)
@@ -999,16 +753,7 @@ const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-type HagemashiTab = 'transcription' | 'encourage' | 'summary' | 'words' | 'profile'
-const TABS: HagemashiTab[] = ['transcription', 'encourage', 'summary', 'words', 'profile']
-// タブ状態を URL の ?tab= と同期（ディープリンク可能に）
-const activeTab = computed<HagemashiTab>({
-  get: () => {
-    const t = route.query.tab as HagemashiTab
-    return TABS.includes(t) ? t : 'transcription'
-  },
-  set: (v) => { router.replace({ query: { ...route.query, tab: v } }) },
-})
+const activeTab = ref<'transcription' | 'encourage' | 'summary' | 'words' | 'profile'>('transcription')
 const charLimit = ref(1000)
 const encourageStyle = ref<'calm' | 'loud'>('loud')
 
@@ -1230,11 +975,6 @@ if (!$dev) {
       dictionary.value = dict.status === 'fulfilled' ? dict.value : []
       profileHistory.value = profile.status === 'fulfilled' ? (profile.value?.profiles ?? []) : []
       stoplist.value = (sl.status === 'fulfilled' && sl.value.length > 0) ? sl.value : [...DEFAULT_STOPLIST]
-
-      // ログイン確定後、URL に ?push= があればモーダル表示（起動直後にログイン未確定だったケース）
-      if (route.query.push && typeof route.query.push === 'string') {
-        showPushEntry(route.query.push as string)
-      }
     },
     { immediate: true }
   )
