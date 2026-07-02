@@ -27,6 +27,7 @@ const CURRENT_PITCHER: Record<string, Omit<PitcherStats, 'playerId' | 'season' |
   '506433': { era: 3.10, whip: 1.15, kPct: 26.4, bbPct: 7.0, wins: 3, losses: 2, strikeouts: 30, inningsPitched: 30.0, saves: 0, holds: 0, fip: 3.25, bbk: 0.27, runsAllowed: 12 },
   '579328': { era: 3.56, whip: 1.08, kPct: 23.5, bbPct: 8.2, wins: 3, losses: 2, strikeouts: 26, inningsPitched: 27.0, saves: 0, holds: 0, fip: 3.70, bbk: 0.35, runsAllowed: 13 },
   '837227': { era: 3.22, whip: 1.02, kPct: 26.8, bbPct: 7.5, wins: 3, losses: 2, strikeouts: 28, inningsPitched: 25.0, saves: 0, holds: 0, fip: 3.35, bbk: 0.28, runsAllowed: 11 },
+  '608372': { era: 4.68, whip: 1.34, kPct: 17.2, bbPct: 6.0, wins: 5, losses: 6, strikeouts: 52, inningsPitched: 88.1, saves: 0, holds: 0, fip: 4.55, bbk: 0.35, runsAllowed: 46 },
 }
 
 // 年度別サンプルデータ
@@ -101,6 +102,10 @@ const YEARLY_PITCHER: Record<string, Array<Omit<PitcherStats, 'playerId' | 'date
   '837227': [
     { season: 2026, era: 3.42, whip: 1.14, kPct: 25.2, bbPct: 8.9, wins: 2, losses: 2, strikeouts: 22, inningsPitched: 23.2, saves: 0, holds: 0, fip: 3.50, bbk: 0.35, runsAllowed: null },
   ],
+  '608372': [
+    { season: 2025, era: 4.05, whip: 1.16, kPct: 18.4, bbPct: 4.8, wins: 10, losses: 10, strikeouts: 110, inningsPitched: 157.0, saves: 0, holds: 0, fip: 4.10, bbk: 0.26, runsAllowed: null },
+    { season: 2026, era: 4.68, whip: 1.34, kPct: 17.2, bbPct: 6.0, wins: 5,  losses: 6,  strikeouts: 52,  inningsPitched: 88.1,  saves: 0, holds: 0, fip: 4.55, bbk: 0.35, runsAllowed: null },
+  ],
 }
 
 // 直近調子係数（> 1 = 好調、< 1 = 不調）
@@ -124,6 +129,7 @@ const PITCHER_FORM: Record<string, number> = {
   '506433': 0.90,  // ダル: 不調
   '579328': 0.82,  // 菊池: 絶不調
   '837227': 1.18,  // 今井: 好調
+  '608372': 0.92,  // 菅野: やや不調
 }
 
 // 速報タブ用: 選手ごとの直近試合日（rawDateToJSTが+1日するため実際のJST日付の前日を指定）
@@ -213,6 +219,7 @@ const PITCHER_RECENT_DATES: Record<string, string[]> = {
   '506433': [],                                         // ダルビッシュ: 登板なし → 非表示
   '579328': [],                                         // 菊池雄星: 登板なし → 非表示
   '837227': ['2026-06-24'],                             // 今井達也: 昨日先発
+  '608372': ['2026-06-23'],                             // 菅野智之: 一昨日先発
 }
 
 function generateTrendPitcher(playerId: string, season: number): PitcherStats[] {

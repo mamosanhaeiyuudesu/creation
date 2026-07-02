@@ -317,28 +317,28 @@ function isWithinDays(d: string | null | undefined, days: number): boolean {
           :style="{ borderLeft: `2px solid ${card.color}` }"
         >
           <!-- 選手名 -->
-          <span class="text-[12px] font-bold w-[68px] flex-shrink-0 truncate leading-tight" :style="{ color: card.color }">{{ shortName(card.nameJa) }}</span>
+          <span class="text-[14px] font-bold w-[80px] flex-shrink-0 truncate leading-tight" :style="{ color: card.color }">{{ shortName(card.nameJa) }}</span>
           <!-- チーム・順位 -->
-          <span class="text-[11px] text-slate-400 w-[40px] flex-shrink-0 leading-tight">{{ card.teamAbbr }}<span v-if="card.divisionRank !== null" class="text-[10px]"> {{ card.divisionRank }}位</span></span>
+          <span class="text-[13px] text-slate-400 w-[46px] flex-shrink-0 leading-tight">{{ card.teamAbbr }}<span v-if="card.divisionRank !== null" class="text-[12px]"> {{ card.divisionRank }}位</span></span>
           <!-- ゲーム成績 -->
-          <div class="flex items-center gap-x-2 flex-shrink-0 w-[174px]">
-            <span class="text-[11px] font-mono text-slate-500 w-[26px]">{{ card.pitcherRows[0].date }}</span>
+          <div class="flex items-center gap-x-2 flex-shrink-0 w-[196px]">
+            <span class="text-[13px] font-mono text-slate-500 w-[30px]">{{ card.pitcherRows[0].date }}</span>
             <span
               v-if="card.pitcherRows[0].result !== '-'"
-              class="inline-flex items-center justify-center w-[18px] h-[16px] rounded text-[10px] font-bold flex-shrink-0"
+              class="inline-flex items-center justify-center w-[22px] h-[19px] rounded text-[12px] font-bold flex-shrink-0"
               :class="card.pitcherRows[0].result === '勝' ? 'bg-red-50 text-red-600 ring-1 ring-red-200' : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'"
             >{{ card.pitcherRows[0].result }}</span>
-            <span v-else class="text-[11px] text-slate-300 w-[18px] text-center flex-shrink-0">—</span>
-            <span class="text-[12px] font-mono tabular-nums text-slate-700 w-[34px] flex-shrink-0">{{ card.pitcherRows[0].ip }}<span class="text-[10px] text-slate-400">回</span></span>
-            <span class="text-[12px] font-mono tabular-nums text-slate-600 w-[22px] flex-shrink-0">{{ card.pitcherRows[0].runsAllowed }}<span class="text-[10px] text-slate-400">失</span></span>
-            <span class="text-[12px] font-mono tabular-nums text-slate-600 w-[22px] flex-shrink-0">{{ card.pitcherRows[0].er }}<span class="text-[10px] text-slate-400">責</span></span>
+            <span v-else class="text-[13px] text-slate-300 w-[22px] text-center flex-shrink-0">—</span>
+            <span class="text-[14px] font-mono tabular-nums text-slate-700 w-[40px] flex-shrink-0">{{ card.pitcherRows[0].ip }}<span class="text-[12px] text-slate-400">回</span></span>
+            <span class="text-[14px] font-mono tabular-nums text-slate-600 w-[26px] flex-shrink-0">{{ card.pitcherRows[0].runsAllowed }}<span class="text-[12px] text-slate-400">失</span></span>
+            <span class="text-[14px] font-mono tabular-nums text-slate-600 w-[26px] flex-shrink-0">{{ card.pitcherRows[0].er }}<span class="text-[12px] text-slate-400">責</span></span>
           </div>
 
           <div class="w-px h-3 bg-slate-200 flex-shrink-0 ml-4"></div>
 
           <!-- シーズン計: 勝敗・ERA↑↓ -->
-          <span class="text-[11px] text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'wins', 'high'))">{{ card.pitcherTotals?.wins ?? '-' }}勝{{ card.pitcherTotals?.losses ?? '-' }}敗</span>
-          <span class="text-[11px] font-mono text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'era', 'low'))">
+          <span class="text-[13px] text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'wins', 'high'))">{{ card.pitcherTotals?.wins ?? '-' }}勝{{ card.pitcherTotals?.losses ?? '-' }}敗</span>
+          <span class="text-[13px] font-mono text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'era', 'low'))">
             ERA{{ card.pitcherTotals?.era ?? '-' }}<span
               v-if="card.pitcherTotals?.eraDirection"
               class="font-bold"
@@ -354,33 +354,33 @@ function isWithinDays(d: string | null | undefined, days: number): boolean {
           :style="{ borderLeft: `2px solid ${card.color}` }"
         >
           <!-- 選手名 -->
-          <span class="text-[12px] font-bold w-[68px] flex-shrink-0 truncate leading-tight" :style="{ color: card.color }">{{ shortName(card.nameJa) }}</span>
+          <span class="text-[14px] font-bold w-[80px] flex-shrink-0 truncate leading-tight" :style="{ color: card.color }">{{ shortName(card.nameJa) }}</span>
           <!-- チーム・順位 -->
-          <span class="text-[11px] text-slate-400 w-[40px] flex-shrink-0 leading-tight">{{ card.teamAbbr }}<span v-if="card.divisionRank !== null" class="text-[10px]"> {{ card.divisionRank }}位</span></span>
+          <span class="text-[13px] text-slate-400 w-[46px] flex-shrink-0 leading-tight">{{ card.teamAbbr }}<span v-if="card.divisionRank !== null" class="text-[12px]"> {{ card.divisionRank }}位</span></span>
           <!-- ゲーム成績 -->
           <div class="flex items-center gap-x-2 flex-shrink-0">
-            <span class="text-[11px] font-mono text-slate-500 w-[26px] flex-shrink-0">{{ card.batterRows[0].date }}</span>
-            <span class="text-[12px] font-mono tabular-nums text-slate-700 w-[22px] flex-shrink-0">{{ card.batterRows[0].ab }}<span class="text-[10px] text-slate-400">打</span></span>
+            <span class="text-[13px] font-mono text-slate-500 w-[30px] flex-shrink-0">{{ card.batterRows[0].date }}</span>
+            <span class="text-[14px] font-mono tabular-nums text-slate-700 w-[26px] flex-shrink-0">{{ card.batterRows[0].ab }}<span class="text-[12px] text-slate-400">打</span></span>
             <span
-              class="text-[12px] font-mono tabular-nums w-[20px] flex-shrink-0"
+              class="text-[14px] font-mono tabular-nums w-[24px] flex-shrink-0"
               :class="card.batterRows[0].hits > 0 ? 'text-emerald-600 font-semibold' : 'text-slate-600'"
-            >{{ card.batterRows[0].hits }}<span class="text-[10px] text-slate-400">安</span></span>
+            >{{ card.batterRows[0].hits }}<span class="text-[12px] text-slate-400">安</span></span>
             <span
-              class="text-[12px] font-mono tabular-nums w-[24px] flex-shrink-0"
+              class="text-[14px] font-mono tabular-nums w-[28px] flex-shrink-0"
               :class="card.batterRows[0].hr > 0 ? 'text-amber-600 font-bold' : 'text-slate-600'"
-            >{{ card.batterRows[0].hr }}<span class="text-[10px] text-slate-400">HR</span></span>
-            <span class="text-[12px] font-mono tabular-nums text-slate-600 w-[22px] flex-shrink-0">{{ card.batterRows[0].rbi }}<span class="text-[10px] text-slate-400">打</span></span>
-            <span class="text-[12px] font-mono tabular-nums text-slate-600 w-[20px] flex-shrink-0">{{ card.batterRows[0].runs }}<span class="text-[10px] text-slate-400">得</span></span>
+            >{{ card.batterRows[0].hr }}<span class="text-[12px] text-slate-400">HR</span></span>
+            <span class="text-[14px] font-mono tabular-nums text-slate-600 w-[26px] flex-shrink-0">{{ card.batterRows[0].rbi }}<span class="text-[12px] text-slate-400">打</span></span>
+            <span class="text-[14px] font-mono tabular-nums text-slate-600 w-[24px] flex-shrink-0">{{ card.batterRows[0].runs }}<span class="text-[12px] text-slate-400">得</span></span>
           </div>
 
           <div class="w-px h-3 bg-slate-200 flex-shrink-0 ml-4"></div>
 
           <!-- シーズン計: 打率・安打・HR・打点・得点 -->
-          <span class="text-[11px] font-mono text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'avg', 'high'))">{{ card.batterTotals?.avg !== null && card.batterTotals?.avg !== undefined ? card.batterTotals.avg.toFixed(3).replace(/^0/, '') : '-' }}</span>
-          <span class="text-[11px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'hits', 'high'))">{{ card.batterTotals?.hits ?? '-' }}<span class="text-[10px] text-slate-400">安</span></span>
-          <span class="text-[11px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'hr', 'high'))">{{ card.batterTotals?.hr ?? 0 }}<span class="text-[10px] text-slate-400">本</span></span>
-          <span class="text-[11px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'rbi', 'high'))">{{ card.batterTotals?.rbi ?? '-' }}<span class="text-[10px] text-slate-400">打</span></span>
-          <span class="text-[11px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'runs', 'high'))">{{ card.batterTotals?.runs ?? '-' }}<span class="text-[10px] text-slate-400">得</span></span>
+          <span class="text-[13px] font-mono text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'avg', 'high'))">{{ card.batterTotals?.avg !== null && card.batterTotals?.avg !== undefined ? card.batterTotals.avg.toFixed(3).replace(/^0/, '') : '-' }}</span>
+          <span class="text-[13px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'hits', 'high'))">{{ card.batterTotals?.hits ?? '-' }}<span class="text-[12px] text-slate-400">安</span></span>
+          <span class="text-[13px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'hr', 'high'))">{{ card.batterTotals?.hr ?? 0 }}<span class="text-[12px] text-slate-400">本</span></span>
+          <span class="text-[13px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'rbi', 'high'))">{{ card.batterTotals?.rbi ?? '-' }}<span class="text-[12px] text-slate-400">打</span></span>
+          <span class="text-[13px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'runs', 'high'))">{{ card.batterTotals?.runs ?? '-' }}<span class="text-[12px] text-slate-400">得</span></span>
         </div>
 
       </template>

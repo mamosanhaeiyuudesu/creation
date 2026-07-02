@@ -17,6 +17,7 @@ export const PLAYERS: Player[] = [
   { id: '808967', nameJa: '山本 由伸', nameEn: 'Yoshinobu Yamamoto', position: 'pitcher', team: 'LAD', teamFull: 'ロサンゼルス・ドジャース', league: 'NL', sportnavi: '202101128', role: 'starter' },
   { id: '673513', nameJa: '松井 裕樹', nameEn: 'Yuki Matsui', position: 'pitcher', team: 'SD', teamFull: 'サンディエゴ・パドレス', league: 'NL', sportnavi: '202101125', role: 'reliever' },
   { id: '506433', nameJa: 'ダルビッシュ 有', nameEn: 'Yu Darvish', position: 'pitcher', team: 'SD', teamFull: 'サンディエゴ・パドレス', league: 'NL', sportnavi: '2100954', role: 'starter' },
+  { id: '608372', nameJa: '菅野 智之', nameEn: 'Tomoyuki Sugano', position: 'pitcher', team: 'COL', teamFull: 'コロラド・ロッキーズ', league: 'NL', sportnavi: '202101273', role: 'starter' },
 ]
 
 export const PITCHER_PLAYERS = PLAYERS.filter(p => p.position === 'pitcher' || p.position === 'both')
@@ -468,6 +469,7 @@ export const PLAYER_COLORS: Record<string, string> = {
   '684007': '#FF9800',  // 今永
   '808963': '#7C3AED',  // 佐々木
   '506433': '#00BCD4',  // ダルビッシュ
+  '608372': '#9C27B0',  // 菅野
   '673513': '#FDD835',  // 松井
   '579328': '#3F51B5',  // 菊池
   '837227': '#009688',  // 今井
