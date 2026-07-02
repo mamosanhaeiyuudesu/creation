@@ -746,7 +746,26 @@ const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
 type RecordingTab = 'transcription' | 'words' | 'summary' | 'profile'
-const activeTab = ref<'encourage' | 'consult' | RecordingTab>('transcription')
+type TabKey = 'encourage' | 'consult' | RecordingTab
+const TAB_KEYS: TabKey[] = ['transcription', 'words', 'summary', 'profile', 'encourage', 'consult']
+
+// URL クエリ（?tab=）とタブ状態を双方向同期する
+const route = useRoute()
+const router = useRouter()
+const routeTab = () => {
+  const t = route.query.tab
+  return typeof t === 'string' && (TAB_KEYS as string[]).includes(t) ? (t as TabKey) : null
+}
+const activeTab = ref<TabKey>(routeTab() ?? 'transcription')
+
+watch(activeTab, (v) => {
+  if (route.query.tab !== v) router.replace({ query: { ...route.query, tab: v } })
+})
+watch(() => route.query.tab, () => {
+  const t = routeTab()
+  if (t && t !== activeTab.value) activeTab.value = t
+})
+
 const recordingTabs: { key: RecordingTab; label: string }[] = [
   { key: 'transcription', label: '文字起こし' },
   { key: 'words', label: '単語' },
