@@ -223,7 +223,7 @@
               </div>
             </div>
             <div>
-              <label class="text-xs text-slate-400 mb-1 block">再使用した理由</label>
+              <label class="text-xs text-slate-400 mb-1 block">使用した理由</label>
               <textarea v-model="fukkatsuForm.reason" rows="2" placeholder="例: 新しいものを買わずに済んだ、まだ使えると気づいた"
                 class="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 resize-none" />
             </div>

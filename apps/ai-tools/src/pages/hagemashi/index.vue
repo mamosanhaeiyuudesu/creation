@@ -864,6 +864,7 @@ const pushSettingsOpen = ref(false)
 interface PushLogEntry { title: string; text: string; created_at: string }
 const pushLogModal = ref(false)
 const pushLogEntry = ref<PushLogEntry | null>(null)
+const pendingPushId = ref<string | null>(null)
 
 function formatPushLogDate(createdAt?: string): string {
   if (!createdAt) return ''
@@ -907,20 +908,31 @@ async function sendTestPush() {
 }
 onMounted(() => {
   push.init()
-
-  // SW から通知クリックを postMessage で受け取り、モーダルを表示
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', async (ev: MessageEvent) => {
-      const data = ev.data
-      if (data?.type !== 'hagemashi-push-click') return
-      const pushId = new URL(data.url as string, location.origin).searchParams.get('push')
-      if (!pushId) return
-      try {
-        pushLogEntry.value = await $fetch<PushLogEntry>(`/api/hagemashi/push/log/${pushId}`)
-        pushLogModal.value = true
-      } catch {}
-    })
+  // 起動時に URL から ?push=<id> を取得して保持し、URL をクリーンアップ
+  const qPushId = route.query.push as string | undefined
+  if (qPushId) {
+    pendingPushId.value = qPushId
+    router.replace('/hagemashi')
   }
+})
+
+// SW が openWindow でナビゲートしてきた場合（アプリが既に開いている時）
+watch(() => route.query.push, (pushId) => {
+  if (pushId && typeof pushId === 'string') {
+    pendingPushId.value = pushId
+    router.replace('/hagemashi')
+  }
+})
+
+// ログイン済みかつ pendingPushId がセットされたらモーダルを表示
+watch(pendingPushId, async (id) => {
+  if (!id || !isLoggedIn.value) return
+  const localId = id
+  pendingPushId.value = null
+  try {
+    pushLogEntry.value = await $fetch<PushLogEntry>(`/api/hagemashi/push/log/${localId}`)
+    pushLogModal.value = true
+  } catch {}
 })
 const isMigrating = ref(false)
 const migrateStatus = ref('')
@@ -1157,24 +1169,13 @@ if (!$dev) {
       profileHistory.value = profile.status === 'fulfilled' ? (profile.value?.profiles ?? []) : []
       stoplist.value = (sl.status === 'fulfilled' && sl.value.length > 0) ? sl.value : [...DEFAULT_STOPLIST]
 
-      // Push 通知クリック後の表示：URL クエリ → SW キャッシュ の順に pushId を探す
-      let pushId = route.query.push as string | undefined
-      if (!pushId && 'caches' in window) {
+      // onMounted で pendingPushId がセット済みの場合（ログイン確定が後だったケース）
+      if (pendingPushId.value) {
+        const id = pendingPushId.value
+        pendingPushId.value = null
         try {
-          const cache = await caches.open('hagemashi-pending')
-          const res = await cache.match('/__pending-push')
-          if (res) {
-            const pendingUrl = await res.text()
-            await cache.delete('/__pending-push')
-            pushId = new URL(pendingUrl, location.origin).searchParams.get('push') ?? undefined
-          }
-        } catch {}
-      }
-      if (pushId) {
-        try {
-          pushLogEntry.value = await $fetch<PushLogEntry>(`/api/hagemashi/push/log/${pushId}`)
+          pushLogEntry.value = await $fetch<PushLogEntry>(`/api/hagemashi/push/log/${id}`)
           pushLogModal.value = true
-          if (route.query.push) router.replace('/hagemashi')
         } catch {}
       }
     },
