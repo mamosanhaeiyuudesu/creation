@@ -95,7 +95,7 @@
       </div>
 
       <!-- History tabs -->
-      <div v-if="history.length > 0 || encourageHistory.length > 0" class="mt-1 min-w-0">
+      <div class="mt-1 min-w-0">
         <div class="flex items-center gap-0 border-b border-white/[0.08]">
           <button
             class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
@@ -107,6 +107,11 @@
             :class="activeTab === 'encourage' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
             @click="activeTab = 'encourage'"
           ><span class="sm:hidden">はげ</span><span class="hidden sm:inline">はげまし</span></button>
+          <button
+            class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
+            :class="activeTab === 'consult' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
+            @click="activeTab = 'consult'"
+          >相談</button>
         </div>
 
         <!-- 録音 サブタブ（文字起こし・単語・中間データ・長期傾向） -->
@@ -363,6 +368,13 @@
             </div>
           </div>
         </div>
+
+        <!-- 相談チャット -->
+        <HagemashiConsultChat
+          v-else-if="activeTab === 'consult'"
+          :profile="profileHistory[0] ?? null"
+          :summary-items="recentSummaryItems"
+        />
 
         <div v-else class="py-2">
           <div v-if="wordRanking.length === 0" class="text-center text-slate-500 text-sm py-10">
@@ -734,7 +746,7 @@ const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
 type RecordingTab = 'transcription' | 'words' | 'summary' | 'profile'
-const activeTab = ref<'encourage' | RecordingTab>('transcription')
+const activeTab = ref<'encourage' | 'consult' | RecordingTab>('transcription')
 const recordingTabs: { key: RecordingTab; label: string }[] = [
   { key: 'transcription', label: '文字起こし' },
   { key: 'words', label: '単語' },
@@ -1234,6 +1246,11 @@ const summaryRows = computed(() => {
   }
   return rows
 })
+
+// 相談チャットに渡す直近30件（summaryRows は新しい順）
+const recentSummaryItems = computed(() =>
+  summaryRows.value.slice(0, 30).map(r => ({ sentiment: r.sentiment, text: r.text, date: r.date }))
+)
 
 const filteredSummaryRows = computed(() => {
   const q = summarySearchQuery.value.trim().toLowerCase()
