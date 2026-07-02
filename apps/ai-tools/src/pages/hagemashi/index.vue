@@ -109,19 +109,20 @@
           ><span class="sm:hidden">はげ</span><span class="hidden sm:inline">はげまし</span></button>
           <button
             class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
-            :class="activeTab === 'summary' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
-            @click="activeTab = 'summary'"
-          ><span class="sm:hidden">中間</span><span class="hidden sm:inline">中間データ</span></button>
+            :class="isAnalysisTab ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
+            @click="openAnalysis"
+          ><span class="sm:hidden">分析</span><span class="hidden sm:inline">データ分析</span></button>
+        </div>
+
+        <!-- データ分析 サブタブ -->
+        <div v-if="isAnalysisTab" class="flex items-center gap-1.5 mt-2">
           <button
-            class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
-            :class="activeTab === 'words' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
-            @click="activeTab = 'words'"
-          >単語</button>
-          <button
-            class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
-            :class="activeTab === 'profile' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
-            @click="activeTab = 'profile'"
-          ><span class="sm:hidden">プロフ</span><span class="hidden sm:inline">プロファイリング</span></button>
+            v-for="t in analysisTabs"
+            :key="t.key"
+            class="px-2.5 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer"
+            :class="activeTab === t.key ? 'border-orange-500/60 bg-orange-500/15 text-orange-300' : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
+            @click="activeTab = t.key"
+          >{{ t.label }}</button>
         </div>
         <div class="flex items-center gap-2 mb-1 min-h-8">
           <template v-if="activeTab === 'summary' && summaryRows.length > 0">
@@ -370,30 +371,14 @@
 
         <div v-else class="py-2">
           <div v-if="wordRanking.length === 0" class="text-center text-slate-500 text-sm py-10">
-            再集計ボタンを押すと単語ランキングを生成します
+            再集計ボタンを押すとワードクラウドを生成します
           </div>
-          <div v-else class="flex flex-col gap-0.5">
-            <div
-              v-for="(entry, i) in wordRanking.slice(0, 80)"
-              :key="entry.word"
-              class="flex items-center gap-2.5 px-1 py-1 rounded-lg hover:bg-white/[0.04] transition-colors"
-            >
-              <span class="text-[11px] text-slate-600 w-6 text-right shrink-0 tabular-nums">{{ i + 1 }}</span>
-              <span class="text-sm text-slate-200 font-medium w-[7em] shrink-0 truncate">{{ entry.word }}</span>
-              <div class="flex-1 h-1 bg-white/[0.06] rounded-full overflow-hidden">
-                <div
-                  class="h-full bg-gradient-to-r from-orange-500 to-pink-500 rounded-full"
-                  :style="{ width: `${(entry.count / wordRanking[0].count) * 100}%` }"
-                />
-              </div>
-              <span class="text-[11px] text-slate-500 shrink-0 w-5 text-right tabular-nums">{{ entry.count }}</span>
-              <button
-                class="shrink-0 px-1.5 py-0.5 rounded text-[10px] text-slate-600 hover:text-slate-200 hover:bg-white/[0.08] transition-colors cursor-pointer border-none bg-transparent"
-                title="除外に追加"
-                @click="addToStoplist(entry.word)"
-              >除外</button>
-            </div>
-          </div>
+          <HagemashiWordCloudChart
+            v-else
+            :words="wordRanking.slice(0, 120)"
+            :height="380"
+            @word-click="addToStoplist"
+          />
         </div>
       </div>
       </div>
@@ -753,7 +738,17 @@ const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-const activeTab = ref<'transcription' | 'encourage' | 'summary' | 'words' | 'profile'>('transcription')
+type AnalysisTab = 'words' | 'summary' | 'profile'
+const activeTab = ref<'transcription' | 'encourage' | AnalysisTab>('transcription')
+const analysisTabs: { key: AnalysisTab; label: string }[] = [
+  { key: 'words', label: '単語' },
+  { key: 'summary', label: '中間データ' },
+  { key: 'profile', label: '長期傾向' },
+]
+const isAnalysisTab = computed(() => analysisTabs.some(t => t.key === activeTab.value))
+function openAnalysis() {
+  if (!isAnalysisTab.value) activeTab.value = 'words'
+}
 const charLimit = ref(1000)
 const encourageStyle = ref<'calm' | 'loud'>('loud')
 
@@ -1286,7 +1281,10 @@ const fetchSummary = async (text: string): Promise<string> => {
 const handleTranscribed = async (text: string) => {
   const replaced = applyDictionary(text)
   const [title, notes] = await Promise.all([fetchTitle(replaced), fetchSummary(replaced)])
-  addHistory(replaced, title, notes || undefined)
+  const newId = addHistory(replaced, title, notes || undefined)
+  // 文字起こし完了後、この内容をはげますか確認（既存の選択ポップアップを再利用）
+  selectedIds.value = [newId]
+  selectOpen.value = true
 }
 
 // --- 録音 ---

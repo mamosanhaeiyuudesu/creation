@@ -4094,6 +4094,7 @@ __metadata:
     "@vite-pwa/nuxt": "npm:^1.1.1"
     cytoscape: "npm:^3.33.3"
     echarts: "npm:^5"
+    echarts-wordcloud: "npm:^2.1.0"
     leaflet: "npm:^1.9.4"
     marked: "npm:^17.0.4"
     nuxt: "npm:^3.13.2"
@@ -5540,6 +5541,15 @@ __metadata:
   version: 0.2.0
   resolution: "eastasianwidth@npm:0.2.0"
   checksum: 10c0/26f364ebcdb6395f95124fda411f63137a4bfb5d3a06453f7f23dfe52502905bd84e0488172e0f9ec295fdc45f05c23d5d91baf16bd26f0fe9acd777a188dc39
+  languageName: node
+  linkType: hard
+
+"echarts-wordcloud@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "echarts-wordcloud@npm:2.1.0"
+  peerDependencies:
+    echarts: ^5.0.1
+  checksum: 10c0/ef98b2ce5af82d80b36359bfb2c4e6ecefc4eb89e6a6c923d4ff329e230fbfbd85d29da05ea8c07387559a4d3cb8676dc1af4b752d6a812139ae555e94b40f97
   languageName: node
   linkType: hard
 

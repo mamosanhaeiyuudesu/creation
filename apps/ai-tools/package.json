@@ -10,6 +10,7 @@
   "dependencies": {
     "cytoscape": "^3.33.3",
     "echarts": "^5",
+    "echarts-wordcloud": "^2.1.0",
     "leaflet": "^1.9.4",
     "marked": "^17.0.4",
     "nuxt": "^3.13.2",
