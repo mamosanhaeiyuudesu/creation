@@ -71,6 +71,18 @@ async function generateEncouragement(apiKey: string, notesList: string[]): Promi
 }
 
 /**
+ * プッシュ通知ログに保存し、行IDを返す。
+ * 送信前に呼び出してURLに埋め込む。
+ */
+export async function savePushLog(db: any, userId: string, payload: HagemashiPayload): Promise<number> {
+  const result = await db
+    .prepare('INSERT INTO hagemashi_push_log (user_id, title, body) VALUES (?, ?, ?)')
+    .bind(userId, payload.title, payload.body)
+    .run() as { meta?: { last_row_id?: number } }
+  return result.meta?.last_row_id ?? 0
+}
+
+/**
  * ユーザーの直近の記録から、送信すべきプッシュ通知のペイロードを組み立てる。
  * - 一定日数記録が無ければ → 音声入力ナッジ
  * - 記録があれば → 中間データを Claude で分析した励まし

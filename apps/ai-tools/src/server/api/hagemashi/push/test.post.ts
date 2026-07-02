@@ -1,6 +1,6 @@
 import { getSessionUser } from '~/server/utils/auth'
 import { sendPush, type PushSubscriptionRecord, type VapidKeys } from '~/server/utils/web-push'
-import { buildHagemashiPayload } from '~/server/utils/hagemashi-message'
+import { buildHagemashiPayload, savePushLog } from '~/server/utils/hagemashi-message'
 
 // 即座に「実際のはげまし／ナッジ」を送信し、各端末の送信結果を返す
 export default defineEventHandler(async (event) => {
@@ -39,6 +39,12 @@ export default defineEventHandler(async (event) => {
   const nudgeAfterSilentDays = prefRow?.nudge_after_silent_days ?? 3
 
   const payload = await buildHagemashiPayload(db, user.id, nudgeAfterSilentDays, anthropicApiKey as string)
+  try {
+    const logId = await savePushLog(db, user.id, payload)
+    if (logId) payload.url = `/hagemashi?push=${logId}`
+  } catch (e) {
+    console.error('[hagemashi:push/test] savePushLog failed:', e)
+  }
 
   const results: { endpoint: string; ok: boolean; statusCode: number; expired: boolean; error?: string }[] = []
 

@@ -791,6 +791,19 @@
         </div>
       </div>
     </div>
+
+    <!-- Push 通知メッセージモーダル -->
+    <div v-if="pushLogModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[150]" @click.self="pushLogModal = false">
+      <div class="w-full max-w-[400px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <h2 class="m-0 text-base text-slate-50 font-semibold">{{ pushLogEntry?.title ?? 'はげまし' }}</h2>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="pushLogModal = false">✕</button>
+        </div>
+        <p class="m-0 text-slate-200 text-sm leading-relaxed">{{ pushLogEntry?.body }}</p>
+        <div class="text-[11px] text-slate-600">{{ formatPushLogDate(pushLogEntry?.sent_at) }}</div>
+        <button class="w-full py-2.5 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="pushLogModal = false">閉じる</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -819,6 +832,8 @@ import { useAudioRecorder, fetchTitle } from '~/composables/useAudioRecorder'
 import { usePushNotifications } from '~/composables/usePushNotifications'
 
 const $dev = import.meta.dev
+const route = useRoute()
+const router = useRouter()
 
 const ENCOURAGE_PROMPTS = {
   calm: `あなたは相手のことを深く理解したうえで励ます存在です。以下の観点を踏まえ、的を絞った一言で励ましてください。
@@ -845,6 +860,21 @@ const showSettingsMenu = ref(false)
 
 // プッシュ通知
 const pushSettingsOpen = ref(false)
+
+interface PushLogEntry { title: string; body: string; sent_at: string }
+const pushLogModal = ref(false)
+const pushLogEntry = ref<PushLogEntry | null>(null)
+
+function formatPushLogDate(sentAt?: string): string {
+  if (!sentAt) return ''
+  const d = new Date(sentAt.replace(' ', 'T') + 'Z')
+  const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000)
+  const mo = String(jst.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(jst.getUTCDate()).padStart(2, '0')
+  const h = String(jst.getUTCHours()).padStart(2, '0')
+  const mi = String(jst.getUTCMinutes()).padStart(2, '0')
+  return `${mo}/${day} ${h}:${mi}`
+}
 const push = usePushNotifications()
 async function togglePush() {
   if (push.subscribed.value && push.prefs.value.enabled) {
@@ -1110,6 +1140,16 @@ if (!$dev) {
       dictionary.value = dict.status === 'fulfilled' ? dict.value : []
       profileHistory.value = profile.status === 'fulfilled' ? (profile.value?.profiles ?? []) : []
       stoplist.value = (sl.status === 'fulfilled' && sl.value.length > 0) ? sl.value : [...DEFAULT_STOPLIST]
+
+      // Push 通知からの遷移: ?push=<id> があれば内容を表示
+      const pushId = route.query.push as string | undefined
+      if (pushId) {
+        try {
+          pushLogEntry.value = await $fetch<PushLogEntry>(`/api/hagemashi/push/log/${pushId}`)
+          pushLogModal.value = true
+          router.replace('/hagemashi')
+        } catch {}
+      }
     },
     { immediate: true }
   )
