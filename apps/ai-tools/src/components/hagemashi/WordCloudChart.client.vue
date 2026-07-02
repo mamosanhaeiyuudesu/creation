@@ -1,5 +1,20 @@
 <template>
-  <div ref="chartEl" class="w-full" :style="{ height: `${height ?? 360}px` }" />
+  <div class="relative">
+    <!-- 大きさの差分（強調）調整スライダー -->
+    <div class="absolute top-1 right-1 z-10 flex items-center gap-2 bg-black/40 backdrop-blur-sm border border-white/[0.08] rounded-lg px-2.5 py-1.5">
+      <span class="text-[10px] text-slate-400 shrink-0">強調</span>
+      <input
+        v-model.number="emphasis"
+        type="range"
+        min="1"
+        max="6"
+        step="0.5"
+        class="w-24 accent-orange-500 cursor-pointer"
+      />
+      <span class="text-[10px] text-slate-300 tabular-nums w-6 text-right shrink-0">{{ emphasis.toFixed(1) }}</span>
+    </div>
+    <div ref="chartEl" class="w-full" :style="{ height: `${height ?? 360}px` }" />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -17,6 +32,15 @@ const COLORS = [
   '#fda4af', '#fdba74', '#f472b6', '#facc15',
 ]
 
+const LS_EMPHASIS = 'hagemashi-wordcloud-emphasis'
+
+// 出現回数の差を強調する指数（大きいほど回数の多い単語がより大きくなる）
+const emphasis = ref(2)
+if (import.meta.client) {
+  const saved = Number(localStorage.getItem(LS_EMPHASIS))
+  if (saved >= 1 && saved <= 6) emphasis.value = saved
+}
+
 const chartEl = ref<HTMLDivElement>()
 let chart: import('echarts').ECharts | null = null
 
@@ -29,18 +53,32 @@ async function renderChart() {
     chart = EC.init(chartEl.value, undefined, { renderer: 'canvas' })
   }
 
-  // value（出現回数）を echarts-wordcloud が sizeRange にマッピングし、
-  // 出現回数が大きい単語ほど大きく表示される
-  const data = props.words.map(w => ({
-    name: w.word,
-    value: w.count,
-    textStyle: { color: COLORS[Math.floor(Math.random() * COLORS.length)] },
-  }))
+  // echarts-wordcloud は各データの textStyle.fontSize があればそれを優先する。
+  // linearMap 任せだと外れ値や同値が多いとサイズがほぼ均一になるため、
+  // 出現回数から fontSize を自前で計算し、emphasis スライダーで差を強調する。
+  const MIN_SIZE = 12
+  const MAX_SIZE = 80
+  const counts = props.words.map(w => w.count)
+  const maxCount = Math.max(...counts, 1)
+  const minCount = Math.min(...counts, 1)
+  const span = maxCount - minCount || 1
+
+  const data = props.words.map(w => {
+    const t = (w.count - minCount) / span // 0..1
+    const scaled = Math.pow(t, emphasis.value) // emphasis が大きいほど回数が少ない単語が小さくなり差が広がる
+    const fontSize = Math.round(MIN_SIZE + scaled * (MAX_SIZE - MIN_SIZE))
+    return {
+      name: w.word,
+      value: w.count,
+      rawCount: w.count,
+      textStyle: { color: COLORS[Math.floor(Math.random() * COLORS.length)], fontSize },
+    }
+  })
 
   chart.setOption({
     tooltip: {
       show: true,
-      formatter: (p: { name: string; value: number }) => `${p.name}: ${p.value}`,
+      formatter: (p: { name: string; data: { rawCount: number } }) => `${p.name}: ${p.data.rawCount}`,
     },
     series: [{
       type: 'wordCloud',
@@ -49,7 +87,7 @@ async function renderChart() {
       top: 'center',
       width: '100%',
       height: '100%',
-      sizeRange: [14, 88],
+      sizeRange: [12, 90],
       rotationRange: [0, 0],
       gridSize: 6,
       drawOutOfBound: false,
@@ -72,6 +110,11 @@ async function renderChart() {
 }
 
 watch(() => props.words, renderChart, { deep: true })
+
+watch(emphasis, (v) => {
+  if (import.meta.client) localStorage.setItem(LS_EMPHASIS, String(v))
+  renderChart()
+})
 
 let ro: ResizeObserver | null = null
 
