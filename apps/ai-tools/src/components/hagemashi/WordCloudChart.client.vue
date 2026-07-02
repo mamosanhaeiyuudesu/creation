@@ -29,6 +29,8 @@ async function renderChart() {
     chart = EC.init(chartEl.value, undefined, { renderer: 'canvas' })
   }
 
+  // value（出現回数）を echarts-wordcloud が sizeRange にマッピングし、
+  // 出現回数が大きい単語ほど大きく表示される
   const data = props.words.map(w => ({
     name: w.word,
     value: w.count,
@@ -47,9 +49,9 @@ async function renderChart() {
       top: 'center',
       width: '100%',
       height: '100%',
-      sizeRange: [14, 64],
+      sizeRange: [14, 88],
       rotationRange: [0, 0],
-      gridSize: 8,
+      gridSize: 6,
       drawOutOfBound: false,
       layoutAnimation: true,
       textStyle: {
