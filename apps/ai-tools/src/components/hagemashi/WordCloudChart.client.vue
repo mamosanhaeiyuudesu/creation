@@ -53,9 +53,11 @@ async function renderChart() {
     chart = EC.init(chartEl.value, undefined, { renderer: 'canvas' })
   }
 
-  // echarts-wordcloud は各データの textStyle.fontSize があればそれを優先する。
-  // linearMap 任せだと外れ値や同値が多いとサイズがほぼ均一になるため、
-  // 出現回数から fontSize を自前で計算し、emphasis スライダーで差を強調する。
+  // echarts-wordcloud は各データの textStyle.fontSize は使わず、value を sizeRange に
+  // 線形マッピングして文字サイズを決める。そのため生の count を value に渡すと
+  // 外れ値があると中〜低頻度の単語のサイズ差が潰れてしまう。
+  // 出現回数から fontSize を自前計算し、それを value として渡すことで
+  // emphasis スライダーで差を強調できるようにする。
   const MIN_SIZE = 12
   const MAX_SIZE = 80
   const counts = props.words.map(w => w.count)
@@ -69,9 +71,9 @@ async function renderChart() {
     const fontSize = Math.round(MIN_SIZE + scaled * (MAX_SIZE - MIN_SIZE))
     return {
       name: w.word,
-      value: w.count,
+      value: fontSize, // sizeRange と同じスケールにして実サイズに反映させる
       rawCount: w.count,
-      textStyle: { color: COLORS[Math.floor(Math.random() * COLORS.length)], fontSize },
+      textStyle: { color: COLORS[Math.floor(Math.random() * COLORS.length)] },
     }
   })
 
@@ -87,7 +89,7 @@ async function renderChart() {
       top: 'center',
       width: '100%',
       height: '100%',
-      sizeRange: [12, 90],
+      sizeRange: [MIN_SIZE, MAX_SIZE],
       rotationRange: [0, 0],
       gridSize: 6,
       drawOutOfBound: false,
