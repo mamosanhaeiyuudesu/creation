@@ -2,14 +2,18 @@
 import type { SeasonData, AllLeagueStats } from '~/types/mlb'
 import { PLAYERS, PLAYER_COLORS } from '~/utils/japanese-mlb-player/players'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   playerIds: string[]
   seasonDataMap: Map<string, SeasonData>
   mode: 'pitcher' | 'batter'
   leagueStats?: AllLeagueStats | null
   league?: 'AL' | 'NL'
   standings?: Record<string, number> | null
-}>()
+  /** false の場合、横スクロールは親要素側に委ねる（複数インスタンスでスクロールを連動させたい場合など） */
+  scrollable?: boolean
+}>(), {
+  scrollable: true,
+})
 
 const PITCHER_DAYS = 1
 const BATTER_DAYS = 1
@@ -293,7 +297,7 @@ function isWithinDays(d: string | null | undefined, days: number): boolean {
       データがありません
     </div>
     <div v-else class="rounded-lg border border-slate-100 bg-white overflow-hidden">
-      <div class="overflow-x-auto">
+      <div :class="scrollable ? 'overflow-x-auto' : ''">
       <div class="min-w-max">
       <template v-for="card in cards.filter(c => c.noData || c.hasRecentData)" :key="card.id">
 
