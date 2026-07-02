@@ -126,11 +126,9 @@ export default defineTask({
     let sent = 0
     for (const pref of (prefs.results ?? []) as PrefRow[]) {
       try {
-        // 希望時刻（ローカル）が現在時と一致するか（分は30分枠で判定）
+        // 希望時刻（ローカル）が現在の時:分と完全一致するか
         const local = localHourMinute(now, pref.timezone)
-        const localSlot = local.minute >= 30 ? 30 : 0
-        const prefSlot = pref.minute >= 30 ? 30 : 0
-        if (local.hour !== pref.hour || localSlot !== prefSlot) continue
+        if (local.hour !== pref.hour || local.minute !== pref.minute) continue
 
         // 最小間隔チェック
         if (pref.last_pushed_at) {
@@ -180,23 +178,34 @@ export default defineTask({
           .bind(pref.user_id)
           .all()
 
+        let userSent = 0
         for (const sub of (subs.results ?? []) as PushSubscriptionRecord[]) {
-          const result = await sendPush(sub, payload, vapid).catch(() => null)
-          if (result?.expired) {
-            await db
-              .prepare('DELETE FROM hagemashi_push_subscriptions WHERE endpoint = ?')
-              .bind(sub.endpoint)
-              .run()
-          } else if (result?.ok) {
-            sent++
+          try {
+            const result = await sendPush(sub, payload, vapid)
+            if (result.expired) {
+              await db
+                .prepare('DELETE FROM hagemashi_push_subscriptions WHERE endpoint = ?')
+                .bind(sub.endpoint)
+                .run()
+              console.log('[hagemashi:push] subscription expired, removed:', sub.endpoint.slice(0, 60))
+            } else if (result.ok) {
+              userSent++
+              sent++
+            } else {
+              console.error('[hagemashi:push] push failed status', result.statusCode, sub.endpoint.slice(0, 60))
+            }
+          } catch (e) {
+            console.error('[hagemashi:push] sendPush error:', sub.endpoint.slice(0, 60), e)
           }
         }
 
-        // 最終送信時刻を更新
-        await db
-          .prepare("UPDATE hagemashi_push_prefs SET last_pushed_at = ? WHERE user_id = ?")
-          .bind(now.toISOString(), pref.user_id)
-          .run()
+        // 少なくとも1端末への送信が成功した場合のみ last_pushed_at を更新
+        if (userSent > 0) {
+          await db
+            .prepare("UPDATE hagemashi_push_prefs SET last_pushed_at = ? WHERE user_id = ?")
+            .bind(now.toISOString(), pref.user_id)
+            .run()
+        }
       } catch (err) {
         console.error('[hagemashi:push] user', pref.user_id, err)
       }

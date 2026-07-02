@@ -497,8 +497,7 @@
                   </select>
                   <span class="text-slate-500">:</span>
                   <select v-model.number="push.prefs.value.minute" class="bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-1.5 outline-none focus:border-orange-500 transition-colors">
-                    <option :value="0">00</option>
-                    <option :value="30">30</option>
+                    <option v-for="m in [0, 15, 30, 45]" :key="m" :value="m">{{ String(m).padStart(2, '0') }}</option>
                   </select>
                 </div>
               </label>
@@ -524,9 +523,21 @@
             </div>
           </template>
         </div>
-        <div v-if="push.supported.value && !push.needsInstall.value && push.prefs.value.enabled" class="flex justify-end gap-2 px-6 py-4 border-t border-white/[0.08]">
-          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="pushSettingsOpen = false">閉じる</button>
-          <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40" :disabled="push.busy.value" @click="savePushPrefs">保存</button>
+        <div v-if="push.supported.value && !push.needsInstall.value && push.prefs.value.enabled" class="flex flex-col gap-2 px-6 py-4 border-t border-white/[0.08]">
+          <div v-if="pushTestResult" class="text-xs rounded-lg px-3 py-2 border" :class="pushTestResult.ok ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/25' : 'text-red-300 bg-red-500/10 border-red-500/25'">
+            <div class="font-semibold mb-1">{{ pushTestResult.ok ? 'テスト送信成功' : 'テスト送信失敗' }}</div>
+            <div v-for="(r, i) in pushTestResult.results" :key="i" class="font-mono">{{ r.ok ? '✓' : '✗' }} {{ r.endpoint }} {{ r.statusCode ? `[${r.statusCode}]` : '' }} {{ r.error || '' }}</div>
+          </div>
+          <div class="flex justify-between gap-2">
+            <button class="px-4 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all disabled:opacity-40 flex items-center gap-1.5" :disabled="pushTestBusy" @click="sendTestPush">
+              <span v-if="pushTestBusy" class="w-3.5 h-3.5 rounded-full border border-slate-400/30 border-t-slate-400 animate-spin block" />
+              テスト送信
+            </button>
+            <div class="flex gap-2">
+              <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="pushSettingsOpen = false">閉じる</button>
+              <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40" :disabled="push.busy.value" @click="savePushPrefs">保存</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -848,6 +859,20 @@ async function savePushPrefs() {
     pushSettingsOpen.value = false
   } catch (e: any) {
     push.error.value = e?.message || '保存に失敗しました'
+  }
+}
+
+const pushTestBusy = ref(false)
+const pushTestResult = ref<{ ok: boolean; results: { endpoint: string; ok: boolean; statusCode: number; expired: boolean; error?: string }[] } | null>(null)
+async function sendTestPush() {
+  pushTestBusy.value = true
+  pushTestResult.value = null
+  try {
+    pushTestResult.value = await $fetch('/api/hagemashi/push/test', { method: 'POST' })
+  } catch (e: any) {
+    pushTestResult.value = { ok: false, results: [{ endpoint: 'error', ok: false, statusCode: 0, expired: false, error: e?.data?.message || String(e) }] }
+  } finally {
+    pushTestBusy.value = false
   }
 }
 onMounted(() => { push.init() })

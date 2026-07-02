@@ -26,6 +26,12 @@
         >
           コメント<span v-if="comments.length > 0">（{{ comments.length }}）</span>
         </button>
+        <a
+          href="https://buy.stripe.com/00w9AM9Fi8SWfRqbxIaAw00"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="ar-tip-btn"
+        >投げ銭 ¥</a>
       </div>
     </nav>
 
@@ -337,6 +343,33 @@ useHead({
 .ar-comment-toggle:hover { background: #f3f0eb; }
 
 .ar-comment-toggle:focus-visible {
+  outline: 2px solid #7a4f2e;
+  outline-offset: 3px;
+}
+
+/* Tip button */
+.ar-tip-btn {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: 1px solid rgba(60, 40, 20, 0.20);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 13px;
+  color: #5a3e28;
+  text-decoration: none;
+  touch-action: manipulation;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.ar-tip-btn:hover {
+  background: #3c2814;
+  border-color: #3c2814;
+  color: #fff;
+}
+
+.ar-tip-btn:focus-visible {
   outline: 2px solid #7a4f2e;
   outline-offset: 3px;
 }

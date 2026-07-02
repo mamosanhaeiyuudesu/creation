@@ -48,6 +48,9 @@
   margin: 0 auto;
   padding: 0 48px 40px;
   border-bottom: 1px solid var(--c-border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .sk-site-name {
@@ -192,4 +195,24 @@
   font-size: 12px;
   color: var(--c-text-dim);
   letter-spacing: 0.04em;
+}
+
+.sk-tip-btn {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--c-border-strong);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-family: var(--f-sans);
+  font-size: 12px;
+  color: var(--c-text-muted);
+  text-decoration: none;
+  touch-action: manipulation;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.sk-tip-btn:hover {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  color: #fff;
 }

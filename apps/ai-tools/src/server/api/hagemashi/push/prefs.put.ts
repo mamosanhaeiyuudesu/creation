@@ -24,8 +24,8 @@ export default defineEventHandler(async (event) => {
 
   const enabled = body?.enabled ? 1 : 0
   const hour = clampInt(body?.hour, 0, 23, 20)
-  // 分は 0 または 30 に丸める
-  const minute = clampInt(body?.minute, 0, 59, 0) >= 30 ? 30 : 0
+  // 分は 15分単位（0/15/30/45）に丸める
+  const minute = Math.round(clampInt(body?.minute, 0, 59, 0) / 15) * 15 % 60
   const timezone = typeof body?.timezone === 'string' && body.timezone ? body.timezone : 'Asia/Tokyo'
   const minIntervalDays = clampInt(body?.minIntervalDays, 0, 30, 1)
   const nudgeAfterSilentDays = clampInt(body?.nudgeAfterSilentDays, 1, 30, 3)

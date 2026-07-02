@@ -59,8 +59,8 @@ gtag('config', 'G-JRBVTJYCEH');`,
     },
     scheduledTasks: {
       '0 * * * *': ['mlb-sync'],
-      // 30分ごと（各ユーザーが選んだ時刻・分に合わせて送信判定）
-      '0,30 * * * *': ['hagemashi-push'],
+      // 15分ごと（各ユーザーが選んだ時刻・分に合わせて送信判定）
+      '*/15 * * * *': ['hagemashi-push'],
     },
     devServer: {
       // @ts-ignore — Nitro の型定義に maxBodySize がないが、h3 dev server では有効

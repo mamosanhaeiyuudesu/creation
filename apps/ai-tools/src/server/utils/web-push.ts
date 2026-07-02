@@ -30,7 +30,8 @@ type Bytes = Uint8Array<ArrayBuffer>
 
 // ---- base64url ヘルパー ----
 function b64urlToBytes(s: string): Bytes {
-  const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '=='.slice((s.length + 3) % 4)
+  let b64 = s.replace(/-/g, '+').replace(/_/g, '/')
+  while (b64.length % 4) b64 += '='
   const bin = atob(b64)
   const out = new Uint8Array(bin.length)
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)

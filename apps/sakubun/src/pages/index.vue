@@ -3,8 +3,16 @@
 
     <header class="sk-header">
       <div class="sk-header-inner">
-        <h1 class="sk-site-name">心の作文</h1>
-        <p class="sk-site-sub">本当の思いだけを綴っていきます</p>
+        <div>
+          <h1 class="sk-site-name">心の作文</h1>
+          <p class="sk-site-sub">本当の思いだけを綴っていきます</p>
+        </div>
+        <a
+          href="https://buy.stripe.com/00w9AM9Fi8SWfRqbxIaAw00"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="sk-tip-btn"
+        >投げ銭 ¥</a>
       </div>
     </header>
 
