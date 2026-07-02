@@ -799,8 +799,8 @@
           <h2 class="m-0 text-base text-slate-50 font-semibold">{{ pushLogEntry?.title ?? 'はげまし' }}</h2>
           <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="pushLogModal = false">✕</button>
         </div>
-        <p class="m-0 text-slate-200 text-sm leading-relaxed">{{ pushLogEntry?.body }}</p>
-        <div class="text-[11px] text-slate-600">{{ formatPushLogDate(pushLogEntry?.sent_at) }}</div>
+        <p class="m-0 text-slate-200 text-sm leading-relaxed">{{ pushLogEntry?.text }}</p>
+        <div class="text-[11px] text-slate-600">{{ formatPushLogDate(pushLogEntry?.created_at) }}</div>
         <button class="w-full py-2.5 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="pushLogModal = false">閉じる</button>
       </div>
     </div>
@@ -861,13 +861,13 @@ const showSettingsMenu = ref(false)
 // プッシュ通知
 const pushSettingsOpen = ref(false)
 
-interface PushLogEntry { title: string; body: string; sent_at: string }
+interface PushLogEntry { title: string; text: string; created_at: string }
 const pushLogModal = ref(false)
 const pushLogEntry = ref<PushLogEntry | null>(null)
 
-function formatPushLogDate(sentAt?: string): string {
-  if (!sentAt) return ''
-  const d = new Date(sentAt.replace(' ', 'T') + 'Z')
+function formatPushLogDate(createdAt?: string): string {
+  if (!createdAt) return ''
+  const d = new Date(createdAt.replace(' ', 'T') + 'Z')
   const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000)
   const mo = String(jst.getUTCMonth() + 1).padStart(2, '0')
   const day = String(jst.getUTCDate()).padStart(2, '0')
@@ -905,7 +905,23 @@ async function sendTestPush() {
     pushTestBusy.value = false
   }
 }
-onMounted(() => { push.init() })
+onMounted(() => {
+  push.init()
+
+  // SW から通知クリックを postMessage で受け取り、モーダルを表示
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', async (ev: MessageEvent) => {
+      const data = ev.data
+      if (data?.type !== 'hagemashi-push-click') return
+      const pushId = new URL(data.url as string, location.origin).searchParams.get('push')
+      if (!pushId) return
+      try {
+        pushLogEntry.value = await $fetch<PushLogEntry>(`/api/hagemashi/push/log/${pushId}`)
+        pushLogModal.value = true
+      } catch {}
+    })
+  }
+})
 const isMigrating = ref(false)
 const migrateStatus = ref('')
 const migrateSelectOpen = ref(false)

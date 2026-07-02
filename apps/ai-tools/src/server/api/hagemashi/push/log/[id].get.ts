@@ -9,9 +9,9 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   const row = await db
-    .prepare('SELECT title, body, sent_at FROM hagemashi_push_log WHERE id = ? AND user_id = ?')
+    .prepare("SELECT text, title, created_at FROM app_history WHERE id = ? AND user_id = ? AND app = 'hagemashi-encourage'")
     .bind(id, user.id)
-    .first() as { title: string; body: string; sent_at: string } | null
+    .first() as { text: string; title: string; created_at: string } | null
 
   if (!row) throw createError({ statusCode: 404, message: '見つかりません' })
   return row

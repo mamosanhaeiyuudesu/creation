@@ -71,15 +71,17 @@ async function generateEncouragement(apiKey: string, notesList: string[]): Promi
 }
 
 /**
- * プッシュ通知ログに保存し、行IDを返す。
- * 送信前に呼び出してURLに埋め込む。
+ * プッシュ通知の励まし内容を通常の励まし履歴（app_history, app='hagemashi-encourage'）に保存し、IDを返す。
  */
-export async function savePushLog(db: any, userId: string, payload: HagemashiPayload): Promise<number> {
-  const result = await db
-    .prepare('INSERT INTO hagemashi_push_log (user_id, title, body) VALUES (?, ?, ?)')
-    .bind(userId, payload.title, payload.body)
-    .run() as { meta?: { last_row_id?: number } }
-  return result.meta?.last_row_id ?? 0
+export async function savePushEncouragement(db: any, userId: string, payload: HagemashiPayload): Promise<string> {
+  const id = Date.now().toString()
+  const createdAt = new Date().toISOString().replace('T', ' ').replace('Z', '')
+  const title = payload.body.length > 20 ? payload.body.slice(0, 20) + '…' : payload.body
+  await db
+    .prepare('INSERT INTO app_history (id, user_id, app, text, title, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .bind(id, userId, 'hagemashi-encourage', payload.body, title, null, createdAt)
+    .run()
+  return id
 }
 
 /**

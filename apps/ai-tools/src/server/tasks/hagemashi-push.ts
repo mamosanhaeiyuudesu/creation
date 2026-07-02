@@ -8,7 +8,7 @@
  */
 
 import { sendPush, type PushSubscriptionRecord, type VapidKeys } from '../utils/web-push'
-import { buildHagemashiPayload, savePushLog } from '../utils/hagemashi-message'
+import { buildHagemashiPayload, savePushEncouragement } from '../utils/hagemashi-message'
 
 interface PrefRow {
   user_id: string
@@ -89,10 +89,10 @@ export default defineTask({
         // 直近の記録から励まし／ナッジのペイロードを組み立て、ログ保存
         const payload = await buildHagemashiPayload(db, pref.user_id, pref.nudge_after_silent_days, anthropicApiKey, now)
         try {
-          const logId = await savePushLog(db, pref.user_id, payload)
-          if (logId) payload.url = `/hagemashi?push=${logId}`
+          const histId = await savePushEncouragement(db, pref.user_id, payload)
+          payload.url = `/hagemashi?push=${histId}`
         } catch (e) {
-          console.error('[hagemashi:push] savePushLog failed:', e)
+          console.error('[hagemashi:push] savePushEncouragement failed:', e)
         }
 
         // このユーザーの全端末へ送信
