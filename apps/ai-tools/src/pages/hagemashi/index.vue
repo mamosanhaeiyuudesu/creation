@@ -524,10 +524,6 @@
           </template>
         </div>
         <div v-if="push.supported.value && !push.needsInstall.value && push.prefs.value.enabled" class="flex flex-col gap-2 px-6 py-4 border-t border-white/[0.08]">
-          <div v-if="pushTestResult" class="text-xs rounded-lg px-3 py-2 border" :class="pushTestResult.ok ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/25' : 'text-red-300 bg-red-500/10 border-red-500/25'">
-            <div class="font-semibold mb-1">{{ pushTestResult.ok ? 'テスト送信成功' : 'テスト送信失敗' }}</div>
-            <div v-for="(r, i) in pushTestResult.results" :key="i" class="font-mono">{{ r.ok ? '✓' : '✗' }} {{ r.endpoint }} {{ r.statusCode ? `[${r.statusCode}]` : '' }} {{ r.error || '' }}</div>
-          </div>
           <div class="flex justify-between gap-2">
             <button class="px-4 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all disabled:opacity-40 flex items-center gap-1.5" :disabled="pushTestBusy" @click="sendTestPush">
               <span v-if="pushTestBusy" class="w-3.5 h-3.5 rounded-full border border-slate-400/30 border-t-slate-400 animate-spin block" />
@@ -793,15 +789,15 @@
     </div>
 
     <!-- Push 通知メッセージモーダル -->
-    <div v-if="pushLogModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[150]" @click.self="pushLogModal = false">
+    <div v-if="pushLogModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[150]" @click.self="closePushModal">
       <div class="w-full max-w-[400px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-4">
         <div class="flex items-center justify-between">
           <h2 class="m-0 text-base text-slate-50 font-semibold">{{ pushLogEntry?.title ?? 'はげまし' }}</h2>
-          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="pushLogModal = false">✕</button>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="closePushModal">✕</button>
         </div>
         <p class="m-0 text-slate-200 text-sm leading-relaxed">{{ pushLogEntry?.text }}</p>
         <div class="text-[11px] text-slate-600">{{ formatPushLogDate(pushLogEntry?.created_at) }}</div>
-        <button class="w-full py-2.5 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="pushLogModal = false">閉じる</button>
+        <button class="w-full py-2.5 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="closePushModal">閉じる</button>
       </div>
     </div>
   </div>
@@ -864,7 +860,6 @@ const pushSettingsOpen = ref(false)
 interface PushLogEntry { title: string; text: string; created_at: string }
 const pushLogModal = ref(false)
 const pushLogEntry = ref<PushLogEntry | null>(null)
-const pendingPushId = ref<string | null>(null)
 
 function formatPushLogDate(createdAt?: string): string {
   if (!createdAt) return ''
@@ -894,45 +889,66 @@ async function savePushPrefs() {
 }
 
 const pushTestBusy = ref(false)
-const pushTestResult = ref<{ ok: boolean; results: { endpoint: string; ok: boolean; statusCode: number; expired: boolean; error?: string }[] } | null>(null)
 async function sendTestPush() {
   pushTestBusy.value = true
-  pushTestResult.value = null
   try {
-    pushTestResult.value = await $fetch('/api/hagemashi/push/test', { method: 'POST' })
-  } catch (e: any) {
-    pushTestResult.value = { ok: false, results: [{ endpoint: 'error', ok: false, statusCode: 0, expired: false, error: e?.data?.message || String(e) }] }
+    await $fetch('/api/hagemashi/push/test', { method: 'POST' })
+  } catch (e) {
+    console.error(e)
   } finally {
     pushTestBusy.value = false
   }
 }
-onMounted(() => {
-  push.init()
-  // 起動時に URL から ?push=<id> を取得して保持し、URL をクリーンアップ
-  const qPushId = route.query.push as string | undefined
-  if (qPushId) {
-    pendingPushId.value = qPushId
-    router.replace('/hagemashi')
-  }
-})
-
-// SW が openWindow でナビゲートしてきた場合（アプリが既に開いている時）
-watch(() => route.query.push, (pushId) => {
-  if (pushId && typeof pushId === 'string') {
-    pendingPushId.value = pushId
-    router.replace('/hagemashi')
-  }
-})
-
-// ログイン済みかつ pendingPushId がセットされたらモーダルを表示
-watch(pendingPushId, async (id) => {
-  if (!id || !isLoggedIn.value) return
-  const localId = id
-  pendingPushId.value = null
+// URL の ?push=<id> を「唯一の状態源」として監視 → モーダル表示
+async function showPushEntry(id: string) {
   try {
-    pushLogEntry.value = await $fetch<PushLogEntry>(`/api/hagemashi/push/log/${localId}`)
+    pushLogEntry.value = await $fetch<PushLogEntry>(`/api/hagemashi/push/log/${id}`)
     pushLogModal.value = true
   } catch {}
+}
+watch(() => route.query.push, (id) => {
+  if (id && typeof id === 'string' && (isLoggedIn.value || $dev)) showPushEntry(id)
+}, { immediate: true })
+
+// push モーダルを閉じたら URL から push を除去
+function closePushModal() {
+  pushLogModal.value = false
+  if (route.query.push) {
+    const q = { ...route.query }
+    delete q.push
+    router.replace({ query: q })
+  }
+}
+
+// iOS PWA 対策：通知タップ時に URL を渡せないため、SW が CacheStorage に残した pushId を拾い、
+// URL の ?push= に反映することで上記 watch に合流させる。
+// - 完全終了→起動: onMounted で呼ぶ
+// - バックグラウンド→前面復帰: visibilitychange で呼ぶ
+// - 起動中: SW からの postMessage で呼ぶ
+async function pullPendingPush() {
+  if (!('caches' in window)) return
+  let id = ''
+  try {
+    const cache = await caches.open('hagemashi-pending')
+    const res = await cache.match('/__pending-push')
+    if (res) { id = (await res.text()).trim(); await cache.delete('/__pending-push') }
+  } catch {}
+  if (id && route.query.push !== id) {
+    router.replace({ query: { ...route.query, push: id } })
+  }
+}
+
+onMounted(() => {
+  push.init()
+  pullPendingPush()
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (ev: MessageEvent) => {
+      if (ev.data?.type === 'hagemashi-push-click') pullPendingPush()
+    })
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') pullPendingPush()
+  })
 })
 const isMigrating = ref(false)
 const migrateStatus = ref('')
@@ -946,7 +962,16 @@ const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-const activeTab = ref<'transcription' | 'encourage' | 'summary' | 'words' | 'profile'>('transcription')
+type HagemashiTab = 'transcription' | 'encourage' | 'summary' | 'words' | 'profile'
+const TABS: HagemashiTab[] = ['transcription', 'encourage', 'summary', 'words', 'profile']
+// タブ状態を URL の ?tab= と同期（ディープリンク可能に）
+const activeTab = computed<HagemashiTab>({
+  get: () => {
+    const t = route.query.tab as HagemashiTab
+    return TABS.includes(t) ? t : 'transcription'
+  },
+  set: (v) => { router.replace({ query: { ...route.query, tab: v } }) },
+})
 const charLimit = ref(1000)
 const encourageStyle = ref<'calm' | 'loud'>('loud')
 
@@ -1169,14 +1194,9 @@ if (!$dev) {
       profileHistory.value = profile.status === 'fulfilled' ? (profile.value?.profiles ?? []) : []
       stoplist.value = (sl.status === 'fulfilled' && sl.value.length > 0) ? sl.value : [...DEFAULT_STOPLIST]
 
-      // onMounted で pendingPushId がセット済みの場合（ログイン確定が後だったケース）
-      if (pendingPushId.value) {
-        const id = pendingPushId.value
-        pendingPushId.value = null
-        try {
-          pushLogEntry.value = await $fetch<PushLogEntry>(`/api/hagemashi/push/log/${id}`)
-          pushLogModal.value = true
-        } catch {}
+      // ログイン確定後、URL に ?push= があればモーダル表示（起動直後にログイン未確定だったケース）
+      if (route.query.push && typeof route.query.push === 'string') {
+        showPushEntry(route.query.push as string)
       }
     },
     { immediate: true }

@@ -25,7 +25,27 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const url = (event.notification.data && event.notification.data.url) || '/hagemashi'
-  const absoluteUrl = url.startsWith('http') ? url : self.location.origin + url
-  // openWindow に任せる：PWA スコープ内なら既存ウィンドウへナビゲートされる
-  event.waitUntil(self.clients.openWindow(absoluteUrl))
+
+  // iOS PWA は通知タップ時に URL を渡せない（start_url で開く / 既存ウィンドウは URL 不変）ため、
+  // pushId を CacheStorage に保存し、ページ側が前面化した時に読み取る方式にする。
+  let pushId = ''
+  try { pushId = new URL(url, self.location.origin).searchParams.get('push') || '' } catch (_e) {}
+
+  event.waitUntil((async () => {
+    if (pushId) {
+      try {
+        const cache = await caches.open('hagemashi-pending')
+        await cache.put('/__pending-push', new Response(pushId))
+      } catch (_e) {}
+    }
+
+    const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    const client = clientList.find((c) => c.url.includes('/hagemashi'))
+    if (client) {
+      // 起動中のウィンドウには postMessage でも即通知（前面復帰の保険）
+      try { client.postMessage({ type: 'hagemashi-push-click', pushId }) } catch (_e) {}
+      return client.focus()
+    }
+    return self.clients.openWindow(self.location.origin + '/hagemashi')
+  })())
 })
