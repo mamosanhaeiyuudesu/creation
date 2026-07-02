@@ -71,7 +71,7 @@
             </button>
           </template>
 
-          <!-- はげます button -->
+          <!-- はげまし button -->
           <button
             v-if="!isRecording && !isPaused && !isProcessing"
             class="w-20 h-20 rounded-full border-2 border-orange-500/50 bg-orange-500/[0.08] text-slate-50 flex flex-col items-center justify-center gap-1 transition-all disabled:opacity-35 disabled:cursor-not-allowed"
@@ -80,7 +80,7 @@
             @click="openSelectModal"
           >
             <span class="text-2xl leading-none">💪</span>
-            <span class="text-[10px] font-medium">はげます</span>
+            <span class="text-[10px] font-medium">はげまし</span>
           </button>
         </div>
         <div v-if="isRecording || duration > 0" class="text-xl text-red-500 font-mono font-semibold">
@@ -99,25 +99,20 @@
         <div class="flex items-center gap-0 border-b border-white/[0.08]">
           <button
             class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
-            :class="activeTab === 'transcription' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
-            @click="activeTab = 'transcription'"
-          ><span class="sm:hidden">文字起</span><span class="hidden sm:inline">文字起こし</span></button>
+            :class="isRecordingTab ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
+            @click="openRecording"
+          >録音</button>
           <button
             class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
             :class="activeTab === 'encourage' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
             @click="activeTab = 'encourage'"
           ><span class="sm:hidden">はげ</span><span class="hidden sm:inline">はげまし</span></button>
-          <button
-            class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
-            :class="isAnalysisTab ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
-            @click="openAnalysis"
-          ><span class="sm:hidden">分析</span><span class="hidden sm:inline">データ分析</span></button>
         </div>
 
-        <!-- データ分析 サブタブ -->
-        <div v-if="isAnalysisTab" class="flex items-center gap-1.5 mt-2">
+        <!-- 録音 サブタブ（文字起こし・単語・中間データ・長期傾向） -->
+        <div v-if="isRecordingTab" class="flex items-center gap-1.5 mt-2">
           <button
-            v-for="t in analysisTabs"
+            v-for="t in recordingTabs"
             :key="t.key"
             class="px-2.5 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer"
             :class="activeTab === t.key ? 'border-orange-500/60 bg-orange-500/15 text-orange-300' : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
@@ -738,16 +733,17 @@ const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-type AnalysisTab = 'words' | 'summary' | 'profile'
-const activeTab = ref<'transcription' | 'encourage' | AnalysisTab>('transcription')
-const analysisTabs: { key: AnalysisTab; label: string }[] = [
+type RecordingTab = 'transcription' | 'words' | 'summary' | 'profile'
+const activeTab = ref<'encourage' | RecordingTab>('transcription')
+const recordingTabs: { key: RecordingTab; label: string }[] = [
+  { key: 'transcription', label: '文字起こし' },
   { key: 'words', label: '単語' },
   { key: 'summary', label: '中間データ' },
   { key: 'profile', label: '長期傾向' },
 ]
-const isAnalysisTab = computed(() => analysisTabs.some(t => t.key === activeTab.value))
-function openAnalysis() {
-  if (!isAnalysisTab.value) activeTab.value = 'words'
+const isRecordingTab = computed(() => recordingTabs.some(t => t.key === activeTab.value))
+function openRecording() {
+  if (!isRecordingTab.value) activeTab.value = 'transcription'
 }
 const charLimit = ref(1000)
 const encourageStyle = ref<'calm' | 'loud'>('loud')
