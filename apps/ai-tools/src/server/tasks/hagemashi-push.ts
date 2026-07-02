@@ -8,6 +8,7 @@
  */
 
 import { sendPush, type PushSubscriptionRecord, type VapidKeys } from '../utils/web-push'
+import { buildHagemashiPayload } from '../utils/hagemashi-message'
 
 interface PrefRow {
   user_id: string
@@ -17,13 +18,6 @@ interface PrefRow {
   min_interval_days: number
   nudge_after_silent_days: number
   last_pushed_at: string | null
-}
-
-interface HistoryRow {
-  text: string
-  title: string
-  notes: string | null
-  created_at: string // 'YYYY-MM-DD HH:MM:SS'（UTC）
 }
 
 // 指定タイムゾーンでの現在の「時（0-23）」「分（0-59）」を返す
@@ -46,50 +40,6 @@ function parseUtc(s: string): Date {
 
 function daysBetween(a: Date, b: Date): number {
   return Math.abs(a.getTime() - b.getTime()) / (24 * 3600 * 1000)
-}
-
-// notes JSON（中間データ）を読みやすいテキストに変換
-function parseNotesToText(notes: string | null): string {
-  if (!notes) return ''
-  try {
-    const parsed = JSON.parse(notes) as { items?: { sentiment?: string; text?: string }[]; sentiment?: string; text?: string }
-    if (Array.isArray(parsed.items) && parsed.items.length > 0) {
-      return parsed.items
-        .map((item) => `[${item.sentiment ?? ''}] ${item.text ?? ''}`)
-        .join('\n')
-    }
-    // 旧形式フォールバック
-    if (parsed.text) return `[${parsed.sentiment ?? ''}] ${parsed.text}`
-  } catch {
-    return notes
-  }
-  return ''
-}
-
-async function generateEncouragement(apiKey: string, notesList: string[]): Promise<string> {
-  const userContent = notesList.map((t, i) => `【記録${i + 1}】\n${t}`).join('\n\n')
-  const system =
-    'あなたは相手に寄り添うカウンセラーです。以下は相手の最近の出来事・気持ちを[ポジ]/[ネガ]で分類した記録です。' +
-    '全体の傾向（何をがんばっているか、どんな感情が多いか）を読み取り、プッシュ通知として届く励ましメッセージを作成してください。' +
-    '日本語で60文字以内、具体的な内容に触れて前向きに、絵文字は使わないこと。メッセージ本文だけを返すこと。'
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 256,
-      system,
-      messages: [{ role: 'user', content: userContent }],
-    }),
-  })
-  if (!res.ok) throw new Error(`Claude API ${res.status}`)
-  const data = await res.json() as { content?: { text?: string }[] }
-  return (data?.content?.[0]?.text ?? '').trim()
 }
 
 export default defineTask({
@@ -136,41 +86,8 @@ export default defineTask({
           if (daysBetween(now, last) < pref.min_interval_days) continue
         }
 
-        // 直近の記録を取得（最新10件）
-        const hist = await db
-          .prepare(
-            `SELECT text, title, notes, created_at FROM app_history
-             WHERE user_id = ? AND app = 'hagemashi' ORDER BY created_at DESC LIMIT 10`
-          )
-          .bind(pref.user_id)
-          .all()
-
-        const rows = (hist.results ?? []) as HistoryRow[]
-        const latest = rows[0] ? parseUtc(rows[0].created_at) : null
-        const silentDays = latest ? daysBetween(now, latest) : Infinity
-
-        let payload: Record<string, unknown>
-        if (silentDays >= pref.nudge_after_silent_days) {
-          // 沈黙 → 音声入力を促す
-          payload = {
-            title: 'はげまし',
-            body: 'しばらく話していませんね。今日の気持ちを声で残してみませんか？',
-            url: '/hagemashi',
-            tag: 'hagemashi-nudge',
-          }
-        } else {
-          // 記録あり → 中間データ（notes）を優先して傾向分析、なければ文字起こし本文
-          const texts = rows
-            .map((r: HistoryRow) => parseNotesToText(r.notes) || r.text?.trim() || '')
-            .filter(Boolean)
-            .slice(0, 5)
-          let body = 'あなたのペースで大丈夫。今日もおつかれさまです。'
-          if (texts.length && anthropicApiKey) {
-            const generated = await generateEncouragement(anthropicApiKey, texts).catch(() => '')
-            if (generated) body = generated
-          }
-          payload = { title: 'はげまし', body, url: '/hagemashi', tag: 'hagemashi-encourage' }
-        }
+        // 直近の記録から励まし／ナッジのペイロードを組み立て
+        const payload = await buildHagemashiPayload(db, pref.user_id, pref.nudge_after_silent_days, anthropicApiKey, now)
 
         // このユーザーの全端末へ送信
         const subs = await db

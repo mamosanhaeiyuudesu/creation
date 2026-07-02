@@ -1,7 +1,8 @@
 import { getSessionUser } from '~/server/utils/auth'
 import { sendPush, type PushSubscriptionRecord, type VapidKeys } from '~/server/utils/web-push'
+import { buildHagemashiPayload } from '~/server/utils/hagemashi-message'
 
-// 即座にテスト用プッシュ通知を送信し、各端末の送信結果を返す
+// 即座に「実際のはげまし／ナッジ」を送信し、各端末の送信結果を返す
 export default defineEventHandler(async (event) => {
   const user = await getSessionUser(event)
   if (!user) throw createError({ statusCode: 401, message: '未ログイン' })
@@ -30,12 +31,14 @@ export default defineEventHandler(async (event) => {
     return { ok: false, message: '購読が登録されていません', results: [] }
   }
 
-  const payload = {
-    title: 'はげまし テスト',
-    body: 'テスト通知です。届いていれば成功です！',
-    url: '/hagemashi',
-    tag: 'hagemashi-test',
-  }
+  // 実際の通知と同じ内容（傾向分析の励まし／沈黙ナッジ）を組み立て
+  const prefRow = await db
+    .prepare('SELECT nudge_after_silent_days FROM hagemashi_push_prefs WHERE user_id = ?')
+    .bind(user.id)
+    .first() as { nudge_after_silent_days: number } | null
+  const nudgeAfterSilentDays = prefRow?.nudge_after_silent_days ?? 3
+
+  const payload = await buildHagemashiPayload(db, user.id, nudgeAfterSilentDays, anthropicApiKey as string)
 
   const results: { endpoint: string; ok: boolean; statusCode: number; expired: boolean; error?: string }[] = []
 
