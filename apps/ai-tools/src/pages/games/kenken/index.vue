@@ -168,10 +168,13 @@
       <div class="flex flex-wrap gap-2 justify-center mt-4" :style="{ maxWidth: boardPx + 'px' }">
         <button
           v-for="n in size" :key="n"
-          class="rounded-xl font-bold border transition-all cursor-pointer active:scale-95"
-          :class="memoMode
-            ? 'bg-amber-500/10 border-amber-400/40 text-amber-200 hover:bg-amber-500/20'
-            : 'bg-white/[0.06] border-white/10 text-slate-100 hover:bg-emerald-500/20 hover:border-emerald-400/40'"
+          class="relative rounded-xl font-bold border transition-all cursor-pointer active:scale-95"
+          :class="[
+            memoMode
+              ? 'bg-amber-500/10 border-amber-400/40 text-amber-200 hover:bg-amber-500/20'
+              : 'bg-white/[0.06] border-white/10 text-slate-100 hover:bg-emerald-500/20 hover:border-emerald-400/40',
+            gpConnected && penValue === n ? 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-slate-950' : ''
+          ]"
           :style="{ width: padPx + 'px', height: padPx + 'px', fontSize: (padPx * 0.42) + 'px' }"
           @click="inputNumber(n)"
         >{{ n }}</button>
@@ -192,6 +195,21 @@
       <div class="flex gap-4 mt-4 text-xs text-slate-500">
         <button class="cursor-pointer bg-transparent border-none text-slate-500 hover:text-slate-300 transition-colors" @click="newPuzzle">🔄 別の問題</button>
         <span>ヒント使用: {{ hintsUsed }}</span>
+      </div>
+
+      <!-- コントローラー -->
+      <div class="mt-4 flex flex-col items-center gap-2">
+        <div class="flex items-center gap-1.5 text-xs" :class="gpConnected ? 'text-emerald-400' : 'text-slate-600'">
+          <span>🎮</span>
+          <span>{{ gpConnected ? 'コントローラー接続中' : 'コントローラー未接続（繋いでボタンを押すと認識）' }}</span>
+        </div>
+        <div v-if="gpConnected" class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+          <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono">十字/スティック</kbd>移動</span>
+          <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono">L / R</kbd>数字えらぶ</span>
+          <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono">○</kbd>置く</span>
+          <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono">✕ □</kbd>消す</span>
+          <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono">△</kbd>メモ</span>
+        </div>
       </div>
     </template>
   </div>
@@ -232,6 +250,10 @@ const selectedCell = ref<number | null>(null)
 const memoMode = ref(false)
 const history = ref<{ board: number[]; notes: number[][] }[]>([])
 const hintsUsed = ref(0)
+
+// ── ゲームパッド ──
+const gpConnected = ref(false)
+const penValue = ref(1)   // コントローラーで「○」を押したときに置く数字
 
 // ── 進捗（localStorage）──
 const unlocked = ref(0)
@@ -400,10 +422,11 @@ function generate(def: StageDef) {
       fixed.value[c] = true
     }
   }
-  selectedCell.value = null
+  selectedCell.value = 0
   memoMode.value = false
   history.value = []
   hintsUsed.value = 0
+  penValue.value = 1
 }
 
 // ═══════════════════ 描画ヘルパー ═══════════════════
@@ -536,7 +559,22 @@ function snapshot() {
   if (history.value.length > 200) history.value.shift()
 }
 
+function moveSel(dr: number, dc: number) {
+  const n = size.value
+  if (selectedCell.value === null) { selectedCell.value = 0; return }
+  const r = Math.floor(selectedCell.value / n), c = selectedCell.value % n
+  const nr = Math.min(n - 1, Math.max(0, r + dr))
+  const nc = Math.min(n - 1, Math.max(0, c + dc))
+  selectedCell.value = nr * n + nc
+}
+
+function changePen(delta: number) {
+  const n = size.value
+  penValue.value = ((penValue.value - 1 + delta + n) % n) + 1
+}
+
 function inputNumber(v: number) {
+  penValue.value = v
   const i = selectedCell.value
   if (i === null || fixed.value[i]) return
   if (memoMode.value) {
@@ -685,7 +723,6 @@ function formatTime(s: number): string {
 function handleKey(e: KeyboardEvent) {
   if (phase.value !== 'playing') return
   const n = size.value
-  const sel = selectedCell.value
   if (e.key >= '1' && e.key <= '9') {
     const v = Number(e.key)
     if (v <= n) { inputNumber(v); e.preventDefault() }
@@ -693,16 +730,90 @@ function handleKey(e: KeyboardEvent) {
     erase(); e.preventDefault()
   } else if (e.key.toLowerCase() === 'm') {
     memoMode.value = !memoMode.value
-  } else if (sel !== null && e.key.startsWith('Arrow')) {
-    const r = Math.floor(sel / n), c = sel % n
-    let nr = r, nc = c
-    if (e.key === 'ArrowUp') nr = Math.max(0, r - 1)
-    if (e.key === 'ArrowDown') nr = Math.min(n - 1, r + 1)
-    if (e.key === 'ArrowLeft') nc = Math.max(0, c - 1)
-    if (e.key === 'ArrowRight') nc = Math.min(n - 1, c + 1)
-    selectedCell.value = nr * n + nc
+  } else if (e.key.startsWith('Arrow')) {
+    if (e.key === 'ArrowUp') moveSel(-1, 0)
+    if (e.key === 'ArrowDown') moveSel(1, 0)
+    if (e.key === 'ArrowLeft') moveSel(0, -1)
+    if (e.key === 'ArrowRight') moveSel(0, 1)
     e.preventDefault()
   }
+}
+
+// ═══════════════════ ゲームパッド ═══════════════════
+// パネルでポンと同じく requestAnimationFrame でポーリング。
+// 十字キー/スティック=カーソル移動、L/R=数字選択、○=配置、✕□=消す、△=メモ。
+const REPEAT_DELAY = 300   // 押し続けでリピート開始まで(ms)
+const REPEAT_RATE = 120    // リピート間隔(ms)
+interface BtnState { held: boolean; heldAt: number; lastRepeat: number }
+const gpRepeat: Record<string, BtnState> = {}
+const gpEdge: Record<string, boolean> = {}
+let rafId: number | null = null
+
+function pollGamepad(now: number) {
+  const gp = [...(navigator.getGamepads?.() ?? [])].find(g => g !== null)
+  gpConnected.value = !!gp
+  if (!gp) return
+
+  const THR = 0.5
+  const b = (i: number) => gp.buttons[i]?.pressed ?? false
+  const ax = (i: number) => gp.axes[i] ?? 0
+
+  // ── リピートあり（方向＋数字選択）──
+  const repeatMap: Record<string, boolean> = {
+    up:      b(12) || ax(1) < -THR,
+    down:    b(13) || ax(1) >  THR,
+    left:    b(14) || ax(0) < -THR,
+    right:   b(15) || ax(0) >  THR,
+    penDown: b(4) || b(6),          // L1 / L2
+    penUp:   b(5) || b(7),          // R1 / R2
+  }
+  const repeatAct: Record<string, () => void> = {
+    up:      () => moveSel(-1, 0),
+    down:    () => moveSel(1, 0),
+    left:    () => moveSel(0, -1),
+    right:   () => moveSel(0, 1),
+    penDown: () => changePen(-1),
+    penUp:   () => changePen(1),
+  }
+  const canMove = phase.value === 'playing'
+  for (const key of Object.keys(repeatMap)) {
+    const pressed = repeatMap[key] && canMove
+    const s = gpRepeat[key] ?? { held: false, heldAt: 0, lastRepeat: 0 }
+    if (pressed) {
+      if (!s.held) { repeatAct[key](); gpRepeat[key] = { held: true, heldAt: now, lastRepeat: now } }
+      else if (now - s.heldAt > REPEAT_DELAY && now - s.lastRepeat > REPEAT_RATE) {
+        repeatAct[key](); gpRepeat[key] = { ...s, lastRepeat: now }
+      }
+    } else {
+      gpRepeat[key] = { held: false, heldAt: 0, lastRepeat: 0 }
+    }
+  }
+
+  // ── エッジ検出（アクション）──
+  const edgeMap: Record<string, boolean> = {
+    place: b(1),          // ○
+    erase: b(0) || b(2),  // ✕ / □
+    memo:  b(3),          // △
+  }
+  for (const key of Object.keys(edgeMap)) {
+    const pressed = edgeMap[key]
+    if (pressed && !gpEdge[key]) {
+      if (phase.value === 'clear') {
+        // クリア画面では ○ で次へ進む
+        if (key === 'place') { stage.value < STAGES.length - 1 ? goStage(stage.value + 1) : (phase.value = 'select') }
+      } else if (phase.value === 'playing') {
+        if (key === 'place') inputNumber(penValue.value)
+        if (key === 'erase') erase()
+        if (key === 'memo')  memoMode.value = !memoMode.value
+      }
+    }
+    gpEdge[key] = pressed
+  }
+}
+
+function gamepadLoop(now: number) {
+  pollGamepad(now)
+  rafId = requestAnimationFrame(gamepadLoop)
 }
 
 onMounted(() => {
@@ -710,11 +821,13 @@ onMounted(() => {
   computeBoardPx()
   window.addEventListener('resize', computeBoardPx)
   window.addEventListener('keydown', handleKey)
+  rafId = requestAnimationFrame(gamepadLoop)
 })
 onUnmounted(() => {
   stopTimer()
   window.removeEventListener('resize', computeBoardPx)
   window.removeEventListener('keydown', handleKey)
+  if (rafId !== null) cancelAnimationFrame(rafId)
 })
 </script>
 

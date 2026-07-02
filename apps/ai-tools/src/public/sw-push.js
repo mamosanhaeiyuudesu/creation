@@ -26,17 +26,21 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const url = (event.notification.data && event.notification.data.url) || '/hagemashi'
 
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      const hagemashiClient = clientList.find((c) => c.url.includes('/hagemashi'))
-      if (hagemashiClient) {
-        // iOS Safari は navigate() 未対応のため postMessage でページへ伝達
-        hagemashiClient.postMessage({ type: 'hagemashi-push-click', url })
-        return hagemashiClient.focus()
-      }
-      // アプリ未起動 → 絶対URLで新規起動（?push= を引き継ぐ）
-      const absoluteUrl = url.startsWith('http') ? url : self.location.origin + url
-      return self.clients.openWindow(absoluteUrl)
-    })
-  )
+  event.waitUntil((async () => {
+    // CacheStorage に書いておく → postMessage が届かなくても、ページ起動時に読める（iOS 対策）
+    try {
+      const cache = await caches.open('hagemashi-pending')
+      await cache.put('/__pending-push', new Response(url))
+    } catch (_e) {}
+
+    const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    const hagemashiClient = clientList.find((c) => c.url.includes('/hagemashi'))
+    if (hagemashiClient) {
+      // すでに開いているウィンドウには postMessage でも伝達（キャッシュとの二重保険）
+      try { hagemashiClient.postMessage({ type: 'hagemashi-push-click', url }) } catch (_e) {}
+      return hagemashiClient.focus()
+    }
+    const absoluteUrl = url.startsWith('http') ? url : self.location.origin + url
+    return self.clients.openWindow(absoluteUrl)
+  })())
 })

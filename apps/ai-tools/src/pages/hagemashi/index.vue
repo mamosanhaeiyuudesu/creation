@@ -1157,13 +1157,24 @@ if (!$dev) {
       profileHistory.value = profile.status === 'fulfilled' ? (profile.value?.profiles ?? []) : []
       stoplist.value = (sl.status === 'fulfilled' && sl.value.length > 0) ? sl.value : [...DEFAULT_STOPLIST]
 
-      // Push 通知からの遷移: ?push=<id> があれば内容を表示
-      const pushId = route.query.push as string | undefined
+      // Push 通知クリック後の表示：URL クエリ → SW キャッシュ の順に pushId を探す
+      let pushId = route.query.push as string | undefined
+      if (!pushId && 'caches' in window) {
+        try {
+          const cache = await caches.open('hagemashi-pending')
+          const res = await cache.match('/__pending-push')
+          if (res) {
+            const pendingUrl = await res.text()
+            await cache.delete('/__pending-push')
+            pushId = new URL(pendingUrl, location.origin).searchParams.get('push') ?? undefined
+          }
+        } catch {}
+      }
       if (pushId) {
         try {
           pushLogEntry.value = await $fetch<PushLogEntry>(`/api/hagemashi/push/log/${pushId}`)
           pushLogModal.value = true
-          router.replace('/hagemashi')
+          if (route.query.push) router.replace('/hagemashi')
         } catch {}
       }
     },
