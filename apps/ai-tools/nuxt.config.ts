@@ -30,7 +30,8 @@ gtag('config', 'G-JRBVTJYCEH');`,
     workbox: {
       navigateFallback: null,
       // Web Push（push / notificationclick）ハンドラを追加で読み込む
-      importScripts: ['/sw-push.js'],
+      // ?v= を上げると sw.js の内容が変わり、iOS でも SW 更新が確実に走る（sw-push.js 変更時は必ず上げる）
+      importScripts: ['/sw-push.js?v=7'],
       globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
       runtimeCaching: [
         {

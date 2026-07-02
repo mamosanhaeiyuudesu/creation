@@ -939,10 +939,12 @@ async function dbgManualCheck() {
   try {
     const cache = await caches.open('hagemashi-pending')
     const pend = await cache.match('/__pending-push')
-    const log = await cache.match('/__click-log')
+    const pushLog = await cache.match('/__push-log')
+    const clickLog = await cache.match('/__click-log')
     const pendTxt = pend ? await pend.text() : '(empty)'
-    const logTxt = log ? await log.text() : '(no click log)'
-    dbg.lastPulled = `pend=${pendTxt} | ${logTxt}`
+    const pushTxt = pushLog ? await pushLog.text() : '(no push log)'
+    const clickTxt = clickLog ? await clickLog.text() : '(no click log)'
+    dbg.lastPulled = `pend=${pendTxt} || ${pushTxt} || ${clickTxt}`
   } catch (e) { dbg.lastPulled = 'err:' + String(e) }
 }
 
@@ -981,6 +983,9 @@ onMounted(() => {
       pullPendingPush()
     }
   })
+  // iOS で visibilitychange が不安定なため focus / pageshow でも拾う
+  window.addEventListener('focus', () => { dbg.visibility++; pullPendingPush() })
+  window.addEventListener('pageshow', () => { dbg.visibility++; pullPendingPush() })
 })
 const isMigrating = ref(false)
 const migrateStatus = ref('')

@@ -77,9 +77,10 @@ export async function savePushEncouragement(db: any, userId: string, payload: Ha
   const id = Date.now().toString()
   const createdAt = new Date().toISOString().replace('T', ' ').replace('Z', '')
   const title = payload.body.length > 20 ? payload.body.slice(0, 20) + '…' : payload.body
+  // notes は NOT NULL 制約のため空文字を渡す（null だと制約違反で INSERT 失敗する）
   await db
     .prepare('INSERT INTO app_history (id, user_id, app, text, title, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    .bind(id, userId, 'hagemashi-encourage', payload.body, title, null, createdAt)
+    .bind(id, userId, 'hagemashi-encourage', payload.body, title, '', createdAt)
     .run()
   return id
 }
