@@ -28,6 +28,30 @@ const SESSIONS = [
     date: '2026-06-04',
     label: 'watch-2026-06-04_13-09-47',
   },
+  {
+    folder: 'SensorLogFiles_my_iOS_device_260630_16-56-37',
+    file: '2026-06-04_07_12_09_Apple Watch.csv',
+    date: '2026-06-04',
+    label: 'watch-2026-06-04_07-12-09',
+  },
+  {
+    folder: 'SensorLogFiles_my_iOS_device_260630_16-56-37',
+    file: '2026-06-05_16_31_02_Apple Watch.csv',
+    date: '2026-06-05',
+    label: 'watch-2026-06-05_16-31-02',
+  },
+  {
+    folder: 'SensorLogFiles_my_iOS_device_260630_16-56-37',
+    file: '2026-06-07_10_26_12_Apple Watch.csv',
+    date: '2026-06-07',
+    label: 'watch-2026-06-07_10-26-12',
+  },
+  {
+    folder: 'SensorLogFiles_my_iOS_device_260630_16-56-37',
+    file: '2026-06-18_08_02_54_Apple Watch.csv',
+    date: '2026-06-18',
+    label: 'watch-2026-06-18_08-02-54',
+  },
 ]
 
 // CSV列インデックス（0始まり）

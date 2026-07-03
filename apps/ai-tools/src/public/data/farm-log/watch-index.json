@@ -1,5 +1,32 @@
 [
   {
+    "date": "2026-06-18",
+    "label": "watch-2026-06-18_08-02-54",
+    "durationSec": 5970,
+    "totalDistanceM": 37,
+    "maxHR": 123,
+    "avgHR": 97,
+    "totalSteps": 16194
+  },
+  {
+    "date": "2026-06-07",
+    "label": "watch-2026-06-07_10-26-12",
+    "durationSec": 5990,
+    "totalDistanceM": 3,
+    "maxHR": 75,
+    "avgHR": 75,
+    "totalSteps": 29947
+  },
+  {
+    "date": "2026-06-05",
+    "label": "watch-2026-06-05_16-31-02",
+    "durationSec": 40,
+    "totalDistanceM": 21,
+    "maxHR": 101,
+    "avgHR": 101,
+    "totalSteps": 18007
+  },
+  {
     "date": "2026-06-05",
     "label": "watch-2026-06-05_12-51-54",
     "durationSec": 3590,
@@ -16,6 +43,15 @@
     "maxHR": 167,
     "avgHR": 152,
     "totalSteps": 13430
+  },
+  {
+    "date": "2026-06-04",
+    "label": "watch-2026-06-04_07-12-09",
+    "durationSec": 1170,
+    "totalDistanceM": 9655,
+    "maxHR": 65,
+    "avgHR": 55,
+    "totalSteps": 457
   },
   {
     "date": "2026-06-02",
