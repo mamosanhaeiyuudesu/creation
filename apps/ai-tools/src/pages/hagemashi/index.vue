@@ -3,7 +3,7 @@
     <div v-if="showSettingsMenu" class="fixed inset-0 z-40" @click="showSettingsMenu = false" />
     <div class="relative z-50 w-full max-w-[600px] ml-2.5">
       <div class="absolute inset-x-0 top-0 h-[2px] rounded-t-2xl bg-gradient-to-r from-orange-500 to-pink-500 z-10" />
-      <div class="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl p-7 shadow-[0_20px_80px_rgba(0,0,0,0.35),0_0_40px_rgba(249,115,22,0.06)] backdrop-blur-[10px] grid gap-4 max-h-[70dvh] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
+      <div class="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl pt-7 px-3.5 pb-3 shadow-[0_20px_80px_rgba(0,0,0,0.35),0_0_40px_rgba(249,115,22,0.06)] backdrop-blur-[10px] grid gap-4 max-h-[90dvh] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
 
       <!-- Header -->
       <header class="relative flex items-center justify-start">
@@ -76,9 +76,14 @@
             class="px-2.5 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer"
             :class="activeTab === t.key ? 'border-orange-500/60 bg-orange-500/15 text-orange-300' : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
             @click="activeTab = t.key"
-          >{{ t.label }}</button>
+          ><span class="sm:hidden">{{ t.short }}</span><span class="hidden sm:inline">{{ t.label }}</span></button>
         </div>
-        <div class="flex items-center gap-2 mb-1 min-h-8">
+        <div
+          class="flex items-center gap-2 mb-1"
+          :class="activeTab === 'summary' || activeTab === 'words' || activeTab === 'profile'
+            ? 'min-h-8'
+            : activeTab === 'transcription' ? 'min-h-4' : 'min-h-0'"
+        >
           <template v-if="activeTab === 'summary'">
             <div class="flex-1" />
             <button
@@ -122,6 +127,7 @@
           :history="history"
           :copiedId="copiedHistoryId"
           :hideHeader="true"
+          :mobileMinimal="true"
           @copy="copyHistory"
           @delete="deleteHistory"
           @updateTitle="updateHistoryTitle"
@@ -132,6 +138,7 @@
           :copiedId="copiedEncourageId"
           :hideHeader="true"
           :markdown="true"
+          :mobileMinimal="true"
           @copy="copyEncourageHistory"
           @delete="deleteEncourageHistory"
           @updateTitle="updateEncourageHistoryTitle"
@@ -748,11 +755,11 @@ watch(() => route.query.tab, () => {
   if (t && t !== activeTab.value) activeTab.value = t
 })
 
-const recordingTabs: { key: RecordingTab; label: string }[] = [
-  { key: 'transcription', label: '文字起こし' },
-  { key: 'words', label: '単語' },
-  { key: 'summary', label: '中間データ' },
-  { key: 'profile', label: '長期傾向' },
+const recordingTabs: { key: RecordingTab; label: string; short: string }[] = [
+  { key: 'transcription', label: '文字起こし', short: '文字' },
+  { key: 'words', label: '単語', short: '単語' },
+  { key: 'summary', label: '中間データ', short: '中間' },
+  { key: 'profile', label: '長期傾向', short: '傾向' },
 ]
 const isRecordingTab = computed(() => recordingTabs.some(t => t.key === activeTab.value))
 function openRecording() {

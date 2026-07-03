@@ -12,9 +12,13 @@
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08]">タイトル</th>
             <th
               class="py-1.5 px-2 text-right text-slate-500 font-medium border-b border-white/[0.08] w-[56px] whitespace-nowrap cursor-pointer select-none hover:text-slate-300 transition-colors"
+              :class="mobileMinimal ? 'hidden sm:table-cell' : ''"
               @click="toggleSort('length')"
             >文字数 <span class="text-[10px] opacity-60">{{ sortIcon('length') }}</span></th>
-            <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-8 text-center whitespace-nowrap">コピー</th>
+            <th
+              class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-8 text-center whitespace-nowrap"
+              :class="mobileMinimal ? 'hidden sm:table-cell' : ''"
+            >コピー</th>
             <th class="py-1.5 px-2 text-left text-slate-500 font-medium border-b border-white/[0.08] w-[52px] text-center">削除</th>
           </tr>
         </thead>
@@ -31,8 +35,8 @@
             >
               <span class="truncate block">{{ item.title }}</span>
             </td>
-            <td class="py-1.5 px-2 text-slate-500 border-b border-white/[0.04] text-right w-[56px] tabular-nums whitespace-nowrap">{{ item.text.length.toLocaleString() }}</td>
-            <td class="py-1.5 px-2 text-slate-300 border-b border-white/[0.04] text-center w-8">
+            <td class="py-1.5 px-2 text-slate-500 border-b border-white/[0.04] text-right w-[56px] tabular-nums whitespace-nowrap" :class="mobileMinimal ? 'hidden sm:table-cell' : ''">{{ item.text.length.toLocaleString() }}</td>
+            <td class="py-1.5 px-2 text-slate-300 border-b border-white/[0.04] text-center w-8" :class="mobileMinimal ? 'hidden sm:table-cell' : ''">
               <button
                 class="bg-transparent border-none cursor-pointer p-1 rounded text-[13px] leading-none transition-colors hover:bg-white/[0.08]"
                 :title="item.id === copiedId ? 'コピーしました!' : 'コピー'"
@@ -132,6 +136,7 @@ const props = defineProps<{
   copiedId: string | null
   hideHeader?: boolean
   markdown?: boolean
+  mobileMinimal?: boolean
 }>()
 
 type SortKey = 'timestamp' | 'length'
