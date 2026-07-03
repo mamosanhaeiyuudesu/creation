@@ -6,10 +6,9 @@
       <div class="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl p-7 shadow-[0_20px_80px_rgba(0,0,0,0.35),0_0_40px_rgba(249,115,22,0.06)] backdrop-blur-[10px] grid gap-4 max-h-[70dvh] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
 
       <!-- Header -->
-      <header class="relative flex items-center justify-center">
-        <div class="text-center">
-          <h1 class="m-0 text-[clamp(24px,4vw,32px)] font-bold bg-gradient-to-br from-orange-500 to-pink-500 bg-clip-text text-transparent">はげまし</h1>
-          <p class="mt-2 mb-0 text-slate-400 text-base">話して、はげましてもらおう</p>
+      <header class="relative flex items-center justify-start">
+        <div class="text-left">
+          <h1 class="m-0 text-[clamp(12px,2vw,16px)] font-bold bg-gradient-to-br from-orange-500 to-pink-500 bg-clip-text text-transparent">はげまし</h1>
         </div>
         <div class="absolute right-0 top-1/2 -translate-y-1/2" @click.stop>
           <button
@@ -34,57 +33,30 @@
       <!-- Recorder -->
       <div class="flex flex-col items-center gap-3">
         <div class="flex gap-4 items-center">
-          <template v-if="isRecording">
-            <button class="w-20 h-20 rounded-full border-2 border-red-500 bg-red-500/10 text-slate-50 text-2xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:bg-red-500/20" @click="pauseRecording">
-              <span class="block leading-none">⏸️</span>
-              <span class="text-[10px] font-medium">一時停止</span>
-            </button>
-          </template>
-          <template v-else-if="isPaused">
-            <div class="flex rounded-full overflow-hidden border-2 border-orange-500 h-20">
-              <button class="flex flex-col items-center justify-center gap-1 w-20 bg-orange-500/10 border-none text-slate-50 cursor-pointer transition-colors hover:bg-orange-500/25 p-0" @click="resumeRecording">
-                <span class="text-xl leading-none">▶</span>
-                <span class="text-[10px] font-medium">再開</span>
-              </button>
-              <div class="w-px bg-orange-500/40 self-stretch" />
-              <button class="flex flex-col items-center justify-center gap-1 w-20 bg-red-500/10 border-none text-slate-50 cursor-pointer transition-colors hover:bg-red-500/25 p-0" @click="cancelRecording">
-                <span class="text-xl leading-none">✕</span>
-                <span class="text-[10px] font-medium">中止</span>
-              </button>
-              <div class="w-px bg-orange-500/40 self-stretch" />
-              <button class="flex flex-col items-center justify-center gap-1 w-20 bg-green-400/10 border-none text-slate-50 cursor-pointer transition-colors hover:bg-green-400/25 p-0" @click="transcribeRecording">
-                <span class="text-xl leading-none">✍️</span>
-                <span class="text-[10px] font-medium">文字起こし</span>
-              </button>
-            </div>
-          </template>
-          <template v-else-if="isProcessing">
-            <button class="w-20 h-20 rounded-full border-2 border-orange-500 bg-orange-500/10 text-slate-50 text-2xl flex flex-col items-center justify-center gap-1 opacity-60 cursor-not-allowed" disabled>
-              <span class="block leading-none">⏳</span>
-              <span class="text-[10px] font-medium">解析中</span>
-            </button>
-          </template>
-          <template v-else>
-            <button class="w-20 h-20 rounded-full border-2 border-orange-500 bg-orange-500/10 text-slate-50 text-2xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:bg-orange-500/20 hover:scale-105" @click="startRecording">
-              <span class="block leading-none">🎙️</span>
-              <span class="text-[10px] font-medium">録音</span>
-            </button>
-          </template>
+          <button class="w-[62px] h-[62px] rounded-full border-2 border-orange-500 bg-orange-500/10 text-slate-50 text-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:bg-orange-500/20 hover:scale-105" @click="openRecording(); recordConfirmOpen = true">
+            <span class="block leading-none">🎙️</span>
+            <span class="text-[9px] font-medium">録音</span>
+          </button>
 
           <!-- はげまし button -->
           <button
-            v-if="!isRecording && !isPaused && !isProcessing"
-            class="w-20 h-20 rounded-full border-2 border-orange-500/50 bg-orange-500/[0.08] text-slate-50 flex flex-col items-center justify-center gap-1 transition-all disabled:opacity-35 disabled:cursor-not-allowed"
+            class="w-[62px] h-[62px] rounded-full border-2 border-orange-500/50 bg-orange-500/[0.08] text-slate-50 flex flex-col items-center justify-center gap-1 transition-all disabled:opacity-35 disabled:cursor-not-allowed"
             :class="history.length > 0 && !isEncouraging ? 'cursor-pointer hover:bg-orange-500/[0.20] hover:border-orange-500/80 hover:scale-105' : ''"
             :disabled="history.length === 0 || isEncouraging"
             @click="openSelectModal"
           >
-            <span class="text-2xl leading-none">💪</span>
-            <span class="text-[10px] font-medium">はげまし</span>
+            <span class="text-xl leading-none">💪</span>
+            <span class="text-[9px] font-medium">はげまし</span>
           </button>
-        </div>
-        <div v-if="isRecording || duration > 0" class="text-xl text-red-500 font-mono font-semibold">
-          {{ formatTime(duration) }}
+
+          <!-- 相談 button -->
+          <button
+            class="w-[62px] h-[62px] rounded-full border-2 border-orange-500/50 bg-orange-500/[0.08] text-slate-50 cursor-pointer flex flex-col items-center justify-center gap-1 transition-all hover:bg-orange-500/[0.20] hover:border-orange-500/80 hover:scale-105"
+            @click="activeTab = 'consult'"
+          >
+            <span class="text-xl leading-none">💬</span>
+            <span class="text-[9px] font-medium">相談</span>
+          </button>
         </div>
       </div>
 
@@ -96,24 +68,6 @@
 
       <!-- History tabs -->
       <div class="mt-1 min-w-0">
-        <div class="flex items-center gap-0 border-b border-white/[0.08]">
-          <button
-            class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
-            :class="isRecordingTab ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
-            @click="openRecording"
-          >録音</button>
-          <button
-            class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
-            :class="activeTab === 'encourage' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
-            @click="activeTab = 'encourage'"
-          ><span class="sm:hidden">はげ</span><span class="hidden sm:inline">はげまし</span></button>
-          <button
-            class="px-3 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors"
-            :class="activeTab === 'consult' ? 'border-orange-500 text-slate-50' : 'border-transparent text-slate-400 hover:text-slate-300'"
-            @click="activeTab = 'consult'"
-          >相談</button>
-        </div>
-
         <!-- 録音 サブタブ（文字起こし・単語・中間データ・長期傾向） -->
         <div v-if="isRecordingTab" class="flex items-center gap-1.5 mt-2">
           <button
@@ -359,6 +313,56 @@
     <!-- Auth Modal -->
     <AuthModal v-if="!$dev && checked && !isLoggedIn" accent="orange" />
 
+    <!-- 録音開始確認 -->
+    <div v-if="recordConfirmOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="recordConfirmOpen = false">
+      <div class="w-full max-w-[300px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-5">
+        <p class="m-0 text-slate-200 text-sm text-center">録音を開始しますか？</p>
+        <div class="flex justify-center gap-2">
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="recordConfirmOpen = false">キャンセル</button>
+          <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="confirmStartRecording">🎙️ 開始</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 録音中モーダル（他画面の操作をブロック） -->
+    <div v-if="isRecording || isPaused || isProcessing" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+      <div class="w-full max-w-[360px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-7 flex flex-col items-center gap-5">
+        <div class="text-xl text-red-500 font-mono font-semibold">{{ formatTime(duration) }}</div>
+        <div class="flex gap-4 items-center">
+          <template v-if="isRecording">
+            <button class="w-[62px] h-[62px] rounded-full border-2 border-red-500 bg-red-500/10 text-slate-50 text-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:bg-red-500/20" @click="pauseRecording">
+              <span class="block leading-none">⏸️</span>
+              <span class="text-[9px] font-medium">一時停止</span>
+            </button>
+          </template>
+          <template v-else-if="isPaused">
+            <div class="flex rounded-full overflow-hidden border-2 border-orange-500 h-[62px]">
+              <button class="flex flex-col items-center justify-center gap-1 w-[62px] bg-orange-500/10 border-none text-slate-50 cursor-pointer transition-colors hover:bg-orange-500/25 p-0" @click="resumeRecording">
+                <span class="text-base leading-none">▶</span>
+                <span class="text-[9px] font-medium">再開</span>
+              </button>
+              <div class="w-px bg-orange-500/40 self-stretch" />
+              <button class="flex flex-col items-center justify-center gap-1 w-[62px] bg-red-500/10 border-none text-slate-50 cursor-pointer transition-colors hover:bg-red-500/25 p-0" @click="cancelRecording">
+                <span class="text-base leading-none">✕</span>
+                <span class="text-[9px] font-medium">中止</span>
+              </button>
+              <div class="w-px bg-orange-500/40 self-stretch" />
+              <button class="flex flex-col items-center justify-center gap-1 w-[62px] bg-green-400/10 border-none text-slate-50 cursor-pointer transition-colors hover:bg-green-400/25 p-0" @click="transcribeRecording">
+                <span class="text-base leading-none">✍️</span>
+                <span class="text-[9px] font-medium">文字起こし</span>
+              </button>
+            </div>
+          </template>
+          <template v-else-if="isProcessing">
+            <button class="w-[62px] h-[62px] rounded-full border-2 border-orange-500 bg-orange-500/10 text-slate-50 text-xl flex flex-col items-center justify-center gap-1 opacity-60 cursor-not-allowed" disabled>
+              <span class="block leading-none">⏳</span>
+              <span class="text-[9px] font-medium">解析中</span>
+            </button>
+          </template>
+        </div>
+      </div>
+    </div>
+
     <!-- 辞書設定モーダル -->
     <div v-if="dictionaryOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="dictionaryOpen = false">
       <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
@@ -400,11 +404,11 @@
     </div>
 
     <!-- 履歴選択ポップアップ -->
-    <div v-if="selectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="selectOpen = false">
+    <div v-if="selectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="closeSelectModal">
       <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
           <h2 class="m-0 text-lg text-slate-50 font-semibold">はげます対象を選択</h2>
-          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="selectOpen = false">✕</button>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="closeSelectModal">✕</button>
         </div>
         <div class="px-4 py-3 overflow-y-auto flex flex-col gap-1 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
           <label class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer border-b border-white/[0.06] mb-1 hover:bg-white/[0.05] transition-colors">
@@ -478,7 +482,7 @@
           </div>
           <!-- アクションボタン -->
           <div class="flex items-center justify-end gap-2">
-            <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="selectOpen = false">キャンセル</button>
+            <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="closeSelectModal">キャンセル</button>
             <button
               class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
               :disabled="selectedIds.length === 0"
@@ -708,6 +712,7 @@ const ENCOURAGE_PROMPTS = {
 }
 
 const error = ref('')
+const recordConfirmOpen = ref(false)
 const showSettingsMenu = ref(false)
 const isMigrating = ref(false)
 const migrateStatus = ref('')
@@ -751,6 +756,11 @@ const recordingTabs: { key: RecordingTab; label: string }[] = [
 const isRecordingTab = computed(() => recordingTabs.some(t => t.key === activeTab.value))
 function openRecording() {
   if (!isRecordingTab.value) activeTab.value = 'transcription'
+}
+function confirmStartRecording() {
+  recordConfirmOpen.value = false
+  openRecording()
+  startRecording()
 }
 const charLimit = ref(1000)
 const encourageStyle = ref<'calm' | 'loud'>('loud')
@@ -1055,6 +1065,11 @@ const toggleAll = () => {
 const openSelectModal = () => {
   selectedIds.value = history.value.length > 0 ? [history.value[0].id] : []
   selectOpen.value = true
+}
+
+const closeSelectModal = () => {
+  selectOpen.value = false
+  activeTab.value = 'encourage'
 }
 
 const toggleSelect = (id: string) => {
