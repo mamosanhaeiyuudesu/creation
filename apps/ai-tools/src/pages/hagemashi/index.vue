@@ -125,41 +125,7 @@
           >{{ t.label }}</button>
         </div>
         <div class="flex items-center gap-2 mb-1 min-h-8">
-          <template v-if="activeTab === 'summary' && summaryRows.length > 0">
-            <input
-              v-model="summarySearchQuery"
-              type="search"
-              placeholder="検索..."
-              class="w-1/3 bg-white/[0.05] border border-white/[0.08] rounded-lg text-slate-200 text-xs px-2.5 py-1 outline-none focus:border-orange-500/60 transition-colors placeholder-slate-600 font-[inherit]"
-            />
-            <div class="flex gap-1 shrink-0">
-              <button
-                class="px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer"
-                :class="summaryFilter === 'all' ? 'border-white/20 bg-white/10 text-slate-200' : 'border-white/[0.06] bg-transparent text-slate-500 hover:text-slate-300'"
-                @click="summaryFilter = 'all'"
-              >全件</button>
-              <button
-                class="px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer"
-                :class="summaryFilter === 'ポジ' ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-400' : 'border-white/[0.06] bg-transparent text-slate-500 hover:text-slate-300'"
-                @click="summaryFilter = summaryFilter === 'ポジ' ? 'all' : 'ポジ'"
-              >ポジ</button>
-              <button
-                class="px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-all cursor-pointer"
-                :class="summaryFilter === 'ネガ' ? 'border-orange-500/60 bg-orange-500/15 text-orange-400' : 'border-white/[0.06] bg-transparent text-slate-500 hover:text-slate-300'"
-                @click="summaryFilter = summaryFilter === 'ネガ' ? 'all' : 'ネガ'"
-              >ネガ</button>
-            </div>
-            <div class="flex-1" />
-            <button
-              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
-              :disabled="isMigrating || history.length === 0"
-              @click="openMigrateSelect"
-            >
-              <span v-if="isMigrating" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
-              {{ migrateStatus || '再生成' }}
-            </button>
-          </template>
-          <template v-else-if="activeTab === 'summary'">
+          <template v-if="activeTab === 'summary'">
             <div class="flex-1" />
             <button
               class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
@@ -184,15 +150,18 @@
             <span v-if="isTokenizing" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
             {{ isTokenizing ? '集計中...' : '再集計' }}
           </button>
-          <button
-            v-if="activeTab === 'profile'"
-            class="ml-auto px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-            :disabled="isProfileLoading"
-            @click="generateProfile"
-          >
-            <span v-if="isProfileLoading" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
-            {{ isProfileLoading ? '生成中...' : '更新' }}
-          </button>
+          <template v-if="activeTab === 'profile'">
+            <div class="flex-1" />
+            <span v-if="profileHistory.length > 0" class="text-[11px] text-slate-600">最終更新: {{ formatProfileDate(profileHistory[0].generatedAt) }}</span>
+            <button
+              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+              :disabled="isProfileLoading"
+              @click="generateProfile"
+            >
+              <span v-if="isProfileLoading" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
+              {{ isProfileLoading ? '生成中...' : '更新' }}
+            </button>
+          </template>
         </div>
         <HistoryTable
           v-if="activeTab === 'transcription'"
@@ -218,12 +187,9 @@
           <div v-if="summaryRows.length === 0" class="text-center text-slate-500 text-sm py-10">
             録音を文字起こしすると中間データが生成されます
           </div>
-          <div v-else-if="filteredSummaryRows.length === 0" class="text-center text-slate-500 text-sm py-10">
-            条件に一致する項目がありません
-          </div>
           <div v-else class="flex flex-col gap-0">
             <div
-              v-for="(row, rowIndex) in filteredSummaryRows"
+              v-for="(row, rowIndex) in summaryRows"
               :key="`${row.id}-${rowIndex}`"
               class="flex flex-col gap-2 px-1 py-2 border-b border-white/[0.05] last:border-b-0"
             >
@@ -289,7 +255,6 @@
           <div v-else class="flex flex-col gap-4">
             <!-- 最新プロファイル -->
             <div class="flex flex-col gap-3">
-              <div class="text-right text-[11px] text-slate-600">最終更新: {{ formatProfileDate(profileHistory[0].generatedAt) }}</div>
               <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
                 <div class="text-xs font-semibold text-orange-400 mb-2">✨ 強み</div>
                 <template v-if="Array.isArray(profileHistory[0].strengths)">
@@ -384,7 +349,7 @@
             v-else
             :words="wordRanking.slice(0, 120)"
             :height="380"
-            @word-click="addToStoplist"
+            @word-click="confirmingStopword = $event"
           />
         </div>
       </div>
@@ -603,6 +568,17 @@
             :disabled="migrateSelectedIds.length === 0"
             @click="runMigrateSelected"
           >再生成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 除外単語追加確認 -->
+    <div v-if="confirmingStopword" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="confirmingStopword = null">
+      <div class="w-full max-w-[300px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-5">
+        <p class="m-0 text-slate-200 text-sm text-center">「{{ confirmingStopword }}」を除外単語に追加しますか？</p>
+        <div class="flex justify-center gap-2">
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="confirmingStopword = null">キャンセル</button>
+          <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="addToStoplist(confirmingStopword!); confirmingStopword = null">追加</button>
         </div>
       </div>
     </div>
@@ -865,6 +841,7 @@ const stoplistSet = computed(() => new Set(stoplist.value))
 const stoplistOpen = ref(false)
 const editingStoplist = ref<string[]>([])
 const newStopword = ref('')
+const confirmingStopword = ref<string | null>(null)
 
 watch(stoplistOpen, (open) => {
   if (open) { editingStoplist.value = [...stoplist.value]; newStopword.value = '' }
@@ -1189,9 +1166,6 @@ const copyResult = async () => {
 }
 
 // --- 中間データ ---
-const summarySearchQuery = ref('')
-const summaryFilter = ref<'all' | 'ポジ' | 'ネガ'>('all')
-
 interface SummaryNoteItem { sentiment: 'ポジ' | 'ネガ'; text: string }
 interface SummaryNoteNew { items: SummaryNoteItem[] }
 interface SummaryNoteOld { sentiment: 'ポジ' | 'ネガ'; text: string }
@@ -1270,15 +1244,6 @@ const summaryRows = computed(() => {
 const recentSummaryItems = computed(() =>
   summaryRows.value.slice(0, 30).map(r => ({ sentiment: r.sentiment, text: r.text, date: r.date }))
 )
-
-const filteredSummaryRows = computed(() => {
-  const q = summarySearchQuery.value.trim().toLowerCase()
-  return summaryRows.value.filter(row => {
-    if (summaryFilter.value !== 'all' && row.sentiment !== summaryFilter.value) return false
-    if (q && !row.text.toLowerCase().includes(q)) return false
-    return true
-  })
-})
 
 const deleteSummaryRow = (id: string, itemIndex: number | null) => {
   if (itemIndex === null) {
