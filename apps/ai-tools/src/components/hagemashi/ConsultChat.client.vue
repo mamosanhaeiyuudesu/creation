@@ -44,7 +44,7 @@
         class="flex-1 resize-none bg-white/[0.05] border border-white/[0.08] rounded-xl text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500/60 transition-colors placeholder-slate-600 font-[inherit] max-h-32"
         :disabled="streaming"
         @input="autoGrow"
-        @keydown.enter.exact.prevent="send"
+        @keydown.enter.exact="onEnter"
       />
       <button
         class="shrink-0 px-4 py-2 rounded-xl text-sm font-semibold border transition-all disabled:cursor-not-allowed"
@@ -97,6 +97,13 @@ function formatMsgTime(iso: string): string {
   const h = String(d.getUTCHours()).padStart(2, '0')
   const mi = String(d.getUTCMinutes()).padStart(2, '0')
   return `${h}:${mi}`
+}
+
+function onEnter(e: KeyboardEvent) {
+  // 日本語変換確定のEnterでは送信しない
+  if (e.isComposing || e.keyCode === 229) return
+  e.preventDefault()
+  send()
 }
 
 function autoGrow(e: Event) {
