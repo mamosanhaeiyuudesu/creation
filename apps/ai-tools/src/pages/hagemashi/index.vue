@@ -1279,6 +1279,7 @@ const handleTranscribed = async (text: string) => {
   const replaced = applyDictionary(text)
   const [title, notes] = await Promise.all([fetchTitle(replaced), fetchSummary(replaced)])
   const newId = addHistory(replaced, title, notes || undefined)
+  reTokenize()
   // 文字起こし完了後、この内容をはげますか確認（既存の選択ポップアップを再利用）
   selectedIds.value = [newId]
   selectOpen.value = true
