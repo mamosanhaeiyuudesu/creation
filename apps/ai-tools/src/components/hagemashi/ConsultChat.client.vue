@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full min-h-[280px] py-2">
+  <div class="flex flex-col h-[288px] py-2">
     <!-- メッセージ一覧 -->
     <div ref="scrollEl" class="flex-1 overflow-y-auto flex flex-col gap-3 px-0.5">
       <div v-if="loadingHistory && messages.length === 0" class="text-center text-slate-500 text-sm py-10 leading-relaxed">
