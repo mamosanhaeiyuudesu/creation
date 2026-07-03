@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-[288px] py-2">
+  <div class="flex flex-col h-[374px] py-2">
     <!-- メッセージ一覧 -->
     <div ref="scrollEl" class="flex-1 overflow-y-auto flex flex-col gap-3 px-0.5">
       <div v-if="loadingHistory && messages.length === 0" class="text-center text-slate-500 text-sm py-10 leading-relaxed">
@@ -22,7 +22,7 @@
         :class="m.role === 'user' ? 'self-end max-w-[85%]' : 'self-start max-w-[90%]'"
       >
         <div
-          class="text-sm leading-relaxed whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 border"
+          class="text-base sm:text-sm leading-relaxed whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 border"
           :class="m.role === 'user'
             ? 'bg-orange-500/15 border-orange-500/30 text-slate-100 rounded-br-sm'
             : 'bg-white/[0.04] border-white/[0.08] text-slate-200 rounded-bl-sm'"
