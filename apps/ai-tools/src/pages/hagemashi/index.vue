@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col items-center px-4 pt-4 lg:pt-8 pb-4 h-full" @click="showSettingsMenu = false">
+  <div class="flex flex-col items-center px-4 pt-4 lg:pt-8 pb-4 flex-1 min-h-0 w-full" @click="showSettingsMenu = false">
     <div v-if="showSettingsMenu" class="fixed inset-0 z-40" @click="showSettingsMenu = false" />
     <div class="relative z-50 w-full max-w-[600px] ml-2.5 flex-1 min-h-0 flex flex-col">
       <div class="absolute inset-x-0 top-0 h-[2px] rounded-t-2xl bg-gradient-to-r from-orange-500 to-pink-500 z-10" />
