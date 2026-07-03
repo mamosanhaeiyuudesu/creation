@@ -100,15 +100,6 @@
             class="ml-auto px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all"
             @click="stoplistOpen = true"
           >除外単語</button>
-          <button
-            v-if="activeTab === 'words'"
-            class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-            :disabled="isTokenizing || history.length === 0"
-            @click="reTokenize"
-          >
-            <span v-if="isTokenizing" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
-            {{ isTokenizing ? '集計中...' : '再集計' }}
-          </button>
           <template v-if="activeTab === 'profile'">
             <div class="flex-1" />
             <span v-if="profileHistory.length > 0" class="text-[11px] text-slate-600">最終更新: {{ formatProfileDate(profileHistory[0].generatedAt) }}</span>
