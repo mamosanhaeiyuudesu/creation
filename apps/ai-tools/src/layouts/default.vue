@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-screen">
+  <div class="flex flex-col h-[100dvh] overflow-hidden">
     <!-- PC header -->
     <header class="hidden lg:block border-b border-white/[0.08] px-8">
       <nav class="flex max-w-[1200px] mx-auto">
@@ -61,7 +61,7 @@
 
     <!-- Main -->
     <div class="flex flex-1 relative min-w-0">
-      <main class="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+      <main class="flex flex-col flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
         <slot />
       </main>
     </div>
