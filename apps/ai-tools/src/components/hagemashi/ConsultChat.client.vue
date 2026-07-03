@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-[374px] py-2">
+  <div class="flex flex-col h-full min-h-[280px] py-2">
     <!-- メッセージ一覧 -->
     <div ref="scrollEl" class="flex-1 overflow-y-auto flex flex-col gap-3 px-0.5">
       <div v-if="loadingHistory && messages.length === 0" class="text-center text-slate-500 text-sm py-10 leading-relaxed">
@@ -38,6 +38,7 @@
     <!-- 入力欄 -->
     <div class="mt-3 flex items-end gap-2">
       <textarea
+        ref="textareaEl"
         v-model="draft"
         rows="1"
         placeholder="相談したいことを入力..."
@@ -83,6 +84,7 @@ const historyError = ref(false)
 const loadedOk = ref(false)
 const errorMsg = ref('')
 const scrollEl = ref<HTMLElement>()
+const textareaEl = ref<HTMLTextAreaElement>()
 
 const canSend = computed(() => !streaming.value && draft.value.trim().length > 0)
 
@@ -136,6 +138,10 @@ async function send() {
   errorMsg.value = ''
   const content = draft.value.trim()
   draft.value = ''
+  // autoGrowで広がったtextareaの高さを元に戻す
+  nextTick(() => {
+    if (textareaEl.value) textareaEl.value.style.height = 'auto'
+  })
 
   const outgoing = [...messages.value, { role: 'user' as const, content }]
   messages.value.push({ role: 'user', content, timestamp: new Date().toISOString() })

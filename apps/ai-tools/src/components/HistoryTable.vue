@@ -1,7 +1,10 @@
 <template>
-  <div v-if="history.length > 0" class="mt-1 min-w-0">
+  <div v-if="history.length > 0" class="mt-1 min-w-0" :class="fill ? 'flex flex-col h-full min-h-0' : ''">
     <h2 v-if="!hideHeader" class="m-0 mb-3 text-base text-slate-400 font-medium">履歴</h2>
-    <div class="max-h-[280px] overflow-auto border border-white/[0.08] rounded-[10px] [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.15)_transparent]">
+    <div
+      class="overflow-auto border border-white/[0.08] rounded-[10px] [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.15)_transparent]"
+      :class="fill ? 'flex-1 min-h-0' : 'max-h-[280px]'"
+    >
       <table class="w-full border-collapse text-xs">
         <thead class="sticky top-0 bg-[rgba(15,23,42,0.95)] z-[1]">
           <tr>
@@ -132,6 +135,7 @@ const props = defineProps<{
   copiedId: string | null
   hideHeader?: boolean
   markdown?: boolean
+  fill?: boolean
 }>()
 
 type SortKey = 'timestamp' | 'length'
