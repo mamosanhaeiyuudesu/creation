@@ -323,7 +323,7 @@ function isWithinDays(d: string | null | undefined, days: number): boolean {
           <!-- 選手名 -->
           <span class="text-[14px] font-bold w-[80px] flex-shrink-0 truncate leading-tight" :style="{ color: card.color }">{{ shortName(card.nameJa) }}</span>
           <!-- チーム・順位 -->
-          <span class="text-[13px] text-slate-400 w-[46px] flex-shrink-0 leading-tight">{{ card.teamAbbr }}<span v-if="card.divisionRank !== null" class="text-[12px]"> {{ card.divisionRank }}位</span></span>
+          <span class="text-[13px] text-slate-400 flex-shrink-0 leading-tight">{{ card.teamAbbr }}<span v-if="card.divisionRank !== null" class="text-[12px]">（{{ card.divisionRank }}位）</span></span>
           <!-- ゲーム成績 -->
           <div class="flex items-center gap-x-2 flex-shrink-0 w-[196px]">
             <span class="text-[13px] font-mono text-slate-500 w-[30px]">{{ card.pitcherRows[0].date }}</span>
@@ -360,7 +360,7 @@ function isWithinDays(d: string | null | undefined, days: number): boolean {
           <!-- 選手名 -->
           <span class="text-[14px] font-bold w-[80px] flex-shrink-0 truncate leading-tight" :style="{ color: card.color }">{{ shortName(card.nameJa) }}</span>
           <!-- チーム・順位 -->
-          <span class="text-[13px] text-slate-400 w-[46px] flex-shrink-0 leading-tight">{{ card.teamAbbr }}<span v-if="card.divisionRank !== null" class="text-[12px]"> {{ card.divisionRank }}位</span></span>
+          <span class="text-[13px] text-slate-400 flex-shrink-0 leading-tight">{{ card.teamAbbr }}<span v-if="card.divisionRank !== null" class="text-[12px]">（{{ card.divisionRank }}位）</span></span>
           <!-- ゲーム成績 -->
           <div class="flex items-center gap-x-2 flex-shrink-0">
             <span class="text-[13px] font-mono text-slate-500 w-[30px] flex-shrink-0">{{ card.batterRows[0].date }}</span>
@@ -373,7 +373,7 @@ function isWithinDays(d: string | null | undefined, days: number): boolean {
               class="text-[14px] font-mono tabular-nums w-[28px] flex-shrink-0"
               :class="card.batterRows[0].hr > 0 ? 'text-amber-600 font-bold' : 'text-slate-600'"
             >{{ card.batterRows[0].hr }}<span class="text-[12px] text-slate-400">HR</span></span>
-            <span class="text-[14px] font-mono tabular-nums text-slate-600 w-[26px] flex-shrink-0">{{ card.batterRows[0].rbi }}<span class="text-[12px] text-slate-400">打</span></span>
+            <span class="text-[14px] font-mono tabular-nums text-slate-600 w-[26px] flex-shrink-0">{{ card.batterRows[0].rbi }}<span class="text-[12px] text-slate-400">点</span></span>
             <span class="text-[14px] font-mono tabular-nums text-slate-600 w-[24px] flex-shrink-0">{{ card.batterRows[0].runs }}<span class="text-[12px] text-slate-400">得</span></span>
           </div>
 
@@ -383,7 +383,7 @@ function isWithinDays(d: string | null | undefined, days: number): boolean {
           <span class="text-[13px] font-mono text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'avg', 'high'))">{{ card.batterTotals?.avg !== null && card.batterTotals?.avg !== undefined ? card.batterTotals.avg.toFixed(3).replace(/^0/, '') : '-' }}</span>
           <span class="text-[13px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'hits', 'high'))">{{ card.batterTotals?.hits ?? '-' }}<span class="text-[12px] text-slate-400">安</span></span>
           <span class="text-[13px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'hr', 'high'))">{{ card.batterTotals?.hr ?? 0 }}<span class="text-[12px] text-slate-400">本</span></span>
-          <span class="text-[13px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'rbi', 'high'))">{{ card.batterTotals?.rbi ?? '-' }}<span class="text-[12px] text-slate-400">打</span></span>
+          <span class="text-[13px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'rbi', 'high'))">{{ card.batterTotals?.rbi ?? '-' }}<span class="text-[12px] text-slate-400">点</span></span>
           <span class="text-[13px] font-mono tabular-nums text-slate-500 flex-shrink-0" :style="rankStyle(getPlayerRank(card.id, 'runs', 'high'))">{{ card.batterTotals?.runs ?? '-' }}<span class="text-[12px] text-slate-400">得</span></span>
         </div>
 
