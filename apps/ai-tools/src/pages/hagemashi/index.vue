@@ -288,14 +288,7 @@
           </div>
         </div>
 
-        <!-- 相談チャット -->
-        <HagemashiConsultChat
-          v-else-if="activeTab === 'consult'"
-          :profile="profileHistory[0] ?? null"
-          :summary-items="recentSummaryItems"
-        />
-
-        <div v-else class="py-2">
+        <div v-else-if="activeTab === 'words'" class="py-2">
           <div v-if="wordRanking.length === 0" class="text-center text-slate-500 text-sm py-10">
             再集計ボタンを押すとワードクラウドを生成します
           </div>
@@ -306,6 +299,14 @@
             @word-click="confirmingStopword = $event"
           />
         </div>
+
+        <!-- 相談チャット（タブ切替で破棄すると履歴が消えるため、常時マウントして v-show で表示切替） -->
+        <HagemashiConsultChat
+          v-show="activeTab === 'consult'"
+          :active="activeTab === 'consult'"
+          :profile="profileHistory[0] ?? null"
+          :summary-items="recentSummaryItems"
+        />
       </div>
       </div>
     </div>

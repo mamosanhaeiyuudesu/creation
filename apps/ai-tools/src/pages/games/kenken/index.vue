@@ -20,6 +20,13 @@
           <!-- ランキング登録 -->
           <div v-if="!recorded" class="bg-white/[0.04] border border-white/10 rounded-2xl p-3 mb-3">
             <p class="text-slate-400 text-xs mb-2">🏆 ランキングに登録（3文字）</p>
+            <div v-if="suggestedNames.length" class="flex flex-wrap gap-1.5 justify-center mb-2">
+              <button
+                v-for="name in suggestedNames" :key="name"
+                class="px-3 py-1 rounded-lg bg-white/[0.08] border border-white/10 text-slate-300 font-mono text-xs hover:bg-emerald-400/20 hover:border-emerald-400/40 hover:text-emerald-300 transition-colors cursor-pointer"
+                @click="selectSuggestedName(name)"
+              >{{ name }}</button>
+            </div>
             <div class="flex gap-2 items-center justify-center">
               <input
                 v-model="nameInput"
@@ -81,17 +88,12 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-xl">
         <button
           v-for="(s, i) in STAGES" :key="i"
-          class="text-left no-underline border rounded-2xl p-5 flex flex-col gap-2 transition-all duration-200 cursor-pointer"
-          :class="i <= unlocked
-            ? 'bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08] hover:border-emerald-400/30 hover:shadow-[0_0_24px_rgba(52,211,153,0.12)]'
-            : 'bg-white/[0.02] border-white/[0.04] opacity-40 cursor-not-allowed'"
-          :disabled="i > unlocked"
-          @click="i <= unlocked && goStage(i)"
+          class="text-left no-underline border rounded-2xl p-5 flex flex-col gap-2 transition-all duration-200 cursor-pointer bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08] hover:border-emerald-400/30 hover:shadow-[0_0_24px_rgba(52,211,153,0.12)]"
+          @click="goStage(i)"
         >
           <div class="flex items-center justify-between">
             <span class="text-2xl font-black text-slate-100">{{ s.size }}×{{ s.size }}</span>
-            <span v-if="i > unlocked" class="text-lg">🔒</span>
-            <span v-else-if="bestTimes[i]" class="text-xs font-mono text-emerald-400/80">⏱ {{ formatTime(bestTimes[i]) }}</span>
+            <span v-if="bestTimes[i]" class="text-xs font-mono text-emerald-400/80">⏱ {{ formatTime(bestTimes[i]) }}</span>
           </div>
           <div>
             <p class="m-0 text-sm font-bold text-slate-200">STAGE {{ i + 1 }} · {{ s.name }}</p>
@@ -105,6 +107,11 @@
 
     <!-- ═══ Playing ═══ -->
     <template v-else>
+    <div class="flex flex-col items-center">
+
+    <!-- 盤面 + サイドパネル -->
+    <div class="w-full flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-4 lg:gap-6">
+    <div class="flex flex-col items-center min-w-0">
       <!-- Header -->
       <div class="w-full flex items-center justify-between mb-3" :style="{ maxWidth: boardPx + 'px' }">
         <button class="text-slate-400 text-sm cursor-pointer bg-transparent border-none hover:text-slate-200" @click="phase = 'select'">← 戻る</button>
@@ -163,54 +170,104 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Number pad -->
-      <div class="flex flex-wrap gap-2 justify-center mt-4" :style="{ maxWidth: boardPx + 'px' }">
-        <button
-          v-for="n in size" :key="n"
-          class="relative rounded-xl font-bold border transition-all cursor-pointer active:scale-95"
-          :class="[
-            memoMode
-              ? 'bg-amber-500/10 border-amber-400/40 text-amber-200 hover:bg-amber-500/20'
-              : 'bg-white/[0.06] border-white/10 text-slate-100 hover:bg-emerald-500/20 hover:border-emerald-400/40',
-            gpConnected && penValue === n ? 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-slate-950' : ''
-          ]"
-          :style="{ width: padPx + 'px', height: padPx + 'px', fontSize: (padPx * 0.42) + 'px' }"
-          @click="inputNumber(n)"
-        >{{ n }}</button>
-      </div>
-
-      <!-- Controls -->
-      <div class="flex gap-2 justify-center mt-3 flex-wrap" :style="{ maxWidth: boardPx + 'px' }">
-        <button
-          class="px-4 py-2.5 rounded-xl font-semibold text-sm border transition-colors cursor-pointer"
-          :class="memoMode ? 'bg-amber-500/20 border-amber-400/50 text-amber-200' : 'bg-white/[0.05] border-white/10 text-slate-300 hover:bg-white/[0.1]'"
-          @click="memoMode = !memoMode"
-        >✏️ メモ {{ memoMode ? 'ON' : 'OFF' }}</button>
-        <button class="px-4 py-2.5 rounded-xl font-semibold text-sm bg-white/[0.05] border border-white/10 text-slate-300 hover:bg-white/[0.1] transition-colors cursor-pointer" @click="erase">🧽 消す</button>
-        <button class="px-4 py-2.5 rounded-xl font-semibold text-sm bg-white/[0.05] border border-white/10 text-slate-300 hover:bg-white/[0.1] transition-colors cursor-pointer disabled:opacity-40" :disabled="!history.length" @click="undo">↩︎ 戻す</button>
-        <button class="px-4 py-2.5 rounded-xl font-semibold text-sm bg-sky-500/10 border border-sky-400/40 text-sky-200 hover:bg-sky-500/20 transition-colors cursor-pointer" @click="hint">💡 ヒント</button>
-      </div>
-
-      <div class="flex gap-4 mt-4 text-xs text-slate-500">
-        <button class="cursor-pointer bg-transparent border-none text-slate-500 hover:text-slate-300 transition-colors" @click="newPuzzle">🔄 別の問題</button>
-        <span>ヒント使用: {{ hintsUsed }}</span>
-      </div>
-
-      <!-- コントローラー -->
-      <div class="mt-4 flex flex-col items-center gap-2">
-        <div class="flex items-center gap-1.5 text-xs" :class="gpConnected ? 'text-emerald-400' : 'text-slate-600'">
-          <span>🎮</span>
-          <span>{{ gpConnected ? 'コントローラー接続中' : 'コントローラー未接続（繋いでボタンを押すと認識）' }}</span>
-        </div>
-        <div v-if="gpConnected" class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
-          <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono">十字/スティック</kbd>移動</span>
-          <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono">L / R</kbd>数字えらぶ</span>
-          <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono">○</kbd>置く</span>
-          <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono">✕ □</kbd>消す</span>
-          <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono">△</kbd>メモ</span>
+    <!-- サイドパネル：ランキング + ステージ選択（デスクトップのみ、盤面と高さを揃える） -->
+    <div class="hidden lg:flex w-44 flex-shrink-0 flex-col">
+      <div class="text-[10px] font-medium tracking-widest text-slate-500 mb-2 text-center">ランキング</div>
+      <div v-if="!leaderboard.length" class="text-slate-600 text-xs text-center py-2">記録なし</div>
+      <div v-else class="flex flex-col gap-0.5">
+        <div
+          v-for="r in leaderboard" :key="r.rank"
+          class="flex items-center gap-1.5 px-1 py-0.5 rounded text-xs"
+          :class="r.rank === 1 ? 'bg-amber-400/10' : ''"
+        >
+          <span class="text-[10px] w-4 text-right shrink-0" :class="r.rank === 1 ? 'text-amber-400' : 'text-slate-600'">{{ r.rank }}</span>
+          <span class="font-mono font-bold w-8 shrink-0" :class="r.rank === 1 ? 'text-amber-300' : 'text-slate-300'">{{ r.name }}</span>
+          <span class="font-mono text-right flex-1" :class="r.rank === 1 ? 'text-amber-400' : 'text-slate-500'">{{ formatTime(r.seconds) }}</span>
         </div>
       </div>
+
+      <!-- Stage selector (desktop) -->
+      <div class="mt-auto pt-3">
+        <div class="text-[9px] text-slate-600 text-center mb-1.5">ステージ選択</div>
+        <div class="grid grid-cols-5 gap-1">
+          <button
+            v-for="(s, i) in STAGES" :key="i"
+            class="h-7 rounded-lg text-xs font-bold border transition-colors cursor-pointer"
+            :class="i === stage
+              ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-400'
+              : 'bg-black/40 border-white/10 text-slate-500 hover:bg-white/[0.10] hover:text-slate-200'"
+            @click="goStage(i)"
+          >{{ i + 1 }}</button>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- Number pad -->
+    <div class="flex flex-wrap gap-2 justify-center mt-4" :style="{ maxWidth: boardPx + 'px' }">
+      <button
+        v-for="n in size" :key="n"
+        class="relative rounded-xl font-bold border transition-all cursor-pointer active:scale-95"
+        :class="[
+          memoMode
+            ? 'bg-amber-500/10 border-amber-400/40 text-amber-200 hover:bg-amber-500/20'
+            : 'bg-white/[0.06] border-white/10 text-slate-100 hover:bg-emerald-500/20 hover:border-emerald-400/40',
+          gpConnected && penValue === n ? 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-slate-950' : ''
+        ]"
+        :style="{ width: padPx + 'px', height: padPx + 'px', fontSize: (padPx * 0.42) + 'px' }"
+        @click="inputNumber(n)"
+      >{{ n }}</button>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex gap-2 justify-center mt-3 flex-wrap" :style="{ maxWidth: boardPx + 'px' }">
+      <button
+        class="px-4 py-2.5 rounded-xl font-semibold text-sm border transition-colors cursor-pointer"
+        :class="memoMode ? 'bg-amber-500/20 border-amber-400/50 text-amber-200' : 'bg-white/[0.05] border-white/10 text-slate-300 hover:bg-white/[0.1]'"
+        @click="memoMode = !memoMode"
+      >✏️ メモ {{ memoMode ? 'ON' : 'OFF' }}</button>
+      <button class="px-4 py-2.5 rounded-xl font-semibold text-sm bg-white/[0.05] border border-white/10 text-slate-300 hover:bg-white/[0.1] transition-colors cursor-pointer" @click="erase">🧽 消す</button>
+      <button class="px-4 py-2.5 rounded-xl font-semibold text-sm bg-white/[0.05] border border-white/10 text-slate-300 hover:bg-white/[0.1] transition-colors cursor-pointer disabled:opacity-40" :disabled="!history.length" @click="undo">↩︎ 戻す</button>
+      <button class="px-4 py-2.5 rounded-xl font-semibold text-sm bg-sky-500/10 border border-sky-400/40 text-sky-200 hover:bg-sky-500/20 transition-colors cursor-pointer" @click="hint">💡 ヒント</button>
+    </div>
+
+    <div class="flex gap-4 mt-4 text-xs text-slate-500">
+      <button class="cursor-pointer bg-transparent border-none text-slate-500 hover:text-slate-300 transition-colors" @click="newPuzzle">🔄 別の問題</button>
+      <span>ヒント使用: {{ hintsUsed }}</span>
+    </div>
+
+    <!-- コントローラー -->
+    <div class="mt-4 flex flex-col items-center gap-2">
+      <div class="flex items-center gap-1.5 text-xs" :class="gpConnected ? 'text-emerald-400' : 'text-slate-600'">
+        <span>🎮</span>
+        <span>{{ gpConnected ? 'コントローラー接続中' : 'コントローラー未接続（繋いでボタンを押すと認識）' }}</span>
+      </div>
+      <div v-if="gpConnected" class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+        <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono">十字/スティック</kbd>移動</span>
+        <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono">L / R</kbd>数字えらぶ</span>
+        <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono">○</kbd>置く</span>
+        <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono">✕ □</kbd>消す</span>
+        <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono">△</kbd>メモ</span>
+      </div>
+    </div>
+
+    <!-- ステージ選択（モバイルのみ） -->
+    <div class="lg:hidden mt-4 w-full" :style="{ maxWidth: boardPx + 'px' }">
+      <div class="text-[9px] text-slate-600 text-center mb-1.5">ステージ選択</div>
+      <div class="grid grid-cols-5 gap-1">
+        <button
+          v-for="(s, i) in STAGES" :key="i"
+          class="h-7 rounded-lg text-xs font-bold border transition-colors cursor-pointer"
+          :class="i === stage
+            ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-400'
+            : 'bg-black/40 border-white/10 text-slate-500 hover:bg-white/[0.10] hover:text-slate-200'"
+          @click="goStage(i)"
+        >{{ i + 1 }}</button>
+      </div>
+    </div>
+    </div>
     </template>
   </div>
 </template>
@@ -256,7 +313,6 @@ const gpConnected = ref(false)
 const penValue = ref(1)   // コントローラーで「○」を押したときに置く数字
 
 // ── 進捗（localStorage）──
-const unlocked = ref(0)
 const bestTimes = ref<Record<number, number>>({})
 
 // ── タイマー ──
@@ -271,6 +327,7 @@ const recorded = ref(false)
 const myRank = ref<number | null>(null)
 const leaderboard = ref<{ rank: number; name: string; seconds: number }[]>([])
 const isNewBest = ref(false)
+const suggestedNames = ref<string[]>([])
 
 // ── レイアウト ──
 const boardPx = ref(400)
@@ -632,6 +689,7 @@ function goStage(idx: number) {
   elapsed.value = 0
   startTimer()
   computeBoardPx()
+  loadLeaderboard()
 }
 
 function newPuzzle() {
@@ -654,8 +712,6 @@ async function onClear() {
   const s = stage.value
   isNewBest.value = !bestTimes.value[s] || elapsed.value < bestTimes.value[s]
   if (isNewBest.value) bestTimes.value[s] = elapsed.value
-  if (s + 1 > unlocked.value && s + 1 < STAGES.length) unlocked.value = s + 1
-  else if (s === STAGES.length - 1) unlocked.value = Math.max(unlocked.value, s)
   saveProgress()
 
   recorded.value = false
@@ -663,6 +719,7 @@ async function onClear() {
   nameInput.value = ''
   phase.value = 'clear'
   await loadLeaderboard()
+  await fetchPopularNames()
 }
 
 async function submitRecord() {
@@ -693,11 +750,25 @@ async function loadLeaderboard() {
   }
 }
 
+async function fetchPopularNames() {
+  try {
+    suggestedNames.value = await $fetch<string[]>('/api/games/popular-names', {
+      query: { game: 'kenken' },
+    })
+  } catch {
+    suggestedNames.value = []
+  }
+}
+
+function selectSuggestedName(name: string) {
+  nameInput.value = name.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3)
+  submitRecord()
+}
+
 // ═══════════════════ 進捗の保存/復元 ═══════════════════
 function saveProgress() {
   try {
     localStorage.setItem('kenken-progress', JSON.stringify({
-      unlocked: unlocked.value,
       best: bestTimes.value,
     }))
   } catch { /* noop */ }
@@ -707,7 +778,6 @@ function loadProgress() {
     const raw = localStorage.getItem('kenken-progress')
     if (raw) {
       const d = JSON.parse(raw)
-      unlocked.value = d.unlocked ?? 0
       bestTimes.value = d.best ?? {}
     }
   } catch { /* noop */ }

@@ -195,6 +195,36 @@
       </div>
     </Transition>
 
+    <!-- Stage/Puzzle Select overlay -->
+    <Transition name="ovl">
+      <div v-if="phase === 'stageselect'" class="fixed inset-0 bg-black/85 flex items-center justify-center z-[65] backdrop-blur-sm p-4">
+        <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-white/10 rounded-3xl p-6 w-full max-w-md max-h-[85vh] flex flex-col shadow-[0_0_60px_rgba(0,0,0,0.6)]">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="m-0 text-lg font-bold" :class="gameMode === 'puzzle' ? 'text-violet-300' : 'text-emerald-300'">
+              {{ gameMode === 'puzzle' ? '🧩 パズルを選択' : '🎮 ステージを選択' }}
+            </h2>
+            <button
+              class="text-slate-500 text-xs cursor-pointer bg-transparent border-none hover:text-slate-300 transition-colors"
+              @click="phase = 'idle'"
+            >← モード選択</button>
+          </div>
+          <div class="grid grid-cols-4 gap-2 overflow-y-auto pr-1">
+            <button
+              v-for="n in stageCount" :key="n"
+              class="flex flex-col items-center gap-1 rounded-xl border p-3 transition-colors cursor-pointer"
+              :class="n === savedStage && gameMode === 'normal'
+                ? 'bg-emerald-500/15 border-emerald-400/50 text-emerald-300'
+                : 'bg-white/[0.04] border-white/10 text-slate-300 hover:bg-white/[0.09] hover:border-white/20'"
+              @click="chooseStage(n)"
+            >
+              <span class="text-lg font-black">{{ n }}</span>
+              <span class="text-[10px] text-slate-500">{{ gameMode === 'puzzle' ? `${PUZZLE_STAGES[n - 1].moves}手` : `目標${STAGE_TARGETS[n - 1]}` }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Portrait warning (mobile only, hidden in landscape) -->
     <div class="portrait-notice lg:hidden fixed inset-0 bg-black/90 z-[80] flex items-center justify-center flex-col gap-4 text-center p-6">
       <div class="text-5xl">📱</div>
@@ -717,7 +747,7 @@ const nextRow    = ref<Color[]>([])
 const flashSet   = ref(new Set<string>())
 const cursor     = ref({ row: 8, col: 2 })
 const cursorDir  = ref<'h' | 'v'>('h')  // h=横並び, v=縦並び
-const phase      = ref<'idle' | 'ready' | 'playing' | 'paused' | 'gameover' | 'stageclear' | 'puzzleclear' | 'puzzlefail'>('idle')
+const phase      = ref<'idle' | 'stageselect' | 'ready' | 'playing' | 'paused' | 'gameover' | 'stageclear' | 'puzzleclear' | 'puzzlefail'>('idle')
 const score      = ref(0)
 const stage      = ref(1)
 const chainLevel = ref(0)
@@ -1225,11 +1255,14 @@ function jumpToStage(n: number) {
   else startGame()
 }
 
+// モード選択 → まずステージ/パズル一覧を見せる（即開始しない）
 function selectMode(mode: 'normal' | 'puzzle') {
   gameMode.value = mode
-  stage.value = 1
-  if (mode === 'puzzle') startPuzzle()
-  else startGame()
+  phase.value = 'stageselect'
+}
+
+function chooseStage(n: number) {
+  jumpToStage(n)
 }
 
 function startPuzzle() {

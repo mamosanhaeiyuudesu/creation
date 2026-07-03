@@ -2,7 +2,17 @@
   <div class="flex flex-col h-[288px] py-2">
     <!-- メッセージ一覧 -->
     <div ref="scrollEl" class="flex-1 overflow-y-auto flex flex-col gap-3 px-0.5">
-      <div v-if="messages.length === 0 && !loadingHistory" class="text-center text-slate-500 text-sm py-10 leading-relaxed">
+      <div v-if="loadingHistory && messages.length === 0" class="text-center text-slate-500 text-sm py-10 leading-relaxed">
+        履歴を読み込んでいます…
+      </div>
+      <div v-else-if="historyError && messages.length === 0" class="text-center text-sm py-10 leading-relaxed">
+        <p class="m-0 text-red-400">履歴の読み込みに失敗しました。</p>
+        <button
+          class="mt-3 px-4 py-1.5 rounded-xl text-sm border border-orange-500/60 bg-orange-500/15 text-orange-200 cursor-pointer hover:bg-orange-500/25 transition-colors"
+          @click="loadHistory"
+        >再読み込み</button>
+      </div>
+      <div v-else-if="messages.length === 0" class="text-center text-slate-500 text-sm py-10 leading-relaxed">
         録音した内容やあなたの状況をふまえて相談に乗ります。<br>
         気になっていることを話しかけてみてください。
       </div>
@@ -62,12 +72,15 @@ interface ChatMessage { role: 'user' | 'assistant'; content: string; timestamp?:
 const props = defineProps<{
   profile?: ProfileData | null
   summaryItems?: SummaryItem[]
+  active?: boolean
 }>()
 
 const messages = ref<ChatMessage[]>([])
 const draft = ref('')
 const streaming = ref(false)
-const loadingHistory = ref(true)
+const loadingHistory = ref(false)
+const historyError = ref(false)
+const loadedOk = ref(false)
 const errorMsg = ref('')
 const scrollEl = ref<HTMLElement>()
 
@@ -93,12 +106,18 @@ function autoGrow(e: Event) {
 }
 
 async function loadHistory() {
+  if (loadingHistory.value) return
   loadingHistory.value = true
+  historyError.value = false
   try {
     const res = await $fetch<{ messages: ChatMessage[] }>('/api/hagemashi/consult')
+    // 成功時のみ上書き。失敗時は既存の履歴を残す
     messages.value = res.messages ?? []
-  } catch {
-    // 履歴取得の失敗は無視（未ログイン等）
+    loadedOk.value = true
+  } catch (e) {
+    // 失敗しても履歴は消さず、エラーを可視化して再読み込みできるようにする
+    console.error('相談履歴の取得に失敗しました', e)
+    historyError.value = true
   } finally {
     loadingHistory.value = false
     scrollToBottom()
@@ -152,5 +171,15 @@ async function send() {
   }
 }
 
+// 常時マウントされるため、初回はバックグラウンドで先読みしておく
 onMounted(loadHistory)
+
+// 相談タブが表示されたとき、まだ読み込めていなければ再取得する
+// （初回の取得が失敗しても、タブを開き直せば自動でリトライされる）
+watch(
+  () => props.active,
+  (active) => {
+    if (active && !loadedOk.value && !loadingHistory.value) loadHistory()
+  }
+)
 </script>
