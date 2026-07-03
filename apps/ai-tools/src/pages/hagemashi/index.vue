@@ -1,9 +1,9 @@
 <template>
-  <div class="flex flex-col items-center px-4 pt-4 lg:pt-8 pb-5 flex-1 min-h-0 w-full" @click="showSettingsMenu = false">
+  <div class="flex flex-col items-center px-4 pt-4 lg:pt-8 pb-12 min-h-screen" @click="showSettingsMenu = false">
     <div v-if="showSettingsMenu" class="fixed inset-0 z-40" @click="showSettingsMenu = false" />
-    <div class="relative z-50 w-full max-w-[600px] ml-2.5 flex-1 min-h-0 flex flex-col">
+    <div class="relative z-50 w-full max-w-[600px] ml-2.5">
       <div class="absolute inset-x-0 top-0 h-[2px] rounded-t-2xl bg-gradient-to-r from-orange-500 to-pink-500 z-10" />
-      <div class="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl p-7 shadow-[0_20px_80px_rgba(0,0,0,0.35),0_0_40px_rgba(249,115,22,0.06)] backdrop-blur-[10px] flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
+      <div class="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl p-7 shadow-[0_20px_80px_rgba(0,0,0,0.35),0_0_40px_rgba(249,115,22,0.06)] backdrop-blur-[10px] grid gap-4 max-h-[70dvh] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
 
       <!-- Header -->
       <header class="relative flex items-center justify-start">
@@ -67,7 +67,7 @@
       </div>
 
       <!-- History tabs -->
-      <div class="mt-1 min-w-0 flex-1 min-h-0 flex flex-col">
+      <div class="mt-1 min-w-0">
         <!-- 録音 サブタブ（文字起こし・単語・中間データ・長期傾向） -->
         <div v-if="isRecordingTab" class="flex items-center gap-1.5 mt-2">
           <button
