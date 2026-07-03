@@ -18,9 +18,9 @@ export default defineEventHandler(async (event) => {
   await db.prepare(CREATE_TABLE).run()
 
   const rows = await db
-    .prepare('SELECT role, content FROM hagemashi_consult_messages WHERE user_id = ? ORDER BY created_at ASC LIMIT 200')
+    .prepare('SELECT role, content, created_at FROM hagemashi_consult_messages WHERE user_id = ? ORDER BY created_at ASC LIMIT 200')
     .bind(user.id)
     .all()
 
-  return { messages: (rows?.results ?? []).map((r: any) => ({ role: r.role, content: r.content })) }
+  return { messages: (rows?.results ?? []).map((r: any) => ({ role: r.role, content: r.content, timestamp: r.created_at })) }
 })

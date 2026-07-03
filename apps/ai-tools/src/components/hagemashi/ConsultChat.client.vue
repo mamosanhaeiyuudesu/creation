@@ -1,14 +1,5 @@
 <template>
-  <div class="flex flex-col h-[480px] py-2">
-    <!-- ヘッダー（履歴クリア） -->
-    <div v-if="messages.length > 0" class="flex justify-end mb-1">
-      <button
-        class="px-2.5 py-1 rounded-lg text-[11px] font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40"
-        :disabled="streaming"
-        @click="clearHistory"
-      >履歴をクリア</button>
-    </div>
-
+  <div class="flex flex-col h-[288px] py-2">
     <!-- メッセージ一覧 -->
     <div ref="scrollEl" class="flex-1 overflow-y-auto flex flex-col gap-3 px-0.5">
       <div v-if="messages.length === 0 && !loadingHistory" class="text-center text-slate-500 text-sm py-10 leading-relaxed">
@@ -26,6 +17,9 @@
             ? 'bg-orange-500/15 border-orange-500/30 text-slate-100 rounded-br-sm'
             : 'bg-white/[0.04] border-white/[0.08] text-slate-200 rounded-bl-sm'"
         >{{ m.content || (m.role === 'assistant' && streaming ? '…' : '') }}</div>
+        <div v-if="m.role === 'user' && m.timestamp" class="text-right text-[10px] text-slate-500 mt-0.5 mr-0.5">
+          {{ formatMsgTime(m.timestamp) }}
+        </div>
       </div>
     </div>
 
@@ -63,7 +57,7 @@ interface ProfileData {
   generatedAt?: string
 }
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string; date: string }
-interface ChatMessage { role: 'user' | 'assistant'; content: string }
+interface ChatMessage { role: 'user' | 'assistant'; content: string; timestamp?: string }
 
 const props = defineProps<{
   profile?: ProfileData | null
@@ -83,6 +77,13 @@ function scrollToBottom() {
   nextTick(() => {
     if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight
   })
+}
+
+function formatMsgTime(iso: string): string {
+  const d = toJSTDate(iso)
+  const h = String(d.getUTCHours()).padStart(2, '0')
+  const mi = String(d.getUTCMinutes()).padStart(2, '0')
+  return `${h}:${mi}`
 }
 
 function autoGrow(e: Event) {
@@ -111,7 +112,7 @@ async function send() {
   draft.value = ''
 
   const outgoing = [...messages.value, { role: 'user' as const, content }]
-  messages.value.push({ role: 'user', content })
+  messages.value.push({ role: 'user', content, timestamp: new Date().toISOString() })
   messages.value.push({ role: 'assistant', content: '' })
   const assistantIndex = messages.value.length - 1
   streaming.value = true
@@ -148,17 +149,6 @@ async function send() {
   } finally {
     streaming.value = false
     scrollToBottom()
-  }
-}
-
-async function clearHistory() {
-  if (streaming.value) return
-  messages.value = []
-  errorMsg.value = ''
-  try {
-    await $fetch('/api/hagemashi/consult', { method: 'DELETE' })
-  } catch {
-    // 失敗しても表示上はクリア済み
   }
 }
 
