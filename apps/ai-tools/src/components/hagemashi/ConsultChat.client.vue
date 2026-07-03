@@ -22,11 +22,21 @@
         :class="m.role === 'user' ? 'self-end max-w-[85%]' : 'self-start max-w-[90%]'"
       >
         <div
-          class="text-base sm:text-sm leading-relaxed whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 border"
+          class="text-base sm:text-sm leading-relaxed break-words rounded-2xl px-3.5 py-2 border"
           :class="m.role === 'user'
-            ? 'bg-orange-500/15 border-orange-500/30 text-slate-100 rounded-br-sm'
+            ? 'bg-orange-500/15 border-orange-500/30 text-slate-100 rounded-br-sm whitespace-pre-wrap'
             : 'bg-white/[0.04] border-white/[0.08] text-slate-200 rounded-bl-sm'"
-        >{{ m.content || (m.role === 'assistant' && streaming ? '…' : '') }}</div>
+        >
+          <template v-if="m.role === 'assistant'">
+            <div
+              v-if="m.content"
+              class="[&_p]:m-0 [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:m-0 [&_ul]:mb-2 [&_ul]:pl-5 [&_ol]:m-0 [&_ol]:mb-2 [&_ol]:pl-5 [&_li]:mb-1 [&_li:last-child]:mb-0 [&_strong]:text-slate-50 [&_strong]:font-semibold [&_em]:italic [&_h1]:text-slate-50 [&_h2]:text-slate-50 [&_h3]:text-slate-50 [&_h1]:text-base [&_h2]:text-[15px] [&_h3]:text-sm [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-semibold [&_h1]:my-2 [&_h2]:my-2 [&_h3]:my-2 [&_a]:text-orange-300 [&_a]:underline [&_code]:bg-white/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[0.9em] [&_pre]:bg-black/30 [&_pre]:p-2.5 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:my-2 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_hr]:border-none [&_hr]:border-t [&_hr]:border-white/[0.08] [&_hr]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-white/20 [&_blockquote]:pl-3 [&_blockquote]:text-slate-400 [&_blockquote]:my-2 [&>*:last-child]:mb-0"
+              v-html="renderMarkdown(m.content)"
+            />
+            <span v-else-if="streaming">…</span>
+          </template>
+          <template v-else>{{ m.content }}</template>
+        </div>
         <div v-if="m.role === 'user' && m.timestamp" class="text-right text-[10px] text-slate-500 mt-0.5 mr-0.5">
           {{ formatMsgTime(m.timestamp) }}
         </div>
@@ -60,6 +70,12 @@
 </template>
 
 <script setup lang="ts">
+import { marked } from 'marked'
+
+function renderMarkdown(text: string): string {
+  return marked.parse(text, { breaks: true, async: false }) as string
+}
+
 interface StrengthItem { title: string; content: string }
 interface ProfileData {
   strengths: StrengthItem[] | string
