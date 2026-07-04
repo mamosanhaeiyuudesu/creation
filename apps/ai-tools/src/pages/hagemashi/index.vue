@@ -38,17 +38,6 @@
             <span class="text-[9px] font-medium">録音</span>
           </button>
 
-          <!-- はげまし button -->
-          <button
-            class="w-[62px] h-[62px] rounded-full border-2 border-orange-500/50 bg-orange-500/[0.08] text-slate-50 flex flex-col items-center justify-center gap-1 transition-all disabled:opacity-35 disabled:cursor-not-allowed"
-            :class="history.length > 0 && !isEncouraging ? 'cursor-pointer hover:bg-orange-500/[0.20] hover:border-orange-500/80 hover:scale-105' : ''"
-            :disabled="history.length === 0 || isEncouraging"
-            @click="openSelectModal"
-          >
-            <span class="text-xl leading-none">💪</span>
-            <span class="text-[9px] font-medium">はげまし</span>
-          </button>
-
           <!-- 相談 button -->
           <button
             class="w-[62px] h-[62px] rounded-full border-2 border-orange-500/50 bg-orange-500/[0.08] text-slate-50 cursor-pointer flex flex-col items-center justify-center gap-1 transition-all hover:bg-orange-500/[0.20] hover:border-orange-500/80 hover:scale-105"
@@ -68,7 +57,7 @@
 
       <!-- History tabs -->
       <div class="mt-1 min-w-0">
-        <!-- 録音 サブタブ（文字起こし・単語・中間データ・長期傾向） -->
+        <!-- 録音 サブタブ（文字起こし・単語・中間データ・長期傾向・はげまし） -->
         <div v-if="isRecordingTab" class="flex items-center gap-1.5 mt-2">
           <button
             v-for="t in recordingTabs"
@@ -80,10 +69,33 @@
         </div>
         <div
           class="flex items-center gap-2 mb-1"
-          :class="activeTab === 'summary' || activeTab === 'words' || activeTab === 'profile'
+          :class="activeTab === 'summary' || activeTab === 'words' || activeTab === 'profile' || activeTab === 'encourage' || activeTab === 'achievement'
             ? 'min-h-8'
             : activeTab === 'transcription' ? 'min-h-4' : 'min-h-0'"
         >
+          <template v-if="activeTab === 'achievement'">
+            <div class="flex-1" />
+            <button
+              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+              :disabled="isGeneratingAchievements || achievementSourceItems.length === 0"
+              @click="openAchievementSelect"
+            >
+              <span v-if="isGeneratingAchievements" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
+              {{ achievementStatus || '再生成' }}
+            </button>
+          </template>
+          <template v-if="activeTab === 'encourage'">
+            <div class="flex-1" />
+            <button
+              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+              :class="history.length > 0 && !isEncouraging ? 'cursor-pointer hover:bg-white/[0.10] hover:text-slate-200' : ''"
+              :disabled="history.length === 0 || isEncouraging"
+              @click="openSelectModal"
+            >
+              <span v-if="isEncouraging" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
+              💪 はげます
+            </button>
+          </template>
           <template v-if="activeTab === 'summary'">
             <div class="flex-1" />
             <button
@@ -189,6 +201,64 @@
                 <div class="flex justify-end gap-1.5">
                   <button class="px-3 py-1 rounded-lg border border-white/10 bg-transparent text-slate-400 text-xs cursor-pointer hover:bg-white/[0.08] transition-colors" @click="cancelSummary">キャンセル</button>
                   <button class="px-3 py-1 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-xs font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="saveSummary(row.id)">保存</button>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- 達成リストタブ -->
+        <div v-else-if="activeTab === 'achievement'" class="py-2">
+          <div v-if="achievementRows.length === 0" class="text-center text-slate-500 text-sm py-10">
+            再生成ボタンを押すと中間データから達成リストを生成します
+          </div>
+          <div v-else class="flex flex-col gap-0">
+            <div
+              v-for="row in achievementRows"
+              :key="row.id"
+              class="flex flex-col gap-2 px-1 py-2 border-b border-white/[0.05] last:border-b-0"
+            >
+              <!-- 表示モード -->
+              <template v-if="editingAchievementId !== row.id">
+                <div class="flex items-start gap-2.5 group">
+                  <span class="text-[11px] text-slate-500 shrink-0 w-[38px] pt-[2px] tabular-nums">{{ row.date }}</span>
+                  <span class="text-[11px] shrink-0 text-amber-400 mt-[1px] tracking-tight" :title="`大きさ ${row.level}/5`">{{ '★'.repeat(row.level) }}<span class="text-slate-700">{{ '★'.repeat(5 - row.level) }}</span></span>
+                  <span class="text-sm text-slate-200 leading-relaxed flex-1">{{ row.text }}</span>
+                  <div class="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
+                    <button
+                      class="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer border-none bg-transparent"
+                      @click="startEditAchievement(row)"
+                    >✏️</button>
+                    <button
+                      class="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border-none bg-transparent"
+                      @click="deletingAchievementId = row.id"
+                    >✕</button>
+                  </div>
+                </div>
+              </template>
+              <!-- 編集モード -->
+              <template v-else>
+                <div class="flex items-center gap-2 px-0.5">
+                  <span class="text-[11px] text-slate-500 shrink-0 w-[38px] tabular-nums">{{ row.date }}</span>
+                  <span class="text-[11px] text-slate-500 shrink-0">大きさ</span>
+                  <div class="flex gap-1">
+                    <button
+                      v-for="n in 5"
+                      :key="n"
+                      class="w-6 h-6 rounded-md text-sm transition-colors cursor-pointer border-none"
+                      :class="editingAchievementLevel >= n ? 'text-amber-400 bg-amber-400/10' : 'text-slate-600 bg-slate-700/40 hover:text-slate-400'"
+                      @click="editingAchievementLevel = n"
+                    >★</button>
+                  </div>
+                </div>
+                <textarea
+                  v-model="editingAchievementText"
+                  class="w-full bg-white/[0.05] border border-orange-500/40 rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-none leading-relaxed"
+                  rows="3"
+                />
+                <div class="flex justify-end gap-1.5">
+                  <button class="px-3 py-1 rounded-lg border border-white/10 bg-transparent text-slate-400 text-xs cursor-pointer hover:bg-white/[0.08] transition-colors" @click="cancelAchievement">キャンセル</button>
+                  <button class="px-3 py-1 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-xs font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="saveAchievement(row.id)">保存</button>
                 </div>
               </template>
             </div>
@@ -575,6 +645,70 @@
       </div>
     </div>
 
+    <!-- 達成リスト再生成 選択モーダル -->
+    <div v-if="achievementSelectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="achievementSelectOpen = false">
+      <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
+          <div>
+            <h2 class="m-0 text-lg text-slate-50 font-semibold">達成リストを再生成</h2>
+            <p class="m-0 mt-0.5 text-xs text-slate-500">対象の中間データを選択してください</p>
+          </div>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="achievementSelectOpen = false">✕</button>
+        </div>
+        <div class="px-4 py-3 overflow-y-auto flex flex-col gap-1 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
+          <div v-if="achievementSourceItems.length === 0" class="text-center text-slate-600 text-sm py-6">
+            中間データがありません
+          </div>
+          <template v-else>
+            <label class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer border-b border-white/[0.06] mb-1 hover:bg-white/[0.05] transition-colors">
+              <input
+                type="checkbox"
+                class="w-4 h-4 shrink-0 accent-orange-500 cursor-pointer"
+                :checked="achievementAllSelected"
+                :indeterminate="achievementSomeSelected"
+                @change="toggleAchievementAll"
+              />
+              <span class="text-xs text-slate-400 font-medium">全て選択</span>
+            </label>
+            <label
+              v-for="item in achievementSourceItems"
+              :key="item.id"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors"
+              :class="achievementSelectedIds.includes(item.id) ? 'bg-orange-500/15' : 'hover:bg-white/[0.05]'"
+            >
+              <input
+                type="checkbox"
+                class="w-4 h-4 shrink-0 accent-orange-500 cursor-pointer"
+                :checked="achievementSelectedIds.includes(item.id)"
+                @change="toggleAchievementSelect(item.id)"
+              />
+              <span class="text-xs text-slate-400 whitespace-nowrap">{{ formatSelectDate(item.timestamp) }}</span>
+              <span class="text-sm text-slate-200 truncate">{{ item.title || item.text.slice(0, 40) }}</span>
+            </label>
+          </template>
+        </div>
+        <div class="flex justify-end gap-2 px-6 py-4 border-t border-white/[0.08]">
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="achievementSelectOpen = false">キャンセル</button>
+          <button
+            class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            :disabled="achievementSelectedIds.length === 0"
+            @click="runAchievementGenerate"
+          >再生成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 達成リスト削除確認 -->
+    <div v-if="deletingAchievementId" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="deletingAchievementId = null">
+      <div class="w-full max-w-[300px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-5">
+        <p class="m-0 text-slate-200 text-sm text-center">この達成を削除しますか？</p>
+        <div class="flex justify-center gap-2">
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="deletingAchievementId = null">キャンセル</button>
+          <button class="px-5 py-2 rounded-lg border-none bg-red-500/80 text-slate-50 text-sm font-medium cursor-pointer hover:bg-red-500 transition-colors" @click="confirmDeleteAchievement">削除</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 除外単語追加確認 -->
     <div v-if="confirmingStopword" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="confirmingStopword = null">
       <div class="w-full max-w-[300px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-5">
@@ -725,9 +859,9 @@ const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-type RecordingTab = 'transcription' | 'words' | 'summary' | 'profile'
-type TabKey = 'encourage' | 'consult' | RecordingTab
-const TAB_KEYS: TabKey[] = ['transcription', 'words', 'summary', 'profile', 'encourage', 'consult']
+type RecordingTab = 'transcription' | 'words' | 'summary' | 'achievement' | 'profile' | 'encourage'
+type TabKey = 'consult' | RecordingTab
+const TAB_KEYS: TabKey[] = ['transcription', 'words', 'summary', 'achievement', 'profile', 'encourage', 'consult']
 
 // URL クエリ（?tab=）とタブ状態を双方向同期する
 const route = useRoute()
@@ -750,7 +884,9 @@ const recordingTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'transcription', label: '文字起こし', short: '文字' },
   { key: 'words', label: '単語', short: '単語' },
   { key: 'summary', label: '中間データ', short: '中間' },
+  { key: 'achievement', label: '達成リスト', short: '達成' },
   { key: 'profile', label: '長期傾向', short: '傾向' },
+  { key: 'encourage', label: 'はげまし', short: '励まし' },
 ]
 const isRecordingTab = computed(() => recordingTabs.some(t => t.key === activeTab.value))
 function openRecording() {
@@ -804,6 +940,9 @@ interface StrengthItem { title: string; content: string }
 interface ProfileData { strengths: StrengthItem[] | string; tendencies: StrengthItem[] | string; advice: StrengthItem[] | string; generatedAt: string }
 const profileHistory = ref<ProfileData[]>([])
 const isProfileLoading = ref(false)
+
+interface Achievement { id: string; sourceId: string; date: string; text: string; level: number }
+const achievements = ref<Achievement[]>([])
 const expandedProfileIndices = ref(new Set<number>())
 const toggleProfileHistory = (i: number) => {
   if (expandedProfileIndices.value.has(i)) expandedProfileIndices.value.delete(i)
@@ -966,23 +1105,34 @@ onMounted(() => {
       } catch {}
     }
   }
+  if ($dev) {
+    const cachedAch = localStorage.getItem(LS_ACHIEVEMENTS)
+    if (cachedAch) {
+      try {
+        const raw = JSON.parse(cachedAch)
+        achievements.value = Array.isArray(raw) ? raw : []
+      } catch {}
+    }
+  }
 })
 
 if (!$dev) {
   watch(
     isLoggedIn,
     async (loggedIn) => {
-      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; stoplist.value = [...DEFAULT_STOPLIST]; return }
-      const [ranking, dict, profile, sl] = await Promise.allSettled([
+      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; achievements.value = []; stoplist.value = [...DEFAULT_STOPLIST]; return }
+      const [ranking, dict, profile, sl, ach] = await Promise.allSettled([
         $fetch<WordEntry[]>('/api/hagemashi/word-ranking'),
         $fetch<DictionaryEntry[]>('/api/hagemashi/dictionary'),
         $fetch<{ profiles: ProfileData[] }>('/api/hagemashi/profile'),
         $fetch<string[]>('/api/hagemashi/stoplist'),
+        $fetch<Achievement[]>('/api/hagemashi/achievements'),
       ])
       wordRanking.value = ranking.status === 'fulfilled' ? ranking.value : []
       dictionary.value = dict.status === 'fulfilled' ? dict.value : []
       profileHistory.value = profile.status === 'fulfilled' ? (profile.value?.profiles ?? []) : []
       stoplist.value = (sl.status === 'fulfilled' && sl.value.length > 0) ? sl.value : [...DEFAULT_STOPLIST]
+      achievements.value = ach.status === 'fulfilled' && Array.isArray(ach.value) ? ach.value : []
     },
     { immediate: true }
   )
@@ -1286,6 +1436,124 @@ const fetchSummary = async (text: string): Promise<string> => {
   } catch {
     return ''
   }
+}
+
+// --- 達成リスト ---
+const LS_ACHIEVEMENTS = 'hagemashi-achievements'
+const isGeneratingAchievements = ref(false)
+const achievementStatus = ref('')
+const achievementSelectOpen = ref(false)
+const achievementSelectedIds = ref<string[]>([])
+const editingAchievementId = ref<string | null>(null)
+const editingAchievementText = ref('')
+const editingAchievementLevel = ref(1)
+const deletingAchievementId = ref<string | null>(null)
+
+// 中間データを持つ履歴のみ達成リストの生成対象
+const achievementSourceItems = computed(() => history.value.filter(i => parseSummaryNote(i.notes)))
+
+// 履歴順（新しい順）に沿って達成項目を並べる
+const achievementRows = computed(() => {
+  const bySource = new Map<string, Achievement[]>()
+  for (const a of achievements.value) {
+    if (!bySource.has(a.sourceId)) bySource.set(a.sourceId, [])
+    bySource.get(a.sourceId)!.push(a)
+  }
+  const rows: Achievement[] = []
+  for (const item of history.value) {
+    const list = bySource.get(item.id)
+    if (list) rows.push(...list)
+  }
+  return rows
+})
+
+function saveAchievements() {
+  if ($dev) {
+    localStorage.setItem(LS_ACHIEVEMENTS, JSON.stringify(achievements.value))
+  } else {
+    $fetch('/api/hagemashi/achievements', { method: 'POST', body: { items: achievements.value } }).catch(console.error)
+  }
+}
+
+const achievementAllSelected = computed(() => achievementSourceItems.value.length > 0 && achievementSelectedIds.value.length === achievementSourceItems.value.length)
+const achievementSomeSelected = computed(() => achievementSelectedIds.value.length > 0 && achievementSelectedIds.value.length < achievementSourceItems.value.length)
+
+const toggleAchievementAll = () => {
+  if (achievementAllSelected.value) achievementSelectedIds.value = []
+  else achievementSelectedIds.value = achievementSourceItems.value.map(i => i.id)
+}
+
+const toggleAchievementSelect = (id: string) => {
+  const idx = achievementSelectedIds.value.indexOf(id)
+  if (idx === -1) achievementSelectedIds.value.push(id)
+  else achievementSelectedIds.value.splice(idx, 1)
+}
+
+const openAchievementSelect = () => {
+  achievementSelectedIds.value = achievementSourceItems.value.map(i => i.id)
+  achievementSelectOpen.value = true
+}
+
+const runAchievementGenerate = async () => {
+  achievementSelectOpen.value = false
+  const targets = history.value.filter(i => achievementSelectedIds.value.includes(i.id))
+  if (!targets.length || isGeneratingAchievements.value) return
+  isGeneratingAchievements.value = true
+  let done = 0
+  achievementStatus.value = `0/${targets.length}件...`
+  let next = [...achievements.value]
+  for (const item of targets) {
+    try {
+      const res = await $fetch<{ achievements: { text: string; level: number }[] }>('/api/hagemashi/achievements-generate', {
+        method: 'POST',
+        body: { text: getNotesText(item) },
+      })
+      // 成功時のみ、このソースの既存達成を置き換える
+      next = next.filter(a => a.sourceId !== item.id)
+      const d = toJSTDate(item.timestamp)
+      const date = `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`
+      for (const a of res.achievements ?? []) {
+        next.push({ id: `${item.id}-${Math.random().toString(36).slice(2, 8)}`, sourceId: item.id, date, text: a.text, level: a.level })
+      }
+    } catch (e) {
+      console.error(e)
+    }
+    done++
+    achievementStatus.value = `${done}/${targets.length}件...`
+  }
+  achievements.value = next
+  saveAchievements()
+  achievementStatus.value = `完了 ${done}/${targets.length}件`
+  setTimeout(() => { achievementStatus.value = '' }, 4000)
+  isGeneratingAchievements.value = false
+}
+
+const startEditAchievement = (row: Achievement) => {
+  editingAchievementId.value = row.id
+  editingAchievementText.value = row.text
+  editingAchievementLevel.value = row.level
+}
+
+const cancelAchievement = () => {
+  editingAchievementId.value = null
+}
+
+const saveAchievement = (id: string) => {
+  const a = achievements.value.find(x => x.id === id)
+  if (a) {
+    a.text = editingAchievementText.value
+    a.level = editingAchievementLevel.value
+    achievements.value = [...achievements.value]
+    saveAchievements()
+  }
+  editingAchievementId.value = null
+}
+
+const confirmDeleteAchievement = () => {
+  if (!deletingAchievementId.value) return
+  achievements.value = achievements.value.filter(a => a.id !== deletingAchievementId.value)
+  saveAchievements()
+  deletingAchievementId.value = null
 }
 
 // --- 文字起こし後処理 ---
