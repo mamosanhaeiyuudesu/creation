@@ -34,8 +34,8 @@
       <div class="flex flex-col items-center gap-3">
         <div class="flex gap-4 items-center">
           <button class="w-[62px] h-[62px] rounded-full border-2 border-orange-500 bg-orange-500/10 text-slate-50 text-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:bg-orange-500/20 hover:scale-105" @click="openRecording(); recordConfirmOpen = true">
-            <span class="block leading-none">🎙️</span>
-            <span class="text-[9px] font-medium">録音</span>
+            <span class="block leading-none">📝</span>
+            <span class="text-[9px] font-medium">記録</span>
           </button>
 
           <!-- 相談 button -->
@@ -382,13 +382,46 @@
     <!-- Auth Modal -->
     <AuthModal v-if="!$dev && checked && !isLoggedIn" accent="orange" />
 
-    <!-- 録音開始確認 -->
+    <!-- 記録方法選択 -->
     <div v-if="recordConfirmOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="recordConfirmOpen = false">
       <div class="w-full max-w-[300px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-5">
-        <p class="m-0 text-slate-200 text-sm text-center">録音を開始しますか？</p>
+        <p class="m-0 text-slate-200 text-sm text-center">記録方法を選択してください</p>
+        <div class="flex justify-center gap-6">
+          <button class="w-[62px] h-[62px] rounded-full border-2 border-orange-500 bg-orange-500/10 text-slate-50 text-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:bg-orange-500/20 hover:scale-105" @click="confirmStartRecording">
+            <span class="block leading-none">🎙️</span>
+            <span class="text-[9px] font-medium">録音</span>
+          </button>
+          <button class="w-[62px] h-[62px] rounded-full border-2 border-orange-500/50 bg-orange-500/[0.08] text-slate-50 cursor-pointer flex flex-col items-center justify-center gap-1 transition-all hover:bg-orange-500/[0.20] hover:border-orange-500/80 hover:scale-105" @click="openTextInput">
+            <span class="text-xl leading-none">⌨️</span>
+            <span class="text-[9px] font-medium">テキスト</span>
+          </button>
+        </div>
         <div class="flex justify-center gap-2">
           <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="recordConfirmOpen = false">キャンセル</button>
-          <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="confirmStartRecording">🎙️ 開始</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- テキスト入力 -->
+    <div v-if="textInputOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="closeTextInput">
+      <div class="w-full max-w-[420px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-4">
+        <p class="m-0 text-slate-200 text-sm">テキストを入力してください</p>
+        <textarea
+          v-model="textInputValue"
+          class="w-full min-h-[140px] bg-white/[0.05] border border-orange-500/40 rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-none leading-relaxed"
+          placeholder="内容を入力..."
+          :disabled="isSubmittingText"
+        />
+        <div class="flex justify-end gap-2">
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed" :disabled="isSubmittingText" @click="closeTextInput">キャンセル</button>
+          <button
+            class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+            :disabled="isSubmittingText || !textInputValue.trim()"
+            @click="submitTextInput"
+          >
+            <span v-if="isSubmittingText" class="w-3 h-3 rounded-full border border-white/40 border-t-white animate-spin block" />
+            {{ isSubmittingText ? '処理中...' : '完了' }}
+          </button>
         </div>
       </div>
     </div>
@@ -846,6 +879,9 @@ const ENCOURAGE_PROMPTS = {
 
 const error = ref('')
 const recordConfirmOpen = ref(false)
+const textInputOpen = ref(false)
+const textInputValue = ref('')
+const isSubmittingText = ref(false)
 const showSettingsMenu = ref(false)
 const isMigrating = ref(false)
 const migrateStatus = ref('')
@@ -881,7 +917,7 @@ watch(() => route.query.tab, () => {
 })
 
 const recordingTabs: { key: RecordingTab; label: string; short: string }[] = [
-  { key: 'transcription', label: '文字起こし', short: '文字' },
+  { key: 'transcription', label: '記録', short: '記録' },
   { key: 'words', label: '単語', short: '単語' },
   { key: 'summary', label: '中間データ', short: '中間' },
   { key: 'achievement', label: '達成リスト', short: '達成' },
@@ -896,6 +932,27 @@ function confirmStartRecording() {
   recordConfirmOpen.value = false
   openRecording()
   startRecording()
+}
+function openTextInput() {
+  recordConfirmOpen.value = false
+  openRecording()
+  textInputValue.value = ''
+  textInputOpen.value = true
+}
+function closeTextInput() {
+  if (isSubmittingText.value) return
+  textInputOpen.value = false
+}
+async function submitTextInput() {
+  const text = textInputValue.value.trim()
+  if (!text || isSubmittingText.value) return
+  isSubmittingText.value = true
+  try {
+    await handleTranscribed(text)
+    textInputOpen.value = false
+  } finally {
+    isSubmittingText.value = false
+  }
 }
 const charLimit = ref(1000)
 const encourageStyle = ref<'calm' | 'loud'>('loud')
