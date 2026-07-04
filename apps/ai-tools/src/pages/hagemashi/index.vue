@@ -1494,6 +1494,23 @@ const openAchievementSelect = () => {
   achievementSelectOpen.value = true
 }
 
+// 1つの中間データ（ソース）から達成項目を生成して返す（保存・state更新はしない）
+const fetchAchievementsForSource = async (sourceId: string, timestamp: string, notesText: string): Promise<Achievement[]> => {
+  const res = await $fetch<{ achievements: { text: string; level: number }[] }>('/api/hagemashi/achievements-generate', {
+    method: 'POST',
+    body: { text: notesText },
+  })
+  const d = toJSTDate(timestamp)
+  const date = `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`
+  return (res.achievements ?? []).map(a => ({
+    id: `${sourceId}-${Math.random().toString(36).slice(2, 8)}`,
+    sourceId,
+    date,
+    text: a.text,
+    level: a.level,
+  }))
+}
+
 const runAchievementGenerate = async () => {
   achievementSelectOpen.value = false
   const targets = history.value.filter(i => achievementSelectedIds.value.includes(i.id))
@@ -1504,17 +1521,10 @@ const runAchievementGenerate = async () => {
   let next = [...achievements.value]
   for (const item of targets) {
     try {
-      const res = await $fetch<{ achievements: { text: string; level: number }[] }>('/api/hagemashi/achievements-generate', {
-        method: 'POST',
-        body: { text: getNotesText(item) },
-      })
+      const items = await fetchAchievementsForSource(item.id, item.timestamp, getNotesText(item))
       // 成功時のみ、このソースの既存達成を置き換える
       next = next.filter(a => a.sourceId !== item.id)
-      const d = toJSTDate(item.timestamp)
-      const date = `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`
-      for (const a of res.achievements ?? []) {
-        next.push({ id: `${item.id}-${Math.random().toString(36).slice(2, 8)}`, sourceId: item.id, date, text: a.text, level: a.level })
-      }
+      next.push(...items)
     } catch (e) {
       console.error(e)
     }
@@ -1562,6 +1572,18 @@ const handleTranscribed = async (text: string) => {
   const [title, notes] = await Promise.all([fetchTitle(replaced), fetchSummary(replaced)])
   const newId = addHistory(replaced, title, notes || undefined)
   reTokenize()
+  // 中間データがあれば達成リストも自動生成（バックグラウンドで実行し、UIはブロックしない）
+  if (notes) {
+    const item = history.value.find(h => h.id === newId)
+    if (item) {
+      fetchAchievementsForSource(newId, item.timestamp, getNotesText(item))
+        .then((items) => {
+          achievements.value = [...achievements.value.filter(a => a.sourceId !== newId), ...items]
+          saveAchievements()
+        })
+        .catch(console.error)
+    }
+  }
   // 文字起こし完了後、この内容をはげますか確認（既存の選択ポップアップを再利用）
   selectedIds.value = [newId]
   selectOpen.value = true
