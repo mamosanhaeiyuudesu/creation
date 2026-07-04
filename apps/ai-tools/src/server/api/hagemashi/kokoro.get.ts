@@ -1,0 +1,24 @@
+import { getSessionUser } from '~/server/utils/auth'
+
+export default defineEventHandler(async (event) => {
+  const user = await getSessionUser(event)
+  if (!user) throw createError({ statusCode: 401, message: '未ログイン' })
+
+  const db = event.context.cloudflare?.env?.WHISPER_DB
+  if (!db) throw createError({ statusCode: 503, message: 'データベースが利用できません' })
+
+  const row = await db
+    .prepare('SELECT data FROM hagemashi_kokoro WHERE user_id = ?')
+    .bind(user.id)
+    .first() as { data: string } | null
+
+  if (!row) return { entries: [] }
+
+  try {
+    const raw = JSON.parse(row.data)
+    const entries = Array.isArray(raw) ? raw : [raw]
+    return { entries }
+  } catch {
+    return { entries: [] }
+  }
+})
