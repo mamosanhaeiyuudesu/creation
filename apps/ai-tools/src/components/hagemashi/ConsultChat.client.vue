@@ -84,11 +84,13 @@ interface ProfileData {
   generatedAt?: string
 }
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string; date: string }
+interface AchievementItem { text: string; level: number; date?: string }
 interface ChatMessage { role: 'user' | 'assistant'; content: string; timestamp?: string }
 
 const props = defineProps<{
   profile?: ProfileData | null
   summaryItems?: SummaryItem[]
+  achievements?: AchievementItem[]
   active?: boolean
 }>()
 
@@ -174,6 +176,7 @@ async function send() {
         messages: outgoing,
         profile: props.profile ?? null,
         summaryItems: (props.summaryItems ?? []).slice(0, 30),
+        achievements: (props.achievements ?? []).map(a => ({ text: a.text, level: a.level, date: a.date })),
       }),
     })
 

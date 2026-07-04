@@ -36,8 +36,9 @@ export default defineEventHandler(async (event) => {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-sonnet-5',
         max_tokens: 2048,
+        thinking: { type: 'disabled' },
         system: `あなたは日々の記録からユーザーの心の状態を可視化するメンタルコーチです。
 提供されたデータ（日々の気持ち・状況の記録と頻出単語）をもとに、今のユーザーの心を占めているものを「チャージ源（心を満たすもの・支え）」と「ストレス源（心を消耗させるもの・負担）」に分類してください。
 自分の心を客観視してメタ認知できるよう、プラス面もマイナス面も両方バランスよく抽出することが重要です。

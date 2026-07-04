@@ -34,8 +34,9 @@ export default defineEventHandler(async (event) => {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-sonnet-5',
         max_tokens: 2048,
+        thinking: { type: 'disabled' },
         system: `あなたは日々の記録からユーザーの特性を分析するプロファイリングの専門家です。
 提供されたデータ（日々の気持ち・状況の記録と頻出単語）をもとに、ユーザーの強み・傾向・アドバイスを日本語で分析してください。
 

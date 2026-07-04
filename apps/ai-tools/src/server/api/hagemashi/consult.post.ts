@@ -9,6 +9,7 @@ interface ProfileData {
   generatedAt?: string
 }
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string; date: string }
+interface AchievementItem { text: string; level: number; date?: string }
 interface ChatMessage { role: 'user' | 'assistant'; content: string }
 
 const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS hagemashi_consult_messages (
@@ -38,7 +39,7 @@ export default defineEventHandler(async (event) => {
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) throw createError({ statusCode: 500, statusMessage: 'Anthropic API key is not configured.' })
 
-  const body = await readBody<{ messages: ChatMessage[]; profile?: ProfileData | null; summaryItems?: SummaryItem[] }>(event)
+  const body = await readBody<{ messages: ChatMessage[]; profile?: ProfileData | null; summaryItems?: SummaryItem[]; achievements?: AchievementItem[] }>(event)
   const rawMessages = Array.isArray(body?.messages) ? body.messages : []
   const messages = rawMessages
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
@@ -56,8 +57,20 @@ export default defineEventHandler(async (event) => {
     ? recent.map(r => `[${r.date}][${r.sentiment}] ${r.text}`).join('\n')
     : '（記録なし）'
 
+  // 達成リスト（客観的な成果）。レベルの高い順に並べて渡す
+  const achievements = (body.achievements ?? [])
+    .filter(a => a && typeof a.text === 'string' && a.text.trim())
+    .sort((a, b) => (Number(b.level) || 0) - (Number(a.level) || 0))
+    .slice(0, 30)
+  const achievementsText = achievements.length
+    ? achievements.map(a => `・[Lv${Math.min(5, Math.max(1, Math.round(Number(a.level) || 1)))}]${a.date ? `[${a.date}]` : ''} ${a.text}`).join('\n')
+    : '（記録なし）'
+
   const personaBlock = `# 相談相手の人物像
 ${personaText || '（プロフィール未生成）'}
+
+# これまでの達成（客観的な成果・レベルが高い順）
+${achievementsText}
 
 # 直近の気持ち・状況の記録（中間データ・新しい順）
 ${recentText}`
@@ -66,7 +79,8 @@ ${recentText}`
 これらを踏まえ、相談者の状況・性格・傾向に合わせて、共感を示しつつ具体的で実行しやすいアドバイスを日本語で返してください。
 - 決めつけず、相談者の言葉を尊重する
 - 長すぎず、会話のテンポを保つ（必要に応じて問いかけも交える）
-- 記録から読み取れる強みを自然に活かす`
+- 記録から読み取れる強みを自然に活かす
+- 相談者が自信を失っているときは、これまでの達成（客観的な成果）を具体的に引き合いに出して勇気づける。ただし押し付けがましくならないよう自然に触れる`
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -77,9 +91,10 @@ ${recentText}`
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-sonnet-5',
         max_tokens: 1024,
         stream: true,
+        thinking: { type: 'disabled' },
         // 人物像ブロックは毎ターン同じなので prompt caching でトークンを節約する
         system: [
           { type: 'text', text: systemPrompt },

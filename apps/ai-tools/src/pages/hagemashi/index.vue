@@ -430,6 +430,7 @@
           :active="activeTab === 'consult'"
           :profile="profileHistory[0] ?? null"
           :summary-items="recentSummaryItems"
+          :achievements="achievements"
         />
       </div>
       </div>
@@ -977,9 +978,9 @@ const recordingTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'words', label: '単語', short: '単語' },
   { key: 'summary', label: '中間データ', short: '中間' },
   { key: 'achievement', label: '達成リスト', short: '達成' },
-  { key: 'kokoro', label: 'こころ', short: 'こころ' },
+  { key: 'kokoro', label: '心', short: '心' },
   { key: 'profile', label: '長期傾向', short: '傾向' },
-  { key: 'encourage', label: 'はげまし', short: '励まし' },
+  { key: 'encourage', label: 'はげまし', short: 'はげ' },
 ]
 const isRecordingTab = computed(() => recordingTabs.some(t => t.key === activeTab.value))
 function openRecording() {

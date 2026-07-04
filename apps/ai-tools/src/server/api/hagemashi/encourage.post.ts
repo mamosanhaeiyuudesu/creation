@@ -25,8 +25,9 @@ export default defineEventHandler(async (event) => {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-sonnet-5',
         max_tokens: 1024,
+        thinking: { type: 'disabled' },
         system: `${body.encouragePrompt || '話した内容を踏まえて、温かくはげましてください。'}\n\n返答は日本語で${body.charLimit ?? 500}文字程度にまとめること。`,
         messages: [{ role: 'user', content: userContent }],
       }),

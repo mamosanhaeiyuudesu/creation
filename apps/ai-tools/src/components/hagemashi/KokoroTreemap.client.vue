@@ -19,31 +19,80 @@ function colorFor(valence: number): string {
   }
 }
 
+// valence をカテゴリ名にマッピング
+function labelFor(valence: number): string {
+  switch (valence) {
+    case 2: return '充実'
+    case 1: return '前向き'
+    case 0: return '中立'
+    case -1: return 'モヤモヤ'
+    case -2: return 'ストレス'
+    default: return valence > 0 ? '前向き' : 'モヤモヤ'
+  }
+}
+
 const chartEl = ref<HTMLDivElement>()
-let chart: import('echarts').ECharts | null = null
+let chart: import('echarts/core').ECharts | null = null
+
+// クリックで表示する詳細ポップアップの状態
+interface ActiveLeaf { name: string; note: string; valence: number; group: string; x: number; y: number }
+const activeLeaf = ref<ActiveLeaf | null>(null)
+
+// echarts をフルインポートすると本番で巨大チャンク群が一気にダウンロードされ、
+// Cloudflare のレートリミット(1015)を誘発するため、treemap に必要な部分だけを読み込む
+async function loadECharts() {
+  const [core, charts, renderers] = await Promise.all([
+    import('echarts/core'),
+    import('echarts/charts'),
+    import('echarts/renderers'),
+  ])
+  core.use([charts.TreemapChart, renderers.SVGRenderer])
+  return core
+}
 
 const treeData = computed(() => {
   const e = props.entry
   if (!e) return []
-  const toChildren = (leaves: KokoroLeaf[]) =>
+  const toChildren = (leaves: KokoroLeaf[], group: string) =>
     leaves.map(l => ({
       name: l.name,
       value: l.weight,
       note: l.note,
+      valence: l.valence,
+      group,
       itemStyle: { color: colorFor(l.valence) },
       label: { color: '#0f172a' },
     }))
   const nodes = []
-  if (e.charge.length) nodes.push({ name: 'チャージ源', itemStyle: { color: '#065f46' }, children: toChildren(e.charge) })
-  if (e.stress.length) nodes.push({ name: 'ストレス源', itemStyle: { color: '#7f1d1d' }, children: toChildren(e.stress) })
+  if (e.charge.length) nodes.push({ name: 'チャージ源', itemStyle: { color: '#065f46' }, children: toChildren(e.charge, 'チャージ源') })
+  if (e.stress.length) nodes.push({ name: 'ストレス源', itemStyle: { color: '#7f1d1d' }, children: toChildren(e.stress, 'ストレス源') })
   return nodes
 })
 
 async function renderChart() {
   if (!chartEl.value) return
-  const EC = await import('echarts')
+  const EC = await loadECharts()
   if (!chartEl.value) return
-  if (!chart) chart = EC.init(chartEl.value, undefined, { renderer: 'svg' })
+  if (!chart) {
+    chart = EC.init(chartEl.value, undefined, { renderer: 'svg' })
+    // 要素クリックで詳細ポップアップを表示（leaf のみ反応）
+    chart.on('click', (params: any) => {
+      const d = params?.data
+      if (d && d.valence !== undefined && d.group) {
+        const ne = params.event?.event as MouseEvent | undefined
+        activeLeaf.value = {
+          name: params.name ?? d.name ?? '',
+          note: d.note ?? '',
+          valence: d.valence,
+          group: d.group,
+          x: ne?.clientX ?? 0,
+          y: ne?.clientY ?? 0,
+        }
+      } else {
+        activeLeaf.value = null
+      }
+    })
+  }
 
   const data = treeData.value
   if (!data.length) {
@@ -52,18 +101,6 @@ async function renderChart() {
   }
 
   chart.setOption({
-    tooltip: {
-      backgroundColor: '#1e293b',
-      borderColor: 'rgba(255,255,255,0.1)',
-      borderWidth: 1,
-      textStyle: { color: '#e2e8f0', fontSize: 12 },
-      formatter: (info: any) => {
-        const note = info?.data?.note
-        const name = info?.name ?? ''
-        if (!note) return `<b>${name}</b>`
-        return `<b>${name}</b><br/><span style="color:#94a3b8">${note}</span>`
-      },
-    },
     series: [{
       type: 'treemap',
       roam: false,
@@ -104,7 +141,15 @@ async function renderChart() {
   }, true)
 }
 
-watch(() => props.entry, () => nextTick(renderChart), { deep: true })
+watch(() => props.entry, () => { activeLeaf.value = null; nextTick(renderChart) }, { deep: true })
+
+// チャート・ポップアップ以外をクリックしたら閉じる（チャート内は echarts の click に任せる）
+function onDocClick(e: MouseEvent) {
+  const t = e.target as HTMLElement
+  if (chartEl.value?.contains(t)) return
+  if (t.closest('.kokoro-popup')) return
+  activeLeaf.value = null
+}
 
 let ro: ResizeObserver | null = null
 onMounted(async () => {
@@ -113,16 +158,33 @@ onMounted(async () => {
     ro = new ResizeObserver(() => chart?.resize())
     ro.observe(chartEl.value)
   }
+  window.addEventListener('click', onDocClick)
 })
 onBeforeUnmount(() => {
   ro?.disconnect()
   chart?.dispose()
   chart = null
+  window.removeEventListener('click', onDocClick)
 })
 </script>
 
 <template>
   <div class="relative">
     <div ref="chartEl" class="w-full" :style="{ height: `${height ?? 360}px` }" />
+
+    <Teleport to="body">
+      <div
+        v-if="activeLeaf"
+        class="kokoro-popup fixed z-50 min-w-[180px] max-w-[260px] bg-[#1e293b] border border-white/10 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.5)] py-2.5 px-3.5 flex flex-col gap-1.5"
+        :style="{ left: `${activeLeaf.x}px`, top: `${activeLeaf.y + 8}px` }"
+      >
+        <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
+          <span class="w-2.5 h-2.5 rounded-sm inline-block shrink-0" :style="{ background: colorFor(activeLeaf.valence) }" />
+          <span>{{ activeLeaf.group }}・{{ labelFor(activeLeaf.valence) }}</span>
+        </div>
+        <div class="text-sm font-semibold text-slate-100 leading-snug">{{ activeLeaf.name }}</div>
+        <p v-if="activeLeaf.note" class="m-0 text-xs text-slate-300 leading-relaxed">{{ activeLeaf.note }}</p>
+      </div>
+    </Teleport>
   </div>
 </template>
