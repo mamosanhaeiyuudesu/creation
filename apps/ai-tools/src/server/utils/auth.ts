@@ -51,13 +51,22 @@ export async function getSessionUser(event: any): Promise<{ id: string; username
     .first<{ user_id: string; username: string }>()
 
   if (!row) return null
+
+  // アクセスするたびに有効期限を延ばす（スライディングセッション）。
+  // ログイン時刻から固定30日だと、使い続けていても知らぬ間に切れて再ログインを求められる。
+  const expiresAt = new Date(Date.now() + SESSION_EXPIRE_DAYS * 24 * 3600 * 1000).toISOString().replace('T', ' ').replace('Z', '')
+  await db.prepare('UPDATE sessions SET expires_at = ? WHERE id = ?').bind(expiresAt, token).run()
+  setSessionCookie(event, token)
+
   return { id: row.user_id, username: row.username }
 }
 
 export function setSessionCookie(event: any, token: string): void {
   setCookie(event, SESSION_COOKIE, token, {
     httpOnly: true,
-    sameSite: 'strict',
+    // 'strict' だとPWAをホーム画面から開き直したときにCookieが送られず未ログイン扱いになることがあるため 'lax' にする
+    sameSite: 'lax',
+    secure: true,
     maxAge: SESSION_EXPIRE_DAYS * 24 * 3600,
     path: '/',
   })
