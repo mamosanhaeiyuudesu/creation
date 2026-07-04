@@ -79,9 +79,15 @@ async function renderChart() {
     chart.on('click', (params: any) => {
       const d = params?.data
       if (d && d.valence !== undefined && d.group) {
+        const name = params.name ?? d.name ?? ''
+        // すでに同じ要素のポップアップが開いていれば閉じる（トグル）
+        if (activeLeaf.value && activeLeaf.value.name === name && activeLeaf.value.group === d.group) {
+          activeLeaf.value = null
+          return
+        }
         const ne = params.event?.event as MouseEvent | undefined
         activeLeaf.value = {
-          name: params.name ?? d.name ?? '',
+          name,
           note: d.note ?? '',
           valence: d.valence,
           group: d.group,
