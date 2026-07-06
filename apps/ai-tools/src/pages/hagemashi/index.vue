@@ -8,7 +8,7 @@
       <!-- Header -->
       <header class="relative flex items-center justify-start">
         <div class="text-left">
-          <h1 class="m-0 text-[clamp(12px,2vw,16px)] font-bold bg-gradient-to-br from-orange-500 to-pink-500 bg-clip-text text-transparent">はげまし</h1>
+          <h1 class="m-0 text-[clamp(12px,2vw,16px)] font-bold bg-gradient-to-br from-orange-500 to-pink-500 bg-clip-text text-transparent">記録</h1>
         </div>
         <div class="absolute right-0 top-1/2 -translate-y-1/2" @click.stop>
           <button
@@ -289,9 +289,7 @@
           <div v-else class="flex flex-col gap-3">
             <!-- 凡例 -->
             <div class="flex items-center justify-center gap-2.5 text-[10px] text-slate-500 flex-wrap">
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:#34d399" />充実</span>
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:#6ee7b7" />前向き</span>
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:#fb923c" />モヤモヤ</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:#34d399" />エナジー</span>
               <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:#f87171" />ストレス</span>
               <span class="text-slate-600">／ 面積 = 心を占める大きさ</span>
             </div>
@@ -895,7 +893,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { marked } from 'marked'
 
 useHead({
-  title: import.meta.dev ? 'はげまし (dev)' : 'はげまし',
+  title: import.meta.dev ? '記録 (dev)' : '記録',
   link: [
     { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💪</text></svg>` },
     { rel: 'manifest', href: '/manifest-hagemashi.json' },
@@ -1058,7 +1056,7 @@ const profileHistory = ref<ProfileData[]>([])
 const isProfileLoading = ref(false)
 
 // --- こころ（心の状態 treemap） ---
-interface KokoroLeaf { name: string; weight: number; valence: number; note: string }
+interface KokoroLeaf { name: string; weight: number; note: string }
 interface KokoroData { charge: KokoroLeaf[]; stress: KokoroLeaf[]; summary: string; generatedAt: string }
 const kokoroHistory = ref<KokoroData[]>([])
 const isKokoroLoading = ref(false)

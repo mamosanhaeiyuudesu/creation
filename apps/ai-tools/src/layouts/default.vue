@@ -79,7 +79,7 @@ const tools = [
   // { path: '/', name: 'ホーム', icon: '🏠' },
   // { path: '/snapreader', name: 'SnapReader', icon: '📸' },
   // { path: '/whisper', name: 'whisper', icon: '🎙️' },
-  { path: '/hagemashi', name: 'はげまし', icon: '💪' },
+  { path: '/hagemashi', name: '記録', icon: '💪' },
   { path: '/task', name: 'タスクくん', icon: '📋' },
   // { path: '/marriage', name: 'marriage', icon: '💑' },
   // { path: '/tengu', name: '天狗問答', icon: '👺' },

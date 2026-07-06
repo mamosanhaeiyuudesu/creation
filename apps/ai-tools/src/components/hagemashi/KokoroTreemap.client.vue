@@ -1,5 +1,5 @@
 <script setup lang="ts">
-interface KokoroLeaf { name: string; weight: number; valence: number; note: string }
+interface KokoroLeaf { name: string; weight: number; note: string }
 interface KokoroEntry { charge: KokoroLeaf[]; stress: KokoroLeaf[]; summary: string; generatedAt: string }
 
 const props = defineProps<{
@@ -7,35 +7,17 @@ const props = defineProps<{
   height?: number
 }>()
 
-// valence（-2〜+2）を色にマッピング。プラス=緑、マイナス=赤。
-function colorFor(valence: number): string {
-  switch (valence) {
-    case 2: return '#34d399'  // 強い充実
-    case 1: return '#6ee7b7'  // 前向き
-    case 0: return '#94a3b8'  // 中立
-    case -1: return '#fb923c' // モヤモヤ
-    case -2: return '#f87171' // 強いストレス
-    default: return valence > 0 ? '#6ee7b7' : '#fb923c'
-  }
-}
-
-// valence をカテゴリ名にマッピング
-function labelFor(valence: number): string {
-  switch (valence) {
-    case 2: return '充実'
-    case 1: return '前向き'
-    case 0: return '中立'
-    case -1: return 'モヤモヤ'
-    case -2: return 'ストレス'
-    default: return valence > 0 ? '前向き' : 'モヤモヤ'
-  }
+// グループ（エナジー／ストレス）ごとの固定色
+const GROUP_COLOR: Record<string, string> = {
+  'エナジー': '#34d399',
+  'ストレス': '#f87171',
 }
 
 const chartEl = ref<HTMLDivElement>()
 let chart: import('echarts/core').ECharts | null = null
 
 // クリックで表示する詳細ポップアップの状態
-interface ActiveLeaf { name: string; note: string; valence: number; group: string; x: number; y: number }
+interface ActiveLeaf { name: string; note: string; group: string; x: number; y: number }
 const activeLeaf = ref<ActiveLeaf | null>(null)
 
 // echarts をフルインポートすると本番で巨大チャンク群が一気にダウンロードされ、
@@ -58,14 +40,13 @@ const treeData = computed(() => {
       name: l.name,
       value: l.weight,
       note: l.note,
-      valence: l.valence,
       group,
-      itemStyle: { color: colorFor(l.valence) },
+      itemStyle: { color: GROUP_COLOR[group] },
       label: { color: '#0f172a' },
     }))
   const nodes = []
-  if (e.charge.length) nodes.push({ name: 'チャージ源', itemStyle: { color: '#065f46' }, children: toChildren(e.charge, 'チャージ源') })
-  if (e.stress.length) nodes.push({ name: 'ストレス源', itemStyle: { color: '#7f1d1d' }, children: toChildren(e.stress, 'ストレス源') })
+  if (e.charge.length) nodes.push({ name: 'エナジー', itemStyle: { color: '#065f46' }, children: toChildren(e.charge, 'エナジー') })
+  if (e.stress.length) nodes.push({ name: 'ストレス', itemStyle: { color: '#7f1d1d' }, children: toChildren(e.stress, 'ストレス') })
   return nodes
 })
 
@@ -78,21 +59,24 @@ async function renderChart() {
     // 要素クリックで詳細ポップアップを表示（leaf のみ反応）
     chart.on('click', (params: any) => {
       const d = params?.data
-      if (d && d.valence !== undefined && d.group) {
+      if (d && d.group) {
         const name = params.name ?? d.name ?? ''
         // すでに同じ要素のポップアップが開いていれば閉じる（トグル）
         if (activeLeaf.value && activeLeaf.value.name === name && activeLeaf.value.group === d.group) {
           activeLeaf.value = null
           return
         }
-        const ne = params.event?.event as MouseEvent | undefined
+        // タッチ操作では event.clientX/Y が入らないため、
+        // zrender が常に埋める offsetX/Y（キャンバス基準座標）から算出する
+        const rect = chartEl.value?.getBoundingClientRect()
+        const offsetX = params.event?.offsetX ?? 0
+        const offsetY = params.event?.offsetY ?? 0
         activeLeaf.value = {
           name,
           note: d.note ?? '',
-          valence: d.valence,
           group: d.group,
-          x: ne?.clientX ?? 0,
-          y: ne?.clientY ?? 0,
+          x: (rect?.left ?? 0) + offsetX,
+          y: (rect?.top ?? 0) + offsetY,
         }
       } else {
         activeLeaf.value = null
@@ -185,8 +169,8 @@ onBeforeUnmount(() => {
         :style="{ left: `${activeLeaf.x}px`, top: `${activeLeaf.y + 8}px` }"
       >
         <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
-          <span class="w-2.5 h-2.5 rounded-sm inline-block shrink-0" :style="{ background: colorFor(activeLeaf.valence) }" />
-          <span>{{ activeLeaf.group }}・{{ labelFor(activeLeaf.valence) }}</span>
+          <span class="w-2.5 h-2.5 rounded-sm inline-block shrink-0" :style="{ background: GROUP_COLOR[activeLeaf.group] }" />
+          <span>{{ activeLeaf.group }}</span>
         </div>
         <div class="text-sm font-semibold text-slate-100 leading-snug">{{ activeLeaf.name }}</div>
         <p v-if="activeLeaf.note" class="m-0 text-xs text-slate-300 leading-relaxed">{{ activeLeaf.note }}</p>

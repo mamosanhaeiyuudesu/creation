@@ -4,8 +4,7 @@ import { wrapApiError } from '~/server/utils/openai'
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string; date: string }
 interface WordEntry { word: string; count: number }
 // weight: 1〜10（心を占める割合の目安 → treemap の面積）
-// valence: チャージ源は 0〜+2、ストレス源は -2〜0（→ 色の濃淡）
-interface KokoroLeaf { name: string; weight: number; valence: number; note: string }
+interface KokoroLeaf { name: string; weight: number; note: string }
 interface KokoroEntry { charge: KokoroLeaf[]; stress: KokoroLeaf[]; summary: string; generatedAt: string }
 
 export default defineEventHandler(async (event) => {
@@ -44,12 +43,11 @@ export default defineEventHandler(async (event) => {
 自分の心を客観視してメタ認知できるよう、プラス面もマイナス面も両方バランスよく抽出することが重要です。
 
 必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
-{"charge":[{"name":"項目名（10字前後で端的に）","weight":8,"valence":2,"note":"補足（40字以内）"}],"stress":[{"name":"項目名（10字前後で端的に）","weight":6,"valence":-2,"note":"補足（40字以内）"}],"summary":"心の状態を客観視するための全体コメント（120字以内）"}
+{"charge":[{"name":"項目名（10字前後で端的に）","weight":8,"note":"補足（40字以内）"}],"stress":[{"name":"項目名（10字前後で端的に）","weight":6,"note":"補足（40字以内）"}],"summary":"心の状態を客観視するための全体コメント（120字以内）"}
 
 ルール:
 - charge（チャージ源）は 3〜6 項目、stress（ストレス源）は 3〜6 項目
 - weight は 1〜10 の整数で、その事柄が今どれくらい心を占めているか（大きいほど心を占める）
-- valence は感情の質。charge は +1〜+2、stress は -2〜-1 の整数（強く前向き=+2、強いストレス=-2）
 - name は記録から具体的に拾い、「仕事の達成感」「締切のプレッシャー」のように端的に
 - note はメタ認知を助ける一言
 - データが少ない場合も、読み取れる範囲で無理なく分類する`,
@@ -74,18 +72,15 @@ export default defineEventHandler(async (event) => {
       parsed = JSON.parse(match[0])
     }
 
-    const clampLeaf = (l: KokoroLeaf, kind: 'charge' | 'stress'): KokoroLeaf => ({
+    const clampLeaf = (l: KokoroLeaf): KokoroLeaf => ({
       name: String(l.name ?? '').slice(0, 24),
       weight: Math.min(10, Math.max(1, Math.round(Number(l.weight) || 1))),
-      valence: kind === 'charge'
-        ? Math.min(2, Math.max(0, Math.round(Number(l.valence) || 1)))
-        : Math.max(-2, Math.min(0, Math.round(Number(l.valence) || -1))),
       note: String(l.note ?? '').slice(0, 60),
     })
 
     const newEntry: KokoroEntry = {
-      charge: (Array.isArray(parsed.charge) ? parsed.charge : []).map(l => clampLeaf(l, 'charge')).filter(l => l.name),
-      stress: (Array.isArray(parsed.stress) ? parsed.stress : []).map(l => clampLeaf(l, 'stress')).filter(l => l.name),
+      charge: (Array.isArray(parsed.charge) ? parsed.charge : []).map(clampLeaf).filter(l => l.name),
+      stress: (Array.isArray(parsed.stress) ? parsed.stress : []).map(clampLeaf).filter(l => l.name),
       summary: String(parsed.summary ?? '').slice(0, 200),
       generatedAt: new Date().toISOString(),
     }
