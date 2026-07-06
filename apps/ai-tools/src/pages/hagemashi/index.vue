@@ -287,12 +287,6 @@
             更新ボタンを押すと中間データから心の状態を可視化します
           </div>
           <div v-else class="flex flex-col gap-3">
-            <!-- 凡例 -->
-            <div class="flex items-center justify-center gap-2.5 text-[10px] text-slate-500 flex-wrap">
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:#34d399" />エナジー</span>
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:#f87171" />ストレス</span>
-              <span class="text-slate-600">／ 面積 = 心を占める大きさ</span>
-            </div>
             <HagemashiKokoroTreemap :entry="kokoroHistory[0]" :height="360" />
             <!-- メタ認知コメント -->
             <div v-if="kokoroHistory[0].summary" class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
