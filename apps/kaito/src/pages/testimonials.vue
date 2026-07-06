@@ -32,7 +32,7 @@
               <article class="testimonial-card">
                 <h3 style="margin: 0 0 12px; font-size: 1.1rem; color: var(--color-primary-dark);">30代女性</h3>
                 <p>
-                  「月ノ瀬 海倭さんは本当に話しやすくて、安心して何でも話せました。
+                  「月ノ瀬 直さんは本当に話しやすくて、安心して何でも話せました。
                   ジャッジされない、否定されない空間がこんなに心地よいとは思いませんでした。
                   継続して通っていますが、毎回新しい気づきがあります。」
                 </p>
@@ -120,7 +120,7 @@ definePageMeta({ layout: 'therapist',  })
 
 useHead({
   bodyAttrs: { class: 'home' },
-  title: 'お客様の声 | 月ノ瀬 海倭',
+  title: 'お客様の声 | 月ノ瀬 直',
   meta: [{ name: 'description', content: 'FLSセッションやレムリアンヒーリングを受けられたお客様の声をご紹介します。' }],
   link: [
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },

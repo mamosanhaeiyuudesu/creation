@@ -71,7 +71,7 @@ definePageMeta({ layout: 'therapist',  })
 
 useHead({
   bodyAttrs: { class: 'home' },
-  title: 'こんな方へ | 月ノ瀬 海倭',
+  title: 'こんな方へ | 月ノ瀬 直',
   meta: [{ name: 'description', content: 'セッションがおすすめの方、合わないかもしれない方についてご案内します。' }],
   link: [
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },

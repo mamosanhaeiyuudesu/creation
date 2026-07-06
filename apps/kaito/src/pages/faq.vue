@@ -95,7 +95,7 @@ definePageMeta({ layout: 'therapist',  })
 
 useHead({
   bodyAttrs: { class: 'home' },
-  title: 'よくある質問 | 月ノ瀬 海倭',
+  title: 'よくある質問 | 月ノ瀬 直',
   meta: [{ name: 'description', content: 'FLSセッション・レムリアンヒーリングについてよくいただくご質問にお答えします。' }],
   link: [
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },

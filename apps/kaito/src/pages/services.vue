@@ -120,7 +120,7 @@ definePageMeta({ layout: 'therapist',  })
 
 useHead({
   bodyAttrs: { class: 'home' },
-  title: 'サービス内容 | 月ノ瀬 海倭',
+  title: 'サービス内容 | 月ノ瀬 直',
   meta: [{ name: 'description', content: 'FLSセッション（Future Life Session）とレムリアンヒーリングのご案内。料金とセッションの流れをご紹介します。' }],
   link: [
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },

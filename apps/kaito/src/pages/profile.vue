@@ -6,7 +6,7 @@
       <header class="page-hero-header">
         <div class="page-hero-inner">
           <span class="hero-eyebrow">プロフィール</span>
-          <h1>月ノ瀬 海倭について</h1>
+          <h1>月ノ瀬 直について</h1>
           <p>
             私をあなたの心の翻訳器として使ってください。<br />
             声にならない想いに光を当てて、本来の自分を思い出すお手伝いをします。
@@ -104,8 +104,8 @@ definePageMeta({ layout: 'therapist',  })
 
 useHead({
   bodyAttrs: { class: 'home' },
-  title: '月ノ瀬 海倭について | 月ノ瀬 海倭',
-  meta: [{ name: 'description', content: 'セラピスト 月ノ瀬 海倭のプロフィール。セラピストになったきっかけ、想い、使命についてご紹介します。' }],
+  title: '月ノ瀬 直について | 月ノ瀬 直',
+  meta: [{ name: 'description', content: 'セラピスト 月ノ瀬 直のプロフィール。セラピストになったきっかけ、想い、使命についてご紹介します。' }],
   link: [
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },

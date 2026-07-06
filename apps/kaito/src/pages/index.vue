@@ -5,9 +5,9 @@
     <main>
       <section class="home-hero">
         <div class="hero-grid">
-          <img class="hero-name-image" src="/images/name.jpg" alt="月ノ瀬 海倭" />
+          <img class="hero-name-image" src="/images/name.jpg" alt="月ノ瀬 直" />
           <div class="hero-text">
-            <span class="hero-eyebrow">セラピスト 月ノ瀬 海倭</span>
+            <span class="hero-eyebrow">セラピスト 月ノ瀬 直</span>
             <h1>本来の自分を思い出す場所</h1>
             <p class="hero-lead">
               フタをしてしまった想いや感情を解放し、<br />
@@ -26,7 +26,7 @@
             </div>
             <div class="hero-actions">
               <NuxtLink class="cta-link" to="/services">サービス内容を見る</NuxtLink>
-              <NuxtLink class="secondary-link" to="/profile">月ノ瀬 海倭について</NuxtLink>
+              <NuxtLink class="secondary-link" to="/profile">月ノ瀬 直について</NuxtLink>
             </div>
           </div>
         </div>
@@ -83,7 +83,7 @@
             それが私の使命だと感じています。
           </p>
           <div class="section-link-wrap">
-            <NuxtLink class="read-more" to="/profile">月ノ瀬 海倭について詳しく</NuxtLink>
+            <NuxtLink class="read-more" to="/profile">月ノ瀬 直について詳しく</NuxtLink>
           </div>
         </div>
       </section>
@@ -93,12 +93,12 @@
           <h2>はじめての方へ</h2>
           <p>
             サービスについて詳しく知りたい方は「サービス内容」へ。<br />
-            私の想いや歩みを知りたい方は「月ノ瀬 海倭について」へ。<br />
+            私の想いや歩みを知りたい方は「月ノ瀬 直について」へ。<br />
             実際に受けた方の声は「お客様の声」でご覧いただけます。
           </p>
           <div class="cta-grid">
             <NuxtLink class="cta-card" to="/services"><span>サービス内容</span></NuxtLink>
-            <NuxtLink class="cta-card" to="/profile"><span>月ノ瀬 海倭について</span></NuxtLink>
+            <NuxtLink class="cta-card" to="/profile"><span>月ノ瀬 直について</span></NuxtLink>
             <NuxtLink class="cta-card" to="/testimonials"><span>お客様の声</span></NuxtLink>
           </div>
         </div>
@@ -114,10 +114,10 @@ definePageMeta({ layout: 'therapist' })
 
 useHead({
   bodyAttrs: { class: 'home' },
-  title: '月ノ瀬 海倭 | 本来の自分を思い出す場所',
+  title: '月ノ瀬 直 | 本来の自分を思い出す場所',
   meta: [
     { name: 'description', content: '本来の自分を思い出す場所。FLSセッションとレムリアンヒーリングで、あなたの心の声に寄り添います。' },
-    { property: 'og:title', content: '月ノ瀬 海倭 | 本来の自分を思い出す場所' },
+    { property: 'og:title', content: '月ノ瀬 直 | 本来の自分を思い出す場所' },
     { property: 'og:description', content: 'フタをしてしまった想いや感情を解放し、本来の自分を思い出すお手伝いをします。' },
   ],
   link: [

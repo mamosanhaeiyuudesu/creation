@@ -1,7 +1,7 @@
 <template>
   <header class="site-header">
     <div class="nav-container">
-      <NuxtLink class="logo" to="">月ノ瀬 海倭</NuxtLink>
+      <NuxtLink class="logo" to="">月ノ瀬 直</NuxtLink>
       <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="メニューを開く" />
       <label for="nav-toggle" class="nav-toggle-label" aria-hidden="true">
         <span></span>
@@ -10,7 +10,7 @@
       </label>
       <nav class="global-nav" aria-label="主要ナビゲーション">
         <NuxtLink to="" :class="{ 'is-active': route.path === '' }">ホーム</NuxtLink>
-        <NuxtLink to="/profile" :class="{ 'is-active': route.path === '/kaito/profile' }">月ノ瀬 海倭について</NuxtLink>
+        <NuxtLink to="/profile" :class="{ 'is-active': route.path === '/kaito/profile' }">月ノ瀬 直について</NuxtLink>
         <NuxtLink to="/services" :class="{ 'is-active': route.path === '/kaito/services' }">サービス内容</NuxtLink>
         <NuxtLink to="/for-you" :class="{ 'is-active': route.path === '/kaito/for-you' }">こんな方へ</NuxtLink>
         <NuxtLink to="/testimonials" :class="{ 'is-active': route.path === '/kaito/testimonials' }">お客様の声</NuxtLink>
