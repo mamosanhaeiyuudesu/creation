@@ -53,7 +53,7 @@
           <!-- 気分 button -->
           <button
             class="w-[62px] h-[62px] rounded-full border-2 border-orange-500/50 bg-orange-500/[0.08] text-slate-50 cursor-pointer flex flex-col items-center justify-center gap-1 transition-all hover:bg-orange-500/[0.20] hover:border-orange-500/80 hover:scale-105"
-            @click="activeTab = 'mood'"
+            @click="openMoodInput"
           >
             <span class="text-xl leading-none">📈</span>
             <span class="text-[9px] font-medium">気分</span>
@@ -430,38 +430,15 @@
 
         <!-- 気分タブ -->
         <div v-else-if="activeTab === 'mood'" class="py-2 flex flex-col gap-4">
-          <!-- 入力エリア -->
-          <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5 flex flex-col gap-3">
-            <div class="text-xs font-semibold text-orange-400">いまの気分（10段階）</div>
-            <div class="flex items-center gap-1">
-              <button
-                v-for="n in 10"
-                :key="n"
-                class="flex-1 h-9 rounded-lg text-sm font-semibold border transition-all cursor-pointer"
-                :class="moodScore === n ? 'text-slate-900 border-transparent' : 'border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/[0.08] hover:text-slate-200'"
-                :style="moodScore === n ? { background: moodColor(n) } : {}"
-                @click="moodScore = n"
-              >{{ n }}</button>
-            </div>
-            <textarea
-              v-model="moodNote"
-              class="w-full min-h-[70px] bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-none leading-relaxed"
-              placeholder="いまの気持ちや状況（任意）"
-            />
-            <div class="flex justify-end">
-              <button
-                class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-                :disabled="!moodScore || isSavingMood"
-                @click="saveMood"
-              >
-                <span v-if="isSavingMood" class="w-3 h-3 rounded-full border border-white/40 border-t-white animate-spin block" />
-                記録
-              </button>
-            </div>
-          </div>
           <!-- 気分の推移グラフ -->
           <div>
-            <div class="text-[11px] text-slate-600 mb-1.5">気分の推移（ドットをタップで詳細）</div>
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <div class="text-[11px] text-slate-600">気分の推移（ドットをタップで詳細）</div>
+              <button
+                class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all shrink-0"
+                @click="openMoodInput"
+              >＋ 記録</button>
+            </div>
             <div v-if="moodEntries.length === 0" class="text-center text-slate-500 text-sm py-10">
               まだ気分の記録がありません
             </div>
@@ -471,6 +448,60 @@
               :height="300"
               @delete="deleteMood"
             />
+          </div>
+          <!-- 履歴一覧（編集可能） -->
+          <div v-if="moodEntries.length > 0" class="flex flex-col gap-0">
+            <div class="text-[11px] text-slate-600 border-t border-white/[0.06] pt-3 mb-1">履歴</div>
+            <div
+              v-for="row in moodHistoryRows"
+              :key="row.id"
+              class="flex flex-col gap-2 px-1 py-2 border-b border-white/[0.05] last:border-b-0"
+            >
+              <!-- 表示モード -->
+              <template v-if="editingMoodId !== row.id">
+                <div class="flex items-start gap-2.5 group">
+                  <span class="text-[11px] text-slate-500 shrink-0 w-[74px] pt-[2px] tabular-nums">{{ row.date }}</span>
+                  <span class="text-[11px] font-semibold shrink-0 px-1.5 py-0.5 rounded-md mt-[1px] text-slate-900" :style="{ background: moodColor(row.score) }">{{ row.score }}</span>
+                  <span class="text-sm leading-relaxed flex-1" :class="row.note ? 'text-slate-200' : 'text-slate-600 italic'">{{ row.note || 'テキストなし' }}</span>
+                  <div class="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
+                    <button
+                      class="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer border-none bg-transparent"
+                      @click="startEditMood(row)"
+                    >✏️</button>
+                    <button
+                      class="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border-none bg-transparent"
+                      @click="deleteMood(row.id)"
+                    >✕</button>
+                  </div>
+                </div>
+              </template>
+              <!-- 編集モード -->
+              <template v-else>
+                <div class="flex items-center gap-2 px-0.5">
+                  <span class="text-[11px] text-slate-500 shrink-0 w-[74px] tabular-nums">{{ row.date }}</span>
+                  <div class="flex items-center gap-1 flex-1">
+                    <button
+                      v-for="n in 10"
+                      :key="n"
+                      class="flex-1 h-7 rounded-md text-xs font-semibold border transition-all cursor-pointer"
+                      :class="editingMoodScore === n ? 'text-slate-900 border-transparent' : 'border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/[0.08] hover:text-slate-200'"
+                      :style="editingMoodScore === n ? { background: moodColor(n) } : {}"
+                      @click="editingMoodScore = n"
+                    >{{ n }}</button>
+                  </div>
+                </div>
+                <textarea
+                  v-model="editingMoodNote"
+                  class="w-full bg-white/[0.05] border border-orange-500/40 rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-none leading-relaxed"
+                  rows="2"
+                  placeholder="いまの気持ちや状況（任意）"
+                />
+                <div class="flex justify-end gap-1.5">
+                  <button class="px-3 py-1 rounded-lg border border-white/10 bg-transparent text-slate-400 text-xs cursor-pointer hover:bg-white/[0.08] transition-colors" @click="cancelMoodEdit">キャンセル</button>
+                  <button class="px-3 py-1 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-xs font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="saveMoodEdit(row.id)">保存</button>
+                </div>
+              </template>
+            </div>
           </div>
         </div>
 
@@ -528,6 +559,40 @@
           >
             <span v-if="isSubmittingText" class="w-3 h-3 rounded-full border border-white/40 border-t-white animate-spin block" />
             {{ isSubmittingText ? '処理中...' : '完了' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 気分入力モーダル -->
+    <div v-if="moodInputOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="closeMoodInput">
+      <div class="w-full max-w-[420px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-4">
+        <p class="m-0 text-slate-200 text-sm font-semibold">いまの気分（10段階）</p>
+        <div class="flex items-center gap-1">
+          <button
+            v-for="n in 10"
+            :key="n"
+            class="flex-1 h-9 rounded-lg text-sm font-semibold border transition-all cursor-pointer"
+            :class="moodScore === n ? 'text-slate-900 border-transparent' : 'border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/[0.08] hover:text-slate-200'"
+            :style="moodScore === n ? { background: moodColor(n) } : {}"
+            @click="moodScore = n"
+          >{{ n }}</button>
+        </div>
+        <textarea
+          v-model="moodNote"
+          class="w-full min-h-[90px] bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-none leading-relaxed"
+          placeholder="いまの気持ちや状況（任意）"
+          :disabled="isSavingMood"
+        />
+        <div class="flex justify-end gap-2">
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed" :disabled="isSavingMood" @click="closeMoodInput">キャンセル</button>
+          <button
+            class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+            :disabled="!moodScore || isSavingMood"
+            @click="saveMood"
+          >
+            <span v-if="isSavingMood" class="w-3 h-3 rounded-full border border-white/40 border-t-white animate-spin block" />
+            記録
           </button>
         </div>
       </div>
@@ -1105,12 +1170,29 @@ const moodEntries = ref<MoodEntry[]>([])
 const moodScore = ref<number | null>(null)
 const moodNote = ref('')
 const isSavingMood = ref(false)
+const moodInputOpen = ref(false)
 
 // 気分スコア(1〜10)を赤→緑のグラデーション色に変換
 const moodColor = (score: number): string => {
   const hue = ((Math.max(1, Math.min(10, score)) - 1) / 9) * 120
   return `hsl(${hue}, 70%, 50%)`
 }
+
+// 履歴一覧（新しい順・日時整形済み）
+const formatMoodDate = (iso: string): string => {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  return `${mm}/${dd} ${hh}:${mi}`
+}
+const moodHistoryRows = computed(() =>
+  [...moodEntries.value]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .map(m => ({ ...m, date: formatMoodDate(m.createdAt) }))
+)
 
 const persistMoods = async () => {
   if ($dev) {
@@ -1124,6 +1206,18 @@ const persistMoods = async () => {
   }
 }
 
+// 気分ボタン → 入力モーダルを開く（気分タブに切り替えてグラフも見せる）
+const openMoodInput = () => {
+  activeTab.value = 'mood'
+  moodScore.value = null
+  moodNote.value = ''
+  moodInputOpen.value = true
+}
+const closeMoodInput = () => {
+  if (isSavingMood.value) return
+  moodInputOpen.value = false
+}
+
 const saveMood = async () => {
   if (!moodScore.value || isSavingMood.value) return
   isSavingMood.value = true
@@ -1135,6 +1229,7 @@ const saveMood = async () => {
     await persistMoods()
     moodScore.value = null
     moodNote.value = ''
+    moodInputOpen.value = false
   } finally {
     isSavingMood.value = false
   }
@@ -1142,6 +1237,29 @@ const saveMood = async () => {
 
 const deleteMood = async (id: string) => {
   moodEntries.value = moodEntries.value.filter(m => m.id !== id)
+  if (editingMoodId.value === id) editingMoodId.value = null
+  await persistMoods()
+}
+
+// --- 履歴の編集 ---
+const editingMoodId = ref<string | null>(null)
+const editingMoodScore = ref<number>(0)
+const editingMoodNote = ref('')
+const startEditMood = (row: MoodEntry) => {
+  editingMoodId.value = row.id
+  editingMoodScore.value = row.score
+  editingMoodNote.value = row.note
+}
+const cancelMoodEdit = () => {
+  editingMoodId.value = null
+}
+const saveMoodEdit = async (id: string) => {
+  const target = moodEntries.value.find(m => m.id === id)
+  if (!target || !editingMoodScore.value) return
+  moodEntries.value = moodEntries.value.map(m =>
+    m.id === id ? { ...m, score: editingMoodScore.value, note: editingMoodNote.value.trim() } : m
+  )
+  editingMoodId.value = null
   await persistMoods()
 }
 
