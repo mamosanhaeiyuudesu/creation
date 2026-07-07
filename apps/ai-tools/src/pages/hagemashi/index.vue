@@ -23,6 +23,9 @@
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="dictionaryOpen = true; showSettingsMenu = false">
               <span>📖</span> 辞書設定
             </button>
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openVisionModal(); showSettingsMenu = false">
+              <span>🎯</span> ビジョン設定
+            </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); showSettingsMenu = false">
               <span>🚪</span> ログアウト
             </button>
@@ -144,7 +147,7 @@
           :hideHeader="true"
           :mobileMinimal="true"
           @copy="copyHistory"
-          @delete="deleteHistory"
+          @delete="deleteHistoryAndAchievements"
           @updateTitle="updateHistoryTitle"
         />
         <HistoryTable
@@ -550,6 +553,34 @@
         <div class="flex justify-end gap-2 px-6 py-4 border-t border-white/[0.08]">
           <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="dictionaryOpen = false">キャンセル</button>
           <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="saveDictionary">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ビジョン設定モーダル -->
+    <div v-if="visionOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="closeVisionModal">
+      <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
+          <div>
+            <h2 class="m-0 text-lg text-slate-50 font-semibold">🎯 ビジョン設定</h2>
+            <p class="m-0 mt-0.5 text-xs text-slate-500">自分がどうありたいかを言語化しておく</p>
+          </div>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="closeVisionModal">✕</button>
+        </div>
+        <div class="px-4 py-3 overflow-y-auto flex-1">
+          <textarea
+            v-model="editingVisionText"
+            class="w-full min-h-[180px] bg-white/[0.05] border border-orange-500/40 rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-none leading-relaxed"
+            placeholder="どんな自分でありたいか、大事にしたい価値観などを自由に書いてください"
+          />
+        </div>
+        <div class="flex justify-end gap-2 px-6 py-4 border-t border-white/[0.08]">
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="closeVisionModal">キャンセル</button>
+          <button
+            class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            :disabled="isVisionSaving"
+            @click="saveVision"
+          >保存</button>
         </div>
       </div>
     </div>
@@ -1032,6 +1063,48 @@ async function saveDictionary() {
   dictionaryOpen.value = false
 }
 
+const LS_VISION = 'hagemashi-vision'
+const vision = ref('')
+const visionOpen = ref(false)
+const editingVisionText = ref('')
+const isVisionSaving = ref(false)
+const visionAutoPrompted = ref(false)
+
+function openVisionModal() {
+  editingVisionText.value = vision.value
+  visionOpen.value = true
+}
+
+function closeVisionModal() {
+  visionOpen.value = false
+}
+
+async function saveVision() {
+  if (isVisionSaving.value) return
+  isVisionSaving.value = true
+  try {
+    const text = editingVisionText.value.trim()
+    if ($dev) {
+      localStorage.setItem(LS_VISION, JSON.stringify(text))
+    } else {
+      await $fetch('/api/hagemashi/vision', { method: 'POST', body: { vision: text } })
+    }
+    vision.value = text
+    visionOpen.value = false
+  } catch (e) {
+    console.error(e)
+  } finally {
+    isVisionSaving.value = false
+  }
+}
+
+// ビジョン未設定の場合、初回表示時に入力ポップアップを出す
+function maybeAutoPromptVision() {
+  if (visionAutoPrompted.value || vision.value) return
+  visionAutoPrompted.value = true
+  openVisionModal()
+}
+
 function getWhisperPrompt(): string {
   return dictionary.value.map(e => e.word).filter(Boolean).join(', ')
 }
@@ -1264,20 +1337,28 @@ onMounted(() => {
       } catch {}
     }
   }
+  if ($dev) {
+    const storedVision = localStorage.getItem(LS_VISION)
+    if (storedVision) {
+      try { vision.value = JSON.parse(storedVision) } catch {}
+    }
+    maybeAutoPromptVision()
+  }
 })
 
 if (!$dev) {
   watch(
     isLoggedIn,
     async (loggedIn) => {
-      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; achievements.value = []; kokoroHistory.value = []; stoplist.value = [...DEFAULT_STOPLIST]; return }
-      const [ranking, dict, profile, sl, ach, kokoro] = await Promise.allSettled([
+      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; achievements.value = []; kokoroHistory.value = []; stoplist.value = [...DEFAULT_STOPLIST]; vision.value = ''; return }
+      const [ranking, dict, profile, sl, ach, kokoro, vis] = await Promise.allSettled([
         $fetch<WordEntry[]>('/api/hagemashi/word-ranking'),
         $fetch<DictionaryEntry[]>('/api/hagemashi/dictionary'),
         $fetch<{ profiles: ProfileData[] }>('/api/hagemashi/profile'),
         $fetch<string[]>('/api/hagemashi/stoplist'),
         $fetch<Achievement[]>('/api/hagemashi/achievements'),
         $fetch<{ entries: KokoroData[] }>('/api/hagemashi/kokoro'),
+        $fetch<string>('/api/hagemashi/vision'),
       ])
       wordRanking.value = ranking.status === 'fulfilled' ? ranking.value : []
       dictionary.value = dict.status === 'fulfilled' ? dict.value : []
@@ -1285,6 +1366,8 @@ if (!$dev) {
       stoplist.value = (sl.status === 'fulfilled' && sl.value.length > 0) ? sl.value : [...DEFAULT_STOPLIST]
       achievements.value = ach.status === 'fulfilled' && Array.isArray(ach.value) ? ach.value : []
       kokoroHistory.value = kokoro.status === 'fulfilled' ? (kokoro.value?.entries ?? []) : []
+      vision.value = vis.status === 'fulfilled' ? (vis.value || '') : ''
+      maybeAutoPromptVision()
     },
     { immediate: true }
   )
@@ -1624,6 +1707,15 @@ function saveAchievements() {
     localStorage.setItem(LS_ACHIEVEMENTS, JSON.stringify(achievements.value))
   } else {
     $fetch('/api/hagemashi/achievements', { method: 'POST', body: { items: achievements.value } }).catch(console.error)
+  }
+}
+
+// 履歴（文字起こし）削除時、紐づく達成リストも一緒に削除する
+function deleteHistoryAndAchievements(id: string) {
+  deleteHistory(id)
+  if (achievements.value.some(a => a.sourceId === id)) {
+    achievements.value = achievements.value.filter(a => a.sourceId !== id)
+    saveAchievements()
   }
 }
 
