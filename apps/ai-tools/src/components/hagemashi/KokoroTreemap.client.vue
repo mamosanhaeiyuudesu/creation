@@ -141,20 +141,34 @@ function onDocClick(e: MouseEvent) {
   activeLeaf.value = null
 }
 
+// スマホ幅ではポップアップを画面中央に出す（クリック位置だと画面外に切れやすいため）
+const isMobile = ref(false)
+const updateIsMobile = () => { isMobile.value = window.innerWidth < 640 }
+const popupStyle = computed(() => {
+  if (!activeLeaf.value) return {}
+  if (isMobile.value) {
+    return { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }
+  }
+  return { left: `${activeLeaf.value.x}px`, top: `${activeLeaf.value.y + 8}px` }
+})
+
 let ro: ResizeObserver | null = null
 onMounted(async () => {
+  updateIsMobile()
   await renderChart()
   if (chartEl.value) {
     ro = new ResizeObserver(() => chart?.resize())
     ro.observe(chartEl.value)
   }
   window.addEventListener('click', onDocClick)
+  window.addEventListener('resize', updateIsMobile)
 })
 onBeforeUnmount(() => {
   ro?.disconnect()
   chart?.dispose()
   chart = null
   window.removeEventListener('click', onDocClick)
+  window.removeEventListener('resize', updateIsMobile)
 })
 </script>
 
@@ -166,7 +180,7 @@ onBeforeUnmount(() => {
       <div
         v-if="activeLeaf"
         class="kokoro-popup fixed z-50 min-w-[180px] max-w-[260px] bg-[#1e293b] border border-white/10 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.5)] py-2.5 px-3.5 flex flex-col gap-1.5"
-        :style="{ left: `${activeLeaf.x}px`, top: `${activeLeaf.y + 8}px` }"
+        :style="popupStyle"
       >
         <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
           <span class="w-2.5 h-2.5 rounded-sm inline-block shrink-0" :style="{ background: GROUP_COLOR[activeLeaf.group] }" />

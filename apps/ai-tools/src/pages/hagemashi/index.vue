@@ -49,6 +49,15 @@
             <span class="text-xl leading-none">💬</span>
             <span class="text-[9px] font-medium">相談</span>
           </button>
+
+          <!-- 気分 button -->
+          <button
+            class="w-[62px] h-[62px] rounded-full border-2 border-orange-500/50 bg-orange-500/[0.08] text-slate-50 cursor-pointer flex flex-col items-center justify-center gap-1 transition-all hover:bg-orange-500/[0.20] hover:border-orange-500/80 hover:scale-105"
+            @click="activeTab = 'mood'"
+          >
+            <span class="text-xl leading-none">📈</span>
+            <span class="text-[9px] font-medium">気分</span>
+          </button>
         </div>
       </div>
 
@@ -417,6 +426,52 @@
             :height="380"
             @word-click="confirmingStopword = $event"
           />
+        </div>
+
+        <!-- 気分タブ -->
+        <div v-else-if="activeTab === 'mood'" class="py-2 flex flex-col gap-4">
+          <!-- 入力エリア -->
+          <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5 flex flex-col gap-3">
+            <div class="text-xs font-semibold text-orange-400">いまの気分（10段階）</div>
+            <div class="flex items-center gap-1">
+              <button
+                v-for="n in 10"
+                :key="n"
+                class="flex-1 h-9 rounded-lg text-sm font-semibold border transition-all cursor-pointer"
+                :class="moodScore === n ? 'text-slate-900 border-transparent' : 'border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/[0.08] hover:text-slate-200'"
+                :style="moodScore === n ? { background: moodColor(n) } : {}"
+                @click="moodScore = n"
+              >{{ n }}</button>
+            </div>
+            <textarea
+              v-model="moodNote"
+              class="w-full min-h-[70px] bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-none leading-relaxed"
+              placeholder="いまの気持ちや状況（任意）"
+            />
+            <div class="flex justify-end">
+              <button
+                class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                :disabled="!moodScore || isSavingMood"
+                @click="saveMood"
+              >
+                <span v-if="isSavingMood" class="w-3 h-3 rounded-full border border-white/40 border-t-white animate-spin block" />
+                記録
+              </button>
+            </div>
+          </div>
+          <!-- 気分の推移グラフ -->
+          <div>
+            <div class="text-[11px] text-slate-600 mb-1.5">気分の推移（ドットをタップで詳細）</div>
+            <div v-if="moodEntries.length === 0" class="text-center text-slate-500 text-sm py-10">
+              まだ気分の記録がありません
+            </div>
+            <HagemashiMoodChart
+              v-else
+              :entries="moodEntries"
+              :height="300"
+              @delete="deleteMood"
+            />
+          </div>
         </div>
 
         <!-- 相談チャット（タブ切替で破棄すると履歴が消えるため、常時マウントして v-show で表示切替） -->
@@ -976,8 +1031,8 @@ const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
 type RecordingTab = 'transcription' | 'words' | 'summary' | 'achievement' | 'kokoro' | 'profile' | 'encourage'
-type TabKey = 'consult' | RecordingTab
-const TAB_KEYS: TabKey[] = ['transcription', 'words', 'summary', 'achievement', 'kokoro', 'profile', 'encourage', 'consult']
+type TabKey = 'consult' | 'mood' | RecordingTab
+const TAB_KEYS: TabKey[] = ['transcription', 'words', 'summary', 'achievement', 'kokoro', 'profile', 'encourage', 'consult', 'mood']
 
 // URL クエリ（?tab=）とタブ状態を双方向同期する
 const route = useRoute()
@@ -1042,6 +1097,53 @@ const LS_DICTIONARY = 'hagemashi-dictionary'
 const LS_WORD_RANKING = 'hagemashi-word-ranking'
 const LS_PROFILE = 'hagemashi-profile'
 const LS_KOKORO = 'hagemashi-kokoro'
+const LS_MOOD = 'hagemashi-mood'
+
+// --- 気分（10段階＋テキスト）---
+interface MoodEntry { id: string; score: number; note: string; createdAt: string }
+const moodEntries = ref<MoodEntry[]>([])
+const moodScore = ref<number | null>(null)
+const moodNote = ref('')
+const isSavingMood = ref(false)
+
+// 気分スコア(1〜10)を赤→緑のグラデーション色に変換
+const moodColor = (score: number): string => {
+  const hue = ((Math.max(1, Math.min(10, score)) - 1) / 9) * 120
+  return `hsl(${hue}, 70%, 50%)`
+}
+
+const persistMoods = async () => {
+  if ($dev) {
+    localStorage.setItem(LS_MOOD, JSON.stringify(moodEntries.value))
+    return
+  }
+  try {
+    await $fetch('/api/hagemashi/mood', { method: 'POST', body: { entries: moodEntries.value } })
+  } catch (e: any) {
+    error.value = e?.data?.message || '気分の保存に失敗しました'
+  }
+}
+
+const saveMood = async () => {
+  if (!moodScore.value || isSavingMood.value) return
+  isSavingMood.value = true
+  try {
+    moodEntries.value = [
+      ...moodEntries.value,
+      { id: Date.now().toString(), score: moodScore.value, note: moodNote.value.trim(), createdAt: new Date().toISOString() },
+    ]
+    await persistMoods()
+    moodScore.value = null
+    moodNote.value = ''
+  } finally {
+    isSavingMood.value = false
+  }
+}
+
+const deleteMood = async (id: string) => {
+  moodEntries.value = moodEntries.value.filter(m => m.id !== id)
+  await persistMoods()
+}
 
 interface DictionaryEntry { yomi: string; word: string }
 const dictionary = ref<DictionaryEntry[]>([])
@@ -1338,6 +1440,15 @@ onMounted(() => {
     }
   }
   if ($dev) {
+    const cachedMood = localStorage.getItem(LS_MOOD)
+    if (cachedMood) {
+      try {
+        const raw = JSON.parse(cachedMood)
+        moodEntries.value = Array.isArray(raw) ? raw : []
+      } catch {}
+    }
+  }
+  if ($dev) {
     const storedVision = localStorage.getItem(LS_VISION)
     if (storedVision) {
       try { vision.value = JSON.parse(storedVision) } catch {}
@@ -1350,14 +1461,15 @@ if (!$dev) {
   watch(
     isLoggedIn,
     async (loggedIn) => {
-      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; achievements.value = []; kokoroHistory.value = []; stoplist.value = [...DEFAULT_STOPLIST]; vision.value = ''; return }
-      const [ranking, dict, profile, sl, ach, kokoro, vis] = await Promise.allSettled([
+      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; achievements.value = []; kokoroHistory.value = []; moodEntries.value = []; stoplist.value = [...DEFAULT_STOPLIST]; vision.value = ''; return }
+      const [ranking, dict, profile, sl, ach, kokoro, mood, vis] = await Promise.allSettled([
         $fetch<WordEntry[]>('/api/hagemashi/word-ranking'),
         $fetch<DictionaryEntry[]>('/api/hagemashi/dictionary'),
         $fetch<{ profiles: ProfileData[] }>('/api/hagemashi/profile'),
         $fetch<string[]>('/api/hagemashi/stoplist'),
         $fetch<Achievement[]>('/api/hagemashi/achievements'),
         $fetch<{ entries: KokoroData[] }>('/api/hagemashi/kokoro'),
+        $fetch<{ entries: MoodEntry[] }>('/api/hagemashi/mood'),
         $fetch<string>('/api/hagemashi/vision'),
       ])
       wordRanking.value = ranking.status === 'fulfilled' ? ranking.value : []
@@ -1366,6 +1478,7 @@ if (!$dev) {
       stoplist.value = (sl.status === 'fulfilled' && sl.value.length > 0) ? sl.value : [...DEFAULT_STOPLIST]
       achievements.value = ach.status === 'fulfilled' && Array.isArray(ach.value) ? ach.value : []
       kokoroHistory.value = kokoro.status === 'fulfilled' ? (kokoro.value?.entries ?? []) : []
+      moodEntries.value = mood.status === 'fulfilled' ? (mood.value?.entries ?? []) : []
       vision.value = vis.status === 'fulfilled' ? (vis.value || '') : ''
       maybeAutoPromptVision()
     },
