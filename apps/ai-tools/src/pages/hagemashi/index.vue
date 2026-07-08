@@ -1152,7 +1152,7 @@ const isRecordingTab = computed(() => recordingTabs.some(t => t.key === activeTa
 const showMoreTabs = ref(false)
 const secondaryVisible = computed(() => showMoreTabs.value || secondaryTabs.some(t => t.key === activeTab.value))
 function openRecording() {
-  if (!isRecordingTab.value) activeTab.value = 'transcription'
+  if (!isRecordingTab.value) activeTab.value = 'words'
 }
 function confirmStartRecording() {
   recordConfirmOpen.value = false
