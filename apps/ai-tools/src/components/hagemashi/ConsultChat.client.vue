@@ -16,11 +16,12 @@
         録音した内容やあなたの状況をふまえて相談に乗ります。<br>
         気になっていることを話しかけてみてください。
       </div>
-      <div
-        v-for="(m, i) in messages"
-        :key="i"
-        :class="m.role === 'user' ? 'self-end max-w-[85%]' : 'self-start max-w-[90%]'"
-      >
+      <template v-for="(m, i) in messages" :key="i">
+        <!-- 日付が変わるタイミングで日付の帯を表示 -->
+        <div v-if="dateBands[i]" class="self-center my-1 text-[11px] text-slate-400 bg-white/[0.05] border border-white/[0.07] rounded-full px-3 py-0.5">
+          {{ dateBands[i] }}
+        </div>
+        <div :class="m.role === 'user' ? 'self-end max-w-[85%]' : 'self-start max-w-[90%]'">
         <div
           class="text-base sm:text-sm leading-relaxed break-words rounded-2xl px-3.5 py-2 border"
           :class="m.role === 'user'
@@ -40,7 +41,8 @@
         <div v-if="m.role === 'user' && m.timestamp" class="text-right text-[10px] text-slate-500 mt-0.5 mr-0.5">
           {{ formatMsgTime(m.timestamp) }}
         </div>
-      </div>
+        </div>
+      </template>
     </div>
 
     <p v-if="errorMsg" class="m-0 mt-1.5 text-xs text-red-400">{{ errorMsg }}</p>
@@ -114,10 +116,43 @@ function scrollToBottom() {
 
 function formatMsgTime(iso: string): string {
   const d = toJSTDate(iso)
+  const mo = d.getUTCMonth() + 1
+  const da = d.getUTCDate()
   const h = String(d.getUTCHours()).padStart(2, '0')
   const mi = String(d.getUTCMinutes()).padStart(2, '0')
-  return `${h}:${mi}`
+  return `${mo}/${da} ${h}:${mi}`
 }
+
+// 日付が変わるタイミングで表示する帯ラベル（各メッセージの直前に出すか、null）
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
+function formatDateBand(d: Date): string {
+  const y = d.getUTCFullYear()
+  const mo = d.getUTCMonth() + 1
+  const da = d.getUTCDate()
+  const w = WEEKDAYS[d.getUTCDay()]
+  const yearPart = y !== nowJST().getUTCFullYear() ? `${y}年` : ''
+  return `${yearPart}${mo}月${da}日（${w}）`
+}
+const dateBands = computed<(string | null)[]>(() => {
+  const bands: (string | null)[] = []
+  let prevKey: string | null = null
+  for (const m of messages.value) {
+    // タイムスタンプの無いメッセージ（配信中のアシスタント応答など）は帯を出さず日付を引き継ぐ
+    const d = m.timestamp ? toJSTDate(m.timestamp) : null
+    if (d) {
+      const key = d.toISOString().slice(0, 10)
+      if (key !== prevKey) {
+        bands.push(formatDateBand(d))
+        prevKey = key
+      } else {
+        bands.push(null)
+      }
+    } else {
+      bands.push(null)
+    }
+  }
+  return bands
+})
 
 function onEnter(e: KeyboardEvent) {
   // 日本語変換確定のEnterでは送信しない
