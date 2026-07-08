@@ -18,13 +18,14 @@ wrangler deploy  # Cloudflare Workersへデプロイ
 NUXT_OPENAI_API_KEY=...
 NUXT_ANTHROPIC_API_KEY=...
 NUXT_MIYAKO_VECTOR_STORE_ID=...
-NUXT_ENCRYPTION_KEY=...   # marriage コメント・Fitbitトークン暗号化（32文字以上推奨）
-NUXT_FITBIT_CLIENT_ID=...      # dev.fitbit.com で作成したアプリの Client ID
-NUXT_FITBIT_CLIENT_SECRET=...
+NUXT_ENCRYPTION_KEY=...   # marriage コメント・Google Healthトークン暗号化（32文字以上推奨）
+NUXT_FITBIT_CLIENT_ID=...      # Google Cloud の OAuth 2.0 クライアントID（fitbit連携用）
+NUXT_FITBIT_CLIENT_SECRET=...  # 同上シークレット
 NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
 ```
 
-※ ローカル dev では Fitbit OAuth・実APIは使わず `fitbit-dev.ts` の決定的スタブで動作する。
+※ `/fitbit` のデータ源は **Google Health API**（旧 Fitbit Web API は2026年9月停止のため後継。サーバー間REST＋Google OAuth2）。認証情報名は `NUXT_FITBIT_*` のままだが中身はGoogle OAuthのもの。
+※ ローカル dev では実API・OAuthは使わず `fitbit-dev.ts` の決定的スタブで動作。実データのパース検証は dev限定の `GET /api/fitbit/diag?token=<Playgroundのaccess_token>`。
 
 ## アーキテクチャ
 

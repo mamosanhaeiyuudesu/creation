@@ -162,7 +162,6 @@ const metrics = computed(() => {
     { key: 'hrv', icon: '💓', label: '心拍変動', value: d.hrv, unit: 'ms', sub: '', color: '#fb7185', trend: 'hrv', decimals: 0 },
     { key: 'spo2', icon: '🩸', label: '血中酸素', value: d.spo2.avg, unit: '%', sub: `${d.spo2.min}〜${d.spo2.max}%`, color: '#38bdf8', trend: 'spo2', decimals: 0 },
     { key: 'breathingRate', icon: '🫁', label: '呼吸数', value: d.breathingRate, unit: '回/分', sub: '', color: '#a78bfa', trend: 'breathingRate', decimals: 1 },
-    { key: 'skinTempDelta', icon: '🌡️', label: '皮膚温変化', value: `${d.skinTempDelta > 0 ? '+' : ''}${d.skinTempDelta}`, unit: '℃', sub: '基準比', color: '#fca5a5', trend: 'skinTempDelta', decimals: 1 },
   ]
 })
 

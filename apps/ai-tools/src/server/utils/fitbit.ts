@@ -15,10 +15,16 @@ import { devRawDay, devHistory } from '~/server/utils/fitbit-dev'
 import { computeBaseline, computeSleepScore, computeEnergyScore, computeScoreSeries } from '~/server/utils/fitbit-score'
 import { todayJST } from '~/utils/jst'
 
-const FITBIT_API = 'https://api.fitbit.com'
-const AUTH_URL = 'https://www.fitbit.com/oauth2/authorize'
-const TOKEN_URL = 'https://api.fitbit.com/oauth2/token'
-const SCOPES = ['activity', 'heartrate', 'sleep', 'oxygen_saturation', 'respiratory_rate', 'temperature', 'cardio_fitness', 'profile']
+// Google Health API（旧 Fitbit Web API の後継。2026年9月に旧APIは停止）
+// サーバー間REST。認可は Google OAuth 2.0。
+const GH_API = 'https://health.googleapis.com/v4'
+const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
+const TOKEN_URL = 'https://oauth2.googleapis.com/token'
+const SCOPES = [
+  'https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly',
+  'https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly',
+  'https://www.googleapis.com/auth/googlehealth.sleep.readonly',
+]
 
 interface FitbitConfig {
   clientId: string
@@ -67,6 +73,9 @@ export function buildAuthorizeUrl(event: H3Event, challenge: string, state: stri
     code_challenge: challenge,
     code_challenge_method: 'S256',
     state,
+    // Google: リフレッシュトークンを確実に得るため offline + consent を指定
+    access_type: 'offline',
+    prompt: 'consent',
   })
   return `${AUTH_URL}?${params.toString()}`
 }
@@ -76,19 +85,20 @@ interface TokenResponse {
   refresh_token: string
   expires_in: number
   scope: string
-  user_id: string
+  // Google のトークンレスポンスにはユーザーIDが無い（Health API は users/me でアクセス）
+  user_id?: string
 }
 
-/** 認可コード → トークン交換 */
+/** 認可コード → トークン交換（Google OAuth） */
 export async function exchangeCode(event: H3Event, code: string, verifier: string): Promise<TokenResponse> {
   const cfg = getConfig(event)
-  if (!cfg) throw new Error('Fitbit未設定')
-  const basic = btoa(`${cfg.clientId}:${cfg.clientSecret}`)
+  if (!cfg) throw new Error('Google OAuth未設定')
   return await $fetch<TokenResponse>(TOKEN_URL, {
     method: 'POST',
-    headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       client_id: cfg.clientId,
+      client_secret: cfg.clientSecret,
       grant_type: 'authorization_code',
       redirect_uri: cfg.redirectUri,
       code,
@@ -97,16 +107,23 @@ export async function exchangeCode(event: H3Event, code: string, verifier: strin
   })
 }
 
-/** リフレッシュトークンで更新 */
+/** リフレッシュトークンで更新（Google OAuth） */
 async function refreshToken(event: H3Event, refresh: string): Promise<TokenResponse> {
   const cfg = getConfig(event)
-  if (!cfg) throw new Error('Fitbit未設定')
-  const basic = btoa(`${cfg.clientId}:${cfg.clientSecret}`)
-  return await $fetch<TokenResponse>(TOKEN_URL, {
+  if (!cfg) throw new Error('Google OAuth未設定')
+  const tok = await $fetch<TokenResponse>(TOKEN_URL, {
     method: 'POST',
-    headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refresh }).toString(),
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: cfg.clientId,
+      client_secret: cfg.clientSecret,
+      grant_type: 'refresh_token',
+      refresh_token: refresh,
+    }).toString(),
   })
+  // Google はリフレッシュ時に refresh_token を返さないことがあるため既存を引き継ぐ
+  if (!tok.refresh_token) tok.refresh_token = refresh
+  return tok
 }
 
 // ─────────────────────────────── 連携レコード（D1） ─────────────────────────────
@@ -127,7 +144,7 @@ export async function saveConnection(event: H3Event, userId: string, tok: TokenR
          refresh_token=excluded.refresh_token, expires_at=excluded.expires_at,
          scopes=excluded.scopes, updated_at=excluded.updated_at`
     )
-    .bind(userId, tok.user_id, encAccess, encRefresh, expiresAt, tok.scope, now, now)
+    .bind(userId, tok.user_id ?? 'me', encAccess, encRefresh, expiresAt, tok.scope, now, now)
     .run()
 }
 
@@ -184,12 +201,16 @@ export async function getStatus(event: H3Event, userId: string): Promise<FitbitS
   return { connected: true, fitbitUserId: conn.fitbit_user_id, scopes: conn.scopes }
 }
 
-// ─────────────────────────────── Fitbit API 取得 → RawDay ──────────────────────
+// ─────────────────────────────── Google Health API 取得 → RawDay ────────────────
+// dataPoints.list（GET ${GH_API}/users/me/dataTypes/{型}/dataPoints）を新しい順に
+// ページングして期間分を取得し、日次に集計して RawDay を組み立てる。
+// 実レスポンス（Playground採取）に基づく実装。距離のフィールド/単位のみ未確定で防御的。
+// dev はスタブで動くため未接続でも画面確認は可能。
 
 async function fbGet<T>(token: string, path: string): Promise<T | null> {
   try {
-    return await $fetch<T>(`${FITBIT_API}${path}`, {
-      headers: { Authorization: `Bearer ${token}`, 'Accept-Language': 'ja_JP' },
+    return await $fetch<T>(`${GH_API}${path}`, {
+      headers: { Authorization: `Bearer ${token}` },
     })
   } catch {
     // 該当日にデータが無い場合など。呼び出し側で null を許容する。
@@ -197,50 +218,64 @@ async function fbGet<T>(token: string, path: string): Promise<T | null> {
   }
 }
 
+// Google Health API の睡眠ステージ種別 → 内部種別
 const STAGE_MAP: Record<string, 'deep' | 'light' | 'rem' | 'wake'> = {
-  deep: 'deep',
-  light: 'light',
-  rem: 'rem',
-  wake: 'wake',
-  awake: 'wake',
-  asleep: 'light',
-  restless: 'wake',
+  DEEP: 'deep', LIGHT: 'light', REM: 'rem', AWAKE: 'wake', WAKE: 'wake', RESTLESS: 'wake', ASLEEP: 'light', UNKNOWN: 'light',
 }
 
+// "32400s"（+9h）→ 秒数
+const offsetSec = (s?: string): number => (s ? parseInt(s, 10) || 0 : 0)
+// civil date {year,month,day} → "YYYY-MM-DD"
+const ymd = (d: any): string => `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`
+// UTC ISO + オフセット秒 → 現地の "YYYY-MM-DD"
+const civilDateFromUtc = (iso: string, off: number): string =>
+  new Date(new Date(iso).getTime() + off * 1000).toISOString().slice(0, 10)
+// UTC ISO + オフセット秒 → 現地の "HH:MM"
+function clock(iso: string, off: number): string {
+  const t = new Date(new Date(iso).getTime() + off * 1000)
+  return `${String(t.getUTCHours()).padStart(2, '0')}:${String(t.getUTCMinutes()).padStart(2, '0')}`
+}
+
+/** Google Health API の sleep データ点（dataPoint.sleep）→ RawDay['sleep'] */
 function parseSleep(s: any): RawDay['sleep'] {
-  if (!s) {
-    return { totalMinutes: 0, deepMin: 0, remMin: 0, lightMin: 0, wakeMin: 0, efficiency: 0, awakeCount: 0, bedtime: '--:--', waketime: '--:--', timeline: [] }
-  }
-  const startMs = new Date(s.startTime).getTime()
+  const empty = { totalMinutes: 0, deepMin: 0, remMin: 0, lightMin: 0, wakeMin: 0, efficiency: 0, awakeCount: 0, bedtime: '--:--', waketime: '--:--', timeline: [] as RawDay['sleep']['timeline'] }
+  if (!s || !s.interval) return empty
+  const iv = s.interval
+  const off = offsetSec(iv.startUtcOffset)
+  const startMs = new Date(iv.startTime).getTime()
+
   const timeline: RawDay['sleep']['timeline'] = []
-  for (const seg of s.levels?.data ?? []) {
-    const stage = STAGE_MAP[seg.level] ?? 'light'
-    const start = Math.round((new Date(seg.dateTime).getTime() - startMs) / 60000)
-    timeline.push({ stage, start, duration: Math.round(seg.seconds / 60) })
+  for (const seg of s.stages ?? []) {
+    const stage = STAGE_MAP[seg.type] ?? 'light'
+    const segStart = new Date(seg.startTime).getTime()
+    const duration = Math.round((new Date(seg.endTime).getTime() - segStart) / 60000)
+    if (duration <= 0) continue
+    timeline.push({ stage, start: Math.round((segStart - startMs) / 60000), duration })
   }
-  const sm = s.levels?.summary ?? {}
-  const min = (k: string) => sm[k]?.minutes ?? 0
-  const fmt = (iso: string) => {
-    const d = new Date(iso)
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+
+  const min: Record<string, number> = {}
+  const cnt: Record<string, number> = {}
+  for (const st of s.summary?.stagesSummary ?? []) {
+    min[st.type] = Number(st.minutes) || 0
+    cnt[st.type] = Number(st.count) || 0
   }
+  const sm = s.summary ?? {}
+  const asleep = Number(sm.minutesAsleep) || 0
+  const totalMinutes = Number(sm.minutesInSleepPeriod) || asleep + (Number(sm.minutesAwake) || 0)
+
   return {
-    totalMinutes: Math.round((s.minutesAsleep ?? 0) + (s.minutesAwake ?? 0)),
-    deepMin: min('deep'),
-    remMin: min('rem'),
-    lightMin: min('light'),
-    wakeMin: min('wake') || (s.minutesAwake ?? 0),
-    efficiency: s.efficiency ?? 0,
-    awakeCount: sm.wake?.count ?? 0,
-    bedtime: fmt(s.startTime),
-    waketime: fmt(s.endTime),
+    totalMinutes,
+    deepMin: min.DEEP || 0,
+    remMin: min.REM || 0,
+    lightMin: min.LIGHT || 0,
+    wakeMin: min.AWAKE || 0,
+    efficiency: totalMinutes > 0 ? Math.round((asleep / totalMinutes) * 100) : 0,
+    awakeCount: cnt.AWAKE || 0,
+    bedtime: clock(iv.startTime, off),
+    waketime: clock(iv.endTime, offsetSec(iv.endUtcOffset || iv.startUtcOffset)),
     timeline,
   }
 }
-
-// ─────────────────────────────── 範囲取得（レート制限対策の要） ──────────────────
-// Fitbit の各メトリクスは /date/{start}/{end}.json の範囲版が使える。
-// 90日でも約8リクエストで済むため、150req/時/ユーザーの制限内に確実に収まる。
 
 function emptyRawDay(date: string): RawDay {
   return {
@@ -250,17 +285,59 @@ function emptyRawDay(date: string): RawDay {
   }
 }
 
-/** start〜end（両端含む）の各日 RawDay を範囲エンドポイント一括取得で組み立てる。 */
+// ─────────────────────── Google Health API から期間取得（list＋ページング） ────────
+// 各 dataType を dataPoints.list で新しい順に取得し、対象開始日を下回るまで遡る。
+// 日次型（resting-hr/respiratory）は1点=1日、sample型（hrv/spo2）は日次集計、
+// 睡眠は覚醒日（interval.endTime の現地日）に割り当てる。
+
+/** データ点の現地日（"YYYY-MM-DD"）を dataType 別に取り出す */
+function pointDate(pt: any, dataType: string): string | null {
+  try {
+    switch (dataType) {
+      case 'steps': return ymd(pt.steps.interval.civilStartTime.date)
+      case 'distance': return ymd(pt.distance.interval.civilStartTime.date)
+      case 'daily-resting-heart-rate': return ymd(pt.dailyRestingHeartRate.date)
+      case 'daily-respiratory-rate': return ymd(pt.dailyRespiratoryRate.date)
+      case 'heart-rate-variability': return ymd(pt.heartRateVariability.sampleTime.civilTime.date)
+      case 'oxygen-saturation': return ymd(pt.oxygenSaturation.sampleTime.civilTime.date)
+      case 'sleep': return civilDateFromUtc(pt.sleep.interval.endTime, offsetSec(pt.sleep.interval.endUtcOffset || pt.sleep.interval.startUtcOffset))
+      default: return null
+    }
+  } catch {
+    return null
+  }
+}
+
+/** dataPoints.list を新しい順にページングし、startDate を下回るまで集める */
+async function listPoints(token: string, dataType: string, startDate: string): Promise<any[]> {
+  const size = dataType === 'sleep' ? 25 : 10000
+  const maxPages = dataType === 'sleep' ? 8 : 15
+  const points: any[] = []
+  let pageToken: string | undefined
+  for (let p = 0; p < maxPages; p++) {
+    const q = `?pageSize=${size}` + (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '')
+    const res: any = await fbGet(token, `/users/me/dataTypes/${dataType}/dataPoints${q}`)
+    const dp: any[] = res?.dataPoints ?? []
+    if (!dp.length) break
+    points.push(...dp)
+    const oldest = pointDate(dp[dp.length - 1], dataType)
+    if (oldest && oldest < startDate) break // 対象範囲より過去まで到達
+    if (!res.nextPageToken) break
+    pageToken = res.nextPageToken
+  }
+  return points
+}
+
+/** start〜end（両端含む）の各日 RawDay を list ページングで組み立てる */
 async function fetchRangeFromApi(token: string, start: string, end: string): Promise<Map<string, RawDay>> {
-  const [steps, dist, heart, hrv, spo2, br, temp, sleep] = await Promise.all([
-    fbGet<any>(token, `/1/user/-/activities/steps/date/${start}/${end}.json`),
-    fbGet<any>(token, `/1/user/-/activities/distance/date/${start}/${end}.json`),
-    fbGet<any>(token, `/1/user/-/activities/heart/date/${start}/${end}.json`),
-    fbGet<any>(token, `/1/user/-/hrv/date/${start}/${end}.json`),
-    fbGet<any>(token, `/1/user/-/spo2/date/${start}/${end}.json`),
-    fbGet<any>(token, `/1/user/-/br/date/${start}/${end}.json`),
-    fbGet<any>(token, `/1/user/-/temp/skin/date/${start}/${end}.json`),
-    fbGet<any>(token, `/1.2/user/-/sleep/date/${start}/${end}.json`),
+  const [steps, distance, restHr, resp, hrv, spo2, sleep] = await Promise.all([
+    listPoints(token, 'steps', start),
+    listPoints(token, 'distance', start),
+    listPoints(token, 'daily-resting-heart-rate', start),
+    listPoints(token, 'daily-respiratory-rate', start),
+    listPoints(token, 'heart-rate-variability', start),
+    listPoints(token, 'oxygen-saturation', start),
+    listPoints(token, 'sleep', start),
   ])
 
   const map = new Map<string, RawDay>()
@@ -269,24 +346,57 @@ async function fetchRangeFromApi(token: string, start: string, end: string): Pro
     if (!r) { r = emptyRawDay(d); map.set(d, r) }
     return r
   }
+  const inRange = (d: string | null): d is string => !!d && d >= start && d <= end
 
-  for (const e of steps?.['activities-steps'] ?? []) ensure(e.dateTime).steps = Number(e.value) || 0
-  for (const e of dist?.['activities-distance'] ?? []) ensure(e.dateTime).distanceKm = Number(e.value) || 0
-  for (const e of heart?.['activities-heart'] ?? []) ensure(e.dateTime).restingHeartRate = e.value?.restingHeartRate ?? 0
-  for (const e of hrv?.hrv ?? []) ensure(e.dateTime).hrv = e.value?.dailyRmssd ?? 0
-  for (const e of spo2 ?? []) {
-    const r = ensure(e.dateTime)
-    r.spo2 = { avg: e.value?.avg ?? 0, min: e.value?.min ?? 0, max: e.value?.max ?? 0, series: [] }
+  for (const pt of steps) { const d = pointDate(pt, 'steps'); if (inRange(d)) ensure(d).steps += Number(pt.steps?.count) || 0 }
+  // 距離: 分単位の millimeters を日次合計して km に換算（mm ÷ 1,000,000）
+  const distMm: Record<string, number> = {}
+  for (const pt of distance) { const d = pointDate(pt, 'distance'); if (inRange(d)) distMm[d] = (distMm[d] ?? 0) + (Number(pt.distance?.millimeters) || 0) }
+  for (const [d, mm] of Object.entries(distMm)) ensure(d).distanceKm = Math.round((mm / 1_000_000) * 100) / 100
+  for (const pt of restHr) { const d = pointDate(pt, 'daily-resting-heart-rate'); if (inRange(d)) ensure(d).restingHeartRate = Number(pt.dailyRestingHeartRate?.beatsPerMinute) || 0 }
+  for (const pt of resp) { const d = pointDate(pt, 'daily-respiratory-rate'); if (inRange(d)) ensure(d).breathingRate = Math.round((Number(pt.dailyRespiratoryRate?.breathsPerMinute) || 0) * 10) / 10 }
+
+  // HRV: 夜間の rmssd サンプルを日次平均
+  const hrvAgg: Record<string, number[]> = {}
+  for (const pt of hrv) {
+    const d = pointDate(pt, 'heart-rate-variability')
+    const v = pt.heartRateVariability?.rootMeanSquareOfSuccessiveDifferencesMilliseconds
+    if (inRange(d) && typeof v === 'number') (hrvAgg[d] ??= []).push(v)
   }
-  for (const e of br?.br ?? []) ensure(e.dateTime).breathingRate = e.value?.breathingRate ?? 0
-  for (const e of temp?.tempSkin ?? []) ensure(e.dateTime).skinTempDelta = e.value?.nightlyRelative ?? 0
-  // 睡眠は1日に複数ログがありうる。isMainSleep 優先で採用。
+  for (const [d, arr] of Object.entries(hrvAgg)) ensure(d).hrv = Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
+
+  // 睡眠: 覚醒日ごとに、最も睡眠時間の長いセッションを採用
   const sleepByDate = new Map<string, any>()
-  for (const s of sleep?.sleep ?? []) {
-    const d = s.dateOfSleep
-    if (!sleepByDate.has(d) || s.isMainSleep) sleepByDate.set(d, s)
+  for (const pt of sleep) {
+    const d = pointDate(pt, 'sleep')
+    if (!inRange(d) || !pt.sleep) continue
+    const prev = sleepByDate.get(d)
+    const cur = Number(pt.sleep.summary?.minutesInSleepPeriod) || 0
+    if (!prev || cur > (Number(prev.summary?.minutesInSleepPeriod) || 0)) sleepByDate.set(d, pt.sleep)
   }
   for (const [d, s] of sleepByDate) ensure(d).sleep = parseSleep(s)
+
+  // SpO2: Fitbit は睡眠中に計測するため、その夜の睡眠区間内のサンプルのみ日次集計。
+  // 日中の低品質値（≒50）や外れ値を除くため下限を設ける。健常者の睡眠時SpO2は概ね
+  // 95%前後で、持続的な90%未満は臨床的に異常。低品質値を除いて本家表示に寄せるため
+  // 下限は90%とする（本家と乖離する場合はこの定数で調整）。
+  const SPO2_MIN_PLAUSIBLE = 90
+  const spo2Points = spo2
+    .map(pt => ({ t: new Date(pt.oxygenSaturation?.sampleTime?.physicalTime ?? 0).getTime(), v: Number(pt.oxygenSaturation?.percentage) }))
+    .filter(p => Number.isFinite(p.v) && p.v >= SPO2_MIN_PLAUSIBLE && p.v <= 100 && p.t > 0)
+  for (const [d, s] of sleepByDate) {
+    const start = new Date(s.interval.startTime).getTime()
+    const end = new Date(s.interval.endTime).getTime()
+    const vals = spo2Points.filter(p => p.t >= start && p.t <= end).map(p => p.v)
+    if (vals.length) {
+      ensure(d).spo2 = {
+        avg: Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10,
+        min: Math.min(...vals),
+        max: Math.max(...vals),
+        series: [],
+      }
+    }
+  }
 
   return map
 }
@@ -367,6 +477,17 @@ export async function getRawDay(event: H3Event, userId: string, date: string): P
 /** 指定日を末尾に n 日分の RawDay（古い順）。ベースライン算出・トレンドに使う。 */
 export async function getRawHistory(event: H3Event, userId: string, endDate: string, days: number): Promise<RawDay[]> {
   return await getCachedHistory(event, userId, endDate, days)
+}
+
+/**
+ * 診断用（dev限定）: Playground等で取得した生アクセストークンで実際に Google Health API を叩き、
+ * パース結果（RawDay履歴＋組み立て済みダッシュボード）を返す。D1・OAuth不要でパース検証できる。
+ */
+export async function diagFetch(token: string, endDate: string, days: number): Promise<{ history: RawDay[]; dashboard: DashboardData }> {
+  const dates = dateRange(endDate, days)
+  const map = await fetchRangeFromApi(token, dates[0], dates[dates.length - 1])
+  const history = dates.map(d => map.get(d) ?? emptyRawDay(d))
+  return { history, dashboard: assembleDashboard(history) }
 }
 
 /** Cron 同期用: 全連携ユーザーの直近 days 日をキャッシュに取り込む。 */
