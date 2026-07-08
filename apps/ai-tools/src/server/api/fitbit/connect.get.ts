@@ -1,21 +1,18 @@
-import { resolveUserId, generateCodeVerifier, codeChallenge, buildAuthorizeUrl } from '~/server/utils/fitbit'
+import { resolveUserId, generateCodeVerifier, codeChallenge, buildAuthorizeUrl, saveOAuthState } from '~/server/utils/fitbit'
 
-// Fitbit OAuth2 認可フロー開始。PKCE の verifier と CSRF 用 state を httpOnly Cookie に一時保存し、
-// Fitbit の認可画面へリダイレクトする。
+// Google OAuth2 認可フロー開始。PKCE verifier と CSRF state を D1 に保存し（Cookie非依存）、
+// Google の認可画面へリダイレクトする。callback は state から復元するためセッション不要。
 export default defineEventHandler(async (event) => {
   const userId = await resolveUserId(event)
   if (!userId) throw createError({ statusCode: 401, message: '未ログイン' })
 
   const verifier = generateCodeVerifier()
   const challenge = await codeChallenge(verifier)
-  const state = generateCodeVerifier().slice(0, 24)
+  const state = generateCodeVerifier().slice(0, 32)
 
   const url = buildAuthorizeUrl(event, challenge, state)
-  if (!url) throw createError({ statusCode: 500, message: 'Fitbitの設定（Client ID等）が未構成です' })
+  if (!url) throw createError({ statusCode: 500, message: 'Google OAuthの設定（Client ID等）が未構成です' })
 
-  const cookieOpts = { httpOnly: true, sameSite: 'lax' as const, secure: true, maxAge: 600, path: '/' }
-  setCookie(event, 'fitbit-verifier', verifier, cookieOpts)
-  setCookie(event, 'fitbit-state', state, cookieOpts)
-
+  await saveOAuthState(event, state, userId, verifier)
   await sendRedirect(event, url)
 })

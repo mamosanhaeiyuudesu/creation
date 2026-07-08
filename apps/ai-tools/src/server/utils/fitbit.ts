@@ -148,6 +148,31 @@ export async function saveConnection(event: H3Event, userId: string, tok: TokenR
     .run()
 }
 
+// ─────────────────── OAuth state 保管（Cookie非依存でユーザーを特定） ────────────
+
+/** connect時: state → (userId, PKCE verifier) を保存 */
+export async function saveOAuthState(event: H3Event, state: string, userId: string, verifier: string): Promise<void> {
+  const db = getAppDb(event)
+  if (!db) return
+  await db
+    .prepare('INSERT OR REPLACE INTO fitbit_oauth_states (state, user_id, verifier, created_at) VALUES (?, ?, ?, ?)')
+    .bind(state, userId, verifier, Math.floor(Date.now() / 1000))
+    .run()
+}
+
+/** callback時: state から (userId, verifier) を取り出し、行を削除（使い捨て） */
+export async function consumeOAuthState(event: H3Event, state: string): Promise<{ userId: string; verifier: string } | null> {
+  const db = getAppDb(event)
+  if (!db) return null
+  const row = await db
+    .prepare('SELECT user_id, verifier FROM fitbit_oauth_states WHERE state = ?')
+    .bind(state)
+    .first()
+  if (!row) return null
+  await db.prepare('DELETE FROM fitbit_oauth_states WHERE state = ?').bind(state).run()
+  return { userId: (row as any).user_id, verifier: (row as any).verifier }
+}
+
 export async function deleteConnection(event: H3Event, userId: string): Promise<void> {
   const db = getAppDb(event)
   if (!db) return
