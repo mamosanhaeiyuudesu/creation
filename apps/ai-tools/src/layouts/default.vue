@@ -14,7 +14,7 @@
               : 'text-slate-400 border-transparent hover:text-slate-50 hover:border-white/10'
           ]"
         >
-          <span class="text-[18px]">{{ tool.icon }}</span>
+          <span class="text-[18px]" style="font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif">{{ tool.icon }}</span>
           <span>{{ tool.name }}</span>
         </NuxtLink>
       </nav>
@@ -53,7 +53,7 @@
           class="flex items-center gap-4 px-6 py-4 no-underline text-slate-400 border-l-[3px] border-transparent text-base font-medium transition-all duration-200 hover:text-slate-50 hover:bg-white/[0.04] hover:border-sky-400 [&.router-link-active]:text-sky-400 [&.router-link-active]:border-sky-400 [&.router-link-active]:bg-sky-400/10"
           @click="isMobileMenuOpen = false"
         >
-          <span class="text-xl flex-shrink-0">{{ tool.icon }}</span>
+          <span class="text-xl flex-shrink-0" style="font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif">{{ tool.icon }}</span>
           <span>{{ tool.name }}</span>
         </NuxtLink>
       </div>
@@ -83,8 +83,9 @@ const tools = [
   { path: '/task', name: 'タスクくん', icon: '📋' },
   // { path: '/marriage', name: 'marriage', icon: '💑' },
   // { path: '/tengu', name: '天狗問答', icon: '👺' },
-  { path: '/office', name: 'office', icon: '🏢' },
-  { path: '/setsuyaku', name: '節約', icon: '💰' },
+  { path: '/fitbit', name: 'Fitbit', icon: '⌚️' },
+  // { path: '/office', name: 'office', icon: '🏢' },
+  // { path: '/setsuyaku', name: '節約', icon: '💰' },
   { path: '/games', name: 'ゲーム', icon: '🎮' },
   // { path: '/keiko', name: '稽古', icon: '⚔️' },
 ]

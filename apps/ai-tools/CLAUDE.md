@@ -18,8 +18,13 @@ wrangler deploy  # Cloudflare Workersへデプロイ
 NUXT_OPENAI_API_KEY=...
 NUXT_ANTHROPIC_API_KEY=...
 NUXT_MIYAKO_VECTOR_STORE_ID=...
-NUXT_ENCRYPTION_KEY=...   # marriage コメント暗号化（32文字以上推奨）
+NUXT_ENCRYPTION_KEY=...   # marriage コメント・Fitbitトークン暗号化（32文字以上推奨）
+NUXT_FITBIT_CLIENT_ID=...      # dev.fitbit.com で作成したアプリの Client ID
+NUXT_FITBIT_CLIENT_SECRET=...
+NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
 ```
+
+※ ローカル dev では Fitbit OAuth・実APIは使わず `fitbit-dev.ts` の決定的スタブで動作する。
 
 ## アーキテクチャ
 
@@ -38,6 +43,7 @@ NUXT_ENCRYPTION_KEY=...   # marriage コメント暗号化（32文字以上推�
 |--------|------|
 | `/whisper` | マイク録音または音声ファイルで文字起こし・要約・校正 |
 | `/hagemashi` | 状況を入力するとAIがはげましメッセージとテーマを生成 |
+| `/fitbit` | Fitbitヘルスダッシュボード（エナジー/睡眠スコア・歩数・心拍・HRV・SpO2等を1画面集約、睡眠は詳細分解） |
 | `/task` | Trello連携のタスク管理ビュー（DOING/TODO/DONE） |
 | `/office` | 勤怠管理（日付・打刻記録） |
 | `/games` | ゲーム一覧（リンク集） |
@@ -61,8 +67,9 @@ NUXT_ENCRYPTION_KEY=...   # marriage コメント暗号化（32文字以上推�
 
 ## Cloudflare D1
 
-- `WHISPER_DB`（`whisper-db`）: users / sessions / app-history / marriage records  
+- `WHISPER_DB`（`whisper-db`）: users / sessions / app-history / marriage records / fitbit_connections / fitbit_daily  
   `src/server/utils/auth.ts` の `getDb()` 経由。Cookie名: `app-session`
+  - Fitbitは既存の users/sessions 認証に相乗り（`024_fitbit.sql`）。OAuthトークンは `encrypt.ts` で暗号化して保存
 - `MLB_DB`（`mlb-db`）: MLB選手・試合データ  
   `src/server/tasks/mlb-sync.ts` の Cron（1時間ごと）で同期
 - `DEEPHEART_DB`（`deepheart-db`）: users / sessions / messages / personalities  
@@ -80,7 +87,10 @@ NUXT_ENCRYPTION_KEY=...   # marriage コメント暗号化（32文字以上推�
 | `mlbstats.ts` | MLB Stats API呼び出し |
 | `fangraphs.ts` | FanGraphs API呼び出し |
 | `mlb-dev.ts` | MLBローカル開発用スタブ |
-| `encrypt.ts` | marriage コメント暗号化（AES-GCM） |
+| `encrypt.ts` | marriage コメント暗号化・Fitbitトークン暗号化（AES-GCM） |
+| `fitbit.ts` | Fitbit Web API 呼び出し・OAuth2トークン管理・ダッシュボード組み立て |
+| `fitbit-score.ts` | エナジー/睡眠スコアの近似算出（公式APIに無いため独自算出） |
+| `fitbit-dev.ts` | Fitbitローカル開発用スタブ（日付シードで決定的データ生成） |
 | `questions.ts` | AI質問生成ユーティリティ |
 
 ## コーディング規則
