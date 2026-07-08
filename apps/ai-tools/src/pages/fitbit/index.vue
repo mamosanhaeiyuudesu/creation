@@ -16,6 +16,11 @@
         </div>
       </header>
 
+      <!-- 連携エラー（callbackから ?fitbit_error= で渡ってくる） -->
+      <div v-if="connectError" class="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-200 break-all">
+        <div class="font-semibold mb-1">Fitbit連携エラー</div>{{ connectError }}
+      </div>
+
       <!-- 未連携 -->
       <div v-if="notConnected" class="mt-10 flex flex-col items-center gap-5 text-center">
         <div class="text-5xl">⌚️</div>
@@ -115,6 +120,9 @@ import SleepModal from '~/components/fitbit/SleepModal.vue'
 import TrendModal from '~/components/fitbit/TrendModal.vue'
 
 useHead({ title: 'Fitbit ヘルスダッシュボード' })
+
+const route = useRoute()
+const connectError = computed(() => (route.query.fitbit_error as string) || '')
 
 const todayStr = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10)
 

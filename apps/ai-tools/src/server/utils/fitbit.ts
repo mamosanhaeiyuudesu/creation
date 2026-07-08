@@ -160,8 +160,8 @@ export async function saveOAuthState(event: H3Event, state: string, userId: stri
     .run()
 }
 
-/** callback時: state から (userId, verifier) を取り出し、行を削除（使い捨て） */
-export async function consumeOAuthState(event: H3Event, state: string): Promise<{ userId: string; verifier: string } | null> {
+/** callback時: state から (userId, verifier) を取り出す（削除は成功後に deleteOAuthState で行う） */
+export async function lookupOAuthState(event: H3Event, state: string): Promise<{ userId: string; verifier: string } | null> {
   const db = getAppDb(event)
   if (!db) return null
   const row = await db
@@ -169,8 +169,13 @@ export async function consumeOAuthState(event: H3Event, state: string): Promise<
     .bind(state)
     .first()
   if (!row) return null
-  await db.prepare('DELETE FROM fitbit_oauth_states WHERE state = ?').bind(state).run()
   return { userId: (row as any).user_id, verifier: (row as any).verifier }
+}
+
+export async function deleteOAuthState(event: H3Event, state: string): Promise<void> {
+  const db = getAppDb(event)
+  if (!db) return
+  await db.prepare('DELETE FROM fitbit_oauth_states WHERE state = ?').bind(state).run()
 }
 
 export async function deleteConnection(event: H3Event, userId: string): Promise<void> {
