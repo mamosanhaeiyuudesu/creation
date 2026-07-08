@@ -1,5 +1,6 @@
 import { getSessionUser } from '~/server/utils/auth'
 import { wrapApiError } from '~/server/utils/openai'
+import { toJSTDate } from '~/utils/jst'
 
 interface StrengthItem { title: string; content: string }
 interface ProfileData {
@@ -10,7 +11,20 @@ interface ProfileData {
 }
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string; date: string }
 interface AchievementItem { text: string; level: number; date?: string }
-interface ChatMessage { role: 'user' | 'assistant'; content: string }
+interface ChatMessage { role: 'user' | 'assistant'; content: string; timestamp?: string }
+
+// JST の日時を「2026/5/13(火) 14:30」形式に整形する
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
+function formatTs(iso: string): string {
+  const d = toJSTDate(iso)
+  const y = d.getUTCFullYear()
+  const mo = d.getUTCMonth() + 1
+  const da = d.getUTCDate()
+  const w = WEEKDAYS[d.getUTCDay()]
+  const h = String(d.getUTCHours()).padStart(2, '0')
+  const mi = String(d.getUTCMinutes()).padStart(2, '0')
+  return `${y}/${mo}/${da}(${w}) ${h}:${mi}`
+}
 
 const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS hagemashi_consult_messages (
   id TEXT PRIMARY KEY,
@@ -75,12 +89,17 @@ ${achievementsText}
 # 直近の気持ち・状況の記録（中間データ・新しい順）
 ${recentText}`
 
+  const nowIso = new Date().toISOString()
   const systemPrompt = `あなたは相談者に寄り添うカウンセラーです。相談者は日々の出来事を録音して記録しており、別途その人物像と直近の記録が渡されます。
 これらを踏まえ、相談者の状況・性格・傾向に合わせて、共感を示しつつ具体的で実行しやすいアドバイスを日本語で返してください。
 - 決めつけず、相談者の言葉を尊重する
 - 長すぎず、会話のテンポを保つ（必要に応じて問いかけも交える）
 - 記録から読み取れる強みを自然に活かす
-- 相談者が自信を失っているときは、これまでの達成（客観的な成果）を具体的に引き合いに出して勇気づける。ただし押し付けがましくならないよう自然に触れる`
+- 相談者が自信を失っているときは、これまでの達成（客観的な成果）を具体的に引き合いに出して勇気づける。ただし押し付けがましくならないよう自然に触れる
+
+# 日時について
+現在の日時は ${formatTs(nowIso)}（日本時間）です。
+各ユーザー発言の先頭には [送信日時] が付いています。相談は複数の日にまたがることがあるため、発言ごとの日時差（何日前の話か、時間帯、曜日など）を必ず考慮して返信してください。過去の発言を今日のことと混同しないこと。「今日」「さっき」「昨日」などの時間表現は、その発言の送信日時と現在日時を基準に解釈してください。`
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -100,7 +119,14 @@ ${recentText}`
           { type: 'text', text: systemPrompt },
           { type: 'text', text: personaBlock, cache_control: { type: 'ephemeral' } },
         ],
-        messages: messages.map(m => ({ role: m.role, content: m.content })),
+        // ユーザー発言には送信日時を付与し、AIが日付・時間を考慮できるようにする
+        // （最新のユーザー発言はタイムスタンプ未付与のため現在時刻を用いる）
+        messages: messages.map((m, idx) => {
+          if (m.role !== 'user') return { role: m.role, content: m.content }
+          const iso = m.timestamp || (idx === messages.length - 1 ? nowIso : null)
+          const prefix = iso ? `[${formatTs(iso)}] ` : ''
+          return { role: 'user', content: `${prefix}${m.content}` }
+        }),
       }),
     })
 

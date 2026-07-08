@@ -69,15 +69,32 @@
 
       <!-- History tabs -->
       <div class="mt-1 min-w-0">
-        <!-- 録音 サブタブ（文字起こし・単語・中間データ・長期傾向・はげまし） -->
-        <div v-if="isRecordingTab" class="flex items-center gap-1.5 mt-2">
+        <!-- 録音 サブタブ（主: 単語・心・達成リスト・長期傾向 / 副: 記録・中間データ・はげまし） -->
+        <div v-if="isRecordingTab" class="flex items-center gap-1.5 mt-2 flex-wrap">
           <button
-            v-for="t in recordingTabs"
+            v-for="t in primaryTabs"
             :key="t.key"
             class="px-2.5 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer"
             :class="activeTab === t.key ? 'border-orange-500/60 bg-orange-500/15 text-orange-300' : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
             @click="activeTab = t.key"
           ><span class="sm:hidden">{{ t.short }}</span><span class="hidden sm:inline">{{ t.label }}</span></button>
+          <!-- 展開アイコン -->
+          <button
+            class="w-6 h-6 flex items-center justify-center rounded-full text-xs border transition-all cursor-pointer shrink-0"
+            :class="secondaryVisible ? 'border-orange-500/40 text-orange-300 bg-orange-500/10' : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
+            :title="secondaryVisible ? '閉じる' : 'その他のタブ'"
+            @click="showMoreTabs = !showMoreTabs"
+          ><span class="inline-block leading-none transition-transform duration-200" :style="secondaryVisible ? 'transform: rotate(180deg)' : ''">⌄</span></button>
+          <!-- 副タブ（展開時のみ表示） -->
+          <template v-if="secondaryVisible">
+            <button
+              v-for="t in secondaryTabs"
+              :key="t.key"
+              class="px-2.5 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer"
+              :class="activeTab === t.key ? 'border-orange-500/60 bg-orange-500/15 text-orange-300' : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
+              @click="activeTab = t.key"
+            ><span class="sm:hidden">{{ t.short }}</span><span class="hidden sm:inline">{{ t.label }}</span></button>
+          </template>
         </div>
         <div
           class="flex items-center gap-2 mb-1"
@@ -1106,7 +1123,7 @@ const routeTab = () => {
   const t = route.query.tab
   return typeof t === 'string' && (TAB_KEYS as string[]).includes(t) ? (t as TabKey) : null
 }
-const activeTab = ref<TabKey>(routeTab() ?? 'transcription')
+const activeTab = ref<TabKey>(routeTab() ?? 'words')
 
 watch(activeTab, (v) => {
   if (route.query.tab !== v) router.replace({ query: { ...route.query, tab: v } })
@@ -1116,16 +1133,24 @@ watch(() => route.query.tab, () => {
   if (t && t !== activeTab.value) activeTab.value = t
 })
 
-const recordingTabs: { key: RecordingTab; label: string; short: string }[] = [
-  { key: 'transcription', label: '記録', short: '記録' },
+// 常に表示する主タブ
+const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'words', label: '単語', short: '単語' },
-  { key: 'summary', label: '中間データ', short: '中間' },
-  { key: 'achievement', label: '達成リスト', short: '達成' },
   { key: 'kokoro', label: '心', short: '心' },
+  { key: 'achievement', label: '達成リスト', short: '達成' },
   { key: 'profile', label: '長期傾向', short: '傾向' },
+]
+// 展開アイコンを開くと表示する副タブ
+const secondaryTabs: { key: RecordingTab; label: string; short: string }[] = [
+  { key: 'transcription', label: '記録', short: '記録' },
+  { key: 'summary', label: '中間データ', short: '中間' },
   { key: 'encourage', label: 'はげまし', short: 'はげ' },
 ]
+const recordingTabs: { key: RecordingTab; label: string; short: string }[] = [...primaryTabs, ...secondaryTabs]
 const isRecordingTab = computed(() => recordingTabs.some(t => t.key === activeTab.value))
+// 副タブの表示状態（明示的に展開したとき、または副タブが選択中のとき表示）
+const showMoreTabs = ref(false)
+const secondaryVisible = computed(() => showMoreTabs.value || secondaryTabs.some(t => t.key === activeTab.value))
 function openRecording() {
   if (!isRecordingTab.value) activeTab.value = 'transcription'
 }
