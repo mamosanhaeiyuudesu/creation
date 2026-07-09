@@ -34,14 +34,19 @@ export default defineEventHandler(async (event) => {
 
 手順:
 1. 与えられた記録の中から「${body.keyword}」に意味的に関連するものだけを自分で判断して選び出す
-2. 関連する記録が1件もなければ、出力は「関連する記録が見つかりませんでした。」の1文のみにする
-3. 関連する記録が見つかったら、それらをもとに「${body.keyword}」についてどんな内容・変化があったかをまとめる
+2. 関連する記録が1件もなければ blocks を空配列にする
+3. 関連する記録があれば、時系列の流れ（古い→新しい）を意識しながら内容を1〜3個の塊に整理し、それぞれに短いタイトルをつける
+
+必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
+{"blocks":[{"title":"見出し（10字前後）","text":"本文"}]}
 
 出力ルール:
-- 矢印や箇条書きの段階分けは使わない。地の文の文章（3〜5文程度）でまとめる
-- 記録が古い時期から新しい時期への流れが自然に伝わるように、時系列を意識した文章にする（例:「〇月頃は〜だったが、その後〜となり、直近では〜」のような書き方）
-- 全体としてどんな内容・変化があったかの概要が一読でわかるようにする。日付は自然に文中に織り込む程度でよく、逐一列挙しなくてよい
-- 出力はプレーンテキストのみ。JSON・マークダウン記法・見出し・箇条書き・前置きや説明は一切不要`,
+- blocks は1〜3個。関連する記録が少なければ1個でよい
+- 各ブロックの text は文の区切り（「。」の直後）ごとに改行（\\n）を入れる
+- 全ブロックの text を合計しておよそ500文字以内に収める
+- タイトルはそのブロックの内容を端的に表す10字前後のラベルにする
+- ブロックの並び・内容から時系列の流れが伝わるようにする
+- JSON以外の文字列は一切出力しない`,
         messages: [{ role: 'user', content: `${sourceText}${noteContext}` }],
       }),
     })
@@ -55,8 +60,36 @@ export default defineEventHandler(async (event) => {
     }
 
     const data = await response.json()
-    const summary = (data?.content?.[0]?.text ?? '').trim()
-    return { summary }
+    const raw = (data?.content?.[0]?.text ?? '').trim()
+
+    let parsed: { blocks?: { title?: string; text?: string }[] }
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      const match = raw.match(/\{[\s\S]*\}/)
+      parsed = match ? JSON.parse(match[0]) : { blocks: [] }
+    }
+
+    const rawBlocks = Array.isArray(parsed.blocks)
+      ? parsed.blocks
+          .map(b => ({ title: String(b.title ?? '').slice(0, 20), text: String(b.text ?? '').trim() }))
+          .filter(b => b.text)
+          .slice(0, 3)
+      : []
+
+    // 合計文字数がおよそ500字を超えないよう安全側でトリムする
+    const MAX_TOTAL = 520
+    let total = 0
+    const blocks: { title: string; text: string }[] = []
+    for (const b of rawBlocks) {
+      if (total >= MAX_TOTAL) break
+      const remaining = MAX_TOTAL - total
+      const text = b.text.length > remaining ? b.text.slice(0, remaining) : b.text
+      blocks.push({ title: b.title, text })
+      total += text.length
+    }
+
+    return { blocks }
   } catch (err) {
     return wrapApiError(err, 'AI分析の生成に失敗しました')
   }
