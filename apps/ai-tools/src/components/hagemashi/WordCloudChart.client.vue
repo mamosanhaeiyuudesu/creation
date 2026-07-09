@@ -5,7 +5,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'word-click': [word: string]
+  'word-click': [{ name: string; count: number }]
 }>()
 
 const COLORS = [
@@ -101,25 +101,8 @@ function layout() {
 let ro: ResizeObserver | null = null
 watch(sized, () => nextTick(layout))
 
-interface ActiveWord { name: string; count: number; x: number; y: number }
-const activeWord = ref<ActiveWord | null>(null)
-
-function onWordClick(item: Placed, event: MouseEvent) {
-  if (activeWord.value?.name === item.name) { activeWord.value = null; return }
-  activeWord.value = { name: item.name, count: item.count, x: event.clientX, y: event.clientY }
-}
-
-function excludeActiveWord() {
-  if (!activeWord.value) return
-  emit('word-click', activeWord.value.name)
-  activeWord.value = null
-}
-
-// メニュー・単語以外をクリックしたら閉じる
-function onDocClick(e: MouseEvent) {
-  const target = e.target as HTMLElement
-  if (target.closest('.wc-word') || target.closest('.wc-menu')) return
-  activeWord.value = null
+function onWordClick(item: Placed) {
+  emit('word-click', { name: item.name, count: item.count })
 }
 
 onMounted(() => {
@@ -128,11 +111,9 @@ onMounted(() => {
     ro = new ResizeObserver(() => layout())
     ro.observe(wrapEl.value)
   }
-  window.addEventListener('click', onDocClick)
 })
 onBeforeUnmount(() => {
   ro?.disconnect()
-  window.removeEventListener('click', onDocClick)
 })
 </script>
 
@@ -144,23 +125,9 @@ onBeforeUnmount(() => {
         :key="item.name"
         class="wc-word"
         :style="{ left: `${item.x}px`, top: `${item.y}px`, fontSize: `${item.size}px`, color: item.color }"
-        @click="onWordClick(item, $event)"
+        @click="onWordClick(item)"
       >{{ item.name }}</span>
     </div>
-
-    <Teleport to="body">
-      <div
-        v-if="activeWord"
-        class="wc-menu fixed z-50 min-w-[160px] bg-[#1e293b] border border-white/10 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.5)] py-1.5 flex flex-col"
-        :style="{ left: `${activeWord.x}px`, top: `${activeWord.y + 8}px` }"
-      >
-        <div class="px-3.5 py-2 text-sm text-slate-400 border-b border-white/[0.06]">出現回数: {{ activeWord.count }}回</div>
-        <button
-          class="px-3.5 py-2 text-sm text-left text-rose-300 hover:bg-white/[0.06] transition-colors cursor-pointer border-none bg-transparent"
-          @click="excludeActiveWord"
-        >除外単語に追加</button>
-      </div>
-    </Teleport>
   </div>
 </template>
 

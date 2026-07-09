@@ -1,0 +1,14 @@
+{
+  "name": "Fitbit ヘルスダッシュボード",
+  "short_name": "Fitbit",
+  "description": "エナジー/睡眠スコア・歩数・心拍・HRV・SpO2等のヘルスダッシュボード",
+  "theme_color": "#0d9488",
+  "background_color": "#0d9488",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/fitbit",
+  "scope": "/",
+  "icons": [
+    { "src": "/apple-touch-icon-fitbit.png", "sizes": "192x192", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -15,7 +15,7 @@ gtag('config', 'G-JRBVTJYCEH');`,
         },
       ],
       link: [
-        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
       ],
       meta: [
         { name: 'apple-mobile-web-app-capable', content: 'yes' },

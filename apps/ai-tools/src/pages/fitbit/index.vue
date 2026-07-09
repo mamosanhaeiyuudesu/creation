@@ -119,7 +119,20 @@ import Sparkline from '~/components/fitbit/Sparkline.vue'
 import SleepModal from '~/components/fitbit/SleepModal.vue'
 import TrendModal from '~/components/fitbit/TrendModal.vue'
 
-useHead({ title: 'Fitbit ヘルスダッシュボード' })
+useHead({
+  title: 'Fitbit ヘルスダッシュボード',
+  link: [
+    { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⌚️</text></svg>` },
+    { rel: 'manifest', href: '/manifest-fitbit.json' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon-fitbit.png' },
+  ],
+  meta: [
+    { name: 'apple-mobile-web-app-capable', content: 'yes' },
+    { name: 'apple-mobile-web-app-title', content: 'Fitbit' },
+    { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+    { name: 'theme-color', content: '#0d9488' },
+  ],
+})
 
 const route = useRoute()
 const connectError = computed(() => (route.query.fitbit_error as string) || '')

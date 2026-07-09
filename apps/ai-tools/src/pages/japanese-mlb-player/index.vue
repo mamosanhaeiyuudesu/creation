@@ -13,7 +13,7 @@ definePageMeta({ ssr: false, layout: 'japanese-mlb-player' })
 useHead({
   title: import.meta.dev ? 'MLB日本人選手成績 (dev)' : 'MLB日本人選手成績',
   link: [
-    { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚾</text></svg>` },
+    { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚾</text></svg>` },
     { rel: 'manifest', href: '/manifest-mlb.json' },
     { rel: 'apple-touch-icon', href: '/apple-touch-icon-mlb.png' },
   ],

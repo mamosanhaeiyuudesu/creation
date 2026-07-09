@@ -316,7 +316,7 @@
             更新ボタンを押すと中間データから心の状態を可視化します
           </div>
           <div v-else class="flex flex-col gap-3">
-            <HagemashiKokoroTreemap :entry="kokoroHistory[0]" :height="360" />
+            <HagemashiKokoroTreemap :entry="kokoroHistory[0]" :height="360" @leaf-click="activeKokoroPopup = $event" />
             <!-- メタ認知コメント -->
             <div v-if="kokoroHistory[0].summary" class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
               <div class="text-xs font-semibold text-orange-400 mb-1.5">🪞 メタ認知コメント</div>
@@ -334,7 +334,7 @@
                   <div class="text-slate-600 text-[10px] transition-transform duration-200" :style="expandedKokoroIndices.has(ki) ? 'transform: rotate(180deg)' : ''">▼</div>
                 </button>
                 <div v-if="expandedKokoroIndices.has(ki)" class="px-3 pb-3 flex flex-col gap-2 border-t border-white/[0.05]">
-                  <HagemashiKokoroTreemap :entry="k" :height="280" />
+                  <HagemashiKokoroTreemap :entry="k" :height="280" @leaf-click="activeKokoroPopup = $event" />
                   <p v-if="k.summary" class="m-0 text-xs text-slate-400 leading-relaxed">{{ k.summary }}</p>
                 </div>
               </div>
@@ -434,14 +434,14 @@
         </div>
 
         <div v-else-if="activeTab === 'words'" class="py-2">
-          <div v-if="wordRanking.length === 0" class="text-center text-slate-500 text-sm py-10">
+          <div v-if="filteredWordRanking.length === 0" class="text-center text-slate-500 text-sm py-10">
             再集計ボタンを押すとワードクラウドを生成します
           </div>
           <HagemashiWordCloudChart
             v-else
-            :words="wordRanking.slice(0, 120)"
+            :words="filteredWordRanking.slice(0, 120)"
             :height="380"
-            @word-click="confirmingStopword = $event"
+            @word-click="activeWordPopup = $event"
           />
         </div>
 
@@ -959,6 +959,31 @@
       </div>
     </div>
 
+    <!-- 単語クリック時のAI分析ポップアップ -->
+    <HagemashiTopicAnalysisModal
+      v-if="activeWordPopup"
+      :key="`word-${activeWordPopup.name}`"
+      :title="activeWordPopup.name"
+      :meta="`出現回数: ${activeWordPopup.count}回`"
+      :keyword="activeWordPopup.name"
+      :matched-items="activeWordMatches"
+      show-exclude
+      @close="activeWordPopup = null"
+      @exclude="confirmingStopword = activeWordPopup!.name; activeWordPopup = null"
+    />
+
+    <!-- 心の要素クリック時のAI分析ポップアップ -->
+    <HagemashiTopicAnalysisModal
+      v-if="activeKokoroPopup"
+      :key="`kokoro-${activeKokoroPopup.name}`"
+      :title="activeKokoroPopup.name"
+      :meta="`${activeKokoroPopup.group} ・ 重み${activeKokoroPopup.weight}`"
+      :note="activeKokoroPopup.note"
+      :keyword="activeKokoroPopup.name"
+      :matched-items="activeKokoroMatches"
+      @close="activeKokoroPopup = null"
+    />
+
     <!-- 除外単語追加確認 -->
     <div v-if="confirmingStopword" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="confirmingStopword = null">
       <div class="w-full max-w-[300px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-5">
@@ -1057,7 +1082,7 @@ import { marked } from 'marked'
 useHead({
   title: import.meta.dev ? '記録 (dev)' : '記録',
   link: [
-    { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💪</text></svg>` },
+    { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💪</text></svg>` },
     { rel: 'manifest', href: '/manifest-hagemashi.json' },
     { rel: 'apple-touch-icon', href: '/apple-touch-icon-hagemashi.png' },
   ],
@@ -1137,13 +1162,13 @@ watch(() => route.query.tab, () => {
 const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'words', label: '単語', short: '単語' },
   { key: 'kokoro', label: '心', short: '心' },
-  { key: 'achievement', label: '達成リスト', short: '達成' },
   { key: 'profile', label: '長期傾向', short: '傾向' },
 ]
 // 展開アイコンを開くと表示する副タブ
 const secondaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'transcription', label: '記録', short: '記録' },
   { key: 'summary', label: '中間データ', short: '中間' },
+  { key: 'achievement', label: '達成リスト', short: '達成' },
   { key: 'encourage', label: 'はげまし', short: 'はげ' },
 ]
 const recordingTabs: { key: RecordingTab; label: string; short: string }[] = [...primaryTabs, ...secondaryTabs]
@@ -1439,6 +1464,7 @@ const generateProfile = async () => {
 
 interface WordEntry { word: string; count: number }
 const wordRanking = ref<WordEntry[]>([])
+const filteredWordRanking = computed(() => wordRanking.value.filter(w => w.count >= 5))
 const isTokenizing = ref(false)
 
 const LS_STOPLIST = 'hagemashi-stoplist'
@@ -1877,22 +1903,40 @@ const parseSummaryNote = (notes: string | undefined): SummaryNoteNew | SummaryNo
 }
 
 const summaryRows = computed(() => {
-  const rows: { id: string; date: string; sentiment: 'ポジ' | 'ネガ'; text: string; itemIndex: number | null }[] = []
+  const rows: { id: string; date: string; fullDate: string; sentiment: 'ポジ' | 'ネガ'; text: string; itemIndex: number | null }[] = []
   for (const item of history.value) {
     const parsed = parseSummaryNote(item.notes)
     if (!parsed) continue
     const d = toJSTDate(item.timestamp)
     const date = `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`
+    const fullDate = `${d.getUTCFullYear()}/${d.getUTCMonth() + 1}/${d.getUTCDate()}`
     if ('items' in parsed) {
       for (let i = 0; i < parsed.items.length; i++) {
         const n = parsed.items[i]
-        if (n.text) rows.push({ id: item.id, date, sentiment: n.sentiment, text: n.text, itemIndex: i })
+        if (n.text) rows.push({ id: item.id, date, fullDate, sentiment: n.sentiment, text: n.text, itemIndex: i })
       }
     } else {
-      rows.push({ id: item.id, date, sentiment: parsed.sentiment, text: parsed.text, itemIndex: null })
+      rows.push({ id: item.id, date, fullDate, sentiment: parsed.sentiment, text: parsed.text, itemIndex: null })
     }
   }
   return rows
+})
+
+// --- 単語・心クリック時のAI分析ポップアップ（キャッシュ・保存はしない） ---
+interface ActiveWordPopup { name: string; count: number }
+interface ActiveKokoroPopup { name: string; note: string; group: string; weight: number }
+const activeWordPopup = ref<ActiveWordPopup | null>(null)
+const activeKokoroPopup = ref<ActiveKokoroPopup | null>(null)
+
+const activeWordMatches = computed(() => {
+  if (!activeWordPopup.value) return []
+  const keyword = activeWordPopup.value.name
+  return summaryRows.value.filter(r => r.text.includes(keyword)).map(r => ({ date: r.fullDate, text: r.text }))
+})
+const activeKokoroMatches = computed(() => {
+  if (!activeKokoroPopup.value) return []
+  const keyword = activeKokoroPopup.value.name
+  return summaryRows.value.filter(r => r.text.includes(keyword)).map(r => ({ date: r.fullDate, text: r.text }))
 })
 
 // 相談チャットに渡す直近30件（summaryRows は新しい順）
