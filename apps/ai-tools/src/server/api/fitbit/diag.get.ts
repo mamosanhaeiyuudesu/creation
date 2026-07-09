@@ -3,14 +3,41 @@ import { todayJST } from '~/utils/jst'
 
 // 診断用（dev限定）。Playground等で取得した生アクセストークンで実データのパースを検証する。
 //   GET /api/fitbit/diag?token=ya29...&date=2026-07-08&days=3
-// probe: 生のGoogle Health API応答（またはエラー内容）をそのまま返し、失敗原因を可視化する。
-async function probe(token: string, dataType: string): Promise<any> {
+
+const VALUE_KEY: Record<string, string> = { steps: 'count', distance: 'millimeters' }
+
+// steps/distance は list・reconcile どちらでも同じ形（トップレベルに dataType 名のフィールド）で
+// 返る想定だが、reconcile 側が別形（dataPoint プロパティにラップ等）の場合に備えて両方を試す。
+function extractDayValue(pt: any, dataType: string): { date: string | null; value: number | null } {
+  const body = pt?.[dataType] ?? pt?.dataPoint?.[dataType] ?? null
+  const dateObj = body?.interval?.civilStartTime?.date
+  const date = dateObj ? `${dateObj.year}-${String(dateObj.month).padStart(2, '0')}-${String(dateObj.day).padStart(2, '0')}` : null
+  const key = VALUE_KEY[dataType]
+  const value = body?.[key] != null ? Number(body[key]) : null
+  return { date, value }
+}
+
+function sumByDate(dp: any[], dataType: string): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const pt of dp) {
+    const { date, value } = extractDayValue(pt, dataType)
+    if (date && value != null) out[date] = (out[date] || 0) + value
+  }
+  return out
+}
+
+// list は複数データソースの生ポイントを重複除去せずに返す可能性がある。
+// reconcile はソース横断で単一ストリームに統合した結果を返すため、日別合計を list と比較する。
+async function probe(token: string, dataType: string, reconcile = false): Promise<any> {
+  const suffix = reconcile ? ':reconcile' : ''
   try {
-    const res = await $fetch(`https://health.googleapis.com/v4/users/me/dataTypes/${dataType}/dataPoints?pageSize=1440`, {
+    const res = await $fetch(`https://health.googleapis.com/v4/users/me/dataTypes/${dataType}/dataPoints${suffix}?pageSize=1440`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     const dp = (res as any)?.dataPoints ?? []
-    return { ok: true, count: dp.length, samples: dp.slice(0, 3) }
+    const out: any = { ok: true, count: dp.length, samples: dp.slice(0, 3) }
+    if (dataType in VALUE_KEY) out.sumByDate = sumByDate(dp, dataType)
+    return out
   } catch (e: any) {
     return { ok: false, status: e?.response?.status ?? e?.statusCode, message: e?.message, data: e?.data ?? e?.response?._data }
   }
@@ -50,7 +77,10 @@ export default defineEventHandler(async (event) => {
 
   // total-calories の dailyRollUp レスポンス（kcalSum フィールド）を最終確認する。
   const probes = {
+    steps: await probe(token, 'steps'),
+    'steps-reconcile': await probe(token, 'steps', true),
     distance: await probe(token, 'distance'),
+    'distance-reconcile': await probe(token, 'distance', true),
     'total-calories-dailyRollUp': await probeCaloriesRollup(token, date, days),
     'daily-sleep-temperature-derivations': await probe(token, 'daily-sleep-temperature-derivations'),
     'heart-rate': await probe(token, 'heart-rate'),

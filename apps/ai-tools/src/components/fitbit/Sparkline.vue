@@ -1,20 +1,18 @@
 <template>
   <div ref="wrap" class="relative" @pointermove="onMove" @pointerleave="hover = -1">
     <svg :viewBox="`0 0 100 ${h}`" preserveAspectRatio="none" class="w-full block" :style="{ height: `${h}px` }">
-      <polygon v-if="area" :points="area" :fill="color" fill-opacity="0.10" />
-      <polyline
-        v-if="line"
-        :points="line"
-        fill="none"
-        :stroke="color"
-        stroke-width="1.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        vector-effect="non-scaling-stroke"
+      <rect
+        v-for="(b, i) in bars"
+        :key="i"
+        :x="b.x"
+        :y="b.y"
+        :width="barWidth"
+        :height="b.height"
+        :fill="color"
+        :fill-opacity="hover === i ? 1 : 0.55"
+        rx="0.8"
       />
       <line v-if="hoverX != null" :x1="hoverX" :x2="hoverX" :y1="0" :y2="h" :stroke="color" stroke-opacity="0.4" stroke-width="1" vector-effect="non-scaling-stroke" />
-      <circle v-if="hoverPt" :cx="hoverPt[0]" :cy="hoverPt[1]" :r="2" :fill="color" vector-effect="non-scaling-stroke" />
-      <circle v-else-if="last" :cx="last[0]" :cy="last[1]" :r="1.6" :fill="color" vector-effect="non-scaling-stroke" />
     </svg>
     <div
       v-if="hover >= 0 && hovered"
@@ -47,32 +45,26 @@ const nums = computed(() => vals.value.filter((v): v is number => v != null))
 const min = computed(() => (nums.value.length ? Math.min(...nums.value) : 0))
 const max = computed(() => (nums.value.length ? Math.max(...nums.value) : 0))
 
-const xFor = (i: number) => (props.points.length > 1 ? (i / (props.points.length - 1)) * 100 : 50)
-const yFor = (v: number) => {
+const bandWidth = computed(() => 100 / Math.max(1, props.points.length))
+const barWidth = computed(() => bandWidth.value * 0.6)
+const xFor = (i: number) => i * bandWidth.value + (bandWidth.value - barWidth.value) / 2
+const heightFor = (v: number) => {
   const span = max.value - min.value || 1
-  const pad = 2
-  return props.h - pad - ((v - min.value) / span) * (props.h - pad * 2)
+  const topPad = 2
+  return Math.max(((v - min.value) / span) * (props.h - topPad), 1.5)
 }
 
-const coords = computed(() => {
-  const out: [number, number][] = []
-  props.points.forEach((p, i) => { if (p.value != null) out.push([xFor(i), yFor(p.value)]) })
-  return out
-})
-const line = computed(() => coords.value.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' '))
-const area = computed(() => {
-  if (coords.value.length < 2) return ''
-  return `${coords.value[0][0]},${props.h} ${line.value} ${coords.value[coords.value.length - 1][0]},${props.h}`
-})
-const last = computed(() => coords.value[coords.value.length - 1] ?? null)
+const bars = computed(() =>
+  props.points.map((p, i) => {
+    const height = p.value != null ? heightFor(p.value) : 0
+    return { x: xFor(i), y: props.h - height, height }
+  }),
+)
 
 const hovered = computed(() => (hover.value >= 0 ? props.points[hover.value] : null))
-const hoverFrac = computed(() => (hover.value >= 0 ? xFor(hover.value) / 100 : 0))
-const hoverX = computed(() => (hover.value >= 0 ? xFor(hover.value) : null))
-const hoverPt = computed(() => {
-  const h = hovered.value
-  return h && h.value != null ? [xFor(hover.value), yFor(h.value)] as [number, number] : null
-})
+const hoverCenter = (i: number) => i * bandWidth.value + bandWidth.value / 2
+const hoverFrac = computed(() => (hover.value >= 0 ? hoverCenter(hover.value) / 100 : 0))
+const hoverX = computed(() => (hover.value >= 0 ? hoverCenter(hover.value) : null))
 
 function onMove(e: PointerEvent) {
   const el = wrap.value

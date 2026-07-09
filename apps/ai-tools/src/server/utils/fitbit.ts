@@ -349,15 +349,23 @@ function pointDate(pt: any, dataType: string): string | null {
   }
 }
 
-/** dataPoints.list を新しい順にページングし、startDate を下回るまで集める */
+// steps/distance は dataPoints.list だと複数データソースの生ポイントが重複除去されずに
+// 合算され、実測で約1.5〜2倍に水増しされることを診断で確認済み（診断エンドポイントの
+// steps/steps-reconcile 比較）。dataPoints:reconcile はソース横断で統合済みの単一ストリームを
+// 返し、レスポンス形状は list と同一（dataSource フィールドが無い点のみ異なる）なので
+// そのまま同じパース処理が使える。
+const RECONCILE_TYPES = new Set(['steps', 'distance'])
+
+/** dataPoints.list（または reconcile）を新しい順にページングし、startDate を下回るまで集める */
 async function listPoints(token: string, dataType: string, startDate: string): Promise<any[]> {
   const size = dataType === 'sleep' ? 25 : 10000
   const maxPages = dataType === 'sleep' ? 8 : 15
+  const suffix = RECONCILE_TYPES.has(dataType) ? ':reconcile' : ''
   const points: any[] = []
   let pageToken: string | undefined
   for (let p = 0; p < maxPages; p++) {
     const q = `?pageSize=${size}` + (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '')
-    const res: any = await fbGet(token, `/users/me/dataTypes/${dataType}/dataPoints${q}`)
+    const res: any = await fbGet(token, `/users/me/dataTypes/${dataType}/dataPoints${suffix}${q}`)
     const dp: any[] = res?.dataPoints ?? []
     if (!dp.length) break
     points.push(...dp)
