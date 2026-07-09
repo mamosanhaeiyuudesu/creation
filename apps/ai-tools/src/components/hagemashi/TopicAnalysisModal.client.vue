@@ -28,7 +28,7 @@ async function runAnalysis() {
   try {
     const res = await $fetch<{ summary: string }>('/api/hagemashi/topic-summary', {
       method: 'POST',
-      body: { keyword: props.keyword, items: props.matchedItems },
+      body: { keyword: props.keyword, note: props.note, items: props.matchedItems },
     })
     analysis.value = res.summary
   } catch {

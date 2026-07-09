@@ -1933,10 +1933,11 @@ const activeWordMatches = computed(() => {
   const keyword = activeWordPopup.value.name
   return summaryRows.value.filter(r => r.text.includes(keyword)).map(r => ({ date: r.fullDate, text: r.text }))
 })
+// 心の要素名はAIが生成した抽象的なラベルのため文字列一致では拾えない。
+// 直近の中間データをそのままAIに渡し、意味的な関連判断はAI自身にやらせる
 const activeKokoroMatches = computed(() => {
   if (!activeKokoroPopup.value) return []
-  const keyword = activeKokoroPopup.value.name
-  return summaryRows.value.filter(r => r.text.includes(keyword)).map(r => ({ date: r.fullDate, text: r.text }))
+  return summaryRows.value.slice(0, 60).map(r => ({ date: r.fullDate, text: r.text }))
 })
 
 // 相談チャットに渡す直近30件（summaryRows は新しい順）
