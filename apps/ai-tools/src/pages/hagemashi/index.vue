@@ -365,16 +365,6 @@
                 <p v-else class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileHistory[0].strengths }}</p>
               </div>
               <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
-                <div class="text-xs font-semibold text-sky-400 mb-2">🔄 傾向</div>
-                <template v-if="Array.isArray(profileHistory[0].tendencies)">
-                  <div v-for="(t, ti) in profileHistory[0].tendencies" :key="ti" :class="ti < profileHistory[0].tendencies.length - 1 ? 'mb-3' : ''">
-                    <div class="text-sm font-semibold text-slate-100 mb-1">■ {{ t.title }}</div>
-                    <p class="m-0 text-sm text-slate-300 leading-relaxed">{{ t.content }}</p>
-                  </div>
-                </template>
-                <p v-else class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileHistory[0].tendencies }}</p>
-              </div>
-              <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
                 <div class="text-xs font-semibold text-emerald-400 mb-2">💡 アドバイス</div>
                 <template v-if="Array.isArray(profileHistory[0].advice)">
                   <div v-for="(a, ai) in profileHistory[0].advice" :key="ai" :class="ai < profileHistory[0].advice.length - 1 ? 'mb-3' : ''">
@@ -406,16 +396,6 @@
                       </div>
                     </template>
                     <p v-else class="m-0 text-xs text-slate-400 leading-relaxed">{{ p.strengths }}</p>
-                  </div>
-                  <div>
-                    <div class="text-[11px] font-semibold text-sky-400/70 mb-1">🔄 傾向</div>
-                    <template v-if="Array.isArray(p.tendencies)">
-                      <div v-for="(t, ti) in p.tendencies" :key="ti" :class="ti < p.tendencies.length - 1 ? 'mb-2' : ''">
-                        <div class="text-xs font-semibold text-slate-300 mb-0.5">■ {{ t.title }}</div>
-                        <p class="m-0 text-xs text-slate-400 leading-relaxed">{{ t.content }}</p>
-                      </div>
-                    </template>
-                    <p v-else class="m-0 text-xs text-slate-400 leading-relaxed">{{ p.tendencies }}</p>
                   </div>
                   <div>
                     <div class="text-[11px] font-semibold text-emerald-400/70 mb-1">💡 アドバイス</div>
@@ -1388,7 +1368,7 @@ function applyDictionary(text: string): string {
 }
 
 interface StrengthItem { title: string; content: string }
-interface ProfileData { strengths: StrengthItem[] | string; tendencies: StrengthItem[] | string; advice: StrengthItem[] | string; generatedAt: string }
+interface ProfileData { strengths: StrengthItem[] | string; advice: StrengthItem[] | string; generatedAt: string }
 const profileHistory = ref<ProfileData[]>([])
 const isProfileLoading = ref(false)
 
@@ -1444,10 +1424,12 @@ const generateProfile = async () => {
   if (isProfileLoading.value) return
   isProfileLoading.value = true
   try {
+    // summaryRows は新しい順のため、古い→新しいの時系列順にしてサーバーに渡す
+    // （サーバー側で初期・中期・直近に3等分し、期間全体から均等に分析する）
     const res = await $fetch<ProfileData>('/api/hagemashi/profile', {
       method: 'POST',
       body: {
-        summaryItems: summaryRows.value.map(r => ({ sentiment: r.sentiment, text: r.text, date: r.date })),
+        summaryItems: [...summaryRows.value].reverse().map(r => ({ sentiment: r.sentiment, text: r.text, date: r.fullDate })),
         wordRanking: wordRanking.value.slice(0, 50),
       },
     })
@@ -1928,16 +1910,22 @@ interface ActiveKokoroPopup { name: string; note: string; group: string; weight:
 const activeWordPopup = ref<ActiveWordPopup | null>(null)
 const activeKokoroPopup = ref<ActiveKokoroPopup | null>(null)
 
+// summaryRows は新しい順のため、AIには古い→新しいの時系列順で渡す
+// （新しい順のまま渡すと直近の内容が先頭に来て過度に強調されやすいため）
 const activeWordMatches = computed(() => {
   if (!activeWordPopup.value) return []
   const keyword = activeWordPopup.value.name
-  return summaryRows.value.filter(r => r.text.includes(keyword)).map(r => ({ date: r.fullDate, text: r.text }))
+  return summaryRows.value
+    .filter(r => r.text.includes(keyword))
+    .map(r => ({ date: r.fullDate, text: r.text }))
+    .reverse()
 })
 // 心の要素名はAIが生成した抽象的なラベルのため文字列一致では拾えない。
-// 直近の中間データをそのままAIに渡し、意味的な関連判断はAI自身にやらせる
+// 中間データ全体をそのままAIに渡し、意味的な関連判断はAI自身にやらせる
+// （直近だけに絞ると古い記録が最初から候補に入らず、直近の内容ばかりになる）
 const activeKokoroMatches = computed(() => {
   if (!activeKokoroPopup.value) return []
-  return summaryRows.value.slice(0, 60).map(r => ({ date: r.fullDate, text: r.text }))
+  return summaryRows.value.map(r => ({ date: r.fullDate, text: r.text })).reverse()
 })
 
 // 相談チャットに渡す直近30件（summaryRows は新しい順）

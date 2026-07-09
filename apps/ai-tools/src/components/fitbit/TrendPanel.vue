@@ -22,19 +22,26 @@
         <div><span class="text-slate-500">最大</span> <span class="font-semibold text-slate-300 tabular-nums">{{ fmt(max) }}</span></div>
       </div>
 
-      <!-- 折れ線グラフ -->
+      <!-- 縦棒グラフ -->
       <div ref="wrap" class="relative" :style="{ height: `${H}px` }">
         <svg :viewBox="`0 0 ${W} ${H}`" preserveAspectRatio="none" class="w-full h-full block" @pointermove="onMove" @pointerleave="hover = -1">
           <!-- グリッド -->
           <line v-for="(gy, i) in gridYs" :key="`g${i}`" :x1="padL" :x2="W - padR" :y1="gy.y" :y2="gy.y" class="stroke-white/[0.06]" stroke-width="1" vector-effect="non-scaling-stroke" />
           <text v-for="(gy, i) in gridYs" :key="`t${i}`" :x="padL - 6" :y="gy.y + 3" text-anchor="end" class="fill-slate-600" :style="labelStyle">{{ fmt(gy.v) }}</text>
-          <!-- エリア + ライン -->
-          <polygon v-if="area" :points="area" :fill="color" fill-opacity="0.10" />
-          <polyline v-if="linePts" :points="linePts" fill="none" :stroke="color" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
-          <circle v-for="(c, i) in dots" :key="`d${i}`" :cx="c[0]" :cy="c[1]" :r="showDots ? 2.5 : 0" :fill="color" vector-effect="non-scaling-stroke" />
+          <!-- 棒 -->
+          <rect
+            v-for="b in bars"
+            :key="`b${b.i}`"
+            :x="b.x"
+            :y="b.y"
+            :width="b.width"
+            :height="b.height"
+            rx="2"
+            :fill="color"
+            :fill-opacity="hover === b.i ? 1 : 0.7"
+          />
           <!-- ホバーガイド -->
-          <line v-if="hoverX != null" :x1="hoverX" :x2="hoverX" :y1="padT" :y2="H - padB" :stroke="color" stroke-opacity="0.5" stroke-width="1" vector-effect="non-scaling-stroke" />
-          <circle v-if="hoverPt" :cx="hoverPt[0]" :cy="hoverPt[1]" :r="4" fill="#0f172a" :stroke="color" stroke-width="2" vector-effect="non-scaling-stroke" />
+          <line v-if="hoverX != null" :x1="hoverX" :x2="hoverX" :y1="padT" :y2="H - padB" :stroke="color" stroke-opacity="0.35" stroke-width="1" stroke-dasharray="2 2" vector-effect="non-scaling-stroke" />
           <!-- X ラベル -->
           <text v-for="(lbl, i) in xLabels" :key="`x${i}`" :x="lbl.x" :y="H - 4" text-anchor="middle" class="fill-slate-600" :style="labelStyle">{{ lbl.text }}</text>
         </svg>
@@ -91,7 +98,6 @@ const hasData = computed(() => nums.value.length >= 2)
 const min = computed(() => (nums.value.length ? Math.min(...nums.value) : 0))
 const max = computed(() => (nums.value.length ? Math.max(...nums.value) : 0))
 const avg = computed(() => (nums.value.length ? nums.value.reduce((a, b) => a + b, 0) / nums.value.length : 0))
-const showDots = computed(() => series.value.length <= 14)
 
 function fmt(v: number): string { return v.toFixed(props.decimals) }
 
@@ -107,15 +113,21 @@ function toY(v: number): number {
   return padT + (1 - (v - yLo.value) / span) * (H - padT - padB)
 }
 
-const dots = computed(() => series.value
-  .map((d, i) => (d.value != null ? [toX(i), toY(d.value)] as [number, number] : null))
-  .filter((c): c is [number, number] => c != null))
-const linePts = computed(() => dots.value.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' '))
-const area = computed(() => {
-  if (dots.value.length < 2) return ''
-  const base = H - padB
-  return `${dots.value[0][0]},${base} ${linePts.value} ${dots.value[dots.value.length - 1][0]},${base}`
+const barWidth = computed(() => {
+  const n = series.value.length
+  if (!n) return 0
+  const inner = W.value - padL - padR
+  const slot = n > 1 ? inner / n : inner
+  return Math.max(2, slot * 0.6)
 })
+const bars = computed(() => series.value
+  .map((d, i) => {
+    if (d.value == null) return null
+    const base = H - padB
+    const y = toY(d.value)
+    return { i, x: toX(i) - barWidth.value / 2, y, width: barWidth.value, height: Math.max(0, base - y) }
+  })
+  .filter((b): b is { i: number; x: number; y: number; width: number; height: number } => b != null))
 const gridYs = computed(() => {
   const lo = yLo.value, hi = yHi.value
   return [hi, (hi + lo) / 2, lo].map(v => ({ v, y: toY(v) }))
@@ -130,10 +142,6 @@ const xLabels = computed(() => {
 // ホバー
 const hovered = computed(() => (hover.value >= 0 ? series.value[hover.value] : null))
 const hoverX = computed(() => (hover.value >= 0 ? toX(hover.value) : null))
-const hoverPt = computed(() => {
-  const h = hovered.value
-  return h && h.value != null ? [toX(hover.value), toY(h.value)] as [number, number] : null
-})
 const tooltipStyle = computed(() => {
   if (hover.value < 0) return {}
   const xPct = (toX(hover.value) / W.value) * 100

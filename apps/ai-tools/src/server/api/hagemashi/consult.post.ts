@@ -5,7 +5,6 @@ import { toJSTDate } from '~/utils/jst'
 interface StrengthItem { title: string; content: string }
 interface ProfileData {
   strengths: StrengthItem[] | string
-  tendencies: StrengthItem[] | string
   advice: StrengthItem[] | string
   generatedAt?: string
 }
@@ -41,7 +40,6 @@ function profileToText(p?: ProfileData | null): string {
     Array.isArray(v) ? v.map(i => `・${i.title}: ${i.content}`).join('\n') : (v ?? '')
   const parts: string[] = []
   if (p.strengths) parts.push(`【強み】\n${fmt(p.strengths)}`)
-  if (p.tendencies) parts.push(`【傾向】\n${fmt(p.tendencies)}`)
   if (p.advice) parts.push(`【これまでのアドバイス】\n${fmt(p.advice)}`)
   return parts.join('\n\n')
 }

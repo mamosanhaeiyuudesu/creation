@@ -4,7 +4,7 @@ import { wrapApiError } from '~/server/utils/openai'
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string; date: string }
 interface WordEntry { word: string; count: number }
 interface StrengthItem { title: string; content: string }
-interface ProfileItem { strengths: StrengthItem[] | string; tendencies: StrengthItem[] | string; advice: StrengthItem[] | string; generatedAt: string }
+interface ProfileItem { strengths: StrengthItem[] | string; advice: StrengthItem[] | string; generatedAt: string }
 
 export default defineEventHandler(async (event) => {
   const db = event.context.cloudflare?.env?.WHISPER_DB
@@ -15,15 +15,38 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<{ summaryItems: SummaryItem[]; wordRanking: WordEntry[] }>(event)
 
-  const summaryText = body.summaryItems?.length
-    ? body.summaryItems.map(r => `[${r.date}][${r.sentiment}] ${r.text}`).join('\n')
+  // 記録全体を古期・中期・直近の3区分に均等サンプリングし、特定の時期に偏らず
+  // 広範囲の期間から分析できるようにする（body.summaryItems は古い→新しい順で渡される想定）
+  const PER_ERA_CAP = 50
+  const ERA_LABELS = ['初期', '中期', '直近'] as const
+
+  const sampleEvenly = (items: SummaryItem[], max: number): SummaryItem[] => {
+    if (items.length <= max) return items
+    const step = items.length / max
+    return Array.from({ length: max }, (_, i) => items[Math.floor(i * step)])
+  }
+
+  const items = body.summaryItems ?? []
+  const eraSize = Math.ceil(items.length / 3)
+  const eraChunks = [
+    items.slice(0, eraSize),
+    items.slice(eraSize, eraSize * 2),
+    items.slice(eraSize * 2),
+  ]
+
+  const summaryText = items.length
+    ? eraChunks
+        .map((chunk, i) => ({ label: ERA_LABELS[i], sampled: sampleEvenly(chunk, PER_ERA_CAP) }))
+        .filter(e => e.sampled.length)
+        .map(e => `### ${e.label}の記録\n${e.sampled.map(r => `[${r.date}][${r.sentiment}] ${r.text}`).join('\n')}`)
+        .join('\n\n')
     : '（データなし）'
 
   const wordText = body.wordRanking?.length
     ? body.wordRanking.slice(0, 50).map(w => `${w.word}(${w.count})`).join('、')
     : '（データなし）'
 
-  const userContent = `## 中間データ（日々の気持ち・状況の記録）\n${summaryText}\n\n## 頻出単語ランキング\n${wordText}`
+  const userContent = `## 中間データ（日々の気持ち・状況の記録。初期・中期・直近の3区分）\n${summaryText}\n\n## 頻出単語ランキング\n${wordText}`
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -38,12 +61,13 @@ export default defineEventHandler(async (event) => {
         max_tokens: 2048,
         thinking: { type: 'disabled' },
         system: `あなたは日々の記録からユーザーの特性を分析するプロファイリングの専門家です。
-提供されたデータ（日々の気持ち・状況の記録と頻出単語）をもとに、ユーザーの強み・傾向・アドバイスを日本語で分析してください。
+提供されたデータ（日々の気持ち・状況の記録と頻出単語）をもとに、ユーザーの強み・アドバイスを日本語で分析してください。
+記録は「初期」「中期」「直近」の3区分に分けて与えられます。直近の記録だけに偏らず、3区分すべてに目を通したうえで、期間全体を通じて言える強みやアドバイスを抽出してください。
 
 必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
-{"strengths":[{"title":"強みのタイトル","content":"説明（200字以内）"},{"title":"強みのタイトル2","content":"説明（200字以内）"}],"tendencies":[{"title":"傾向のタイトル","content":"説明（200字以内）"},{"title":"傾向のタイトル2","content":"説明（200字以内）"}],"advice":[{"title":"アドバイスのタイトル","content":"説明（200字以内）"},{"title":"アドバイスのタイトル2","content":"説明（200字以内）"}]}
+{"strengths":[{"title":"強みのタイトル","content":"説明（200字以内）"},{"title":"強みのタイトル2","content":"説明（200字以内）"}],"advice":[{"title":"アドバイスのタイトル","content":"説明（200字以内）"},{"title":"アドバイスのタイトル2","content":"説明（200字以内）"}]}
 
-strengths・tendencies・advice はそれぞれ2〜3項目で、具体的なタイトルと内容を記述してください。`,
+strengths・advice はそれぞれ2〜3項目で、具体的なタイトルと内容を記述してください。`,
         messages: [{ role: 'user', content: userContent }],
       }),
     })
@@ -56,7 +80,7 @@ strengths・tendencies・advice はそれぞれ2〜3項目で、具体的なタ�
     const data = await response.json()
     const text = (data?.content?.[0]?.text ?? '').trim()
 
-    let parsed: { strengths: StrengthItem[] | string; tendencies: StrengthItem[] | string; advice: StrengthItem[] | string }
+    let parsed: { strengths: StrengthItem[] | string; advice: StrengthItem[] | string }
     try {
       parsed = JSON.parse(text)
     } catch {

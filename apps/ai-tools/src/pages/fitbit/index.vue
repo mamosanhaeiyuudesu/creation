@@ -150,7 +150,7 @@ const trendModal = ref<any>(null)
 
 const isToday = computed(() => date.value >= todayStr())
 const dateLabel = computed(() => {
-  const d = new Date(`${date.value}T00:00:00+09:00`)
+  const d = new Date(`${date.value}T00:00:00Z`)
   const w = ['日', '月', '火', '水', '木', '金', '土'][d.getUTCDay()]
   return `${d.getUTCMonth() + 1}月${d.getUTCDate()}日(${w})`
 })

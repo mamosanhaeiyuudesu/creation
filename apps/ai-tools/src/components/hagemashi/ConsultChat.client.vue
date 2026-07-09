@@ -81,7 +81,6 @@ function renderMarkdown(text: string): string {
 interface StrengthItem { title: string; content: string }
 interface ProfileData {
   strengths: StrengthItem[] | string
-  tendencies: StrengthItem[] | string
   advice: StrengthItem[] | string
   generatedAt?: string
 }
