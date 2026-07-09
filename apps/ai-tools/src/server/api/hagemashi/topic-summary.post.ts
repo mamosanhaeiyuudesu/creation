@@ -70,23 +70,33 @@ export default defineEventHandler(async (event) => {
       parsed = match ? JSON.parse(match[0]) : { blocks: [] }
     }
 
+    // モデルの出力ゆれに関わらず、文ごとに必ず「。」+ 改行になるよう正規化する
+    const toSentenceLines = (text: string): string[] =>
+      text
+        .split('。')
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(s => `${s}。`)
+
     const rawBlocks = Array.isArray(parsed.blocks)
       ? parsed.blocks
-          .map(b => ({ title: String(b.title ?? '').slice(0, 20), text: String(b.text ?? '').trim() }))
-          .filter(b => b.text)
+          .map(b => ({ title: String(b.title ?? '').slice(0, 20), sentences: toSentenceLines(String(b.text ?? '')) }))
+          .filter(b => b.sentences.length)
           .slice(0, 3)
       : []
 
-    // 合計文字数がおよそ500字を超えないよう安全側でトリムする
-    const MAX_TOTAL = 520
+    // 合計文字数がおよそ500字を超えないよう、文単位で安全側にトリムする
+    const MAX_TOTAL = 500
     let total = 0
     const blocks: { title: string; text: string }[] = []
-    for (const b of rawBlocks) {
-      if (total >= MAX_TOTAL) break
-      const remaining = MAX_TOTAL - total
-      const text = b.text.length > remaining ? b.text.slice(0, remaining) : b.text
-      blocks.push({ title: b.title, text })
-      total += text.length
+    outer: for (const b of rawBlocks) {
+      const kept: string[] = []
+      for (const sentence of b.sentences) {
+        if (total + sentence.length > MAX_TOTAL) break outer
+        kept.push(sentence)
+        total += sentence.length
+      }
+      if (kept.length) blocks.push({ title: b.title, text: kept.join('\n') })
     }
 
     return { blocks }
