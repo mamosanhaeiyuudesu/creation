@@ -8,6 +8,9 @@
         </h3>
         <button class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-white/10" @click="$emit('close')">✕</button>
       </div>
+      <div v-if="intraday" class="mb-5 pb-5 border-b border-white/[0.06]">
+        <IntradayPanel :points="intraday.points" :color="color" :unit="unit" :decimals="decimals" :label="intraday.label" />
+      </div>
       <TrendPanel :metric="metric" :color="color" :unit="unit" :date="date" :decimals="decimals" />
     </div>
   </div>
@@ -15,6 +18,8 @@
 
 <script setup lang="ts">
 import TrendPanel from '~/components/fitbit/TrendPanel.vue'
+import IntradayPanel from '~/components/fitbit/IntradayPanel.vue'
+import type { TimePoint } from '~/types/fitbit'
 
 defineProps<{
   metric: string
@@ -24,6 +29,7 @@ defineProps<{
   unit?: string
   date?: string
   decimals?: number
+  intraday?: { points: TimePoint[]; label: string }
 }>()
 defineEmits<{ close: [] }>()
 </script>

@@ -2,7 +2,7 @@
 // dev では日付シードで決定的な擬似メトリクスを生成してダッシュボードを描画確認できるようにする。
 // mlb-dev.ts と同じ「静的/決定的フォールバック」思想。
 
-import type { RawDay, SleepStage } from '~/types/fitbit'
+import type { RawDay, SleepStage, TimePoint } from '~/types/fitbit'
 
 /** 文字列 → 32bit ハッシュ（決定的シード用） */
 function hashSeed(s: string): number {
@@ -97,19 +97,37 @@ export function devRawDay(date: string): RawDay {
   }
   const spo2Vals = spo2Series.map(p => p.v)
 
-  // 日中心拍（1時間刻み、朝低め・日中高め）
+  // 日中心拍（5分刻み、朝低め・日中高め）
   const restingHeartRate = Math.round(between(r, 54, 64))
-  const heartRateSeries = []
-  for (let h = 0; h < 24; h++) {
+  const heartRateSeries: TimePoint[] = []
+  for (let m = 0; m < 24 * 60; m += 5) {
+    const h = Math.floor(m / 60)
     const daytime = h >= 8 && h <= 22
     const base = daytime ? between(r, 70, 95) : between(r, 55, 68)
-    heartRateSeries.push({ t: h * 60, v: Math.round(base) })
+    heartRateSeries.push({ t: m, v: Math.round(base) })
   }
+
+  // 歩数・移動距離・消費カロリーと、その時間別内訳（1時間刻み）。
+  // 夜間は低く日中〜夕方に山になる重みで日次合計を按分する。
+  const hourlyWeights: number[] = []
+  for (let h = 0; h < 24; h++) {
+    const daytime = h >= 7 && h <= 21
+    hourlyWeights.push(daytime ? between(r, 0.6, 1.4) : between(r, 0.02, 0.15))
+  }
+  const weightSum = hourlyWeights.reduce((a, b) => a + b, 0)
+  const steps = Math.round(between(r, 3200, 13500))
+  const distanceKm = Math.round(between(r, 2.2, 9.6) * 10) / 10
+  const caloriesKcal = Math.round(between(r, 250, 650) + steps * 0.03)
+  const stepsSeries: TimePoint[] = hourlyWeights.map((w, h) => ({ t: h * 60, v: Math.round((w / weightSum) * steps) }))
+  const distanceSeries: TimePoint[] = hourlyWeights.map((w, h) => ({ t: h * 60, v: Math.round((w / weightSum) * distanceKm * 100) / 100 }))
 
   return {
     date,
-    steps: Math.round(between(r, 3200, 13500)),
-    distanceKm: Math.round(between(r, 2.2, 9.6) * 10) / 10,
+    steps,
+    stepsSeries,
+    distanceKm,
+    distanceSeries,
+    caloriesKcal,
     restingHeartRate,
     heartRateSeries,
     hrv: Math.round(between(r, 32, 58)),

@@ -8,7 +8,7 @@
 // 決定的スタブにフォールバックする。
 
 import type { H3Event } from 'h3'
-import type { DashboardData, SleepDetail, RawDay, FitbitStatus, TrendData } from '~/types/fitbit'
+import type { DashboardData, SleepDetail, RawDay, FitbitStatus, TrendData, TimePoint } from '~/types/fitbit'
 import { getAppDb, getSessionUser } from '~/server/utils/auth'
 import { encryptComment, decryptComment } from '~/server/utils/encrypt'
 import { devRawDay, devHistory } from '~/server/utils/fitbit-dev'
@@ -309,10 +309,17 @@ function parseSleep(s: any): RawDay['sleep'] {
 
 function emptyRawDay(date: string): RawDay {
   return {
-    date, steps: 0, distanceKm: 0, restingHeartRate: 0, heartRateSeries: [], hrv: 0,
+    date, steps: 0, stepsSeries: [], distanceKm: 0, distanceSeries: [], caloriesKcal: 0,
+    restingHeartRate: 0, heartRateSeries: [], hrv: 0,
     spo2: { avg: 0, min: 0, max: 0, series: [] }, breathingRate: 0, breathingRateSeries: [], skinTempDelta: 0,
     sleep: parseSleep(null),
   }
+}
+
+// UTC ISO → JST の「その日の分オフセット」（0〜1439）。時間別内訳の集計に使う。
+function minuteOfDayJst(iso: string): number {
+  const t = new Date(new Date(iso).getTime() + 9 * 3600 * 1000)
+  return t.getUTCHours() * 60 + t.getUTCMinutes()
 }
 
 // ─────────────────────── Google Health API から期間取得（list＋ページング） ────────
@@ -330,6 +337,10 @@ function pointDate(pt: any, dataType: string): string | null {
       case 'daily-respiratory-rate': return ymd(pt.dailyRespiratoryRate.date)
       case 'heart-rate-variability': return ymd(pt.heartRateVariability.sampleTime.civilTime.date)
       case 'oxygen-saturation': return ymd(pt.oxygenSaturation.sampleTime.civilTime.date)
+      // 皮膚温は daily-sleep-temperature-derivations、心拍数(heart-rate)は値が beatsPerMinute（diagで確認済）。
+      // カロリー(total-calories)は list 非対応のため dailyRollUp で別取得（pointDate は経由しない）。
+      case 'daily-sleep-temperature-derivations': return ymd(pt.dailySleepTemperatureDerivations.date)
+      case 'heart-rate': return ymd(pt.heartRate.sampleTime.civilTime.date)
       case 'sleep': return civilDateFromUtc(pt.sleep.interval.endTime, offsetSec(pt.sleep.interval.endUtcOffset || pt.sleep.interval.startUtcOffset))
       default: return null
     }
@@ -358,9 +369,39 @@ async function listPoints(token: string, dataType: string, startDate: string): P
   return points
 }
 
+/** "YYYY-MM-DD" → CivilDateTime（date のみ＝深夜0時）。dailyRollUp の range 指定に使う。 */
+function civilDate(ymdStr: string): { date: { year: number; month: number; day: number } } {
+  const [y, m, d] = ymdStr.split('-').map(Number)
+  return { date: { year: y, month: m, day: d } }
+}
+
+/**
+ * total-calories は list 非対応で dailyRollUp（POST）専用のため、日次合計を別途取得する。
+ * レスポンスは rollupDataPoints[].totalCalories.kcalSum（ActiveEnergyBurnedRollupValue.kcal_sum と同命名規則）。
+ * 失敗時は空 Map（カロリーは0のまま）を返す。
+ */
+async function fetchCaloriesRollup(token: string, start: string, end: string): Promise<Record<string, number>> {
+  const out: Record<string, number> = {}
+  // end は排他の可能性があるため翌日を指定し、対象日を確実に含める
+  const endPlus = new Date(new Date(`${end}T00:00:00Z`).getTime() + 86400000).toISOString().slice(0, 10)
+  try {
+    const res: any = await $fetch(`${GH_API}/users/me/dataTypes/total-calories/dataPoints:dailyRollUp`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: { range: { start: civilDate(start), end: civilDate(endPlus) }, windowSizeDays: 1 },
+    })
+    for (const pt of res?.rollupDataPoints ?? []) {
+      const d = pt?.civilStartTime?.date
+      const kcal = Number(pt?.totalCalories?.kcalSum)
+      if (d && Number.isFinite(kcal)) out[ymd(d)] = kcal
+    }
+  } catch { /* rollup 未対応・未取得時は空 */ }
+  return out
+}
+
 /** start〜end（両端含む）の各日 RawDay を list ページングで組み立てる */
 async function fetchRangeFromApi(token: string, start: string, end: string): Promise<Map<string, RawDay>> {
-  const [steps, distance, restHr, resp, hrv, spo2, sleep] = await Promise.all([
+  const [steps, distance, restHr, resp, hrv, spo2, sleep, caloriesByDate, skinTemp, heartRate] = await Promise.all([
     listPoints(token, 'steps', start),
     listPoints(token, 'distance', start),
     listPoints(token, 'daily-resting-heart-rate', start),
@@ -368,6 +409,9 @@ async function fetchRangeFromApi(token: string, start: string, end: string): Pro
     listPoints(token, 'heart-rate-variability', start),
     listPoints(token, 'oxygen-saturation', start),
     listPoints(token, 'sleep', start),
+    fetchCaloriesRollup(token, start, end),
+    listPoints(token, 'daily-sleep-temperature-derivations', start),
+    listPoints(token, 'heart-rate', start),
   ])
 
   const map = new Map<string, RawDay>()
@@ -378,11 +422,40 @@ async function fetchRangeFromApi(token: string, start: string, end: string): Pro
   }
   const inRange = (d: string | null): d is string => !!d && d >= start && d <= end
 
-  for (const pt of steps) { const d = pointDate(pt, 'steps'); if (inRange(d)) ensure(d).steps += Number(pt.steps?.count) || 0 }
+  // 時間別内訳（1時間刻み）を加算するヘルパー
+  const addHourly = (agg: Record<string, number[]>, d: string, minute: number, v: number) => {
+    const arr = (agg[d] ??= new Array(24).fill(0))
+    arr[Math.min(23, Math.max(0, Math.floor(minute / 60)))] += v
+  }
+
+  const stepsHourly: Record<string, number[]> = {}
+  for (const pt of steps) {
+    const d = pointDate(pt, 'steps')
+    if (!inRange(d)) continue
+    const v = Number(pt.steps?.count) || 0
+    ensure(d).steps += v
+    // interval.startTime はスキーマ未検証（sleep.interval と同型と推測）。無ければ時間別内訳のみスキップ。
+    const startIso = pt.steps?.interval?.startTime
+    if (startIso) addHourly(stepsHourly, d, minuteOfDayJst(startIso), v)
+  }
+  for (const [d, arr] of Object.entries(stepsHourly)) ensure(d).stepsSeries = arr.map((v, h) => ({ t: h * 60, v }))
+
   // 距離: 分単位の millimeters を日次合計して km に換算（mm ÷ 1,000,000）
   const distMm: Record<string, number> = {}
-  for (const pt of distance) { const d = pointDate(pt, 'distance'); if (inRange(d)) distMm[d] = (distMm[d] ?? 0) + (Number(pt.distance?.millimeters) || 0) }
+  const distHourlyMm: Record<string, number[]> = {}
+  for (const pt of distance) {
+    const d = pointDate(pt, 'distance')
+    if (!inRange(d)) continue
+    const mm = Number(pt.distance?.millimeters) || 0
+    distMm[d] = (distMm[d] ?? 0) + mm
+    const startIso = pt.distance?.interval?.startTime
+    if (startIso) addHourly(distHourlyMm, d, minuteOfDayJst(startIso), mm)
+  }
   for (const [d, mm] of Object.entries(distMm)) ensure(d).distanceKm = Math.round((mm / 1_000_000) * 100) / 100
+  for (const [d, arr] of Object.entries(distHourlyMm)) {
+    ensure(d).distanceSeries = arr.map((mmSum, h) => ({ t: h * 60, v: Math.round((mmSum / 1_000_000) * 100) / 100 }))
+  }
+
   for (const pt of restHr) { const d = pointDate(pt, 'daily-resting-heart-rate'); if (inRange(d)) ensure(d).restingHeartRate = Number(pt.dailyRestingHeartRate?.beatsPerMinute) || 0 }
   for (const pt of resp) { const d = pointDate(pt, 'daily-respiratory-rate'); if (inRange(d)) ensure(d).breathingRate = Math.round((Number(pt.dailyRespiratoryRate?.breathsPerMinute) || 0) * 10) / 10 }
 
@@ -394,6 +467,41 @@ async function fetchRangeFromApi(token: string, start: string, end: string): Pro
     if (inRange(d) && typeof v === 'number') (hrvAgg[d] ??= []).push(v)
   }
   for (const [d, arr] of Object.entries(hrvAgg)) ensure(d).hrv = Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
+
+  // カロリー: total-calories（基礎代謝+活動の合計）を dailyRollUp で取得済の日次値から反映。
+  for (const [d, kcal] of Object.entries(caloriesByDate)) {
+    if (inRange(d)) ensure(d).caloriesKcal = Math.round(kcal)
+  }
+
+  // 皮膚温: daily-sleep-temperature-derivations（睡眠中の皮膚温、1日1点）。
+  // 「基準比の変化量」は直接フィールドが無いため nightly − baseline で算出（diagで構造確認済）。
+  for (const pt of skinTemp) {
+    const d = pointDate(pt, 'daily-sleep-temperature-derivations')
+    const st = pt.dailySleepTemperatureDerivations
+    const nightly = Number(st?.nightlyTemperatureCelsius)
+    const baseline = Number(st?.baselineTemperatureCelsius)
+    if (inRange(d) && Number.isFinite(nightly) && Number.isFinite(baseline)) {
+      ensure(d).skinTempDelta = Math.round((nightly - baseline) * 10) / 10
+    }
+  }
+
+  // 心拍数（5分刻み）: oxygen-saturation の sample 処理と同型（推測実装）
+  const hrBuckets: Record<string, Record<number, number[]>> = {}
+  for (const pt of heartRate) {
+    const d = pointDate(pt, 'heart-rate')
+    const v = Number(pt.heartRate?.beatsPerMinute)
+    const iso = pt.heartRate?.sampleTime?.physicalTime
+    if (!inRange(d) || !Number.isFinite(v) || !iso) continue
+    const bucket = Math.floor(minuteOfDayJst(iso) / 5) * 5
+    const byBucket = (hrBuckets[d] ??= {})
+    ;(byBucket[bucket] ??= []).push(v)
+  }
+  for (const [d, buckets] of Object.entries(hrBuckets)) {
+    const series: TimePoint[] = Object.entries(buckets)
+      .map(([t, arr]) => ({ t: Number(t), v: Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) }))
+      .sort((a, b) => a.t - b.t)
+    ensure(d).heartRateSeries = series
+  }
 
   // 睡眠: 覚醒日ごとに、最も睡眠時間の長いセッションを採用
   const sleepByDate = new Map<string, any>()
@@ -540,7 +648,7 @@ export async function syncAllUsers(event: H3Event, days = 3): Promise<number> {
 
 /** ダッシュボードで扱う全メトリクスのキー */
 export const TREND_METRICS = [
-  'energyScore', 'sleepScore', 'steps', 'distanceKm', 'restingHeartRate', 'hrv', 'spo2', 'breathingRate', 'sleepHours', 'skinTempDelta',
+  'energyScore', 'sleepScore', 'steps', 'distanceKm', 'caloriesKcal', 'restingHeartRate', 'hrv', 'spo2', 'breathingRate', 'sleepHours', 'skinTempDelta',
 ] as const
 
 /** 指定メトリクスの当日値を取り出す（score はスコア系列から） */
@@ -550,6 +658,7 @@ function pickMetric(d: RawDay, sc: { energy: number | null; sleep: number | null
     case 'sleepScore': return sc.sleep
     case 'steps': return d.steps
     case 'distanceKm': return d.distanceKm
+    case 'caloriesKcal': return d.caloriesKcal ?? null
     case 'restingHeartRate': return d.restingHeartRate
     case 'hrv': return d.hrv
     case 'spo2': return d.spo2.avg
@@ -585,9 +694,12 @@ export function assembleDashboard(history: RawDay[]): DashboardData {
     energyScore,
     sleepScore,
     steps: { value: today.steps, goal: 8000 },
+    stepsSeries: today.stepsSeries ?? [],
     distanceKm: today.distanceKm,
+    distanceSeries: today.distanceSeries ?? [],
+    caloriesKcal: today.caloriesKcal ?? 0,
     restingHeartRate: today.restingHeartRate,
-    heartRateSeries: today.heartRateSeries,
+    heartRateSeries: today.heartRateSeries ?? [],
     hrv: today.hrv,
     spo2: { avg: today.spo2.avg, min: today.spo2.min, max: today.spo2.max },
     breathingRate: today.breathingRate,

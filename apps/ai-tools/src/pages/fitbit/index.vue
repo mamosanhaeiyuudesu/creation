@@ -106,6 +106,7 @@
       :unit="trendModal.unit"
       :decimals="trendModal.decimals"
       :date="date"
+      :intraday="trendModal.intraday"
       @close="trendModal = null"
     />
   </div>
@@ -113,7 +114,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import type { DashboardData } from '~/types/fitbit'
+import type { DashboardData, TimePoint } from '~/types/fitbit'
 import ScoreGauge from '~/components/fitbit/ScoreGauge.vue'
 import Sparkline from '~/components/fitbit/Sparkline.vue'
 import SleepModal from '~/components/fitbit/SleepModal.vue'
@@ -179,15 +180,31 @@ const metrics = computed(() => {
   return [
     { key: 'steps', icon: '👟', label: '歩数', value: d.steps.value.toLocaleString(), unit: '歩', sub: `目標 ${d.steps.goal.toLocaleString()}`, color: '#fbbf24', trend: 'steps', decimals: 0 },
     { key: 'distanceKm', icon: '📍', label: '移動距離', value: d.distanceKm.toFixed(1), unit: 'km', sub: '', color: '#a3e635', trend: 'distanceKm', decimals: 1 },
+    { key: 'caloriesKcal', icon: '🔥', label: '消費カロリー', value: d.caloriesKcal.toLocaleString(), unit: 'kcal', sub: '', color: '#f97316', trend: 'caloriesKcal', decimals: 0 },
     { key: 'restingHeartRate', icon: '❤️', label: '安静時心拍', value: d.restingHeartRate, unit: 'bpm', sub: '', color: '#f87171', trend: 'restingHeartRate', decimals: 0 },
     { key: 'hrv', icon: '💓', label: '心拍変動', value: d.hrv, unit: 'ms', sub: '', color: '#fb7185', trend: 'hrv', decimals: 0 },
     { key: 'spo2', icon: '🩸', label: '血中酸素', value: d.spo2.avg, unit: '%', sub: `${d.spo2.min}〜${d.spo2.max}%`, color: '#38bdf8', trend: 'spo2', decimals: 0 },
     { key: 'breathingRate', icon: '🫁', label: '呼吸数', value: d.breathingRate, unit: '回/分', sub: '', color: '#a78bfa', trend: 'breathingRate', decimals: 1 },
+    { key: 'skinTempDelta', icon: '🌡️', label: '皮膚温の変動', value: fmtSigned(d.skinTempDelta), unit: '℃', sub: '基準比', color: '#c084fc', trend: 'skinTempDelta', decimals: 1 },
   ]
 })
 
+/** 内訳グラフを持つメトリクス: dashboard に既にロード済みの当日系列をそのまま渡す（追加fetch不要） */
+function intradayFor(trend: string): { points: TimePoint[]; label: string } | undefined {
+  if (!data.value) return undefined
+  if (trend === 'steps') return { points: data.value.stepsSeries, label: '時間別（1時間ごと）' }
+  if (trend === 'distanceKm') return { points: data.value.distanceSeries, label: '時間別（1時間ごと）' }
+  if (trend === 'restingHeartRate') return { points: data.value.heartRateSeries, label: '心拍数（5分間隔）' }
+  return undefined
+}
+
 function openTrend(m: any) {
-  trendModal.value = { trend: m.trend, label: m.label, icon: m.icon, color: m.color, unit: m.unit, decimals: m.decimals ?? 0 }
+  trendModal.value = { trend: m.trend, label: m.label, icon: m.icon, color: m.color, unit: m.unit, decimals: m.decimals ?? 0, intraday: intradayFor(m.trend) }
+}
+
+function fmtSigned(v: number): string {
+  const s = v.toFixed(1)
+  return v > 0 ? `+${s}` : s
 }
 
 async function load() {

@@ -16,6 +16,28 @@ async function probe(token: string, dataType: string): Promise<any> {
   }
 }
 
+// total-calories は list 非対応で dailyRollUp(POST) 専用。日次合計の値フィールド（kcalSum想定）を確認する。
+async function probeCaloriesRollup(token: string, date: string, days: number): Promise<any> {
+  const civil = (ymd: string) => {
+    const [y, m, d] = ymd.split('-').map(Number)
+    return { date: { year: y, month: m, day: d } }
+  }
+  const endMs = new Date(`${date}T00:00:00Z`).getTime()
+  const start = new Date(endMs - (days - 1) * 86400000).toISOString().slice(0, 10)
+  const endPlus = new Date(endMs + 86400000).toISOString().slice(0, 10)
+  try {
+    const res: any = await $fetch('https://health.googleapis.com/v4/users/me/dataTypes/total-calories/dataPoints:dailyRollUp', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: { range: { start: civil(start), end: civil(endPlus) }, windowSizeDays: 1 },
+    })
+    const dp = res?.rollupDataPoints ?? []
+    return { ok: true, count: dp.length, samples: dp.slice(0, 3) }
+  } catch (e: any) {
+    return { ok: false, status: e?.response?.status ?? e?.statusCode, message: e?.message, data: e?.data ?? e?.response?._data }
+  }
+}
+
 export default defineEventHandler(async (event) => {
   if (!import.meta.dev) throw createError({ statusCode: 404, message: 'Not found' })
 
@@ -26,10 +48,12 @@ export default defineEventHandler(async (event) => {
   const date = (q.date as string) || todayJST()
   const days = Math.min(14, Math.max(1, parseInt((q.days as string) || '3', 10)))
 
-  // 生応答を確認（distance の構造・oxygen-saturation の値域を見る）
+  // total-calories の dailyRollUp レスポンス（kcalSum フィールド）を最終確認する。
   const probes = {
     distance: await probe(token, 'distance'),
-    'oxygen-saturation': await probe(token, 'oxygen-saturation'),
+    'total-calories-dailyRollUp': await probeCaloriesRollup(token, date, days),
+    'daily-sleep-temperature-derivations': await probe(token, 'daily-sleep-temperature-derivations'),
+    'heart-rate': await probe(token, 'heart-rate'),
   }
 
   let parsed: any = null

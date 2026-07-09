@@ -56,9 +56,15 @@ export interface DashboardData {
   energyScore: ScoreDetail
   sleepScore: ScoreDetail
   steps: { value: number; goal: number }
+  /** 歩数の時間別内訳（1時間刻み、詳細シート用） */
+  stepsSeries: TimePoint[]
   distanceKm: number
+  /** 移動距離の時間別内訳（1時間刻み・km、詳細シート用） */
+  distanceSeries: TimePoint[]
+  /** 消費カロリー（active kcal） */
+  caloriesKcal: number
   restingHeartRate: number
-  /** 日中心拍の折れ線（詳細シート用） */
+  /** 日中心拍の折れ線（5分刻み、詳細シート用） */
   heartRateSeries: TimePoint[]
   /** 心拍変動（rmssd, ms） */
   hrv: number
@@ -88,7 +94,10 @@ export interface TrendData {
 export interface RawDay {
   date: string
   steps: number
+  stepsSeries: TimePoint[]
   distanceKm: number
+  distanceSeries: TimePoint[]
+  caloriesKcal: number
   restingHeartRate: number
   heartRateSeries: TimePoint[]
   hrv: number
