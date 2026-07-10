@@ -43,6 +43,43 @@ async function probe(token: string, dataType: string, reconcile = false): Promis
   }
 }
 
+// HRV詳細: 本家との集計方法のズレを突き止めるため、日付ごとに全サンプル(時刻+rmssd)を出す。
+// ダッシュボードは暦日の全サンプルを単純平均しているが、本家は主睡眠区間中の値らしく高めにズレる。
+// summary(平均/中央値/件数)と byDate(生サンプル)を並べ、どの窓・統計量で一致するか照合する。
+function hrvDetail(dp: any[]): { summary: Record<string, any>; byDate: Record<string, { t: string; v: number }[]> } {
+  const byDate: Record<string, { t: string; v: number }[]> = {}
+  for (const pt of dp) {
+    const st = pt?.heartRateVariability?.sampleTime?.civilTime
+    const v = pt?.heartRateVariability?.rootMeanSquareOfSuccessiveDifferencesMilliseconds
+    if (!st?.date || typeof v !== 'number') continue
+    const d = `${st.date.year}-${String(st.date.month).padStart(2, '0')}-${String(st.date.day).padStart(2, '0')}`
+    const hh = String(st.time?.hours ?? 0).padStart(2, '0')
+    const mm = String(st.time?.minutes ?? 0).padStart(2, '0')
+    ;(byDate[d] ??= []).push({ t: `${hh}:${mm}`, v })
+  }
+  const summary: Record<string, any> = {}
+  for (const arr of Object.values(byDate)) arr.sort((a, b) => a.t.localeCompare(b.t))
+  for (const [d, arr] of Object.entries(byDate)) {
+    const vs = arr.map(x => x.v).slice().sort((a, b) => a - b)
+    const mean = vs.reduce((a, b) => a + b, 0) / vs.length
+    const median = vs.length % 2 ? vs[(vs.length - 1) / 2] : (vs[vs.length / 2 - 1] + vs[vs.length / 2]) / 2
+    summary[d] = { n: vs.length, mean: Math.round(mean * 10) / 10, median: Math.round(median * 10) / 10, min: vs[0], max: vs[vs.length - 1] }
+  }
+  return { summary, byDate }
+}
+
+async function probeHrv(token: string): Promise<any> {
+  try {
+    const res: any = await $fetch('https://health.googleapis.com/v4/users/me/dataTypes/heart-rate-variability/dataPoints?pageSize=1440', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const dp = res?.dataPoints ?? []
+    return { ok: true, count: dp.length, ...hrvDetail(dp), rawSample: dp[0] ?? null }
+  } catch (e: any) {
+    return { ok: false, status: e?.response?.status ?? e?.statusCode, message: e?.message, data: e?.data ?? e?.response?._data }
+  }
+}
+
 // total-calories は list 非対応で dailyRollUp(POST) 専用。日次合計の値フィールド（kcalSum想定）を確認する。
 async function probeCaloriesRollup(token: string, date: string, days: number): Promise<any> {
   const civil = (ymd: string) => {
@@ -84,6 +121,7 @@ export default defineEventHandler(async (event) => {
     'total-calories-dailyRollUp': await probeCaloriesRollup(token, date, days),
     'daily-sleep-temperature-derivations': await probe(token, 'daily-sleep-temperature-derivations'),
     'heart-rate': await probe(token, 'heart-rate'),
+    'heart-rate-variability': await probeHrv(token),
   }
 
   let parsed: any = null

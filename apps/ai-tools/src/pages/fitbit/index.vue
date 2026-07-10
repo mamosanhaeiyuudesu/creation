@@ -58,7 +58,11 @@
               @click="sleepOpen = true"
             >
               <ScoreGauge :score="data.sleepScore.score" label="睡眠" :size="120" from="#818cf8" to="#6366f1" />
-              <div class="text-xs text-indigo-300 font-medium">{{ fmtDuration(data.sleep.totalMinutes) }}</div>
+              <div class="text-xs text-indigo-300 font-medium flex items-center gap-1.5">
+                <span>{{ fmtDuration(data.sleep.totalMinutes) }}</span>
+                <span class="text-indigo-400/60">·</span>
+                <span>{{ data.sleepScore.label }}</span>
+              </div>
               <div class="w-full mt-0.5">
                 <Sparkline :points="trendPts('sleepScore')" color="#818cf8" :h="28" />
               </div>

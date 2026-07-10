@@ -7,10 +7,12 @@
 
 import type { RawDay, ScoreDetail } from '~/types/fitbit'
 
-/** 睡眠時間の目標（分）。7.5時間 */
-const SLEEP_TARGET_MIN = 7.5 * 60
-/** 深い睡眠＋レムの理想割合（合計） */
-const IDEAL_DEEP_REM_PCT = 0.42
+/** 睡眠時間の目標（分）。8時間 */
+const SLEEP_TARGET_MIN = 8 * 60
+/** 熟睡（深い睡眠＋レム）の理想割合（対 実睡眠時間）。公式に合わせ本家は満点しにくい水準 */
+const IDEAL_DEEP_REM_PCT = 0.5
+/** これ未満の総睡眠時間はメイン睡眠とみなさずスコア対象外（本家も「なし」表示） */
+const MIN_SLEEP_MIN = 120
 /** ベースライン確立に必要な最低日数 */
 const MIN_BASELINE_DAYS = 3
 
@@ -38,52 +40,71 @@ export function computeBaseline(history: RawDay[]): Baseline {
 }
 
 function scoreLabel(score: number | null, kind: 'sleep' | 'energy'): string {
-  if (score == null) return 'データ蓄積中'
-  if (score >= 80) return kind === 'sleep' ? '快眠' : '絶好調'
-  if (score >= 60) return '良好'
-  if (score >= 40) return '普通'
-  return kind === 'sleep' ? '睡眠不足' : '要休養'
+  if (score == null) return kind === 'sleep' ? 'データなし' : 'データ蓄積中'
+  if (kind === 'sleep') {
+    // 公式の睡眠スコア区分に準拠: 90-100 非常に良い / 80-89 良い / 60-79 普通 / 60未満 悪い
+    if (score >= 90) return '非常に良い'
+    if (score >= 80) return '良い'
+    if (score >= 60) return '普通'
+    return '悪い'
+  }
+  // 公式のエナジースコア区分に準拠: 65以上 高い / 30-64 良好 / 29以下 低い
+  if (score >= 65) return '高い'
+  if (score >= 30) return '良好'
+  return '低い'
 }
 
 /**
- * 睡眠スコア（0-100）＝ 睡眠時間(50) ＋ 深睡眠・レム(25) ＋ 回復(25)
+ * 睡眠スコア（0-100）＝ 睡眠時間(40) ＋ 熟睡(30) ＋ 連続性(30)
+ *
+ * 公式は「睡眠時間・熟睡（深い睡眠＋レム）・覚醒/中断（連続性）」を軸に、年齢・性別で
+ * 調整した目標と比較する。平均は72〜83で満点は出にくい。安静時心拍(RHR)は睡眠スコアの
+ * 定義に含まれないためエナジースコア側に移し、ここでは分断された夜（低効率・多覚醒）を
+ * しっかり減点する。総睡眠が極端に短い日は本家同様スコア対象外（null）とする。
  */
 export function computeSleepScore(day: RawDay, baseline: Baseline): ScoreDetail {
   const s = day.sleep
+  const provisional = baseline.days < MIN_BASELINE_DAYS
+
+  // メイン睡眠が成立していない日はスコアを出さない（本家も「なし」）
+  if (!s || s.totalMinutes < MIN_SLEEP_MIN) {
+    return {
+      score: null,
+      label: scoreLabel(null, 'sleep'),
+      provisional,
+      contributions: [
+        { key: 'duration', label: '睡眠時間', value: 0, max: 40 },
+        { key: 'sound', label: '熟睡', value: 0, max: 30 },
+        { key: 'continuity', label: '連続性', value: 0, max: 30 },
+      ],
+    }
+  }
+
   const asleep = s.totalMinutes - s.wakeMin
 
-  // 時間点(0-50): 目標に対して線形、超過は飽和
-  const durationPts = clamp((asleep / SLEEP_TARGET_MIN) * 50, 0, 50)
+  // 睡眠時間点(0-40): 8時間目標に対して線形、超過は飽和
+  const durationPts = clamp((asleep / SLEEP_TARGET_MIN) * 40, 0, 40)
 
-  // 深睡眠・レム点(0-25): (deep+rem)/asleep を理想割合と比較
+  // 熟睡点(0-30): (deep+rem)/asleep を理想割合と比較。本家は満点しにくい
   const deepRemPct = asleep > 0 ? (s.deepMin + s.remMin) / asleep : 0
-  const deepRemRatio = clamp(deepRemPct / IDEAL_DEEP_REM_PCT, 0, 1)
-  const deepRemPts = deepRemRatio * 25
+  const soundPts = clamp(deepRemPct / IDEAL_DEEP_REM_PCT, 0, 1) * 30
 
-  // 回復点(0-25): 安静時心拍がベースラインより低い＋覚醒回数が少ないほど高得点
-  let restingPts = 12.5 // ベースライン未確立時は中央値
-  if (baseline.restingHeartRate) {
-    // ベースライン比 -5bpm で満点側、+5bpm で0側
-    const delta = baseline.restingHeartRate - day.restingHeartRate
-    restingPts = clamp(12.5 + (delta / 5) * 12.5, 0, 25) * 0.6
-  } else {
-    restingPts = 12.5 * 0.6
-  }
-  // 覚醒ペナルティ（0-10点分）: 効率と覚醒回数から
-  const wakePts = clamp((s.efficiency / 100) * 10 - Math.max(0, s.awakeCount - 2) * 1.5, 0, 10)
-  const restorationPts = clamp(restingPts + wakePts, 0, 25)
+  // 連続性点(0-30): 睡眠効率を主軸に、分断された夜を強く減点。効率72%→0、95%→満点。
+  // さらに完全な覚醒（5分以上を想定）が3回を超える分を軽く減点。
+  const effPts = clamp((s.efficiency - 72) / (95 - 72), 0, 1) * 30
+  const awakePenalty = Math.max(0, s.awakeCount - 3) * 2
+  const continuityPts = clamp(effPts - awakePenalty, 0, 30)
 
-  const provisional = baseline.days < MIN_BASELINE_DAYS
-  const total = clamp100(durationPts + deepRemPts + restorationPts)
+  const total = clamp100(durationPts + soundPts + continuityPts)
 
   return {
     score: total,
     label: scoreLabel(total, 'sleep'),
     provisional,
     contributions: [
-      { key: 'duration', label: '睡眠時間', value: Math.round(durationPts), max: 50 },
-      { key: 'deepRem', label: '深い睡眠・レム', value: Math.round(deepRemPts), max: 25 },
-      { key: 'restoration', label: '回復', value: Math.round(restorationPts), max: 25 },
+      { key: 'duration', label: '睡眠時間', value: Math.round(durationPts), max: 40 },
+      { key: 'sound', label: '熟睡', value: Math.round(soundPts), max: 30 },
+      { key: 'continuity', label: '連続性', value: Math.round(continuityPts), max: 30 },
     ],
   }
 }
