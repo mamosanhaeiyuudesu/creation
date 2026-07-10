@@ -50,7 +50,6 @@
               <div class="w-full mt-0.5">
                 <Sparkline :points="trendPts('energyScore')" color="#2dd4bf" :h="28" />
               </div>
-              <div class="text-[10px] text-slate-500">7日推移・タップで詳細 ›</div>
             </button>
 
             <button
@@ -66,7 +65,6 @@
               <div class="w-full mt-0.5">
                 <Sparkline :points="trendPts('sleepScore')" color="#818cf8" :h="28" />
               </div>
-              <div class="text-[10px] text-slate-500">7日推移・タップで詳細 ›</div>
             </button>
           </div>
 

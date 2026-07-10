@@ -63,6 +63,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import type { TrendData } from '~/types/fitbit'
 import { useBarChart } from '~/composables/fitbit/useBarChart'
+import { mdWeekday } from '~/utils/jst'
 
 const props = withDefaults(defineProps<{
   metric: string
@@ -85,7 +86,7 @@ const loading = ref(true)
 
 function fmt(v: number): string { return v.toFixed(props.decimals) }
 
-const points = computed(() => series.value.map(d => ({ label: d.date.slice(5).replace('-', '/'), value: d.value })))
+const points = computed(() => series.value.map(d => ({ label: mdWeekday(d.date), value: d.value })))
 const { wrap, W, H, padL, padR, padT, padB, labelStyle, hasData, min, max, avg, bars, gridYs, xLabels, hover, hovered, hoverX, tooltipStyle, onMove, measure } = useBarChart(points)
 
 async function load() {

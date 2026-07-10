@@ -41,9 +41,15 @@ export function useBarChart(points: ComputedRef<BarChartPoint[]>, options?: { he
   const yLo = computed(() => min.value - (max.value - min.value || 1) * 0.1)
   const yHi = computed(() => max.value + (max.value - min.value || 1) * 0.1)
 
+  // バンド配置: 各点をスロット中央に置く。端点を軸ちょうど(padL / W-padR)に置くと、
+  // その点を中心に描く棒が軸を半分またぎ、左端の棒がY軸ラベルに被る（点数が少ないほど顕著）。
+  // スロット内に収めることで、はみ出さずY軸の数値も隠れない。
   function toX(i: number): number {
     const n = points.value.length
-    return padL + (n > 1 ? (i / (n - 1)) * (W.value - padL - padR) : (W.value - padL - padR) / 2)
+    const inner = W.value - padL - padR
+    if (n <= 1) return padL + inner / 2
+    const slot = inner / n
+    return padL + slot * (i + 0.5)
   }
   function toY(v: number): number {
     const span = yHi.value - yLo.value || 1
@@ -92,9 +98,11 @@ export function useBarChart(points: ComputedRef<BarChartPoint[]>, options?: { he
     if (!el || points.value.length < 2) return
     const rect = el.getBoundingClientRect()
     const px = e.clientX - rect.left
+    const n = points.value.length
     const inner = W.value - padL - padR
     const frac = Math.min(1, Math.max(0, ((px / rect.width) * W.value - padL) / inner))
-    hover.value = Math.round(frac * (points.value.length - 1))
+    // バンド配置に合わせ、カーソル位置のスロット（棒）を選ぶ
+    hover.value = Math.min(n - 1, Math.floor(frac * n))
   }
 
   let ro: ResizeObserver | null = null

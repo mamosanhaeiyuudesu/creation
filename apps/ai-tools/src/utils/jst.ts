@@ -15,6 +15,14 @@ export function currentYearJST(): number {
   return parseInt(nowJST().toISOString().slice(0, 4), 10)
 }
 
+const WEEKDAYS_JA = ['日', '月', '火', '水', '木', '金', '土'] as const
+
+/** "YYYY-MM-DD" を "M/D(曜)" 形式に整形（グラフの日付ラベル用） */
+export function mdWeekday(ymd: string): string {
+  const d = new Date(`${ymd}T00:00:00Z`)
+  return `${d.getUTCMonth() + 1}/${d.getUTCDate()}(${WEEKDAYS_JA[d.getUTCDay()]})`
+}
+
 /** タイムゾーン指定のない日時文字列か（例: SQLiteの datetime('now') が返す "YYYY-MM-DD HH:MM:SS"） */
 function hasNoTimezone(s: string): boolean {
   return !/[Zz]$|[+-]\d{2}:?\d{2}$/.test(s.trim())

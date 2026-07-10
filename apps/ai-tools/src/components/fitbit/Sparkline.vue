@@ -19,7 +19,7 @@
       class="pointer-events-none absolute z-50 px-1.5 py-0.5 rounded-md bg-slate-900/95 border border-white/10 text-[10px] text-slate-100 whitespace-nowrap -translate-x-1/2 -translate-y-full shadow-lg"
       :style="{ left: `${hoverFrac * 100}%`, top: '-2px' }"
     >
-      <span class="text-slate-400">{{ hovered.date.slice(5).replace('-', '/') }}</span>
+      <span class="text-slate-400">{{ mdWeekday(hovered.date) }}</span>
       <span class="ml-1 font-semibold tabular-nums">{{ hovered.value ?? '-' }}{{ unit }}</span>
     </div>
   </div>
@@ -27,6 +27,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { mdWeekday } from '~/utils/jst'
 
 interface Pt { date: string; value: number | null }
 
