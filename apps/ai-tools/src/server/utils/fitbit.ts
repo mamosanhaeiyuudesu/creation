@@ -693,11 +693,10 @@ export function assembleTrends(history: RawDay[], take: number): Record<string, 
 export function assembleDashboard(history: RawDay[]): DashboardData {
   const today = history[history.length - 1]
   const past = history.slice(0, -1)
-  const yesterday = past.length ? past[past.length - 1] : null
   const baseline = computeBaseline(past.slice(-7))
 
   const sleepScore = computeSleepScore(today, baseline)
-  const energyScore = computeEnergyScore(today, sleepScore, baseline, yesterday)
+  const energyScore = computeEnergyScore(today, sleepScore, baseline, history.slice(-3))
 
   return {
     date: today.date,

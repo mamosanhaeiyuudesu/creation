@@ -63,18 +63,20 @@ function layout() {
     const wpx = (ctx ? ctx.measureText(it.name).width : it.name.length * it.size * 0.6) + pad * 2
     const hpx = it.size * 1.15 + pad * 2
 
-    // アルキメデス螺旋で空き位置を探索
+    // アルキメデス螺旋で空き位置を探索（横長コンテナでは左右方向に広げる）
     let angle = 0
     const step = 0.25
     const spread = 3
+    const aspect = Math.max(1, W / H)
+    const spreadX = spread * Math.min(2.2, aspect * 0.85)
+    const spreadY = spread
     let px = cx
     let py = cy
     let ok = false
 
     for (let n = 0; n < 1400; n++) {
-      const rad = spread * angle
-      px = cx + rad * Math.cos(angle)
-      py = cy + rad * Math.sin(angle)
+      px = cx + spreadX * angle * Math.cos(angle)
+      py = cy + spreadY * angle * Math.sin(angle)
       angle += step
 
       // コンテナ内に収まるか

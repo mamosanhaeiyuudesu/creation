@@ -136,11 +136,21 @@
               {{ migrateStatus || '再生成' }}
             </button>
           </template>
-          <button
-            v-if="activeTab === 'words'"
-            class="ml-auto px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all"
-            @click="stoplistOpen = true"
-          >除外単語</button>
+          <template v-if="activeTab === 'words'">
+            <label class="ml-auto flex items-center gap-1.5 text-[11px] text-slate-500">
+              <span>出現回数</span>
+              <select
+                v-model.number="minWordCount"
+                class="px-2 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-300 cursor-pointer hover:bg-white/[0.10] transition-all outline-none"
+              >
+                <option v-for="n in 10" :key="n" :value="n" class="bg-slate-900 text-slate-200">{{ n }}以上</option>
+              </select>
+            </label>
+            <button
+              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all"
+              @click="stoplistOpen = true"
+            >除外単語</button>
+          </template>
           <template v-if="activeTab === 'kokoro'">
             <div class="flex-1" />
             <span v-if="kokoroHistory.length > 0" class="text-[11px] text-slate-600">最終更新: {{ formatProfileDate(kokoroHistory[0].generatedAt) }}</span>
@@ -1140,9 +1150,9 @@ watch(() => route.query.tab, () => {
 
 // 常に表示する主タブ
 const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
-  { key: 'words', label: '単語', short: '単語' },
   { key: 'kokoro', label: '心', short: '心' },
   { key: 'profile', label: '長期傾向', short: '傾向' },
+  { key: 'words', label: '単語', short: '単語' },
 ]
 // 展開アイコンを開くと表示する副タブ
 const secondaryTabs: { key: RecordingTab; label: string; short: string }[] = [
@@ -1446,7 +1456,14 @@ const generateProfile = async () => {
 
 interface WordEntry { word: string; count: number }
 const wordRanking = ref<WordEntry[]>([])
-const filteredWordRanking = computed(() => wordRanking.value.filter(w => w.count >= 5))
+
+// ワードクラウドに表示する最小出現回数（1〜10、localStorageに保存）
+const LS_MIN_WORD_COUNT = 'hagemashi-min-word-count'
+const minWordCount = ref(3)
+watch(minWordCount, (v) => {
+  localStorage.setItem(LS_MIN_WORD_COUNT, String(v))
+})
+const filteredWordRanking = computed(() => wordRanking.value.filter(w => w.count >= minWordCount.value))
 const isTokenizing = ref(false)
 
 const LS_STOPLIST = 'hagemashi-stoplist'
@@ -1545,6 +1562,11 @@ const {
 } = useHistory('hagemashi-encourage-history', 'hagemashi-encourage')
 
 onMounted(() => {
+  const storedMinCount = localStorage.getItem(LS_MIN_WORD_COUNT)
+  if (storedMinCount) {
+    const n = parseInt(storedMinCount)
+    if (!isNaN(n) && n >= 1 && n <= 10) minWordCount.value = n
+  }
   if ($dev) {
     const storedStoplist = localStorage.getItem(LS_STOPLIST)
     if (storedStoplist) {

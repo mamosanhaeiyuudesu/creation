@@ -88,46 +88,60 @@ export function computeSleepScore(day: RawDay, baseline: Baseline): ScoreDetail 
   }
 }
 
+/** 直近ウィンドウ（当日を末尾に含む）でメトリクスを平滑化した値。正の値のみ平均する。 */
+function smooth(recent: RawDay[], pick: (d: RawDay) => number, fallback: number): number {
+  const vals = recent.map(pick).filter(v => v > 0)
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : fallback
+}
+
 /**
- * エナジースコア（0-100）＝ HRV(40) ＋ 睡眠(35) ＋ 活動負荷(25)
+ * エナジースコア（0-100）＝ HRV(35) ＋ 睡眠(35) ＋ 安静時心拍(30)
+ *
+ * 公式のエナジースコアは「睡眠・HRV・安静時心拍(RHR)」の3要素のみで決まり、歩数などの
+ * 活動量は含まれない。また公式は「過去1週間」「数日間にわたって」と複数日の傾向を重視し、
+ * 単日の乱れではスコアが大きく動かない。そのため HRV・RHR は直近数日で平滑化した値を
+ * 個人ベースラインと比較する。ベースライン付近では各要素とも満点の6割を基準点とする。
+ *
  * @param sleepScore 前夜の睡眠スコア（computeSleepScore の結果）
- * @param yesterday 前日の活動（疲労評価用）。無ければ当日で代用
+ * @param recent 当日を末尾に含む直近ウィンドウ（HRV・RHRの平滑化に使用）
  */
 export function computeEnergyScore(
   day: RawDay,
   sleepScore: ScoreDetail,
   baseline: Baseline,
-  yesterday: RawDay | null
+  recent: RawDay[]
 ): ScoreDetail {
-  // HRV点(0-40): ベースライン比。高いほど回復している。
-  let hrvPts = 24 // 未確立時は中央やや上
+  // HRV点(0-35): 平滑化HRV / ベースライン比。ベースライン(比1.0)で6割、±25%で0/満点。
+  let hrvPts = 21 // 未確立時は6割
   if (baseline.hrv && baseline.hrv > 0) {
-    const ratio = day.hrv / baseline.hrv // 1.0 で標準
-    // 0.8→下限, 1.2→上限 にマップ
-    hrvPts = clamp(((ratio - 0.8) / 0.4) * 40, 0, 40)
+    const smoothedHrv = smooth(recent, d => d.hrv, baseline.hrv)
+    const ratio = smoothedHrv / baseline.hrv // 1.0 で標準
+    hrvPts = clamp(((ratio - 0.7) / 0.5) * 35, 0, 35)
   }
 
   // 睡眠点(0-35): 前夜の睡眠スコアを 0-35 にスケール
   const sleepPts = ((sleepScore.score ?? 55) / 100) * 35
 
-  // 活動負荷点(0-25): 前日の歩数が「適度」だと満点、過少・過多で減点。
-  const ref = yesterday ?? day
-  const steps = ref.steps
-  // 8000歩を最適、0 or 18000歩で0点になる山形
-  const optimal = 8000
-  const loadPts = clamp(25 - (Math.abs(steps - optimal) / optimal) * 25, 0, 25)
+  // 安静時心拍点(0-30): 平滑化RHRがベースラインより低いほど回復している。
+  // ベースライン付近で6割、-5bpm(下)で満点側、+5bpm(上)で0側。
+  let rhrPts = 18 // 未確立時は6割
+  if (baseline.restingHeartRate && baseline.restingHeartRate > 0) {
+    const smoothedRhr = smooth(recent, d => d.restingHeartRate, baseline.restingHeartRate)
+    const delta = baseline.restingHeartRate - smoothedRhr // 正=ベースラインより低い=良好
+    rhrPts = clamp((0.6 + (delta / 5) * 0.4) * 30, 0, 30)
+  }
 
   const provisional = baseline.days < MIN_BASELINE_DAYS
-  const total = clamp100(hrvPts + sleepPts + loadPts)
+  const total = clamp100(hrvPts + sleepPts + rhrPts)
 
   return {
     score: total,
     label: scoreLabel(total, 'energy'),
     provisional,
     contributions: [
-      { key: 'hrv', label: '心拍変動', value: Math.round(hrvPts), max: 40 },
+      { key: 'hrv', label: '心拍変動', value: Math.round(hrvPts), max: 35 },
       { key: 'sleep', label: '睡眠', value: Math.round(sleepPts), max: 35 },
-      { key: 'load', label: '活動負荷', value: Math.round(loadPts), max: 25 },
+      { key: 'rhr', label: '安静時心拍', value: Math.round(rhrPts), max: 30 },
     ],
   }
 }
@@ -140,7 +154,7 @@ export function computeScoreSeries(history: RawDay[]): { date: string; energy: n
   return history.map((day, i) => {
     const baseline = computeBaseline(history.slice(Math.max(0, i - 7), i))
     const sleep = computeSleepScore(day, baseline)
-    const energy = computeEnergyScore(day, sleep, baseline, i > 0 ? history[i - 1] : null)
+    const energy = computeEnergyScore(day, sleep, baseline, history.slice(Math.max(0, i - 2), i + 1))
     return { date: day.date, energy: energy.score, sleep: sleep.score }
   })
 }
