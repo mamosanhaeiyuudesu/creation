@@ -15,15 +15,30 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<{ summaryItems: SummaryItem[]; wordRanking: WordEntry[] }>(event)
 
-  // 記録全体を古期・中期・直近の3区分に均等サンプリングし、特定の時期に偏らず
-  // 広範囲の期間から分析できるようにする（body.summaryItems は古い→新しい順で渡される想定）
+  // 記録全体を3区分に均等サンプリングし、特定の時期に偏らず広範囲の期間から分析できるようにする
+  // （body.summaryItems は古い→新しい順で渡される想定）。各区分の見出しは実際の年月レンジにする。
   const PER_ERA_CAP = 50
-  const ERA_LABELS = ['初期', '中期', '直近'] as const
 
   const sampleEvenly = (items: SummaryItem[], max: number): SummaryItem[] => {
     if (items.length <= max) return items
     const step = items.length / max
     return Array.from({ length: max }, (_, i) => items[Math.floor(i * step)])
+  }
+
+  // 記録の date（"YYYY/M/D" 形式）から、その区分の実際の年月レンジのラベルを作る（例:「2025年5〜8月頃」）
+  const periodLabel = (chunk: SummaryItem[]): string => {
+    const parse = (s: string) => {
+      const m = String(s).match(/(\d{4})\D+(\d{1,2})/)
+      return m ? { y: +m[1], mo: +m[2] } : null
+    }
+    const ds = chunk.map(i => parse(i.date)).filter((d): d is { y: number; mo: number } => !!d)
+    if (!ds.length) return 'この時期'
+    const key = (d: { y: number; mo: number }) => d.y * 12 + d.mo
+    let lo = ds[0], hi = ds[0]
+    for (const d of ds) { if (key(d) < key(lo)) lo = d; if (key(d) > key(hi)) hi = d }
+    if (lo.y === hi.y && lo.mo === hi.mo) return `${lo.y}年${lo.mo}月頃`
+    if (lo.y === hi.y) return `${lo.y}年${lo.mo}〜${hi.mo}月頃`
+    return `${lo.y}年${lo.mo}月〜${hi.y}年${hi.mo}月頃`
   }
 
   const items = body.summaryItems ?? []
@@ -36,7 +51,7 @@ export default defineEventHandler(async (event) => {
 
   const summaryText = items.length
     ? eraChunks
-        .map((chunk, i) => ({ label: ERA_LABELS[i], sampled: sampleEvenly(chunk, PER_ERA_CAP) }))
+        .map(chunk => ({ label: periodLabel(chunk), sampled: sampleEvenly(chunk, PER_ERA_CAP) }))
         .filter(e => e.sampled.length)
         .map(e => `### ${e.label}の記録\n${e.sampled.map(r => `[${r.date}][${r.sentiment}] ${r.text}`).join('\n')}`)
         .join('\n\n')
@@ -62,7 +77,7 @@ export default defineEventHandler(async (event) => {
         thinking: { type: 'disabled' },
         system: `あなたは日々の記録からユーザーの特性を分析するプロファイリングの専門家です。
 提供されたデータ（日々の気持ち・状況の記録と頻出単語）をもとに、ユーザーの強み・アドバイスを日本語で分析してください。
-記録は「初期」「中期」「直近」の3区分に分けて与えられます。直近の記録だけに偏らず、3区分すべてに目を通したうえで、期間全体を通じて言える強みやアドバイスを抽出してください。
+記録は時期ごとに分けて与えられます（各見出しは「2025年5〜8月頃」のように実際の年月）。新しい時期の記録だけに偏らず、すべての時期に目を通したうえで、期間全体を通じて言える強みやアドバイスを抽出してください。期間に言及するときは「初期」「中期」などの抽象語ではなく、与えられた見出しの実際の年月で具体的に書いてください。
 
 必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
 {"strengths":[{"title":"強みのタイトル（10文字以内でシンプルに）","weight":8,"content":"説明（150字以内）"}],"advice":[{"title":"アドバイスのタイトル（10文字以内でシンプルに）","weight":7,"content":"説明（150字以内）"}]}

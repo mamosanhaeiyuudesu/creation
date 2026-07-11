@@ -14,16 +14,32 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: 'Anthropic API key is not configured.' })
   }
 
-  // 時系列を古期・中期・直近の3区分に分け、各区分から均等にサンプリングする。
+  // 時系列を3区分に分け、各区分から均等にサンプリングする。
   // こうすることで①特定の時期（特に直近）だけが過剰に強調されるのを構造的に防ぎ、
-  // ②記録が大量にあってもAIに渡すデータ量を一定に抑えられる
+  // ②記録が大量にあってもAIに渡すデータ量を一定に抑えられる。
+  // 各区分の見出しは「初期／中期／直近」のような抽象語ではなく、その区分の実際の年月レンジにする。
   const PER_ERA_CAP = 40
-  const ERA_LABELS = ['初期', '中期', '直近'] as const
 
   const sampleEvenly = (items: SourceItem[], max: number): SourceItem[] => {
     if (items.length <= max) return items
     const step = items.length / max
     return Array.from({ length: max }, (_, i) => items[Math.floor(i * step)])
+  }
+
+  // 記録の date（"YYYY/M/D" 形式）から、その区分の実際の年月レンジのラベルを作る（例:「2025年5〜8月頃」）
+  const periodLabel = (items: SourceItem[]): string => {
+    const parse = (s: string) => {
+      const m = String(s).match(/(\d{4})\D+(\d{1,2})/)
+      return m ? { y: +m[1], mo: +m[2] } : null
+    }
+    const ds = items.map(i => parse(i.date)).filter((d): d is { y: number; mo: number } => !!d)
+    if (!ds.length) return 'この時期'
+    const key = (d: { y: number; mo: number }) => d.y * 12 + d.mo
+    let lo = ds[0], hi = ds[0]
+    for (const d of ds) { if (key(d) < key(lo)) lo = d; if (key(d) > key(hi)) hi = d }
+    if (lo.y === hi.y && lo.mo === hi.mo) return `${lo.y}年${lo.mo}月頃`
+    if (lo.y === hi.y) return `${lo.y}年${lo.mo}〜${hi.mo}月頃`
+    return `${lo.y}年${lo.mo}月〜${hi.y}年${hi.mo}月頃`
   }
 
   const eraSize = Math.ceil(body.items.length / 3)
@@ -34,7 +50,7 @@ export default defineEventHandler(async (event) => {
   ]
 
   const sourceText = eraChunks
-    .map((chunk, i) => ({ label: ERA_LABELS[i], sampled: sampleEvenly(chunk, PER_ERA_CAP) }))
+    .map(chunk => ({ label: periodLabel(chunk), sampled: sampleEvenly(chunk, PER_ERA_CAP) }))
     .filter(e => e.sampled.length)
     .map(e => `## ${e.label}の記録\n${e.sampled.map(i => `[${i.date}] ${i.text}`).join('\n')}`)
     .join('\n\n')
@@ -54,19 +70,20 @@ export default defineEventHandler(async (event) => {
         max_tokens: 700,
         thinking: { type: 'disabled' },
         system: `あなたはユーザーの日々の記録（中間データ）を分析するアシスタントです。
-ユーザーが選んだテーマ「${body.keyword}」に関連しそうな記録を「初期」「中期」「直近」の3区分に分けて与えます（区分は記録全体を時系列で3等分したもの）。文字表記が完全一致しなくても、内容が意味的に関連していれば対象として扱ってください。区分内・区分間を問わず、無関係な記録も混ざっています。
+ユーザーが選んだテーマ「${body.keyword}」に関連しそうな記録を、時期ごとに分けて与えます。各見出しは「2025年5〜8月頃」のようにその時期の実際の年月です。文字表記が完全一致しなくても、内容が意味的に関連していれば対象として扱ってください。無関係な記録も混ざっています。
 
 手順:
-1. 各区分から「${body.keyword}」に意味的に関連するものだけを自分で判断して選び出す（特定の区分に偏らず、3区分すべてを確認する）
-2. 関連する記録がどの区分にも1件もなければ blocks を空配列にする
-3. 関連する記録があれば、区分ごとの内容差・変化を意識しながら1〜3個の塊に整理し、それぞれに短いタイトルをつける（区分にそのまま対応させる必要はないが、直近の区分の記録ばかりを扱う内容に偏らせない）
+1. 各時期から「${body.keyword}」に意味的に関連するものだけを自分で判断して選び出す（特定の時期に偏らず、すべての時期を確認する）
+2. 関連する記録がどの時期にも1件もなければ blocks を空配列にする
+3. 関連する記録があれば、時期ごとの内容差・変化を意識しながら1〜3個の塊に整理し、それぞれに短いタイトルをつける（新しい時期の記録ばかりを扱う内容に偏らせない）
 
 必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
 {"blocks":[{"title":"見出し（10字前後）","text":"本文"}]}
 
 出力ルール:
 - blocks は1〜3個。関連する記録が少なければ1個でよい
-- 「初期」「中期」の区分に関連記録があるのに無視して「直近」の内容だけでまとめる、ということはしない
+- 期間に言及するときは「初期」「中期」「直近」のような抽象語は使わず、「2025年5〜8月頃」のように与えられた見出しの実際の年月で具体的に書く
+- 古い時期に関連記録があるのに無視して新しい時期の内容だけでまとめる、ということはしない
 - 各ブロックの text は文の区切り（「。」の直後）ごとに改行（\\n）を入れる
 - 全ブロックの text を合計しておよそ500文字以内に収める
 - タイトルはそのブロックの内容を端的に表す10字前後のラベルにする
