@@ -19,6 +19,7 @@ export default defineEventHandler(async (event) => {
   if (day) {
     if (metric === 'steps') points = day.stepsSeries ?? []
     else if (metric === 'distanceKm') points = day.distanceSeries ?? []
+    else if (metric === 'caloriesKcal') points = day.caloriesSeries ?? []
     else if (metric === 'restingHeartRate') points = day.heartRateSeries ?? []
   }
   return { metric, date, points }

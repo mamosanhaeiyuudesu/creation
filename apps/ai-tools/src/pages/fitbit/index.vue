@@ -196,6 +196,7 @@ function intradayFor(trend: string): { points: TimePoint[]; label: string } | un
   if (!data.value) return undefined
   if (trend === 'steps') return { points: data.value.stepsSeries, label: '時間別（1時間ごと）' }
   if (trend === 'distanceKm') return { points: data.value.distanceSeries, label: '時間別（1時間ごと）' }
+  if (trend === 'caloriesKcal') return { points: data.value.caloriesSeries, label: '時間別（1時間ごと・推計）' }
   if (trend === 'restingHeartRate') return { points: data.value.heartRateSeries, label: '心拍数（5分間隔）' }
   return undefined
 }

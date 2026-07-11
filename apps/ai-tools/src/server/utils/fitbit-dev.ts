@@ -120,6 +120,11 @@ export function devRawDay(date: string): RawDay {
   const caloriesKcal = Math.round(between(r, 250, 650) + steps * 0.03)
   const stepsSeries: TimePoint[] = hourlyWeights.map((w, h) => ({ t: h * 60, v: Math.round((w / weightSum) * steps) }))
   const distanceSeries: TimePoint[] = hourlyWeights.map((w, h) => ({ t: h * 60, v: Math.round((w / weightSum) * distanceKm * 100) / 100 }))
+  // カロリー時間別: 基礎代謝ぶん(55%)を均等 + 活動ぶん(45%)を活動重みで按分（本番の推計ロジックに合わせる）
+  const caloriesSeries: TimePoint[] = hourlyWeights.map((w, h) => ({
+    t: h * 60,
+    v: Math.round((caloriesKcal * 0.55) / 24 + caloriesKcal * 0.45 * (w / weightSum)),
+  }))
 
   return {
     date,
@@ -128,6 +133,7 @@ export function devRawDay(date: string): RawDay {
     distanceKm,
     distanceSeries,
     caloriesKcal,
+    caloriesSeries,
     restingHeartRate,
     heartRateSeries,
     hrv: Math.round(between(r, 32, 58)),

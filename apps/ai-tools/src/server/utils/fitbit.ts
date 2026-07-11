@@ -309,7 +309,7 @@ function parseSleep(s: any): RawDay['sleep'] {
 
 function emptyRawDay(date: string): RawDay {
   return {
-    date, steps: 0, stepsSeries: [], distanceKm: 0, distanceSeries: [], caloriesKcal: 0,
+    date, steps: 0, stepsSeries: [], distanceKm: 0, distanceSeries: [], caloriesKcal: 0, caloriesSeries: [],
     restingHeartRate: 0, heartRateSeries: [], hrv: 0,
     spo2: { avg: 0, min: 0, max: 0, series: [] }, breathingRate: 0, breathingRateSeries: [], skinTempDelta: 0,
     sleep: parseSleep(null),
@@ -477,8 +477,21 @@ async function fetchRangeFromApi(token: string, start: string, end: string): Pro
   for (const [d, arr] of Object.entries(hrvAgg)) ensure(d).hrv = Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
 
   // カロリー: total-calories（基礎代謝+活動の合計）を dailyRollUp で取得済の日次値から反映。
+  // 時間別（total-calories は list 非対応で hourly ソースが無い）は、日次合計を
+  // 「基礎代謝ぶん＝24hに均等」＋「活動ぶん＝歩数の時間別シェアで按分」した推計値で埋める。
+  const BMR_SHARE = 0.55
   for (const [d, kcal] of Object.entries(caloriesByDate)) {
-    if (inRange(d)) ensure(d).caloriesKcal = Math.round(kcal)
+    if (!inRange(d)) continue
+    const total = Math.round(kcal)
+    ensure(d).caloriesKcal = total
+    const steps24 = stepsHourly[d]
+    const stepSum = steps24 ? steps24.reduce((a, b) => a + b, 0) : 0
+    const basePerHour = (total * BMR_SHARE) / 24
+    const activePool = total * (1 - BMR_SHARE)
+    ensure(d).caloriesSeries = Array.from({ length: 24 }, (_, h) => {
+      const active = stepSum > 0 ? activePool * (steps24![h] / stepSum) : activePool / 24
+      return { t: h * 60, v: Math.round(basePerHour + active) }
+    })
   }
 
   // 皮膚温: daily-sleep-temperature-derivations（睡眠中の皮膚温、1日1点）。
@@ -707,6 +720,7 @@ export function assembleDashboard(history: RawDay[]): DashboardData {
     distanceKm: today.distanceKm,
     distanceSeries: today.distanceSeries ?? [],
     caloriesKcal: today.caloriesKcal ?? 0,
+    caloriesSeries: today.caloriesSeries ?? [],
     restingHeartRate: today.restingHeartRate,
     heartRateSeries: today.heartRateSeries ?? [],
     hrv: today.hrv,

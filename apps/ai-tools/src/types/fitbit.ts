@@ -63,6 +63,8 @@ export interface DashboardData {
   distanceSeries: TimePoint[]
   /** 消費カロリー（active kcal） */
   caloriesKcal: number
+  /** 消費カロリーの時間別内訳（1時間刻み・kcal、詳細シート用。日次合計を按分した推計値） */
+  caloriesSeries: TimePoint[]
   restingHeartRate: number
   /** 日中心拍の折れ線（5分刻み、詳細シート用） */
   heartRateSeries: TimePoint[]
@@ -98,6 +100,7 @@ export interface RawDay {
   distanceKm: number
   distanceSeries: TimePoint[]
   caloriesKcal: number
+  caloriesSeries: TimePoint[]
   restingHeartRate: number
   heartRateSeries: TimePoint[]
   hrv: number
