@@ -56,7 +56,7 @@
               class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4 flex flex-col items-center gap-2 hover:bg-white/[0.06] transition-colors"
               @click="sleepOpen = true"
             >
-              <ScoreGauge :score="data.sleepScore.score" label="睡眠" :size="120" from="#818cf8" to="#6366f1" />
+              <ScoreGauge :score="data.sleepScore.score" label="睡眠スコア" :size="120" from="#818cf8" to="#6366f1" />
               <div class="text-xs text-indigo-300 font-medium flex items-center gap-1.5">
                 <span>{{ fmtDuration(data.sleep.totalMinutes) }}</span>
                 <span class="text-indigo-400/60">·</span>

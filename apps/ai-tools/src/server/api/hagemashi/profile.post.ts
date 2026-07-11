@@ -3,7 +3,7 @@ import { wrapApiError } from '~/server/utils/openai'
 
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string; date: string }
 interface WordEntry { word: string; count: number }
-interface StrengthItem { title: string; content: string }
+interface StrengthItem { title: string; weight: number; content: string }
 interface ProfileItem { strengths: StrengthItem[] | string; advice: StrengthItem[] | string; generatedAt: string }
 
 export default defineEventHandler(async (event) => {
@@ -65,9 +65,12 @@ export default defineEventHandler(async (event) => {
 記録は「初期」「中期」「直近」の3区分に分けて与えられます。直近の記録だけに偏らず、3区分すべてに目を通したうえで、期間全体を通じて言える強みやアドバイスを抽出してください。
 
 必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
-{"strengths":[{"title":"強みのタイトル","content":"説明（200字以内）"},{"title":"強みのタイトル2","content":"説明（200字以内）"}],"advice":[{"title":"アドバイスのタイトル","content":"説明（200字以内）"},{"title":"アドバイスのタイトル2","content":"説明（200字以内）"}]}
+{"strengths":[{"title":"強みのタイトル（12字前後で端的に）","weight":8,"content":"説明（150字以内）"}],"advice":[{"title":"アドバイスのタイトル（12字前後で端的に）","weight":7,"content":"説明（150字以内）"}]}
 
-strengths・advice はそれぞれ2〜3項目で、具体的なタイトルと内容を記述してください。`,
+ルール:
+- strengths・advice はそれぞれ 4〜6 項目
+- weight は 1〜10 の整数で、その項目が今どれくらい顕著か・重要かを表す（大きいほど treemap で大きく表示される）
+- title は端的に、content は具体的に記述する`,
         messages: [{ role: 'user', content: userContent }],
       }),
     })
@@ -89,7 +92,20 @@ strengths・advice はそれぞれ2〜3項目で、具体的なタイトルと�
       parsed = JSON.parse(match[0])
     }
 
-    const newProfile: ProfileItem = { ...parsed, generatedAt: new Date().toISOString() }
+    // weight を 1〜10 に収め、タイトル・本文の長さも安全側に丸める
+    const clampItem = (l: StrengthItem): StrengthItem => ({
+      title: String(l.title ?? '').slice(0, 40),
+      weight: Math.min(10, Math.max(1, Math.round(Number(l.weight) || 5))),
+      content: String(l.content ?? '').slice(0, 300),
+    })
+    const normList = (v: StrengthItem[] | string): StrengthItem[] | string =>
+      Array.isArray(v) ? v.map(clampItem).filter(i => i.title) : v
+
+    const newProfile: ProfileItem = {
+      strengths: normList(parsed.strengths),
+      advice: normList(parsed.advice),
+      generatedAt: new Date().toISOString(),
+    }
 
     if (db && user) {
       const existing = await db

@@ -98,7 +98,7 @@
         </div>
         <div
           class="flex items-center gap-2 mb-1"
-          :class="activeTab === 'summary' || activeTab === 'words' || activeTab === 'profile' || activeTab === 'encourage' || activeTab === 'achievement' || activeTab === 'kokoro'
+          :class="activeTab === 'summary' || activeTab === 'words' || isProfileTab || activeTab === 'encourage' || activeTab === 'achievement' || activeTab === 'kokoro'
             ? 'min-h-8'
             : activeTab === 'transcription' ? 'min-h-4' : 'min-h-0'"
         >
@@ -163,7 +163,7 @@
               {{ isKokoroLoading ? '生成中...' : '更新' }}
             </button>
           </template>
-          <template v-if="activeTab === 'profile'">
+          <template v-if="isProfileTab">
             <div class="flex-1" />
             <span v-if="profileHistory.length > 0" class="text-[11px] text-slate-600">最終更新: {{ formatProfileDate(profileHistory[0].generatedAt) }}</span>
             <button
@@ -352,42 +352,23 @@
           </div>
         </div>
 
-        <!-- プロファイリングタブ -->
-        <div v-else-if="activeTab === 'profile'" class="py-2">
+        <!-- 長期傾向タブ（強み / アドバイス） -->
+        <div v-else-if="isProfileTab" class="py-2">
           <div v-if="isProfileLoading" class="flex items-center justify-center gap-2 py-10 text-slate-400 text-sm">
             <span class="w-4 h-4 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
-            プロファイルを生成中...
+            分析中...
           </div>
           <div v-else-if="profileHistory.length === 0" class="text-center text-slate-500 text-sm py-10">
-            更新ボタンを押してプロファイルを生成してください
+            更新ボタンを押すと記録から長期傾向を分析します
           </div>
-          <div v-else class="flex flex-col gap-4">
-            <!-- 最新プロファイル -->
-            <div class="flex flex-col gap-3">
-              <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
-                <div class="text-xs font-semibold text-orange-400 mb-2">✨ 強み</div>
-                <template v-if="Array.isArray(profileHistory[0].strengths)">
-                  <div v-for="(s, si) in profileHistory[0].strengths" :key="si" :class="si < profileHistory[0].strengths.length - 1 ? 'mb-3' : ''">
-                    <div class="text-sm font-semibold text-slate-100 mb-1">■ {{ s.title }}</div>
-                    <p class="m-0 text-sm text-slate-300 leading-relaxed">{{ s.content }}</p>
-                  </div>
-                </template>
-                <p v-else class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileHistory[0].strengths }}</p>
-              </div>
-              <div class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
-                <div class="text-xs font-semibold text-emerald-400 mb-2">💡 アドバイス</div>
-                <template v-if="Array.isArray(profileHistory[0].advice)">
-                  <div v-for="(a, ai) in profileHistory[0].advice" :key="ai" :class="ai < profileHistory[0].advice.length - 1 ? 'mb-3' : ''">
-                    <div class="text-sm font-semibold text-slate-100 mb-1">■ {{ a.title }}</div>
-                    <p class="m-0 text-sm text-slate-300 leading-relaxed">{{ a.content }}</p>
-                  </div>
-                </template>
-                <p v-else class="m-0 text-sm text-slate-200 leading-relaxed">{{ profileHistory[0].advice }}</p>
-              </div>
-            </div>
-            <!-- 過去のプロファイル履歴 -->
+          <div v-else-if="profileItemsOf(profileHistory[0]).length === 0" class="text-center text-slate-500 text-sm py-10">
+            {{ profileTabLabel }}のデータがありません。更新ボタンで再分析してください
+          </div>
+          <div v-else class="flex flex-col gap-3">
+            <HagemashiProfileTreemap :items="profileItemsOf(profileHistory[0])" :color="profileColor" :height="360" @leaf-click="activeProfilePopup = $event" />
+            <!-- 過去の長期傾向履歴 -->
             <div v-if="profileHistory.length > 1" class="flex flex-col gap-1.5">
-              <div class="text-[11px] text-slate-600 border-t border-white/[0.06] pt-3">過去のプロファイル</div>
+              <div class="text-[11px] text-slate-600 border-t border-white/[0.06] pt-3">過去の{{ profileTabLabel }}</div>
               <div v-for="(p, pi) in profileHistory.slice(1)" :key="pi" class="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden">
                 <button
                   class="w-full flex items-center justify-between px-3 py-2.5 cursor-pointer bg-transparent border-none transition-colors hover:bg-white/[0.04]"
@@ -396,27 +377,15 @@
                   <div class="text-[11px] text-slate-500">{{ formatProfileDate(p.generatedAt) }}</div>
                   <div class="text-slate-600 text-[10px] transition-transform duration-200" :style="expandedProfileIndices.has(pi) ? 'transform: rotate(180deg)' : ''">▼</div>
                 </button>
-                <div v-if="expandedProfileIndices.has(pi)" class="px-3 pb-3 flex flex-col gap-2 border-t border-white/[0.05]">
-                  <div class="mt-2">
-                    <div class="text-[11px] font-semibold text-orange-400/70 mb-1">✨ 強み</div>
-                    <template v-if="Array.isArray(p.strengths)">
-                      <div v-for="(s, si) in p.strengths" :key="si" :class="si < p.strengths.length - 1 ? 'mb-2' : ''">
-                        <div class="text-xs font-semibold text-slate-300 mb-0.5">■ {{ s.title }}</div>
-                        <p class="m-0 text-xs text-slate-400 leading-relaxed">{{ s.content }}</p>
-                      </div>
-                    </template>
-                    <p v-else class="m-0 text-xs text-slate-400 leading-relaxed">{{ p.strengths }}</p>
-                  </div>
-                  <div>
-                    <div class="text-[11px] font-semibold text-emerald-400/70 mb-1">💡 アドバイス</div>
-                    <template v-if="Array.isArray(p.advice)">
-                      <div v-for="(a, ai) in p.advice" :key="ai" :class="ai < p.advice.length - 1 ? 'mb-2' : ''">
-                        <div class="text-xs font-semibold text-slate-300 mb-0.5">■ {{ a.title }}</div>
-                        <p class="m-0 text-xs text-slate-400 leading-relaxed">{{ a.content }}</p>
-                      </div>
-                    </template>
-                    <p v-else class="m-0 text-xs text-slate-400 leading-relaxed">{{ p.advice }}</p>
-                  </div>
+                <div v-if="expandedProfileIndices.has(pi)" class="px-3 pb-3 border-t border-white/[0.05]">
+                  <HagemashiProfileTreemap
+                    v-if="profileItemsOf(p).length"
+                    :items="profileItemsOf(p)"
+                    :color="profileColor"
+                    :height="280"
+                    @leaf-click="activeProfilePopup = $event"
+                  />
+                  <p v-else class="m-0 py-4 text-xs text-slate-500 text-center">{{ profileTabLabel }}のデータがありません</p>
                 </div>
               </div>
             </div>
@@ -974,6 +943,18 @@
       @close="activeKokoroPopup = null"
     />
 
+    <!-- 強み・アドバイスの要素クリック時のAI分析ポップアップ -->
+    <HagemashiTopicAnalysisModal
+      v-if="activeProfilePopup"
+      :key="`profile-${activeProfilePopup.name}`"
+      :title="activeProfilePopup.name"
+      :meta="`${profileTabLabel} ・ 重み${activeProfilePopup.weight}`"
+      :note="activeProfilePopup.note"
+      :keyword="activeProfilePopup.name"
+      :matched-items="activeProfileMatches"
+      @close="activeProfilePopup = null"
+    />
+
     <!-- 除外単語追加確認 -->
     <div v-if="confirmingStopword" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="confirmingStopword = null">
       <div class="w-full max-w-[300px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-5">
@@ -1127,9 +1108,9 @@ const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-type RecordingTab = 'transcription' | 'words' | 'summary' | 'achievement' | 'kokoro' | 'profile' | 'encourage'
+type RecordingTab = 'transcription' | 'words' | 'summary' | 'achievement' | 'kokoro' | 'strengths' | 'advice' | 'encourage'
 type TabKey = 'consult' | 'mood' | RecordingTab
-const TAB_KEYS: TabKey[] = ['transcription', 'words', 'summary', 'achievement', 'kokoro', 'profile', 'encourage', 'consult', 'mood']
+const TAB_KEYS: TabKey[] = ['transcription', 'words', 'summary', 'achievement', 'kokoro', 'strengths', 'advice', 'encourage', 'consult', 'mood']
 
 // URL クエリ（?tab=）とタブ状態を双方向同期する
 const route = useRoute()
@@ -1151,7 +1132,8 @@ watch(() => route.query.tab, () => {
 // 常に表示する主タブ
 const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'kokoro', label: '心', short: '心' },
-  { key: 'profile', label: '長期傾向', short: '傾向' },
+  { key: 'strengths', label: '強み', short: '強み' },
+  { key: 'advice', label: 'アドバイス', short: '助言' },
   { key: 'words', label: '単語', short: '単語' },
 ]
 // 展開アイコンを開くと表示する副タブ
@@ -1377,7 +1359,7 @@ function applyDictionary(text: string): string {
   return result
 }
 
-interface StrengthItem { title: string; content: string }
+interface StrengthItem { title: string; content: string; weight?: number }
 interface ProfileData { strengths: StrengthItem[] | string; advice: StrengthItem[] | string; generatedAt: string }
 const profileHistory = ref<ProfileData[]>([])
 const isProfileLoading = ref(false)
@@ -1422,6 +1404,16 @@ const toggleProfileHistory = (i: number) => {
   if (expandedProfileIndices.value.has(i)) expandedProfileIndices.value.delete(i)
   else expandedProfileIndices.value.add(i)
   expandedProfileIndices.value = new Set(expandedProfileIndices.value)
+}
+
+// 長期傾向タブ（強み / アドバイス）: 表示中タブに応じて色と対象フィールドを切り替える
+const isProfileTab = computed(() => activeTab.value === 'strengths' || activeTab.value === 'advice')
+const profileColor = computed(() => (activeTab.value === 'advice' ? '#fbbf24' : '#34d399'))
+const profileTabLabel = computed(() => (activeTab.value === 'advice' ? 'アドバイス' : '強み'))
+const profileItemsOf = (p: ProfileData | undefined): StrengthItem[] => {
+  if (!p) return []
+  const v = activeTab.value === 'advice' ? p.advice : p.strengths
+  return Array.isArray(v) ? v : []
 }
 
 const formatProfileDate = (iso: string): string => {
@@ -1929,8 +1921,10 @@ const summaryRows = computed(() => {
 // --- 単語・心クリック時のAI分析ポップアップ（キャッシュ・保存はしない） ---
 interface ActiveWordPopup { name: string; count: number }
 interface ActiveKokoroPopup { name: string; note: string; group: string; weight: number }
+interface ActiveProfilePopup { name: string; note: string; weight: number }
 const activeWordPopup = ref<ActiveWordPopup | null>(null)
 const activeKokoroPopup = ref<ActiveKokoroPopup | null>(null)
+const activeProfilePopup = ref<ActiveProfilePopup | null>(null)
 
 // summaryRows は新しい順のため、AIには古い→新しいの時系列順で渡す
 // （新しい順のまま渡すと直近の内容が先頭に来て過度に強調されやすいため）
@@ -1947,6 +1941,11 @@ const activeWordMatches = computed(() => {
 // （直近だけに絞ると古い記録が最初から候補に入らず、直近の内容ばかりになる）
 const activeKokoroMatches = computed(() => {
   if (!activeKokoroPopup.value) return []
+  return summaryRows.value.map(r => ({ date: r.fullDate, text: r.text })).reverse()
+})
+// 強み・アドバイスの項目も抽象ラベルのため、中間データ全体を渡してAIに意味的関連を判断させる
+const activeProfileMatches = computed(() => {
+  if (!activeProfilePopup.value) return []
   return summaryRows.value.map(r => ({ date: r.fullDate, text: r.text })).reverse()
 })
 

@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-2">
-    <div class="text-xs font-semibold text-slate-400">{{ label }}</div>
+    <div v-if="label" class="text-xs font-semibold text-slate-400">{{ label }}</div>
     <div v-if="!hasData" class="h-[120px] flex items-center justify-center text-slate-600 text-xs">データがありません</div>
     <div v-else ref="wrap" class="relative" :style="{ height: `${H}px` }">
       <svg :viewBox="`0 0 ${W} ${H}`" preserveAspectRatio="none" class="w-full h-full block" @pointermove="onMove" @pointerleave="hover = -1">

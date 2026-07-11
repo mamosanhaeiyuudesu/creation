@@ -110,5 +110,5 @@ function setDays(d: number) {
 }
 
 onMounted(load)
-watch(() => props.metric, load)
+watch(() => [props.metric, props.date], load)
 </script>

@@ -2,10 +2,20 @@
   <div class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center" @click.self="$emit('close')">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="$emit('close')" />
     <div class="relative w-full sm:max-w-[560px] max-h-[92dvh] overflow-y-auto bg-[#0f172a] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl shadow-2xl [scrollbar-width:thin]">
-      <!-- ハンドル / 閉じる -->
+      <!-- ハンドル / 日送り / 閉じる -->
       <div class="sticky top-0 z-10 flex items-center justify-between px-5 py-3 bg-[#0f172a]/95 backdrop-blur border-b border-white/[0.06]">
-        <h2 class="text-sm font-bold text-slate-100">睡眠の詳細</h2>
-        <button class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-white/10" @click="$emit('close')">✕</button>
+        <h2 class="text-sm font-bold text-slate-100">睡眠スコア</h2>
+        <div class="flex items-center gap-1">
+          <button class="w-7 h-7 rounded-lg text-slate-300 hover:bg-white/10 flex items-center justify-center" @click="shiftDay(-1)">‹</button>
+          <span class="text-xs font-semibold text-slate-200 min-w-[76px] text-center tabular-nums">{{ dateLabel }}</span>
+          <button
+            class="w-7 h-7 rounded-lg flex items-center justify-center"
+            :class="isToday ? 'text-slate-700 cursor-default' : 'text-slate-300 hover:bg-white/10'"
+            :disabled="isToday"
+            @click="shiftDay(1)"
+          >›</button>
+          <button class="w-8 h-8 ml-1 rounded-full flex items-center justify-center text-slate-400 hover:bg-white/10" @click="$emit('close')">✕</button>
+        </div>
       </div>
 
       <div v-if="loading" class="p-10 text-center text-slate-500 text-sm">読み込み中…</div>
@@ -88,7 +98,13 @@
         <!-- 睡眠スコアの推移（7日 / 1か月 / 3か月） -->
         <div class="border-t border-white/[0.06] pt-4">
           <div class="text-xs font-semibold text-slate-400 mb-2">睡眠スコアの推移</div>
-          <TrendPanel metric="sleepScore" color="#818cf8" :date="date" :decimals="0" />
+          <TrendPanel metric="sleepScore" color="#818cf8" :date="activeDate" :decimals="0" />
+        </div>
+
+        <!-- 就寝・起床の比較（他の日と横並び） -->
+        <div class="border-t border-white/[0.06] pt-4">
+          <div class="text-xs font-semibold text-slate-400 mb-2">就寝・起床の比較</div>
+          <SleepScheduleChart :date="activeDate" />
         </div>
       </div>
     </div>
@@ -100,9 +116,24 @@ import { ref, computed, watch, onMounted } from 'vue'
 import type { SleepDetail, SleepStage } from '~/types/fitbit'
 import ScoreGauge from '~/components/fitbit/ScoreGauge.vue'
 import TrendPanel from '~/components/fitbit/TrendPanel.vue'
+import SleepScheduleChart from '~/components/fitbit/SleepScheduleChart.vue'
+import { mdWeekday, todayJST } from '~/utils/jst'
 
 const props = defineProps<{ date: string }>()
 defineEmits<{ close: [] }>()
+
+// 日送り（推移・就寝起床グラフも activeDate に追随）
+const activeDate = ref(props.date || todayJST())
+const isToday = computed(() => activeDate.value >= todayJST())
+const dateLabel = computed(() => mdWeekday(activeDate.value))
+
+function shiftDay(delta: number) {
+  const d = new Date(`${activeDate.value}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + delta)
+  const next = d.toISOString().slice(0, 10)
+  if (next > todayJST()) return
+  activeDate.value = next
+}
 
 const data = ref<SleepDetail | null>(null)
 const loading = ref(true)
@@ -166,7 +197,7 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    data.value = await $fetch<SleepDetail>('/api/fitbit/sleep', { params: { date: props.date } })
+    data.value = await $fetch<SleepDetail>('/api/fitbit/sleep', { params: { date: activeDate.value } })
   } catch (e: any) {
     error.value = e?.data?.message || '睡眠データの取得に失敗しました'
   } finally {
@@ -175,5 +206,5 @@ async function load() {
 }
 
 onMounted(load)
-watch(() => props.date, load)
+watch(activeDate, load)
 </script>
