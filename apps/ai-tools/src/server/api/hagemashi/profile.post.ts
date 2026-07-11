@@ -58,19 +58,19 @@ export default defineEventHandler(async (event) => {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-5',
-        max_tokens: 2048,
+        max_tokens: 4096,
         thinking: { type: 'disabled' },
         system: `あなたは日々の記録からユーザーの特性を分析するプロファイリングの専門家です。
 提供されたデータ（日々の気持ち・状況の記録と頻出単語）をもとに、ユーザーの強み・アドバイスを日本語で分析してください。
 記録は「初期」「中期」「直近」の3区分に分けて与えられます。直近の記録だけに偏らず、3区分すべてに目を通したうえで、期間全体を通じて言える強みやアドバイスを抽出してください。
 
 必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
-{"strengths":[{"title":"強みのタイトル（12字前後で端的に）","weight":8,"content":"説明（150字以内）"}],"advice":[{"title":"アドバイスのタイトル（12字前後で端的に）","weight":7,"content":"説明（150字以内）"}]}
+{"strengths":[{"title":"強みのタイトル（10文字以内でシンプルに）","weight":8,"content":"説明（150字以内）"}],"advice":[{"title":"アドバイスのタイトル（10文字以内でシンプルに）","weight":7,"content":"説明（150字以内）"}]}
 
 ルール:
-- strengths・advice はそれぞれ 4〜6 項目
+- strengths・advice はそれぞれ 12 項目程度（最低でも 10 項目）抽出する
 - weight は 1〜10 の整数で、その項目が今どれくらい顕著か・重要かを表す（大きいほど treemap で大きく表示される）
-- title は端的に、content は具体的に記述する`,
+- title は必ず 10 文字以内でシンプルにする（treemap 上に表示されるため）。content は具体的に記述する`,
         messages: [{ role: 'user', content: userContent }],
       }),
     })
@@ -94,7 +94,7 @@ export default defineEventHandler(async (event) => {
 
     // weight を 1〜10 に収め、タイトル・本文の長さも安全側に丸める
     const clampItem = (l: StrengthItem): StrengthItem => ({
-      title: String(l.title ?? '').slice(0, 40),
+      title: String(l.title ?? '').slice(0, 14),
       weight: Math.min(10, Math.max(1, Math.round(Number(l.weight) || 5))),
       content: String(l.content ?? '').slice(0, 300),
     })

@@ -61,8 +61,6 @@ onMounted(runAnalysis)
         </div>
 
         <div class="px-5 py-4 overflow-y-auto flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
-          <p v-if="note" class="m-0 mb-3 text-xs text-slate-400 leading-relaxed border-l-2 border-orange-500/40 pl-2.5">{{ note }}</p>
-
           <div v-if="isLoading" class="flex items-center justify-center gap-2 py-8 text-slate-400 text-sm">
             <span class="w-4 h-4 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
             分析中...

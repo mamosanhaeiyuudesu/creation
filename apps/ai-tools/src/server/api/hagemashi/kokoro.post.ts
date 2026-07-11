@@ -36,19 +36,19 @@ export default defineEventHandler(async (event) => {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-5',
-        max_tokens: 2048,
+        max_tokens: 3072,
         thinking: { type: 'disabled' },
         system: `あなたは日々の記録からユーザーの心の状態を可視化するメンタルコーチです。
 提供されたデータ（日々の気持ち・状況の記録と頻出単語）をもとに、今のユーザーの心を占めているものを「チャージ源（心を満たすもの・支え）」と「ストレス源（心を消耗させるもの・負担）」に分類してください。
 自分の心を客観視してメタ認知できるよう、プラス面もマイナス面も両方バランスよく抽出することが重要です。
 
 必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
-{"charge":[{"name":"項目名（10字前後で端的に）","weight":8,"note":"補足（40字以内）"}],"stress":[{"name":"項目名（10字前後で端的に）","weight":6,"note":"補足（40字以内）"}],"summary":"心の状態を客観視するための全体コメント（120字以内）"}
+{"charge":[{"name":"項目名（10文字以内でシンプルに）","weight":8,"note":"補足（40字以内）"}],"stress":[{"name":"項目名（10文字以内でシンプルに）","weight":6,"note":"補足（40字以内）"}],"summary":"心の状態を客観視するための全体コメント（120字以内）"}
 
 ルール:
-- charge（チャージ源）は 3〜6 項目、stress（ストレス源）は 3〜6 項目
+- charge（チャージ源）と stress（ストレス源）を合わせて 12 項目程度（それぞれ 5〜7 項目ずつ）抽出する
 - weight は 1〜10 の整数で、その事柄が今どれくらい心を占めているか（大きいほど心を占める）
-- name は記録から具体的に拾い、「仕事の達成感」「締切のプレッシャー」のように端的に
+- name は記録から具体的に拾いつつ、必ず 10 文字以内でシンプルにする（例:「仕事の達成感」「締切の重圧」）
 - note はメタ認知を助ける一言
 - データが少ない場合も、読み取れる範囲で無理なく分類する`,
         messages: [{ role: 'user', content: userContent }],
@@ -73,7 +73,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const clampLeaf = (l: KokoroLeaf): KokoroLeaf => ({
-      name: String(l.name ?? '').slice(0, 24),
+      name: String(l.name ?? '').slice(0, 14),
       weight: Math.min(10, Math.max(1, Math.round(Number(l.weight) || 1))),
       note: String(l.note ?? '').slice(0, 60),
     })
