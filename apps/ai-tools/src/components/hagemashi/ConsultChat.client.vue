@@ -95,6 +95,9 @@ const props = defineProps<{
   active?: boolean
 }>()
 
+// 相談の利用ログ用に、ユーザー発言のタイムスタンプ一覧を親へ通知する
+const emit = defineEmits<{ (e: 'usage', timestamps: string[]): void }>()
+
 const messages = ref<ChatMessage[]>([])
 const draft = ref('')
 const streaming = ref(false)
@@ -236,6 +239,11 @@ async function send() {
     scrollToBottom()
   }
 }
+
+// ユーザー発言のタイムスタンプが変わるたびに親へ通知（利用ログの集計用）
+watch(messages, () => {
+  emit('usage', messages.value.filter(m => m.role === 'user' && m.timestamp).map(m => m.timestamp as string))
+}, { deep: true, immediate: true })
 
 // 常時マウントされるため、初回はバックグラウンドで先読みしておく
 onMounted(loadHistory)

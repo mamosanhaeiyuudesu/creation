@@ -10,7 +10,13 @@
         <div class="text-left">
           <h1 class="m-0 text-[clamp(12px,2vw,16px)] font-bold bg-gradient-to-br from-orange-500 to-pink-500 bg-clip-text text-transparent">記録</h1>
         </div>
-        <div class="absolute right-0 top-1/2 -translate-y-1/2" @click.stop>
+        <div class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-1.5" @click.stop>
+          <button
+            class="w-9 h-9 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-lg cursor-pointer flex items-center justify-center transition-all hover:bg-white/[0.12] hover:text-[#e2e8f0]"
+            title="ログ"
+            @click="logOpen = true"
+          >🗓️</button>
+          <div class="relative">
           <button
             class="w-9 h-9 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-lg cursor-pointer flex items-center justify-center transition-all hover:bg-white/[0.12] hover:text-[#e2e8f0]"
             title="設定"
@@ -29,6 +35,7 @@
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); showSettingsMenu = false">
               <span>🚪</span> ログアウト
             </button>
+          </div>
           </div>
         </div>
       </header>
@@ -488,6 +495,7 @@
           :profile="profileHistory[0] ?? null"
           :summary-items="recentSummaryItems"
           :achievements="achievements"
+          @usage="consultDates = $event"
         />
       </div>
       </div>
@@ -495,6 +503,15 @@
 
     <!-- Auth Modal -->
     <AuthModal v-if="!$dev && checked && !isLoggedIn" accent="orange" />
+
+    <!-- ログ（利用回数） -->
+    <HagemashiLogModal
+      v-if="logOpen"
+      :record-dates="recordDates"
+      :consult-dates="consultDates"
+      :mood-dates="moodDates"
+      @close="logOpen = false"
+    />
 
     <!-- 記録方法選択 -->
     <div v-if="recordConfirmOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="recordConfirmOpen = false">
@@ -1119,7 +1136,7 @@ const routeTab = () => {
   const t = route.query.tab
   return typeof t === 'string' && (TAB_KEYS as string[]).includes(t) ? (t as TabKey) : null
 }
-const activeTab = ref<TabKey>(routeTab() ?? 'words')
+const activeTab = ref<TabKey>(routeTab() ?? 'kokoro')
 
 watch(activeTab, (v) => {
   if (route.query.tab !== v) router.replace({ query: { ...route.query, tab: v } })
@@ -1149,7 +1166,7 @@ const isRecordingTab = computed(() => recordingTabs.some(t => t.key === activeTa
 const showMoreTabs = ref(false)
 const secondaryVisible = computed(() => showMoreTabs.value || secondaryTabs.some(t => t.key === activeTab.value))
 function openRecording() {
-  if (!isRecordingTab.value) activeTab.value = 'words'
+  if (!isRecordingTab.value) activeTab.value = 'kokoro'
 }
 function confirmStartRecording() {
   recordConfirmOpen.value = false
@@ -1179,6 +1196,12 @@ async function submitTextInput() {
 }
 const charLimit = ref(1000)
 const encourageStyle = ref<'calm' | 'loud'>('loud')
+
+// --- ログ（記録・相談・気分の利用回数） ---
+const logOpen = ref(false)
+const consultDates = ref<string[]>([])
+const recordDates = computed(() => history.value.map(h => h.timestamp))
+const moodDates = computed(() => moodEntries.value.map(m => m.createdAt))
 
 const LS_DICTIONARY = 'hagemashi-dictionary'
 const LS_WORD_RANKING = 'hagemashi-word-ranking'
