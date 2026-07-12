@@ -69,22 +69,27 @@ export default defineEventHandler(async (event) => {
         model: 'claude-sonnet-5',
         max_tokens: 700,
         thinking: { type: 'disabled' },
-        system: `あなたはユーザーの日々の記録（中間データ）を分析するアシスタントです。
+        system: `あなたはユーザーの日々の記録（中間データ）を読み解き、要約して伝えるアシスタントです。
 ユーザーが選んだテーマ「${body.keyword}」に関連しそうな記録を、時期ごとに分けて与えます。各見出しは「2025年5〜8月頃」のようにその時期の実際の年月です。文字表記が完全一致しなくても、内容が意味的に関連していれば対象として扱ってください。無関係な記録も混ざっています。
 
 手順:
 1. 各時期から「${body.keyword}」に意味的に関連するものだけを自分で判断して選び出す（特定の時期に偏らず、すべての時期を確認する）
 2. 関連する記録がどの時期にも1件もなければ blocks を空配列にする
-3. 関連する記録があれば、時期ごとの内容差・変化を意識しながら1〜3個の塊に整理し、それぞれに短いタイトルをつける（新しい時期の記録ばかりを扱う内容に偏らせない）
+3. 関連する記録があれば、その内容を読み解き、共通する傾向・時期ごとの変化・背景にある気持ちを意味的に要約する。1〜3個の観点に整理し、それぞれに短いタイトルをつける（新しい時期の記録ばかりに偏らせない）
 
 必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
 {"blocks":[{"title":"見出し（10字前後）","text":"本文"}]}
 
+本文（text）の書き方（最重要）:
+- 記録の文をそのまま引き写したり、複数の記録を「。」でつなげて羅列したりしない
+- 複数の記録から要点を汲み取り、あなた自身の言葉でひとつのまとまった文章に書き直す
+- 箇条書きや記録の寄せ集めではなく、自然に流れる読みやすい文章にする（1ブロックあたり2〜4文程度）
+- 「〜という記録があった」「〜と書いていた」のような報告口調ではなく、そこから読み取れる傾向や意味を語りかけるように書く
+
 出力ルール:
-- blocks は1〜3個。関連する記録が少なければ1個でよい
+- blocks は1〜3個。関連する内容が少なければ1個でよい
 - 期間に言及するときは「初期」「中期」「直近」のような抽象語は使わず、「2025年5〜8月頃」のように与えられた見出しの実際の年月で具体的に書く
 - 古い時期に関連記録があるのに無視して新しい時期の内容だけでまとめる、ということはしない
-- 各ブロックの text は文の区切り（「。」の直後）ごとに改行（\\n）を入れる
 - 全ブロックの text を合計しておよそ500文字以内に収める
 - タイトルはそのブロックの内容を端的に表す10字前後のラベルにする
 - ブロックの並び・内容から時系列の流れが伝わるようにする
@@ -112,9 +117,11 @@ export default defineEventHandler(async (event) => {
       parsed = match ? JSON.parse(match[0]) : { blocks: [] }
     }
 
-    // モデルの出力ゆれに関わらず、文ごとに必ず「。」+ 改行になるよう正規化する
-    const toSentenceLines = (text: string): string[] =>
+    // 読みやすい地続きの文章にするため、改行はいったん取り除き文単位に分解する
+    // （モデルが記録を羅列して改行を挟んでも、つながった文章として扱えるようにする）
+    const toSentences = (text: string): string[] =>
       text
+        .replace(/\s*\n+\s*/g, '')
         .split('。')
         .map(s => s.trim())
         .filter(Boolean)
@@ -122,7 +129,7 @@ export default defineEventHandler(async (event) => {
 
     const rawBlocks = Array.isArray(parsed.blocks)
       ? parsed.blocks
-          .map(b => ({ title: String(b.title ?? '').slice(0, 20), sentences: toSentenceLines(String(b.text ?? '')) }))
+          .map(b => ({ title: String(b.title ?? '').slice(0, 20), sentences: toSentences(String(b.text ?? '')) }))
           .filter(b => b.sentences.length)
           .slice(0, 3)
       : []
@@ -138,7 +145,8 @@ export default defineEventHandler(async (event) => {
         kept.push(sentence)
         total += sentence.length
       }
-      if (kept.length) blocks.push({ title: b.title, text: kept.join('\n') })
+      // 文を改行で区切らず地続きにつなぎ、まとまった読みやすい文章として返す
+      if (kept.length) blocks.push({ title: b.title, text: kept.join('') })
     }
 
     return { blocks }
