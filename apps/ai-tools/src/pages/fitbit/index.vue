@@ -58,7 +58,7 @@
             >
               <ScoreGauge :score="data.sleepScore.score" label="睡眠スコア" :size="120" from="#818cf8" to="#6366f1" />
               <div class="text-xs text-indigo-300 font-medium flex items-center gap-1.5">
-                <span>{{ fmtDuration(data.sleep.totalMinutes) }}</span>
+                <span>{{ fmtDuration(data.sleep.asleepMinutes) }}</span>
                 <span class="text-indigo-400/60">·</span>
                 <span>{{ data.sleepScore.label }}</span>
               </div>
@@ -82,7 +82,7 @@
                 <span class="text-[10px] text-slate-500">{{ m.unit }}</span>
               </div>
               <div v-if="m.trend" class="w-full">
-                <Sparkline :points="trendPts(m.trend)" :color="m.color" :h="40" :unit="m.unit" :decimals="m.decimals" :zero-based="true" :axis-range="m.axisRange" />
+                <Sparkline :points="trendPts(m.trend)" :color="m.color" :h="40" :unit="m.unit" :decimals="m.decimals" :zero-based="true" :axis-range="m.axisRange" :goal="m.goal" :zero-line="m.zeroLine" />
               </div>
             </button>
           </div>
@@ -108,6 +108,8 @@
       :decimals="trendModal.decimals"
       :zero-based="trendModal.zeroBased"
       :axis-range="trendModal.axisRange"
+      :goal="trendModal.goal"
+      :zero-line="trendModal.zeroLine"
       :date="date"
       :intraday="trendModal.intraday"
       @close="trendModal = null"
@@ -179,21 +181,21 @@ function trendPts(key: string): { date: string; value: number | null }[] {
 
 interface MetricRow {
   key: string; icon: string; label: string; value: string | number; unit: string
-  color: string; trend: string; decimals: number; axisRange?: [number, number]
+  color: string; trend: string; decimals: number; axisRange?: [number, number]; goal?: number; zeroLine?: boolean
 }
 
 const metrics = computed<MetricRow[]>(() => {
   if (!data.value) return []
   const d = data.value
   return [
-    { key: 'steps', icon: '👟', label: `歩数（目標値${d.steps.goal.toLocaleString()}）`, value: d.steps.value.toLocaleString(), unit: '歩', color: '#fbbf24', trend: 'steps', decimals: 0 },
-    { key: 'distanceKm', icon: '📍', label: '移動距離', value: d.distanceKm.toFixed(1), unit: 'km', color: '#a3e635', trend: 'distanceKm', decimals: 1 },
-    { key: 'caloriesKcal', icon: '🔥', label: '消費カロリー', value: d.caloriesKcal.toLocaleString(), unit: 'kcal', color: '#f97316', trend: 'caloriesKcal', decimals: 0 },
+    { key: 'steps', icon: '👟', label: `歩数（目標値${d.steps.goal.toLocaleString()}）`, value: d.steps.value.toLocaleString(), unit: '歩', color: '#fbbf24', trend: 'steps', decimals: 0, goal: 8000 },
+    { key: 'distanceKm', icon: '📍', label: '移動距離', value: d.distanceKm.toFixed(1), unit: 'km', color: '#a3e635', trend: 'distanceKm', decimals: 1, goal: 6 },
+    { key: 'caloriesKcal', icon: '🔥', label: '消費カロリー', value: d.caloriesKcal.toLocaleString(), unit: 'kcal', color: '#f97316', trend: 'caloriesKcal', decimals: 0, goal: 2500 },
     { key: 'restingHeartRate', icon: '❤️', label: '安静時心拍', value: d.restingHeartRate, unit: 'bpm', color: '#f87171', trend: 'restingHeartRate', decimals: 0, axisRange: [50, 70] as [number, number] },
-    { key: 'hrv', icon: '💓', label: '心拍変動', value: d.hrv, unit: 'ms', color: '#fb7185', trend: 'hrv', decimals: 0, axisRange: [30, 60] as [number, number] },
+    { key: 'hrv', icon: '💓', label: '心拍変動', value: d.hrv, unit: 'ms', color: '#fb7185', trend: 'hrv', decimals: 0, axisRange: [20, 50] as [number, number] },
     { key: 'spo2', icon: '🩸', label: '血中酸素', value: d.spo2.avg, unit: '%', color: '#38bdf8', trend: 'spo2', decimals: 0, axisRange: [90, 100] as [number, number] },
     { key: 'breathingRate', icon: '🫁', label: '呼吸数', value: d.breathingRate, unit: '回/分', color: '#a78bfa', trend: 'breathingRate', decimals: 1, axisRange: [10, 20] as [number, number] },
-    { key: 'skinTempDelta', icon: '🌡️', label: '皮膚温の変動', value: fmtSigned(d.skinTempDelta), unit: '℃', color: '#c084fc', trend: 'skinTempDelta', decimals: 1, axisRange: [-2, 2] as [number, number] },
+    { key: 'skinTempDelta', icon: '🌡️', label: '皮膚温の変動', value: fmtSigned(d.skinTempDelta), unit: '℃', color: '#c084fc', trend: 'skinTempDelta', decimals: 1, axisRange: [-2, 2] as [number, number], zeroLine: true },
   ]
 })
 
@@ -213,7 +215,7 @@ function intradayFor(trend: string): { points: TimePoint[]; label: string; zeroB
 
 function openTrend(m: any) {
   // 既定で下限0（zeroBased）。血中酸素・呼吸数・皮膚温は固定レンジ（axisRange）を優先。
-  trendModal.value = { trend: m.trend, label: m.label, icon: m.icon, color: m.color, unit: m.unit, decimals: m.decimals ?? 0, zeroBased: m.zeroBased ?? true, axisRange: m.axisRange ?? null, intraday: intradayFor(m.trend) }
+  trendModal.value = { trend: m.trend, label: m.label, icon: m.icon, color: m.color, unit: m.unit, decimals: m.decimals ?? 0, zeroBased: m.zeroBased ?? true, axisRange: m.axisRange ?? null, goal: m.goal ?? null, zeroLine: m.zeroLine ?? false, intraday: intradayFor(m.trend) }
 }
 
 function fmtSigned(v: number): string {

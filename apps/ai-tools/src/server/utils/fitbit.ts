@@ -671,7 +671,7 @@ export async function syncAllUsers(event: H3Event, days = 3): Promise<number> {
 
 /** ダッシュボードで扱う全メトリクスのキー */
 export const TREND_METRICS = [
-  'energyScore', 'sleepScore', 'steps', 'distanceKm', 'caloriesKcal', 'restingHeartRate', 'hrv', 'spo2', 'breathingRate', 'sleepHours', 'skinTempDelta',
+  'energyScore', 'sleepScore', 'steps', 'distanceKm', 'caloriesKcal', 'restingHeartRate', 'hrv', 'spo2', 'breathingRate', 'sleepHours', 'sleepAsleepHours', 'skinTempDelta',
 ] as const
 
 /** 指定メトリクスの当日値を取り出す（score はスコア系列から） */
@@ -687,6 +687,7 @@ function pickMetric(d: RawDay, sc: { energy: number | null; sleep: number | null
     case 'spo2': return d.spo2.avg
     case 'breathingRate': return d.breathingRate
     case 'sleepHours': return Math.round((d.sleep.totalMinutes / 60) * 10) / 10
+    case 'sleepAsleepHours': return Math.round(((d.sleep.totalMinutes - d.sleep.wakeMin) / 60) * 10) / 10
     case 'skinTempDelta': return d.skinTempDelta
     default: return null
   }
@@ -729,6 +730,7 @@ export function assembleDashboard(history: RawDay[]): DashboardData {
     skinTempDelta: today.skinTempDelta,
     sleep: {
       totalMinutes: today.sleep.totalMinutes,
+      asleepMinutes: today.sleep.totalMinutes - today.sleep.wakeMin,
       bedtime: today.sleep.bedtime,
       waketime: today.sleep.waketime,
     },
@@ -747,6 +749,7 @@ export function assembleSleepDetail(history: RawDay[]): SleepDetail {
     date: today.date,
     score,
     totalMinutes: s.totalMinutes,
+    asleepMinutes: s.totalMinutes - s.wakeMin,
     bedtime: s.bedtime,
     waketime: s.waketime,
     efficiency: s.efficiency,

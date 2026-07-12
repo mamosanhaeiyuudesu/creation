@@ -75,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { mdWeekday } from '~/utils/jst'
 import type { SleepStage } from '~/types/fitbit'
 import { SLEEP_STAGE_LEVELS, sleepStageColor } from '~/utils/sleepStage'
@@ -102,8 +102,9 @@ const days = ref(props.defaultDays)
 const series = ref<SleepDay[]>([])
 const loading = ref(true)
 
-// SVG レイアウト（viewBox 単位）
-const W = 320
+// SVG レイアウト（viewBox 単位）。W は実ピクセル幅で測る（固定値だと preserveAspectRatio=none 下で
+// X/Yの拡縮比がずれ、文字が横長に歪むため。棒グラフ（useBarChart）と同じ考え方）。
+const W = ref(320)
 const H = 200
 const padL = 40
 const padR = 8
@@ -149,7 +150,7 @@ const yScale = (axis: number) => {
   return padT + ((axis - min) / (max - min || 1)) * (H - padT - padB)
 }
 
-const band = computed(() => (W - padL - padR) / Math.max(1, series.value.length))
+const band = computed(() => (W.value - padL - padR) / Math.max(1, series.value.length))
 
 const bars = computed(() =>
   valid.value.map((d) => {
@@ -200,7 +201,7 @@ const xLabels = computed(() => {
   const step = Math.max(1, Math.ceil(n / 7))
   const out: { x: number; text: string }[] = []
   for (let i = 0; i < n; i += step) {
-    out.push({ x: padL + (i + 0.5) * band.value, text: mdWeekday(series.value[i].date).replace(/\(.\)$/, '') })
+    out.push({ x: padL + (i + 0.5) * band.value, text: mdWeekday(series.value[i].date) })
   }
   return out
 })
@@ -209,7 +210,7 @@ const hovered = computed(() => bars.value.find(b => b.i === hover.value) ?? null
 const tooltipStyle = computed(() => {
   const b = hovered.value
   if (!b) return {}
-  return { left: `${(b.cx / W) * 100}%`, top: `${(b.y / H) * 100}%`, transform: 'translate(-50%, calc(-100% - 6px))' }
+  return { left: `${(b.cx / W.value) * 100}%`, top: `${(b.y / H) * 100}%`, transform: 'translate(-50%, calc(-100% - 6px))' }
 })
 
 function onMove(e: PointerEvent) {
@@ -217,10 +218,19 @@ function onMove(e: PointerEvent) {
   if (!el || !series.value.length) return
   const rect = el.getBoundingClientRect()
   const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
-  const px = frac * W
+  const px = frac * W.value
   const idx = Math.floor((px - padL) / band.value)
   hover.value = bars.value.some(b => b.i === idx) ? idx : -1
 }
+
+function measure() { if (wrap.value) W.value = wrap.value.clientWidth || 320 }
+
+let ro: ResizeObserver | null = null
+onMounted(() => {
+  ro = new ResizeObserver(measure)
+  watch(wrap, (el) => { if (el) { measure(); ro?.observe(el) } }, { immediate: true })
+})
+onBeforeUnmount(() => ro?.disconnect())
 
 async function load() {
   loading.value = true
@@ -232,6 +242,7 @@ async function load() {
     series.value = []
   } finally {
     loading.value = false
+    requestAnimationFrame(measure)
   }
 }
 

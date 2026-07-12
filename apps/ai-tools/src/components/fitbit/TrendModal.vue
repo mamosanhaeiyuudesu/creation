@@ -27,7 +27,7 @@
           <IntradayPanel :points="intradayPoints" :color="color" :unit="unit" :decimals="decimals" :zero-based="intraday?.zeroBased ?? false" label="" />
         </div>
       </div>
-      <TrendPanel :metric="metric" :color="color" :unit="unit" :date="activeDate" :decimals="decimals" :zero-based="zeroBased" :axis-range="axisRange" />
+      <TrendPanel :metric="metric" :color="color" :unit="unit" :date="activeDate" :decimals="decimals" :zero-based="zeroBased" :axis-range="axisRange" :goal="goal" :zero-line="zeroLine" />
     </div>
   </div>
 </template>
@@ -49,6 +49,8 @@ const props = defineProps<{
   decimals?: number
   zeroBased?: boolean
   axisRange?: readonly [number, number]
+  goal?: number
+  zeroLine?: boolean
   intraday?: { points: TimePoint[]; label: string; zeroBased?: boolean }
 }>()
 defineEmits<{ close: [] }>()

@@ -74,11 +74,13 @@ export function niceAxis(
  */
 export function useBarChart(
   points: ComputedRef<BarChartPoint[]>,
-  options?: { height?: number; zeroBased?: boolean; range?: readonly [number, number] },
+  options?: { height?: number; zeroBased?: boolean; range?: readonly [number, number]; goal?: number; zeroLine?: boolean },
 ) {
   const H = options?.height ?? 180
   const zeroBased = options?.zeroBased ?? false
   const range = options?.range
+  const goal = options?.goal
+  const zeroLine = options?.zeroLine ?? false
   const padL = 34
   const padR = 12
   const padT = 12
@@ -97,10 +99,14 @@ export function useBarChart(
   const avg = computed(() => (nums.value.length ? nums.value.reduce((a, b) => a + b, 0) / nums.value.length : 0))
 
   // 軸は「切りの良い」下限・上限・目盛りに丸める（40/50/60… のような等間隔）。
-  // range 指定時は固定レンジ、zeroBased 時は下限を0に固定。
-  const axis = computed(() => niceAxis(min.value, max.value, { zeroBased, range }))
+  // range 指定時は固定レンジ、zeroBased 時は下限を0に固定。goal はチャート内に必ず収まるよう上限計算に含める。
+  const effMax = computed(() => (goal != null ? Math.max(max.value, goal) : max.value))
+  const axis = computed(() => niceAxis(min.value, effMax.value, { zeroBased, range }))
   const yLo = computed(() => axis.value.lo)
   const yHi = computed(() => axis.value.hi)
+  const goalY = computed(() => (goal != null ? toY(goal) : null))
+  // 基準線（0）。皮膚温の変動など「差」を見せる指標で、正負の境目をはっきり示すために使う。
+  const zeroY = computed(() => (zeroLine && yLo.value <= 0 && yHi.value >= 0 ? toY(0) : null))
 
   // バンド配置: 各点をスロット中央に置く。端点を軸ちょうど(padL / W-padR)に置くと、
   // その点を中心に描く棒が軸を半分またぎ、左端の棒がY軸ラベルに被る（点数が少ないほど顕著）。
@@ -183,7 +189,7 @@ export function useBarChart(
   return {
     wrap, W, H, padL, padR, padT, padB, labelStyle,
     hasData, min, max, avg,
-    bars, gridYs, xLabels,
+    bars, gridYs, xLabels, goalY, zeroY,
     hover, hovered, hoverX, tooltipStyle,
     onMove, onDown, onLeave, measure,
   }

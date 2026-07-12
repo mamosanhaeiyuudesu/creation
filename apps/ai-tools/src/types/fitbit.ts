@@ -33,7 +33,10 @@ export interface StageBreakdown {
 export interface SleepDetail {
   date: string
   score: ScoreDetail
+  /** 就寝〜起床の全期間（分、中途覚醒を含む） */
   totalMinutes: number
+  /** 実際に眠っていた時間（分、中途覚醒を除く＝totalMinutes − stages.wake.minutes） */
+  asleepMinutes: number
   /** 就寝・起床時刻（"23:41" 形式、JST） */
   bedtime: string
   waketime: string
@@ -78,7 +81,10 @@ export interface DashboardData {
   skinTempDelta: number
   /** 睡眠サマリ（詳細は sleep エンドポイントで取得） */
   sleep: {
+    /** 就寝〜起床の全期間（分、中途覚醒を含む） */
     totalMinutes: number
+    /** 実際に眠っていた時間（分、中途覚醒を除く） */
+    asleepMinutes: number
     bedtime: string
     waketime: string
   }

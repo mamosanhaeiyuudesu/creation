@@ -40,6 +40,11 @@
             :fill="color"
             :fill-opacity="hover === b.i ? 1 : 0.7"
           />
+          <!-- 目標ライン -->
+          <line v-if="goalY != null" :x1="padL" :x2="W - padR" :y1="goalY" :y2="goalY" stroke="#f8fafc" stroke-opacity="0.55" stroke-width="1.5" stroke-dasharray="4 3" vector-effect="non-scaling-stroke" />
+          <text v-if="goalY != null" :x="W - padR" :y="goalY - 4" text-anchor="end" class="fill-slate-300" :style="labelStyle">目標 {{ fmt(goal!) }}</text>
+          <!-- 基準線（0） -->
+          <line v-if="zeroY != null" :x1="padL" :x2="W - padR" :y1="zeroY" :y2="zeroY" stroke="#cbd5e1" stroke-opacity="0.5" stroke-width="1.5" vector-effect="non-scaling-stroke" />
           <!-- ホバーガイド -->
           <line v-if="hoverX != null" :x1="hoverX" :x2="hoverX" :y1="padT" :y2="H - padB" :stroke="color" stroke-opacity="0.35" stroke-width="1" stroke-dasharray="2 2" vector-effect="non-scaling-stroke" />
           <!-- X ラベル -->
@@ -52,7 +57,8 @@
           :style="tooltipStyle"
         >
           <div class="text-slate-400 text-[10px]">{{ hovered.label }}</div>
-          <div class="font-bold text-slate-100 tabular-nums">{{ hovered.value ?? '-' }}<span class="text-slate-500 text-[10px] font-normal ml-0.5">{{ unit }}</span></div>
+          <div v-if="formatValue && hovered.value != null" class="font-bold text-slate-100 tabular-nums">{{ formatValue(hovered.value) }}</div>
+          <div v-else class="font-bold text-slate-100 tabular-nums">{{ hovered.value ?? '-' }}<span class="text-slate-500 text-[10px] font-normal ml-0.5">{{ unit }}</span></div>
         </div>
       </div>
     </template>
@@ -74,6 +80,10 @@ const props = withDefaults(defineProps<{
   defaultDays?: number
   zeroBased?: boolean
   axisRange?: readonly [number, number]
+  goal?: number
+  zeroLine?: boolean
+  /** ツールチップの値表示を上書き（例: 小数時間を「7時間12分」形式に変換）。未指定時は decimals + unit で表示 */
+  formatValue?: (v: number) => string
 }>(), { color: '#38bdf8', unit: '', decimals: 0, defaultDays: 7, zeroBased: false })
 
 const periods = [
@@ -89,7 +99,9 @@ const loading = ref(true)
 function fmt(v: number): string { return v.toFixed(props.decimals) }
 
 const points = computed(() => series.value.map(d => ({ label: mdWeekday(d.date), value: d.value })))
-const { wrap, W, H, padL, padR, padT, padB, labelStyle, hasData, min, max, avg, bars, gridYs, xLabels, hover, hovered, hoverX, tooltipStyle, onMove, onDown, onLeave, measure } = useBarChart(points, { zeroBased: props.zeroBased, range: props.axisRange })
+const { wrap, W, H, padL, padR, padT, padB, labelStyle, hasData, min, max, avg, bars, gridYs, xLabels, goalY, zeroY, hover, hovered, hoverX, tooltipStyle, onMove, onDown, onLeave, measure } = useBarChart(points, { zeroBased: props.zeroBased, range: props.axisRange, goal: props.goal, zeroLine: props.zeroLine })
+
+const goal = props.goal
 
 async function load() {
   loading.value = true

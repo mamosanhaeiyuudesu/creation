@@ -129,6 +129,11 @@ const praiseDays = ref(3)
 const praiseDaysOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 60, 180, 365]
 const praiseChars = ref(500)
 const praiseCharsOptions = [500, 1000, 1500, 2000]
+const praiseMode = ref<'exaggerated' | 'calm'>('exaggerated')
+const praiseModeOptions: { value: 'exaggerated' | 'calm'; label: string }[] = [
+  { value: 'exaggerated', label: '大げさ' },
+  { value: 'calm', label: '冷静' },
+]
 const praiseFeedback = ref('')
 const praiseLoading = ref(false)
 const praiseError = ref('')
@@ -183,6 +188,7 @@ async function generatePraise() {
         tasks: praisePeriodFlat.value.map(r => ({ board: r.board.name, task: r.card.name, date: r.date })),
         days: praiseDays.value,
         chars: praiseChars.value,
+        mode: praiseMode.value,
         boardContexts: boards.value
           .filter(b => b.desc)
           .map(b => ({ name: b.name, description: b.desc })),
@@ -190,7 +196,8 @@ async function generatePraise() {
     })
     praiseFeedback.value = res.feedback
     const today = new Date().toISOString().slice(0, 10)
-    addPraiseHistory(res.feedback, `${today}（${praiseDays.value}日間）`)
+    const modeLabel = praiseModeOptions.find(m => m.value === praiseMode.value)?.label
+    addPraiseHistory(res.feedback, `${today}（${praiseDays.value}日間・${modeLabel}）`)
   } catch (e: any) {
     praiseError.value = e?.data?.statusMessage || 'エラーが発生しました'
   } finally {
@@ -288,6 +295,23 @@ watch(isLoggedIn, async (v) => {
           >
             <option v-for="c in praiseCharsOptions" :key="c" :value="c" class="bg-[#1e293b] text-slate-200">{{ c }}文字</option>
           </select>
+        </div>
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1.5">トーン</label>
+          <div class="flex gap-1.5">
+            <button
+              v-for="opt in praiseModeOptions"
+              :key="opt.value"
+              type="button"
+              :class="[
+                'flex-1 px-3 py-2 rounded-lg text-[13px] font-medium cursor-pointer border transition-colors',
+                praiseMode === opt.value
+                  ? 'bg-violet-500/20 border-violet-400/50 text-violet-300'
+                  : 'bg-white/[0.06] border-white/10 text-slate-400 hover:bg-white/[0.1]',
+              ]"
+              @click="praiseMode = opt.value"
+            >{{ opt.label }}</button>
+          </div>
         </div>
       </div>
       <div class="flex justify-end gap-2">

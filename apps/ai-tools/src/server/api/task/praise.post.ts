@@ -1,11 +1,12 @@
 import { callOpenAi, extractText, getOpenAiKey, wrapApiError } from '~/server/utils/openai'
 
 export default defineEventHandler(async (event) => {
-  const { tasks = [], days = 7, chars = 500, boardContexts = [] } = await readBody<{
+  const { tasks = [], days = 7, chars = 500, boardContexts = [], mode = 'exaggerated' } = await readBody<{
     tasks: { board: string; task: string; date: string }[]
     days?: number
     chars?: number
     boardContexts?: { name: string; description: string }[]
+    mode?: 'exaggerated' | 'calm'
   }>(event)
 
   const apiKey = getOpenAiKey(event)
@@ -36,17 +37,26 @@ export default defineEventHandler(async (event) => {
 
   if (import.meta.dev) {
     return {
-      feedback: `【サンプルデータ】神か！！！ ${tasks.length}件ものタスクをこなすなんて、人類の限界を超えてる！！「${tasks[0]?.task ?? 'タスク'}」とかもう意味わかんないくらいすごい！！この${periodLabel}の活躍、伝説すぎて語り継がれる！！世界が震えてますよ！？存在してくれてありがとう！！！ブラボー！！！！`,
+      feedback: mode === 'calm'
+        ? `【サンプルデータ】この${periodLabel}で${tasks.length}件のタスクを着実にこなされていますね。「${tasks[0]?.task ?? 'タスク'}」をはじめ、一つひとつ丁寧に進められている様子が伝わってきます。地道な積み重ねがしっかり成果につながっています。引き続き、無理のないペースで進めていってください。`
+        : `【サンプルデータ】神か！！！ ${tasks.length}件ものタスクをこなすなんて、人類の限界を超えてる！！「${tasks[0]?.task ?? 'タスク'}」とかもう意味わかんないくらいすごい！！この${periodLabel}の活躍、伝説すぎて語り継がれる！！世界が震えてますよ！？存在してくれてありがとう！！！ブラボー！！！！`,
     }
   }
 
-  try {
-    const data = await callOpenAi(apiKey, {
-      model: 'gpt-4.1-mini',
-      input: [
-        {
-          role: 'system',
-          content: `あなたは相手のことを「恥ずかしくなるほど大げさに」褒めまくる存在です。タスク管理データを踏まえたうえで、全力で称え尽くしてください。
+  const systemPrompt = mode === 'calm'
+    ? `あなたは相手の努力を「冷静かつ的確に」認め、労う存在です。タスク管理データを踏まえたうえで、落ち着いたトーンで称えてください。
+以下のルールを厳守してください：
+
+- 誇張しない：感嘆符を多用せず、事実に基づいた穏やかな言葉で評価する
+- タスク名を具体的に引用する：タスク名や内容から事実を拾い、「【タスク名】を進められたのは着実な前進です」のように具体的に触れる
+- 落ち着いた励まし：「よく取り組まれています」「着実に積み重ねられています」など、信頼感のある言葉を使う
+- ボード横断：${boards.length > 1 ? `複数のボード（${boards.join('・')}）にまたがる活動全体をバランスよく振り返る` : '全タスクをバランスよく振り返る'}
+- 期間全体を均等にカバー：${periodLabel}の最初から最後まで均等に取り上げる${boardContexts.length > 0 ? '\n- ボードの概要：各ボードの目的を踏まえて、その意義に触れる' : ''}
+- 感嘆符は使わないか、使っても最小限にとどめる
+- 最後は穏やかな労いや今後への後押しで締める
+- 中学生でもわかる平易な言葉を使う
+- 日本語${chars}文字程度で出力`
+    : `あなたは相手のことを「恥ずかしくなるほど大げさに」褒めまくる存在です。タスク管理データを踏まえたうえで、全力で称え尽くしてください。
 以下のルールを厳守してください：
 
 - 神話・伝説レベルの表現：「神か！！」「天才！！！」「こんな人間が存在していいのか！？」「伝説誕生！！」など大げさな言葉を使う
@@ -58,7 +68,15 @@ export default defineEventHandler(async (event) => {
 - 感嘆符を多用する：「！！！」「！？」など感情爆発の表現を惜しみなく使う
 - 最後は必ず最大限の感謝や称賛で締める：「存在してくれてありがとう！！」「ブラボー！！！！」など
 - 中学生でもわかる平易な言葉を使う
-- 日本語${chars}文字程度で出力`,
+- 日本語${chars}文字程度で出力`
+
+  try {
+    const data = await callOpenAi(apiKey, {
+      model: 'gpt-4.1-mini',
+      input: [
+        {
+          role: 'system',
+          content: systemPrompt,
         },
         {
           role: 'user',

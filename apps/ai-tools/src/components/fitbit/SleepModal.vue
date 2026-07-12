@@ -26,7 +26,7 @@
         <div class="flex items-center gap-5">
           <ScoreGauge :score="data.score.score" label="睡眠スコア" :size="108" from="#818cf8" to="#6366f1" />
           <div class="flex flex-col gap-1">
-            <div class="text-2xl font-bold text-slate-100 tabular-nums">{{ fmtDuration(data.totalMinutes) }}</div>
+            <div class="text-2xl font-bold text-slate-100 tabular-nums">{{ fmtDuration(data.asleepMinutes) }}</div>
             <div class="text-sm text-slate-400">{{ data.bedtime }} → {{ data.waketime }}</div>
             <div class="text-xs text-indigo-300 mt-0.5">{{ data.score.label }}</div>
             <div class="flex items-center gap-2.5 mt-1 text-[11px] text-slate-400">
@@ -100,6 +100,12 @@
         <div class="border-t border-white/[0.06] pt-4">
           <div class="text-xs font-semibold text-slate-400 mb-2">睡眠スコアの推移</div>
           <TrendPanel metric="sleepScore" color="#818cf8" :date="activeDate" :decimals="0" :zero-based="true" />
+        </div>
+
+        <!-- 睡眠時間（覚醒時間は除く）の推移 -->
+        <div class="border-t border-white/[0.06] pt-4">
+          <div class="text-xs font-semibold text-slate-400 mb-2">睡眠時間の推移（覚醒時間は除く）</div>
+          <TrendPanel metric="sleepAsleepHours" color="#a5b4fc" unit="時間" :date="activeDate" :decimals="1" :zero-based="true" :format-value="(v) => fmtDuration(Math.round(v * 60))" />
         </div>
 
         <!-- 就寝・起床の比較（他の日と横並び） -->
