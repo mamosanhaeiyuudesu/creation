@@ -14,13 +14,71 @@ interface BarGeometry {
   height: number
 }
 
+/** 「切りの良い」桁数（1/2/5×10^n）に丸める。round=false は切り上げ、true は最寄り */
+function niceNum(range: number, round: boolean): number {
+  if (!(range > 0) || !isFinite(range)) return 1
+  const exp = Math.floor(Math.log10(range))
+  const f = range / Math.pow(10, exp)
+  let nf: number
+  if (round) nf = f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10
+  else nf = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10
+  return nf * Math.pow(10, exp)
+}
+
+/** [lo, hi] 間を「切りの良い」等間隔で刻んだ目盛り（両端含む）。40/50/60… のような値。 */
+function makeTicks(lo: number, hi: number): number[] {
+  const step = niceNum((hi - lo) / 4, true) // 目安5本（広いレンジでも粗くなりすぎない）
+  const decimals = Math.max(0, -Math.floor(Math.log10(step)))
+  const ticks: number[] = []
+  for (let v = lo; v <= hi + step * 0.5; v += step) {
+    ticks.push(Number(v.toFixed(decimals + 2)))
+  }
+  return ticks
+}
+
+/**
+ * データ範囲を覆う「切りの良い」軸の下限・上限・目盛りを返す。
+ * - range 指定時: その固定レンジをそのまま軸に使う（血中酸素90-100 等）
+ * - zeroBased 時: 下限を0に固定し、上限のみ切りの良い数値に丸める
+ * - それ以外: 下限・上限とも切りの良い数値に丸める
+ */
+export function niceAxis(
+  dataMin: number,
+  dataMax: number,
+  opts?: { zeroBased?: boolean; range?: readonly [number, number] },
+): { lo: number; hi: number; ticks: number[] } {
+  if (opts?.range) {
+    const [lo, hi] = opts.range
+    return { lo, hi, ticks: makeTicks(lo, hi) }
+  }
+  const zeroBased = opts?.zeroBased ?? false
+  const effLo = zeroBased ? 0 : dataMin
+  // 有効な範囲が作れない（1点のみ / 全て同値 / 上限が下限以下）ときはフォールバック
+  if (!isFinite(effLo) || !isFinite(dataMax) || dataMax <= effLo) {
+    const base = isFinite(dataMax) ? dataMax : 0
+    const pad = Math.abs(base) * 0.1 || 1
+    const lo = zeroBased ? 0 : base - pad
+    const hi = base + pad
+    return { lo, hi, ticks: [lo, hi] }
+  }
+  const step = niceNum((dataMax - effLo) / 4, true)
+  const lo = zeroBased ? 0 : Math.floor(dataMin / step) * step
+  const hi = Math.ceil(dataMax / step) * step
+  return { lo, hi, ticks: makeTicks(lo, hi) }
+}
+
 /**
  * SVG縦棒グラフの座標計算・ホバー処理を切り出したコンポーザブル。
  * TrendPanel（長期推移・期間トグル＋$fetch）とIntradayPanel（当日内訳・propそのまま）の
  * 両方が同じ描画ロジックを使うための共通部分のみを担う。統計行や期間トグルは呼び出し側の責務。
  */
-export function useBarChart(points: ComputedRef<BarChartPoint[]>, options?: { height?: number }) {
+export function useBarChart(
+  points: ComputedRef<BarChartPoint[]>,
+  options?: { height?: number; zeroBased?: boolean; range?: readonly [number, number] },
+) {
   const H = options?.height ?? 180
+  const zeroBased = options?.zeroBased ?? false
+  const range = options?.range
   const padL = 34
   const padR = 12
   const padT = 12
@@ -38,8 +96,11 @@ export function useBarChart(points: ComputedRef<BarChartPoint[]>, options?: { he
   const max = computed(() => (nums.value.length ? Math.max(...nums.value) : 0))
   const avg = computed(() => (nums.value.length ? nums.value.reduce((a, b) => a + b, 0) / nums.value.length : 0))
 
-  const yLo = computed(() => min.value - (max.value - min.value || 1) * 0.1)
-  const yHi = computed(() => max.value + (max.value - min.value || 1) * 0.1)
+  // 軸は「切りの良い」下限・上限・目盛りに丸める（40/50/60… のような等間隔）。
+  // range 指定時は固定レンジ、zeroBased 時は下限を0に固定。
+  const axis = computed(() => niceAxis(min.value, max.value, { zeroBased, range }))
+  const yLo = computed(() => axis.value.lo)
+  const yHi = computed(() => axis.value.hi)
 
   // バンド配置: 各点をスロット中央に置く。端点を軸ちょうど(padL / W-padR)に置くと、
   // その点を中心に描く棒が軸を半分またぎ、左端の棒がY軸ラベルに被る（点数が少ないほど顕著）。
@@ -63,18 +124,17 @@ export function useBarChart(points: ComputedRef<BarChartPoint[]>, options?: { he
     const slot = n > 1 ? inner / n : inner
     return Math.max(2, slot * 0.6)
   })
+  // 棒の基準線は0（軸内にクランプ）。0が軸内にあれば、負値は0から下・正値は0から上に伸びる。
+  const baseY = computed(() => toY(Math.min(yHi.value, Math.max(yLo.value, 0))))
   const bars = computed(() => points.value
     .map((p, i) => {
       if (p.value == null) return null
-      const base = H - padB
-      const y = toY(p.value)
-      return { i, x: toX(i) - barWidth.value / 2, y, width: barWidth.value, height: Math.max(0, base - y) }
+      const y0 = baseY.value
+      const yv = toY(p.value)
+      return { i, x: toX(i) - barWidth.value / 2, y: Math.min(y0, yv), width: barWidth.value, height: Math.max(0, Math.abs(yv - y0)) }
     })
     .filter((b): b is BarGeometry => b != null))
-  const gridYs = computed(() => {
-    const lo = yLo.value, hi = yHi.value
-    return [hi, (hi + lo) / 2, lo].map(v => ({ v, y: toY(v) }))
-  })
+  const gridYs = computed(() => axis.value.ticks.map(v => ({ v, y: toY(v) })))
   const xLabels = computed(() => {
     const n = points.value.length
     if (!n) return []
@@ -93,7 +153,7 @@ export function useBarChart(points: ComputedRef<BarChartPoint[]>, options?: { he
     return { left: `${xPct}%`, top: `${Math.max(0, yPx - 46)}px` }
   })
 
-  function onMove(e: PointerEvent) {
+  function pick(e: PointerEvent) {
     const el = wrap.value
     if (!el || points.value.length < 2) return
     const rect = el.getBoundingClientRect()
@@ -104,6 +164,11 @@ export function useBarChart(points: ComputedRef<BarChartPoint[]>, options?: { he
     // バンド配置に合わせ、カーソル位置のスロット（棒）を選ぶ
     hover.value = Math.min(n - 1, Math.floor(frac * n))
   }
+  // マウスはホバー追従、タッチはタップした棒を選択（スマホでツールチップを出す）
+  function onMove(e: PointerEvent) { pick(e) }
+  function onDown(e: PointerEvent) { pick(e) }
+  // タッチは指を離してもツールチップを残す（タップ表示のため）。マウスは離脱で消す。
+  function onLeave(e: PointerEvent) { if (e.pointerType !== 'touch') hover.value = -1 }
 
   let ro: ResizeObserver | null = null
   function measure() { if (wrap.value) W.value = wrap.value.clientWidth || 320 }
@@ -120,6 +185,6 @@ export function useBarChart(points: ComputedRef<BarChartPoint[]>, options?: { he
     hasData, min, max, avg,
     bars, gridYs, xLabels,
     hover, hovered, hoverX, tooltipStyle,
-    onMove, measure,
+    onMove, onDown, onLeave, measure,
   }
 }

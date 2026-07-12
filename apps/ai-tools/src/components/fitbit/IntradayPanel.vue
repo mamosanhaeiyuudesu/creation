@@ -3,7 +3,7 @@
     <div v-if="label" class="text-xs font-semibold text-slate-400">{{ label }}</div>
     <div v-if="!hasData" class="h-[120px] flex items-center justify-center text-slate-600 text-xs">データがありません</div>
     <div v-else ref="wrap" class="relative" :style="{ height: `${H}px` }">
-      <svg :viewBox="`0 0 ${W} ${H}`" preserveAspectRatio="none" class="w-full h-full block" @pointermove="onMove" @pointerleave="hover = -1">
+      <svg :viewBox="`0 0 ${W} ${H}`" preserveAspectRatio="none" class="w-full h-full block touch-none" @pointermove="onMove" @pointerdown="onDown" @pointerleave="onLeave">
         <!-- グリッド -->
         <line v-for="(gy, i) in gridYs" :key="`g${i}`" :x1="padL" :x2="W - padR" :y1="gy.y" :y2="gy.y" class="stroke-white/[0.06]" stroke-width="1" vector-effect="non-scaling-stroke" />
         <text v-for="(gy, i) in gridYs" :key="`t${i}`" :x="padL - 6" :y="gy.y + 3" text-anchor="end" class="fill-slate-600" :style="labelStyle">{{ fmt(gy.v) }}</text>
@@ -47,9 +47,11 @@ const props = withDefaults(defineProps<{
   color?: string
   unit?: string
   decimals?: number
+  zeroBased?: boolean
+  axisRange?: readonly [number, number]
   /** 見出しテキスト（例: 「時間別」「心拍数（5分間隔）」） */
   label: string
-}>(), { color: '#38bdf8', unit: '', decimals: 0 })
+}>(), { color: '#38bdf8', unit: '', decimals: 0, zeroBased: false })
 
 function fmt(v: number): string { return v.toFixed(props.decimals) }
 /** 0時からの経過分 → "HH:MM" */
@@ -60,5 +62,5 @@ function clock(t: number): string {
 }
 
 const barPoints = computed(() => props.points.map(p => ({ label: clock(p.t), value: p.v })))
-const { wrap, W, H, padL, padR, padT, padB, labelStyle, hasData, bars, gridYs, xLabels, hover, hovered, hoverX, tooltipStyle, onMove } = useBarChart(barPoints, { height: 120 })
+const { wrap, W, H, padL, padR, padT, padB, labelStyle, hasData, bars, gridYs, xLabels, hover, hovered, hoverX, tooltipStyle, onMove, onDown, onLeave } = useBarChart(barPoints, { height: 120, zeroBased: props.zeroBased, range: props.axisRange })
 </script>

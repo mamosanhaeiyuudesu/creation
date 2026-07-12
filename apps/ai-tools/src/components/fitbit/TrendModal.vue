@@ -24,10 +24,10 @@
           </div>
         </div>
         <div :class="{ 'opacity-40 transition-opacity': intradayLoading }">
-          <IntradayPanel :points="intradayPoints" :color="color" :unit="unit" :decimals="decimals" label="" />
+          <IntradayPanel :points="intradayPoints" :color="color" :unit="unit" :decimals="decimals" :zero-based="intraday?.zeroBased ?? false" label="" />
         </div>
       </div>
-      <TrendPanel :metric="metric" :color="color" :unit="unit" :date="activeDate" :decimals="decimals" />
+      <TrendPanel :metric="metric" :color="color" :unit="unit" :date="activeDate" :decimals="decimals" :zero-based="zeroBased" :axis-range="axisRange" />
     </div>
   </div>
 </template>
@@ -47,7 +47,9 @@ const props = defineProps<{
   unit?: string
   date?: string
   decimals?: number
-  intraday?: { points: TimePoint[]; label: string }
+  zeroBased?: boolean
+  axisRange?: readonly [number, number]
+  intraday?: { points: TimePoint[]; label: string; zeroBased?: boolean }
 }>()
 defineEmits<{ close: [] }>()
 

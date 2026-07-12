@@ -43,12 +43,12 @@
           <div class="grid grid-cols-2 gap-3">
             <button
               class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4 flex flex-col items-center gap-2 hover:bg-white/[0.06] transition-colors"
-              @click="openTrend({ trend: 'energyScore', label: 'エナジースコア', icon: '⚡️', color: '#14b8a6', unit: '', decimals: 0 })"
+              @click="openTrend({ trend: 'energyScore', label: 'エナジースコア', icon: '⚡️', color: '#14b8a6', unit: '', decimals: 0, zeroBased: true })"
             >
               <ScoreGauge :score="data.energyScore.score" label="エナジー" :size="120" from="#34d399" to="#14b8a6" />
               <div class="text-xs text-emerald-300 font-medium">{{ data.energyScore.label }}</div>
               <div class="w-full mt-0.5">
-                <Sparkline :points="trendPts('energyScore')" color="#2dd4bf" :h="28" />
+                <Sparkline :points="trendPts('energyScore')" color="#2dd4bf" :h="40" :zero-based="true" />
               </div>
             </button>
 
@@ -63,7 +63,7 @@
                 <span>{{ data.sleepScore.label }}</span>
               </div>
               <div class="w-full mt-0.5">
-                <Sparkline :points="trendPts('sleepScore')" color="#818cf8" :h="28" />
+                <Sparkline :points="trendPts('sleepScore')" color="#818cf8" :h="40" :zero-based="true" />
               </div>
             </button>
           </div>
@@ -82,9 +82,8 @@
                 <span class="text-[10px] text-slate-500">{{ m.unit }}</span>
               </div>
               <div v-if="m.trend" class="w-full">
-                <Sparkline :points="trendPts(m.trend)" :color="m.color" :h="26" :unit="m.unit" />
+                <Sparkline :points="trendPts(m.trend)" :color="m.color" :h="40" :unit="m.unit" :decimals="m.decimals" :zero-based="true" :axis-range="m.axisRange" />
               </div>
-              <div v-if="m.sub" class="text-[10px] text-slate-500">{{ m.sub }}</div>
             </button>
           </div>
 
@@ -107,6 +106,8 @@
       :color="trendModal.color"
       :unit="trendModal.unit"
       :decimals="trendModal.decimals"
+      :zero-based="trendModal.zeroBased"
+      :axis-range="trendModal.axisRange"
       :date="date"
       :intraday="trendModal.intraday"
       @close="trendModal = null"
@@ -176,33 +177,43 @@ function trendPts(key: string): { date: string; value: number | null }[] {
   return data.value?.trends?.[key] ?? []
 }
 
-const metrics = computed(() => {
+interface MetricRow {
+  key: string; icon: string; label: string; value: string | number; unit: string
+  color: string; trend: string; decimals: number; axisRange?: [number, number]
+}
+
+const metrics = computed<MetricRow[]>(() => {
   if (!data.value) return []
   const d = data.value
   return [
-    { key: 'steps', icon: '👟', label: '歩数', value: d.steps.value.toLocaleString(), unit: '歩', sub: `目標 ${d.steps.goal.toLocaleString()}`, color: '#fbbf24', trend: 'steps', decimals: 0 },
-    { key: 'distanceKm', icon: '📍', label: '移動距離', value: d.distanceKm.toFixed(1), unit: 'km', sub: '', color: '#a3e635', trend: 'distanceKm', decimals: 1 },
-    { key: 'caloriesKcal', icon: '🔥', label: '消費カロリー', value: d.caloriesKcal.toLocaleString(), unit: 'kcal', sub: '', color: '#f97316', trend: 'caloriesKcal', decimals: 0 },
-    { key: 'restingHeartRate', icon: '❤️', label: '安静時心拍', value: d.restingHeartRate, unit: 'bpm', sub: '', color: '#f87171', trend: 'restingHeartRate', decimals: 0 },
-    { key: 'hrv', icon: '💓', label: '心拍変動', value: d.hrv, unit: 'ms', sub: '', color: '#fb7185', trend: 'hrv', decimals: 0 },
-    { key: 'spo2', icon: '🩸', label: '血中酸素', value: d.spo2.avg, unit: '%', sub: `${d.spo2.min}〜${d.spo2.max}%`, color: '#38bdf8', trend: 'spo2', decimals: 0 },
-    { key: 'breathingRate', icon: '🫁', label: '呼吸数', value: d.breathingRate, unit: '回/分', sub: '', color: '#a78bfa', trend: 'breathingRate', decimals: 1 },
-    { key: 'skinTempDelta', icon: '🌡️', label: '皮膚温の変動', value: fmtSigned(d.skinTempDelta), unit: '℃', sub: '基準比', color: '#c084fc', trend: 'skinTempDelta', decimals: 1 },
+    { key: 'steps', icon: '👟', label: `歩数（目標値${d.steps.goal.toLocaleString()}）`, value: d.steps.value.toLocaleString(), unit: '歩', color: '#fbbf24', trend: 'steps', decimals: 0 },
+    { key: 'distanceKm', icon: '📍', label: '移動距離', value: d.distanceKm.toFixed(1), unit: 'km', color: '#a3e635', trend: 'distanceKm', decimals: 1 },
+    { key: 'caloriesKcal', icon: '🔥', label: '消費カロリー', value: d.caloriesKcal.toLocaleString(), unit: 'kcal', color: '#f97316', trend: 'caloriesKcal', decimals: 0 },
+    { key: 'restingHeartRate', icon: '❤️', label: '安静時心拍', value: d.restingHeartRate, unit: 'bpm', color: '#f87171', trend: 'restingHeartRate', decimals: 0, axisRange: [50, 70] as [number, number] },
+    { key: 'hrv', icon: '💓', label: '心拍変動', value: d.hrv, unit: 'ms', color: '#fb7185', trend: 'hrv', decimals: 0, axisRange: [30, 60] as [number, number] },
+    { key: 'spo2', icon: '🩸', label: '血中酸素', value: d.spo2.avg, unit: '%', color: '#38bdf8', trend: 'spo2', decimals: 0, axisRange: [90, 100] as [number, number] },
+    { key: 'breathingRate', icon: '🫁', label: '呼吸数', value: d.breathingRate, unit: '回/分', color: '#a78bfa', trend: 'breathingRate', decimals: 1, axisRange: [10, 20] as [number, number] },
+    { key: 'skinTempDelta', icon: '🌡️', label: '皮膚温の変動', value: fmtSigned(d.skinTempDelta), unit: '℃', color: '#c084fc', trend: 'skinTempDelta', decimals: 1, axisRange: [-2, 2] as [number, number] },
   ]
 })
 
-/** 内訳グラフを持つメトリクス: dashboard に既にロード済みの当日系列をそのまま渡す（追加fetch不要） */
-function intradayFor(trend: string): { points: TimePoint[]; label: string } | undefined {
+/**
+ * 内訳グラフを持つメトリクス: dashboard に既にロード済みの当日系列をそのまま渡す（追加fetch不要）。
+ * zeroBased は内訳グラフ独自の軸設定（日次トレンドの軸とは別）。
+ * 歩数・距離・カロリーは0起点、心拍数は変動が大きいのでデータ範囲に自動フィットさせる。
+ */
+function intradayFor(trend: string): { points: TimePoint[]; label: string; zeroBased: boolean } | undefined {
   if (!data.value) return undefined
-  if (trend === 'steps') return { points: data.value.stepsSeries, label: '時間別（1時間ごと）' }
-  if (trend === 'distanceKm') return { points: data.value.distanceSeries, label: '時間別（1時間ごと）' }
-  if (trend === 'caloriesKcal') return { points: data.value.caloriesSeries, label: '時間別（1時間ごと・推計）' }
-  if (trend === 'restingHeartRate') return { points: data.value.heartRateSeries, label: '心拍数（5分間隔）' }
+  if (trend === 'steps') return { points: data.value.stepsSeries, label: '時間別（1時間ごと）', zeroBased: true }
+  if (trend === 'distanceKm') return { points: data.value.distanceSeries, label: '時間別（1時間ごと）', zeroBased: true }
+  if (trend === 'caloriesKcal') return { points: data.value.caloriesSeries, label: '時間別（1時間ごと・推計）', zeroBased: true }
+  if (trend === 'restingHeartRate') return { points: data.value.heartRateSeries, label: '心拍数（5分間隔）', zeroBased: false }
   return undefined
 }
 
 function openTrend(m: any) {
-  trendModal.value = { trend: m.trend, label: m.label, icon: m.icon, color: m.color, unit: m.unit, decimals: m.decimals ?? 0, intraday: intradayFor(m.trend) }
+  // 既定で下限0（zeroBased）。血中酸素・呼吸数・皮膚温は固定レンジ（axisRange）を優先。
+  trendModal.value = { trend: m.trend, label: m.label, icon: m.icon, color: m.color, unit: m.unit, decimals: m.decimals ?? 0, zeroBased: m.zeroBased ?? true, axisRange: m.axisRange ?? null, intraday: intradayFor(m.trend) }
 }
 
 function fmtSigned(v: number): string {

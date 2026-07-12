@@ -98,7 +98,7 @@
         <!-- 睡眠スコアの推移（7日 / 1か月 / 3か月） -->
         <div class="border-t border-white/[0.06] pt-4">
           <div class="text-xs font-semibold text-slate-400 mb-2">睡眠スコアの推移</div>
-          <TrendPanel metric="sleepScore" color="#818cf8" :date="activeDate" :decimals="0" />
+          <TrendPanel metric="sleepScore" color="#818cf8" :date="activeDate" :decimals="0" :zero-based="true" />
         </div>
 
         <!-- 就寝・起床の比較（他の日と横並び） -->
