@@ -4,10 +4,13 @@ import { wrapApiError } from '~/server/utils/openai'
 interface SourceItem { date: string; text: string }
 interface AnalysisBlock { title: string; text: string }
 
-// 入力データ（keyword+note+対象記録）から短いハッシュを作る。
-// これをキャッシュの signature とし、記録が変われば値が変わって再生成される。
+// プロンプト仕様の版数。プロンプトを変えたらここを上げると既存キャッシュが無効化され再生成される。
+const PROMPT_VERSION = 'v2'
+
+// 入力データ（版数+keyword+note+対象記録）から短いハッシュを作る。
+// これをキャッシュの signature とし、記録やプロンプト版数が変われば値が変わって再生成される。
 const signatureOf = (keyword: string, note: string, items: SourceItem[]): string => {
-  const canonical = [keyword, note, ...items.map(i => `${i.date}|${i.text}`)].join('')
+  const canonical = [PROMPT_VERSION, keyword, note, ...items.map(i => `${i.date}|${i.text}`)].join('')
   let h = 5381
   for (let i = 0; i < canonical.length; i++) {
     h = (h * 33) ^ canonical.charCodeAt(i)
@@ -91,19 +94,10 @@ export default defineEventHandler(async (event) => {
 
   const noteContext = body.note ? `\n\n補足（「${body.keyword}」の意味合い）: ${body.note}` : ''
 
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': anthropicApiKey as string,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-5',
-        max_tokens: 700,
-        thinking: { type: 'disabled' },
-        system: `あなたはユーザーの日々の記録（中間データ）を読み解き、要約して伝えるアシスタントです。
+  // アドバイスタブ（scope='advice'）は要約ではなく、テーマに沿った実践的なアドバイスを返す
+  const isAdvice = body.scope === 'advice'
+
+  const summarySystem = `あなたはユーザーの日々の記録（中間データ）を読み解き、要約して伝えるアシスタントです。
 ユーザーが選んだテーマ「${body.keyword}」に関連しそうな記録を、時期ごとに分けて与えます。各見出しは「2025年5〜8月頃」のようにその時期の実際の年月です。文字表記が完全一致しなくても、内容が意味的に関連していれば対象として扱ってください。無関係な記録も混ざっています。
 
 手順:
@@ -127,7 +121,42 @@ export default defineEventHandler(async (event) => {
 - 全ブロックの text を合計しておよそ500文字以内に収める
 - タイトルはそのブロックの内容を端的に表す10字前後のラベルにする
 - ブロックの並び・内容から時系列の流れが伝わるようにする
-- JSON以外の文字列は一切出力しない`,
+- JSON以外の文字列は一切出力しない`
+
+  const adviceSystem = `あなたはユーザーの日々の記録（中間データ）をふまえて、前向きで実践的なアドバイスを届けるコーチです。
+ユーザーが選んだアドバイスのテーマ「${body.keyword}」について、記録を参考にしながら具体的なアドバイスを日本語で書いてください。記録は時期ごとに分けて与えます（各見出しは「2025年5〜8月頃」のように実際の年月）。文字表記が完全一致しなくても意味的に関連すれば手がかりにしてよく、無関係な記録も混ざっています。
+
+手順:
+1. テーマ「${body.keyword}」に意味的に関連する状況・傾向を各時期の記録から読み取る（特定の時期に偏らない）
+2. それをふまえ、テーマに沿った具体的で実践的なアドバイスを書く
+
+必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
+{"blocks":[{"title":"見出し（10字前後）","text":"本文"}]}
+
+アドバイスの書き方（最重要）:
+- 無理にセクションを分けない。blocks は原則1個（内容が多いときのみ最大2個）にまとめる
+- 記録から読み取れる具体的な状況・傾向に触れつつ、それに対して「どうするとよいか」を助言する
+- 記録の羅列や単なる要約で終わらせず、「〜してみましょう」「〜を意識すると良さそうです」のように行動につながる言葉にする
+- 押し付けにならないよう、ユーザーを尊重した温かく前向きな語り口にする
+- 期間に言及するときは「初期」等の抽象語ではなく、与えられた見出しの実際の年月で具体的に書く
+- 箇条書きにせず、自然に流れる読みやすい文章にする
+- 全ブロックの text を合計しておよそ450文字以内に収める
+- タイトルはアドバイスの要点を表す10字前後のラベルにする
+- JSON以外の文字列は一切出力しない`
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': anthropicApiKey as string,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-5',
+        max_tokens: 700,
+        thinking: { type: 'disabled' },
+        system: isAdvice ? adviceSystem : summarySystem,
         messages: [{ role: 'user', content: `${sourceText}${noteContext}` }],
       }),
     })
