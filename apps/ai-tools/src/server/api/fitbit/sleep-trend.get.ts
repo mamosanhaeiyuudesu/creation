@@ -22,6 +22,7 @@ export default defineEventHandler(async (event) => {
       bedtime: d.sleep.bedtime,
       waketime: d.sleep.waketime,
       totalMinutes: d.sleep.totalMinutes,
+      timeline: d.sleep.timeline,
     })),
   }
 })

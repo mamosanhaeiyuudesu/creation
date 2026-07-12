@@ -29,69 +29,70 @@
             <div class="text-2xl font-bold text-slate-100 tabular-nums">{{ fmtDuration(data.totalMinutes) }}</div>
             <div class="text-sm text-slate-400">{{ data.bedtime }} → {{ data.waketime }}</div>
             <div class="text-xs text-indigo-300 mt-0.5">{{ data.score.label }}</div>
+            <div class="flex items-center gap-2.5 mt-1 text-[11px] text-slate-400">
+              <span>睡眠効率 <span class="font-semibold text-slate-200 tabular-nums">{{ data.efficiency }}%</span></span>
+              <span class="text-slate-700">|</span>
+              <span>中途覚醒 <span class="font-semibold text-slate-200 tabular-nums">{{ data.awakeCount }}回</span></span>
+            </div>
             <div v-if="data.score.provisional" class="text-[10px] text-amber-400/80 mt-1">※ ベースライン蓄積中のため参考値</div>
           </div>
         </div>
 
-        <!-- ヒプノグラム（ステージ帯） -->
+        <!-- ヒプノグラム（ステージ帯 + 内訳: 左にラベル、右に時間/割合） -->
         <div>
           <div class="text-xs font-semibold text-slate-400 mb-2">睡眠ステージ</div>
-          <div ref="hypWrap" class="relative w-full" @pointermove="onHypMove" @pointerleave="hoverSeg = null">
-            <svg :viewBox="`0 0 ${hypW} 108`" preserveAspectRatio="none" class="w-full h-[108px]">
-              <g v-for="(lv, i) in stageLevels" :key="lv.stage">
-                <line :x1="0" :x2="hypW" :y1="rowY(i) + rowH / 2" :y2="rowY(i) + rowH / 2" class="stroke-white/[0.04]" stroke-width="1" vector-effect="non-scaling-stroke" />
-              </g>
-              <rect
-                v-for="(seg, i) in data.timeline"
-                :key="i"
-                :x="seg.start"
-                :y="rowY(levelIndex(seg.stage))"
-                :width="Math.max(seg.duration, 1)"
-                :height="rowH"
-                rx="2"
-                :fill="stageColor(seg.stage)"
-                :fill-opacity="hoverSeg && hoverSeg !== seg ? 0.45 : 1"
-              />
-              <line v-if="hoverSeg" :x1="hoverX" :x2="hoverX" :y1="0" :y2="108" stroke="#fff" stroke-opacity="0.3" stroke-width="1" vector-effect="non-scaling-stroke" />
-            </svg>
-            <div
-              v-if="hoverSeg"
-              class="pointer-events-none absolute z-50 px-2 py-1 rounded-md bg-slate-900/95 border border-white/10 text-[11px] whitespace-nowrap -translate-x-1/2 -translate-y-full shadow-lg top-0"
-              :style="{ left: `${(hoverX / hypW) * 100}%` }"
-            >
-              <span class="font-semibold" :style="{ color: stageColor(hoverSeg.stage) }">{{ stageJp(hoverSeg.stage) }}</span>
-              <span class="ml-1.5 text-slate-300 tabular-nums">{{ hoverSeg.duration }}分</span>
-              <span class="ml-1.5 text-slate-500 tabular-nums">{{ segClock(hoverSeg) }}</span>
+          <div class="flex items-stretch gap-2">
+            <!-- 左: ステージ名 -->
+            <div class="relative shrink-0 w-11" :style="{ height: `${hypH}px` }">
+              <div
+                v-for="(lv, i) in stageLevels"
+                :key="lv.stage"
+                class="absolute left-0 flex items-center gap-1.5 text-[10px] text-slate-300 whitespace-nowrap"
+                :style="{ top: `${rowY(i)}px`, height: `${rowH}px` }"
+              >
+                <span class="w-2 h-2 rounded-full shrink-0" :style="{ background: stageColor(lv.stage) }" />{{ lv.jp }}
+              </div>
             </div>
-          </div>
-          <div class="flex items-center justify-between mt-1 px-0.5 text-[9px] text-slate-500">
-            <span v-for="lv in stageLevels" :key="lv.stage">{{ lv.jp }}</span>
-          </div>
-        </div>
-
-        <!-- ステージ内訳 -->
-        <div class="flex flex-col gap-2.5">
-          <div v-for="lv in stageLevels" :key="lv.stage" class="flex items-center gap-3">
-            <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ background: stageColor(lv.stage) }" />
-            <span class="w-14 text-xs text-slate-300 flex-shrink-0">{{ lv.jp }}</span>
-            <div class="flex-1 h-2 rounded-full bg-white/[0.05] overflow-hidden">
-              <div class="h-full rounded-full" :style="{ width: `${data.stages[lv.stage].pct}%`, background: stageColor(lv.stage) }" />
+            <!-- 中央: タイムライン -->
+            <div ref="hypWrap" class="relative flex-1 min-w-0" @pointermove="onHypMove" @pointerleave="hoverSeg = null">
+              <svg :viewBox="`0 0 ${hypW} ${hypH}`" preserveAspectRatio="none" class="w-full block" :style="{ height: `${hypH}px` }">
+                <g v-for="(lv, i) in stageLevels" :key="lv.stage">
+                  <line :x1="0" :x2="hypW" :y1="rowY(i) + rowH / 2" :y2="rowY(i) + rowH / 2" class="stroke-white/[0.04]" stroke-width="1" vector-effect="non-scaling-stroke" />
+                </g>
+                <rect
+                  v-for="(seg, i) in data.timeline"
+                  :key="i"
+                  :x="seg.start"
+                  :y="rowY(levelIndex(seg.stage))"
+                  :width="Math.max(seg.duration, 1)"
+                  :height="rowH"
+                  rx="2"
+                  :fill="stageColor(seg.stage)"
+                  :fill-opacity="hoverSeg && hoverSeg !== seg ? 0.45 : 1"
+                />
+                <line v-if="hoverSeg" :x1="hoverX" :x2="hoverX" :y1="0" :y2="hypH" stroke="#fff" stroke-opacity="0.3" stroke-width="1" vector-effect="non-scaling-stroke" />
+              </svg>
+              <div
+                v-if="hoverSeg"
+                class="pointer-events-none absolute z-50 px-2 py-1 rounded-md bg-slate-900/95 border border-white/10 text-[11px] whitespace-nowrap -translate-x-1/2 -translate-y-full shadow-lg top-0"
+                :style="{ left: `${(hoverX / hypW) * 100}%` }"
+              >
+                <span class="font-semibold" :style="{ color: stageColor(hoverSeg.stage) }">{{ stageJp(hoverSeg.stage) }}</span>
+                <span class="ml-1.5 text-slate-300 tabular-nums">{{ hoverSeg.duration }}分</span>
+                <span class="ml-1.5 text-slate-500 tabular-nums">{{ segClock(hoverSeg) }}</span>
+              </div>
             </div>
-            <span class="w-24 text-right text-xs text-slate-400 tabular-nums flex-shrink-0">
-              {{ fmtDuration(data.stages[lv.stage].minutes) }} / {{ data.stages[lv.stage].pct }}%
-            </span>
-          </div>
-        </div>
-
-        <!-- 指標行 -->
-        <div class="grid grid-cols-2 gap-3">
-          <div class="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3">
-            <div class="text-[10px] text-slate-500">睡眠効率</div>
-            <div class="text-lg font-bold text-slate-100 tabular-nums">{{ data.efficiency }}<span class="text-xs font-normal text-slate-500 ml-0.5">%</span></div>
-          </div>
-          <div class="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3">
-            <div class="text-[10px] text-slate-500">中途覚醒</div>
-            <div class="text-lg font-bold text-slate-100 tabular-nums">{{ data.awakeCount }}<span class="text-xs font-normal text-slate-500 ml-0.5">回</span></div>
+            <!-- 右: 時間・割合 -->
+            <div class="relative shrink-0 w-24" :style="{ height: `${hypH}px` }">
+              <div
+                v-for="(lv, i) in stageLevels"
+                :key="lv.stage"
+                class="absolute right-0 flex items-center justify-end text-[10px] text-slate-400 tabular-nums whitespace-nowrap"
+                :style="{ top: `${rowY(i)}px`, height: `${rowH}px` }"
+              >
+                {{ fmtDuration(data.stages[lv.stage].minutes) }} / {{ data.stages[lv.stage].pct }}%
+              </div>
+            </div>
           </div>
         </div>
 
@@ -118,6 +119,7 @@ import ScoreGauge from '~/components/fitbit/ScoreGauge.vue'
 import TrendPanel from '~/components/fitbit/TrendPanel.vue'
 import SleepScheduleChart from '~/components/fitbit/SleepScheduleChart.vue'
 import { mdWeekday, todayJST } from '~/utils/jst'
+import { SLEEP_STAGE_LEVELS, sleepStageColor, sleepStageJp } from '~/utils/sleepStage'
 
 const props = defineProps<{ date: string }>()
 defineEmits<{ close: [] }>()
@@ -139,27 +141,17 @@ const data = ref<SleepDetail | null>(null)
 const loading = ref(true)
 const error = ref('')
 
-const stageLevels: { stage: SleepStage; jp: string }[] = [
-  { stage: 'wake', jp: '覚醒' },
-  { stage: 'rem', jp: 'レム' },
-  { stage: 'light', jp: '浅い' },
-  { stage: 'deep', jp: '深い' },
-]
+const stageLevels = SLEEP_STAGE_LEVELS
 const rowH = 18
 const rowGap = 12
 const rowY = (i: number) => 6 + i * (rowH + rowGap)
+const hypH = rowY(stageLevels.length - 1) + rowH + 6
 const levelIndex = (s: SleepStage) => stageLevels.findIndex(l => l.stage === s)
 
 const hypW = computed(() => Math.max(1, data.value?.totalMinutes ?? 1))
 
-const STAGE_COLORS: Record<SleepStage, string> = {
-  deep: '#4338ca',
-  light: '#7dd3fc',
-  rem: '#22d3ee',
-  wake: '#fb923c',
-}
-const stageColor = (s: SleepStage) => STAGE_COLORS[s]
-const stageJp = (s: SleepStage) => stageLevels.find(l => l.stage === s)?.jp ?? s
+const stageColor = sleepStageColor
+const stageJp = sleepStageJp
 
 // ヒプノグラムのホバー
 type Seg = SleepDetail['timeline'][number]

@@ -6,6 +6,7 @@ const props = defineProps<{
   meta?: string
   note?: string
   keyword: string
+  scope?: string
   matchedItems: SourceItem[]
   showExclude?: boolean
 }>()
@@ -20,7 +21,7 @@ const blocks = ref<AnalysisBlock[]>([])
 const isLoading = ref(false)
 const errorMsg = ref('')
 
-// キャッシュ・保存はせず、開くたびに毎回AI分析を実行する
+// 分析結果はサーバー側で D1 にキャッシュされる（同じ入力なら再生成せずキャッシュを返す）
 async function runAnalysis() {
   blocks.value = []
   errorMsg.value = ''
@@ -29,7 +30,7 @@ async function runAnalysis() {
   try {
     const res = await $fetch<{ blocks: AnalysisBlock[] }>('/api/hagemashi/topic-summary', {
       method: 'POST',
-      body: { keyword: props.keyword, note: props.note, items: props.matchedItems },
+      body: { keyword: props.keyword, note: props.note, scope: props.scope, items: props.matchedItems },
     })
     blocks.value = res.blocks ?? []
   } catch {

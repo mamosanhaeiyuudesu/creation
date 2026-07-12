@@ -76,6 +76,12 @@ function buildSleepTimeline(
 export function devRawDay(date: string): RawDay {
   const r = rng(hashSeed(date))
 
+  // 当日は現在時刻(JST)より先の時間帯を計上しない（未来のデータを出さない）。
+  const nowJst = new Date(Date.now() + 9 * 3600 * 1000)
+  const isToday = date === nowJst.toISOString().slice(0, 10)
+  const nowMinute = nowJst.getUTCHours() * 60 + nowJst.getUTCMinutes()
+  const trimFuture = <T extends { t: number }>(arr: T[]): T[] => (isToday ? arr.filter(p => p.t <= nowMinute) : arr)
+
   // 睡眠（22:40〜00:10 就寝、6.5〜8h）
   const totalMinutes = Math.round(between(r, 6.4 * 60, 8.1 * 60))
   const bedStartMin = Math.round(between(r, 22 * 60 + 30, 24 * 60 + 30)) % (24 * 60)
@@ -97,34 +103,36 @@ export function devRawDay(date: string): RawDay {
   }
   const spo2Vals = spo2Series.map(p => p.v)
 
-  // 日中心拍（5分刻み、朝低め・日中高め）
+  // 日中心拍（5分刻み、朝低め・日中高め）。心拍は睡眠中も計測されるので夜間も残し、未来時刻のみ除外。
   const restingHeartRate = Math.round(between(r, 54, 64))
-  const heartRateSeries: TimePoint[] = []
+  const hrRaw: TimePoint[] = []
   for (let m = 0; m < 24 * 60; m += 5) {
     const h = Math.floor(m / 60)
     const daytime = h >= 8 && h <= 22
     const base = daytime ? between(r, 70, 95) : between(r, 55, 68)
-    heartRateSeries.push({ t: m, v: Math.round(base) })
+    hrRaw.push({ t: m, v: Math.round(base) })
   }
+  const heartRateSeries = trimFuture(hrRaw)
 
   // 歩数・移動距離・消費カロリーと、その時間別内訳（1時間刻み）。
-  // 夜間は低く日中〜夕方に山になる重みで日次合計を按分する。
+  // 睡眠中（夜間）は歩数・距離・活動カロリーを計上しない（0）。日中〜夕方のみ活動が乗る。
   const hourlyWeights: number[] = []
   for (let h = 0; h < 24; h++) {
     const daytime = h >= 7 && h <= 21
-    hourlyWeights.push(daytime ? between(r, 0.6, 1.4) : between(r, 0.02, 0.15))
+    hourlyWeights.push(daytime ? between(r, 0.6, 1.4) : 0)
   }
   const weightSum = hourlyWeights.reduce((a, b) => a + b, 0)
   const steps = Math.round(between(r, 3200, 13500))
   const distanceKm = Math.round(between(r, 2.2, 9.6) * 10) / 10
   const caloriesKcal = Math.round(between(r, 250, 650) + steps * 0.03)
-  const stepsSeries: TimePoint[] = hourlyWeights.map((w, h) => ({ t: h * 60, v: Math.round((w / weightSum) * steps) }))
-  const distanceSeries: TimePoint[] = hourlyWeights.map((w, h) => ({ t: h * 60, v: Math.round((w / weightSum) * distanceKm * 100) / 100 }))
+  // 当日は現在時刻より先の時間帯を除外（trimFuture）
+  const stepsSeries: TimePoint[] = trimFuture(hourlyWeights.map((w, h) => ({ t: h * 60, v: Math.round((w / weightSum) * steps) })))
+  const distanceSeries: TimePoint[] = trimFuture(hourlyWeights.map((w, h) => ({ t: h * 60, v: Math.round((w / weightSum) * distanceKm * 100) / 100 })))
   // カロリー時間別: 基礎代謝ぶん(55%)を均等 + 活動ぶん(45%)を活動重みで按分（本番の推計ロジックに合わせる）
-  const caloriesSeries: TimePoint[] = hourlyWeights.map((w, h) => ({
+  const caloriesSeries: TimePoint[] = trimFuture(hourlyWeights.map((w, h) => ({
     t: h * 60,
     v: Math.round((caloriesKcal * 0.55) / 24 + caloriesKcal * 0.45 * (w / weightSum)),
-  }))
+  })))
 
   return {
     date,

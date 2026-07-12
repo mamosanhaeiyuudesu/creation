@@ -1,9 +1,23 @@
+import { getSessionUser } from '~/server/utils/auth'
 import { wrapApiError } from '~/server/utils/openai'
 
 interface SourceItem { date: string; text: string }
+interface AnalysisBlock { title: string; text: string }
+
+// 入力データ（keyword+note+対象記録）から短いハッシュを作る。
+// これをキャッシュの signature とし、記録が変われば値が変わって再生成される。
+const signatureOf = (keyword: string, note: string, items: SourceItem[]): string => {
+  const canonical = [keyword, note, ...items.map(i => `${i.date}|${i.text}`)].join('')
+  let h = 5381
+  for (let i = 0; i < canonical.length; i++) {
+    h = (h * 33) ^ canonical.charCodeAt(i)
+  }
+  // 32bit 符号なしに丸めて長さ情報も添え、衝突をさらに起きにくくする
+  return `${(h >>> 0).toString(36)}.${canonical.length}`
+}
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<{ keyword: string; note?: string; items: SourceItem[] }>(event)
+  const body = await readBody<{ keyword: string; note?: string; scope?: string; items: SourceItem[] }>(event)
 
   if (!body?.keyword || !Array.isArray(body.items) || body.items.length === 0) {
     throw createError({ statusCode: 400, statusMessage: 'keyword and items are required' })
@@ -12,6 +26,26 @@ export default defineEventHandler(async (event) => {
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) {
     throw createError({ statusCode: 500, statusMessage: 'Anthropic API key is not configured.' })
+  }
+
+  // ログイン時のみ D1 にキャッシュ保存する（未ログインは毎回生成）
+  const db = event.context.cloudflare?.env?.WHISPER_DB
+  const user = db ? await getSessionUser(event).catch(() => null) : null
+  const cacheKey = `${body.scope || 'topic'}:${body.keyword}`
+  const signature = signatureOf(body.keyword, body.note ?? '', body.items)
+
+  // signature が一致するキャッシュがあればAIを呼ばずに返す
+  if (db && user) {
+    const cached = await db
+      .prepare('SELECT signature, blocks FROM hagemashi_topic_cache WHERE user_id = ? AND cache_key = ?')
+      .bind(user.id, cacheKey)
+      .first()
+      .catch(() => null) as { signature: string; blocks: string } | null
+    if (cached && cached.signature === signature) {
+      try {
+        return { blocks: JSON.parse(cached.blocks) as AnalysisBlock[], cached: true }
+      } catch { /* 壊れていたら無視して再生成 */ }
+    }
   }
 
   // 時系列を3区分に分け、各区分から均等にサンプリングする。
@@ -137,7 +171,7 @@ export default defineEventHandler(async (event) => {
     // 合計文字数がおよそ500字を超えないよう、文単位で安全側にトリムする
     const MAX_TOTAL = 500
     let total = 0
-    const blocks: { title: string; text: string }[] = []
+    const blocks: AnalysisBlock[] = []
     outer: for (const b of rawBlocks) {
       const kept: string[] = []
       for (const sentence of b.sentences) {
@@ -147,6 +181,15 @@ export default defineEventHandler(async (event) => {
       }
       // 文を改行で区切らず地続きにつなぎ、まとまった読みやすい文章として返す
       if (kept.length) blocks.push({ title: b.title, text: kept.join('') })
+    }
+
+    // 生成結果を signature 付きでキャッシュ（同じ入力なら次回はAIを呼ばない）
+    if (db && user) {
+      await db
+        .prepare("INSERT OR REPLACE INTO hagemashi_topic_cache (user_id, cache_key, signature, blocks, updated_at) VALUES (?, ?, ?, ?, datetime('now'))")
+        .bind(user.id, cacheKey, signature, JSON.stringify(blocks))
+        .run()
+        .catch(() => { /* キャッシュ保存の失敗は無視して結果は返す */ })
     }
 
     return { blocks }

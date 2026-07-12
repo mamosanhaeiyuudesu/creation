@@ -15,7 +15,14 @@
     <div v-else-if="!bars.length" class="h-[200px] flex items-center justify-center text-slate-600 text-sm">データがありません</div>
 
     <template v-else>
-      <div class="text-[10px] text-slate-500">棒の上端＝就寝、下端＝起床</div>
+      <div class="flex items-center justify-between">
+        <div class="text-[10px] text-slate-500">棒の上端＝就寝、下端＝起床</div>
+        <div class="flex items-center gap-2.5">
+          <span v-for="lv in stageLevels" :key="lv.stage" class="flex items-center gap-1 text-[10px] text-slate-500">
+            <span class="w-2 h-2 rounded-full" :style="{ background: stageColor(lv.stage) }" />{{ lv.jp }}
+          </span>
+        </div>
+      </div>
       <div ref="wrap" class="relative" :style="{ height: `${H}px` }">
         <svg :viewBox="`0 0 ${W} ${H}`" preserveAspectRatio="none" class="w-full h-full block" @pointermove="onMove" @pointerleave="hover = -1">
           <!-- 時刻グリッド -->
@@ -23,18 +30,32 @@
             <line :x1="padL" :x2="W - padR" :y1="g.y" :y2="g.y" class="stroke-white/[0.06]" stroke-width="1" vector-effect="non-scaling-stroke" />
             <text :x="padL - 6" :y="g.y + 3" text-anchor="end" class="fill-slate-600" :style="labelStyle">{{ g.label }}</text>
           </g>
-          <!-- 就寝→起床 の帯 -->
-          <rect
-            v-for="b in bars"
-            :key="`b${b.i}`"
-            :x="b.x"
-            :y="b.y"
-            :width="b.width"
-            :height="b.height"
-            rx="2"
-            fill="#818cf8"
-            :fill-opacity="hover === b.i ? 1 : 0.7"
-          />
+          <!-- 就寝→起床 の帯（ステージ別に色分け。タイムラインが無ければ単色帯にフォールバック） -->
+          <template v-for="b in bars" :key="`b${b.i}`">
+            <template v-if="b.segments.length">
+              <rect
+                v-for="(seg, si) in b.segments"
+                :key="`s${b.i}-${si}`"
+                :x="b.x"
+                :y="seg.y"
+                :width="b.width"
+                :height="seg.height"
+                rx="1"
+                :fill="stageColor(seg.stage)"
+                :fill-opacity="hover === b.i ? 1 : 0.75"
+              />
+            </template>
+            <rect
+              v-else
+              :x="b.x"
+              :y="b.y"
+              :width="b.width"
+              :height="b.height"
+              rx="2"
+              fill="#818cf8"
+              :fill-opacity="hover === b.i ? 1 : 0.7"
+            />
+          </template>
           <!-- X ラベル -->
           <text v-for="(lbl, i) in xLabels" :key="`x${i}`" :x="lbl.x" :y="H - 4" text-anchor="middle" class="fill-slate-600" :style="labelStyle">{{ lbl.text }}</text>
         </svg>
@@ -56,13 +77,21 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { mdWeekday } from '~/utils/jst'
+import type { SleepStage } from '~/types/fitbit'
+import { SLEEP_STAGE_LEVELS, sleepStageColor } from '~/utils/sleepStage'
 
 const props = withDefaults(defineProps<{
   date?: string
   defaultDays?: number
 }>(), { defaultDays: 7 })
 
-interface SleepDay { date: string; bedtime: string; waketime: string; totalMinutes: number }
+interface SleepDay {
+  date: string; bedtime: string; waketime: string; totalMinutes: number
+  timeline: { stage: SleepStage; start: number; duration: number }[]
+}
+
+const stageLevels = SLEEP_STAGE_LEVELS
+const stageColor = sleepStageColor
 
 const periods = [
   { days: 7, label: '7日' },
@@ -127,16 +156,24 @@ const bars = computed(() =>
     const idx = series.value.findIndex(s => s.date === d.date)
     const x = padL + (idx + 0.5) * band.value
     const bw = Math.min(band.value * 0.6, 18)
-    const yTop = yScale(d.bed as number)
+    const bedAxis = d.bed as number
+    const yTop = yScale(bedAxis)
     const yBot = yScale(d.wake as number)
     const h = Math.floor(d.totalMinutes / 60)
     const m = d.totalMinutes % 60
+    // ステージ帯（覚醒/レム/浅い/深い）を就寝軸に沿って描く。データが無ければ空配列→単色帯にフォールバック。
+    const segments = (d.timeline ?? []).map((seg) => {
+      const segTop = yScale(bedAxis + seg.start)
+      const segBot = yScale(bedAxis + seg.start + seg.duration)
+      return { stage: seg.stage, y: segTop, height: Math.max(1, segBot - segTop) }
+    })
     return {
       i: idx,
       x: x - bw / 2,
       y: yTop,
       width: bw,
       height: Math.max(2, yBot - yTop),
+      segments,
       cx: x,
       date: d.date,
       dateLabel: mdWeekday(d.date),

@@ -942,6 +942,7 @@
       :title="activeWordPopup.name"
       :meta="`出現回数: ${activeWordPopup.count}回`"
       :keyword="activeWordPopup.name"
+      scope="word"
       :matched-items="activeWordMatches"
       show-exclude
       @close="activeWordPopup = null"
@@ -955,6 +956,7 @@
       :title="activeKokoroPopup.name"
       :note="activeKokoroPopup.note"
       :keyword="activeKokoroPopup.name"
+      scope="kokoro"
       :matched-items="activeKokoroMatches"
       @close="activeKokoroPopup = null"
     />
@@ -966,6 +968,7 @@
       :title="activeProfilePopup.name"
       :note="activeProfilePopup.note"
       :keyword="activeProfilePopup.name"
+      :scope="activeTab"
       :matched-items="activeProfileMatches"
       @close="activeProfilePopup = null"
     />
