@@ -112,6 +112,18 @@ export default defineEventHandler(async (event) => {
   const date = (q.date as string) || todayJST()
   const days = Math.min(14, Math.max(1, parseInt((q.days as string) || '3', 10)))
 
+  // レスポンスが大きすぎて確認しづらい場合、?only=exercise のように絞り込める
+  // （指定した dataType のみ probe し、diagFetch の全量パースはスキップする）。
+  // ?only=activities は、実際のパース結果（parseExercise 通過後）だけを軽量に確認する。
+  const only = q.only as string | undefined
+  if (only === 'activities') {
+    const { history } = await diagFetch(token, date, days)
+    return { activities: history.map(d => ({ date: d.date, activities: d.activities })) }
+  }
+  if (only) {
+    return { probes: { [only]: await probe(token, only) } }
+  }
+
   // total-calories の dailyRollUp レスポンス（kcalSum フィールド）を最終確認する。
   const probes = {
     steps: await probe(token, 'steps'),
@@ -122,6 +134,7 @@ export default defineEventHandler(async (event) => {
     'daily-sleep-temperature-derivations': await probe(token, 'daily-sleep-temperature-derivations'),
     'heart-rate': await probe(token, 'heart-rate'),
     'heart-rate-variability': await probeHrv(token),
+    exercise: await probe(token, 'exercise'),
   }
 
   let parsed: any = null

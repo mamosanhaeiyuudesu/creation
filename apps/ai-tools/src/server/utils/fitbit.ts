@@ -425,7 +425,9 @@ function pointDate(pt: any, dataType: string): string | null {
       case 'daily-sleep-temperature-derivations': return ymd(pt.dailySleepTemperatureDerivations.date)
       case 'heart-rate': return ymd(pt.heartRate.sampleTime.civilTime.date)
       case 'sleep': return civilDateFromUtc(pt.sleep.interval.endTime, offsetSec(pt.sleep.interval.endUtcOffset || pt.sleep.interval.startUtcOffset))
-      case 'exercise': return ymd(pt.exercise.interval.civilStartTime.date)
+      // exercise の interval には steps/distance/sleep と違い civilStartTime が無い（診断口で実データ確認済）。
+      // startTime + startUtcOffset から現地日付を算出する。
+      case 'exercise': return civilDateFromUtc(pt.exercise.interval.startTime, offsetSec(pt.exercise.interval.startUtcOffset))
       default: return null
     }
   } catch {
