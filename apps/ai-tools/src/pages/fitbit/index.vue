@@ -1,4 +1,10 @@
 <template>
+  <!-- 認証モーダル -->
+  <AuthModal v-if="showAuthModal" accent="sky" />
+
+  <!-- 設定メニューの背景クリックで閉じる -->
+  <div v-if="showSettingsMenu" class="fixed inset-0 z-40" @click="showSettingsMenu = false" />
+
   <div class="min-h-full px-4 pt-4 pb-20 flex flex-col items-center">
     <div class="w-full max-w-[640px] flex flex-col gap-4">
       <!-- ヘッダー -->
@@ -13,6 +19,25 @@
             :disabled="isToday"
             @click="shiftDate(1)"
           >›</button>
+          <!-- 歯車（ログアウト・連携解除） -->
+          <div class="relative ml-1" @click.stop>
+            <button
+              class="w-9 h-9 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-base cursor-pointer flex items-center justify-center hover:bg-white/[0.12] hover:text-slate-200 transition-colors"
+              title="設定"
+              @click="showSettingsMenu = !showSettingsMenu"
+            >⚙</button>
+            <div v-if="showSettingsMenu" class="absolute right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-50 min-w-[180px] py-1 overflow-hidden">
+              <button
+                v-if="!notConnected"
+                class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2"
+                @click="disconnectFitbit"
+              ><span>⌚️</span> Fitbit連携を解除</button>
+              <button
+                class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2"
+                @click="doLogout"
+              ><span>🚪</span> ログアウト</button>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -28,9 +53,7 @@
         <a href="/api/fitbit/connect" class="px-6 py-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-sm font-semibold hover:opacity-90">Fitbitと連携する</a>
       </div>
 
-      <div v-else-if="needLogin" class="mt-10 text-center text-slate-400 text-sm">このページを見るにはログインが必要です。</div>
-
-      <template v-else>
+      <template v-else-if="isLoggedIn || isDev">
         <div v-if="loading" class="mt-16 text-center text-slate-500 text-sm animate-pulse">読み込み中…</div>
         <div v-else-if="error" class="mt-16 text-center text-rose-400 text-sm">{{ error }}</div>
 
@@ -147,6 +170,8 @@ import Sparkline from '~/components/fitbit/Sparkline.vue'
 import SleepModal from '~/components/fitbit/SleepModal.vue'
 import TrendModal from '~/components/fitbit/TrendModal.vue'
 import ActivityModal from '~/components/fitbit/ActivityModal.vue'
+import AuthModal from '~/components/AuthModal.vue'
+import { useAuth } from '~/composables/useAuth'
 
 useHead({
   title: 'Fitbit ヘルスダッシュボード',
@@ -166,6 +191,11 @@ useHead({
 const route = useRoute()
 const connectError = computed(() => (route.query.fitbit_error as string) || '')
 
+const isDev = import.meta.dev
+const { user, isLoggedIn, checked, checkAuth, logout } = useAuth()
+const showAuthModal = computed(() => !isDev && checked.value && !isLoggedIn.value)
+const showSettingsMenu = ref(false)
+
 const todayStr = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10)
 
 const date = ref(todayStr())
@@ -173,7 +203,6 @@ const data = ref<DashboardData | null>(null)
 const loading = ref(true)
 const error = ref('')
 const notConnected = ref(false)
-const needLogin = ref(false)
 const sleepOpen = ref(false)
 const activityOpen = ref(false)
 const trendModal = ref<any>(null)
@@ -251,19 +280,35 @@ async function load() {
   loading.value = true
   error.value = ''
   notConnected.value = false
-  needLogin.value = false
   try {
     data.value = await $fetch<DashboardData>('/api/fitbit/dashboard', { params: { date: date.value } })
   } catch (e: any) {
     const status = e?.response?.status || e?.statusCode
     if (status === 428) notConnected.value = true
-    else if (status === 401) needLogin.value = true
+    else if (status === 401) user.value = null // セッション切れ→再ログインモーダルを出す
     else error.value = e?.data?.message || 'データの取得に失敗しました'
   } finally {
     loading.value = false
   }
 }
 
-onMounted(load)
+async function disconnectFitbit() {
+  showSettingsMenu.value = false
+  await $fetch('/api/fitbit/disconnect', { method: 'POST' })
+  data.value = null
+  notConnected.value = true
+}
+
+async function doLogout() {
+  showSettingsMenu.value = false
+  await logout()
+}
+
+onMounted(async () => {
+  await checkAuth()
+  if (isLoggedIn.value || isDev) load()
+  else loading.value = false
+})
 watch(date, load)
+watch(isLoggedIn, (v) => { if (v) load() })
 </script>
