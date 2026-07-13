@@ -2,7 +2,7 @@
 // dev では日付シードで決定的な擬似メトリクスを生成してダッシュボードを描画確認できるようにする。
 // mlb-dev.ts と同じ「静的/決定的フォールバック」思想。
 
-import type { RawDay, SleepStage, TimePoint } from '~/types/fitbit'
+import type { ActivitySession, RawDay, SleepStage, TimePoint } from '~/types/fitbit'
 
 /** 文字列 → 32bit ハッシュ（決定的シード用） */
 function hashSeed(s: string): number {
@@ -154,6 +154,7 @@ export function devRawDay(date: string): RawDay {
     breathingRate: Math.round(brBase * 10) / 10,
     breathingRateSeries: brSeries,
     skinTempDelta: Math.round(between(r, -0.6, 0.7) * 10) / 10,
+    activities: devActivities(r, isToday, nowMinute),
     sleep: {
       totalMinutes,
       deepMin,
@@ -171,6 +172,37 @@ export function devRawDay(date: string): RawDay {
 
 function clampN(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v))
+}
+
+const DEV_EXERCISES: { type: string; label: string; icon: string; kcalPerMin: number; hasDistance: boolean }[] = [
+  { type: 'WALKING', label: 'ウォーキング', icon: '🚶', kcalPerMin: 4.5, hasDistance: true },
+  { type: 'BIKING', label: 'サイクリング', icon: '🚴', kcalPerMin: 7, hasDistance: true },
+  { type: 'RUNNING', label: 'ランニング', icon: '🏃', kcalPerMin: 10, hasDistance: true },
+  { type: 'YOGA', label: 'ヨガ', icon: '🧘', kcalPerMin: 3, hasDistance: false },
+]
+
+/** 決定的な運動セッションのスタブ（当日は現在時刻より先の分は生成しない） */
+function devActivities(r: () => number, isToday: boolean, nowMinute: number): ActivitySession[] {
+  const count = r() < 0.55 ? (r() < 0.8 ? 1 : 2) : 0
+  const out: ActivitySession[] = []
+  for (let i = 0; i < count; i++) {
+    const ex = DEV_EXERCISES[Math.floor(between(r, 0, DEV_EXERCISES.length))]
+    const startMin = Math.round(between(r, 7 * 60, 20 * 60))
+    if (isToday && startMin > nowMinute) continue
+    const durationMin = Math.round(between(r, 20, 60))
+    const fmt = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+    out.push({
+      type: ex.type,
+      label: ex.label,
+      icon: ex.icon,
+      start: fmt(startMin),
+      end: fmt(startMin + durationMin),
+      durationMin,
+      caloriesKcal: Math.round(durationMin * ex.kcalPerMin),
+      distanceKm: ex.hasDistance ? Math.round(between(r, 1.5, 6) * 10) / 10 : null,
+    })
+  }
+  return out.sort((a, b) => a.start.localeCompare(b.start))
 }
 
 /** 指定日から遡って n 日分の生メトリクス（新しい順ではなく古い順） */

@@ -53,6 +53,22 @@ export interface TrendPoint {
   value: number | null
 }
 
+/** 1件の運動セッション（ウォーキング・サイクリング等） */
+export interface ActivitySession {
+  /** Google Health API の exerciseType（例: "WALKING"） */
+  type: string
+  /** 日本語ラベル（例: "ウォーキング"） */
+  label: string
+  icon: string
+  /** 開始・終了時刻（"HH:MM" 形式、JST） */
+  start: string
+  end: string
+  durationMin: number
+  caloriesKcal: number
+  /** 距離（km）。取得できない種目では null */
+  distanceKm: number | null
+}
+
 /** ダッシュボード1日分 */
 export interface DashboardData {
   date: string
@@ -88,6 +104,8 @@ export interface DashboardData {
     bedtime: string
     waketime: string
   }
+  /** 当日の運動セッション（開始時刻順） */
+  activities: ActivitySession[]
   /** 各メトリクスの直近7日推移（ダッシュボードのスパークライン用） */
   trends: Record<string, { date: string; value: number | null }[]>
 }
@@ -114,6 +132,8 @@ export interface RawDay {
   breathingRate: number
   breathingRateSeries: TimePoint[]
   skinTempDelta: number
+  /** 運動セッション（開始時刻順） */
+  activities: ActivitySession[]
   sleep: {
     totalMinutes: number
     deepMin: number

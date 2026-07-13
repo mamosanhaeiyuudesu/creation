@@ -8,7 +8,7 @@
 // 決定的スタブにフォールバックする。
 
 import type { H3Event } from 'h3'
-import type { DashboardData, SleepDetail, RawDay, FitbitStatus, TrendData, TimePoint } from '~/types/fitbit'
+import type { DashboardData, SleepDetail, RawDay, FitbitStatus, TrendData, TimePoint, ActivitySession } from '~/types/fitbit'
 import { getAppDb, getSessionUser } from '~/server/utils/auth'
 import { encryptComment, decryptComment } from '~/server/utils/encrypt'
 import { devRawDay, devHistory } from '~/server/utils/fitbit-dev'
@@ -307,11 +307,94 @@ function parseSleep(s: any): RawDay['sleep'] {
   }
 }
 
+// Google Health API の Exercise.ExerciseType（主要種目のみ日本語ラベル化。未知の種目は
+// displayName にフォールバックするため網羅する必要はない）
+const EXERCISE_TYPE_MAP: Record<string, { label: string; icon: string }> = {
+  WALKING: { label: 'ウォーキング', icon: '🚶' },
+  NORDIC_WALKING: { label: 'ノルディックウォーキング', icon: '🚶' },
+  POWER_WALKING: { label: 'パワーウォーキング', icon: '🚶' },
+  RUNNING: { label: 'ランニング', icon: '🏃' },
+  TREADMILL_RUNNING: { label: 'ランニング（マシン）', icon: '🏃' },
+  TRAIL_RUNNING: { label: 'トレイルランニング', icon: '🏃' },
+  BIKING: { label: 'サイクリング', icon: '🚴' },
+  ELECTRIC_BIKE: { label: 'サイクリング（電動）', icon: '🚴' },
+  MOUNTAIN_BIKING: { label: 'マウンテンバイク', icon: '🚵' },
+  SPINNING: { label: 'スピンバイク', icon: '🚴' },
+  HIKING: { label: 'ハイキング', icon: '🥾' },
+  BACKPACKING: { label: 'バックパッキング', icon: '🥾' },
+  SWIMMING: { label: '水泳', icon: '🏊' },
+  SWIMMING_POOL: { label: '水泳（プール）', icon: '🏊' },
+  SWIMMING_OPEN_WATER: { label: '水泳（オープンウォーター）', icon: '🏊' },
+  ELLIPTICAL: { label: 'エリプティカル', icon: '🏃' },
+  ROWING: { label: 'ローイング', icon: '🚣' },
+  STAIR_CLIMBING: { label: '階段昇降', icon: '🪜' },
+  YOGA: { label: 'ヨガ', icon: '🧘' },
+  YOGA_HATHA: { label: 'ヨガ', icon: '🧘' },
+  YOGA_POWER: { label: 'ヨガ', icon: '🧘' },
+  YOGA_VINYASA: { label: 'ヨガ', icon: '🧘' },
+  YOGA_BIKRAM: { label: 'ヨガ', icon: '🧘' },
+  PILATES: { label: 'ピラティス', icon: '🧘' },
+  WEIGHTLIFTING: { label: '筋力トレーニング', icon: '🏋️' },
+  WEIGHTS: { label: '筋力トレーニング', icon: '🏋️' },
+  FREE_WEIGHTS: { label: '筋力トレーニング', icon: '🏋️' },
+  WEIGHT_MACHINES: { label: '筋力トレーニング（マシン）', icon: '🏋️' },
+  BODY_WEIGHT: { label: '自重トレーニング', icon: '🏋️' },
+  CIRCUIT_TRAINING: { label: 'サーキットトレーニング', icon: '🏋️' },
+  CROSSFIT: { label: 'クロスフィット', icon: '🏋️' },
+  HIIT: { label: 'HIIT', icon: '🔥' },
+  CORE_TRAINING: { label: '体幹トレーニング', icon: '🏋️' },
+  FUNCTIONAL_STRENGTH_TRAINING: { label: '筋力トレーニング', icon: '🏋️' },
+  DANCING: { label: 'ダンス', icon: '💃' },
+  AEROBIC_WORKOUT: { label: '有酸素運動', icon: '🏃' },
+  CARDIO_WORKOUT: { label: '有酸素運動', icon: '🏃' },
+  EXERCISE_CLASS: { label: 'フィットネスクラス', icon: '🏋️' },
+  GOLF: { label: 'ゴルフ', icon: '⛳' },
+  TENNIS: { label: 'テニス', icon: '🎾' },
+  BASKETBALL: { label: 'バスケットボール', icon: '🏀' },
+  SOCCER: { label: 'サッカー', icon: '⚽' },
+  BASEBALL: { label: '野球', icon: '⚾' },
+  BOXING: { label: 'ボクシング', icon: '🥊' },
+  CLIMBING: { label: 'クライミング', icon: '🧗' },
+  SKIING: { label: 'スキー', icon: '⛷️' },
+  CROSS_COUNTRY_SKI: { label: 'クロスカントリースキー', icon: '⛷️' },
+  SNOWBOARDING: { label: 'スノーボード', icon: '🏂' },
+  SURFING: { label: 'サーフィン', icon: '🏄' },
+  GYMNASTICS: { label: '体操', icon: '🤸' },
+}
+
+/** exerciseType → 表示ラベル・アイコン（未知の種目は displayName にフォールバック） */
+function exerciseLabel(exerciseType: string, displayName: string): { label: string; icon: string } {
+  const known = EXERCISE_TYPE_MAP[exerciseType]
+  if (known) return known
+  return { label: displayName || '運動', icon: '🏃' }
+}
+
+/** Google Health API の exercise データ点（dataPoint.exercise）→ ActivitySession */
+function parseExercise(ex: any): ActivitySession | null {
+  if (!ex?.interval) return null
+  const iv = ex.interval
+  const off = offsetSec(iv.startUtcOffset)
+  const durationMin = Math.max(0, Math.round((new Date(iv.endTime).getTime() - new Date(iv.startTime).getTime()) / 60000))
+  const { label, icon } = exerciseLabel(ex.exerciseType, ex.displayName)
+  const distanceMm = Number(ex.metricsSummary?.distanceMillimeters)
+  return {
+    type: ex.exerciseType ?? 'UNKNOWN',
+    label,
+    icon,
+    start: clock(iv.startTime, off),
+    end: clock(iv.endTime, offsetSec(iv.endUtcOffset || iv.startUtcOffset)),
+    durationMin,
+    caloriesKcal: Math.round(Number(ex.metricsSummary?.caloriesKcal) || 0),
+    distanceKm: Number.isFinite(distanceMm) ? Math.round((distanceMm / 1_000_000) * 100) / 100 : null,
+  }
+}
+
 function emptyRawDay(date: string): RawDay {
   return {
     date, steps: 0, stepsSeries: [], distanceKm: 0, distanceSeries: [], caloriesKcal: 0, caloriesSeries: [],
     restingHeartRate: 0, heartRateSeries: [], hrv: 0,
     spo2: { avg: 0, min: 0, max: 0, series: [] }, breathingRate: 0, breathingRateSeries: [], skinTempDelta: 0,
+    activities: [],
     sleep: parseSleep(null),
   }
 }
@@ -342,6 +425,7 @@ function pointDate(pt: any, dataType: string): string | null {
       case 'daily-sleep-temperature-derivations': return ymd(pt.dailySleepTemperatureDerivations.date)
       case 'heart-rate': return ymd(pt.heartRate.sampleTime.civilTime.date)
       case 'sleep': return civilDateFromUtc(pt.sleep.interval.endTime, offsetSec(pt.sleep.interval.endUtcOffset || pt.sleep.interval.startUtcOffset))
+      case 'exercise': return ymd(pt.exercise.interval.civilStartTime.date)
       default: return null
     }
   } catch {
@@ -409,7 +493,7 @@ async function fetchCaloriesRollup(token: string, start: string, end: string): P
 
 /** start〜end（両端含む）の各日 RawDay を list ページングで組み立てる */
 async function fetchRangeFromApi(token: string, start: string, end: string): Promise<Map<string, RawDay>> {
-  const [steps, distance, restHr, resp, hrv, spo2, sleep, caloriesByDate, skinTemp, heartRate] = await Promise.all([
+  const [steps, distance, restHr, resp, hrv, spo2, sleep, caloriesByDate, skinTemp, heartRate, exercise] = await Promise.all([
     listPoints(token, 'steps', start),
     listPoints(token, 'distance', start),
     listPoints(token, 'daily-resting-heart-rate', start),
@@ -420,6 +504,7 @@ async function fetchRangeFromApi(token: string, start: string, end: string): Pro
     fetchCaloriesRollup(token, start, end),
     listPoints(token, 'daily-sleep-temperature-derivations', start),
     listPoints(token, 'heart-rate', start),
+    listPoints(token, 'exercise', start),
   ])
 
   const map = new Map<string, RawDay>()
@@ -523,6 +608,15 @@ async function fetchRangeFromApi(token: string, start: string, end: string): Pro
       .sort((a, b) => a.t - b.t)
     ensure(d).heartRateSeries = series
   }
+
+  // 運動セッション: 開始日（civilStartTime）に割り当て、当日内は開始時刻順
+  for (const pt of exercise) {
+    const d = pointDate(pt, 'exercise')
+    if (!inRange(d)) continue
+    const session = parseExercise(pt.exercise)
+    if (session) ensure(d).activities.push(session)
+  }
+  for (const r of map.values()) r.activities.sort((a, b) => a.start.localeCompare(b.start))
 
   // 睡眠: 覚醒日ごとに、最も睡眠時間の長いセッションを採用
   const sleepByDate = new Map<string, any>()
@@ -728,6 +822,7 @@ export function assembleDashboard(history: RawDay[]): DashboardData {
     spo2: { avg: today.spo2.avg, min: today.spo2.min, max: today.spo2.max },
     breathingRate: today.breathingRate,
     skinTempDelta: today.skinTempDelta,
+    activities: today.activities ?? [],
     sleep: {
       totalMinutes: today.sleep.totalMinutes,
       asleepMinutes: today.sleep.totalMinutes - today.sleep.wakeMin,
