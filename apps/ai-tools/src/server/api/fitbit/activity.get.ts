@@ -17,6 +17,6 @@ export default defineEventHandler(async (event) => {
   if (!history.length) throw createError({ statusCode: 502, message: 'データ取得に失敗しました' })
 
   return {
-    days: history.map(d => ({ date: d.date, activities: d.activities })),
+    days: history.map(d => ({ date: d.date, activities: d.activities ?? [] })),
   }
 })

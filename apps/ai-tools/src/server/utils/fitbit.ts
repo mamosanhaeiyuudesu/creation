@@ -703,10 +703,11 @@ async function getCachedHistory(event: H3Event, userId: string, endDate: string,
   const today = todayJST()
 
   const cache = await readCache(event, userId, start, end)
-  // 未キャッシュの日 + 当日（更新中のため常に再取得）+ カロリー欠損日
-  // （calories は total-calories の dailyRollUp 追加より前にキャッシュされた過去日だと
-  // 0 のまま保存されているため、自己修復的に再取得して埋める）
-  const missing = dates.filter(d => !cache.has(d) || d === today || !cache.get(d)!.caloriesKcal)
+  // 未キャッシュの日 + 当日（更新中のため常に再取得）+ カロリー欠損日 + アクティビティ欠損日
+  // （calories は total-calories の dailyRollUp 追加より前、activities は exercise 取得追加より前に
+  // キャッシュされた過去日だと該当フィールドが無い/0のまま保存されているため、自己修復的に再取得して埋める。
+  // activities は「その日は運動が無かった」正当な空配列[]もあるため、undefined判定にする）
+  const missing = dates.filter(d => !cache.has(d) || d === today || !cache.get(d)!.caloriesKcal || cache.get(d)!.activities === undefined)
 
   if (missing.length) {
     const token = await getValidToken(event, userId)
