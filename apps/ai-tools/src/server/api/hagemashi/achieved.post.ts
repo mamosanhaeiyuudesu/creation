@@ -4,8 +4,8 @@ import { wrapApiError } from '~/server/utils/openai'
 
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string; date: string }
 interface WordEntry { word: string; count: number }
-interface StrengthItem { title: string; weight: number; content: string }
-interface ProfileItem { strengths: StrengthItem[] | string; advice: StrengthItem[] | string; generatedAt: string }
+interface AchievedItem { title: string; weight: number; content: string }
+interface AchievedEntry { items: AchievedItem[]; summary: string; generatedAt: string }
 
 export default defineEventHandler(async (event) => {
   const db = event.context.cloudflare?.env?.WHISPER_DB
@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) throw createError({ statusCode: 500, statusMessage: 'Anthropic API key is not configured.' })
 
-  const body = await readBody<{ summaryItems: SummaryItem[]; wordRanking: WordEntry[]; vision?: string }>(event)
+  const body = await readBody<{ summaryItems: SummaryItem[]; wordRanking: WordEntry[] }>(event)
 
   // 記録全体を3区分に均等サンプリングし、特定の時期に偏らず広範囲の期間から分析できるようにする
   // （body.summaryItems は古い→新しい順で渡される想定）。各区分の見出しは実際の年月レンジにする。
@@ -62,10 +62,7 @@ export default defineEventHandler(async (event) => {
     ? body.wordRanking.slice(0, 50).map(w => `${w.word}(${w.count})`).join('、')
     : '（データなし）'
 
-  const visionText = body.vision?.trim()
-  const visionBlock = visionText ? `\n\n## ユーザーが設定しているビジョン（目指す姿）\n${visionText}` : ''
-
-  const userContent = `## 中間データ（日々の気持ち・状況の記録。初期・中期・直近の3区分）\n${summaryText}\n\n## 頻出単語ランキング\n${wordText}${visionBlock}`
+  const userContent = `## 中間データ（日々の気持ち・状況の記録。初期・中期・直近の3区分）\n${summaryText}\n\n## 頻出単語ランキング\n${wordText}`
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -79,19 +76,19 @@ export default defineEventHandler(async (event) => {
         model: 'claude-sonnet-5',
         max_tokens: 4096,
         thinking: { type: 'disabled' },
-        system: `あなたは日々の記録からユーザーの特性を分析するプロファイリングの専門家です。
-提供されたデータ（日々の気持ち・状況の記録と頻出単語）をもとに、ユーザーの強み・アドバイスを日本語で分析してください。
-記録は時期ごとに分けて与えられます（各見出しは「2025年5〜8月頃」のように実際の年月）。新しい時期の記録だけに偏らず、すべての時期に目を通したうえで、期間全体を通じて言える強みやアドバイスを抽出してください。期間に言及するときは「初期」「中期」などの抽象語ではなく、与えられた見出しの実際の年月で具体的に書いてください。
-${visionText ? 'ユーザーが設定しているビジョン（目指す姿）が渡された場合は、advice の一部にそのビジョンに近づくために今何をするとよいかという視点を織り交ぜてください（強引にこじつけず、記録の内容と自然に結びつく範囲で）。' : ''}
+        system: `あなたは日々の記録からユーザーが成し遂げてきた達成を洗い出すコーチです。
+提供されたデータ（日々の気持ち・状況の記録と頻出単語）をもとに、ユーザーが実際に達成した・成し遂げたことを日本語で抽出してください。
+記録は時期ごとに分けて与えられます（各見出しは「2025年5〜8月頃」のように実際の年月）。新しい時期の記録だけに偏らず、すべての時期に目を通したうえで、期間全体から達成を拾い上げてください。期間に言及するときは「初期」「中期」などの抽象語ではなく、与えられた見出しの実際の年月で具体的に書いてください。
 
 必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
-{"strengths":[{"title":"強みのタイトル（8文字以内でできるだけシンプルに）","weight":8,"content":"説明（150字以内）"}],"advice":[{"title":"アドバイスのタイトル（8文字以内でできるだけシンプルに）","weight":7,"content":"説明（150字以内）"}]}
+{"items":[{"title":"達成のタイトル（8文字以内でできるだけシンプルに）","weight":8,"content":"説明（150字以内）"}],"summary":"達成全体を俯瞰して伝える全体コメント（120字以内）"}
 
 ルール:
-- strengths・advice はそれぞれ 12 項目程度（最低でも 10 項目）抽出する
-- weight は 1〜10 の整数で、その項目が今どれくらい顕著か・重要かを表す（大きいほど treemap で大きく表示される）
-- title は必ず 8 文字以内でできるだけシンプルにする（treemap 上に表示されるため）。content は具体的に記述する
-- strengths・advice はそれぞれのリスト内で項目同士の意味が重ならないようにし（同じ内容の言い換えを並べない）、かつ記録全体から読み取れる主要な強み・アドバイスを漏れなくカバーする（MECE: 互いに排反かつ全体を網羅）`,
+- items は 20 項目程度（最低でも 15 項目）抽出する
+- 似た内容の重複や、些細な日常の一コマの言い換えを並べず、ユーザーの記録全体を漏れなくカバーしながら（MECE: 互いに排反かつ全体を網羅）、なるべくスケールの大きな達成（影響・意義が大きいもの）を優先して選ぶ
+- weight は 1〜10 の整数で、その達成の大きさ・重要度を表す（大きいほど treemap で大きく表示される）
+- title は必ず 8 文字以内でできるだけシンプルにする（treemap 上に表示されるため）。content は具体的に何を成し遂げたかを記述する
+- summary はユーザーを労い、達成の積み重ねを俯瞰して伝えるコメントにする`,
         messages: [{ role: 'user', content: userContent }],
       }),
     })
@@ -104,7 +101,7 @@ ${visionText ? 'ユーザーが設定しているビジョン（目指す姿）�
     const data = await response.json()
     const text = (data?.content?.[0]?.text ?? '').trim()
 
-    let parsed: { strengths: StrengthItem[] | string; advice: StrengthItem[] | string }
+    let parsed: { items: AchievedItem[]; summary: string }
     try {
       parsed = JSON.parse(text)
     } catch {
@@ -114,45 +111,43 @@ ${visionText ? 'ユーザーが設定しているビジョン（目指す姿）�
     }
 
     // weight を 1〜10 に収め、タイトル・本文の長さも安全側に丸める
-    const clampItem = (l: StrengthItem): StrengthItem => ({
+    const clampItem = (l: AchievedItem): AchievedItem => ({
       title: String(l.title ?? '').slice(0, 10),
       weight: Math.min(10, Math.max(1, Math.round(Number(l.weight) || 5))),
       content: String(l.content ?? '').slice(0, 300),
     })
-    const normList = (v: StrengthItem[] | string): StrengthItem[] | string =>
-      Array.isArray(v) ? v.map(clampItem).filter(i => i.title) : v
 
-    const newProfile: ProfileItem = {
-      strengths: normList(parsed.strengths),
-      advice: normList(parsed.advice),
+    const newEntry: AchievedEntry = {
+      items: (Array.isArray(parsed.items) ? parsed.items : []).map(clampItem).filter(i => i.title),
+      summary: String(parsed.summary ?? '').slice(0, 200),
       generatedAt: new Date().toISOString(),
     }
 
     if (db && user) {
       const existing = await db
-        .prepare('SELECT data FROM hagemashi_profiles WHERE user_id = ?')
+        .prepare('SELECT data FROM hagemashi_achieved WHERE user_id = ?')
         .bind(user.id)
         .first() as { data: string } | null
 
-      let profiles: ProfileItem[] = []
+      let entries: AchievedEntry[] = []
       if (existing) {
         try {
           const raw = JSON.parse(await decryptComment(event, existing.data))
-          profiles = Array.isArray(raw) ? raw : [raw]
+          entries = Array.isArray(raw) ? raw : [raw]
         } catch {}
       }
 
-      profiles = [newProfile, ...profiles].slice(0, 10)
+      entries = [newEntry, ...entries].slice(0, 10)
 
-      const storedData = await encryptComment(event, JSON.stringify(profiles))
+      const storedData = await encryptComment(event, JSON.stringify(entries))
       await db
-        .prepare("INSERT OR REPLACE INTO hagemashi_profiles (user_id, data, updated_at) VALUES (?, ?, datetime('now'))")
+        .prepare("INSERT OR REPLACE INTO hagemashi_achieved (user_id, data, updated_at) VALUES (?, ?, datetime('now'))")
         .bind(user.id, storedData)
         .run()
     }
 
-    return newProfile
+    return newEntry
   } catch (err) {
-    return wrapApiError(err, 'プロファイリングの生成に失敗しました')
+    return wrapApiError(err, '達成マップの生成に失敗しました')
   }
 })

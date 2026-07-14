@@ -1,16 +1,23 @@
 // Fitbitダッシュボードの「今日のアドバイス」カード。
 // 当日+直近7日の主要メトリクスをテキスト化してClaudeに渡し、Fitbit Premiumのコーチカード風の
-// 見出し＋本文を生成する。同じ日・同じデータ（signature一致）ならAIを呼ばずD1キャッシュを再利用する
-// （hagemashi/topic-summary.post.ts と同じ方式）。
+// 見出し＋本文を生成する。1日を6時間刻み4スロット（0-6/6-12/12-18/18-24時, JST）に区切り、
+// 同じスロット内はD1キャッシュを再利用してAIを呼ばない（スロットが変わると再生成される）。
 
 import type { H3Event } from 'h3'
 import type { AdviceData, RawDay } from '~/types/fitbit'
 import { getAppDb } from '~/server/utils/auth'
 import { computeBaseline, computeSleepScore, computeEnergyScore } from '~/server/utils/fitbit-score'
 import { wrapApiError } from '~/server/utils/openai'
+import { nowJST, todayJST } from '~/utils/jst'
 
 // プロンプト仕様の版数。プロンプトを変えたらここを上げると既存キャッシュが無効化され再生成される。
-const PROMPT_VERSION = 'v1'
+const PROMPT_VERSION = 'v2'
+
+/** 対象日の6時間スロット（0:0-6時, 1:6-12時, 2:12-18時, 3:18-24時, JST）。過去日は1日1本（-1固定）。 */
+function slotFor(date: string): number {
+  if (date !== todayJST()) return -1
+  return Math.floor(nowJST().getUTCHours() / 6)
+}
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
 
@@ -74,13 +81,6 @@ function buildFacts(history: RawDay[]): string {
   return lines.join('\n')
 }
 
-function signatureOf(facts: string): string {
-  const canonical = PROMPT_VERSION + facts
-  let h = 5381
-  for (let i = 0; i < canonical.length; i++) h = (h * 33) ^ canonical.charCodeAt(i)
-  return `${(h >>> 0).toString(36)}.${canonical.length}`
-}
-
 const SYSTEM_PROMPT = `あなたはFitbit Premiumのような健康コーチとして、ユーザーのその日の健康データを一言で言い当てるアドバイスカードを書きます。
 入力としてその日の主要メトリクス（睡眠・スコア・心拍・活動量）と、直近7日間の平均を渡します。
 
@@ -89,10 +89,10 @@ const SYSTEM_PROMPT = `あなたはFitbit Premiumのような健康コーチと�
 
 書き方:
 - headline は20字前後。その日いちばん特徴的な事実を、親しみやすい語りかけで一言にする（例:「予定より1時間半も早い目覚めでしたね」）
-- body は120〜200字程度、改行なしの2〜3文
-- 具体的な数値を交えつつ、直近7日間の平均と比較して「いつもより〜」のように語る（比較できる平均データが無い項目には触れない）
-- 数値や重要な単語は **太字** で強調する（例: **6時間6分**、**56**）
-- 温かく前向きな語り口（「〜ですね」「〜でしょう」等）。命令形は避け、軽い提案で自然に締める
+- body は50〜80字程度の1文のみ。要点をひとつに絞り、詰め込みすぎない
+- 具体的な数値をひとつかふたつ交え、直近7日間の平均と比べて特に際立つ点があれば「いつもより〜」のように触れる（比較できる平均データが無い項目には触れない）
+- 数値や重要な単語は **太字** で強調する（例: **6時間6分**）
+- 温かく前向きな語り口（「〜ですね」「〜でしょう」等）。命令形は避け、自然に締める
 - 文末を疑問文にしない（返信ボタンなどは無いため質問しても答えられない）
 - 与えられたデータの範囲を超えて話を作らない（存在しない数値には触れない）
 - JSON以外の文字列は一切出力しない`
@@ -124,7 +124,7 @@ async function callClaude(apiKey: string, facts: string): Promise<AdviceData> {
       parsed = match ? JSON.parse(match[0]) : {}
     }
     const headline = String(parsed.headline ?? '').trim().slice(0, 60)
-    const body = String(parsed.body ?? '').trim().slice(0, 400)
+    const body = String(parsed.body ?? '').trim().slice(0, 150)
     if (!headline || !body) throw new Error('アドバイスの生成結果が空でした')
     return { headline, body }
   } catch (err) {
@@ -135,34 +135,32 @@ async function callClaude(apiKey: string, facts: string): Promise<AdviceData> {
 /**
  * 対象日分のアドバイスカードを生成する。
  * history は対象日を末尾に含む古い順（当日+直近7日、ベースライン算出用）。
- * ログイン中はD1にsignature付きでキャッシュし、同一データなら再生成しない。
+ * 対象日を6時間スロットで区切り、同じスロット内はD1キャッシュを再利用してAIを呼ばない
+ * （スロット内でデータが変わっても、そのスロットで最初に生成した内容を保つ＝6時間ごとに切り替わる）。
  */
 export async function generateAdvice(event: H3Event, userId: string, history: RawDay[]): Promise<AdviceData> {
   const today = history[history.length - 1]
-  const facts = buildFacts(history)
-  const signature = signatureOf(facts)
+  const slot = slotFor(today.date)
 
   const db = getAppDb(event)
   if (db) {
     const cached = await db
-      .prepare('SELECT signature, headline, body FROM fitbit_advice WHERE user_id = ? AND date = ?')
-      .bind(userId, today.date)
+      .prepare('SELECT headline, body FROM fitbit_advice WHERE user_id = ? AND date = ? AND slot = ? AND prompt_version = ?')
+      .bind(userId, today.date, slot, PROMPT_VERSION)
       .first()
-      .catch(() => null) as { signature: string; headline: string; body: string } | null
-    if (cached && cached.signature === signature) {
-      return { headline: cached.headline, body: cached.body }
-    }
+      .catch(() => null) as { headline: string; body: string } | null
+    if (cached) return { headline: cached.headline, body: cached.body }
   }
 
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) throw createError({ statusCode: 500, statusMessage: 'Anthropic API key is not configured.' })
 
-  const advice = await callClaude(anthropicApiKey as string, facts)
+  const advice = await callClaude(anthropicApiKey as string, buildFacts(history))
 
   if (db) {
     await db
-      .prepare('INSERT OR REPLACE INTO fitbit_advice (user_id, date, signature, headline, body, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind(userId, today.date, signature, advice.headline, advice.body, new Date().toISOString())
+      .prepare('INSERT OR REPLACE INTO fitbit_advice (user_id, date, slot, prompt_version, headline, body, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .bind(userId, today.date, slot, PROMPT_VERSION, advice.headline, advice.body, new Date().toISOString())
       .run()
       .catch(() => { /* キャッシュ保存の失敗は無視して結果は返す */ })
   }

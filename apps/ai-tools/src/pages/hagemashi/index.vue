@@ -105,7 +105,7 @@
         </div>
         <div
           class="flex items-center gap-2 mb-1"
-          :class="activeTab === 'summary' || activeTab === 'words' || isProfileTab || activeTab === 'encourage' || activeTab === 'achievement' || activeTab === 'kokoro'
+          :class="activeTab === 'summary' || activeTab === 'words' || isProfileTab || activeTab === 'encourage' || activeTab === 'achievement' || activeTab === 'achieved' || activeTab === 'kokoro'
             ? 'min-h-8'
             : activeTab === 'transcription' ? 'min-h-4' : 'min-h-0'"
         >
@@ -180,6 +180,18 @@
             >
               <span v-if="isProfileLoading" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
               {{ isProfileLoading ? '生成中...' : '更新' }}
+            </button>
+          </template>
+          <template v-if="activeTab === 'achieved'">
+            <div class="flex-1" />
+            <span v-if="achievedHistory.length > 0" class="text-[11px] text-slate-600">最終更新: {{ formatProfileDate(achievedHistory[0].generatedAt) }}</span>
+            <button
+              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+              :disabled="isAchievedLoading"
+              @click="generateAchieved"
+            >
+              <span v-if="isAchievedLoading" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
+              {{ isAchievedLoading ? '生成中...' : '更新' }}
             </button>
           </template>
         </div>
@@ -393,6 +405,52 @@
                     @leaf-click="activeProfilePopup = $event"
                   />
                   <p v-else class="m-0 py-4 text-xs text-slate-500 text-center">{{ profileTabLabel }}のデータがありません</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 達成タブ -->
+        <div v-else-if="activeTab === 'achieved'" class="py-2">
+          <div v-if="isAchievedLoading" class="flex items-center justify-center gap-2 py-10 text-slate-400 text-sm">
+            <span class="w-4 h-4 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
+            分析中...
+          </div>
+          <div v-else-if="achievedHistory.length === 0" class="text-center text-slate-500 text-sm py-10">
+            更新ボタンを押すと中間データから達成を分析します
+          </div>
+          <div v-else-if="achievedHistory[0].items.length === 0" class="text-center text-slate-500 text-sm py-10">
+            達成のデータがありません。更新ボタンで再分析してください
+          </div>
+          <div v-else class="flex flex-col gap-3">
+            <HagemashiProfileTreemap :items="achievedHistory[0].items" color="#f472b6" :height="360" @leaf-click="activeProfilePopup = $event" />
+            <!-- AI分析コメント -->
+            <div v-if="achievedHistory[0].summary" class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
+              <div class="text-xs font-semibold text-orange-400 mb-1.5">🏆 AI分析</div>
+              <p class="m-0 text-sm text-slate-300 leading-relaxed">{{ achievedHistory[0].summary }}</p>
+            </div>
+            <!-- 過去の達成履歴 -->
+            <div v-if="achievedHistory.length > 1" class="flex flex-col gap-1.5">
+              <div class="text-[11px] text-slate-600 border-t border-white/[0.06] pt-3">過去の達成</div>
+              <div v-for="(a, ai) in achievedHistory.slice(1)" :key="ai" class="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden">
+                <button
+                  class="w-full flex items-center justify-between px-3 py-2.5 cursor-pointer bg-transparent border-none transition-colors hover:bg-white/[0.04]"
+                  @click="toggleAchievedHistory(ai)"
+                >
+                  <div class="text-[11px] text-slate-500">{{ formatProfileDate(a.generatedAt) }}</div>
+                  <div class="text-slate-600 text-[10px] transition-transform duration-200" :style="expandedAchievedIndices.has(ai) ? 'transform: rotate(180deg)' : ''">▼</div>
+                </button>
+                <div v-if="expandedAchievedIndices.has(ai)" class="px-3 pb-3 flex flex-col gap-2 border-t border-white/[0.05]">
+                  <HagemashiProfileTreemap
+                    v-if="a.items.length"
+                    :items="a.items"
+                    color="#f472b6"
+                    :height="280"
+                    @leaf-click="activeProfilePopup = $event"
+                  />
+                  <p v-else class="m-0 py-4 text-xs text-slate-500 text-center">達成のデータがありません</p>
+                  <p v-if="a.summary" class="m-0 text-xs text-slate-400 leading-relaxed">{{ a.summary }}</p>
                 </div>
               </div>
             </div>
@@ -1133,9 +1191,9 @@ const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-type RecordingTab = 'transcription' | 'words' | 'summary' | 'achievement' | 'kokoro' | 'strengths' | 'advice' | 'encourage'
+type RecordingTab = 'transcription' | 'words' | 'summary' | 'achievement' | 'kokoro' | 'strengths' | 'achieved' | 'advice' | 'encourage'
 type TabKey = 'consult' | 'mood' | RecordingTab
-const TAB_KEYS: TabKey[] = ['transcription', 'words', 'summary', 'achievement', 'kokoro', 'strengths', 'advice', 'encourage', 'consult', 'mood']
+const TAB_KEYS: TabKey[] = ['transcription', 'words', 'summary', 'achievement', 'kokoro', 'strengths', 'achieved', 'advice', 'encourage', 'consult', 'mood']
 
 // URL クエリ（?tab=）とタブ状態を双方向同期する
 const route = useRoute()
@@ -1158,6 +1216,7 @@ watch(() => route.query.tab, () => {
 const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'kokoro', label: '心', short: '心' },
   { key: 'strengths', label: '強み', short: '強み' },
+  { key: 'achieved', label: '達成', short: '達成' },
   { key: 'advice', label: 'アドバイス', short: '助言' },
 ]
 // 展開アイコンを開くと表示する副タブ
@@ -1218,6 +1277,7 @@ const consultMessages = ref<ConsultMessage[]>([])
 const LS_DICTIONARY = 'hagemashi-dictionary'
 const LS_WORD_RANKING = 'hagemashi-word-ranking'
 const LS_PROFILE = 'hagemashi-profile'
+const LS_ACHIEVED = 'hagemashi-achieved'
 const LS_KOKORO = 'hagemashi-kokoro'
 const LS_MOOD = 'hagemashi-mood'
 
@@ -1484,6 +1544,41 @@ const generateProfile = async () => {
   }
 }
 
+// --- 達成（達成した内容の treemap） ---
+interface AchievedItem { title: string; content: string; weight?: number }
+interface AchievedData { items: AchievedItem[]; summary: string; generatedAt: string }
+const achievedHistory = ref<AchievedData[]>([])
+const isAchievedLoading = ref(false)
+const expandedAchievedIndices = ref(new Set<number>())
+const toggleAchievedHistory = (i: number) => {
+  if (expandedAchievedIndices.value.has(i)) expandedAchievedIndices.value.delete(i)
+  else expandedAchievedIndices.value.add(i)
+  expandedAchievedIndices.value = new Set(expandedAchievedIndices.value)
+}
+const generateAchieved = async () => {
+  if (isAchievedLoading.value) return
+  isAchievedLoading.value = true
+  try {
+    // combinedSummaryRows（記録＋相談の発言＋気分のテキスト）は新しい順のため、古い→新しいの時系列順にしてサーバーに渡す
+    // （サーバー側で初期・中期・直近に3等分し、期間全体から均等に分析する）
+    const res = await $fetch<AchievedData>('/api/hagemashi/achieved', {
+      method: 'POST',
+      body: {
+        summaryItems: [...combinedSummaryRows.value].reverse().map(r => ({ sentiment: r.sentiment, text: r.text, date: r.fullDate })),
+        wordRanking: wordRanking.value.slice(0, 50),
+      },
+    })
+    achievedHistory.value = [res, ...achievedHistory.value]
+    if ($dev) {
+      localStorage.setItem(LS_ACHIEVED, JSON.stringify(achievedHistory.value))
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    isAchievedLoading.value = false
+  }
+}
+
 interface WordEntry { word: string; count: number }
 const wordRanking = ref<WordEntry[]>([])
 
@@ -1634,6 +1729,15 @@ onMounted(() => {
     }
   }
   if ($dev) {
+    const cachedAchieved = localStorage.getItem(LS_ACHIEVED)
+    if (cachedAchieved) {
+      try {
+        const raw = JSON.parse(cachedAchieved)
+        achievedHistory.value = Array.isArray(raw) ? raw : [raw]
+      } catch {}
+    }
+  }
+  if ($dev) {
     const cachedKokoro = localStorage.getItem(LS_KOKORO)
     if (cachedKokoro) {
       try {
@@ -1664,14 +1768,15 @@ if (!$dev) {
   watch(
     isLoggedIn,
     async (loggedIn) => {
-      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; achievements.value = []; kokoroHistory.value = []; moodEntries.value = []; stoplist.value = [...DEFAULT_STOPLIST]; vision.value = ''; return }
-      const [ranking, dict, profile, sl, ach, kokoro, mood, vis] = await Promise.allSettled([
+      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; achievements.value = []; kokoroHistory.value = []; achievedHistory.value = []; moodEntries.value = []; stoplist.value = [...DEFAULT_STOPLIST]; vision.value = ''; return }
+      const [ranking, dict, profile, sl, ach, kokoro, achieved, mood, vis] = await Promise.allSettled([
         $fetch<WordEntry[]>('/api/hagemashi/word-ranking'),
         $fetch<DictionaryEntry[]>('/api/hagemashi/dictionary'),
         $fetch<{ profiles: ProfileData[] }>('/api/hagemashi/profile'),
         $fetch<string[]>('/api/hagemashi/stoplist'),
         $fetch<Achievement[]>('/api/hagemashi/achievements'),
         $fetch<{ entries: KokoroData[] }>('/api/hagemashi/kokoro'),
+        $fetch<{ entries: AchievedData[] }>('/api/hagemashi/achieved'),
         $fetch<{ entries: MoodEntry[] }>('/api/hagemashi/mood'),
         $fetch<string>('/api/hagemashi/vision'),
       ])
@@ -1681,6 +1786,7 @@ if (!$dev) {
       stoplist.value = (sl.status === 'fulfilled' && sl.value.length > 0) ? sl.value : [...DEFAULT_STOPLIST]
       achievements.value = ach.status === 'fulfilled' && Array.isArray(ach.value) ? ach.value : []
       kokoroHistory.value = kokoro.status === 'fulfilled' ? (kokoro.value?.entries ?? []) : []
+      achievedHistory.value = achieved.status === 'fulfilled' ? (achieved.value?.entries ?? []) : []
       moodEntries.value = mood.status === 'fulfilled' ? (mood.value?.entries ?? []) : []
       vision.value = vis.status === 'fulfilled' ? (vis.value || '') : ''
       maybeAutoPromptVision()

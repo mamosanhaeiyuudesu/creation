@@ -3,15 +3,14 @@
   <div v-if="loading || data" class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4 flex flex-col gap-2 h-full">
     <div class="text-xs font-semibold text-slate-400">🤖 今日のアドバイス</div>
 
-    <div v-if="loading" class="flex flex-col gap-2 animate-pulse">
-      <div class="h-4 bg-white/10 rounded w-4/5" />
-      <div class="h-3 bg-white/[0.06] rounded w-full" />
-      <div class="h-3 bg-white/[0.06] rounded w-3/4" />
+    <div v-if="loading" class="flex flex-col gap-2.5 animate-pulse">
+      <div class="h-5 bg-white/10 rounded w-4/5" />
+      <div class="h-4 bg-white/[0.06] rounded w-full" />
     </div>
 
-    <div v-else-if="data" class="flex flex-col gap-1.5">
-      <div class="text-sm font-bold text-slate-100 leading-snug">{{ data.headline }}</div>
-      <p class="text-xs text-slate-400 leading-relaxed">
+    <div v-else-if="data" class="flex flex-col gap-2">
+      <div class="text-base font-bold text-slate-100 leading-snug">{{ data.headline }}</div>
+      <p class="text-sm text-slate-400 leading-relaxed">
         <template v-for="(seg, i) in bodySegments" :key="i">
           <strong v-if="seg.bold" class="text-slate-200 font-semibold">{{ seg.text }}</strong>
           <template v-else>{{ seg.text }}</template>
