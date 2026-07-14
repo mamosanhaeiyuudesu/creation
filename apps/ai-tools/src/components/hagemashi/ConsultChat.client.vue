@@ -188,6 +188,7 @@ async function loadHistory() {
     // 成功時のみ上書き。失敗時は既存の履歴を残す
     messages.value = res.messages ?? []
     loadedOk.value = true
+    emit('messages', messages.value)
   } catch (e) {
     // 失敗しても履歴は消さず、エラーを可視化して再読み込みできるようにする
     console.error('相談履歴の取得に失敗しました', e)
@@ -249,13 +250,16 @@ async function send() {
   } finally {
     streaming.value = false
     scrollToBottom()
+    // ユーザー発言確定後に親へ通知（中間データへの取り込み用）。ストリーミング中の
+    // 逐次更新では発火させない（親の再計算が自分自身へpropsとして返ってくるため、
+    // マウント中/hydration中に同期的に発火すると再入的な再レンダリングでVueの内部状態が壊れる）
+    emit('messages', messages.value)
   }
 }
 
 // ユーザー発言のタイムスタンプが変わるたびに親へ通知（利用ログの集計用）
 watch(messages, () => {
   emit('usage', messages.value.filter(m => m.role === 'user' && m.timestamp).map(m => m.timestamp as string))
-  emit('messages', messages.value)
 }, { deep: true, immediate: true })
 
 // 常時マウントされるため、初回はバックグラウンドで先読みしておく
