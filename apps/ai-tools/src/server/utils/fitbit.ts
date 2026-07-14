@@ -566,7 +566,11 @@ async function fetchRangeFromApi(token: string, start: string, end: string): Pro
   // カロリー: total-calories（基礎代謝+活動の合計）を dailyRollUp で取得済の日次値から反映。
   // 時間別（total-calories は list 非対応で hourly ソースが無い）は、日次合計を
   // 「基礎代謝ぶん＝24hに均等」＋「活動ぶん＝歩数の時間別シェアで按分」した推計値で埋める。
+  // 当日は現在時刻(JST)より先の時間帯を計上しない（未来の推計値を出さない）。
   const BMR_SHARE = 0.55
+  const nowJst = new Date(Date.now() + 9 * 3600 * 1000)
+  const todayJst = nowJst.toISOString().slice(0, 10)
+  const nowMinuteJst = nowJst.getUTCHours() * 60 + nowJst.getUTCMinutes()
   for (const [d, kcal] of Object.entries(caloriesByDate)) {
     if (!inRange(d)) continue
     const total = Math.round(kcal)
@@ -575,10 +579,11 @@ async function fetchRangeFromApi(token: string, start: string, end: string): Pro
     const stepSum = steps24 ? steps24.reduce((a, b) => a + b, 0) : 0
     const basePerHour = (total * BMR_SHARE) / 24
     const activePool = total * (1 - BMR_SHARE)
-    ensure(d).caloriesSeries = Array.from({ length: 24 }, (_, h) => {
+    const series = Array.from({ length: 24 }, (_, h) => {
       const active = stepSum > 0 ? activePool * (steps24![h] / stepSum) : activePool / 24
       return { t: h * 60, v: Math.round(basePerHour + active) }
     })
+    ensure(d).caloriesSeries = d === todayJst ? series.filter(p => p.t <= nowMinuteJst) : series
   }
 
   // 皮膚温: daily-sleep-temperature-derivations（睡眠中の皮膚温、1日1点）。

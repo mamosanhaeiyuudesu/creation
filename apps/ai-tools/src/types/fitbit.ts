@@ -148,6 +148,14 @@ export interface RawDay {
   }
 }
 
+/** 今日のアドバイスカード（AI生成） */
+export interface AdviceData {
+  /** 見出し（「〜でしたね」等の語りかけ、20字前後） */
+  headline: string
+  /** 本文（数値比較を含む2〜3文、**太字**でキーワード強調） */
+  body: string
+}
+
 /** 連携状態 */
 export interface FitbitStatus {
   connected: boolean

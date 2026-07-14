@@ -91,24 +91,28 @@
             </button>
           </div>
 
-          <!-- アクティビティ概要（当日の運動セッション） -->
-          <button
-            class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4 flex flex-col gap-2.5 hover:bg-white/[0.06] transition-colors text-left"
-            @click="activityOpen = true"
-          >
-            <div class="text-xs font-semibold text-slate-400">🏃 アクティビティ</div>
-            <div v-if="data.activities.length" class="flex flex-col gap-2">
-              <div v-for="(a, i) in data.activities" :key="i" class="flex items-center gap-3">
-                <span class="text-2xl leading-none shrink-0">{{ a.icon }}</span>
-                <div class="min-w-0 flex-1">
-                  <div class="text-sm font-semibold text-slate-100">{{ a.label }}</div>
-                  <div class="text-[11px] text-slate-500 tabular-nums">{{ a.start }} 〜 {{ a.end }}・{{ a.durationMin }}分</div>
+          <!-- 今日のアドバイス + アクティビティ概要: スマホは縦積み（アドバイスが上）、PCは横並び（アドバイスが左） -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <AdviceCard :date="date" />
+
+            <button
+              class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4 flex flex-col gap-2.5 hover:bg-white/[0.06] transition-colors text-left"
+              @click="activityOpen = true"
+            >
+              <div class="text-xs font-semibold text-slate-400">🏃 アクティビティ</div>
+              <div v-if="data.activities.length" class="flex flex-col gap-2">
+                <div v-for="(a, i) in data.activities" :key="i" class="flex items-center gap-3">
+                  <span class="text-2xl leading-none shrink-0">{{ a.icon }}</span>
+                  <div class="min-w-0 flex-1">
+                    <div class="text-sm font-semibold text-slate-100">{{ a.label }}</div>
+                    <div class="text-[11px] text-slate-500 tabular-nums">{{ a.start }} 〜 {{ a.end }}・{{ a.durationMin }}分</div>
+                  </div>
+                  <div class="text-sm font-bold text-orange-400 tabular-nums shrink-0">{{ a.caloriesKcal }}<span class="text-[10px] text-slate-500 ml-0.5">kcal</span></div>
                 </div>
-                <div class="text-sm font-bold text-orange-400 tabular-nums shrink-0">{{ a.caloriesKcal }}<span class="text-[10px] text-slate-500 ml-0.5">kcal</span></div>
               </div>
-            </div>
-            <div v-else class="text-xs text-slate-600">記録された運動はありません</div>
-          </button>
+              <div v-else class="text-xs text-slate-600">記録された運動はありません</div>
+            </button>
+          </div>
 
           <!-- 下段: メトリクスグリッド（数値 + 7日スパークライン） -->
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -170,6 +174,7 @@ import Sparkline from '~/components/fitbit/Sparkline.vue'
 import SleepModal from '~/components/fitbit/SleepModal.vue'
 import TrendModal from '~/components/fitbit/TrendModal.vue'
 import ActivityModal from '~/components/fitbit/ActivityModal.vue'
+import AdviceCard from '~/components/fitbit/AdviceCard.vue'
 import AuthModal from '~/components/AuthModal.vue'
 import { useAuth } from '~/composables/useAuth'
 
