@@ -488,18 +488,22 @@
           </div>
         </div>
 
-        <!-- 相談チャット（タブ切替で破棄すると履歴が消えるため、常時マウントして v-show で表示切替） -->
-        <HagemashiConsultChat
-          v-show="activeTab === 'consult'"
-          :active="activeTab === 'consult'"
-          :profile="profileHistory[0] ?? null"
-          :kokoro="kokoroHistory[0] ?? null"
-          :vision="vision"
-          :summary-items="recentSummaryItems"
-          :achievements="achievements"
-          @usage="consultDates = $event"
-          @messages="consultMessages = $event"
-        />
+        <!-- 相談チャット（タブ切替で破棄すると履歴が消えるため、常時マウントして v-show で表示切替）
+             v-show は .client.vue コンポーネント自体ではなく、この安定したラッパーdivに付ける
+             （直接付けるとSSR時に何も描画されない要素にディレクティブを適用することになり、
+             リロード時のhydrationで「Cannot read properties of null (reading 'style')」が発生するため） -->
+        <div v-show="activeTab === 'consult'">
+          <HagemashiConsultChat
+            :active="activeTab === 'consult'"
+            :profile="profileHistory[0] ?? null"
+            :kokoro="kokoroHistory[0] ?? null"
+            :vision="vision"
+            :summary-items="recentSummaryItems"
+            :achievements="achievements"
+            @usage="consultDates = $event"
+            @messages="consultMessages = $event"
+          />
+        </div>
       </div>
       </div>
     </div>
