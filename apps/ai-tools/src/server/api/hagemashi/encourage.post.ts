@@ -1,7 +1,7 @@
 import { wrapApiError } from '~/server/utils/openai'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<{ texts: string[]; encouragePrompt: string; charLimit?: number }>(event)
+  const body = await readBody<{ texts: string[]; encouragePrompt: string; charLimit?: number; vision?: string }>(event)
 
   if (!body?.texts?.length) {
     throw createError({ statusCode: 400, statusMessage: 'texts are required' })
@@ -16,6 +16,11 @@ export default defineEventHandler(async (event) => {
     .map((t, i) => `【記録${i + 1}】\n${t}`)
     .join('\n\n')
 
+  const visionText = body.vision?.trim()
+  const visionInstruction = visionText
+    ? `\n\nユーザーが目指しているビジョン: 「${visionText}」\n記録の内容とこのビジョンが自然に結びつく場合は、ビジョンに向けて前進していることが伝わるように触れてください（無理にこじつけない）。`
+    : ''
+
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -28,7 +33,7 @@ export default defineEventHandler(async (event) => {
         model: 'claude-sonnet-5',
         max_tokens: 1024,
         thinking: { type: 'disabled' },
-        system: `${body.encouragePrompt || '話した内容を踏まえて、温かくはげましてください。'}\n\n返答は日本語で${body.charLimit ?? 500}文字程度にまとめること。`,
+        system: `${body.encouragePrompt || '話した内容を踏まえて、温かくはげましてください。'}${visionInstruction}\n\n返答は日本語で${body.charLimit ?? 500}文字程度にまとめること。`,
         messages: [{ role: 'user', content: userContent }],
       }),
     })

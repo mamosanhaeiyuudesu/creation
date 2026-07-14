@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) throw createError({ statusCode: 500, statusMessage: 'Anthropic API key is not configured.' })
 
-  const body = await readBody<{ summaryItems: SummaryItem[]; wordRanking: WordEntry[] }>(event)
+  const body = await readBody<{ summaryItems: SummaryItem[]; wordRanking: WordEntry[]; vision?: string }>(event)
 
   // 記録全体を3区分に均等サンプリングし、特定の時期に偏らず広範囲の期間から分析できるようにする
   // （body.summaryItems は古い→新しい順で渡される想定）。各区分の見出しは実際の年月レンジにする。
@@ -62,7 +62,10 @@ export default defineEventHandler(async (event) => {
     ? body.wordRanking.slice(0, 50).map(w => `${w.word}(${w.count})`).join('、')
     : '（データなし）'
 
-  const userContent = `## 中間データ（日々の気持ち・状況の記録。初期・中期・直近の3区分）\n${summaryText}\n\n## 頻出単語ランキング\n${wordText}`
+  const visionText = body.vision?.trim()
+  const visionBlock = visionText ? `\n\n## ユーザーが設定しているビジョン（目指す姿）\n${visionText}` : ''
+
+  const userContent = `## 中間データ（日々の気持ち・状況の記録。初期・中期・直近の3区分）\n${summaryText}\n\n## 頻出単語ランキング\n${wordText}${visionBlock}`
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -79,6 +82,7 @@ export default defineEventHandler(async (event) => {
         system: `あなたは日々の記録からユーザーの特性を分析するプロファイリングの専門家です。
 提供されたデータ（日々の気持ち・状況の記録と頻出単語）をもとに、ユーザーの強み・アドバイスを日本語で分析してください。
 記録は時期ごとに分けて与えられます（各見出しは「2025年5〜8月頃」のように実際の年月）。新しい時期の記録だけに偏らず、すべての時期に目を通したうえで、期間全体を通じて言える強みやアドバイスを抽出してください。期間に言及するときは「初期」「中期」などの抽象語ではなく、与えられた見出しの実際の年月で具体的に書いてください。
+${visionText ? 'ユーザーが設定しているビジョン（目指す姿）が渡された場合は、advice の一部にそのビジョンに近づくために今何をするとよいかという視点を織り交ぜてください（強引にこじつけず、記録の内容と自然に結びつく範囲で）。' : ''}
 
 必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
 {"strengths":[{"title":"強みのタイトル（10文字以内でシンプルに）","weight":8,"content":"説明（150字以内）"}],"advice":[{"title":"アドバイスのタイトル（10文字以内でシンプルに）","weight":7,"content":"説明（150字以内）"}]}

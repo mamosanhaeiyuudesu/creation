@@ -494,9 +494,11 @@
           :active="activeTab === 'consult'"
           :profile="profileHistory[0] ?? null"
           :kokoro="kokoroHistory[0] ?? null"
+          :vision="vision"
           :summary-items="recentSummaryItems"
           :achievements="achievements"
           @usage="consultDates = $event"
+          @messages="consultMessages = $event"
         />
       </div>
       </div>
@@ -1205,6 +1207,10 @@ const consultDates = ref<string[]>([])
 const recordDates = computed(() => history.value.map(h => h.timestamp))
 const moodDates = computed(() => moodEntries.value.map(m => m.createdAt))
 
+// 相談チャットの発言（ConsultChat から常時ミラーされる。中間データへの取り込みに使う）
+interface ConsultMessage { role: 'user' | 'assistant'; content: string; timestamp?: string }
+const consultMessages = ref<ConsultMessage[]>([])
+
 const LS_DICTIONARY = 'hagemashi-dictionary'
 const LS_WORD_RANKING = 'hagemashi-word-ranking'
 const LS_PROFILE = 'hagemashi-profile'
@@ -1404,12 +1410,12 @@ const generateKokoro = async () => {
   if (isKokoroLoading.value) return
   isKokoroLoading.value = true
   try {
-    // summaryRows は新しい順のため、古い→新しいの時系列順にしてサーバーに渡す
+    // combinedSummaryRows（記録＋相談の発言＋気分のテキスト）は新しい順のため、古い→新しいの時系列順にしてサーバーに渡す
     // （サーバー側で初期・中期・直近に3等分し、期間全体から均等に分析する）
     const res = await $fetch<KokoroData>('/api/hagemashi/kokoro', {
       method: 'POST',
       body: {
-        summaryItems: [...summaryRows.value].reverse().map(r => ({ sentiment: r.sentiment, text: r.text, date: r.fullDate })),
+        summaryItems: [...combinedSummaryRows.value].reverse().map(r => ({ sentiment: r.sentiment, text: r.text, date: r.fullDate })),
         wordRanking: wordRanking.value.slice(0, 50),
       },
     })
@@ -1453,13 +1459,14 @@ const generateProfile = async () => {
   if (isProfileLoading.value) return
   isProfileLoading.value = true
   try {
-    // summaryRows は新しい順のため、古い→新しいの時系列順にしてサーバーに渡す
+    // combinedSummaryRows（記録＋相談の発言＋気分のテキスト）は新しい順のため、古い→新しいの時系列順にしてサーバーに渡す
     // （サーバー側で初期・中期・直近に3等分し、期間全体から均等に分析する）
     const res = await $fetch<ProfileData>('/api/hagemashi/profile', {
       method: 'POST',
       body: {
-        summaryItems: [...summaryRows.value].reverse().map(r => ({ sentiment: r.sentiment, text: r.text, date: r.fullDate })),
+        summaryItems: [...combinedSummaryRows.value].reverse().map(r => ({ sentiment: r.sentiment, text: r.text, date: r.fullDate })),
         wordRanking: wordRanking.value.slice(0, 50),
+        vision: vision.value,
       },
     })
     profileHistory.value = [res, ...profileHistory.value]
@@ -1805,6 +1812,7 @@ const runEncourage = async () => {
         texts,
         encouragePrompt: ENCOURAGE_PROMPTS[encourageStyle.value],
         charLimit: charLimit.value,
+        vision: vision.value,
       },
     })
     encourageResult.value = res.result
@@ -1925,24 +1933,66 @@ const parseSummaryNote = (notes: string | undefined): SummaryNoteNew | SummaryNo
   return null
 }
 
+interface SummaryRow { id: string; ts: number; date: string; fullDate: string; sentiment: 'ポジ' | 'ネガ'; text: string; itemIndex: number | null }
+
 const summaryRows = computed(() => {
-  const rows: { id: string; date: string; fullDate: string; sentiment: 'ポジ' | 'ネガ'; text: string; itemIndex: number | null }[] = []
+  const rows: SummaryRow[] = []
   for (const item of history.value) {
     const parsed = parseSummaryNote(item.notes)
     if (!parsed) continue
     const d = toJSTDate(item.timestamp)
+    const ts = d.getTime()
     const date = `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`
     const fullDate = `${d.getUTCFullYear()}/${d.getUTCMonth() + 1}/${d.getUTCDate()}`
     if ('items' in parsed) {
       for (let i = 0; i < parsed.items.length; i++) {
         const n = parsed.items[i]
-        if (n.text) rows.push({ id: item.id, date, fullDate, sentiment: n.sentiment, text: n.text, itemIndex: i })
+        if (n.text) rows.push({ id: item.id, ts, date, fullDate, sentiment: n.sentiment, text: n.text, itemIndex: i })
       }
     } else {
-      rows.push({ id: item.id, date, fullDate, sentiment: parsed.sentiment, text: parsed.text, itemIndex: null })
+      rows.push({ id: item.id, ts, date, fullDate, sentiment: parsed.sentiment, text: parsed.text, itemIndex: null })
     }
   }
   return rows
+})
+
+// 相談のユーザー発言・気分の自由記述テキストも中間データに取り込む（AI分析の入力にのみ使う。
+// 中間データタブの一覧・編集・削除の対象は history 由来の summaryRows のままにする＝
+// consult/mood は元データ側（相談・気分タブ）を編集・削除すれば自動的にここからも消える）
+const combinedSummaryRows = computed(() => {
+  const consultRows: SummaryRow[] = consultMessages.value
+    .filter(m => m.role === 'user' && m.timestamp && m.content.trim())
+    .map((m, i) => {
+      const d = toJSTDate(m.timestamp!)
+      return {
+        id: `consult-${i}`,
+        ts: d.getTime(),
+        date: `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`,
+        fullDate: `${d.getUTCFullYear()}/${d.getUTCMonth() + 1}/${d.getUTCDate()}`,
+        sentiment: 'ポジ' as const,
+        text: m.content.trim(),
+        itemIndex: null,
+      }
+    })
+
+  const moodRows: SummaryRow[] = moodEntries.value
+    .filter(e => e.note && e.note.trim())
+    .map(e => {
+      const d = toJSTDate(e.createdAt)
+      return {
+        id: `mood-${e.id}`,
+        ts: d.getTime(),
+        date: `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`,
+        fullDate: `${d.getUTCFullYear()}/${d.getUTCMonth() + 1}/${d.getUTCDate()}`,
+        sentiment: e.score >= 6 ? 'ポジ' as const : 'ネガ' as const,
+        text: e.note.trim(),
+        itemIndex: null,
+      }
+    })
+
+  // ts 降順（新しい順）に統一する。summaryRows 単体では history の並び順に依存していたが、
+  // consult/mood を混ぜるとその前提が崩れるため、ここで明示的にソートする
+  return [...summaryRows.value, ...consultRows, ...moodRows].sort((a, b) => b.ts - a.ts)
 })
 
 // --- 単語・心クリック時のAI分析ポップアップ（キャッシュ・保存はしない） ---
@@ -1968,17 +2018,17 @@ const activeWordMatches = computed(() => {
 // （直近だけに絞ると古い記録が最初から候補に入らず、直近の内容ばかりになる）
 const activeKokoroMatches = computed(() => {
   if (!activeKokoroPopup.value) return []
-  return summaryRows.value.map(r => ({ date: r.fullDate, text: r.text })).reverse()
+  return combinedSummaryRows.value.map(r => ({ date: r.fullDate, text: r.text })).reverse()
 })
 // 強み・アドバイスの項目も抽象ラベルのため、中間データ全体を渡してAIに意味的関連を判断させる
 const activeProfileMatches = computed(() => {
   if (!activeProfilePopup.value) return []
-  return summaryRows.value.map(r => ({ date: r.fullDate, text: r.text })).reverse()
+  return combinedSummaryRows.value.map(r => ({ date: r.fullDate, text: r.text })).reverse()
 })
 
-// 相談チャットに渡す直近30件（summaryRows は新しい順）
+// 相談チャットに渡す直近30件（combinedSummaryRows は新しい順）
 const recentSummaryItems = computed(() =>
-  summaryRows.value.slice(0, 30).map(r => ({ sentiment: r.sentiment, text: r.text, date: r.date }))
+  combinedSummaryRows.value.slice(0, 30).map(r => ({ sentiment: r.sentiment, text: r.text, date: r.date }))
 )
 
 const deleteSummaryRow = (id: string, itemIndex: number | null) => {

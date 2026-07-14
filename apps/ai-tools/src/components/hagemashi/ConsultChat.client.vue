@@ -98,13 +98,15 @@ interface ChatMessage { role: 'user' | 'assistant'; content: string; timestamp?:
 const props = defineProps<{
   profile?: ProfileData | null
   kokoro?: KokoroData | null
+  vision?: string
   summaryItems?: SummaryItem[]
   achievements?: AchievementItem[]
   active?: boolean
 }>()
 
 // 相談の利用ログ用に、ユーザー発言のタイムスタンプ一覧を親へ通知する
-const emit = defineEmits<{ (e: 'usage', timestamps: string[]): void }>()
+// messages: 親が中間データへの取り込みに使えるよう、発言一覧を常時ミラーする
+const emit = defineEmits<{ (e: 'usage', timestamps: string[]): void; (e: 'messages', messages: ChatMessage[]): void }>()
 
 const messages = ref<ChatMessage[]>([])
 const draft = ref('')
@@ -221,6 +223,7 @@ async function send() {
         messages: outgoing,
         profile: props.profile ?? null,
         kokoro: props.kokoro ?? null,
+        vision: props.vision ?? '',
         summaryItems: (props.summaryItems ?? []).slice(0, 30),
         achievements: (props.achievements ?? []).map(a => ({ text: a.text, level: a.level, date: a.date })),
       }),
@@ -252,6 +255,7 @@ async function send() {
 // ユーザー発言のタイムスタンプが変わるたびに親へ通知（利用ログの集計用）
 watch(messages, () => {
   emit('usage', messages.value.filter(m => m.role === 'user' && m.timestamp).map(m => m.timestamp as string))
+  emit('messages', messages.value)
 }, { deep: true, immediate: true })
 
 // 常時マウントされるため、初回はバックグラウンドで先読みしておく

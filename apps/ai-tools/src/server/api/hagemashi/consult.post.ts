@@ -74,7 +74,7 @@ export default defineEventHandler(async (event) => {
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) throw createError({ statusCode: 500, statusMessage: 'Anthropic API key is not configured.' })
 
-  const body = await readBody<{ messages: ChatMessage[]; profile?: ProfileData | null; kokoro?: KokoroData | null; summaryItems?: SummaryItem[]; achievements?: AchievementItem[] }>(event)
+  const body = await readBody<{ messages: ChatMessage[]; profile?: ProfileData | null; kokoro?: KokoroData | null; summaryItems?: SummaryItem[]; achievements?: AchievementItem[]; vision?: string }>(event)
   const rawMessages = Array.isArray(body?.messages) ? body.messages : []
   const messages = rawMessages
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
@@ -101,9 +101,11 @@ export default defineEventHandler(async (event) => {
     ? achievements.map(a => `・[Lv${Math.min(5, Math.max(1, Math.round(Number(a.level) || 1)))}]${a.date ? `[${a.date}]` : ''} ${a.text}`).join('\n')
     : '（記録なし）'
 
+  const visionText = body.vision?.trim()
+
   const personaBlock = `# 相談相手の人物像
 ${personaText || '（プロフィール未生成）'}
-
+${visionText ? `\n# 相談者が目指しているビジョン\n${visionText}\n` : ''}
 # これまでの達成（客観的な成果・レベルが高い順）
 ${achievementsText}
 
@@ -117,6 +119,7 @@ ${recentText}`
 - 長すぎず、会話のテンポを保つ（必要に応じて問いかけも交える）
 - 記録から読み取れる強みを自然に活かす
 - 相談者が自信を失っているときは、これまでの達成（客観的な成果）を具体的に引き合いに出して勇気づける。ただし押し付けがましくならないよう自然に触れる
+${visionText ? '- 相談者が目指しているビジョンが渡されている場合は、そのビジョンを念頭に置き、相談内容がビジョンにどうつながるかを自然に意識した返答をする。ただし毎回無理に持ち出さず、話の流れに合うときだけ触れる' : ''}
 
 # 日時について
 現在の日時は ${formatTs(nowIso)}（日本時間）です。
