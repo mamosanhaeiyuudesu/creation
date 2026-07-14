@@ -84,12 +84,20 @@ interface ProfileData {
   advice: StrengthItem[] | string
   generatedAt?: string
 }
+interface KokoroLeaf { name: string; weight: number; note: string }
+interface KokoroData {
+  charge: KokoroLeaf[]
+  stress: KokoroLeaf[]
+  summary?: string
+  generatedAt?: string
+}
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string; date: string }
 interface AchievementItem { text: string; level: number; date?: string }
 interface ChatMessage { role: 'user' | 'assistant'; content: string; timestamp?: string }
 
 const props = defineProps<{
   profile?: ProfileData | null
+  kokoro?: KokoroData | null
   summaryItems?: SummaryItem[]
   achievements?: AchievementItem[]
   active?: boolean
@@ -212,6 +220,7 @@ async function send() {
       body: JSON.stringify({
         messages: outgoing,
         profile: props.profile ?? null,
+        kokoro: props.kokoro ?? null,
         summaryItems: (props.summaryItems ?? []).slice(0, 30),
         achievements: (props.achievements ?? []).map(a => ({ text: a.text, level: a.level, date: a.date })),
       }),

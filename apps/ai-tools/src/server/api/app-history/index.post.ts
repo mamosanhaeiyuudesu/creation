@@ -1,4 +1,5 @@
 import { getSessionUser } from '~/server/utils/auth'
+import { encryptComment } from '~/server/utils/encrypt'
 
 export default defineEventHandler(async (event) => {
   const user = await getSessionUser(event)
@@ -20,9 +21,13 @@ export default defineEventHandler(async (event) => {
 
   const createdAt = timestamp ? timestamp.replace('T', ' ').replace('Z', '') : new Date().toISOString().replace('T', ' ').replace('Z', '')
 
+  const storedText = await encryptComment(event, text ?? '')
+  const storedTitle = await encryptComment(event, title ?? '')
+  const storedNotes = notes ? await encryptComment(event, notes) : null
+
   await db
     .prepare('INSERT OR REPLACE INTO app_history (id, user_id, app, text, title, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    .bind(id, user.id, app, text ?? '', title ?? '', notes ?? null, createdAt)
+    .bind(id, user.id, app, storedText, storedTitle, storedNotes, createdAt)
     .run()
 
   return { ok: true }

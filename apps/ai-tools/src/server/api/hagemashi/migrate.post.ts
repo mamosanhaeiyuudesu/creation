@@ -1,4 +1,5 @@
 import { getSessionUser } from '~/server/utils/auth'
+import { decryptComment, encryptComment } from '~/server/utils/encrypt'
 
 function extractJson(raw: string): { items?: { sentiment: string; text: string }[]; sentiment?: string; text?: string } {
   const stripped = raw.replace(/```(?:json)?/g, '').trim()
@@ -22,7 +23,13 @@ export default defineEventHandler(async (event) => {
     .bind(user.id)
     .all<{ id: string; text: string; notes: string }>()
 
-  const targets = (rows.results ?? []).filter(r => {
+  const decryptedRows = await Promise.all((rows.results ?? []).map(async r => ({
+    id: r.id,
+    text: await decryptComment(event, r.text),
+    notes: r.notes ? await decryptComment(event, r.notes) : r.notes,
+  })))
+
+  const targets = decryptedRows.filter(r => {
     if (!r.notes) return true
     try { const p = JSON.parse(r.notes); return !p.text && !p.items } catch { return true }
   })
@@ -81,9 +88,10 @@ export default defineEventHandler(async (event) => {
         notes = JSON.stringify({ sentiment: parsed.sentiment ?? 'ポジ', text: parsed.text ?? '' })
       }
 
+      const storedNotes = await encryptComment(event, notes)
       await db
         .prepare('UPDATE app_history SET notes = ? WHERE id = ? AND user_id = ?')
-        .bind(notes, row.id, user.id)
+        .bind(storedNotes, row.id, user.id)
         .run()
 
       migrated++

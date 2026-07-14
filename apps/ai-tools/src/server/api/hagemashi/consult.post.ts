@@ -1,4 +1,6 @@
+import type { H3Event } from 'h3'
 import { getSessionUser } from '~/server/utils/auth'
+import { encryptComment } from '~/server/utils/encrypt'
 import { wrapApiError } from '~/server/utils/openai'
 import { toJSTDate } from '~/utils/jst'
 
@@ -6,6 +8,13 @@ interface StrengthItem { title: string; content: string }
 interface ProfileData {
   strengths: StrengthItem[] | string
   advice: StrengthItem[] | string
+  generatedAt?: string
+}
+interface KokoroLeaf { name: string; note: string }
+interface KokoroData {
+  charge: KokoroLeaf[]
+  stress: KokoroLeaf[]
+  summary?: string
   generatedAt?: string
 }
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string; date: string }
@@ -44,6 +53,20 @@ function profileToText(p?: ProfileData | null): string {
   return parts.join('\n\n')
 }
 
+// 心の状態（最新の charge/stress）を人物像テキストに整形する
+function kokoroToText(k?: KokoroData | null): string {
+  if (!k) return ''
+  const fmt = (v: KokoroLeaf[] | undefined) =>
+    Array.isArray(v) && v.length ? v.map(l => `・${l.name}${l.note ? `（${l.note}）` : ''}`).join('\n') : ''
+  const parts: string[] = []
+  const charge = fmt(k.charge)
+  const stress = fmt(k.stress)
+  if (charge) parts.push(`【心のチャージ源（支え）】\n${charge}`)
+  if (stress) parts.push(`【心のストレス源（負担）】\n${stress}`)
+  if (k.summary) parts.push(`【心の状態の総評】\n${k.summary}`)
+  return parts.join('\n\n')
+}
+
 export default defineEventHandler(async (event) => {
   const db = event.context.cloudflare?.env?.WHISPER_DB
   const user = db ? await getSessionUser(event).catch(() => null) : null
@@ -51,7 +74,7 @@ export default defineEventHandler(async (event) => {
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) throw createError({ statusCode: 500, statusMessage: 'Anthropic API key is not configured.' })
 
-  const body = await readBody<{ messages: ChatMessage[]; profile?: ProfileData | null; summaryItems?: SummaryItem[]; achievements?: AchievementItem[] }>(event)
+  const body = await readBody<{ messages: ChatMessage[]; profile?: ProfileData | null; kokoro?: KokoroData | null; summaryItems?: SummaryItem[]; achievements?: AchievementItem[] }>(event)
   const rawMessages = Array.isArray(body?.messages) ? body.messages : []
   const messages = rawMessages
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
@@ -62,8 +85,8 @@ export default defineEventHandler(async (event) => {
   }
   const latestUser = messages[messages.length - 1]
 
-  // --- ペルソナ層（プロフィール）＋ 直近層（中間データ 最新30件）---
-  const personaText = profileToText(body.profile)
+  // --- ペルソナ層（プロフィール＋心の状態）＋ 直近層（中間データ 最新30件）---
+  const personaText = [profileToText(body.profile), kokoroToText(body.kokoro)].filter(Boolean).join('\n\n')
   const recent = (body.summaryItems ?? []).slice(0, 30)
   const recentText = recent.length
     ? recent.map(r => `[${r.date}][${r.sentiment}] ${r.text}`).join('\n')
@@ -167,7 +190,7 @@ ${recentText}`
       }
     }
 
-    if (db && user) await persistTurn(db, user.id, latestUser.content, assembled)
+    if (db && user) await persistTurn(event, db, user.id, latestUser.content, assembled)
     res.end()
     return
   } catch (err) {
@@ -175,7 +198,7 @@ ${recentText}`
   }
 })
 
-async function persistTurn(db: any, userId: string, userContent: string, assistantContent: string) {
+async function persistTurn(event: H3Event, db: any, userId: string, userContent: string, assistantContent: string) {
   if (!userContent) return
   await db.prepare(CREATE_TABLE).run()
 
@@ -183,15 +206,17 @@ async function persistTurn(db: any, userId: string, userContent: string, assista
   const baseIso = now.toISOString().replace('T', ' ').replace('Z', '')
   const later = new Date(now.getTime() + 1).toISOString().replace('T', ' ').replace('Z', '')
 
+  const storedUserContent = await encryptComment(event, userContent)
   await db
     .prepare('INSERT INTO hagemashi_consult_messages (id, user_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)')
-    .bind(crypto.randomUUID(), userId, 'user', userContent, baseIso)
+    .bind(crypto.randomUUID(), userId, 'user', storedUserContent, baseIso)
     .run()
 
   if (assistantContent) {
+    const storedAssistantContent = await encryptComment(event, assistantContent)
     await db
       .prepare('INSERT INTO hagemashi_consult_messages (id, user_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)')
-      .bind(crypto.randomUUID(), userId, 'assistant', assistantContent, later)
+      .bind(crypto.randomUUID(), userId, 'assistant', storedAssistantContent, later)
       .run()
   }
 }

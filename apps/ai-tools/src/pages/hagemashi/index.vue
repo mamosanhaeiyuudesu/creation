@@ -76,7 +76,7 @@
 
       <!-- History tabs -->
       <div class="mt-1 min-w-0">
-        <!-- 録音 サブタブ（主: 単語・心・達成リスト・長期傾向 / 副: 記録・中間データ・はげまし） -->
+        <!-- 録音 サブタブ（主: 心・強み・アドバイス / 副: 記録・単語・中間データ・達成リスト・はげまし） -->
         <div v-if="isRecordingTab" class="flex items-center gap-1.5 mt-2 flex-wrap">
           <button
             v-for="t in primaryTabs"
@@ -493,6 +493,7 @@
           v-show="activeTab === 'consult'"
           :active="activeTab === 'consult'"
           :profile="profileHistory[0] ?? null"
+          :kokoro="kokoroHistory[0] ?? null"
           :summary-items="recentSummaryItems"
           :achievements="achievements"
           @usage="consultDates = $event"
@@ -1152,11 +1153,11 @@ const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'kokoro', label: '心', short: '心' },
   { key: 'strengths', label: '強み', short: '強み' },
   { key: 'advice', label: 'アドバイス', short: '助言' },
-  { key: 'words', label: '単語', short: '単語' },
 ]
 // 展開アイコンを開くと表示する副タブ
 const secondaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'transcription', label: '記録', short: '記録' },
+  { key: 'words', label: '単語', short: '単語' },
   { key: 'summary', label: '中間データ', short: '中間' },
   { key: 'achievement', label: '達成リスト', short: '達成' },
   { key: 'encourage', label: 'はげまし', short: 'はげ' },
@@ -1403,10 +1404,12 @@ const generateKokoro = async () => {
   if (isKokoroLoading.value) return
   isKokoroLoading.value = true
   try {
+    // summaryRows は新しい順のため、古い→新しいの時系列順にしてサーバーに渡す
+    // （サーバー側で初期・中期・直近に3等分し、期間全体から均等に分析する）
     const res = await $fetch<KokoroData>('/api/hagemashi/kokoro', {
       method: 'POST',
       body: {
-        summaryItems: summaryRows.value.map(r => ({ sentiment: r.sentiment, text: r.text, date: r.date })),
+        summaryItems: [...summaryRows.value].reverse().map(r => ({ sentiment: r.sentiment, text: r.text, date: r.fullDate })),
         wordRanking: wordRanking.value.slice(0, 50),
       },
     })

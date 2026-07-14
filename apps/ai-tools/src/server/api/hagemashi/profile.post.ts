@@ -1,4 +1,5 @@
 import { getSessionUser } from '~/server/utils/auth'
+import { decryptComment, encryptComment } from '~/server/utils/encrypt'
 import { wrapApiError } from '~/server/utils/openai'
 
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string; date: string }
@@ -85,7 +86,8 @@ export default defineEventHandler(async (event) => {
 ルール:
 - strengths・advice はそれぞれ 12 項目程度（最低でも 10 項目）抽出する
 - weight は 1〜10 の整数で、その項目が今どれくらい顕著か・重要かを表す（大きいほど treemap で大きく表示される）
-- title は必ず 10 文字以内でシンプルにする（treemap 上に表示されるため）。content は具体的に記述する`,
+- title は必ず 10 文字以内でシンプルにする（treemap 上に表示されるため）。content は具体的に記述する
+- strengths・advice はそれぞれのリスト内で項目同士の意味が重ならないようにし（同じ内容の言い換えを並べない）、かつ記録全体から読み取れる主要な強み・アドバイスを漏れなくカバーする（MECE: 互いに排反かつ全体を網羅）`,
         messages: [{ role: 'user', content: userContent }],
       }),
     })
@@ -131,16 +133,17 @@ export default defineEventHandler(async (event) => {
       let profiles: ProfileItem[] = []
       if (existing) {
         try {
-          const raw = JSON.parse(existing.data)
+          const raw = JSON.parse(await decryptComment(event, existing.data))
           profiles = Array.isArray(raw) ? raw : [raw]
         } catch {}
       }
 
       profiles = [newProfile, ...profiles].slice(0, 10)
 
+      const storedData = await encryptComment(event, JSON.stringify(profiles))
       await db
         .prepare("INSERT OR REPLACE INTO hagemashi_profiles (user_id, data, updated_at) VALUES (?, ?, datetime('now'))")
-        .bind(user.id, JSON.stringify(profiles))
+        .bind(user.id, storedData)
         .run()
     }
 

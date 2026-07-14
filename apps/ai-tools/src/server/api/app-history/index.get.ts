@@ -1,4 +1,5 @@
 import { getSessionUser } from '~/server/utils/auth'
+import { decryptComment } from '~/server/utils/encrypt'
 import type { HistoryItem } from '~/types/history'
 
 export default defineEventHandler(async (event) => {
@@ -16,13 +17,13 @@ export default defineEventHandler(async (event) => {
     .bind(user.id, app)
     .all<{ id: string; text: string; title: string; notes: string; created_at: string }>()
 
-  const items: HistoryItem[] = (rows.results ?? []).map((r) => ({
+  const items: HistoryItem[] = await Promise.all((rows.results ?? []).map(async (r) => ({
     id: r.id,
     timestamp: r.created_at,
-    text: r.text,
-    title: r.title,
-    notes: r.notes || undefined,
-  }))
+    text: await decryptComment(event, r.text),
+    title: await decryptComment(event, r.title),
+    notes: r.notes ? await decryptComment(event, r.notes) : undefined,
+  })))
 
   return items
 })

@@ -1,4 +1,5 @@
 import { getSessionUser } from '~/server/utils/auth'
+import { encryptComment } from '~/server/utils/encrypt'
 
 interface Achievement { id: string; sourceId: string; date: string; text: string; level: number }
 
@@ -12,9 +13,10 @@ export default defineEventHandler(async (event) => {
   const { items } = await readBody<{ items: Achievement[] }>(event)
   if (!Array.isArray(items)) throw createError({ statusCode: 400, message: '不正なデータ形式' })
 
+  const storedData = await encryptComment(event, JSON.stringify(items))
   await db
     .prepare("INSERT OR REPLACE INTO hagemashi_achievements (user_id, data, updated_at) VALUES (?, ?, datetime('now'))")
-    .bind(user.id, JSON.stringify(items))
+    .bind(user.id, storedData)
     .run()
 
   return { ok: true }

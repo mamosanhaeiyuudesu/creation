@@ -1,4 +1,5 @@
 import { getSessionUser } from '~/server/utils/auth'
+import { decryptComment } from '~/server/utils/encrypt'
 
 const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS hagemashi_consult_messages (
   id TEXT PRIMARY KEY,
@@ -22,5 +23,11 @@ export default defineEventHandler(async (event) => {
     .bind(user.id)
     .all()
 
-  return { messages: (rows?.results ?? []).map((r: any) => ({ role: r.role, content: r.content, timestamp: r.created_at })) }
+  const messages = await Promise.all((rows?.results ?? []).map(async (r: any) => ({
+    role: r.role,
+    content: await decryptComment(event, r.content),
+    timestamp: r.created_at,
+  })))
+
+  return { messages }
 })

@@ -1,4 +1,5 @@
 import { getSessionUser } from '~/server/utils/auth'
+import { decryptComment } from '~/server/utils/encrypt'
 
 export default defineEventHandler(async (event) => {
   const user = await getSessionUser(event)
@@ -15,7 +16,7 @@ export default defineEventHandler(async (event) => {
   if (!row) return []
 
   try {
-    const parsed = JSON.parse(row.data)
+    const parsed = JSON.parse(await decryptComment(event, row.data))
     return Array.isArray(parsed) ? parsed : []
   } catch {
     return []
