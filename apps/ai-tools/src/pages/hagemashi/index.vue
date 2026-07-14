@@ -1224,7 +1224,7 @@ const secondaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'transcription', label: '記録', short: '記録' },
   { key: 'words', label: '単語', short: '単語' },
   { key: 'summary', label: '中間データ', short: '中間' },
-  { key: 'achievement', label: '達成リスト', short: '達成' },
+  // { key: 'achievement', label: '達成リスト', short: '達成' }, // 「達成」ツリーマップタブに統合したためコメントアウト
   { key: 'encourage', label: 'はげまし', short: 'はげ' },
 ]
 const recordingTabs: { key: RecordingTab; label: string; short: string }[] = [...primaryTabs, ...secondaryTabs]

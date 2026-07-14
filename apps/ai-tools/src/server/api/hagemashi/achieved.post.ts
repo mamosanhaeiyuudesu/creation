@@ -74,7 +74,7 @@ export default defineEventHandler(async (event) => {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-5',
-        max_tokens: 4096,
+        max_tokens: 8192,
         thinking: { type: 'disabled' },
         system: `あなたは日々の記録からユーザーが成し遂げてきた達成を洗い出すコーチです。
 提供されたデータ（日々の気持ち・状況の記録と頻出単語）をもとに、ユーザーが実際に達成した・成し遂げたことを日本語で抽出してください。
@@ -107,7 +107,13 @@ export default defineEventHandler(async (event) => {
     } catch {
       const match = text.match(/\{[\s\S]*\}/)
       if (!match) throw createError({ statusCode: 500, statusMessage: 'レスポンスの解析に失敗しました' })
-      parsed = JSON.parse(match[0])
+      // 末尾カンマなど軽微な崩れを補正してから再パースする（出力が長いため崩れやすい）
+      const repaired = match[0].replace(/,(\s*[}\]])/g, '$1')
+      try {
+        parsed = JSON.parse(repaired)
+      } catch {
+        throw createError({ statusCode: 500, statusMessage: 'レスポンスの解析に失敗しました' })
+      }
     }
 
     // weight を 1〜10 に収め、タイトル・本文の長さも安全側に丸める
