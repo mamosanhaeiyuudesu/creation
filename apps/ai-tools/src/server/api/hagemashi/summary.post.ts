@@ -54,15 +54,53 @@ export default defineEventHandler(async (event) => {
     const data = await response.json()
     const raw = data?.content?.[0]?.text ?? ''
     const stripped = raw.replace(/```(?:json)?/g, '').trim()
-    const match = stripped.match(/\{[\s\S]*\}/)
-    const parsed = JSON.parse(match ? match[0] : stripped)
+
+    const extractJsonLike = (s: string) => {
+      const m = s.match(/\{[\s\S]*\}/)
+      return m ? m[0] : s
+    }
+
+    const sanitizeCommonIssues = (s: string) => {
+      // remove trailing commas before ] or }
+      let out = s.replace(/,\s*(?=[\]}])/g, '')
+      // remove control characters that break JSON.parse
+      out = out.replace(/[\u0000-\u001f]/g, '')
+      return out
+    }
+
+    const rawJson = extractJsonLike(stripped)
+    let parsed: any = null
+    try {
+      parsed = JSON.parse(rawJson)
+    } catch (e1) {
+      try {
+        const fixed = sanitizeCommonIssues(rawJson)
+        parsed = JSON.parse(fixed)
+      } catch (e2) {
+        // 最終手段: try to locate first { and last } and parse that substring
+        const first = rawJson.indexOf('{')
+        const last = rawJson.lastIndexOf('}')
+        if (first !== -1 && last !== -1 && last > first) {
+          const sub = rawJson.slice(first, last + 1)
+          try {
+            parsed = JSON.parse(sanitizeCommonIssues(sub))
+          } catch (e3) {
+            throw createError({ statusCode: 500, statusMessage: '解析できないJSONが返されました（修復失敗）。' })
+          }
+        } else {
+          throw createError({ statusCode: 500, statusMessage: '解析できないJSONが返されました（構造不明）。' })
+        }
+      }
+    }
 
     // 新形式: { items: [...] }
     if (Array.isArray(parsed.items)) {
-      const notes = JSON.stringify({ items: parsed.items.map((item: { sentiment?: string; text?: string }) => ({
-        sentiment: item.sentiment === 'ポジ' ? 'ポジ' : 'ネガ',
-        text: item.text ?? '',
-      })).filter((item: { text: string }) => item.text) })
+      const notes = JSON.stringify({
+        items: parsed.items.map((item: { sentiment?: string; text?: string }) => ({
+          sentiment: item.sentiment === 'ポジ' ? 'ポジ' : 'ネガ',
+          text: item.text ?? '',
+        })).filter((item: { text: string }) => item.text)
+      })
       return { notes }
     }
 
