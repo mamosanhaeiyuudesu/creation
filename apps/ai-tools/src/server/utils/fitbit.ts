@@ -443,6 +443,9 @@ function pointDate(pt: any, dataType: string): string | null {
 // そのまま同じパース処理が使える。
 const RECONCILE_TYPES = new Set(['steps', 'distance'])
 
+// [diag] CPU超過の原因切り分け用の一時ログ。原因確定後に削除する。
+export const diag = (msg: string, obj?: unknown) => console.log(`[diag] ${msg}`, obj === undefined ? '' : JSON.stringify(obj))
+
 /** dataPoints.list（または reconcile）を新しい順にページングし、startDate を下回るまで集める */
 async function listPoints(token: string, dataType: string, startDate: string): Promise<any[]> {
   const size = dataType === 'sleep' ? 25 : 10000
@@ -454,6 +457,7 @@ async function listPoints(token: string, dataType: string, startDate: string): P
     const q = `?pageSize=${size}` + (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '')
     const res: any = await fbGet(token, `/users/me/dataTypes/${dataType}/dataPoints${suffix}${q}`)
     const dp: any[] = res?.dataPoints ?? []
+    diag(`listPoints page`, { dataType, page: p, got: dp.length, total: points.length + dp.length, hasNext: !!res?.nextPageToken })
     if (!dp.length) break
     points.push(...dp)
     const oldest = pointDate(dp[dp.length - 1], dataType)
@@ -461,6 +465,7 @@ async function listPoints(token: string, dataType: string, startDate: string): P
     if (!res.nextPageToken) break
     pageToken = res.nextPageToken
   }
+  diag(`listPoints done`, { dataType, points: points.length })
   return points
 }
 
@@ -496,6 +501,7 @@ async function fetchCaloriesRollup(token: string, start: string, end: string): P
 
 /** start〜end（両端含む）の各日 RawDay を list ページングで組み立てる */
 async function fetchRangeFromApi(token: string, start: string, end: string): Promise<Map<string, RawDay>> {
+  diag('fetchRangeFromApi start', { start, end })
   const [steps, distance, restHr, resp, hrv, spo2, sleep, caloriesByDate, skinTemp, heartRate, exercise] = await Promise.all([
     listPoints(token, 'steps', start),
     listPoints(token, 'distance', start),
@@ -509,6 +515,14 @@ async function fetchRangeFromApi(token: string, start: string, end: string): Pro
     listPoints(token, 'heart-rate', start),
     listPoints(token, 'exercise', start),
   ])
+
+  diag('fetchRangeFromApi fetched', {
+    steps: steps.length, distance: distance.length, restHr: restHr.length, resp: resp.length,
+    hrv: hrv.length, spo2: spo2.length, sleep: sleep.length, skinTemp: skinTemp.length,
+    heartRate: heartRate.length, exercise: exercise.length,
+    grandTotal: steps.length + distance.length + restHr.length + resp.length + hrv.length
+      + spo2.length + sleep.length + skinTemp.length + heartRate.length + exercise.length,
+  })
 
   const map = new Map<string, RawDay>()
   const ensure = (d: string) => {
@@ -672,16 +686,21 @@ function dateRange(endDate: string, days: number): string[] {
 
 // ─────────────────────────────── D1 キャッシュ（fitbit_daily） ──────────────────
 
-async function readCache(event: H3Event, userId: string, start: string, end: string): Promise<Map<string, RawDay>> {
+/** 当日ぶんのキャッシュを再取得せず使い回す秒数。Google側の反映も数分遅れるため、この粒度で十分。 */
+const TODAY_CACHE_TTL_SEC = 10 * 60
+
+interface CacheEntry { day: RawDay; fetchedAt: number }
+
+async function readCache(event: H3Event, userId: string, start: string, end: string): Promise<Map<string, CacheEntry>> {
   const db = getAppDb(event)
-  const map = new Map<string, RawDay>()
+  const map = new Map<string, CacheEntry>()
   if (!db) return map
   const res = await db
-    .prepare('SELECT date, payload FROM fitbit_daily WHERE user_id = ? AND date BETWEEN ? AND ?')
+    .prepare('SELECT date, payload, fetched_at FROM fitbit_daily WHERE user_id = ? AND date BETWEEN ? AND ?')
     .bind(userId, start, end)
     .all()
   for (const row of res?.results ?? []) {
-    try { map.set(row.date, JSON.parse(row.payload)) } catch { /* skip */ }
+    try { map.set(row.date, { day: JSON.parse(row.payload), fetchedAt: Number(row.fetched_at) || 0 }) } catch { /* skip */ }
   }
   return map
 }
@@ -698,7 +717,8 @@ async function writeCache(event: H3Event, userId: string, day: RawDay): Promise<
 
 /**
  * 指定期間の RawDay 履歴（古い順）。D1 キャッシュを優先し、未取得の日だけ範囲APIで補完して保存する。
- * 過去日は不変なので一度取得すれば以後叩かない。当日は常に再取得する。
+ * 過去日は不変なので一度取得すれば以後叩かない。
+ * 当日は変動するが、1回の取得が数万点のパースになり CPU を食うため TTL 内は使い回す。
  */
 async function getCachedHistory(event: H3Event, userId: string, endDate: string, days: number): Promise<RawDay[]> {
   const dates = dateRange(endDate, days)
@@ -711,28 +731,39 @@ async function getCachedHistory(event: H3Event, userId: string, endDate: string,
     result = devHistory(endDate, days)
   } else {
     const today = todayJST()
+    diag('getCachedHistory readCache start', { start, end, days })
     const cache = await readCache(event, userId, start, end)
-    // 未キャッシュの日 + 当日（更新中のため常に再取得）+ カロリー欠損日 + アクティビティ欠損日
+    diag('getCachedHistory readCache done', { cached: cache.size })
+    // 未キャッシュの日 + 当日（TTL切れのみ）+ カロリー欠損日 + アクティビティ欠損日
     // （calories は total-calories の dailyRollUp 追加より前、activities は exercise 取得追加より前に
     // キャッシュされた過去日だと該当フィールドが無い/0のまま保存されているため、自己修復的に再取得して埋める。
     // activities は「その日は運動が無かった」正当な空配列[]もあるため、undefined判定にする）
-    const missing = dates.filter(d => !cache.has(d) || d === today || !cache.get(d)!.caloriesKcal || cache.get(d)!.activities === undefined)
+    const nowSec = Math.floor(Date.now() / 1000)
+    const isStale = (e: CacheEntry, d: string) => d === today && nowSec - e.fetchedAt >= TODAY_CACHE_TTL_SEC
+    const missing = dates.filter(d => {
+      const e = cache.get(d)
+      return !e || isStale(e, d) || !e.day.caloriesKcal || e.day.activities === undefined
+    })
+
+    diag('getCachedHistory missing', { count: missing.length, days: missing })
 
     if (missing.length) {
       const token = await getValidToken(event, userId)
+      diag('getCachedHistory token', { ok: !!token })
       if (token) {
         // 欠損の最小〜最大を1回の範囲取得でまとめて埋める
         const fetched = await fetchRangeFromApi(token, missing[0], missing[missing.length - 1])
+        diag('getCachedHistory parsed', { days: fetched.size })
         for (const d of missing) {
           const day = fetched.get(d) ?? emptyRawDay(d)
-          cache.set(d, day)
-          // 当日は変動するが、他デバイス表示のため保存はしておく（次回当日再取得で上書き）
+          cache.set(d, { day, fetchedAt: nowSec })
           await writeCache(event, userId, day)
         }
+        diag('getCachedHistory writeCache done')
       }
     }
 
-    result = dates.map(d => cache.get(d) ?? emptyRawDay(d))
+    result = dates.map(d => cache.get(d)?.day ?? emptyRawDay(d))
   }
 
   // 手動追加の運動記録を各日の activities と消費カロリーに重ねる
