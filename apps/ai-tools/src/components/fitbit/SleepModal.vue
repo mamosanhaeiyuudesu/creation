@@ -102,10 +102,18 @@
           <TrendPanel metric="sleepScore" color="#818cf8" :date="activeDate" :decimals="0" :zero-based="true" />
         </div>
 
-        <!-- 睡眠時間（覚醒時間は除く）の推移 -->
+        <!-- 睡眠時間の推移（合計／ステージ別を切り替え） -->
         <div class="border-t border-white/[0.06] pt-4">
-          <div class="text-xs font-semibold text-slate-400 mb-2">睡眠時間の推移（覚醒時間は除く）</div>
-          <TrendPanel metric="sleepAsleepHours" color="#a5b4fc" unit="時間" :date="activeDate" :decimals="1" :zero-based="true" :format-value="(v) => fmtDuration(Math.round(v * 60))" />
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <div class="text-xs font-semibold text-slate-400">{{ sleepTrend.label }}</div>
+            <select
+              v-model="sleepTrendMetric"
+              class="rounded-lg bg-white/[0.05] border border-white/[0.08] px-2 py-1 text-[11px] text-slate-300 focus:outline-none focus:border-indigo-400/40 [color-scheme:dark] cursor-pointer"
+            >
+              <option v-for="o in SLEEP_TREND_OPTIONS" :key="o.metric" :value="o.metric">{{ o.name }}</option>
+            </select>
+          </div>
+          <TrendPanel :metric="sleepTrend.metric" :color="sleepTrend.color" unit="時間" :date="activeDate" :decimals="1" :zero-based="true" :format-value="(v) => fmtDuration(Math.round(v * 60))" />
         </div>
 
         <!-- 就寝・起床の比較（他の日と横並び） -->
@@ -142,6 +150,17 @@ function shiftDay(delta: number) {
   if (next > todayJST()) return
   activeDate.value = next
 }
+
+// 睡眠時間の推移: 合計とステージ別を切り替える
+const SLEEP_TREND_OPTIONS = [
+  { metric: 'sleepAsleepHours', name: '合計', label: '睡眠時間の推移（覚醒時間は除く）', color: '#a5b4fc' },
+  { metric: 'sleepDeepHours', name: '深い睡眠', label: '深い睡眠の推移', color: sleepStageColor('deep') },
+  { metric: 'sleepLightHours', name: '浅い睡眠', label: '浅い睡眠の推移', color: sleepStageColor('light') },
+  { metric: 'sleepRemHours', name: 'レム睡眠', label: 'レム睡眠の推移', color: sleepStageColor('rem') },
+] as const
+
+const sleepTrendMetric = ref<string>(SLEEP_TREND_OPTIONS[0].metric)
+const sleepTrend = computed(() => SLEEP_TREND_OPTIONS.find(o => o.metric === sleepTrendMetric.value) ?? SLEEP_TREND_OPTIONS[0])
 
 const data = ref<SleepDetail | null>(null)
 const loading = ref(true)

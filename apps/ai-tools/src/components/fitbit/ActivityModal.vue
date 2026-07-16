@@ -98,11 +98,17 @@
           <div class="grid grid-cols-2 gap-2">
             <div class="flex flex-col gap-1">
               <label class="text-[10px] text-slate-500">開始</label>
-              <input v-model="form.start" type="time" step="900" class="rounded-xl bg-white/[0.05] border border-white/[0.08] px-2.5 py-2 text-sm text-slate-100 focus:outline-none focus:border-sky-400/40 [color-scheme:dark]" />
+              <select v-model="form.start" class="rounded-xl bg-white/[0.05] border border-white/[0.08] px-2.5 py-2 text-sm text-slate-100 focus:outline-none focus:border-sky-400/40 [color-scheme:dark]">
+                <option value="" disabled>--:--</option>
+                <option v-for="t in timeOptions" :key="`s-${t}`" :value="t">{{ t }}</option>
+              </select>
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-[10px] text-slate-500">終了</label>
-              <input v-model="form.end" type="time" step="900" class="rounded-xl bg-white/[0.05] border border-white/[0.08] px-2.5 py-2 text-sm text-slate-100 focus:outline-none focus:border-sky-400/40 [color-scheme:dark]" />
+              <select v-model="form.end" class="rounded-xl bg-white/[0.05] border border-white/[0.08] px-2.5 py-2 text-sm text-slate-100 focus:outline-none focus:border-sky-400/40 [color-scheme:dark]">
+                <option value="" disabled>--:--</option>
+                <option v-for="t in timeOptions" :key="`e-${t}`" :value="t">{{ t }}</option>
+              </select>
             </div>
           </div>
 
@@ -186,6 +192,12 @@ async function load() {
 
 // ── 記録を追加（各曜日の＋から。日付はその曜日で固定・AIカロリー推定） ──
 const form = reactive({ label: '', start: '', end: '' })
+
+const timeOptions = Array.from({ length: 96 }, (_, i) => {
+  const h = String(Math.floor(i / 4)).padStart(2, '0')
+  const m = String((i % 4) * 15).padStart(2, '0')
+  return `${h}:${m}`
+})
 const addDate = ref<string | null>(null)
 const adding = ref(false)
 const addError = ref('')

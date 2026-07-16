@@ -68,6 +68,18 @@
         @click="send"
       >{{ streaming ? '…' : '送信' }}</button>
     </div>
+
+    <!-- 定型文ボタン -->
+    <div class="mt-2 flex flex-wrap gap-2">
+      <button
+        v-for="q in quickPrompts"
+        :key="q"
+        class="px-3 py-1 rounded-full text-xs border border-white/[0.12] bg-white/[0.04] text-slate-300 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+        :class="streaming ? '' : 'cursor-pointer hover:bg-white/[0.09] hover:border-orange-500/50 hover:text-orange-200'"
+        :disabled="streaming"
+        @click="sendQuick(q)"
+      >{{ q }}</button>
+    </div>
   </div>
 </template>
 
@@ -119,6 +131,15 @@ const scrollEl = ref<HTMLElement>()
 const textareaEl = ref<HTMLTextAreaElement>()
 
 const canSend = computed(() => !streaming.value && draft.value.trim().length > 0)
+
+const quickPrompts = ['最近を褒めて', '昔を褒めて']
+
+// 定型文ボタン: 入力欄に流し込んでそのまま送信する
+function sendQuick(text: string) {
+  if (streaming.value) return
+  draft.value = text
+  send()
+}
 
 function scrollToBottom() {
   nextTick(() => {

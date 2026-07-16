@@ -3,7 +3,7 @@
 // 記録は fitbit_manual_activities（D1）に保存し、読み取り時に各日のactivitiesへ重ねる。
 
 import type { H3Event } from 'h3'
-import type { ActivitySession } from '~/types/fitbit'
+import type { ActivitySession, RawDay } from '~/types/fitbit'
 import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
 import { getAppDb } from '~/server/utils/auth'
 import { wrapApiError } from '~/server/utils/openai'
@@ -77,6 +77,40 @@ export async function listManualActivities(event: H3Event, userId: string, start
     map.set(row.date, arr)
   }
   return map
+}
+
+/**
+ * 手動記録の消費カロリーを日次合計と時間別内訳へ加算する。
+ * デバイス非装着の運動を補う用途のため、Google Health 側との重複は無いものとして単純加算する。
+ * 時間別は各時間帯との重なり分数で按分し、日跨ぎぶんは翌日に回さず当日の24時までで打ち切る。
+ */
+export function applyManualCalories(day: RawDay, sessions: ActivitySession[]): void {
+  const addByHour = new Map<number, number>()
+  let total = 0
+  for (const s of sessions) {
+    const kcal = Math.max(0, Math.round(Number(s.caloriesKcal) || 0))
+    const startMin = toMinutes(s.start)
+    if (!kcal || startMin === null) continue
+    total += kcal
+    const dur = durationMinutes(s.start, s.end)
+    if (!dur) continue
+    const endMin = Math.min(startMin + dur, 24 * 60)
+    const span = endMin - startMin
+    if (span <= 0) continue
+    for (let h = Math.floor(startMin / 60); h < Math.ceil(endMin / 60); h++) {
+      const overlap = Math.min(endMin, (h + 1) * 60) - Math.max(startMin, h * 60)
+      if (overlap > 0) addByHour.set(h, (addByHour.get(h) ?? 0) + kcal * (overlap / span))
+    }
+  }
+  if (!total) return
+
+  day.caloriesKcal += total
+  const byMinute = new Map(day.caloriesSeries.map(p => [p.t, p.v]))
+  for (const [h, kcal] of addByHour) {
+    const t = h * 60
+    byMinute.set(t, Math.round((byMinute.get(t) ?? 0) + kcal))
+  }
+  day.caloriesSeries = [...byMinute].map(([t, v]) => ({ t, v })).sort((a, b) => a.t - b.t)
 }
 
 /** 手動記録を1件保存して、保存後のセッションを返す。 */

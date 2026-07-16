@@ -13,7 +13,7 @@ import { getAppDb, getSessionUser } from '~/server/utils/auth'
 import { encryptComment, decryptComment } from '~/server/utils/encrypt'
 import { devRawDay, devHistory } from '~/server/utils/fitbit-dev'
 import { computeBaseline, computeSleepScore, computeEnergyScore, computeScoreSeries } from '~/server/utils/fitbit-score'
-import { listManualActivities } from '~/server/utils/fitbit-manual'
+import { applyManualCalories, listManualActivities } from '~/server/utils/fitbit-manual'
 import { todayJST } from '~/utils/jst'
 
 // Google Health API（旧 Fitbit Web API の後継。2026年9月に旧APIは停止）
@@ -735,13 +735,15 @@ async function getCachedHistory(event: H3Event, userId: string, endDate: string,
     result = dates.map(d => cache.get(d) ?? emptyRawDay(d))
   }
 
-  // 手動追加の運動記録を各日の activities に重ねる（fitbit_daily には焼き込まず読み取り時に合成）
+  // 手動追加の運動記録を各日の activities と消費カロリーに重ねる
+  // （fitbit_daily には焼き込まず読み取り時に合成。記録を消せばGoogle由来の値に戻る）
   const manual = await listManualActivities(event, userId, start, end)
   if (manual.size) {
     for (const day of result) {
       const extra = manual.get(day.date)
       if (extra?.length) {
         day.activities = [...day.activities, ...extra].sort((a, b) => a.start.localeCompare(b.start))
+        applyManualCalories(day, extra)
       }
     }
   }
@@ -789,7 +791,11 @@ export async function syncAllUsers(event: H3Event, days = 3): Promise<number> {
 
 // ─────────────────────────────── 組み立て（RawDay → 画面用） ────────────────────
 
-/** ダッシュボードで扱う全メトリクスのキー */
+/**
+ * ダッシュボードが一括で返すメトリクスのキー。
+ * 睡眠ステージ別（sleepDeepHours 等）は睡眠シートのセレクトで都度 /api/fitbit/trend を叩くため、
+ * ここには含めず pickMetric のみで扱う。
+ */
 export const TREND_METRICS = [
   'energyScore', 'sleepScore', 'steps', 'distanceKm', 'caloriesKcal', 'restingHeartRate', 'hrv', 'spo2', 'breathingRate', 'sleepHours', 'sleepAsleepHours', 'skinTempDelta',
 ] as const
@@ -808,6 +814,9 @@ function pickMetric(d: RawDay, sc: { energy: number | null; sleep: number | null
     case 'breathingRate': return d.breathingRate
     case 'sleepHours': return Math.round((d.sleep.totalMinutes / 60) * 10) / 10
     case 'sleepAsleepHours': return Math.round(((d.sleep.totalMinutes - d.sleep.wakeMin) / 60) * 10) / 10
+    case 'sleepDeepHours': return Math.round((d.sleep.deepMin / 60) * 10) / 10
+    case 'sleepLightHours': return Math.round((d.sleep.lightMin / 60) * 10) / 10
+    case 'sleepRemHours': return Math.round((d.sleep.remMin / 60) * 10) / 10
     case 'skinTempDelta': return d.skinTempDelta
     default: return null
   }
