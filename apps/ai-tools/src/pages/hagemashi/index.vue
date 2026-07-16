@@ -76,7 +76,7 @@
 
       <!-- History tabs -->
       <div class="mt-1 min-w-0">
-        <!-- 録音 サブタブ（主: 心・強み・アドバイス / 副: 記録・単語・中間データ・達成リスト・はげまし） -->
+        <!-- 録音 サブタブ（主: 記録・心・強み・達成・感謝・アドバイス / 副: 単語・中間データ・達成リスト・はげまし） -->
         <div v-if="isRecordingTab" class="flex items-center gap-1.5 mt-2 flex-wrap">
           <button
             v-for="t in primaryTabs"
@@ -90,7 +90,7 @@
             class="w-6 h-6 flex items-center justify-center rounded-full text-xs border transition-all cursor-pointer shrink-0"
             :class="secondaryVisible ? 'border-orange-500/40 text-orange-300 bg-orange-500/10' : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
             :title="secondaryVisible ? '閉じる' : 'その他のタブ'"
-            @click="showMoreTabs = !showMoreTabs"
+            @click="toggleMoreTabs"
           ><span class="inline-block leading-none transition-transform duration-200" :style="secondaryVisible ? 'transform: rotate(180deg)' : ''">⌄</span></button>
           <!-- 副タブ（展開時のみ表示） -->
           <template v-if="secondaryVisible">
@@ -105,7 +105,7 @@
         </div>
         <div
           class="flex items-center gap-2 mb-1"
-          :class="activeTab === 'summary' || activeTab === 'words' || isProfileTab || activeTab === 'encourage' || activeTab === 'achievement' || activeTab === 'achieved' || activeTab === 'kokoro'
+          :class="activeTab === 'summary' || activeTab === 'words' || isProfileTab || activeTab === 'encourage' || activeTab === 'achievement' || activeTab === 'achieved' || activeTab === 'gratitude' || activeTab === 'kokoro'
             ? 'min-h-8'
             : activeTab === 'transcription' ? 'min-h-4' : 'min-h-0'"
         >
@@ -192,6 +192,18 @@
             >
               <span v-if="isAchievedLoading" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
               {{ isAchievedLoading ? '生成中...' : '更新' }}
+            </button>
+          </template>
+          <template v-if="activeTab === 'gratitude'">
+            <div class="flex-1" />
+            <span v-if="gratitudeHistory.length > 0" class="text-[11px] text-slate-600">最終更新: {{ formatProfileDate(gratitudeHistory[0].generatedAt) }}</span>
+            <button
+              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+              :disabled="isGratitudeLoading"
+              @click="generateGratitude"
+            >
+              <span v-if="isGratitudeLoading" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
+              {{ isGratitudeLoading ? '生成中...' : '更新' }}
             </button>
           </template>
         </div>
@@ -451,6 +463,52 @@
                   />
                   <p v-else class="m-0 py-4 text-xs text-slate-500 text-center">達成のデータがありません</p>
                   <p v-if="a.summary" class="m-0 text-xs text-slate-400 leading-relaxed">{{ a.summary }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 感謝タブ -->
+        <div v-else-if="activeTab === 'gratitude'" class="py-2">
+          <div v-if="isGratitudeLoading" class="flex items-center justify-center gap-2 py-10 text-slate-400 text-sm">
+            <span class="w-4 h-4 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
+            分析中...
+          </div>
+          <div v-else-if="gratitudeHistory.length === 0" class="text-center text-slate-500 text-sm py-10">
+            更新ボタンを押すと中間データから感謝を分析します
+          </div>
+          <div v-else-if="gratitudeHistory[0].items.length === 0" class="text-center text-slate-500 text-sm py-10">
+            感謝のデータがありません。更新ボタンで再分析してください
+          </div>
+          <div v-else class="flex flex-col gap-3">
+            <HagemashiProfileTreemap :items="gratitudeHistory[0].items" color="#34d399" :height="360" @leaf-click="activeProfilePopup = $event" />
+            <!-- AI分析コメント -->
+            <div v-if="gratitudeHistory[0].summary" class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
+              <div class="text-xs font-semibold text-orange-400 mb-1.5">🙏 AI分析</div>
+              <p class="m-0 text-sm text-slate-300 leading-relaxed">{{ gratitudeHistory[0].summary }}</p>
+            </div>
+            <!-- 過去の感謝履歴 -->
+            <div v-if="gratitudeHistory.length > 1" class="flex flex-col gap-1.5">
+              <div class="text-[11px] text-slate-600 border-t border-white/[0.06] pt-3">過去の感謝</div>
+              <div v-for="(g, gi) in gratitudeHistory.slice(1)" :key="gi" class="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden">
+                <button
+                  class="w-full flex items-center justify-between px-3 py-2.5 cursor-pointer bg-transparent border-none transition-colors hover:bg-white/[0.04]"
+                  @click="toggleGratitudeHistory(gi)"
+                >
+                  <div class="text-[11px] text-slate-500">{{ formatProfileDate(g.generatedAt) }}</div>
+                  <div class="text-slate-600 text-[10px] transition-transform duration-200" :style="expandedGratitudeIndices.has(gi) ? 'transform: rotate(180deg)' : ''">▼</div>
+                </button>
+                <div v-if="expandedGratitudeIndices.has(gi)" class="px-3 pb-3 flex flex-col gap-2 border-t border-white/[0.05]">
+                  <HagemashiProfileTreemap
+                    v-if="g.items.length"
+                    :items="g.items"
+                    color="#34d399"
+                    :height="280"
+                    @leaf-click="activeProfilePopup = $event"
+                  />
+                  <p v-else class="m-0 py-4 text-xs text-slate-500 text-center">感謝のデータがありません</p>
+                  <p v-if="g.summary" class="m-0 text-xs text-slate-400 leading-relaxed">{{ g.summary }}</p>
                 </div>
               </div>
             </div>
@@ -759,6 +817,17 @@
             :disabled="isVisionSaving"
             @click="saveVision"
           >保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- はげまし確認ポップアップ（記録直後） -->
+    <div v-if="encourageConfirmOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="declineEncourage">
+      <div class="w-full max-w-[300px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-5">
+        <p class="m-0 text-slate-200 text-sm text-center">記録しました。はげましますか？</p>
+        <div class="flex justify-center gap-2">
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="declineEncourage">いいえ</button>
+          <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="acceptEncourage">はい</button>
         </div>
       </div>
     </div>
@@ -1186,14 +1255,16 @@ const migrateSelectedIds = ref<string[]>([])
 const selectOpen = ref(false)
 const selectedIds = ref<string[]>([])
 const encourageOpen = ref(false)
+const encourageConfirmOpen = ref(false)
+const encourageTargetId = ref<string | null>(null)
 const encourageResult = ref('')
 const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-type RecordingTab = 'transcription' | 'words' | 'summary' | 'achievement' | 'kokoro' | 'strengths' | 'achieved' | 'advice' | 'encourage'
+type RecordingTab = 'transcription' | 'words' | 'summary' | 'achievement' | 'kokoro' | 'strengths' | 'achieved' | 'gratitude' | 'advice' | 'encourage'
 type TabKey = 'consult' | 'mood' | RecordingTab
-const TAB_KEYS: TabKey[] = ['transcription', 'words', 'summary', 'achievement', 'kokoro', 'strengths', 'achieved', 'advice', 'encourage', 'consult', 'mood']
+const TAB_KEYS: TabKey[] = ['transcription', 'words', 'summary', 'achievement', 'kokoro', 'strengths', 'achieved', 'gratitude', 'advice', 'encourage', 'consult', 'mood']
 
 // URL クエリ（?tab=）とタブ状態を双方向同期する
 const route = useRoute()
@@ -1202,7 +1273,7 @@ const routeTab = () => {
   const t = route.query.tab
   return typeof t === 'string' && (TAB_KEYS as string[]).includes(t) ? (t as TabKey) : null
 }
-const activeTab = ref<TabKey>(routeTab() ?? 'kokoro')
+const activeTab = ref<TabKey>(routeTab() ?? 'transcription')
 
 watch(activeTab, (v) => {
   if (route.query.tab !== v) router.replace({ query: { ...route.query, tab: v } })
@@ -1214,14 +1285,15 @@ watch(() => route.query.tab, () => {
 
 // 常に表示する主タブ
 const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
+  { key: 'transcription', label: '記録', short: '記録' },
   { key: 'kokoro', label: '心', short: '心' },
   { key: 'strengths', label: '強み', short: '強み' },
   { key: 'achieved', label: '達成', short: '達成' },
+  { key: 'gratitude', label: '感謝', short: '感謝' },
   { key: 'advice', label: 'アドバイス', short: '助言' },
 ]
 // 展開アイコンを開くと表示する副タブ
 const secondaryTabs: { key: RecordingTab; label: string; short: string }[] = [
-  { key: 'transcription', label: '記録', short: '記録' },
   { key: 'words', label: '単語', short: '単語' },
   { key: 'summary', label: '中間データ', short: '中間' },
   // { key: 'achievement', label: '達成リスト', short: '達成' }, // 「達成」ツリーマップタブに統合したためコメントアウト
@@ -1232,8 +1304,17 @@ const isRecordingTab = computed(() => recordingTabs.some(t => t.key === activeTa
 // 副タブの表示状態（明示的に展開したとき、または副タブが選択中のとき表示）
 const showMoreTabs = ref(false)
 const secondaryVisible = computed(() => showMoreTabs.value || secondaryTabs.some(t => t.key === activeTab.value))
+// 閉じるとき、副タブを選択中ならそのタブが消えてしまうため記録タブへ戻す
+const toggleMoreTabs = () => {
+  if (secondaryVisible.value) {
+    showMoreTabs.value = false
+    if (secondaryTabs.some(t => t.key === activeTab.value)) activeTab.value = 'transcription'
+  } else {
+    showMoreTabs.value = true
+  }
+}
 function openRecording() {
-  if (!isRecordingTab.value) activeTab.value = 'kokoro'
+  if (!isRecordingTab.value) activeTab.value = 'transcription'
 }
 function confirmStartRecording() {
   recordConfirmOpen.value = false
@@ -1278,6 +1359,7 @@ const LS_DICTIONARY = 'hagemashi-dictionary'
 const LS_WORD_RANKING = 'hagemashi-word-ranking'
 const LS_PROFILE = 'hagemashi-profile'
 const LS_ACHIEVED = 'hagemashi-achieved'
+const LS_GRATITUDE = 'hagemashi-gratitude'
 const LS_KOKORO = 'hagemashi-kokoro'
 const LS_MOOD = 'hagemashi-mood'
 
@@ -1579,6 +1661,40 @@ const generateAchieved = async () => {
   }
 }
 
+// --- 感謝（感謝している内容の treemap） ---
+interface GratitudeItem { title: string; content: string; weight?: number }
+interface GratitudeData { items: GratitudeItem[]; summary: string; generatedAt: string }
+const gratitudeHistory = ref<GratitudeData[]>([])
+const isGratitudeLoading = ref(false)
+const expandedGratitudeIndices = ref(new Set<number>())
+const toggleGratitudeHistory = (i: number) => {
+  if (expandedGratitudeIndices.value.has(i)) expandedGratitudeIndices.value.delete(i)
+  else expandedGratitudeIndices.value.add(i)
+  expandedGratitudeIndices.value = new Set(expandedGratitudeIndices.value)
+}
+const generateGratitude = async () => {
+  if (isGratitudeLoading.value) return
+  isGratitudeLoading.value = true
+  try {
+    // 達成と同様、combinedSummaryRows を古い→新しいの時系列順にしてサーバーに渡す
+    const res = await $fetch<GratitudeData>('/api/hagemashi/gratitude', {
+      method: 'POST',
+      body: {
+        summaryItems: [...combinedSummaryRows.value].reverse().map(r => ({ sentiment: r.sentiment, text: r.text, date: r.fullDate })),
+        wordRanking: wordRanking.value.slice(0, 50),
+      },
+    })
+    gratitudeHistory.value = [res, ...gratitudeHistory.value]
+    if ($dev) {
+      localStorage.setItem(LS_GRATITUDE, JSON.stringify(gratitudeHistory.value))
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    isGratitudeLoading.value = false
+  }
+}
+
 interface WordEntry { word: string; count: number }
 const wordRanking = ref<WordEntry[]>([])
 
@@ -1738,6 +1854,15 @@ onMounted(() => {
     }
   }
   if ($dev) {
+    const cachedGratitude = localStorage.getItem(LS_GRATITUDE)
+    if (cachedGratitude) {
+      try {
+        const raw = JSON.parse(cachedGratitude)
+        gratitudeHistory.value = Array.isArray(raw) ? raw : [raw]
+      } catch {}
+    }
+  }
+  if ($dev) {
     const cachedKokoro = localStorage.getItem(LS_KOKORO)
     if (cachedKokoro) {
       try {
@@ -1768,8 +1893,8 @@ if (!$dev) {
   watch(
     isLoggedIn,
     async (loggedIn) => {
-      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; achievements.value = []; kokoroHistory.value = []; achievedHistory.value = []; moodEntries.value = []; stoplist.value = [...DEFAULT_STOPLIST]; vision.value = ''; return }
-      const [ranking, dict, profile, sl, ach, kokoro, achieved, mood, vis] = await Promise.allSettled([
+      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; achievements.value = []; kokoroHistory.value = []; achievedHistory.value = []; gratitudeHistory.value = []; moodEntries.value = []; stoplist.value = [...DEFAULT_STOPLIST]; vision.value = ''; return }
+      const [ranking, dict, profile, sl, ach, kokoro, achieved, gratitude, mood, vis] = await Promise.allSettled([
         $fetch<WordEntry[]>('/api/hagemashi/word-ranking'),
         $fetch<DictionaryEntry[]>('/api/hagemashi/dictionary'),
         $fetch<{ profiles: ProfileData[] }>('/api/hagemashi/profile'),
@@ -1777,6 +1902,7 @@ if (!$dev) {
         $fetch<Achievement[]>('/api/hagemashi/achievements'),
         $fetch<{ entries: KokoroData[] }>('/api/hagemashi/kokoro'),
         $fetch<{ entries: AchievedData[] }>('/api/hagemashi/achieved'),
+        $fetch<{ entries: GratitudeData[] }>('/api/hagemashi/gratitude'),
         $fetch<{ entries: MoodEntry[] }>('/api/hagemashi/mood'),
         $fetch<string>('/api/hagemashi/vision'),
       ])
@@ -1787,6 +1913,7 @@ if (!$dev) {
       achievements.value = ach.status === 'fulfilled' && Array.isArray(ach.value) ? ach.value : []
       kokoroHistory.value = kokoro.status === 'fulfilled' ? (kokoro.value?.entries ?? []) : []
       achievedHistory.value = achieved.status === 'fulfilled' ? (achieved.value?.entries ?? []) : []
+      gratitudeHistory.value = gratitude.status === 'fulfilled' ? (gratitude.value?.entries ?? []) : []
       moodEntries.value = mood.status === 'fulfilled' ? (mood.value?.entries ?? []) : []
       vision.value = vis.status === 'fulfilled' ? (vis.value || '') : ''
       maybeAutoPromptVision()
@@ -1875,7 +2002,19 @@ const openSelectModal = () => {
 
 const closeSelectModal = () => {
   selectOpen.value = false
-  activeTab.value = 'encourage'
+}
+
+// 記録直後の「はげましますか？」確認。はいなら対象選択ポップアップへ、いいえならそのまま閉じる
+// （いずれの場合も表示中のタブは切り替えない）
+const acceptEncourage = () => {
+  encourageConfirmOpen.value = false
+  selectedIds.value = encourageTargetId.value ? [encourageTargetId.value] : []
+  selectOpen.value = true
+}
+
+const declineEncourage = () => {
+  encourageConfirmOpen.value = false
+  encourageTargetId.value = null
 }
 
 const toggleSelect = (id: string) => {
@@ -1928,7 +2067,6 @@ const runEncourage = async () => {
     encourageResult.value = res.result
     const title = await fetchEncourageTitle(res.result)
     addEncourageHistory(res.result, title)
-    activeTab.value = 'encourage'
   } catch (err) {
     encourageResult.value = err instanceof Error ? err.message : 'はげましの生成に失敗しました'
   } finally {
@@ -2325,9 +2463,9 @@ const handleTranscribed = async (text: string) => {
         .catch(console.error)
     }
   }
-  // 文字起こし完了後、この内容をはげますか確認（既存の選択ポップアップを再利用）
-  selectedIds.value = [newId]
-  selectOpen.value = true
+  // 文字起こし完了後、まずはげますかどうかを確認する（「はい」で対象選択ポップアップへ）
+  encourageTargetId.value = newId
+  encourageConfirmOpen.value = true
 }
 
 // --- 録音 ---

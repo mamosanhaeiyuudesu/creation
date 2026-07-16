@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { AdviceData } from '~/types/fitbit'
 import AdviceChatModal from '~/components/fitbit/AdviceChatModal.vue'
 import { splitBold } from '~/utils/text'
@@ -45,17 +45,27 @@ const chatOpen = ref(false)
 
 const bodySegments = computed(() => splitBold(data.value?.body ?? ''))
 
-async function load() {
-  loading.value = true
+/** silent=true ではスケルトンを出さず、失敗しても表示中のアドバイスを消さない（定期ポーリング用） */
+async function load(silent = false) {
+  if (!silent) loading.value = true
   try {
     data.value = await $fetch<AdviceData>('/api/fitbit/advice', { params: { date: props.date } })
   } catch {
-    data.value = null
+    if (!silent) data.value = null
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
 }
 
-onMounted(load)
-watch(() => props.date, load)
+// 6時間スロットが変わると新しいアドバイスがスレッドへ増えるが、生成契機はこのAPIを叩いた時だけ。
+// 開きっぱなしのタブでも追従できるよう1時間ごとに取り直す（同一スロットならAIは呼ばれずDBの既存が返る）。
+const POLL_MS = 60 * 60 * 1000
+let timer: ReturnType<typeof setInterval> | undefined
+
+onMounted(() => {
+  load()
+  timer = setInterval(() => load(true), POLL_MS)
+})
+onUnmounted(() => clearInterval(timer))
+watch(() => props.date, () => load())
 </script>

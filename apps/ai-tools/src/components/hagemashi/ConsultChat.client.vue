@@ -1,7 +1,7 @@
 <template>
-  <div class="flex flex-col h-[428px] pt-2 pb-1">
+  <div class="relative flex flex-col h-[428px] pt-2 pb-1">
     <!-- メッセージ一覧 -->
-    <div ref="scrollEl" class="flex-1 overflow-y-auto flex flex-col gap-3 px-0.5">
+    <div ref="scrollEl" class="flex-1 overflow-y-auto flex flex-col gap-3 px-0.5" @scroll="onScroll">
       <div v-if="loadingHistory && messages.length === 0" class="text-center text-slate-500 text-sm py-10 leading-relaxed">
         履歴を読み込んでいます…
       </div>
@@ -47,8 +47,14 @@
 
     <p v-if="errorMsg" class="m-0 mt-1.5 text-xs text-red-400">{{ errorMsg }}</p>
 
-    <!-- 入力欄 -->
-    <div class="mt-3 flex items-end gap-2">
+    <!-- 入力欄（送信ボタンの上に下スクロールアイコンを重ねて配置） -->
+    <div class="relative mt-3 flex items-end gap-2">
+      <button
+        v-if="!atBottom"
+        class="absolute right-0 -top-9 w-8 h-8 flex items-center justify-center rounded-full border border-white/[0.12] bg-slate-900/90 text-slate-300 text-xs cursor-pointer hover:bg-white/[0.10] hover:text-orange-200 hover:border-orange-500/50 transition-colors"
+        title="一番下へ"
+        @click="scrollToBottom"
+      >▼</button>
       <textarea
         ref="textareaEl"
         v-model="draft"
@@ -141,9 +147,18 @@ function sendQuick(text: string) {
   send()
 }
 
+// 一番下付近にいるか（下スクロールアイコンの表示判定）。多少の余白を許容する
+const atBottom = ref(true)
+function onScroll() {
+  const el = scrollEl.value
+  if (!el) return
+  atBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight < 24
+}
+
 function scrollToBottom() {
   nextTick(() => {
     if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight
+    onScroll()
   })
 }
 
