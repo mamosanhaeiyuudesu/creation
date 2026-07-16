@@ -67,6 +67,10 @@ export interface ActivitySession {
   caloriesKcal: number
   /** 距離（km）。取得できない種目では null */
   distanceKm: number | null
+  /** 手動追加した記録か（Google Health API由来ならfalse/undefined） */
+  manual?: boolean
+  /** 手動記録のID（削除用。API由来には無い） */
+  id?: string
 }
 
 /** ダッシュボード1日分 */
@@ -152,8 +156,27 @@ export interface RawDay {
 export interface AdviceData {
   /** 見出し（「〜でしたね」等の語りかけ、20字前後） */
   headline: string
-  /** 本文（数値比較を含む2〜3文、**太字**でキーワード強調） */
+  /** 本文（睡眠・運動を主役に、数値比較を含む3〜4文、**太字**でキーワード強調） */
   body: string
+}
+
+/** Claude へ渡す会話1メッセージ（役割＋本文のみ） */
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+/** 継続スレッド（アドバイス＆対話）の1メッセージ（D1保存） */
+export interface ThreadMessage {
+  id: string
+  role: 'user' | 'assistant'
+  /** 'chat'=対話, 'advice'=自動生成アドバイス */
+  kind: 'chat' | 'advice'
+  /** advice の見出し（chat は null） */
+  headline?: string | null
+  content: string
+  /** 作成時刻（epoch秒、JST日付帯の判定に使う） */
+  createdAt: number
 }
 
 /** 連携状態 */

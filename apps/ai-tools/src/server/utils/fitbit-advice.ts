@@ -1,17 +1,14 @@
-// Fitbitダッシュボードの「今日のアドバイス」カード。
-// 当日+直近7日の主要メトリクスをテキスト化してClaudeに渡し、Fitbit Premiumのコーチカード風の
-// 見出し＋本文を生成する。1日を6時間刻み4スロット（0-6/6-12/12-18/18-24時, JST）に区切り、
-// 同じスロット内はD1キャッシュを再利用してAIを呼ばない（スロットが変わると再生成される）。
+// Fitbitダッシュボードの「今日のアドバイス」。当日+直近7日の主要メトリクスをテキスト化して
+// Claudeに渡し、コーチカード風の見出し＋本文を生成する。1日を6時間刻み4スロット
+// （0-6/6-12/12-18/18-24時, JST）に区切り、スロットごとに1本を継続スレッド（fitbit_chat_messages）へ
+// 自動投稿する。同じスロットでは重複投稿せず既存を返す（＝6時間ごとに新しいアドバイスが増える）。
 
 import type { H3Event } from 'h3'
 import type { AdviceData, RawDay } from '~/types/fitbit'
-import { getAppDb } from '~/server/utils/auth'
 import { computeBaseline, computeSleepScore, computeEnergyScore } from '~/server/utils/fitbit-score'
+import { findAdviceMessage, insertAdviceMessage } from '~/server/utils/fitbit-thread'
 import { wrapApiError } from '~/server/utils/openai'
 import { nowJST, todayJST } from '~/utils/jst'
-
-// プロンプト仕様の版数。プロンプトを変えたらここを上げると既存キャッシュが無効化され再生成される。
-const PROMPT_VERSION = 'v2'
 
 /** 対象日の6時間スロット（0:0-6時, 1:6-12時, 2:12-18時, 3:18-24時, JST）。過去日は1日1本（-1固定）。 */
 function slotFor(date: string): number {
@@ -81,16 +78,18 @@ function buildFacts(history: RawDay[]): string {
   return lines.join('\n')
 }
 
-const SYSTEM_PROMPT = `あなたはFitbit Premiumのような健康コーチとして、ユーザーのその日の健康データを一言で言い当てるアドバイスカードを書きます。
-入力としてその日の主要メトリクス（睡眠・スコア・心拍・活動量）と、直近7日間の平均を渡します。
+const SYSTEM_PROMPT = `あなたはFitbit Premiumのような健康コーチとして、ユーザーのその日の健康データを読み解くアドバイスカードを書きます。
+入力としてその日の主要メトリクス（睡眠・スコア・心拍・活動量・運動）と、直近7日間の平均を渡します。
 
 必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
 {"headline":"見出し","body":"本文"}
 
 書き方:
 - headline は20字前後。その日いちばん特徴的な事実を、親しみやすい語りかけで一言にする（例:「予定より1時間半も早い目覚めでしたね」）
-- body は50〜80字程度の1文のみ。要点をひとつに絞り、詰め込みすぎない
-- 具体的な数値をひとつかふたつ交え、直近7日間の平均と比べて特に際立つ点があれば「いつもより〜」のように触れる（比較できる平均データが無い項目には触れない）
+- body は120〜180字程度、3〜4文。**睡眠と運動（アクティビティ）を主役**にして読み解く。睡眠は時間・スコア・効率・就寝起床などから、運動は種目・時間・消費カロリーなどから、その日の状態を具体的に描写する
+- そのうえで、睡眠・運動以外の指標（安静時心拍・HRV・歩数・消費カロリー等）で直近7日間の平均と比べて**特筆すべき変化があれば1点だけ**添える（無ければ無理に触れない）
+- 運動データが無い日は睡眠を主役にし、その日の活動量（歩数）で補う
+- 具体的な数値を複数交え、直近7日間の平均と比べて際立つ点は「いつもより〜」のように触れる（比較できる平均データが無い項目には触れない）
 - 数値や重要な単語は **太字** で強調する（例: **6時間6分**）
 - 温かく前向きな語り口（「〜ですね」「〜でしょう」等）。命令形は避け、自然に締める
 - 文末を疑問文にしない（返信ボタンなどは無いため質問しても答えられない）
@@ -104,7 +103,7 @@ async function callClaude(apiKey: string, facts: string): Promise<AdviceData> {
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-5',
-        max_tokens: 300,
+        max_tokens: 700,
         thinking: { type: 'disabled' },
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: facts }],
@@ -124,7 +123,7 @@ async function callClaude(apiKey: string, facts: string): Promise<AdviceData> {
       parsed = match ? JSON.parse(match[0]) : {}
     }
     const headline = String(parsed.headline ?? '').trim().slice(0, 60)
-    const body = String(parsed.body ?? '').trim().slice(0, 150)
+    const body = String(parsed.body ?? '').trim().slice(0, 360)
     if (!headline || !body) throw new Error('アドバイスの生成結果が空でした')
     return { headline, body }
   } catch (err) {
@@ -133,37 +132,25 @@ async function callClaude(apiKey: string, facts: string): Promise<AdviceData> {
 }
 
 /**
- * 対象日分のアドバイスカードを生成する。
+ * 対象日・現在スロットのアドバイスを用意する（無ければ生成して継続スレッドへ投稿）。
  * history は対象日を末尾に含む古い順（当日+直近7日、ベースライン算出用）。
- * 対象日を6時間スロットで区切り、同じスロット内はD1キャッシュを再利用してAIを呼ばない
- * （スロット内でデータが変わっても、そのスロットで最初に生成した内容を保つ＝6時間ごとに切り替わる）。
+ * 同じ (対象日, 6時間スロット) では重複生成せず、既にスレッドにある内容を返す
+ * （＝6時間ごとに新しいアドバイスがスレッドへ1本ずつ増えていく）。
  */
 export async function generateAdvice(event: H3Event, userId: string, history: RawDay[]): Promise<AdviceData> {
   const today = history[history.length - 1]
-  const slot = slotFor(today.date)
+  const adviceSlot = `${today.date}#${slotFor(today.date)}`
 
-  const db = getAppDb(event)
-  if (db) {
-    const cached = await db
-      .prepare('SELECT headline, body FROM fitbit_advice WHERE user_id = ? AND date = ? AND slot = ? AND prompt_version = ?')
-      .bind(userId, today.date, slot, PROMPT_VERSION)
-      .first()
-      .catch(() => null) as { headline: string; body: string } | null
-    if (cached) return { headline: cached.headline, body: cached.body }
-  }
+  // 既にこのスロットのアドバイスがスレッドにあれば再利用（AIを呼ばない）
+  const existing = await findAdviceMessage(event, userId, adviceSlot)
+  if (existing) return { headline: existing.headline ?? '', body: existing.content }
 
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) throw createError({ statusCode: 500, statusMessage: 'Anthropic API key is not configured.' })
 
   const advice = await callClaude(anthropicApiKey as string, buildFacts(history))
 
-  if (db) {
-    await db
-      .prepare('INSERT OR REPLACE INTO fitbit_advice (user_id, date, slot, prompt_version, headline, body, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .bind(userId, today.date, slot, PROMPT_VERSION, advice.headline, advice.body, new Date().toISOString())
-      .run()
-      .catch(() => { /* キャッシュ保存の失敗は無視して結果は返す */ })
-  }
-
-  return advice
+  // スレッドへ投稿（重複時は既存が返る）
+  const saved = await insertAdviceMessage(event, userId, adviceSlot, advice.headline, advice.body)
+  return { headline: saved.headline ?? advice.headline, body: saved.content }
 }

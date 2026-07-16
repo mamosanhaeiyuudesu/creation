@@ -13,6 +13,7 @@ import { getAppDb, getSessionUser } from '~/server/utils/auth'
 import { encryptComment, decryptComment } from '~/server/utils/encrypt'
 import { devRawDay, devHistory } from '~/server/utils/fitbit-dev'
 import { computeBaseline, computeSleepScore, computeEnergyScore, computeScoreSeries } from '~/server/utils/fitbit-score'
+import { listManualActivities } from '~/server/utils/fitbit-manual'
 import { todayJST } from '~/utils/jst'
 
 // Google Health API（旧 Fitbit Web API の後継。2026年9月に旧APIは停止）
@@ -700,35 +701,52 @@ async function writeCache(event: H3Event, userId: string, day: RawDay): Promise<
  * 過去日は不変なので一度取得すれば以後叩かない。当日は常に再取得する。
  */
 async function getCachedHistory(event: H3Event, userId: string, endDate: string, days: number): Promise<RawDay[]> {
-  if (import.meta.dev) return devHistory(endDate, days)
-
   const dates = dateRange(endDate, days)
   const start = dates[0]
   const end = dates[dates.length - 1]
-  const today = todayJST()
 
-  const cache = await readCache(event, userId, start, end)
-  // 未キャッシュの日 + 当日（更新中のため常に再取得）+ カロリー欠損日 + アクティビティ欠損日
-  // （calories は total-calories の dailyRollUp 追加より前、activities は exercise 取得追加より前に
-  // キャッシュされた過去日だと該当フィールドが無い/0のまま保存されているため、自己修復的に再取得して埋める。
-  // activities は「その日は運動が無かった」正当な空配列[]もあるため、undefined判定にする）
-  const missing = dates.filter(d => !cache.has(d) || d === today || !cache.get(d)!.caloriesKcal || cache.get(d)!.activities === undefined)
+  let result: RawDay[]
+  if (import.meta.dev) {
+    // dev は API・キャッシュを使わずスタブ（手動記録の合成は下で共通処理）
+    result = devHistory(endDate, days)
+  } else {
+    const today = todayJST()
+    const cache = await readCache(event, userId, start, end)
+    // 未キャッシュの日 + 当日（更新中のため常に再取得）+ カロリー欠損日 + アクティビティ欠損日
+    // （calories は total-calories の dailyRollUp 追加より前、activities は exercise 取得追加より前に
+    // キャッシュされた過去日だと該当フィールドが無い/0のまま保存されているため、自己修復的に再取得して埋める。
+    // activities は「その日は運動が無かった」正当な空配列[]もあるため、undefined判定にする）
+    const missing = dates.filter(d => !cache.has(d) || d === today || !cache.get(d)!.caloriesKcal || cache.get(d)!.activities === undefined)
 
-  if (missing.length) {
-    const token = await getValidToken(event, userId)
-    if (token) {
-      // 欠損の最小〜最大を1回の範囲取得でまとめて埋める
-      const fetched = await fetchRangeFromApi(token, missing[0], missing[missing.length - 1])
-      for (const d of missing) {
-        const day = fetched.get(d) ?? emptyRawDay(d)
-        cache.set(d, day)
-        // 当日は変動するが、他デバイス表示のため保存はしておく（次回当日再取得で上書き）
-        await writeCache(event, userId, day)
+    if (missing.length) {
+      const token = await getValidToken(event, userId)
+      if (token) {
+        // 欠損の最小〜最大を1回の範囲取得でまとめて埋める
+        const fetched = await fetchRangeFromApi(token, missing[0], missing[missing.length - 1])
+        for (const d of missing) {
+          const day = fetched.get(d) ?? emptyRawDay(d)
+          cache.set(d, day)
+          // 当日は変動するが、他デバイス表示のため保存はしておく（次回当日再取得で上書き）
+          await writeCache(event, userId, day)
+        }
+      }
+    }
+
+    result = dates.map(d => cache.get(d) ?? emptyRawDay(d))
+  }
+
+  // 手動追加の運動記録を各日の activities に重ねる（fitbit_daily には焼き込まず読み取り時に合成）
+  const manual = await listManualActivities(event, userId, start, end)
+  if (manual.size) {
+    for (const day of result) {
+      const extra = manual.get(day.date)
+      if (extra?.length) {
+        day.activities = [...day.activities, ...extra].sort((a, b) => a.start.localeCompare(b.start))
       }
     }
   }
 
-  return dates.map(d => cache.get(d) ?? emptyRawDay(d))
+  return result
 }
 
 /** 1日分の RawDay を取得（dev はスタブ、本番はキャッシュ経由）。 */

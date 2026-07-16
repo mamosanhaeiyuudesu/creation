@@ -1,7 +1,16 @@
 <template>
   <!-- 生成失敗時（loading=false かつ data=null）はカードごと非表示にする（非本質的な付加情報のため） -->
-  <div v-if="loading || data" class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4 flex flex-col gap-2 h-full">
-    <div class="text-xs font-semibold text-slate-400">🤖 今日のアドバイス</div>
+  <button
+    v-if="loading || data"
+    type="button"
+    :disabled="loading || !data"
+    class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4 flex flex-col gap-2 h-full text-left w-full enabled:hover:bg-white/[0.06] transition-colors"
+    @click="data && (chatOpen = true)"
+  >
+    <div class="flex items-center justify-between">
+      <div class="text-xs font-semibold text-slate-400">🤖 今日のアドバイス</div>
+      <div v-if="data" class="text-[10px] text-emerald-400/80 flex items-center gap-1">続けて質問 <span aria-hidden>›</span></div>
+    </div>
 
     <div v-if="loading" class="flex flex-col gap-2.5 animate-pulse">
       <div class="h-5 bg-white/10 rounded w-4/5" />
@@ -17,17 +26,21 @@
         </template>
       </p>
     </div>
-  </div>
+  </button>
+
+  <AdviceChatModal v-if="chatOpen" :date="date" @close="chatOpen = false" />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import type { AdviceData } from '~/types/fitbit'
+import AdviceChatModal from '~/components/fitbit/AdviceChatModal.vue'
 
 const props = defineProps<{ date: string }>()
 
 const data = ref<AdviceData | null>(null)
 const loading = ref(true)
+const chatOpen = ref(false)
 
 const bodySegments = computed(() => {
   const text = data.value?.body ?? ''
