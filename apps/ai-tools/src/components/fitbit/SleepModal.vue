@@ -113,6 +113,7 @@
               <option v-for="o in SLEEP_TREND_OPTIONS" :key="o.metric" :value="o.metric">{{ o.name }}</option>
             </select>
           </div>
+          <p class="text-[11px] text-slate-500 text-right mb-2">{{ sleepTrend.desc }}</p>
           <TrendPanel :metric="sleepTrend.metric" :color="sleepTrend.color" unit="時間" :date="activeDate" :decimals="1" :zero-based="true" :format-value="(v) => fmtDuration(Math.round(v * 60))" />
         </div>
 
@@ -153,10 +154,10 @@ function shiftDay(delta: number) {
 
 // 睡眠時間の推移: 合計とステージ別を切り替える
 const SLEEP_TREND_OPTIONS = [
-  { metric: 'sleepAsleepHours', name: '合計', label: '睡眠時間の推移（覚醒時間は除く）', color: '#a5b4fc' },
-  { metric: 'sleepDeepHours', name: '深い睡眠', label: '深い睡眠の推移', color: sleepStageColor('deep') },
-  { metric: 'sleepLightHours', name: '浅い睡眠', label: '浅い睡眠の推移', color: sleepStageColor('light') },
-  { metric: 'sleepRemHours', name: 'レム睡眠', label: 'レム睡眠の推移', color: sleepStageColor('rem') },
+  { metric: 'sleepAsleepHours', name: '合計', label: '睡眠時間の推移（覚醒時間は除く）', color: '#a5b4fc', desc: '実際に眠れていた時間の合計です' },
+  { metric: 'sleepDeepHours', name: '深い睡眠', label: '深い睡眠の推移', color: sleepStageColor('deep'), desc: '体の回復が進む、最も深い眠りです' },
+  { metric: 'sleepLightHours', name: '浅い睡眠', label: '浅い睡眠の推移', color: sleepStageColor('light'), desc: '睡眠の大半を占める基本の眠りです' },
+  { metric: 'sleepRemHours', name: 'レム睡眠', label: 'レム睡眠の推移', color: sleepStageColor('rem'), desc: '記憶を整理する、夢を見る眠りです' },
 ] as const
 
 const sleepTrendMetric = ref<string>(SLEEP_TREND_OPTIONS[0].metric)
