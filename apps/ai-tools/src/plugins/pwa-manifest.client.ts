@@ -1,7 +1,5 @@
 const MANIFEST_MAP: Record<string, string> = {
-  '/deepheart': '/manifest-deepheart.json',
   '/japanese-mlb-player': '/manifest-mlb.json',
-  '/keiko': '/manifest-keiko.json',
   '/hagemashi': '/manifest-hagemashi.json',
   '/whisper': '/manifest-whisper.json',
   '/task': '/manifest-task.json',

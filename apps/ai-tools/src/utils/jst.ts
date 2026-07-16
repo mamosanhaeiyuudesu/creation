@@ -15,12 +15,24 @@ export function currentYearJST(): number {
   return parseInt(nowJST().toISOString().slice(0, 4), 10)
 }
 
-const WEEKDAYS_JA = ['日', '月', '火', '水', '木', '金', '土'] as const
+export const WEEKDAYS_JA = ['日', '月', '火', '水', '木', '金', '土'] as const
+
+/** "YYYY-MM-DD" の曜日（"月" など単一文字） */
+export function weekdayJa(ymd: string): string {
+  return WEEKDAYS_JA[new Date(`${ymd}T00:00:00Z`).getUTCDay()]
+}
 
 /** "YYYY-MM-DD" を "M/D(曜)" 形式に整形（グラフの日付ラベル用） */
 export function mdWeekday(ymd: string): string {
   const d = new Date(`${ymd}T00:00:00Z`)
   return `${d.getUTCMonth() + 1}/${d.getUTCDate()}(${WEEKDAYS_JA[d.getUTCDay()]})`
+}
+
+/** 分 → "X時間Y分"（0時間なら "Y分"）。 */
+export function fmtDuration(min: number): string {
+  const h = Math.floor(min / 60)
+  const m = Math.round(min % 60)
+  return h > 0 ? `${h}時間${m}分` : `${m}分`
 }
 
 /** タイムゾーン指定のない日時文字列か（例: SQLiteの datetime('now') が返す "YYYY-MM-DD HH:MM:SS"） */

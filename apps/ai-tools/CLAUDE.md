@@ -32,7 +32,7 @@ NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
 **Nuxt 3（srcDir: `src/`）+ Nitro（preset: `cloudflare_module`）+ Vuetify 3 + Tailwind CSS**
 
 - OpenAI呼び出しは `src/server/utils/openai.ts` の `callOpenAi()` に集約
-- miyako・keiko ページのみ Tailwind CSS（Vuetify不使用）
+- miyako ページのみ Tailwind CSS（Vuetify不使用）
 
 ## ページ一覧
 
@@ -49,7 +49,6 @@ NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
 | `/office` | 勤怠管理（日付・打刻記録） |
 | `/games` | ゲーム一覧（リンク集） |
 | `/games/panel-de-pon` | SFC版パネルでポン（5ステージ・進捗保存） |
-| `/deepheart` | カウンセリングチャット（ユーザー認証・会話履歴あり） |
 | `/miyako` | 宮古島市議会議事録 — キーワード×会期ヒートマップ＋AI解説パネル |
 | `/miyako/keyword` | キーワード検索・議事録テキスト閲覧 |
 | `/miyako/member` | 議員ごとのTF-IDFランキング（単語・カテゴリ別） |
@@ -63,8 +62,6 @@ NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
 | `/` | ツール一覧ハブ |
 | `/snapreader` | 画像をアップロードしてOCR・要約・AIチャットができるツール |
 | `/marriage` | ふたりの日々を記録するカレンダー（ムード記録・コメント付き） |
-| `/tengu` | 天狗問答（AI問答ゲーム） |
-| `/keiko` | 剣道の足さばきトレーナー（Canvas描画） |
 
 ## Cloudflare D1
 
@@ -73,8 +70,6 @@ NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
   - Fitbitは既存の users/sessions 認証に相乗り（`024_fitbit.sql`）。OAuthトークンは `encrypt.ts` で暗号化して保存
 - `MLB_DB`（`mlb-db`）: MLB選手・試合データ  
   `src/server/tasks/mlb-sync.ts` の Cron（1時間ごと）で同期
-- `DEEPHEART_DB`（`deepheart-db`）: users / sessions / messages / personalities  
-  `src/server/utils/deepheart.ts` の `getDeepheartDb()` 経由。Cookie名: `deepheart-session`
 - **ローカルdev**: macOSの制約でD1が使えないため `mlb-dev.ts` が静的JSONにフォールバック
 
 ## サーバーユーティリティ
@@ -83,14 +78,16 @@ NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
 |----------|------|
 | `openai.ts` | `callOpenAi()` / `fetchOpenAi()` / `extractText()` 等、OpenAI API呼び出し共通処理 |
 | `auth.ts` | WHISPER_DB経由の認証・セッション管理 |
-| `deepheart.ts` | DEEPHEART_DB操作 |
-| `deepheart-insights.ts` | Deepheartのインサイト生成 |
 | `mlbstats.ts` | MLB Stats API呼び出し |
 | `fangraphs.ts` | FanGraphs API呼び出し |
 | `mlb-dev.ts` | MLBローカル開発用スタブ |
 | `encrypt.ts` | marriage コメント暗号化・Fitbitトークン暗号化（AES-GCM） |
-| `fitbit.ts` | Fitbit Web API 呼び出し・OAuth2トークン管理・ダッシュボード組み立て |
+| `fitbit.ts` | Google Health API 呼び出し・OAuth2トークン管理・ダッシュボード組み立て |
 | `fitbit-score.ts` | エナジー/睡眠スコアの近似算出（公式APIに無いため独自算出） |
+| `fitbit-advice.ts` | 今日のアドバイス生成（Claude）。継続スレッドへ6時間スロット単位で投稿 |
+| `fitbit-chat.ts` | アドバイス＆相談チャットの応答生成（過去データを根拠にClaudeで回答） |
+| `fitbit-thread.ts` | アドバイス＆対話の継続スレッド（fitbit_chat_messages）の読み書き |
+| `fitbit-manual.ts` | 手動運動記録の消費カロリーAI推定＋D1 CRUD |
 | `fitbit-dev.ts` | Fitbitローカル開発用スタブ（日付シードで決定的データ生成） |
 | `questions.ts` | AI質問生成ユーティリティ |
 

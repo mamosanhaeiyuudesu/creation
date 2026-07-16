@@ -4,6 +4,7 @@
 
 import type { H3Event } from 'h3'
 import type { ActivitySession } from '~/types/fitbit'
+import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
 import { getAppDb } from '~/server/utils/auth'
 import { wrapApiError } from '~/server/utils/openai'
 
@@ -35,30 +36,12 @@ const SYSTEM_PROMPT = `あなたは運動の消費カロリーを推定する専
 /** 種目名＋運動時間から消費カロリーとアイコンをAI推定する。 */
 export async function estimateManualActivity(apiKey: string, label: string, durationMin: number): Promise<{ caloriesKcal: number; icon: string }> {
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-5',
-        max_tokens: 120,
-        thinking: { type: 'disabled' },
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: `種目: ${label}\n運動時間: ${durationMin}分` }],
-      }),
+    const raw = await callClaudeText(apiKey, {
+      maxTokens: 120,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: `種目: ${label}\n運動時間: ${durationMin}分` }],
     })
-    if (!response.ok) {
-      const err = await response.json().catch(() => null)
-      throw createError({ statusCode: response.status, statusMessage: err?.error?.message || 'カロリー推定に失敗しました。' })
-    }
-    const data = await response.json()
-    const raw = (data?.content?.[0]?.text ?? '').trim()
-    let parsed: { caloriesKcal?: number; icon?: string }
-    try {
-      parsed = JSON.parse(raw)
-    } catch {
-      const match = raw.match(/\{[\s\S]*\}/)
-      parsed = match ? JSON.parse(match[0]) : {}
-    }
+    const parsed = parseJsonLoose<{ caloriesKcal?: number; icon?: string }>(raw) ?? {}
     const kcal = Math.max(0, Math.round(Number(parsed.caloriesKcal) || 0))
     const icon = (String(parsed.icon ?? '').trim() || '🤸').slice(0, 4)
     return { caloriesKcal: kcal, icon }

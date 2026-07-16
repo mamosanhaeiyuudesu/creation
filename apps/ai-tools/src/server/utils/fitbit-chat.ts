@@ -3,20 +3,14 @@
 // 会話状態はクライアント側が保持し、毎回メッセージ列ごと送る（サーバーはステートレス）。
 
 import type { RawDay, ChatMessage } from '~/types/fitbit'
+import { callClaudeText } from '~/server/utils/anthropic'
 import { computeBaseline, computeSleepScore } from '~/server/utils/fitbit-score'
 import { wrapApiError } from '~/server/utils/openai'
-
-const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
-
-function fmtDuration(min: number): string {
-  const h = Math.floor(min / 60)
-  const m = Math.round(min % 60)
-  return h > 0 ? `${h}時間${m}分` : `${m}分`
-}
+import { weekdayJa, fmtDuration } from '~/utils/jst'
 
 /** 1日分を1行のテキストにまとめる（baseline は当日より前の直近7日から算出済みを渡す） */
 function dayLine(day: RawDay, baseline: ReturnType<typeof computeBaseline>): string {
-  const weekday = WEEKDAYS[new Date(`${day.date}T00:00:00Z`).getUTCDay()]
+  const weekday = weekdayJa(day.date)
   const parts: string[] = []
 
   if (day.sleep.totalMinutes > 0) {
@@ -76,23 +70,11 @@ export async function answerChat(apiKey: string, history: RawDay[], messages: Ch
       throw createError({ statusCode: 400, statusMessage: '質問が空です' })
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-5',
-        max_tokens: 800,
-        thinking: { type: 'disabled' },
-        system: systemPrompt(buildHistoryFacts(history), history.length),
-        messages: trimmed,
-      }),
+    const answer = await callClaudeText(apiKey, {
+      maxTokens: 800,
+      system: systemPrompt(buildHistoryFacts(history), history.length),
+      messages: trimmed,
     })
-    if (!response.ok) {
-      const err = await response.json().catch(() => null)
-      throw createError({ statusCode: response.status, statusMessage: err?.error?.message || 'Claude APIの呼び出しに失敗しました。' })
-    }
-    const data = await response.json()
-    const answer = (data?.content?.[0]?.text ?? '').trim()
     if (!answer) throw new Error('応答が空でした')
     return answer
   } catch (err) {

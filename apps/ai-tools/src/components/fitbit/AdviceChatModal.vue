@@ -76,6 +76,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import type { ThreadMessage } from '~/types/fitbit'
 import { toJSTDate, mdWeekday } from '~/utils/jst'
+import { splitBold as renderBold } from '~/utils/text'
 
 const props = defineProps<{ date: string }>()
 defineEmits<{ close: [] }>()
@@ -87,11 +88,6 @@ const sending = ref(false)
 const error = ref('')
 const scrollRef = ref<HTMLElement | null>(null)
 const endRef = ref<HTMLElement | null>(null)
-
-/** **太字** をセグメント配列に分解 */
-function renderBold(text: string) {
-  return text.split(/\*\*(.+?)\*\*/g).map((part, i) => ({ text: part, bold: i % 2 === 1 })).filter(s => s.text)
-}
 
 /** epoch秒 → JSTの "YYYY-MM-DD" */
 function jstDay(createdAt: number): string {

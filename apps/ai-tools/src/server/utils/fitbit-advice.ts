@@ -5,18 +5,17 @@
 
 import type { H3Event } from 'h3'
 import type { AdviceData, RawDay } from '~/types/fitbit'
+import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
 import { computeBaseline, computeSleepScore, computeEnergyScore } from '~/server/utils/fitbit-score'
 import { findAdviceMessage, insertAdviceMessage } from '~/server/utils/fitbit-thread'
 import { wrapApiError } from '~/server/utils/openai'
-import { nowJST, todayJST } from '~/utils/jst'
+import { nowJST, todayJST, weekdayJa, fmtDuration } from '~/utils/jst'
 
 /** 対象日の6時間スロット（0:0-6時, 1:6-12時, 2:12-18時, 3:18-24時, JST）。過去日は1日1本（-1固定）。 */
 function slotFor(date: string): number {
   if (date !== todayJST()) return -1
   return Math.floor(nowJST().getUTCHours() / 6)
 }
-
-const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
 
 /** "HH:MM" の集合から平均時刻を求める（正午より前は日付またぎとみなし+24hして平均） */
 function avgTimeOfDay(times: string[]): string | null {
@@ -34,12 +33,6 @@ const avgOf = (nums: number[]): number | null => {
   return valid.length ? Math.round(valid.reduce((a, b) => a + b, 0) / valid.length) : null
 }
 
-function fmtDuration(min: number): string {
-  const h = Math.floor(min / 60)
-  const m = Math.round(min % 60)
-  return h > 0 ? `${h}時間${m}分` : `${m}分`
-}
-
 /** 当日+直近7日から、AIに渡す事実の要約テキストを組み立てる（history は当日を末尾に含む古い順） */
 function buildFacts(history: RawDay[]): string {
   const today = history[history.length - 1]
@@ -48,10 +41,9 @@ function buildFacts(history: RawDay[]): string {
   const sleepScore = computeSleepScore(today, baseline)
   const energyScore = computeEnergyScore(today, sleepScore, baseline, history.slice(-3))
   const asleepMin = today.sleep.totalMinutes - today.sleep.wakeMin
-  const weekday = WEEKDAYS[new Date(`${today.date}T00:00:00Z`).getUTCDay()]
 
   const lines = [
-    `対象日: ${today.date}（${weekday}曜）`,
+    `対象日: ${today.date}（${weekdayJa(today.date)}曜）`,
     today.sleep.totalMinutes > 0
       ? `就寝 ${today.sleep.bedtime} → 起床 ${today.sleep.waketime}（睡眠合計 ${fmtDuration(today.sleep.totalMinutes)}、実質睡眠 ${fmtDuration(asleepMin)}、睡眠効率${today.sleep.efficiency}%、中途覚醒${today.sleep.awakeCount}回）`
       : '睡眠データなし',
@@ -98,30 +90,12 @@ const SYSTEM_PROMPT = `あなたはFitbit Premiumのような健康コーチと�
 
 async function callClaude(apiKey: string, facts: string): Promise<AdviceData> {
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-5',
-        max_tokens: 700,
-        thinking: { type: 'disabled' },
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: facts }],
-      }),
+    const raw = await callClaudeText(apiKey, {
+      maxTokens: 700,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: facts }],
     })
-    if (!response.ok) {
-      const err = await response.json().catch(() => null)
-      throw createError({ statusCode: response.status, statusMessage: err?.error?.message || 'Claude APIの呼び出しに失敗しました。' })
-    }
-    const data = await response.json()
-    const raw = (data?.content?.[0]?.text ?? '').trim()
-    let parsed: { headline?: string; body?: string }
-    try {
-      parsed = JSON.parse(raw)
-    } catch {
-      const match = raw.match(/\{[\s\S]*\}/)
-      parsed = match ? JSON.parse(match[0]) : {}
-    }
+    const parsed = parseJsonLoose<{ headline?: string; body?: string }>(raw) ?? {}
     const headline = String(parsed.headline ?? '').trim().slice(0, 60)
     const body = String(parsed.body ?? '').trim().slice(0, 360)
     if (!headline || !body) throw new Error('アドバイスの生成結果が空でした')

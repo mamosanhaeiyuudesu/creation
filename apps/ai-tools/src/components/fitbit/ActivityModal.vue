@@ -98,11 +98,11 @@
           <div class="grid grid-cols-2 gap-2">
             <div class="flex flex-col gap-1">
               <label class="text-[10px] text-slate-500">開始</label>
-              <input v-model="form.start" type="time" class="rounded-xl bg-white/[0.05] border border-white/[0.08] px-2.5 py-2 text-sm text-slate-100 focus:outline-none focus:border-sky-400/40 [color-scheme:dark]" />
+              <input v-model="form.start" type="time" step="900" class="rounded-xl bg-white/[0.05] border border-white/[0.08] px-2.5 py-2 text-sm text-slate-100 focus:outline-none focus:border-sky-400/40 [color-scheme:dark]" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-[10px] text-slate-500">終了</label>
-              <input v-model="form.end" type="time" class="rounded-xl bg-white/[0.05] border border-white/[0.08] px-2.5 py-2 text-sm text-slate-100 focus:outline-none focus:border-sky-400/40 [color-scheme:dark]" />
+              <input v-model="form.end" type="time" step="900" class="rounded-xl bg-white/[0.05] border border-white/[0.08] px-2.5 py-2 text-sm text-slate-100 focus:outline-none focus:border-sky-400/40 [color-scheme:dark]" />
             </div>
           </div>
 
@@ -123,14 +123,12 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import type { ActivitySession } from '~/types/fitbit'
-import { todayJST } from '~/utils/jst'
+import { todayJST, WEEKDAYS_JA } from '~/utils/jst'
 
 const props = defineProps<{ date: string }>()
 defineEmits<{ close: [] }>()
 
 interface DayActivities { date: string; activities: ActivitySession[] }
-
-const WEEKDAYS_JA = ['日', '月', '火', '水', '木', '金', '土']
 
 const anchorDate = ref(props.date || todayJST())
 const isThisWeek = computed(() => anchorDate.value >= todayJST())

@@ -2,9 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const APP_COLORS: Record<string, [number, number, number]> = {
-  deepheart:  [0xf4, 0x3f, 0x5e],
   mlb:        [0x1e, 0x3a, 0x8a],
-  keiko:      [0x3b, 0x82, 0xf6],
   hagemashi:  [0xf9, 0x73, 0x16],
   whisper:    [0x8b, 0x5c, 0xf6],
   task:       [0x10, 0xb9, 0x81],

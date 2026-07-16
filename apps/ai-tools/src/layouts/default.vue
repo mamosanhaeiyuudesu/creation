@@ -82,12 +82,10 @@ const tools = [
   { path: '/hagemashi', name: '記録', icon: '💪' },
   { path: '/task', name: 'タスクくん', icon: '📋' },
   // { path: '/marriage', name: 'marriage', icon: '💑' },
-  // { path: '/tengu', name: '天狗問答', icon: '👺' },
   { path: '/fitbit', name: 'Fitbit', icon: '⌚️' },
   // { path: '/office', name: 'office', icon: '🏢' },
   // { path: '/setsuyaku', name: '節約', icon: '💰' },
   { path: '/games', name: 'ゲーム', icon: '🎮' },
-  // { path: '/keiko', name: '稽古', icon: '⚔️' },
 ]
 
 const isActive = (path: string): boolean =>

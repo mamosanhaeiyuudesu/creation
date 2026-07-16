@@ -35,6 +35,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import type { AdviceData } from '~/types/fitbit'
 import AdviceChatModal from '~/components/fitbit/AdviceChatModal.vue'
+import { splitBold } from '~/utils/text'
 
 const props = defineProps<{ date: string }>()
 
@@ -42,10 +43,7 @@ const data = ref<AdviceData | null>(null)
 const loading = ref(true)
 const chatOpen = ref(false)
 
-const bodySegments = computed(() => {
-  const text = data.value?.body ?? ''
-  return text.split(/\*\*(.+?)\*\*/g).map((part, i) => ({ text: part, bold: i % 2 === 1 })).filter(s => s.text)
-})
+const bodySegments = computed(() => splitBold(data.value?.body ?? ''))
 
 async function load() {
   loading.value = true
