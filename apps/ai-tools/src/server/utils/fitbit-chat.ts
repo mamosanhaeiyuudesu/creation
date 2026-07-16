@@ -6,7 +6,7 @@ import type { RawDay, ChatMessage } from '~/types/fitbit'
 import { callClaudeText } from '~/server/utils/anthropic'
 import { computeBaseline, computeSleepScore } from '~/server/utils/fitbit-score'
 import { wrapApiError } from '~/server/utils/openai'
-import { weekdayJa, fmtDuration } from '~/utils/jst'
+import { nowJST, todayJST, weekdayJa, fmtDuration } from '~/utils/jst'
 
 /** 1日分を1行のテキストにまとめる（baseline は当日より前の直近7日から算出済みを渡す） */
 function dayLine(day: RawDay, baseline: ReturnType<typeof computeBaseline>): string {
@@ -45,14 +45,26 @@ export function buildHistoryFacts(history: RawDay[]): string {
     .join('\n')
 }
 
-function systemPrompt(facts: string, days: number): string {
+function systemPrompt(history: RawDay[]): string {
+  const now = nowJST()
+  const nowLabel = `${now.toISOString().slice(0, 10)}(${weekdayJa(now.toISOString().slice(0, 10))}) ${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}`
+  const latest = history[history.length - 1]?.date ?? ''
+  const isToday = latest === todayJST()
+  const anchor = isToday
+    ? `「今日」は ${latest} を指します。データ表の最終行が今日の分で、当日はまだ進行中のため歩数や消費カロリーは1日の途中までの値です。`
+    : `ユーザーは ${latest} を表示中です。「今日」と聞かれたら ${latest} のことだと解釈してください。`
+
   return `あなたはユーザー専属の健康データアシスタントです。ユーザーのFitbit（Google Health）データをもとに、質問へ日本語で親しみやすく答えます。
 
-以下は直近${days}日間のユーザーの健康データ（1行＝1日、新しい日ほど下）です:
-${facts}
+現在の日時（日本時間）: ${nowLabel}
+${anchor}
+
+以下は直近${history.length}日間のユーザーの健康データ（1行＝1日、新しい日ほど下）です:
+${buildHistoryFacts(history)}
 
 回答ルール:
 - 必ず上記データのみを根拠にする。データに無いこと（この期間より前、測定していない指標）は「そのデータはありません」と正直に伝え、推測で数値を作らない
+- 「今日」「今日の振り返り」等を聞かれたら ${latest} の行を使う。翌日以降の日付を今日と取り違えない
 - 睡眠・運動（アクティビティ）に関する質問を得意とするが、歩数・心拍・HRV・消費カロリー等も扱える
 - 「最近」「平均」「傾向」等を聞かれたら、上記データから自分で集計・比較して具体的な数値で答える
 - 回答は2〜4文程度、簡潔に。重要な数値は **太字** で強調する
@@ -72,7 +84,7 @@ export async function answerChat(apiKey: string, history: RawDay[], messages: Ch
 
     const answer = await callClaudeText(apiKey, {
       maxTokens: 800,
-      system: systemPrompt(buildHistoryFacts(history), history.length),
+      system: systemPrompt(history),
       messages: trimmed,
     })
     if (!answer) throw new Error('応答が空でした')
