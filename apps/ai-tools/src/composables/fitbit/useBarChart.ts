@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, onBeforeUnmount, type ComputedRef } from 'vue'
+import { ref, computed, toValue, onMounted, onBeforeUnmount, type ComputedRef, type MaybeRefOrGetter } from 'vue'
 
 /** 縦棒グラフ1点分（ラベルは軸表示・ツールチップ両方に使う整形済み文字列） */
 export interface BarChartPoint {
@@ -74,12 +74,13 @@ export function niceAxis(
  */
 export function useBarChart(
   points: ComputedRef<BarChartPoint[]>,
-  options?: { height?: number; zeroBased?: boolean; range?: readonly [number, number]; goal?: number; zeroLine?: boolean },
+  // goal は呼び出し側で切り替わりうる（睡眠シートのステージ別セレクト等）ため getter/ref も受ける
+  options?: { height?: number; zeroBased?: boolean; range?: readonly [number, number]; goal?: MaybeRefOrGetter<number | undefined>; zeroLine?: boolean },
 ) {
   const H = options?.height ?? 180
   const zeroBased = options?.zeroBased ?? false
   const range = options?.range
-  const goal = options?.goal
+  const goal = computed(() => toValue(options?.goal))
   const zeroLine = options?.zeroLine ?? false
   const padL = 34
   const padR = 12
@@ -100,11 +101,11 @@ export function useBarChart(
 
   // 軸は「切りの良い」下限・上限・目盛りに丸める（40/50/60… のような等間隔）。
   // range 指定時は固定レンジ、zeroBased 時は下限を0に固定。goal はチャート内に必ず収まるよう上限計算に含める。
-  const effMax = computed(() => (goal != null ? Math.max(max.value, goal) : max.value))
+  const effMax = computed(() => (goal.value != null ? Math.max(max.value, goal.value) : max.value))
   const axis = computed(() => niceAxis(min.value, effMax.value, { zeroBased, range }))
   const yLo = computed(() => axis.value.lo)
   const yHi = computed(() => axis.value.hi)
-  const goalY = computed(() => (goal != null ? toY(goal) : null))
+  const goalY = computed(() => (goal.value != null ? toY(goal.value) : null))
   // 基準線（0）。皮膚温の変動など「差」を見せる指標で、正負の境目をはっきり示すために使う。
   const zeroY = computed(() => (zeroLine && yLo.value <= 0 && yHi.value >= 0 ? toY(0) : null))
 

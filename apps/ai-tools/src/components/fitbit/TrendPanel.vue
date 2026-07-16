@@ -17,9 +17,9 @@
     <template v-else>
       <!-- 統計 -->
       <div class="flex items-center gap-5 text-xs">
-        <div><span class="text-slate-500">平均</span> <span class="font-bold text-slate-100 tabular-nums">{{ fmt(avg) }}</span><span class="text-slate-500 text-[10px]">{{ unit }}</span></div>
-        <div><span class="text-slate-500">最小</span> <span class="font-semibold text-slate-300 tabular-nums">{{ fmt(min) }}</span></div>
-        <div><span class="text-slate-500">最大</span> <span class="font-semibold text-slate-300 tabular-nums">{{ fmt(max) }}</span></div>
+        <div><span class="text-slate-500">平均</span> <span class="font-bold text-slate-100 tabular-nums">{{ fmtValue(avg) }}</span><span v-if="!formatValue" class="text-slate-500 text-[10px]">{{ unit }}</span></div>
+        <div><span class="text-slate-500">最小</span> <span class="font-semibold text-slate-300 tabular-nums">{{ fmtValue(min) }}</span></div>
+        <div><span class="text-slate-500">最大</span> <span class="font-semibold text-slate-300 tabular-nums">{{ fmtValue(max) }}</span></div>
       </div>
 
       <!-- 縦棒グラフ -->
@@ -42,7 +42,7 @@
           />
           <!-- 目標ライン -->
           <line v-if="goalY != null" :x1="padL" :x2="W - padR" :y1="goalY" :y2="goalY" stroke="#f8fafc" stroke-opacity="0.55" stroke-width="1.5" stroke-dasharray="4 3" vector-effect="non-scaling-stroke" />
-          <text v-if="goalY != null" :x="W - padR" :y="goalY - 4" text-anchor="end" class="fill-slate-300" :style="labelStyle">目標 {{ fmt(goal!) }}</text>
+          <text v-if="goalY != null" :x="W - padR" :y="goalY - 4" text-anchor="end" class="fill-slate-300" :style="labelStyle">{{ goalLabel }} {{ fmtValue(props.goal!) }}</text>
           <!-- 基準線（0） -->
           <line v-if="zeroY != null" :x1="padL" :x2="W - padR" :y1="zeroY" :y2="zeroY" stroke="#cbd5e1" stroke-opacity="0.5" stroke-width="1.5" vector-effect="non-scaling-stroke" />
           <!-- ホバーガイド -->
@@ -57,7 +57,7 @@
           :style="tooltipStyle"
         >
           <div class="text-slate-400 text-[10px]">{{ hovered.label }}</div>
-          <div v-if="formatValue && hovered.value != null" class="font-bold text-slate-100 tabular-nums">{{ formatValue(hovered.value) }}</div>
+          <div v-if="formatValue && hovered.value != null" class="font-bold text-slate-100 tabular-nums">{{ fmtValue(hovered.value) }}</div>
           <div v-else class="font-bold text-slate-100 tabular-nums">{{ hovered.value ?? '-' }}<span class="text-slate-500 text-[10px] font-normal ml-0.5">{{ unit }}</span></div>
         </div>
       </div>
@@ -81,10 +81,12 @@ const props = withDefaults(defineProps<{
   zeroBased?: boolean
   axisRange?: readonly [number, number]
   goal?: number
+  /** 目標ラインの見出し（睡眠ステージのように「目標」でなく「目安」を出したい場合に使う） */
+  goalLabel?: string
   zeroLine?: boolean
   /** ツールチップの値表示を上書き（例: 小数時間を「7時間12分」形式に変換）。未指定時は decimals + unit で表示 */
   formatValue?: (v: number) => string
-}>(), { color: '#38bdf8', unit: '', decimals: 0, defaultDays: 7, zeroBased: false })
+}>(), { color: '#38bdf8', unit: '', decimals: 0, defaultDays: 7, zeroBased: false, goalLabel: '目標' })
 
 const periods = [
   { days: 7, label: '7日' },
@@ -96,12 +98,13 @@ const days = ref(props.defaultDays)
 const series = ref<TrendData['days']>([])
 const loading = ref(true)
 
+/** 軸目盛り用。幅が狭いので常に数値のまま（formatValue は使わない） */
 function fmt(v: number): string { return v.toFixed(props.decimals) }
+/** 統計行・目安ライン・ツールチップ用。formatValue 指定時は「7時間12分」等の整形表記にする */
+function fmtValue(v: number): string { return props.formatValue ? props.formatValue(v) : v.toFixed(props.decimals) }
 
 const points = computed(() => series.value.map(d => ({ label: mdWeekday(d.date), value: d.value })))
-const { wrap, W, H, padL, padR, padT, padB, labelStyle, hasData, min, max, avg, bars, gridYs, xLabels, goalY, zeroY, hover, hovered, hoverX, tooltipStyle, onMove, onDown, onLeave, measure } = useBarChart(points, { zeroBased: props.zeroBased, range: props.axisRange, goal: props.goal, zeroLine: props.zeroLine })
-
-const goal = props.goal
+const { wrap, W, H, padL, padR, padT, padB, labelStyle, hasData, min, max, avg, bars, gridYs, xLabels, goalY, zeroY, hover, hovered, hoverX, tooltipStyle, onMove, onDown, onLeave, measure } = useBarChart(points, { zeroBased: props.zeroBased, range: props.axisRange, goal: () => props.goal, zeroLine: props.zeroLine })
 
 async function load() {
   loading.value = true

@@ -230,7 +230,8 @@ function shiftDate(delta: number) {
 function fmtDuration(min: number): string {
   const h = Math.floor(min / 60)
   const m = min % 60
-  return h > 0 ? `${h}時間${m}分` : `${m}分`
+  if (h > 0) return m > 0 ? `${h}時間${m}分` : `${h}時間`
+  return `${m}分`
 }
 
 function trendPts(key: string): { date: string; value: number | null }[] {
