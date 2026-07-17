@@ -88,6 +88,9 @@ const props = withDefaults(defineProps<{
   formatValue?: (v: number) => string
 }>(), { color: '#38bdf8', unit: '', decimals: 0, defaultDays: 7, zeroBased: false, goalLabel: '目標' })
 
+/** 取得した系列（古い順）。呼び出し側が該当日の値を取り出せるように渡す（取得失敗時は空配列） */
+const emit = defineEmits<{ loaded: [TrendData['days']] }>()
+
 const periods = [
   { days: 7, label: '7日' },
   { days: 30, label: '1か月' },
@@ -116,6 +119,7 @@ async function load() {
     series.value = []
   } finally {
     loading.value = false
+    emit('loaded', series.value)
     requestAnimationFrame(measure)
   }
 }

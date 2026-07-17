@@ -90,16 +90,18 @@ const scrollRef = ref<HTMLElement | null>(null)
 const endRef = ref<HTMLElement | null>(null)
 
 /** epoch秒 → JSTの "YYYY-MM-DD" */
-function jstDay(createdAt: number): string {
-  return toJSTDate(new Date(createdAt * 1000)).toISOString().slice(0, 10)
+function jstDay(epochSec: number): string {
+  return toJSTDate(new Date(epochSec * 1000)).toISOString().slice(0, 10)
 }
 
-// メッセージ列に、日付が変わる箇所で日付帯を差し込んだ描画用リスト
+// メッセージ列に、日付が変わる箇所で日付帯を差し込んだ描画用リスト。
+// 日付帯は subjectAt（アドバイスは対象日）で切る。作成時刻で切ると、過去日を表示して生成した
+// アドバイスが「生成した日」の帯に入ってしまうため。
 const rendered = computed(() => {
   const out: ({ type: 'day'; key: string; label: string } | { type: 'msg'; key: string; msg: ThreadMessage })[] = []
   let prevDay = ''
   for (const m of messages.value) {
-    const day = jstDay(m.createdAt)
+    const day = jstDay(m.subjectAt)
     if (day !== prevDay) {
       out.push({ type: 'day', key: `day-${day}`, label: mdWeekday(day) })
       prevDay = day
@@ -135,7 +137,8 @@ async function send() {
   input.value = ''
   sending.value = true
   // 楽観的にユーザー発言を表示
-  messages.value.push({ id: `tmp-${Date.now()}`, role: 'user', kind: 'chat', headline: null, content, createdAt: Math.floor(Date.now() / 1000) })
+  const now = Math.floor(Date.now() / 1000)
+  messages.value.push({ id: `tmp-${Date.now()}`, role: 'user', kind: 'chat', headline: null, content, createdAt: now, subjectAt: now })
   scrollToEnd()
   try {
     const res = await $fetch<{ user: ThreadMessage; assistant: ThreadMessage }>('/api/fitbit/chat', {

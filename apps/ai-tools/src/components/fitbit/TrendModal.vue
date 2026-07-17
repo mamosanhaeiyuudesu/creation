@@ -2,11 +2,18 @@
   <div class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center" @click.self="$emit('close')">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="$emit('close')" />
     <div class="relative w-full sm:max-w-[520px] bg-[#0f172a] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl">
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center justify-between mb-3">
         <h3 class="text-sm font-bold text-slate-100 flex items-center gap-1.5">
           <span>{{ icon }}</span>{{ label }}<span class="text-slate-500 font-normal">の推移</span>
         </h3>
         <button class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-white/10" @click="$emit('close')">✕</button>
+      </div>
+
+      <!-- 表示中の日の実績値 -->
+      <div class="mb-4 flex items-baseline gap-2">
+        <span class="text-2xl font-bold tabular-nums" :style="{ color }">{{ dayValueText }}</span>
+        <span class="text-[11px] text-slate-500">{{ unit }}</span>
+        <span class="text-[11px] text-slate-500 ml-1 tabular-nums">{{ dateLabel }}</span>
       </div>
       <div v-if="hasIntraday" class="mb-5 pb-5 border-b border-white/[0.06]">
         <!-- 日送りナビ + 見出し -->
@@ -27,7 +34,7 @@
           <IntradayPanel :points="intradayPoints" :color="color" :unit="unit" :decimals="decimals" :zero-based="intraday?.zeroBased ?? false" label="" />
         </div>
       </div>
-      <TrendPanel :metric="metric" :color="color" :unit="unit" :date="activeDate" :decimals="decimals" :zero-based="zeroBased" :axis-range="axisRange" :goal="goal" :zero-line="zeroLine" />
+      <TrendPanel :metric="metric" :color="color" :unit="unit" :date="activeDate" :decimals="decimals" :zero-based="zeroBased" :axis-range="axisRange" :goal="goal" :zero-line="zeroLine" @loaded="series = $event" />
     </div>
   </div>
 </template>
@@ -36,7 +43,7 @@
 import { ref, computed, watch } from 'vue'
 import TrendPanel from '~/components/fitbit/TrendPanel.vue'
 import IntradayPanel from '~/components/fitbit/IntradayPanel.vue'
-import type { TimePoint } from '~/types/fitbit'
+import type { TimePoint, TrendData } from '~/types/fitbit'
 import { mdWeekday, todayJST } from '~/utils/jst'
 
 const props = defineProps<{
@@ -65,6 +72,15 @@ const intradayLoading = ref(false)
 
 const isToday = computed(() => activeDate.value >= todayJST())
 const dateLabel = computed(() => mdWeekday(activeDate.value))
+
+// 表示中の日の実績値（下段の推移グラフが取得した系列から引く。activeDate を送ると自動で追随する）
+const series = ref<TrendData['days']>([])
+const dayValue = computed(() => series.value.find(d => d.date === activeDate.value)?.value ?? null)
+const dayValueText = computed(() => {
+  if (dayValue.value == null) return '—'
+  const digits = props.decimals ?? 0
+  return dayValue.value.toLocaleString('ja-JP', { minimumFractionDigits: digits, maximumFractionDigits: digits })
+})
 
 function shiftDay(delta: number) {
   const d = new Date(`${activeDate.value}T00:00:00Z`)

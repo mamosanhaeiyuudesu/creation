@@ -175,8 +175,14 @@ export interface ThreadMessage {
   /** advice の見出し（chat は null） */
   headline?: string | null
   content: string
-  /** 作成時刻（epoch秒、JST日付帯の判定に使う） */
+  /** 作成時刻（epoch秒） */
   createdAt: number
+  /**
+   * スレッドの並び順・日付帯の基準時刻（epoch秒）。chat は作成時刻そのもの、advice は
+   * 「対象日のスロット時刻」。過去日を表示して生成したアドバイス（作成は今・対象は過去日）を
+   * スレッド末尾ではなくその対象日の位置に並べるために使う。
+   */
+  subjectAt: number
 }
 
 /** 連携状態 */
