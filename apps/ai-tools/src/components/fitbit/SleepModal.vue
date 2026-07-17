@@ -111,20 +111,21 @@
 
         <!-- 睡眠時間の推移（合計／ステージ別を切り替え） -->
         <div class="border-t border-white/[0.06] pt-4">
-          <div class="text-xs font-semibold text-slate-400 mb-2">{{ sleepTrend.label }}</div>
-          <div class="flex gap-0.5 p-0.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-            <button
-              v-for="o in SLEEP_TREND_OPTIONS"
-              :key="o.metric"
-              class="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-[11px] font-semibold transition-colors"
-              :class="o.metric === sleepTrendMetric ? 'bg-white/[0.1] text-slate-100' : 'text-slate-500 hover:text-slate-300'"
-              @click="sleepTrendMetric = o.metric"
-            >
-              <span class="w-1.5 h-1.5 rounded-full shrink-0" :style="{ background: o.color, opacity: o.metric === sleepTrendMetric ? 1 : 0.4 }" />
-              {{ o.name }}
-            </button>
+          <div class="flex items-center gap-2 mb-2">
+            <div class="text-xs font-semibold text-slate-400">{{ sleepTrend.label }}</div>
+            <div class="ml-auto flex items-center gap-1.5 text-[11px]">
+              <template v-for="(o, i) in SLEEP_TREND_OPTIONS" :key="o.metric">
+                <span v-if="i > 0" class="text-slate-700">/</span>
+                <button
+                  class="bg-transparent border-none p-0 cursor-pointer font-semibold transition-colors"
+                  :class="o.metric === sleepTrendMetric ? 'text-slate-100' : 'text-slate-600 hover:text-slate-400'"
+                  :style="o.metric === sleepTrendMetric ? { color: o.color } : undefined"
+                  @click="sleepTrendMetric = o.metric"
+                >{{ o.name }}</button>
+              </template>
+            </div>
           </div>
-          <p class="text-[11px] leading-relaxed text-slate-500 mt-2 mb-3">{{ sleepTrend.desc }}</p>
+          <p class="text-[11px] leading-relaxed text-slate-500 mb-3">{{ sleepTrend.desc }}</p>
           <TrendPanel :metric="sleepTrend.metric" :color="sleepTrend.color" unit="時間" :date="activeDate" :decimals="1" :zero-based="true" :goal="sleepTrend.goal" goal-label="目安" :format-value="(v) => fmtDuration(Math.round(v * 60))" />
         </div>
 

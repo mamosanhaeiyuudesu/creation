@@ -76,7 +76,7 @@
 
       <!-- History tabs -->
       <div class="mt-1 min-w-0">
-        <!-- 録音 サブタブ（主: 記録・心・強み・達成・感謝・アドバイス / 副: 単語・中間データ・達成リスト・はげまし） -->
+        <!-- 録音 サブタブ（主: 記録・心・強み・達成・感謝・助言 / 副: 単語・要約・達成リスト） -->
         <div v-if="isRecordingTab" class="flex items-center gap-1.5 mt-2 flex-wrap">
           <button
             v-for="t in primaryTabs"
@@ -105,10 +105,26 @@
         </div>
         <div
           class="flex items-center gap-2 mb-1"
-          :class="activeTab === 'summary' || activeTab === 'words' || isProfileTab || activeTab === 'encourage' || activeTab === 'achievement' || activeTab === 'achieved' || activeTab === 'gratitude' || activeTab === 'kokoro'
+          :class="activeTab === 'summary' || activeTab === 'words' || isProfileTab || activeTab === 'transcription' || activeTab === 'achievement' || activeTab === 'achieved' || activeTab === 'gratitude' || activeTab === 'kokoro'
             ? 'min-h-8'
-            : activeTab === 'transcription' ? 'min-h-4' : 'min-h-0'"
+            : 'min-h-0'"
         >
+          <!-- 記録タブ内の 記録 / はげまし 切り替え -->
+          <template v-if="activeTab === 'transcription'">
+            <div class="ml-auto flex items-center gap-1.5 text-xs">
+              <button
+                class="bg-transparent border-none p-0 cursor-pointer font-semibold transition-colors"
+                :class="recordView === 'record' ? 'text-orange-300' : 'text-slate-600 hover:text-slate-400'"
+                @click="recordView = 'record'"
+              >記録</button>
+              <span class="text-slate-700">/</span>
+              <button
+                class="bg-transparent border-none p-0 cursor-pointer font-semibold transition-colors"
+                :class="recordView === 'encourage' ? 'text-orange-300' : 'text-slate-600 hover:text-slate-400'"
+                @click="recordView = 'encourage'"
+              >はげまし</button>
+            </div>
+          </template>
           <template v-if="activeTab === 'achievement'">
             <div class="flex-1" />
             <button
@@ -118,18 +134,6 @@
             >
               <span v-if="isGeneratingAchievements" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
               {{ achievementStatus || '再生成' }}
-            </button>
-          </template>
-          <template v-if="activeTab === 'encourage'">
-            <div class="flex-1" />
-            <button
-              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-              :class="history.length > 0 && !isEncouraging ? 'cursor-pointer hover:bg-white/[0.10] hover:text-slate-200' : ''"
-              :disabled="history.length === 0 || isEncouraging"
-              @click="openSelectModal"
-            >
-              <span v-if="isEncouraging" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
-              💪 はげます
             </button>
           </template>
           <template v-if="activeTab === 'summary'">
@@ -208,7 +212,7 @@
           </template>
         </div>
         <HistoryTable
-          v-if="activeTab === 'transcription'"
+          v-if="activeTab === 'transcription' && recordView === 'record'"
           :history="history"
           :copiedId="copiedHistoryId"
           :hideHeader="true"
@@ -218,7 +222,7 @@
           @updateTitle="updateHistoryTitle"
         />
         <HistoryTable
-          v-else-if="activeTab === 'encourage'"
+          v-else-if="activeTab === 'transcription' && recordView === 'encourage'"
           :history="encourageHistory"
           :copiedId="copiedEncourageId"
           :hideHeader="true"
@@ -228,10 +232,10 @@
           @delete="deleteEncourageHistory"
           @updateTitle="updateEncourageHistoryTitle"
         />
-        <!-- 中間データタブ -->
+        <!-- 要約タブ -->
         <div v-else-if="activeTab === 'summary'" class="py-2">
           <div v-if="summaryRows.length === 0" class="text-center text-slate-500 text-sm py-10">
-            録音を文字起こしすると中間データが生成されます
+            録音を文字起こしすると要約が生成されます
           </div>
           <div v-else class="flex flex-col gap-0">
             <div
@@ -292,7 +296,7 @@
         <!-- 達成リストタブ -->
         <div v-else-if="activeTab === 'achievement'" class="py-2">
           <div v-if="achievementRows.length === 0" class="text-center text-slate-500 text-sm py-10">
-            再生成ボタンを押すと中間データから達成リストを生成します
+            再生成ボタンを押すと要約から達成リストを生成します
           </div>
           <div v-else class="flex flex-col gap-0">
             <div
@@ -354,7 +358,7 @@
             生成中...
           </div>
           <div v-else-if="kokoroHistory.length === 0" class="text-center text-slate-500 text-sm py-10">
-            更新ボタンを押すと中間データから心の状態を可視化します
+            更新ボタンを押すと要約から心の状態を可視化します
           </div>
           <div v-else class="flex flex-col gap-3">
             <HagemashiKokoroTreemap :entry="kokoroHistory[0]" :height="360" @leaf-click="activeKokoroPopup = $event" />
@@ -430,7 +434,7 @@
             分析中...
           </div>
           <div v-else-if="achievedHistory.length === 0" class="text-center text-slate-500 text-sm py-10">
-            更新ボタンを押すと中間データから達成を分析します
+            更新ボタンを押すと要約から達成を分析します
           </div>
           <div v-else-if="achievedHistory[0].items.length === 0" class="text-center text-slate-500 text-sm py-10">
             達成のデータがありません。更新ボタンで再分析してください
@@ -476,7 +480,7 @@
             分析中...
           </div>
           <div v-else-if="gratitudeHistory.length === 0" class="text-center text-slate-500 text-sm py-10">
-            更新ボタンを押すと中間データから感謝を分析します
+            更新ボタンを押すと要約から感謝を分析します
           </div>
           <div v-else-if="gratitudeHistory[0].items.length === 0" class="text-center text-slate-500 text-sm py-10">
             感謝のデータがありません。更新ボタンで再分析してください
@@ -832,41 +836,14 @@
       </div>
     </div>
 
-    <!-- 履歴選択ポップアップ -->
+    <!-- はげまし設定ポップアップ（対象は直近1件） -->
     <div v-if="selectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="closeSelectModal">
       <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
-          <h2 class="m-0 text-lg text-slate-50 font-semibold">はげます対象を選択</h2>
+          <h2 class="m-0 text-lg text-slate-50 font-semibold">はげまし設定</h2>
           <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="closeSelectModal">✕</button>
         </div>
-        <div class="px-4 py-3 overflow-y-auto flex flex-col gap-1 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
-          <label class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer border-b border-white/[0.06] mb-1 hover:bg-white/[0.05] transition-colors">
-            <input
-              type="checkbox"
-              class="w-4 h-4 shrink-0 accent-orange-500 cursor-pointer"
-              :checked="allSelected"
-              :indeterminate="someSelected"
-              @change="toggleAll"
-            />
-            <span class="text-xs text-slate-400 font-medium">全て選択</span>
-          </label>
-          <label
-            v-for="item in history"
-            :key="item.id"
-            class="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors"
-            :class="selectedIds.includes(item.id) ? 'bg-orange-500/15' : 'hover:bg-white/[0.05]'"
-          >
-            <input
-              type="checkbox"
-              class="w-4 h-4 shrink-0 accent-orange-500 cursor-pointer"
-              :checked="selectedIds.includes(item.id)"
-              @change="toggleSelect(item.id)"
-            />
-            <span class="text-xs text-slate-400 whitespace-nowrap">{{ formatSelectDate(item.timestamp) }}</span>
-            <span class="text-sm text-slate-200 truncate">{{ item.title || item.text.slice(0, 40) }}</span>
-          </label>
-        </div>
-        <div class="px-6 pt-3 pb-4 border-t border-white/[0.08] flex flex-col gap-3">
+        <div class="px-6 pt-4 pb-4 flex flex-col gap-3">
           <!-- はげまし方スタイル選択 -->
           <div class="flex items-center gap-2.5">
             <span class="text-xs text-slate-500 shrink-0">スタイル</span>
@@ -914,7 +891,7 @@
             <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="closeSelectModal">キャンセル</button>
             <button
               class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-              :disabled="selectedIds.length === 0"
+              :disabled="history.length === 0"
               @click="confirmSelect"
             >💪 はげます</button>
           </div>
@@ -957,12 +934,12 @@
       </div>
     </div>
 
-    <!-- 中間データ再生成 選択モーダル -->
+    <!-- 要約再生成 選択モーダル -->
     <div v-if="migrateSelectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="migrateSelectOpen = false">
       <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
           <div>
-            <h2 class="m-0 text-lg text-slate-50 font-semibold">中間データを再生成</h2>
+            <h2 class="m-0 text-lg text-slate-50 font-semibold">要約を再生成</h2>
             <p class="m-0 mt-0.5 text-xs text-slate-500">対象の文字起こしを選択してください</p>
           </div>
           <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="migrateSelectOpen = false">✕</button>
@@ -1011,13 +988,13 @@
         <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
           <div>
             <h2 class="m-0 text-lg text-slate-50 font-semibold">達成リストを再生成</h2>
-            <p class="m-0 mt-0.5 text-xs text-slate-500">対象の中間データを選択してください</p>
+            <p class="m-0 mt-0.5 text-xs text-slate-500">対象の要約を選択してください</p>
           </div>
           <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="achievementSelectOpen = false">✕</button>
         </div>
         <div class="px-4 py-3 overflow-y-auto flex flex-col gap-1 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
           <div v-if="achievementSourceItems.length === 0" class="text-center text-slate-600 text-sm py-6">
-            中間データがありません
+            要約がありません
           </div>
           <template v-else>
             <label class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer border-b border-white/[0.06] mb-1 hover:bg-white/[0.05] transition-colors">
@@ -1118,7 +1095,7 @@
       </div>
     </div>
 
-    <!-- 中間データ削除確認 -->
+    <!-- 要約削除確認 -->
     <div v-if="deletingSummaryTarget" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="deletingSummaryTarget = null">
       <div class="w-full max-w-[300px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-5">
         <p class="m-0 text-slate-200 text-sm text-center">このデータを削除しますか？</p>
@@ -1253,7 +1230,6 @@ const migrateStatus = ref('')
 const migrateSelectOpen = ref(false)
 const migrateSelectedIds = ref<string[]>([])
 const selectOpen = ref(false)
-const selectedIds = ref<string[]>([])
 const encourageOpen = ref(false)
 const encourageConfirmOpen = ref(false)
 const encourageTargetId = ref<string | null>(null)
@@ -1262,9 +1238,12 @@ const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-type RecordingTab = 'transcription' | 'words' | 'summary' | 'achievement' | 'kokoro' | 'strengths' | 'achieved' | 'gratitude' | 'advice' | 'encourage'
+type RecordingTab = 'transcription' | 'words' | 'summary' | 'achievement' | 'kokoro' | 'strengths' | 'achieved' | 'gratitude' | 'advice'
 type TabKey = 'consult' | 'mood' | RecordingTab
-const TAB_KEYS: TabKey[] = ['transcription', 'words', 'summary', 'achievement', 'kokoro', 'strengths', 'achieved', 'gratitude', 'advice', 'encourage', 'consult', 'mood']
+const TAB_KEYS: TabKey[] = ['transcription', 'words', 'summary', 'achievement', 'kokoro', 'strengths', 'achieved', 'gratitude', 'advice', 'consult', 'mood']
+
+// 記録タブ内の表示切り替え（記録 / はげまし）
+const recordView = ref<'record' | 'encourage'>('record')
 
 // URL クエリ（?tab=）とタブ状態を双方向同期する
 const route = useRoute()
@@ -1290,14 +1269,13 @@ const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'strengths', label: '強み', short: '強み' },
   { key: 'achieved', label: '達成', short: '達成' },
   { key: 'gratitude', label: '感謝', short: '感謝' },
-  { key: 'advice', label: 'アドバイス', short: '助言' },
+  { key: 'advice', label: '助言', short: '助言' },
 ]
 // 展開アイコンを開くと表示する副タブ
 const secondaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'words', label: '単語', short: '単語' },
-  { key: 'summary', label: '中間データ', short: '中間' },
+  { key: 'summary', label: '要約', short: '要約' },
   // { key: 'achievement', label: '達成リスト', short: '達成' }, // 「達成」ツリーマップタブに統合したためコメントアウト
-  { key: 'encourage', label: 'はげまし', short: 'はげ' },
 ]
 const recordingTabs: { key: RecordingTab; label: string; short: string }[] = [...primaryTabs, ...secondaryTabs]
 const isRecordingTab = computed(() => recordingTabs.some(t => t.key === activeTab.value))
@@ -1984,43 +1962,20 @@ function downloadExport() {
 }
 
 // --- 履歴選択モーダル ---
-const allSelected = computed(() => history.value.length > 0 && selectedIds.value.length === history.value.length)
-const someSelected = computed(() => selectedIds.value.length > 0 && selectedIds.value.length < history.value.length)
-
-const toggleAll = () => {
-  if (allSelected.value) {
-    selectedIds.value = []
-  } else {
-    selectedIds.value = history.value.map(i => i.id)
-  }
-}
-
-const openSelectModal = () => {
-  selectedIds.value = history.value.length > 0 ? [history.value[0].id] : []
-  selectOpen.value = true
-}
-
 const closeSelectModal = () => {
   selectOpen.value = false
 }
 
-// 記録直後の「はげましますか？」確認。はいなら対象選択ポップアップへ、いいえならそのまま閉じる
+// 記録直後の「はげましますか？」確認。はいならはげまし設定ポップアップへ、いいえならそのまま閉じる
 // （いずれの場合も表示中のタブは切り替えない）
 const acceptEncourage = () => {
   encourageConfirmOpen.value = false
-  selectedIds.value = encourageTargetId.value ? [encourageTargetId.value] : []
   selectOpen.value = true
 }
 
 const declineEncourage = () => {
   encourageConfirmOpen.value = false
   encourageTargetId.value = null
-}
-
-const toggleSelect = (id: string) => {
-  const idx = selectedIds.value.indexOf(id)
-  if (idx === -1) selectedIds.value.push(id)
-  else selectedIds.value.splice(idx, 1)
 }
 
 const confirmSelect = () => {
@@ -2048,9 +2003,9 @@ const fetchEncourageTitle = async (text: string): Promise<string> => {
 
 // --- はげまし実行 ---
 const runEncourage = async () => {
-  const items = history.value.filter(item => selectedIds.value.includes(item.id))
-  if (!items.length) return
-  const texts = items.map(item => getNotesText(item))
+  const target = history.value.find(item => item.id === encourageTargetId.value) ?? history.value[0]
+  if (!target) return
+  const texts = [getNotesText(target)]
   encourageResult.value = ''
   encourageOpen.value = true
   isEncouraging.value = true
