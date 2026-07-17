@@ -6,7 +6,10 @@
         <h3 class="text-sm font-bold text-slate-100 flex items-center gap-1.5">
           <span>{{ icon }}</span>{{ label }}<span class="text-slate-500 font-normal">の推移</span>
         </h3>
-        <button class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-white/10" @click="$emit('close')">✕</button>
+        <div class="flex items-center gap-0.5">
+          <MetricInfoButton :metric="metric" />
+          <button class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-white/10" @click="$emit('close')">✕</button>
+        </div>
       </div>
 
       <!-- 表示中の日の実績値 -->
@@ -43,6 +46,7 @@
 import { ref, computed, watch } from 'vue'
 import TrendPanel from '~/components/fitbit/TrendPanel.vue'
 import IntradayPanel from '~/components/fitbit/IntradayPanel.vue'
+import MetricInfoButton from '~/components/fitbit/MetricInfoButton.vue'
 import type { TimePoint, TrendData } from '~/types/fitbit'
 import { mdWeekday, todayJST } from '~/utils/jst'
 

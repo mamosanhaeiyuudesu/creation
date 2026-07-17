@@ -15,6 +15,18 @@ export const SLEEP_STAGE_COLORS: Record<SleepStage, string> = {
   wake: '#fb923c',
 }
 
+/**
+ * 各ステージの目安時間（分）。7時間睡眠を基準に、深い13〜23%・レム20〜25%・
+ * 浅いは残りの約半分という一般的な配分から置いた値。
+ * 覚醒は「少ないほど良い」ため目安を持たない（null）。
+ */
+export const SLEEP_STAGE_GOAL_MIN: Record<SleepStage, number | null> = {
+  deep: 72,
+  light: 210,
+  rem: 90,
+  wake: null,
+}
+
 export function sleepStageColor(s: SleepStage): string {
   return SLEEP_STAGE_COLORS[s]
 }

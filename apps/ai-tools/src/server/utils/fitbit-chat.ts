@@ -17,7 +17,7 @@ function dayLine(day: RawDay, baseline: ReturnType<typeof computeBaseline>): str
     const asleep = day.sleep.totalMinutes - day.sleep.wakeMin
     const score = computeSleepScore(day, baseline)
     parts.push(
-      `睡眠${fmtDuration(day.sleep.totalMinutes)}(実質${fmtDuration(asleep)}/効率${day.sleep.efficiency}%/中途覚醒${day.sleep.awakeCount}回/深い${day.sleep.deepMin}分・REM${day.sleep.remMin}分)`,
+      `睡眠${fmtDuration(day.sleep.totalMinutes)}(実質${fmtDuration(asleep)}/効率${day.sleep.efficiency}%/中途覚醒${day.sleep.awakeCount}回/深い${day.sleep.deepMin}分・レム${day.sleep.remMin}分)`,
       `就寝${day.sleep.bedtime}→起床${day.sleep.waketime}`,
       `睡眠スコア${score.score ?? '不明'}`,
     )
@@ -27,7 +27,7 @@ function dayLine(day: RawDay, baseline: ReturnType<typeof computeBaseline>): str
 
   parts.push(`歩数${day.steps}`, `消費${day.caloriesKcal}kcal`)
   if (day.restingHeartRate > 0) parts.push(`安静時心拍${day.restingHeartRate}bpm`)
-  if (day.hrv > 0) parts.push(`HRV${day.hrv}ms`)
+  if (day.hrv > 0) parts.push(`心拍変動${day.hrv}ms`)
 
   if (day.activities.length) {
     parts.push(`運動: ${day.activities.map(a => `${a.label}${a.durationMin}分(${a.start}〜${a.end}・${a.caloriesKcal}kcal${a.distanceKm ? `・${a.distanceKm}km` : ''})`).join('、')}`)
@@ -65,7 +65,8 @@ ${buildHistoryFacts(history)}
 回答ルール:
 - 必ず上記データのみを根拠にする。データに無いこと（この期間より前、測定していない指標）は「そのデータはありません」と正直に伝え、推測で数値を作らない
 - 「今日」「今日の振り返り」等を聞かれたら ${latest} の行を使う。翌日以降の日付を今日と取り違えない
-- 睡眠・運動（アクティビティ）に関する質問を得意とするが、歩数・心拍・HRV・消費カロリー等も扱える
+- 睡眠・運動（アクティビティ）に関する質問を得意とするが、歩数・心拍・心拍変動・消費カロリー等も扱える
+- 指標は日本語の名称で呼び、英語の略語は使わない（HRV→心拍変動、REM→レム睡眠、SpO2→血中酸素）。単位（bpm・kcal・km・ms・%）はそのままでよい
 - 「最近」「平均」「傾向」等を聞かれたら、上記データから自分で集計・比較して具体的な数値で答える
 - 回答は2〜4文程度、簡潔に。重要な数値は **太字** で強調する
 - 温かく前向きな語り口。ただし医療診断や断定的な健康判断はせず、必要なら「気になる場合は専門家に相談を」と添える`

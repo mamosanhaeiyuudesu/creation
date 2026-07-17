@@ -14,7 +14,8 @@
             :disabled="isToday"
             @click="shiftDay(1)"
           >›</button>
-          <button class="w-8 h-8 ml-1 rounded-full flex items-center justify-center text-slate-400 hover:bg-white/10" @click="$emit('close')">✕</button>
+          <MetricInfoButton metric="sleepScore" class="ml-1" />
+          <button class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-white/10" @click="$emit('close')">✕</button>
         </div>
       </div>
 
@@ -40,7 +41,10 @@
 
         <!-- ヒプノグラム（ステージ帯 + 内訳: 左にラベル、右に時間/割合） -->
         <div>
-          <div class="text-xs font-semibold text-slate-400 mb-2">睡眠ステージ</div>
+          <div class="flex items-baseline justify-between gap-2 mb-2">
+            <div class="text-xs font-semibold text-slate-400">睡眠ステージ</div>
+            <div class="text-[10px] text-slate-500">目安＝7時間睡眠での標準的な配分（深い1.2h・浅い3.5h・レム1.5h）</div>
+          </div>
           <div class="flex items-stretch gap-2">
             <!-- 左: ステージ名 -->
             <div class="relative shrink-0 w-11" :style="{ height: `${hypH}px` }">
@@ -82,15 +86,18 @@
                 <span class="ml-1.5 text-slate-500 tabular-nums">{{ segClock(hoverSeg) }}</span>
               </div>
             </div>
-            <!-- 右: 時間・割合 -->
-            <div class="relative shrink-0 w-24" :style="{ height: `${hypH}px` }">
+            <!-- 右: 時間・目安に対する達成率 -->
+            <div class="relative shrink-0 w-[124px]" :style="{ height: `${hypH}px` }">
               <div
                 v-for="(lv, i) in stageLevels"
                 :key="lv.stage"
-                class="absolute right-0 flex items-center justify-end text-[10px] text-slate-400 tabular-nums whitespace-nowrap"
+                class="absolute right-0 flex items-center justify-end gap-1.5 text-[10px] text-slate-400 tabular-nums whitespace-nowrap"
                 :style="{ top: `${rowY(i)}px`, height: `${rowH}px` }"
               >
-                {{ fmtDuration(data.stages[lv.stage].minutes) }} / {{ data.stages[lv.stage].pct }}%
+                <span>{{ fmtDuration(data.stages[lv.stage].minutes) }}</span>
+                <span v-if="goalPct(lv.stage) !== null" class="font-semibold" :class="goalPctClass(lv.stage)">
+                  目安の{{ goalPct(lv.stage) }}%
+                </span>
               </div>
             </div>
           </div>
@@ -104,16 +111,20 @@
 
         <!-- 睡眠時間の推移（合計／ステージ別を切り替え） -->
         <div class="border-t border-white/[0.06] pt-4">
-          <div class="flex items-center justify-between gap-2 mb-2">
-            <div class="text-xs font-semibold text-slate-400">{{ sleepTrend.label }}</div>
-            <select
-              v-model="sleepTrendMetric"
-              class="rounded-lg bg-white/[0.05] border border-white/[0.08] px-2 py-1 text-[11px] text-slate-300 focus:outline-none focus:border-indigo-400/40 [color-scheme:dark] cursor-pointer"
+          <div class="text-xs font-semibold text-slate-400 mb-2">{{ sleepTrend.label }}</div>
+          <div class="flex gap-0.5 p-0.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+            <button
+              v-for="o in SLEEP_TREND_OPTIONS"
+              :key="o.metric"
+              class="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-[11px] font-semibold transition-colors"
+              :class="o.metric === sleepTrendMetric ? 'bg-white/[0.1] text-slate-100' : 'text-slate-500 hover:text-slate-300'"
+              @click="sleepTrendMetric = o.metric"
             >
-              <option v-for="o in SLEEP_TREND_OPTIONS" :key="o.metric" :value="o.metric">{{ o.name }}</option>
-            </select>
+              <span class="w-1.5 h-1.5 rounded-full shrink-0" :style="{ background: o.color, opacity: o.metric === sleepTrendMetric ? 1 : 0.4 }" />
+              {{ o.name }}
+            </button>
           </div>
-          <p class="text-[11px] leading-relaxed text-slate-500 text-right mb-3">{{ sleepTrend.desc }}</p>
+          <p class="text-[11px] leading-relaxed text-slate-500 mt-2 mb-3">{{ sleepTrend.desc }}</p>
           <TrendPanel :metric="sleepTrend.metric" :color="sleepTrend.color" unit="時間" :date="activeDate" :decimals="1" :zero-based="true" :goal="sleepTrend.goal" goal-label="目安" :format-value="(v) => fmtDuration(Math.round(v * 60))" />
         </div>
 
@@ -133,8 +144,9 @@ import type { SleepDetail, SleepStage } from '~/types/fitbit'
 import ScoreGauge from '~/components/fitbit/ScoreGauge.vue'
 import TrendPanel from '~/components/fitbit/TrendPanel.vue'
 import SleepScheduleChart from '~/components/fitbit/SleepScheduleChart.vue'
+import MetricInfoButton from '~/components/fitbit/MetricInfoButton.vue'
 import { mdWeekday, todayJST } from '~/utils/jst'
-import { SLEEP_STAGE_LEVELS, sleepStageColor, sleepStageJp } from '~/utils/sleepStage'
+import { SLEEP_STAGE_GOAL_MIN, SLEEP_STAGE_LEVELS, sleepStageColor, sleepStageJp } from '~/utils/sleepStage'
 
 const props = defineProps<{ date: string }>()
 defineEmits<{ close: [] }>()
@@ -152,14 +164,29 @@ function shiftDay(delta: number) {
   activeDate.value = next
 }
 
-// 睡眠時間の推移: 合計とステージ別を切り替える
-// goal は7時間睡眠を基準にした各ステージの目安時間（深い13〜23%・レム20〜25%・浅いは残りの約半分）
+// 睡眠時間の推移: 合計とステージ別を切り替える。goal は SLEEP_STAGE_GOAL_MIN と同じ目安（時間換算）
 const SLEEP_TREND_OPTIONS = [
   { metric: 'sleepAsleepHours', name: '合計', label: '睡眠時間の推移（覚醒時間は除く）', color: '#a5b4fc', goal: 7, desc: '中途覚醒を除いた、実際に眠れていた時間の合計です。' },
-  { metric: 'sleepDeepHours', name: '深い睡眠', label: '深い睡眠の推移', color: sleepStageColor('deep'), goal: 1.2, desc: '体の修復や疲労回復が進む眠り。不足すると翌日にだるさが残りがちです。' },
-  { metric: 'sleepLightHours', name: '浅い睡眠', label: '浅い睡眠の推移', color: sleepStageColor('light'), goal: 3.5, desc: '睡眠の半分ほどを占める眠り。体を休めながら記憶の定着も進みます。' },
-  { metric: 'sleepRemHours', name: 'レム睡眠', label: 'レム睡眠の推移', color: sleepStageColor('rem'), goal: 1.5, desc: '脳が活発に働き夢を見る眠り。記憶の整理や感情の処理が進みます。' },
+  { metric: 'sleepDeepHours', name: '深い睡眠', label: '深い睡眠の推移', color: sleepStageColor('deep'), goal: SLEEP_STAGE_GOAL_MIN.deep! / 60, desc: '体の修復や疲労回復が進む眠り。不足すると翌日にだるさが残りがちです。' },
+  { metric: 'sleepLightHours', name: '浅い睡眠', label: '浅い睡眠の推移', color: sleepStageColor('light'), goal: SLEEP_STAGE_GOAL_MIN.light! / 60, desc: '睡眠の半分ほどを占める眠り。体を休めながら記憶の定着も進みます。' },
+  { metric: 'sleepRemHours', name: 'レム睡眠', label: 'レム睡眠の推移', color: sleepStageColor('rem'), goal: SLEEP_STAGE_GOAL_MIN.rem! / 60, desc: '脳が活発に働き夢を見る眠り。記憶の整理や感情の処理が進みます。' },
 ] as const
+
+/** そのステージの目安時間に対する達成率（%）。覚醒など目安を持たないステージは null */
+function goalPct(stage: SleepStage): number | null {
+  const goal = SLEEP_STAGE_GOAL_MIN[stage]
+  if (!goal || !data.value) return null
+  return Math.round((data.value.stages[stage].minutes / goal) * 100)
+}
+
+/** 達成率の色分け: 90%以上で足りている、70%未満は不足 */
+function goalPctClass(stage: SleepStage): string {
+  const pct = goalPct(stage)
+  if (pct === null) return ''
+  if (pct >= 90) return 'text-emerald-300'
+  if (pct >= 70) return 'text-slate-200'
+  return 'text-amber-400'
+}
 
 const sleepTrendMetric = ref<string>(SLEEP_TREND_OPTIONS[0].metric)
 const sleepTrend = computed(() => SLEEP_TREND_OPTIONS.find(o => o.metric === sleepTrendMetric.value) ?? SLEEP_TREND_OPTIONS[0])

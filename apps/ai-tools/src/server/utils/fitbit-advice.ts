@@ -47,8 +47,8 @@ const avgOf = (nums: number[]): number | null => {
 /** 1日分の活動系指標（心拍・活動量・運動）を行テキストにする */
 function activityLines(day: RawDay): string[] {
   const lines = [
-    `安静時心拍 ${day.restingHeartRate}bpm／HRV ${day.hrv}ms`,
-    `歩数 ${day.steps}歩／消費カロリー ${day.caloriesKcal}kcal`,
+    `安静時心拍 ${day.restingHeartRate}bpm／心拍変動 ${day.hrv}ms`,
+    `歩数 ${day.steps}歩／移動距離 ${day.distanceKm.toFixed(1)}km／消費カロリー ${day.caloriesKcal}kcal`,
   ]
   if (day.activities.length) {
     lines.push(`運動: ${day.activities.map(a => `${a.label} ${a.start}〜${a.end}（${a.durationMin}分・${a.caloriesKcal}kcal）`).join('、')}`)
@@ -88,12 +88,15 @@ function buildFacts(history: RawDay[], phase: Phase): string {
   }
 
   const recent = past.slice(-7)
+  // avgOf は整数に丸めるため、小数1桁を保ちたい移動距離は10倍して平均を取る
+  const avgDistanceKm = avgOf(recent.map(d => d.distanceKm * 10))
   const baselineParts = [
     avgTimeOfDay(recent.map(d => d.sleep.bedtime)) ? `就寝 ${avgTimeOfDay(recent.map(d => d.sleep.bedtime))}` : null,
     avgOf(recent.map(d => d.sleep.totalMinutes)) ? `睡眠時間 ${fmtDuration(avgOf(recent.map(d => d.sleep.totalMinutes))!)}` : null,
     avgOf(recent.map(d => d.restingHeartRate)) ? `安静時心拍 ${avgOf(recent.map(d => d.restingHeartRate))}bpm` : null,
-    avgOf(recent.map(d => d.hrv)) ? `HRV ${avgOf(recent.map(d => d.hrv))}ms` : null,
+    avgOf(recent.map(d => d.hrv)) ? `心拍変動 ${avgOf(recent.map(d => d.hrv))}ms` : null,
     avgOf(recent.map(d => d.steps)) ? `歩数 ${avgOf(recent.map(d => d.steps))}歩` : null,
+    avgDistanceKm ? `移動距離 ${(avgDistanceKm / 10).toFixed(1)}km` : null,
     avgOf(recent.map(d => d.caloriesKcal)) ? `消費カロリー ${avgOf(recent.map(d => d.caloriesKcal))}kcal` : null,
   ].filter((v): v is string => !!v)
   if (baselineParts.length) lines.push('', `直近7日間の平均（対象日を除く）: ${baselineParts.join('／')}`)
@@ -104,9 +107,9 @@ function buildFacts(history: RawDay[], phase: Phase): string {
 /** 時間帯ごとの分析の軸（午前は前日の活動＋当日の睡眠、午後は当日の活動） */
 const PHASE_RULES: Record<Phase, string> = {
   morning: `いまは午前です。今日はまだ始まったばかりなので、**その日の睡眠を主役**に、朝の状態と今日の過ごし方の見通しを描いてください。
-- 活動系の指標（歩数・消費カロリー・運動・安静時心拍・HRV）は当日分がまだ揃っていないため、入力の【前日の活動】の値だけを根拠にし、「昨日は〜」と前日の話だと分かるように書く
-- 対象日の歩数・運動には触れない（まだ記録されていないため）`,
-  afternoon: `いまは午後です。**その日の睡眠と、ここまでの当日の活動（運動・歩数・消費カロリー）**を主役に読み解いてください。
+- 活動系の指標（歩数・移動距離・消費カロリー・運動・安静時心拍・心拍変動）は当日分がまだ揃っていないため、入力の【前日の活動】の値だけを根拠にし、「昨日は〜」と前日の話だと分かるように書く
+- 対象日の歩数・移動距離・消費カロリー・運動には触れない（まだ記録されていないため）`,
+  afternoon: `いまは午後です。**その日の睡眠と、ここまでの当日の活動（運動・歩数・移動距離・消費カロリー）**を主役に読み解いてください。
 - 当日の活動量は1日の途中までの集計である点を踏まえ、少なめでも不足と決めつけない`,
   past: `過去の日を振り返るアドバイスです。**その日の睡眠と運動（アクティビティ）**を主役に、1日を通しての様子を読み解いてください。`,
 }
@@ -123,10 +126,11 @@ ${PHASE_RULES[phase]}
 書き方:
 - headline は20字前後。その日いちばん特徴的な事実を、親しみやすい語りかけで一言にする（例:「予定より1時間半も早い目覚めでしたね」）
 - body は120〜180字程度、3〜4文。主役の指標は時間・スコア・効率・就寝起床、種目・時間・消費カロリーなどから具体的に描写する
-- そのうえで、主役以外の指標（安静時心拍・HRV・歩数・消費カロリー等）で直近7日間の平均と比べて**特筆すべき変化があれば1点だけ**添える（無ければ無理に触れない）
+- そのうえで、主役以外の指標（安静時心拍・心拍変動・歩数・移動距離・消費カロリー等）で直近7日間の平均と比べて**特筆すべき変化があれば1点だけ**添える（無ければ無理に触れない）
 - 運動データが無い日は睡眠を主役にし、活動量（歩数）で補う
 - 具体的な数値を複数交え、直近7日間の平均と比べて際立つ点は「いつもより〜」のように触れる（比較できる平均データが無い項目には触れない）
 - 数値や重要な単語は **太字** で強調する（例: **6時間6分**）
+- 指標は日本語の名称で呼び、英語の略語は使わない（HRV→心拍変動、REM→レム睡眠、SpO2→血中酸素、Deep sleep→深い睡眠）。単位（bpm・kcal・km・ms・%）はそのままでよい
 - 温かく前向きな語り口（「〜ですね」「〜でしょう」等）。命令形は避け、自然に締める
 - 文末を疑問文にしない（返信ボタンなどは無いため質問しても答えられない）
 - 与えられたデータの範囲を超えて話を作らない（存在しない数値には触れない）

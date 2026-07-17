@@ -22,7 +22,7 @@
       <div v-else-if="error" class="p-10 text-center text-rose-400 text-sm">{{ error }}</div>
 
       <div v-else class="p-5">
-        <div class="overflow-x-auto [scrollbar-width:thin]">
+        <div ref="scroller" class="overflow-x-auto [scrollbar-width:thin]">
           <div class="grid grid-cols-7 gap-1.5 min-w-[560px]">
             <div v-for="col in columns" :key="col.date" class="flex flex-col gap-1.5">
               <!-- 曜日ヘッダー -->
@@ -127,7 +127,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, nextTick, watch, onMounted } from 'vue'
 import type { ActivitySession } from '~/types/fitbit'
 import { todayJST, WEEKDAYS_JA } from '~/utils/jst'
 
@@ -142,6 +142,7 @@ const isThisWeek = computed(() => anchorDate.value >= todayJST())
 const days = ref<DayActivities[]>([])
 const loading = ref(true)
 const error = ref('')
+const scroller = ref<HTMLElement>()
 
 const rangeLabel = computed(() => {
   if (!days.value.length) return ''
@@ -177,7 +178,15 @@ function shiftWeek(delta: number) {
   anchorDate.value = next > todayJST() ? todayJST() : next
 }
 
-async function load() {
+/** 7日分の表がスマホでは収まりきらないため、直近（右端）が見える位置まで送る */
+async function scrollToLatest() {
+  await nextTick()
+  const el = scroller.value
+  if (el) el.scrollLeft = el.scrollWidth
+}
+
+/** @param scroll 読み込み後に右端（直近）へ送るか。追加・削除後の再取得では位置を動かさない */
+async function load(scroll = false) {
   loading.value = true
   error.value = ''
   try {
@@ -187,6 +196,7 @@ async function load() {
     error.value = e?.data?.message || 'アクティビティの取得に失敗しました'
   } finally {
     loading.value = false
+    if (scroll && !error.value) scrollToLatest()
   }
 }
 
@@ -247,6 +257,6 @@ async function removeManual(id: string) {
   }
 }
 
-onMounted(load)
-watch(anchorDate, load)
+onMounted(() => load(true))
+watch(anchorDate, () => load(true))
 </script>

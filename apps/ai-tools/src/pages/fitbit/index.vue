@@ -134,7 +134,7 @@
           </div>
 
           <p class="text-[10px] text-slate-600 text-center mt-2 leading-relaxed">
-            エナジー／睡眠スコアはFitbit公式APIでは提供されないため、取得可能な指標から独自に近似算出しています。
+            エナジー／睡眠スコアはFitbit公式APIでは提供されないため、取得可能な指標から独自に近似算出しています。各指標の意味・算出方法・目安は、カードを開いた先の右上「？」から確認できます。
           </p>
         </template>
       </template>
