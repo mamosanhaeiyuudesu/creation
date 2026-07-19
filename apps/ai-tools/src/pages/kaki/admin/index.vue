@@ -1,16 +1,14 @@
 <template>
   <div class="max-w-[900px] mx-auto px-4 sm:px-6 pt-6 pb-20">
-    <header class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-2.5">
-        <span class="text-3xl" style="font-family:'Apple Color Emoji','Segoe UI Emoji',sans-serif">🧑‍🌾</span>
-        <div>
-          <h1 class="kaki-display text-[22px] sm:text-[26px] font-bold leading-none">木の管理</h1>
-          <p class="text-[12px] text-[var(--kaki-ink-soft)] mt-1">農家用ダッシュボード</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2">
-        <NuxtLink to="/kaki" class="text-[13px] font-bold text-[var(--kaki-persimmon-deep)] px-3 py-1.5 rounded-full border border-[var(--kaki-line)] bg-[var(--kaki-card)] hover:bg-[var(--kaki-paper-2)] transition-colors">🍂 里親トップ</NuxtLink>
-        <button v-if="isLoggedIn" class="text-[13px] text-[var(--kaki-ink-soft)] px-3 py-1.5 rounded-full hover:bg-black/[0.04]" @click="doLogout">ログアウト</button>
+    <div class="flex items-center justify-between gap-2 mb-3">
+      <Breadcrumb :items="[{ label: '柿の木のいえ', to: '/kaki' }, { label: '木の管理' }]" />
+      <button v-if="isLoggedIn" class="shrink-0 text-[13px] text-[var(--kaki-ink-soft)] px-3 py-1.5 rounded-full hover:bg-black/[0.04]" @click="doLogout">ログアウト</button>
+    </div>
+    <header class="flex items-center gap-2.5 mb-6">
+      <span class="text-3xl" style="font-family:'Apple Color Emoji','Segoe UI Emoji',sans-serif">🧑‍🌾</span>
+      <div>
+        <h1 class="kaki-display text-[22px] sm:text-[26px] font-bold leading-none">木の管理</h1>
+        <p class="text-[12px] text-[var(--kaki-ink-soft)] mt-1">農家用ダッシュボード</p>
       </div>
     </header>
 
@@ -77,6 +75,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
 import StatusBadge from '~/components/kaki/StatusBadge.vue'
+import Breadcrumb from '~/components/kaki/Breadcrumb.vue'
 import type { KakiMe, TreeSummary, TreeStatus, Tree } from '~/types/kaki'
 
 definePageMeta({ layout: 'kaki' })

@@ -6,7 +6,7 @@
         <span class="text-3xl" style="font-family:'Apple Color Emoji','Segoe UI Emoji',sans-serif">🍂</span>
         <div>
           <h1 class="kaki-display text-[22px] sm:text-[26px] font-bold leading-none">柿の木のいえ</h1>
-          <p class="text-[12px] text-[var(--kaki-ink-soft)] mt-1">{{ isAdmin ? '農家ビュー・登録されている木' : 'あなたが見守る木' }}</p>
+          <p class="text-[12px] text-[var(--kaki-ink-soft)] mt-1">{{ isAdmin ? '畑の柿の木たち' : 'あなたが見守る木' }}</p>
         </div>
       </div>
       <div class="flex items-center gap-2">

@@ -1,9 +1,9 @@
 <template>
   <div class="max-w-[720px] mx-auto px-4 sm:px-5 pb-20">
-    <!-- 戻る -->
-    <div class="flex items-center justify-between pt-5 pb-3">
-      <NuxtLink to="/kaki" class="inline-flex items-center gap-1 text-[13px] font-bold text-[var(--kaki-ink-soft)] hover:text-[var(--kaki-ink)]">‹ いえに戻る</NuxtLink>
-      <NuxtLink v-if="me?.role === 'admin' && detail" :to="`/kaki/admin/${detail.tree.id}`" class="text-[13px] font-bold text-[var(--kaki-persimmon-deep)]">編集する</NuxtLink>
+    <!-- パンくず -->
+    <div class="flex items-center justify-between gap-2 pt-5 pb-3">
+      <Breadcrumb :items="crumbs" />
+      <NuxtLink v-if="me?.role === 'admin' && detail" :to="`/kaki/admin/${detail.tree.id}`" class="shrink-0 text-[13px] font-bold text-[var(--kaki-persimmon-deep)]">編集する</NuxtLink>
     </div>
 
     <div v-if="loading" class="animate-pulse space-y-4">
@@ -120,6 +120,7 @@ import AuthModal from '~/components/AuthModal.vue'
 import StatusBadge from '~/components/kaki/StatusBadge.vue'
 import PhotoTimeline from '~/components/kaki/PhotoTimeline.vue'
 import CommentSection from '~/components/kaki/CommentSection.vue'
+import Breadcrumb, { type Crumb } from '~/components/kaki/Breadcrumb.vue'
 import type { KakiMe, TreeDetail, Comment, HealthEventType } from '~/types/kaki'
 
 definePageMeta({ layout: 'kaki' })
@@ -136,6 +137,11 @@ const error = ref('')
 
 const tree = computed(() => detail.value!.tree)
 useHead(() => ({ title: detail.value ? `${detail.value.tree.nickname} | 柿の木のいえ` : '柿の木のいえ' }))
+
+const crumbs = computed<Crumb[]>(() => [
+  { label: '柿の木のいえ', to: '/kaki' },
+  ...(detail.value ? [{ label: detail.value.tree.nickname || `No.${detail.value.tree.number}` }] : []),
+])
 
 const heroPhoto = computed(() => {
   const withPhoto = (detail.value?.observations ?? []).filter((o) => o.photoUrl)

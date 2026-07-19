@@ -1,8 +1,8 @@
 <template>
   <div class="max-w-[680px] mx-auto px-4 sm:px-5 pt-5 pb-24">
-    <div class="flex items-center justify-between pb-3">
-      <NuxtLink to="/kaki/admin" class="text-[13px] font-bold text-[var(--kaki-ink-soft)] hover:text-[var(--kaki-ink)]">‹ 一覧に戻る</NuxtLink>
-      <NuxtLink v-if="detail" :to="`/kaki/${detail.tree.id}`" class="text-[13px] font-bold text-[var(--kaki-persimmon-deep)]">里親ページを見る →</NuxtLink>
+    <div class="flex items-center justify-between gap-2 pt-5 pb-3">
+      <Breadcrumb :items="crumbs" />
+      <NuxtLink v-if="detail" :to="`/kaki/${detail.tree.id}`" class="shrink-0 text-[13px] font-bold text-[var(--kaki-persimmon-deep)]">里親ページを見る →</NuxtLink>
     </div>
 
     <div v-if="loading" class="h-64 rounded-2xl bg-[var(--kaki-paper-2)]/70 animate-pulse" />
@@ -165,7 +165,8 @@ import { useAuth } from '~/composables/useAuth'
 import { useKakiImage } from '~/composables/useKakiImage'
 import AuthModal from '~/components/AuthModal.vue'
 import ChipEditor from '~/components/kaki/ChipEditor.vue'
-import type { KakiMe, TreeDetail, Foster, TreeStatus, Observation, HealthEvent, HealthEventType } from '~/types/kaki'
+import Breadcrumb, { type Crumb } from '~/components/kaki/Breadcrumb.vue'
+import type { TreeDetail, Foster, TreeStatus, Observation, HealthEvent, HealthEventType } from '~/types/kaki'
 
 definePageMeta({ layout: 'kaki' })
 useHead({ title: '木の編集 | 柿の木のいえ' })
@@ -181,6 +182,12 @@ const detail = ref<TreeDetail | null>(null)
 const fosters = ref<Foster[]>([])
 const loading = ref(true)
 const error = ref('')
+
+const crumbs = computed<Crumb[]>(() => [
+  { label: '柿の木のいえ', to: '/kaki' },
+  { label: '木の管理', to: '/kaki/admin' },
+  ...(detail.value ? [{ label: detail.value.tree.nickname || `No.${detail.value.tree.number}` }] : []),
+])
 
 const form = reactive({
   number: 0,
