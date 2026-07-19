@@ -54,6 +54,7 @@ NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
 | `/miyako/member` | 議員ごとのTF-IDFランキング（単語・カテゴリ別） |
 | `/miyako/yearly` | 年別発言推移グラフ |
 | `/japanese-mlb-player` | 日本人MLB選手スタッツ（打者・投手、FanGraphs/MLB Stats連携） |
+| `/kaki` | 柿の木 里親アプリ。里親は自分の木の詳細（成長写真・観察日記・病歴・応援コメント）を閲覧。`/kaki/admin` は農家用（木の登録編集・観察記録投稿・AI変換）。絵本トーンの専用レイアウト |
 
 ### 現在メンテ対象外（ナビからコメントアウト済み・修正不要）
 
@@ -68,6 +69,9 @@ NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
 - `WHISPER_DB`（`whisper-db`）: users / sessions / app-history / marriage records / fitbit_connections / fitbit_daily  
   `src/server/utils/auth.ts` の `getDb()` 経由。Cookie名: `app-session`
   - Fitbitは既存の users/sessions 認証に相乗り（`024_fitbit.sql`）。OAuthトークンは `encrypt.ts` で暗号化して保存
+- `WHISPER_DB` 相乗り（kaki）: kaki_trees / kaki_observations / kaki_comments / kaki_health_events。既存 `users` に `role`（admin/foster）列を追加して認証に相乗り。写真はR2を使わず base64 data URL を D1 に保存（アップロード時にクライアント側で縮小・圧縮）。
+  - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/031_kaki.sql`
+  - 農家（阪中さん）を管理者にする: `wrangler d1 execute whisper-db --remote --command "UPDATE users SET role='admin' WHERE username='<農家のユーザー名>'"`
 - `MLB_DB`（`mlb-db`）: MLB選手・試合データ  
   `src/server/tasks/mlb-sync.ts` の Cron（1時間ごと）で同期
 - **ローカルdev**: macOSの制約でD1が使えないため `mlb-dev.ts` が静的JSONにフォールバック
@@ -90,6 +94,7 @@ NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
 | `fitbit-manual.ts` | 手動運動記録の消費カロリーAI推定＋D1 CRUD |
 | `fitbit-dev.ts` | Fitbitローカル開発用スタブ（日付シードで決定的データ生成） |
 | `questions.ts` | AI質問生成ユーティリティ |
+| `kaki.ts` | 柿アプリの認証（role判定）・アクセス制御・テーブル用意・行整形。AI変換は `ai-transform.post.ts` が `anthropic.ts` の `callClaudeText()` を利用 |
 
 ## コーディング規則
 
