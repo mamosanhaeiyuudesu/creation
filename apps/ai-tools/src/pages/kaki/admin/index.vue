@@ -8,7 +8,10 @@
           <p class="text-[12px] text-[var(--kaki-ink-soft)] mt-1">農家用ダッシュボード</p>
         </div>
       </div>
-      <button v-if="isLoggedIn" class="text-[13px] text-[var(--kaki-ink-soft)] px-3 py-1.5 rounded-full hover:bg-black/[0.04]" @click="doLogout">ログアウト</button>
+      <div class="flex items-center gap-2">
+        <NuxtLink to="/kaki" class="text-[13px] font-bold text-[var(--kaki-persimmon-deep)] px-3 py-1.5 rounded-full border border-[var(--kaki-line)] bg-[var(--kaki-card)] hover:bg-[var(--kaki-paper-2)] transition-colors">🍂 里親トップ</NuxtLink>
+        <button v-if="isLoggedIn" class="text-[13px] text-[var(--kaki-ink-soft)] px-3 py-1.5 rounded-full hover:bg-black/[0.04]" @click="doLogout">ログアウト</button>
+      </div>
     </header>
 
     <!-- 新規登録 -->
