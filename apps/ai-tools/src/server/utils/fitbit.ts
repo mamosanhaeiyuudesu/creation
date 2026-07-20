@@ -308,6 +308,58 @@ function parseSleep(s: any): RawDay['sleep'] {
   }
 }
 
+/**
+ * 同じ起床日の睡眠セッション群を「夜（連続した睡眠）」ごとのクラスタに分け、最も睡眠時間の
+ * 長いクラスタ＝主睡眠を返す（開始時刻順）。二度寝のように中断が gapMin 以内なら同じクラスタに
+ * まとめ、時間が離れた昼寝などは別クラスタとして除外する。
+ */
+function pickMainSleepCluster(sessions: any[], gapMin: number): any[] {
+  const sorted = [...sessions].sort(
+    (a: any, b: any) => new Date(a.interval.startTime).getTime() - new Date(b.interval.startTime).getTime()
+  )
+  const clusters: any[][] = []
+  let cur: any[] = []
+  let prevEnd = 0
+  for (const s of sorted) {
+    const start = new Date(s.interval.startTime).getTime()
+    if (cur.length && start - prevEnd > gapMin * 60000) { clusters.push(cur); cur = [] }
+    cur.push(s)
+    prevEnd = Math.max(prevEnd, new Date(s.interval.endTime).getTime())
+  }
+  if (cur.length) clusters.push(cur)
+  const total = (cl: any[]) => cl.reduce((sum, s) => sum + (Number(s.summary?.minutesInSleepPeriod) || 0), 0)
+  return clusters.reduce((best, cl) => (total(cl) > total(best) ? cl : best), clusters[0] ?? [])
+}
+
+/**
+ * 同じ夜のセッション群（開始時刻順）を1つの睡眠にまとめる。ステージ時間・覚醒回数は合算し、
+ * 就寝＝先頭セッションの就寝、起床＝末尾セッションの起床、効率は合算値から再計算する。
+ * タイムラインは各セッションを（実時間の中断は詰めて）連結し、ヒプノグラムが破綻しないようにする。
+ */
+function mergeSleepSessions(sessions: any[]): RawDay['sleep'] {
+  const parsed = sessions.map(parseSleep)
+  if (parsed.length <= 1) return parsed[0] ?? parseSleep(null)
+  const timeline: RawDay['sleep']['timeline'] = []
+  let offset = 0
+  let totalMinutes = 0, deepMin = 0, remMin = 0, lightMin = 0, wakeMin = 0, awakeCount = 0, asleep = 0
+  for (const p of parsed) {
+    for (const seg of p.timeline) timeline.push({ stage: seg.stage, start: seg.start + offset, duration: seg.duration })
+    offset += p.totalMinutes
+    totalMinutes += p.totalMinutes
+    deepMin += p.deepMin; remMin += p.remMin; lightMin += p.lightMin; wakeMin += p.wakeMin
+    awakeCount += p.awakeCount
+    asleep += p.totalMinutes - p.wakeMin
+  }
+  return {
+    totalMinutes, deepMin, remMin, lightMin, wakeMin,
+    efficiency: totalMinutes > 0 ? Math.round((asleep / totalMinutes) * 100) : 0,
+    awakeCount,
+    bedtime: parsed[0].bedtime,
+    waketime: parsed[parsed.length - 1].waketime,
+    timeline,
+  }
+}
+
 // Google Health API の Exercise.ExerciseType（主要種目のみ日本語ラベル化。未知の種目は
 // displayName にフォールバックするため網羅する必要はない）
 const EXERCISE_TYPE_MAP: Record<string, { label: string; icon: string }> = {
@@ -640,16 +692,30 @@ async function fetchRangeFromApi(token: string, start: string, end: string): Pro
   }
   for (const r of map.values()) r.activities.sort((a, b) => a.start.localeCompare(b.start))
 
-  // 睡眠: 覚醒日ごとに、最も睡眠時間の長いセッションを採用
-  const sleepByDate = new Map<string, any>()
+  // 睡眠: 覚醒日ごとに全セッションを集め、同じ夜の続き（二度寝）をまとめて合算する。
+  // 二度寝は Google では起床後の別セッションとして記録されるため、最長セッションだけを
+  // 採ると二度寝ぶんが反映されず、本家アプリのように起床時刻・合計睡眠が更新されない。
+  // 中断が短いセッション群を1つの夜としてまとめ、時間が離れた昼寝は別クラスタとして除く。
+  const MERGE_GAP_MIN = 180 // 中断がこの分数以内なら同じ夜の続き（二度寝）とみなす
+  const sleepSessionsByDate = new Map<string, any[]>()
   for (const pt of sleep) {
     const d = pointDate(pt, 'sleep')
     if (!inRange(d) || !pt.sleep) continue
-    const prev = sleepByDate.get(d)
-    const cur = Number(pt.sleep.summary?.minutesInSleepPeriod) || 0
-    if (!prev || cur > (Number(prev.summary?.minutesInSleepPeriod) || 0)) sleepByDate.set(d, pt.sleep)
+    const arr = sleepSessionsByDate.get(d)
+    if (arr) arr.push(pt.sleep)
+    else sleepSessionsByDate.set(d, [pt.sleep])
   }
-  for (const [d, s] of sleepByDate) ensure(d).sleep = parseSleep(s)
+  // 採用した主睡眠クラスタの時間範囲（SpO2 の夜間フィルタに使う）
+  const sleepSpanByDate = new Map<string, { start: number; end: number }>()
+  for (const [d, sessions] of sleepSessionsByDate) {
+    const cluster = pickMainSleepCluster(sessions, MERGE_GAP_MIN)
+    if (!cluster.length) continue
+    ensure(d).sleep = mergeSleepSessions(cluster)
+    sleepSpanByDate.set(d, {
+      start: new Date(cluster[0].interval.startTime).getTime(),
+      end: new Date(cluster[cluster.length - 1].interval.endTime).getTime(),
+    })
+  }
 
   // SpO2: Fitbit は睡眠中に計測するため、その夜の睡眠区間内のサンプルのみ日次集計。
   // 日中の低品質値（≒50）や外れ値を除くため下限を設ける。健常者の睡眠時SpO2は概ね
@@ -659,10 +725,8 @@ async function fetchRangeFromApi(token: string, start: string, end: string): Pro
   const spo2Points = spo2
     .map(pt => ({ t: new Date(pt.oxygenSaturation?.sampleTime?.physicalTime ?? 0).getTime(), v: Number(pt.oxygenSaturation?.percentage) }))
     .filter(p => Number.isFinite(p.v) && p.v >= SPO2_MIN_PLAUSIBLE && p.v <= 100 && p.t > 0)
-  for (const [d, s] of sleepByDate) {
-    const start = new Date(s.interval.startTime).getTime()
-    const end = new Date(s.interval.endTime).getTime()
-    const vals = spo2Points.filter(p => p.t >= start && p.t <= end).map(p => p.v)
+  for (const [d, span] of sleepSpanByDate) {
+    const vals = spo2Points.filter(p => p.t >= span.start && p.t <= span.end).map(p => p.v)
     if (vals.length) {
       ensure(d).spo2 = {
         avg: Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10,
