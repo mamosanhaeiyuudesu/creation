@@ -309,30 +309,7 @@ function parseSleep(s: any): RawDay['sleep'] {
 }
 
 /**
- * 同じ起床日の睡眠セッション群を「夜（連続した睡眠）」ごとのクラスタに分け、最も睡眠時間の
- * 長いクラスタ＝主睡眠を返す（開始時刻順）。二度寝のように中断が gapMin 以内なら同じクラスタに
- * まとめ、時間が離れた昼寝などは別クラスタとして除外する。
- */
-function pickMainSleepCluster(sessions: any[], gapMin: number): any[] {
-  const sorted = [...sessions].sort(
-    (a: any, b: any) => new Date(a.interval.startTime).getTime() - new Date(b.interval.startTime).getTime()
-  )
-  const clusters: any[][] = []
-  let cur: any[] = []
-  let prevEnd = 0
-  for (const s of sorted) {
-    const start = new Date(s.interval.startTime).getTime()
-    if (cur.length && start - prevEnd > gapMin * 60000) { clusters.push(cur); cur = [] }
-    cur.push(s)
-    prevEnd = Math.max(prevEnd, new Date(s.interval.endTime).getTime())
-  }
-  if (cur.length) clusters.push(cur)
-  const total = (cl: any[]) => cl.reduce((sum, s) => sum + (Number(s.summary?.minutesInSleepPeriod) || 0), 0)
-  return clusters.reduce((best, cl) => (total(cl) > total(best) ? cl : best), clusters[0] ?? [])
-}
-
-/**
- * 同じ夜のセッション群（開始時刻順）を1つの睡眠にまとめる。ステージ時間・覚醒回数は合算し、
+ * 同じ起床日のセッション群（開始時刻順）を1つの睡眠にまとめる。ステージ時間・覚醒回数は合算し、
  * 就寝＝先頭セッションの就寝、起床＝末尾セッションの起床、効率は合算値から再計算する。
  * タイムラインは各セッションを（実時間の中断は詰めて）連結し、ヒプノグラムが破綻しないようにする。
  */
@@ -692,11 +669,20 @@ async function fetchRangeFromApi(token: string, start: string, end: string): Pro
   }
   for (const r of map.values()) r.activities.sort((a, b) => a.start.localeCompare(b.start))
 
-  // 睡眠: 覚醒日ごとに全セッションを集め、同じ夜の続き（二度寝）をまとめて合算する。
-  // 二度寝は Google では起床後の別セッションとして記録されるため、最長セッションだけを
-  // 採ると二度寝ぶんが反映されず、本家アプリのように起床時刻・合計睡眠が更新されない。
-  // 中断が短いセッション群を1つの夜としてまとめ、時間が離れた昼寝は別クラスタとして除く。
-  const MERGE_GAP_MIN = 180 // 中断がこの分数以内なら同じ夜の続き（二度寝）とみなす
+  // 睡眠: 覚醒日（interval.endTime の現地日）ごとに、その日の「主睡眠」を合算する。
+  // 二度寝は Google では起床後の別セッションとして記録され、本睡眠の起床から二度寝の就寝まで
+  // 3時間以上あくこともある。前夜からの本睡眠と早朝の二度寝は合算するが、昼寝は分けたい。
+  // 判定は起床日基準:「起床日当日の NAP_START_HOUR 時（JST）以降に始まる睡眠」は昼寝として除外する。
+  //   - 本睡眠: 前夜（例 23:10）開始 → 起床日の前日始まりなので除外されず残る
+  //   - 二度寝: 起床日当日の早朝（例 07:04, <10時）開始 → 残る
+  //   - 昼寝  : 起床日当日の 10時以降（例 13:00）開始 → 除外
+  // その日が昼寝しか無い場合はデータを失わないよう全採用にフォールバックする。
+  const NAP_START_HOUR = 10
+  const localStartMs = (s: any) => new Date(s.interval.startTime).getTime() + offsetSec(s.interval.startUtcOffset) * 1000
+  const isNap = (s: any, wakeDay: string): boolean => {
+    const ls = new Date(localStartMs(s)) // UTCフィールドが現地時刻を表す
+    return ls.toISOString().slice(0, 10) === wakeDay && ls.getUTCHours() >= NAP_START_HOUR
+  }
   const sleepSessionsByDate = new Map<string, any[]>()
   for (const pt of sleep) {
     const d = pointDate(pt, 'sleep')
@@ -705,15 +691,19 @@ async function fetchRangeFromApi(token: string, start: string, end: string): Pro
     if (arr) arr.push(pt.sleep)
     else sleepSessionsByDate.set(d, [pt.sleep])
   }
-  // 採用した主睡眠クラスタの時間範囲（SpO2 の夜間フィルタに使う）
+  // 合算した睡眠の時間範囲（SpO2 の夜間フィルタに使う。就寝〜最終起床の全体をカバー）
   const sleepSpanByDate = new Map<string, { start: number; end: number }>()
   for (const [d, sessions] of sleepSessionsByDate) {
-    const cluster = pickMainSleepCluster(sessions, MERGE_GAP_MIN)
-    if (!cluster.length) continue
-    ensure(d).sleep = mergeSleepSessions(cluster)
+    if (!sessions.length) continue
+    const sorted = [...sessions].sort(
+      (a: any, b: any) => new Date(a.interval.startTime).getTime() - new Date(b.interval.startTime).getTime()
+    )
+    const main = sorted.filter((s: any) => !isNap(s, d))
+    const used = main.length ? main : sorted // 昼寝しか無い日は全採用（データを失わない）
+    ensure(d).sleep = mergeSleepSessions(used)
     sleepSpanByDate.set(d, {
-      start: new Date(cluster[0].interval.startTime).getTime(),
-      end: new Date(cluster[cluster.length - 1].interval.endTime).getTime(),
+      start: new Date(used[0].interval.startTime).getTime(),
+      end: Math.max(...used.map((s: any) => new Date(s.interval.endTime).getTime())),
     })
   }
 
