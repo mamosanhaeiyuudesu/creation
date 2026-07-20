@@ -15,6 +15,13 @@
             @click="shiftDay(1)"
           >›</button>
           <MetricInfoButton metric="sleepScore" class="ml-1" />
+          <!-- 更新（最新データに取り直す。キャッシュを無視） -->
+          <button
+            class="w-7 h-7 rounded-lg text-slate-300 flex items-center justify-center hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent"
+            title="最新データに更新"
+            :disabled="loading || refreshing"
+            @click="load(true)"
+          ><span :class="refreshing && 'inline-block animate-spin'" aria-hidden>⟳</span></button>
           <button class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-white/10" @click="$emit('close')">✕</button>
         </div>
       </div>
@@ -194,6 +201,7 @@ const sleepTrend = computed(() => SLEEP_TREND_OPTIONS.find(o => o.metric === sle
 
 const data = ref<SleepDetail | null>(null)
 const loading = ref(true)
+const refreshing = ref(false)
 const error = ref('')
 
 const stageLevels = SLEEP_STAGE_LEVELS
@@ -241,18 +249,23 @@ function fmtDuration(min: number): string {
   return `${m}分`
 }
 
-async function load() {
-  loading.value = true
+async function load(force = false) {
+  // 更新（force）時は表示中の内容を消さず、ボタンだけ回して差し替える
+  if (force) refreshing.value = true
+  else loading.value = true
   error.value = ''
   try {
-    data.value = await $fetch<SleepDetail>('/api/fitbit/sleep', { params: { date: activeDate.value } })
+    data.value = await $fetch<SleepDetail>('/api/fitbit/sleep', {
+      params: { date: activeDate.value, ...(force ? { refresh: 1 } : {}) },
+    })
   } catch (e: any) {
     error.value = e?.data?.message || '睡眠データの取得に失敗しました'
   } finally {
     loading.value = false
+    refreshing.value = false
   }
 }
 
-onMounted(load)
-watch(activeDate, load)
+onMounted(() => load())
+watch(activeDate, () => load())
 </script>

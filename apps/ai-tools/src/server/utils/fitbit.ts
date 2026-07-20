@@ -739,11 +739,17 @@ async function getCachedHistory(event: H3Event, userId: string, endDate: string,
     // キャッシュされた過去日だと該当フィールドが無い/0のまま保存されているため、自己修復的に再取得して埋める。
     // activities は「その日は運動が無かった」正当な空配列[]もあるため、undefined判定にする）
     const nowSec = Math.floor(Date.now() / 1000)
-    const isStale = (e: CacheEntry, d: string) => d === today && nowSec - e.fetchedAt >= TODAY_CACHE_TTL_SEC
+    // 睡眠は「起床日」に紐づくが、Google側の確定・補正（睡眠ステージや効率の再計算）は
+    // 起床から数時間〜翌日まで遅れて日をまたぐことがある。当日だけを可変扱いにすると、
+    // 日付が変わった瞬間に前夜の睡眠が「不変な過去日」として固定され、以後 Google 側で
+    // 更新されても反映されなくなる。そのため「当日＋昨日」を可変日として TTL で再取得する。
+    const yesterday = dateRange(today, 2)[0]
+    const isRecent = (d: string) => d >= yesterday // 当日 or 昨日
+    const isStale = (e: CacheEntry, d: string) => isRecent(d) && nowSec - e.fetchedAt >= TODAY_CACHE_TTL_SEC
     const missing = dates.filter(d => {
       const e = cache.get(d)
-      // force（更新ボタン）: 当日はTTLを無視して必ず取り直す
-      if (force && d === today) return true
+      // force（更新ボタン）: 表示中の日（過去日でも）と直近日はTTLを無視して必ず取り直す
+      if (force && (d === end || isRecent(d))) return true
       return !e || isStale(e, d) || !e.day.caloriesKcal || e.day.activities === undefined
     })
 
