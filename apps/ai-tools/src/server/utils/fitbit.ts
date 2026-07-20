@@ -309,24 +309,39 @@ function parseSleep(s: any): RawDay['sleep'] {
 }
 
 /**
- * 同じ起床日のセッション群（開始時刻順）を1つの睡眠にまとめる。ステージ時間・覚醒回数は合算し、
- * 就寝＝先頭セッションの就寝、起床＝末尾セッションの起床、効率は合算値から再計算する。
- * タイムラインは各セッションを（実時間の中断は詰めて）連結し、ヒプノグラムが破綻しないようにする。
+ * 同じ起床日のセッション群（開始時刻順）を1つの睡眠にまとめる。
+ * タイムラインは「最も早い就寝からの実時刻オフセット」でステージを配置し、セッション間の
+ * 外出・覚醒ぶん（本睡眠の起床〜二度寝の就寝など）は wake 帯で明示的に埋める。こうすることで
+ * ヒプノグラムが実際の起床時刻（例 09:59）まで伸び、本家アプリと同じ見え方になる。
+ * totalMinutes は就寝〜最終起床の全体（この覚醒ギャップを含む）、asleep は各セッションの
+ * 実睡眠の合計。効率＝asleep/totalMinutes は分断された夜ほど下がる（実態を反映）。
  */
 function mergeSleepSessions(sessions: any[]): RawDay['sleep'] {
   const parsed = sessions.map(parseSleep)
   if (parsed.length <= 1) return parsed[0] ?? parseSleep(null)
+  const baseMs = new Date(sessions[0].interval.startTime).getTime() // 最も早い就寝＝基準0分
   const timeline: RawDay['sleep']['timeline'] = []
-  let offset = 0
-  let totalMinutes = 0, deepMin = 0, remMin = 0, lightMin = 0, wakeMin = 0, awakeCount = 0, asleep = 0
-  for (const p of parsed) {
-    for (const seg of p.timeline) timeline.push({ stage: seg.stage, start: seg.start + offset, duration: seg.duration })
-    offset += p.totalMinutes
-    totalMinutes += p.totalMinutes
-    deepMin += p.deepMin; remMin += p.remMin; lightMin += p.lightMin; wakeMin += p.wakeMin
+  let deepMin = 0, remMin = 0, lightMin = 0, awakeCount = 0, asleep = 0
+  let lastEndMin = 0
+  for (let i = 0; i < sessions.length; i++) {
+    const p = parsed[i]
+    const startMin = Math.round((new Date(sessions[i].interval.startTime).getTime() - baseMs) / 60000)
+    // セッション間の空白（＝布団を出て起きていた時間）を wake として埋める
+    if (i > 0 && startMin > lastEndMin) {
+      timeline.push({ stage: 'wake', start: lastEndMin, duration: startMin - lastEndMin })
+      awakeCount += 1
+    }
+    for (const seg of p.timeline) timeline.push({ stage: seg.stage, start: seg.start + startMin, duration: seg.duration })
+    deepMin += p.deepMin; remMin += p.remMin; lightMin += p.lightMin
     awakeCount += p.awakeCount
     asleep += p.totalMinutes - p.wakeMin
+    const endMin = Math.round((new Date(sessions[i].interval.endTime).getTime() - baseMs) / 60000)
+    lastEndMin = Math.max(lastEndMin, endMin)
   }
+  const totalMinutes = lastEndMin // 就寝(0)〜最終起床までの全体（覚醒ギャップ込み）
+  // 覚醒＝全体から実睡眠を引いた残り（中途覚醒＋セッション間の外出時間）。これで
+  // 下流の asleepMinutes = totalMinutes − wakeMin が必ず実睡眠合計に一致する。
+  const wakeMin = Math.max(0, totalMinutes - asleep)
   return {
     totalMinutes, deepMin, remMin, lightMin, wakeMin,
     efficiency: totalMinutes > 0 ? Math.round((asleep / totalMinutes) * 100) : 0,
@@ -864,51 +879,6 @@ export async function diagFetch(token: string, endDate: string, days: number): P
   const map = await fetchRangeFromApi(token, dates[0], dates[dates.length - 1])
   const history = dates.map(d => map.get(d) ?? emptyRawDay(d))
   return { history, dashboard: assembleDashboard(history) }
-}
-
-/**
- * 診断用（本番・認証済ユーザー）: ログインユーザーの保存済トークンで Google Health API の
- * sleep dataPoints を「キャッシュを完全に無視して」直接取得し、その日に紐づく全セッションの
- * 就寝・起床・各時間を素のまま返す。二度寝が Google 側から実際に返っているのか、返っている
- * なら我々が取りこぼしているのか（＝原因が①APIか②解析か）を一発で切り分けるための一時口。
- * トークン等の機密は返さない。原因確定後に削除する。
- */
-export async function debugSleepRaw(event: H3Event, userId: string, date: string, days = 2): Promise<any> {
-  const token = await getValidToken(event, userId)
-  if (!token) return { error: 'アクセストークンを取得できませんでした（未連携 or dev）' }
-  const dates = dateRange(date, days)
-  const points = await listPoints(token, 'sleep', dates[0])
-  const sessions = points
-    .map((pt: any) => {
-      const s = pt?.sleep
-      if (!s?.interval) return null
-      const off = offsetSec(s.interval.startUtcOffset)
-      const offEnd = offsetSec(s.interval.endUtcOffset || s.interval.startUtcOffset)
-      const sm = s.summary ?? {}
-      return {
-        wakeDay: pointDate(pt, 'sleep'),
-        bedLocal: clock(s.interval.startTime, off),
-        wakeLocal: clock(s.interval.endTime, offEnd),
-        startUtc: s.interval.startTime,
-        endUtc: s.interval.endTime,
-        minutesInSleepPeriod: Number(sm.minutesInSleepPeriod) || null,
-        minutesAsleep: Number(sm.minutesAsleep) || null,
-        minutesAwake: Number(sm.minutesAwake) || null,
-        stagesSummary: (sm.stagesSummary ?? []).map((x: any) => ({ type: x.type, minutes: Number(x.minutes) || 0, count: Number(x.count) || 0 })),
-        nStageSegments: (s.stages ?? []).length,
-      }
-    })
-    .filter(Boolean) as any[]
-  // その日（起床日＝date）に紐づくセッションだけ抜き出す。ここに二度寝が2件目として
-  // 現れれば原因は②（我々の合算/選択）、1件しか無ければ原因は①（Google が返していない）。
-  const sessionsForDay = sessions.filter(s => s.wakeDay === date)
-  return {
-    date,
-    totalSleepPointsFetched: points.length,
-    sessionsForDay,
-    // 前後日ぶんも文脈として（起床日の付き方がズレていないか確認用）。多すぎないよう先頭20件。
-    recentSessions: sessions.slice(0, 20),
-  }
 }
 
 /** Cron 同期用: 全連携ユーザーの直近 days 日をキャッシュに取り込む。 */
