@@ -866,51 +866,6 @@ export async function diagFetch(token: string, endDate: string, days: number): P
   return { history, dashboard: assembleDashboard(history) }
 }
 
-/**
- * 診断用（本番・認証済ユーザー）: ログインユーザーの保存済トークンで Google Health API の
- * sleep dataPoints を「キャッシュを完全に無視して」直接取得し、その日に紐づく全セッションの
- * 就寝・起床・各時間を素のまま返す。二度寝が Google 側から実際に返っているのか、返っている
- * なら我々が取りこぼしているのか（＝原因が①APIか②解析か）を一発で切り分けるための一時口。
- * トークン等の機密は返さない。原因確定後に削除する。
- */
-export async function debugSleepRaw(event: H3Event, userId: string, date: string, days = 2): Promise<any> {
-  const token = await getValidToken(event, userId)
-  if (!token) return { error: 'アクセストークンを取得できませんでした（未連携 or dev）' }
-  const dates = dateRange(date, days)
-  const points = await listPoints(token, 'sleep', dates[0])
-  const sessions = points
-    .map((pt: any) => {
-      const s = pt?.sleep
-      if (!s?.interval) return null
-      const off = offsetSec(s.interval.startUtcOffset)
-      const offEnd = offsetSec(s.interval.endUtcOffset || s.interval.startUtcOffset)
-      const sm = s.summary ?? {}
-      return {
-        wakeDay: pointDate(pt, 'sleep'),
-        bedLocal: clock(s.interval.startTime, off),
-        wakeLocal: clock(s.interval.endTime, offEnd),
-        startUtc: s.interval.startTime,
-        endUtc: s.interval.endTime,
-        minutesInSleepPeriod: Number(sm.minutesInSleepPeriod) || null,
-        minutesAsleep: Number(sm.minutesAsleep) || null,
-        minutesAwake: Number(sm.minutesAwake) || null,
-        stagesSummary: (sm.stagesSummary ?? []).map((x: any) => ({ type: x.type, minutes: Number(x.minutes) || 0, count: Number(x.count) || 0 })),
-        nStageSegments: (s.stages ?? []).length,
-      }
-    })
-    .filter(Boolean) as any[]
-  // その日（起床日＝date）に紐づくセッションだけ抜き出す。ここに二度寝が2件目として
-  // 現れれば原因は②（我々の合算/選択）、1件しか無ければ原因は①（Google が返していない）。
-  const sessionsForDay = sessions.filter(s => s.wakeDay === date)
-  return {
-    date,
-    totalSleepPointsFetched: points.length,
-    sessionsForDay,
-    // 前後日ぶんも文脈として（起床日の付き方がズレていないか確認用）。多すぎないよう先頭20件。
-    recentSessions: sessions.slice(0, 20),
-  }
-}
-
 /** Cron 同期用: 全連携ユーザーの直近 days 日をキャッシュに取り込む。 */
 export async function syncAllUsers(event: H3Event, days = 3): Promise<number> {
   const db = getAppDb(event)
