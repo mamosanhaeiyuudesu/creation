@@ -10,28 +10,28 @@
 
     <div
       v-if="open"
-      class="absolute right-0 top-full mt-1 w-[min(88vw,320px)] max-h-[60dvh] overflow-y-auto bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-50 p-4 flex flex-col gap-1.5 text-left [scrollbar-width:thin]"
+      class="absolute right-0 top-full mt-1 w-[min(90vw,360px)] max-h-[60dvh] overflow-y-auto bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-50 p-4 flex flex-col gap-1.5 text-left [scrollbar-width:thin]"
     >
-      <div class="text-[13px] font-bold text-slate-100">{{ info.title }}</div>
-      <p class="text-[11px] leading-relaxed text-slate-300">{{ info.meaning }}</p>
+      <div class="text-[17px] font-bold text-slate-100">{{ info.title }}</div>
+      <p class="text-[14px] leading-relaxed text-slate-300">{{ info.meaning }}</p>
 
       <template v-if="info.parts || info.how">
-        <div class="text-[10px] font-semibold text-slate-500 mt-1.5">算出方法</div>
-        <p v-if="info.how" class="text-[11px] leading-relaxed text-slate-400">{{ info.how }}</p>
+        <div class="text-[13px] font-semibold text-slate-500 mt-1.5">算出方法</div>
+        <p v-if="info.how" class="text-[14px] leading-relaxed text-slate-400">{{ info.how }}</p>
         <ul v-if="info.parts" class="flex flex-col gap-0.5">
-          <li v-for="p in info.parts" :key="p.label" class="text-[11px] leading-relaxed text-slate-400">
+          <li v-for="p in info.parts" :key="p.label" class="text-[14px] leading-relaxed text-slate-400">
             <span class="font-semibold text-slate-200 tabular-nums">{{ p.label }}（{{ p.max }}点）</span>：{{ p.how }}
           </li>
         </ul>
       </template>
 
       <template v-if="info.ranges">
-        <div class="text-[10px] font-semibold text-slate-500 mt-1.5">目安</div>
+        <div class="text-[13px] font-semibold text-slate-500 mt-1.5">目安</div>
         <div class="flex flex-col gap-1">
           <div
             v-for="r in info.ranges"
             :key="r.label"
-            class="flex items-center gap-2 px-2 py-1 rounded-md border text-[10px] leading-tight"
+            class="flex items-center gap-2 px-2 py-1 rounded-md border text-[13px] leading-tight"
             :class="TONE_CLASS[r.tone]"
           >
             <span class="tabular-nums font-semibold shrink-0">{{ r.range }}</span>
@@ -40,9 +40,9 @@
         </div>
       </template>
 
-      <p v-for="(n, i) in notes" :key="i" class="text-[10px] leading-relaxed text-slate-500 mt-1.5">{{ n }}</p>
+      <p v-for="(n, i) in notes" :key="i" class="text-[13px] leading-relaxed text-slate-500 mt-1.5">{{ n }}</p>
 
-      <p v-if="isScore" class="text-[10px] leading-relaxed text-slate-600 border-t border-white/[0.06] mt-2 pt-2">
+      <p v-if="isScore" class="text-[13px] leading-relaxed text-slate-600 border-t border-white/[0.06] mt-2 pt-2">
         このスコアはFitbit公式APIでは提供されないため、取得できる指標から本家の考え方に沿って独自に近似算出した値です。本家の数値とは一致しません。
       </p>
     </div>

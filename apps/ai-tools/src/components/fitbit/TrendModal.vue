@@ -1,7 +1,7 @@
 <template>
-  <div class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center" @click.self="$emit('close')">
+  <div class="fixed inset-0 z-[100] flex items-center justify-center p-4" @click.self="$emit('close')">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="$emit('close')" />
-    <div class="relative w-full sm:max-w-[520px] bg-[#0f172a] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl">
+    <div class="relative w-full sm:max-w-[520px] max-h-[88dvh] overflow-y-auto bg-[#0f172a] border border-white/[0.08] rounded-3xl p-5 shadow-2xl [scrollbar-width:thin]">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-sm font-bold text-slate-100 flex items-center gap-1.5">
           <span>{{ icon }}</span>{{ label }}<span class="text-slate-500 font-normal">の推移</span>
