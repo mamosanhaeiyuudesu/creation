@@ -19,6 +19,14 @@
             :disabled="isToday"
             @click="shiftDate(1)"
           >›</button>
+          <!-- 更新（最新データに取り直す。当日キャッシュを無視） -->
+          <button
+            v-if="!notConnected"
+            class="w-9 h-9 rounded-lg text-slate-300 text-lg flex items-center justify-center hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent"
+            title="最新データに更新"
+            :disabled="loading || refreshing"
+            @click="load(true)"
+          ><span :class="refreshing && 'inline-block animate-spin'" aria-hidden>⟳</span></button>
           <!-- 歯車（ログアウト・連携解除） -->
           <div class="relative ml-1" @click.stop>
             <button
@@ -206,6 +214,7 @@ const todayStr = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slic
 const date = ref(todayStr())
 const data = ref<DashboardData | null>(null)
 const loading = ref(true)
+const refreshing = ref(false)
 const error = ref('')
 const notConnected = ref(false)
 const sleepOpen = ref(false)
@@ -282,12 +291,16 @@ function fmtSigned(v: number): string {
   return v > 0 ? `+${s}` : s
 }
 
-async function load() {
-  loading.value = true
+async function load(force = false) {
+  // 更新（force）時は表示中のダッシュボードを消さず、ボタンだけ回して差し替える
+  if (force) refreshing.value = true
+  else loading.value = true
   error.value = ''
   notConnected.value = false
   try {
-    data.value = await $fetch<DashboardData>('/api/fitbit/dashboard', { params: { date: date.value } })
+    data.value = await $fetch<DashboardData>('/api/fitbit/dashboard', {
+      params: { date: date.value, ...(force ? { refresh: 1 } : {}) },
+    })
   } catch (e: any) {
     const status = e?.response?.status || e?.statusCode
     if (status === 428) notConnected.value = true
@@ -295,6 +308,7 @@ async function load() {
     else error.value = e?.data?.message || 'データの取得に失敗しました'
   } finally {
     loading.value = false
+    refreshing.value = false
   }
 }
 
@@ -315,6 +329,6 @@ onMounted(async () => {
   if (isLoggedIn.value || isDev) load()
   else loading.value = false
 })
-watch(date, load)
+watch(date, () => load())
 watch(isLoggedIn, (v) => { if (v) load() })
 </script>

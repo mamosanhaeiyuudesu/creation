@@ -7,14 +7,17 @@ export default defineEventHandler(async (event) => {
   if (!userId) throw createError({ statusCode: 401, message: '未ログイン' })
   diag('dashboard: auth ok')
 
-  const date = (getQuery(event).date as string) || todayJST()
+  const q = getQuery(event)
+  const date = (q.date as string) || todayJST()
+  // refresh=1（更新ボタン）: 当日キャッシュ(TTL)を無視して最新を取り直す
+  const refresh = q.refresh === '1' || q.refresh === 'true'
 
   const status = await getStatus(event, userId)
   diag('dashboard: status ok', { connected: status.connected })
   if (!status.connected) throw createError({ statusCode: 428, message: 'Fitbit未連携' })
 
   // 7日トレンド表示 + ベースライン算出のため直近14日分を取得（末尾が当日）
-  const history = await getRawHistory(event, userId, date, 14)
+  const history = await getRawHistory(event, userId, date, 14, refresh)
   diag('dashboard: history ok', { days: history.length })
   if (!history.length) throw createError({ statusCode: 502, message: 'データ取得に失敗しました' })
 

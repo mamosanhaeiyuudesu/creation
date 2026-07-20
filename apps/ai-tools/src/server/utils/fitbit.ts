@@ -720,7 +720,7 @@ async function writeCache(event: H3Event, userId: string, day: RawDay): Promise<
  * 過去日は不変なので一度取得すれば以後叩かない。
  * 当日は変動するが、1回の取得が数万点のパースになり CPU を食うため TTL 内は使い回す。
  */
-async function getCachedHistory(event: H3Event, userId: string, endDate: string, days: number): Promise<RawDay[]> {
+async function getCachedHistory(event: H3Event, userId: string, endDate: string, days: number, force = false): Promise<RawDay[]> {
   const dates = dateRange(endDate, days)
   const start = dates[0]
   const end = dates[dates.length - 1]
@@ -742,6 +742,8 @@ async function getCachedHistory(event: H3Event, userId: string, endDate: string,
     const isStale = (e: CacheEntry, d: string) => d === today && nowSec - e.fetchedAt >= TODAY_CACHE_TTL_SEC
     const missing = dates.filter(d => {
       const e = cache.get(d)
+      // force（更新ボタン）: 当日はTTLを無視して必ず取り直す
+      if (force && d === today) return true
       return !e || isStale(e, d) || !e.day.caloriesKcal || e.day.activities === undefined
     })
 
@@ -788,9 +790,9 @@ export async function getRawDay(event: H3Event, userId: string, date: string): P
   return rows[0] ?? null
 }
 
-/** 指定日を末尾に n 日分の RawDay（古い順）。ベースライン算出・トレンドに使う。 */
-export async function getRawHistory(event: H3Event, userId: string, endDate: string, days: number): Promise<RawDay[]> {
-  return await getCachedHistory(event, userId, endDate, days)
+/** 指定日を末尾に n 日分の RawDay（古い順）。ベースライン算出・トレンドに使う。force で当日キャッシュを無視。 */
+export async function getRawHistory(event: H3Event, userId: string, endDate: string, days: number, force = false): Promise<RawDay[]> {
+  return await getCachedHistory(event, userId, endDate, days, force)
 }
 
 /**

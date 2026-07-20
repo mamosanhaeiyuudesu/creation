@@ -171,10 +171,10 @@ export function useBarChart(
     // バンド配置に合わせ、カーソル位置のスロット（棒）を選ぶ
     hover.value = Math.min(n - 1, Math.floor(frac * n))
   }
-  // マウスはホバー追従、タッチはタップした棒を選択（スマホでツールチップを出す）
-  function onMove(e: PointerEvent) { pick(e) }
-  function onDown(e: PointerEvent) { pick(e) }
-  // タッチは指を離してもツールチップを残す（タップ表示のため）。マウスは離脱で消す。
+  // マウスのみホバー追従でツールチップを出す。スマホ（タッチ）ではツールチップは不要なため無効化する。
+  function onMove(e: PointerEvent) { if (e.pointerType === 'touch') return; pick(e) }
+  function onDown(e: PointerEvent) { if (e.pointerType === 'touch') return; pick(e) }
+  // マウスは離脱でツールチップを消す（タッチはそもそも出さない）。
   function onLeave(e: PointerEvent) { if (e.pointerType !== 'touch') hover.value = -1 }
 
   let ro: ResizeObserver | null = null
