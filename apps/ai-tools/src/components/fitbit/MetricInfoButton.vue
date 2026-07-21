@@ -2,15 +2,21 @@
   <!-- 指標の説明。ポップアップ右上の「？」からぶら下げる -->
   <div v-if="info" ref="root" class="relative" @click.stop>
     <button
+      ref="btn"
       class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-white/10 transition-colors"
       :class="{ 'bg-white/10 text-slate-200': open }"
       title="この指標について"
-      @click="open = !open"
+      @click="toggle"
     >？</button>
 
+    <!-- モーダルのヘッダーに backdrop-blur があると fixed の基準がそこになるため、body へ Teleport して画面基準で置く -->
+    <Teleport to="body">
     <div
       v-if="open"
-      class="absolute right-0 top-full mt-1 w-[min(90vw,360px)] max-h-[60dvh] overflow-y-auto bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-50 p-4 flex flex-col gap-1.5 text-left [scrollbar-width:thin]"
+      ref="popup"
+      class="fixed overflow-y-auto bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-[200] p-4 flex flex-col gap-1.5 text-left [scrollbar-width:thin]"
+      :style="popupStyle"
+      @click.stop
     >
       <div class="text-[17px] font-bold text-slate-100">{{ info.title }}</div>
       <p class="text-[14px] leading-relaxed text-slate-300">{{ info.meaning }}</p>
@@ -46,6 +52,7 @@
         このスコアはFitbit公式APIでは提供されないため、取得できる指標から本家の考え方に沿って独自に近似算出した値です。本家の数値とは一致しません。
       </p>
     </div>
+    </Teleport>
   </div>
 </template>
 
@@ -57,16 +64,58 @@ const props = defineProps<{ metric: string }>()
 
 const open = ref(false)
 const root = ref<HTMLElement>()
+const btn = ref<HTMLElement>()
+const popup = ref<HTMLElement>()
+
+const MAX_W = 360
+const MARGIN = 8
+const popupStyle = ref<Record<string, string>>({})
+
+/**
+ * ボタン右端に右揃えで置く。ただし画面幅が足りず左にはみ出すとき（スマホ）は画面中央に寄せる。
+ * 幅も画面幅に収まるよう決めるので、狭い端末でも左右が切れない。
+ */
+function place() {
+  const r = btn.value?.getBoundingClientRect()
+  if (!r) return
+  const vw = window.innerWidth
+  const w = Math.min(MAX_W, vw - MARGIN * 2)
+  const wantLeft = r.right - w
+  const left = wantLeft < MARGIN ? (vw - w) / 2 : Math.min(wantLeft, vw - w - MARGIN)
+  const top = r.bottom + 6
+  popupStyle.value = {
+    left: `${left}px`,
+    top: `${top}px`,
+    width: `${w}px`,
+    maxHeight: `${Math.max(160, window.innerHeight - top - MARGIN)}px`,
+  }
+}
+
+function toggle() {
+  if (!open.value) place()
+  open.value = !open.value
+}
 
 // モーダル内の別の場所をクリックしたら閉じる（@click.stop でモーダル自体は閉じないため自前で処理）
+// ポップアップは body へ Teleport しているので root だけでなく popup も除外対象にする
 function onDocClick(e: MouseEvent) {
-  if (!root.value?.contains(e.target as Node)) open.value = false
+  const t = e.target as Node
+  if (!root.value?.contains(t) && !popup.value?.contains(t)) open.value = false
 }
-watch(open, (v) => {
-  if (v) document.addEventListener('click', onDocClick)
-  else document.removeEventListener('click', onDocClick)
-})
-onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
+// モーダルのスクロールや画面回転で位置がずれるため追従（scroll は capture で内側のスクロールも拾う）
+function bind(on: boolean) {
+  if (on) {
+    document.addEventListener('click', onDocClick)
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+  } else {
+    document.removeEventListener('click', onDocClick)
+    window.removeEventListener('resize', place)
+    window.removeEventListener('scroll', place, true)
+  }
+}
+watch(open, v => bind(v))
+onBeforeUnmount(() => bind(false))
 const info = computed(() => METRIC_INFO[props.metric])
 const isScore = computed(() => props.metric === 'energyScore' || props.metric === 'sleepScore')
 const notes = computed(() => {

@@ -24,7 +24,8 @@
         </div>
       </div>
       <div ref="wrap" class="relative" :style="{ height: `${H}px` }">
-        <svg :viewBox="`0 0 ${W} ${H}`" preserveAspectRatio="none" class="w-full h-full block" @pointermove="onMove" @pointerleave="hover = -1">
+        <!-- touch-pan-y: タップで値を出しつつ、縦ドラッグはモーダルのスクロールに使えるようにする -->
+        <svg :viewBox="`0 0 ${W} ${H}`" preserveAspectRatio="none" class="w-full h-full block touch-pan-y" @pointermove="onMove" @pointerdown="onDown" @pointerleave="onLeave" @pointercancel="onCancel">
           <!-- 時刻グリッド -->
           <g v-for="(g, i) in gridLines" :key="`g${i}`">
             <line :x1="padL" :x2="W - padR" :y1="g.y" :y2="g.y" class="stroke-white/[0.06]" stroke-width="1" vector-effect="non-scaling-stroke" />
@@ -213,7 +214,7 @@ const tooltipStyle = computed(() => {
   return { left: `${(b.cx / W.value) * 100}%`, top: `${(b.y / H) * 100}%`, transform: 'translate(-50%, calc(-100% - 6px))' }
 })
 
-function onMove(e: PointerEvent) {
+function pick(e: PointerEvent) {
   const el = wrap.value
   if (!el || !series.value.length) return
   const rect = el.getBoundingClientRect()
@@ -222,6 +223,17 @@ function onMove(e: PointerEvent) {
   const idx = Math.floor((px - padL) / band.value)
   hover.value = bars.value.some(b => b.i === idx) ? idx : -1
 }
+// マウスはホバー追従、タッチはタップした棒だけを選ぶ（スクロール中に出ないように）
+function onMove(e: PointerEvent) { if (e.pointerType === 'touch') return; pick(e) }
+function onDown(e: PointerEvent) { pick(e) }
+function onLeave(e: PointerEvent) { if (e.pointerType !== 'touch') hover.value = -1 }
+// ブラウザがスクロール操作として引き取ったとき（縦ドラッグ）はタップ扱いにしない
+function onCancel() { hover.value = -1 }
+// タッチで出したツールチップは、グラフ以外をタップしたら閉じる
+function onDocDown(e: PointerEvent) {
+  if (e.pointerType !== 'touch') return
+  if (!wrap.value?.contains(e.target as Node)) hover.value = -1
+}
 
 function measure() { if (wrap.value) W.value = wrap.value.clientWidth || 320 }
 
@@ -229,8 +241,12 @@ let ro: ResizeObserver | null = null
 onMounted(() => {
   ro = new ResizeObserver(measure)
   watch(wrap, (el) => { if (el) { measure(); ro?.observe(el) } }, { immediate: true })
+  document.addEventListener('pointerdown', onDocDown as EventListener)
 })
-onBeforeUnmount(() => ro?.disconnect())
+onBeforeUnmount(() => {
+  ro?.disconnect()
+  document.removeEventListener('pointerdown', onDocDown as EventListener)
+})
 
 async function load() {
   loading.value = true

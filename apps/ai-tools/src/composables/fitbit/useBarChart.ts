@@ -171,11 +171,18 @@ export function useBarChart(
     // バンド配置に合わせ、カーソル位置のスロット（棒）を選ぶ
     hover.value = Math.min(n - 1, Math.floor(frac * n))
   }
-  // マウスのみホバー追従でツールチップを出す。スマホ（タッチ）ではツールチップは不要なため無効化する。
+  // マウスはホバー追従。タッチは移動では反応させず、タップした棒だけを選ぶ（スクロール中に出ないように）。
   function onMove(e: PointerEvent) { if (e.pointerType === 'touch') return; pick(e) }
-  function onDown(e: PointerEvent) { if (e.pointerType === 'touch') return; pick(e) }
-  // マウスは離脱でツールチップを消す（タッチはそもそも出さない）。
+  function onDown(e: PointerEvent) { pick(e) }
+  // マウスは離脱で消す。タッチは指を離しても読めるよう残し、グラフ外タップで消す（onDocDown）。
   function onLeave(e: PointerEvent) { if (e.pointerType !== 'touch') hover.value = -1 }
+  // ブラウザがスクロール操作として引き取ったとき（縦ドラッグ）はタップ扱いにしない
+  function onCancel() { hover.value = -1 }
+  // タッチで出したツールチップは、グラフ以外をタップしたら閉じる
+  function onDocDown(e: PointerEvent) {
+    if (e.pointerType !== 'touch') return
+    if (!wrap.value?.contains(e.target as Node)) hover.value = -1
+  }
 
   let ro: ResizeObserver | null = null
   function measure() { if (wrap.value) W.value = wrap.value.clientWidth || 320 }
@@ -184,14 +191,18 @@ export function useBarChart(
     measure()
     ro = new ResizeObserver(measure)
     if (wrap.value) ro.observe(wrap.value)
+    document.addEventListener('pointerdown', onDocDown as EventListener)
   })
-  onBeforeUnmount(() => ro?.disconnect())
+  onBeforeUnmount(() => {
+    ro?.disconnect()
+    document.removeEventListener('pointerdown', onDocDown as EventListener)
+  })
 
   return {
     wrap, W, H, padL, padR, padT, padB, labelStyle,
     hasData, min, max, avg,
     bars, gridYs, xLabels, goalY, zeroY,
     hover, hovered, hoverX, tooltipStyle,
-    onMove, onDown, onLeave, measure,
+    onMove, onDown, onLeave, onCancel, measure,
   }
 }

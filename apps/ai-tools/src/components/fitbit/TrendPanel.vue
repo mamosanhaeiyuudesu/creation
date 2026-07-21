@@ -24,7 +24,8 @@
 
       <!-- 縦棒グラフ -->
       <div ref="wrap" class="relative" :style="{ height: `${H}px` }">
-        <svg :viewBox="`0 0 ${W} ${H}`" preserveAspectRatio="none" class="w-full h-full block touch-none" @pointermove="onMove" @pointerdown="onDown" @pointerleave="onLeave">
+        <!-- touch-pan-y: タップで値を出しつつ、縦ドラッグはモーダルのスクロールに使えるようにする -->
+        <svg :viewBox="`0 0 ${W} ${H}`" preserveAspectRatio="none" class="w-full h-full block touch-pan-y" @pointermove="onMove" @pointerdown="onDown" @pointerleave="onLeave" @pointercancel="onCancel">
           <!-- グリッド -->
           <line v-for="(gy, i) in gridYs" :key="`g${i}`" :x1="padL" :x2="W - padR" :y1="gy.y" :y2="gy.y" class="stroke-white/[0.06]" stroke-width="1" vector-effect="non-scaling-stroke" />
           <text v-for="(gy, i) in gridYs" :key="`t${i}`" :x="padL - 6" :y="gy.y + 3" text-anchor="end" class="fill-slate-600" :style="labelStyle">{{ fmt(gy.v) }}</text>
@@ -107,7 +108,7 @@ function fmt(v: number): string { return v.toFixed(props.decimals) }
 function fmtValue(v: number): string { return props.formatValue ? props.formatValue(v) : v.toFixed(props.decimals) }
 
 const points = computed(() => series.value.map(d => ({ label: mdWeekday(d.date), value: d.value })))
-const { wrap, W, H, padL, padR, padT, padB, labelStyle, hasData, min, max, avg, bars, gridYs, xLabels, goalY, zeroY, hover, hovered, hoverX, tooltipStyle, onMove, onDown, onLeave, measure } = useBarChart(points, { zeroBased: props.zeroBased, range: props.axisRange, goal: () => props.goal, zeroLine: props.zeroLine })
+const { wrap, W, H, padL, padR, padT, padB, labelStyle, hasData, min, max, avg, bars, gridYs, xLabels, goalY, zeroY, hover, hovered, hoverX, tooltipStyle, onMove, onDown, onLeave, onCancel, measure } = useBarChart(points, { zeroBased: props.zeroBased, range: props.axisRange, goal: () => props.goal, zeroLine: props.zeroLine })
 
 async function load() {
   loading.value = true

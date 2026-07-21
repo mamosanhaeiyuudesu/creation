@@ -65,7 +65,8 @@
               </div>
             </div>
             <!-- 中央: タイムライン -->
-            <div ref="hypWrap" class="relative flex-1 min-w-0" @pointermove="onHypMove" @pointerleave="hoverSeg = null">
+            <!-- touch-pan-y: タップで値を出しつつ、縦ドラッグはモーダルのスクロールに使えるようにする -->
+            <div ref="hypWrap" class="relative flex-1 min-w-0 touch-pan-y" @pointermove="onHypMove" @pointerdown="onHypDown" @pointerleave="onHypLeave" @pointercancel="onHypCancel">
               <svg :viewBox="`0 0 ${hypW} ${hypH}`" preserveAspectRatio="none" class="w-full block" :style="{ height: `${hypH}px` }">
                 <g v-for="(lv, i) in stageLevels" :key="lv.stage">
                   <line :x1="0" :x2="hypW" :y1="rowY(i) + rowH / 2" :y2="rowY(i) + rowH / 2" class="stroke-white/[0.04]" stroke-width="1" vector-effect="non-scaling-stroke" />
@@ -147,7 +148,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import type { SleepDetail, SleepStage } from '~/types/fitbit'
 import ScoreGauge from '~/components/fitbit/ScoreGauge.vue'
 import TrendPanel from '~/components/fitbit/TrendPanel.vue'
@@ -222,7 +223,7 @@ const hypWrap = ref<HTMLElement>()
 const hoverSeg = ref<Seg | null>(null)
 const hoverX = ref(0)
 
-function onHypMove(e: PointerEvent) {
+function pickHyp(e: PointerEvent) {
   const el = hypWrap.value
   const d = data.value
   if (!el || !d) return
@@ -233,6 +234,19 @@ function onHypMove(e: PointerEvent) {
   hoverSeg.value = seg
   hoverX.value = seg ? seg.start + seg.duration / 2 : minute
 }
+// マウスはホバー追従、タッチはタップした区間だけを選ぶ（スクロール中に出ないように）
+function onHypMove(e: PointerEvent) { if (e.pointerType === 'touch') return; pickHyp(e) }
+function onHypDown(e: PointerEvent) { pickHyp(e) }
+function onHypLeave(e: PointerEvent) { if (e.pointerType !== 'touch') hoverSeg.value = null }
+// ブラウザがスクロール操作として引き取ったとき（縦ドラッグ）はタップ扱いにしない
+function onHypCancel() { hoverSeg.value = null }
+// タッチで出したツールチップは、グラフ以外をタップしたら閉じる
+function onDocDown(e: PointerEvent) {
+  if (e.pointerType !== 'touch') return
+  if (!hypWrap.value?.contains(e.target as Node)) hoverSeg.value = null
+}
+onMounted(() => document.addEventListener('pointerdown', onDocDown as EventListener))
+onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocDown as EventListener))
 
 /** 就寝時刻 + 経過分 → 時計表示（HH:MM） */
 function segClock(seg: Seg): string {

@@ -3,7 +3,8 @@
     <div v-if="label" class="text-xs font-semibold text-slate-400">{{ label }}</div>
     <div v-if="!hasData" class="h-[120px] flex items-center justify-center text-slate-600 text-xs">データがありません</div>
     <div v-else ref="wrap" class="relative" :style="{ height: `${H}px` }">
-      <svg :viewBox="`0 0 ${W} ${H}`" preserveAspectRatio="none" class="w-full h-full block touch-none" @pointermove="onMove" @pointerdown="onDown" @pointerleave="onLeave">
+      <!-- touch-pan-y: タップで値を出しつつ、縦ドラッグはモーダルのスクロールに使えるようにする -->
+      <svg :viewBox="`0 0 ${W} ${H}`" preserveAspectRatio="none" class="w-full h-full block touch-pan-y" @pointermove="onMove" @pointerdown="onDown" @pointerleave="onLeave" @pointercancel="onCancel">
         <!-- グリッド -->
         <line v-for="(gy, i) in gridYs" :key="`g${i}`" :x1="padL" :x2="W - padR" :y1="gy.y" :y2="gy.y" class="stroke-white/[0.06]" stroke-width="1" vector-effect="non-scaling-stroke" />
         <text v-for="(gy, i) in gridYs" :key="`t${i}`" :x="padL - 6" :y="gy.y + 3" text-anchor="end" class="fill-slate-600" :style="labelStyle">{{ fmt(gy.v) }}</text>
@@ -62,5 +63,5 @@ function clock(t: number): string {
 }
 
 const barPoints = computed(() => props.points.map(p => ({ label: clock(p.t), value: p.v })))
-const { wrap, W, H, padL, padR, padT, padB, labelStyle, hasData, bars, gridYs, xLabels, hover, hovered, hoverX, tooltipStyle, onMove, onDown, onLeave } = useBarChart(barPoints, { height: 120, zeroBased: props.zeroBased, range: props.axisRange })
+const { wrap, W, H, padL, padR, padT, padB, labelStyle, hasData, bars, gridYs, xLabels, hover, hovered, hoverX, tooltipStyle, onMove, onDown, onLeave, onCancel } = useBarChart(barPoints, { height: 120, zeroBased: props.zeroBased, range: props.axisRange })
 </script>

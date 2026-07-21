@@ -97,9 +97,11 @@ const hoverCenter = (i: number) => i * bandWidth.value + bandWidth.value / 2
 const hoverFrac = computed(() => (hover.value >= 0 ? hoverCenter(hover.value) / 100 : 0))
 const hoverX = computed(() => (hover.value >= 0 ? hoverCenter(hover.value) : null))
 
+// マウスのホバー時のみツールチップを出す。ダッシュボードのカードはタップでモーダルを開くため、
+// タッチでツールチップが出ると邪魔になる（スマホでは詳細をモーダル内のグラフで見てもらう）。
 function onMove(e: PointerEvent) {
   const el = wrap.value
-  if (!el || props.points.length < 2) return
+  if (e.pointerType === 'touch' || !el || props.points.length < 2) return
   const rect = el.getBoundingClientRect()
   const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
   hover.value = Math.round(frac * (props.points.length - 1))
