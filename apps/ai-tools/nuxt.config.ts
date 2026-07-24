@@ -50,6 +50,15 @@ gtag('config', 'G-JRBVTJYCEH');`,
     fitbitClientId: '',
     fitbitClientSecret: '',
     fitbitRedirectUri: '',
+    // ippon（Sketch2View）3D生成プロバイダ。鍵が無ければ mock にフォールバック。
+    ipponProvider: '', // 'tripo' | 'mock'（既定 mock）
+    tripoApiKey: '',
+  },
+  // model-viewer（Web Component）を Vue のカスタム要素として許可する（ippon の3Dビュー）。
+  vue: {
+    compilerOptions: {
+      isCustomElement: (tag) => tag === 'model-viewer',
+    },
   },
   nitro: {
     preset: 'cloudflare_module',

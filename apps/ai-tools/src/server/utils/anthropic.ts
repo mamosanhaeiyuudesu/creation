@@ -34,6 +34,45 @@ export async function callClaudeText(apiKey: string, opts: CallOptions): Promise
   return (data?.content?.[0]?.text ?? '').trim()
 }
 
+interface VisionOptions {
+  system: string
+  /** ユーザーの指示テキスト（画像の後ろに置く） */
+  text: string
+  /** 画像の base64 data URL 群（例: スケッチ写真）。1枚が基本、複数可 */
+  images: string[]
+  maxTokens: number
+  model?: string
+}
+
+/**
+ * 画像付きで Claude を1回呼び出す（スケッチ解釈用）。data URL から media type と base64 を抽出して
+ * Messages API の image ブロックへ変換する。最初のテキストブロックを返す。
+ */
+export async function callClaudeVision(apiKey: string, opts: VisionOptions): Promise<string> {
+  const imageBlocks = opts.images.map((dataUrl) => {
+    const m = dataUrl.match(/^data:(.+?);base64,(.*)$/)
+    if (!m) throw createError({ statusCode: 400, message: '画像のデータ形式が不正です（data URL を指定してください）。' })
+    return { type: 'image', source: { type: 'base64', media_type: m[1], data: m[2] } }
+  })
+  const response = await fetch(MESSAGES_URL, {
+    method: 'POST',
+    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: opts.model ?? DEFAULT_MODEL,
+      max_tokens: opts.maxTokens,
+      thinking: { type: 'disabled' },
+      system: opts.system,
+      messages: [{ role: 'user', content: [...imageBlocks, { type: 'text', text: opts.text }] }],
+    }),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => null)
+    throw createError({ statusCode: response.status, statusMessage: err?.error?.message || 'Claude APIの呼び出しに失敗しました。' })
+  }
+  const data = await response.json()
+  return (data?.content?.[0]?.text ?? '').trim()
+}
+
 /** JSON文字列を寛容にパース（素のJSON→失敗時は最初の {...} を抽出）。取れなければ null。 */
 export function parseJsonLoose<T>(raw: string): T | null {
   try {
