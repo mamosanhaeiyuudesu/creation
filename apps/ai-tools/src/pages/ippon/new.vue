@@ -18,9 +18,26 @@
       <div class="space-y-4 ip-rise">
         <SketchCapture @captured="onCaptured" @cleared="onCleared" />
 
+        <!-- 写真とセットで渡すメッセージ。読み取り・生成に反映される。 -->
+        <div class="ip-card p-4">
+          <div class="flex items-baseline justify-between mb-2">
+            <p class="text-[12px] font-bold text-[var(--ip-ink)] tracking-wide">メッセージ（顧客の要望・意図）</p>
+            <span class="text-[11px] text-[var(--ip-ink-faint)]">任意・AIが反映します</span>
+          </div>
+          <textarea
+            v-model="note"
+            rows="4"
+            class="ip-input resize-y text-[13px] leading-relaxed"
+            placeholder="例: 幅2m前後、木目でナチュラルに。&#10;もっと軽い印象で、脚は細く。&#10;棚はあと1段増やしたい。"
+          />
+          <p class="mt-1.5 text-[11px] text-[var(--ip-ink-faint)] leading-relaxed">
+            寸法・棚段数・材質・雰囲気など、写真に描き切れていない要望を書くほど狙った形に近づきます。
+          </p>
+        </div>
+
         <div class="ip-card p-4">
           <p class="text-[12px] font-bold text-[var(--ip-ink-soft)] tracking-wide mb-2">スタイル</p>
-          <div class="flex flex-wrap gap-1.5 mb-4">
+          <div class="flex flex-wrap gap-1.5">
             <button
               v-for="s in STYLE_PRESETS"
               :key="s.value"
@@ -29,14 +46,6 @@
               @click="style = s.value"
             >{{ s.label }}</button>
           </div>
-
-          <p class="text-[12px] font-bold text-[var(--ip-ink-soft)] tracking-wide mb-2">補足（任意）</p>
-          <textarea
-            v-model="note"
-            rows="3"
-            class="ip-input resize-y text-[13px] leading-relaxed"
-            placeholder="例: 幅2m前後、木目、店舗什器。もっと軽い印象で。"
-          />
 
           <button class="ip-btn w-full mt-4" :disabled="interpreting || !sketch" @click="interpret">
             <span v-if="interpreting" class="inline-block w-4 h-4 rounded-full border-2 border-black/30 border-t-black/80 animate-spin align-middle mr-1.5" />

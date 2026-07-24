@@ -79,7 +79,7 @@ function shapeVersion(row: VersionRow): ProjectVersion {
   } catch {
     interpretation = {
       category: '', width_mm: null, depth_mm: null, height_mm: null, shelves: null,
-      has_legs: false, material: '', prompt_en: '', completions: [], summary: '',
+      has_legs: false, material: '', prompt_en: '', completions: [], applied_requests: [], summary: '',
     }
   }
   return {

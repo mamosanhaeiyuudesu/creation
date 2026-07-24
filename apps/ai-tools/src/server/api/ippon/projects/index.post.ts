@@ -33,6 +33,7 @@ export default defineEventHandler(async (event) => {
     material: it.material ?? '',
     prompt_en: it.prompt_en ?? '',
     completions: Array.isArray(it.completions) ? it.completions : [],
+    applied_requests: Array.isArray(it.applied_requests) ? it.applied_requests : [],
     summary: it.summary ?? '',
   }
   const title = (body?.title ?? '').trim() || interpretation.category || '無題の案件'

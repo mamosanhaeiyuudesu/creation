@@ -36,6 +36,16 @@
       </div>
     </div>
 
+    <!-- メッセージ（顧客の要望）を反映した点 -->
+    <div v-if="it.applied_requests?.length" class="rounded-xl border border-[var(--ip-accent)] bg-[color-mix(in_srgb,var(--ip-accent)_12%,transparent)] p-3">
+      <p class="text-[12px] font-bold text-[var(--ip-accent-soft)] mb-1.5">メッセージを反映した点</p>
+      <ul class="space-y-1">
+        <li v-for="(c, i) in it.applied_requests" :key="i" class="text-[12.5px] text-[var(--ip-ink)] leading-relaxed flex gap-1.5">
+          <span class="text-[var(--ip-accent-soft)] shrink-0">✓</span><span>{{ c }}</span>
+        </li>
+      </ul>
+    </div>
+
     <!-- AIが補った点（顧客に見せる前に気づけるように・仕様§3.4）-->
     <div v-if="it.completions?.length" class="rounded-xl border border-[var(--ip-line)] bg-[color-mix(in_srgb,var(--ip-amber)_10%,transparent)] p-3">
       <p class="text-[12px] font-bold text-[var(--ip-amber)] mb-1.5">AIが補った点</p>

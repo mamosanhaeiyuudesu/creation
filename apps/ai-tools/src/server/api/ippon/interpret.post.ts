@@ -21,8 +21,17 @@ const SYSTEM = `あなたは什器・インテリア設計者のアシスタン�
 - 概算サイズ(mm)を推定する。スケッチに寸法メモがあれば最優先で採用。無ければ什器として自然な寸法を推定してよい（推定した旨を completions に書く）。読めない軸だけ null。
 - 収納什器なら棚段数(shelves)を数える。棚が無い形なら 0。
 - 脚部の有無(has_legs)を判断する。
-- 材質(material)を推定する。補足テキストやスタイル指定を反映する。
-- prompt_en は3D生成AI向けの英語プロンプト。形状・比率・材質・スタイルを簡潔に。寸法値は書かず形の説明に集中する。
+- 材質(material)を推定する。
+
+【重要】ユーザーのメッセージ（顧客の要望）を最優先で読み取り結果に反映する:
+- メッセージは単なる参考ではなく、形状そのものを動かす指示として扱う。スケッチとメッセージが食い違う場合はメッセージを優先する。
+  - 例:「幅2m前後」→ width_mm を約2000にする。「もっと横長に」→ width を大きく高さ/奥行を相対的に小さく。
+  - 例:「棚を1段増やして」→ shelves を+1。「脚を細く」→ has_legs=true とし prompt_en に thin legs。
+  - 例:「木目で」「もっと軽い印象で」→ material と prompt_en の質感・色・軽さに反映。
+- 反映した内容は applied_requests に日本語で1件ずつ列挙する（例:「幅を約2000mmにした（メッセージ『幅2m前後』を反映）」）。メッセージが空なら applied_requests は空配列。
+- メッセージに無い部分をAIが補った場合は completions に書く（applied_requests とは区別する）。
+
+- prompt_en は3D生成AI向けの英語プロンプト。形状・比率・材質・スタイルに加え、メッセージの意図（軽い/重厚/色味等）も簡潔に織り込む。寸法値は書かず形の説明に集中する。
 - summary は日本語ひとことの読み取り要約。
 
 必ず JSON のみを返す。前後に説明文やコードブロック記号を付けない。`
@@ -40,10 +49,13 @@ export default defineEventHandler(async (event) => {
 
   const out = await callClaudeVision(anthropicApiKey as string, {
     system: SYSTEM,
-    maxTokens: 1200,
+    maxTokens: 1300,
     images: [sketch],
     text: `スタイル指定: ${style}（雰囲気: ${STYLE_HINT[style]}）
-補足テキスト（顧客の要望。空なら無視）: ${note || '（なし）'}
+ユーザーのメッセージ（顧客の要望。空なら反映不要）:
+"""
+${note || '（メッセージなし）'}
+"""
 
 次のスキーマの JSON のみを返してください:
 {
@@ -54,8 +66,9 @@ export default defineEventHandler(async (event) => {
   "shelves": 数値（棚段数。無ければ0） or null,
   "has_legs": true/false,
   "material": "材質の推定（日本語）",
-  "prompt_en": "3D生成AI向けの英語プロンプト",
+  "prompt_en": "3D生成AI向けの英語プロンプト（メッセージの意図も織り込む）",
   "completions": ["AIが補った点（日本語）", "..."],
+  "applied_requests": ["メッセージを反映した点（日本語）", "..."],
   "summary": "読み取り要約（日本語ひとこと）"
 }`,
   })
@@ -73,6 +86,7 @@ export default defineEventHandler(async (event) => {
     material: parsed.material ?? '',
     prompt_en: parsed.prompt_en ?? '',
     completions: Array.isArray(parsed.completions) ? parsed.completions : [],
+    applied_requests: Array.isArray(parsed.applied_requests) ? parsed.applied_requests : [],
     summary: parsed.summary ?? '',
   } satisfies Interpretation
 })

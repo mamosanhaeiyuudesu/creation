@@ -30,6 +30,8 @@ export interface Interpretation {
   prompt_en: string
   // 顧客に見せる前に気づけるよう、AIが補った点を列挙（仕様§3.4）
   completions: string[]
+  // 入力メッセージ（顧客の要望）を、この読み取り/形状にどう反映したか（空メッセージなら空配列）
+  applied_requests: string[]
   // ひとことの読み取りサマリ（日本語）
   summary: string
 }
