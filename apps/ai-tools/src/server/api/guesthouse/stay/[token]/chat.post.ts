@@ -1,12 +1,21 @@
-import { requireGuesthouseDb, ensureGuesthouseTables, loadHouse, buildKnowledgeBase } from '~/server/utils/guesthouse'
+import {
+  requireGuesthouseDb,
+  ensureGuesthouseTables,
+  loadHouse,
+  buildKnowledgeBase,
+  resolveSession,
+  addMessage,
+  loadMessages,
+  createConsult,
+} from '~/server/utils/guesthouse'
+import { draftConsultReply } from '~/server/utils/guesthouse-ai'
 import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
-import type { ChatMessage, ChatReply, ChatRequest, ReplyKind } from '~/types/guesthouse'
+import type { ChatMessage, ReplyKind, StayChatReply, StayChatRequest } from '~/types/guesthouse'
 
-// お客様のチェックイン案内チャット（ログイン不要）。宿の案内情報だけを根拠に AI が事務的な質問に即答する。
-// 情報に無いこと・心のこもった相談（観光の相談・その人の旅程に合わせた提案）・トラブル・感情的なやり取りは
-// 自分で答えず、正直に「阪中さんに確認します」と引く（＝ handoff）。人間のフリはしない（提案資料§3の核心）。
+// お客様のチェックイン案内チャット（ログイン不要）。会話は滞在セッションとして永続化する。
+// 事務質問は宿の案内情報だけを根拠に即答（auto）。観光相談・トラブル等は自分で答えず handoff にし、
+// 会話スレッドに「確認しますね」を残しつつ、阪中さんの受信箱に相談＋AI下書きを作る（フェーズ2）。
 
-// system は knowledge base を差し込むため handler 内で組み立てる。
 function buildSystem(knowledge: string): string {
   return `あなたは、あるゲストハウスの「チェックイン案内AI」です。ホストは阪中さん。お客様（多くは海外からの旅行者）の事務的な質問に、下記の「宿の案内情報」だけを根拠に、丁寧に即答します。
 
@@ -28,14 +37,12 @@ function buildSystem(knowledge: string): string {
   "kind": "auto" または "handoff",
   "reply": "お客様に見せる返信本文（お客様の言語で）"
 }
-- kind="auto": 案内情報だけで答えられる事務的な質問に、その内容で即答したとき。
-- kind="handoff": 上記の引き継ぎ条件に当てはまるとき。reply は阪中さんに確認する旨のみ。
 
 # 宿の案内情報
 ${knowledge}`
 }
 
-export default defineEventHandler(async (event): Promise<ChatReply> => {
+export default defineEventHandler(async (event): Promise<StayChatReply> => {
   const db = requireGuesthouseDb(event)
   await ensureGuesthouseTables(db)
   const token = getRouterParam(event, 'token') || ''
@@ -47,29 +54,46 @@ export default defineEventHandler(async (event): Promise<ChatReply> => {
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) throw createError({ statusCode: 500, message: 'Anthropic API key is not configured.' })
 
-  const body = await readBody<ChatRequest>(event)
-  const history = Array.isArray(body?.messages) ? body!.messages : []
-  // 直近の履歴だけ渡す（暴走・肥大防止）。末尾はお客様の新しい質問である想定。
-  const messages: ChatMessage[] = history
-    .filter((m) => (m?.role === 'user' || m?.role === 'assistant') && (m?.content ?? '').trim())
+  const body = await readBody<StayChatRequest>(event)
+  const message = (body?.message ?? '').trim()
+  if (!message) throw createError({ statusCode: 400, message: '質問を入力してください' })
+
+  // セッションを解決（無ければ新規発行）し、お客様の発言を保存する。
+  const session = await resolveSession(db, house.id, body?.sessionId, body?.guestName)
+  await addMessage(db, session.id, 'guest', message)
+
+  // 直近の会話を文脈として Claude に渡す。
+  const thread = await loadMessages(db, session.id)
+  const history: ChatMessage[] = thread
     .slice(-12)
-    .map((m) => ({ role: m.role, content: m.content.trim() }))
-  if (!messages.length || messages[messages.length - 1].role !== 'user') {
-    throw createError({ statusCode: 400, message: '質問を入力してください' })
-  }
+    .map((m) => ({ role: m.role === 'guest' ? 'user' : 'assistant', content: m.content }))
+  // resolveSession 後の thread 末尾は今回の guest 発言。role マップ済み。
 
   const out = await callClaudeText(anthropicApiKey as string, {
     system: buildSystem(buildKnowledgeBase(house)),
     maxTokens: 700,
-    messages,
+    messages: history,
   })
 
   const parsed = parseJsonLoose<{ kind?: string; reply?: string }>(out)
   const kind: ReplyKind = parsed?.kind === 'auto' ? 'auto' : 'handoff'
-  const reply = (parsed?.reply ?? '').trim()
-  // パース失敗や空返信は、勝手に事務回答したことにせず安全側（handoff）に倒す。
-  if (!reply) {
-    return { kind: 'handoff', reply: 'すみません、阪中さんに確認しますね。少しお待ちください。' }
+  let reply = (parsed?.reply ?? '').trim()
+  if (!reply) reply = 'すみません、阪中さんに確認しますね。少しお待ちください。'
+
+  if (kind === 'auto' && parsed?.kind === 'auto') {
+    await addMessage(db, session.id, 'auto', reply, 'auto')
+    return { sessionId: session.id, kind: 'auto', reply }
   }
-  return { kind, reply }
+
+  // handoff：会話には「確認しますね」を残し、阪中さんの受信箱に相談＋AI下書きを作る。
+  await addMessage(db, session.id, 'auto', reply, 'handoff')
+  let draft = ''
+  try {
+    draft = await draftConsultReply(anthropicApiKey as string, house, thread, message)
+  } catch {
+    draft = '' // 下書き生成に失敗しても相談自体は登録する（阪中さんが手で書ける）。
+  }
+  await createConsult(db, session.id, house.id, message, draft)
+
+  return { sessionId: session.id, kind: 'handoff', reply }
 })

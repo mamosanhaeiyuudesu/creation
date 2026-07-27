@@ -125,6 +125,12 @@ useHead({
   border: 1px solid var(--gh-line);
   background: var(--gh-card);
   color: var(--gh-ink-soft);
+  transition: all 0.15s;
+}
+.gh-chip--on {
+  background: var(--gh-forest);
+  border-color: var(--gh-forest);
+  color: #fff;
 }
 
 @keyframes gh-rise {

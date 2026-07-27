@@ -16,9 +16,23 @@
       事務的なことはAIが即答し、観光の相談やトラブルは正直に「阪中さんに確認します」と引き継ぎます。
     </p>
 
-    <div class="mb-5">
-      <NuxtLink to="/guesthouse/new" class="gh-btn inline-flex items-center">＋ 宿を追加</NuxtLink>
+    <!-- 管理者以外にはメッセージだけ表示 -->
+    <div v-if="notAdmin" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] px-4 py-10 text-center">
+      <p class="text-[15px] font-bold mb-1">管理者専用のページです</p>
+      <p class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed">
+        このページはゲストハウス運営者（管理者）のみが利用できます。<br />
+        お客様は、お渡しした共有リンク・QRコードからチャットをご利用ください。
+      </p>
     </div>
+
+    <template v-else>
+      <div class="flex flex-wrap items-center gap-2 mb-5">
+        <NuxtLink to="/guesthouse/new" class="gh-btn inline-flex items-center">＋ 宿を追加</NuxtLink>
+        <NuxtLink to="/guesthouse/inbox" class="gh-btn-ghost inline-flex items-center">
+          相談の受信箱
+          <span v-if="pendingCount" class="ml-1.5 inline-grid place-items-center min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--gh-warn)] text-white text-[11px]">{{ pendingCount }}</span>
+        </NuxtLink>
+      </div>
 
     <!-- ローディング -->
     <div v-if="loading" class="space-y-2">
@@ -48,6 +62,7 @@
         </li>
       </ul>
     </template>
+    </template>
 
     <AuthModal v-if="showAuthModal" accent="orange" />
   </div>
@@ -67,15 +82,26 @@ const showAuthModal = computed(() => checked.value && !isLoggedIn.value)
 
 const houses = ref<HouseSummary[]>([])
 const loading = ref(true)
+const notAdmin = ref(false)
+const pendingCount = ref(0)
 
 async function load() {
   loading.value = true
   try {
     houses.value = await $fetch<HouseSummary[]>('/api/guesthouse/houses')
-  } catch {
+  } catch (e: any) {
+    // ログイン済みだが管理者でない場合は 403。専用メッセージを出す。
+    if ((e?.statusCode ?? e?.response?.status) === 403) notAdmin.value = true
     houses.value = []
   } finally {
     loading.value = false
+  }
+  // 受信箱の未対応件数（失敗しても無視）
+  try {
+    const consults = await $fetch<unknown[]>('/api/guesthouse/consults')
+    pendingCount.value = consults.length
+  } catch {
+    pendingCount.value = 0
   }
 }
 

@@ -14,6 +14,14 @@
       <header class="pt-6 pb-3">
         <p class="text-[11px] text-[var(--gh-ink-faint)] tracking-wide mb-1">ゲストハウス案内</p>
         <h1 class="gh-display text-[22px] sm:text-[25px] font-bold leading-tight">{{ info.name }}</h1>
+        <div class="mt-2 flex items-center gap-2">
+          <input
+            v-model="guestName"
+            class="gh-input !py-1.5 !w-auto flex-1 max-w-[16rem] text-[13px]"
+            placeholder="お名前（任意）"
+            @change="persistName"
+          />
+        </div>
       </header>
 
       <!-- 会話エリア -->
@@ -27,7 +35,7 @@
         </div>
 
         <!-- 聞けること -->
-        <div v-if="info.categories.length" class="flex flex-wrap gap-1.5">
+        <div v-if="info.categories.length && !messages.length" class="flex flex-wrap gap-1.5">
           <button
             v-for="c in info.categories"
             :key="c"
@@ -39,8 +47,8 @@
         </div>
 
         <!-- メッセージ -->
-        <div v-for="(m, i) in messages" :key="i" class="gh-rise">
-          <div v-if="m.role === 'user'" class="flex justify-end">
+        <div v-for="m in messages" :key="m.id" class="gh-rise">
+          <div v-if="m.role === 'guest'" class="flex justify-end">
             <div class="inline-block rounded-2xl rounded-tr-md bg-[var(--gh-forest)] text-white px-4 py-3 max-w-[88%]">
               <p class="text-[14px] leading-relaxed whitespace-pre-wrap">{{ m.content }}</p>
             </div>
@@ -48,15 +56,11 @@
           <div v-else>
             <div
               class="inline-block rounded-2xl rounded-tl-md px-4 py-3 max-w-[88%] border"
-              :class="m.kind === 'handoff'
-                ? 'bg-[#fbf3e4] border-[color-mix(in_srgb,var(--gh-warn)_35%,transparent)]'
-                : 'bg-[var(--gh-card)] border-[var(--gh-line)]'"
+              :class="bubbleClass(m)"
             >
               <p class="text-[14px] leading-relaxed whitespace-pre-wrap">{{ m.content }}</p>
             </div>
-            <p :class="m.kind === 'handoff' ? 'gh-label-handoff' : 'gh-label-auto'" class="mt-1">
-              {{ m.kind === 'handoff' ? '阪中さんに確認します' : '自動応答' }}
-            </p>
+            <p :class="labelClass(m)" class="mt-1">{{ labelText(m) }}</p>
           </div>
         </div>
 
@@ -74,6 +78,7 @@
       <div class="sticky bottom-0 bg-gradient-to-t from-[var(--gh-paper)] via-[var(--gh-paper)] to-transparent pt-3 pb-4">
         <form class="flex items-end gap-2" @submit.prevent="send">
           <textarea
+            ref="taEl"
             v-model="draft"
             rows="1"
             class="gh-input !py-2.5 resize-none max-h-32"
@@ -81,7 +86,6 @@
             :disabled="sending"
             @keydown.enter.exact.prevent="send"
             @input="autoGrow"
-            ref="taEl"
           />
           <button type="submit" class="gh-btn !px-5 shrink-0" :disabled="sending || !draft.trim()">送信</button>
         </form>
@@ -94,14 +98,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
-import type { ChatReply, ReplyKind, StayInfo } from '~/types/guesthouse'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import type { StayChatReply, StayInfo, StayThread, ThreadMessage } from '~/types/guesthouse'
 
-// 共有リンク先のお客様チャット。ログイン不要（提案資料 フェーズ1）。
+// 共有リンク先のお客様チャット。ログイン不要。会話は滞在セッションとして永続化される。
 definePageMeta({ layout: 'guesthouse' })
 
 const route = useRoute()
 const token = route.params.token as string
+const storageKey = `gh-session-${token}`
 
 const { data: info, pending } = await useFetch<StayInfo>(`/api/guesthouse/stay/${token}`, { key: `gh-stay-${token}` })
 useHead(() => ({ title: info.value?.name ? `${info.value.name} 案内` : 'ゲストハウス案内' }))
@@ -112,16 +117,30 @@ const welcomeText = computed(() => {
   return base + 'ようこそ。ご滞在について、駐車場・チェックイン・Wi-Fiなど、なんでもお気軽にお尋ねください。'
 })
 
-interface Msg {
-  role: 'user' | 'assistant'
-  content: string
-  kind?: ReplyKind
-}
-const messages = ref<Msg[]>([])
+const messages = ref<ThreadMessage[]>([])
 const draft = ref('')
+const guestName = ref('')
 const sending = ref(false)
+const sessionId = ref('')
 const scrollEl = ref<HTMLElement | null>(null)
 const taEl = ref<HTMLTextAreaElement | null>(null)
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
+function bubbleClass(m: ThreadMessage): string {
+  if (m.role === 'host') return 'bg-[#eef3e9] border-[var(--gh-forest-soft)]'
+  if (m.kind === 'handoff') return 'bg-[#fbf3e4] border-[color-mix(in_srgb,var(--gh-warn)_35%,transparent)]'
+  return 'bg-[var(--gh-card)] border-[var(--gh-line)]'
+}
+function labelClass(m: ThreadMessage): string {
+  if (m.role === 'host') return 'gh-label-host'
+  if (m.kind === 'handoff') return 'gh-label-handoff'
+  return 'gh-label-auto'
+}
+function labelText(m: ThreadMessage): string {
+  if (m.role === 'host') return '阪中さん'
+  if (m.kind === 'handoff') return '阪中さんに確認します'
+  return '自動応答'
+}
 
 function autoGrow() {
   const el = taEl.value
@@ -136,6 +155,11 @@ async function scrollToBottom() {
   if (el) el.scrollTop = el.scrollHeight
 }
 
+function persistName() {
+  // 名前はサーバーには次回送信時に反映される。ローカルにも控えておく。
+  if (process.client) localStorage.setItem(`${storageKey}-name`, guestName.value)
+}
+
 function ask(text: string) {
   if (sending.value) return
   draft.value = text
@@ -145,30 +169,66 @@ function ask(text: string) {
 async function send() {
   const text = draft.value.trim()
   if (!text || sending.value) return
-  messages.value.push({ role: 'user', content: text })
+  // 楽観的に自分の発言を表示
+  messages.value.push({ id: `local-${Date.now()}`, role: 'guest', content: text, kind: '', createdAt: '' })
   draft.value = ''
   autoGrow()
   await scrollToBottom()
 
   sending.value = true
   try {
-    const payload = messages.value.map((m) => ({ role: m.role, content: m.content }))
-    const res = await $fetch<ChatReply>(`/api/guesthouse/stay/${token}/chat`, {
+    const res = await $fetch<StayChatReply>(`/api/guesthouse/stay/${token}/chat`, {
       method: 'POST',
-      body: { messages: payload },
+      body: { sessionId: sessionId.value || undefined, guestName: guestName.value || undefined, message: text },
     })
-    messages.value.push({ role: 'assistant', content: res.reply, kind: res.kind })
+    sessionId.value = res.sessionId
+    if (process.client) localStorage.setItem(storageKey, res.sessionId)
+    await refreshThread()
   } catch (e: any) {
     messages.value.push({
-      role: 'assistant',
+      id: `err-${Date.now()}`,
+      role: 'auto',
       content: e?.data?.message || 'すみません、うまくお答えできませんでした。阪中さんに確認しますね。',
       kind: 'handoff',
+      createdAt: '',
     })
   } finally {
     sending.value = false
     await scrollToBottom()
   }
 }
+
+// サーバーの会話を正として取り込む（阪中さんの返信もここで反映される）。
+async function refreshThread() {
+  if (!sessionId.value) return
+  try {
+    const t = await $fetch<StayThread>(`/api/guesthouse/stay/${token}/thread`, { params: { session: sessionId.value } })
+    if (t.sessionId) {
+      messages.value = t.messages
+      if (t.guestName && !guestName.value) guestName.value = t.guestName
+    }
+  } catch {
+    /* ネットワーク一時失敗は無視 */
+  }
+}
+
+onMounted(async () => {
+  if (process.client) {
+    sessionId.value = localStorage.getItem(storageKey) || ''
+    guestName.value = localStorage.getItem(`${storageKey}-name`) || ''
+  }
+  if (sessionId.value) {
+    await refreshThread()
+    await scrollToBottom()
+  }
+  // 阪中さんの返信を受け取るため、表示中は定期的にスレッドを更新。
+  pollTimer = setInterval(() => {
+    if (!sending.value && document.visibilityState === 'visible') refreshThread()
+  }, 5000)
+})
+onBeforeUnmount(() => {
+  if (pollTimer) clearInterval(pollTimer)
+})
 </script>
 
 <style scoped>
@@ -182,6 +242,12 @@ async function send() {
   font-size: 10.5px;
   font-weight: 700;
   color: var(--gh-warn);
+  padding-left: 0.35rem;
+}
+.gh-label-host {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--gh-forest);
   padding-left: 0.35rem;
 }
 .gh-dot {
