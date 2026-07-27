@@ -14,7 +14,7 @@ apps/
 
 ## どのディレクトリで作業するか
 
-`apps/ai-tools/` → キーワード: **miyako・whisper・hagemashi・task・deepheart・mlb・office・kaki・momo・ippon・ai-tools 全般**
+`apps/ai-tools/` → キーワード: **miyako・whisper・hagemashi・task・deepheart・mlb・office・kaki・momo・ippon・guesthouse・ai-tools 全般**
 
 `apps/homepages/` → キーワード: **homepages・kaito・mamorin・prototyper・ai-consultant**
 
