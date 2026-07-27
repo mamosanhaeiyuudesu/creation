@@ -7,6 +7,7 @@ import {
   addMessage,
   loadMessages,
   createConsult,
+  loadHouseOwnerTipsText,
 } from '~/server/utils/guesthouse'
 import { draftConsultReply } from '~/server/utils/guesthouse-ai'
 import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
@@ -89,7 +90,8 @@ export default defineEventHandler(async (event): Promise<StayChatReply> => {
   await addMessage(db, session.id, 'auto', reply, 'handoff')
   let draft = ''
   try {
-    draft = await draftConsultReply(anthropicApiKey as string, house, thread, message)
+    const tips = await loadHouseOwnerTipsText(db, house.id)
+    draft = await draftConsultReply(anthropicApiKey as string, house, tips, thread, message)
   } catch {
     draft = '' // 下書き生成に失敗しても相談自体は登録する（阪中さんが手で書ける）。
   }

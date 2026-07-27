@@ -10,9 +10,11 @@ import type {
   House,
   HouseSummary,
   MessageRole,
+  RecentSession,
   SessionDetail,
   SessionSummary,
   ThreadMessage,
+  Tip,
 } from '~/types/guesthouse'
 
 const SESSION_COOKIE = 'app-session'
@@ -75,6 +77,13 @@ export async function ensureGuesthouseTables(db: any): Promise<void> {
       id TEXT PRIMARY KEY, session_id TEXT NOT NULL, house_id TEXT NOT NULL,
       guest_name TEXT NOT NULL DEFAULT '', content TEXT NOT NULL DEFAULT '{}',
       summary TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `).catch(() => {})
+  // フェーズ3：旅の情報（おすすめ素材）はホスト共通で持つ。
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS guesthouse_tips (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, category TEXT NOT NULL DEFAULT '',
+      title TEXT NOT NULL DEFAULT '', body TEXT NOT NULL DEFAULT '', sort_order INTEGER NOT NULL DEFAULT 0
     )
   `).catch(() => {})
 }
@@ -266,14 +275,60 @@ export function buildKnowledgeBase(house: House): string {
   return lines.join('\n')
 }
 
-/** 相談の下書き（提案）用の素材。おすすめ=tip をまとめる。無ければ空文字。 */
-export function buildTipsBase(house: House): string {
-  const tips = house.facts.filter((f) => f.type === 'tip')
+// ── 旅の情報（おすすめ素材・ホスト共通）──────────────────
+
+interface TipRow {
+  id: string
+  category: string
+  title: string
+  body: string
+  sort_order: number
+}
+
+/** ホストの旅の情報を取得。 */
+export async function loadTips(db: any, userId: string): Promise<Tip[]> {
+  const rows = await db
+    .prepare('SELECT id, category, title, body, sort_order FROM guesthouse_tips WHERE user_id = ? ORDER BY sort_order ASC')
+    .bind(userId)
+    .all<TipRow>()
+  return (rows?.results ?? []).map((r: TipRow) => ({ id: r.id, category: r.category, title: r.title, body: r.body }))
+}
+
+/** ホストの旅の情報を一括置換。 */
+export async function replaceTips(
+  db: any,
+  userId: string,
+  tips: { category: string; title: string; body: string }[]
+): Promise<void> {
+  await db.prepare('DELETE FROM guesthouse_tips WHERE user_id = ?').bind(userId).run()
+  let order = 0
+  for (const t of tips) {
+    const category = (t?.category ?? '').trim()
+    const title = (t?.title ?? '').trim()
+    const body = (t?.body ?? '').trim()
+    if (!title && !body) continue
+    await db
+      .prepare('INSERT INTO guesthouse_tips (id, user_id, category, title, body, sort_order) VALUES (?, ?, ?, ?, ?, ?)')
+      .bind(crypto.randomUUID(), userId, category, title, body, order++)
+      .run()
+  }
+}
+
+/** 指定した宿のオーナーの旅の情報を、相談下書き用のテキストにまとめる。無ければ空文字。 */
+export async function loadHouseOwnerTipsText(db: any, houseId: string): Promise<string> {
+  const owner = await db.prepare('SELECT user_id FROM guesthouse_houses WHERE id = ?').bind(houseId).first<{ user_id: string }>()
+  if (!owner) return ''
+  const tips = await loadTips(db, owner.user_id)
+  return buildTipsText(tips)
+}
+
+/** 旅の情報リストを相談下書き用のテキストに整形。 */
+export function buildTipsText(tips: Tip[]): string {
   if (!tips.length) return ''
   return tips
-    .map((f) => {
-      const head = [f.category, f.title].filter((x) => x.trim()).join(' / ')
-      return `■ ${head || 'おすすめ'}\n${f.body}`
+    .map((t) => {
+      const head = [t.category, t.title].filter((x) => x.trim()).join(' / ')
+      return `■ ${head || 'おすすめ'}\n${t.body}`
     })
     .join('\n')
 }
@@ -400,6 +455,50 @@ export async function loadSessionSummaries(db: any, houseId: string): Promise<Se
 
   return sessions.map((s) => ({
     id: s.id,
+    guestName: s.guest_name,
+    messageCount: countBy.get(s.id) ?? 0,
+    hasDiary: hasDiary.has(s.id),
+    pendingConsults: pendingBy.get(s.id) ?? 0,
+    updatedAt: s.updated_at,
+  }))
+}
+
+/** 全宿横断の最近の会話（管理トップ用）。ユーザー所有分のみ、宿名付き。 */
+export async function loadRecentSessions(db: any, userId: string, limit = 20): Promise<RecentSession[]> {
+  const rows = await db
+    .prepare(
+      `SELECT s.*, h.name AS house_name FROM guesthouse_sessions s
+       JOIN guesthouse_houses h ON h.id = s.house_id
+       WHERE h.user_id = ? ORDER BY s.updated_at DESC LIMIT ?`
+    )
+    .bind(userId, limit)
+    .all<SessionRow & { house_name: string }>()
+  const sessions: (SessionRow & { house_name: string })[] = rows?.results ?? []
+  if (!sessions.length) return []
+  const ids = sessions.map((s) => s.id)
+  const ph = ids.map(() => '?').join(',')
+  const msgCounts = await db
+    .prepare(`SELECT session_id, COUNT(*) AS c FROM guesthouse_messages WHERE session_id IN (${ph}) GROUP BY session_id`)
+    .bind(...ids)
+    .all<{ session_id: string; c: number }>()
+  const diaryRows = await db
+    .prepare(`SELECT DISTINCT session_id FROM guesthouse_diaries WHERE session_id IN (${ph})`)
+    .bind(...ids)
+    .all<{ session_id: string }>()
+  const consultRows = await db
+    .prepare(`SELECT session_id, COUNT(*) AS c FROM guesthouse_consults WHERE session_id IN (${ph}) AND status = 'pending' GROUP BY session_id`)
+    .bind(...ids)
+    .all<{ session_id: string; c: number }>()
+  const countBy = new Map<string, number>()
+  for (const r of msgCounts?.results ?? []) countBy.set(r.session_id, r.c)
+  const hasDiary = new Set<string>((diaryRows?.results ?? []).map((r: any) => r.session_id))
+  const pendingBy = new Map<string, number>()
+  for (const r of consultRows?.results ?? []) pendingBy.set(r.session_id, r.c)
+
+  return sessions.map((s) => ({
+    id: s.id,
+    houseId: s.house_id,
+    houseName: s.house_name,
     guestName: s.guest_name,
     messageCount: countBy.get(s.id) ?? 0,
     hasDiary: hasDiary.has(s.id),

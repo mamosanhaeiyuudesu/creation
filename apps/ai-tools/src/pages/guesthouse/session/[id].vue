@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-[720px] mx-auto px-4 sm:px-6 pt-6 pb-24">
     <div class="flex items-center gap-2 mb-3">
-      <NuxtLink to="/guesthouse" class="text-[13px] text-[var(--gh-ink-soft)] hover:text-[var(--gh-ink)]">← 宿一覧</NuxtLink>
+      <NuxtLink to="/guesthouse" class="text-[13px] text-[var(--gh-ink-soft)] hover:text-[var(--gh-ink)]">← 管理トップ</NuxtLink>
     </div>
 
     <div v-if="loading" class="py-24 text-center text-[var(--gh-ink-soft)] text-[13px]">読み込み中…</div>

@@ -1,7 +1,7 @@
 // ゲストハウス案内アプリ (guesthouse) フェーズ2・3 の Claude 呼び出しを集約する。
 // 相談の下書き・お客さん日記・お礼/レビュー依頼・傾向抽出。すべて「下書き」で、人が確認して使う前提。
 import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
-import { buildKnowledgeBase, buildTipsBase } from '~/server/utils/guesthouse'
+import { buildKnowledgeBase } from '~/server/utils/guesthouse'
 import type { DiaryContent, Diary, FarewellDraft, House, ThreadMessage, TrendItem } from '~/types/guesthouse'
 
 /** 会話を読みやすいテキスト起こしにする（プロンプト用）。 */
@@ -17,10 +17,10 @@ export function threadTranscript(messages: ThreadMessage[]): string {
 export async function draftConsultReply(
   apiKey: string,
   house: House,
+  tips: string,
   messages: ThreadMessage[],
   question: string
 ): Promise<string> {
-  const tips = buildTipsBase(house)
   const system = `あなたは、ゲストハウスのホスト「阪中さん」が、お客様の心のこもった相談（観光・食事・旅程に合わせた提案など）に返信するための下書きを作るアシスタントです。この下書きは阪中さんが確認・修正してから、阪中さん本人の名義で送られます。
 
 # 書き方

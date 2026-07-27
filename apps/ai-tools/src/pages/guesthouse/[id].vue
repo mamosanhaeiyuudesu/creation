@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-[680px] mx-auto px-4 sm:px-6 pt-6 pb-24">
     <div class="flex items-center justify-between gap-2 mb-4">
-      <NuxtLink to="/guesthouse" class="text-[13px] text-[var(--gh-ink-soft)] hover:text-[var(--gh-ink)]">← 宿一覧</NuxtLink>
+      <NuxtLink to="/guesthouse/houses" class="text-[13px] text-[var(--gh-ink-soft)] hover:text-[var(--gh-ink)]">← 宿一覧</NuxtLink>
       <button v-if="house" class="text-[12.5px] text-[var(--gh-ink-faint)] hover:text-[var(--gh-warn)]" @click="remove">この宿を削除</button>
     </div>
 
@@ -192,7 +192,7 @@ async function remove() {
   if (!confirm('この宿と案内情報を削除します。よろしいですか？')) return
   try {
     await $fetch(`/api/guesthouse/houses/${id}`, { method: 'DELETE' })
-    await navigateTo('/guesthouse')
+    await navigateTo('/guesthouse/houses')
   } catch (e: any) {
     errorMsg.value = e?.data?.message || '削除に失敗しました。'
   }

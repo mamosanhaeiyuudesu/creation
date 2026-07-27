@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-[680px] mx-auto px-4 sm:px-6 pt-6 pb-24">
     <div class="flex items-center gap-2 mb-4">
-      <NuxtLink to="/guesthouse" class="text-[13px] text-[var(--gh-ink-soft)] hover:text-[var(--gh-ink)]">← 宿一覧</NuxtLink>
+      <NuxtLink to="/guesthouse/houses" class="text-[13px] text-[var(--gh-ink-soft)] hover:text-[var(--gh-ink)]">← 宿一覧</NuxtLink>
     </div>
     <h1 class="gh-display text-[22px] font-bold mb-5">宿を追加</h1>
 

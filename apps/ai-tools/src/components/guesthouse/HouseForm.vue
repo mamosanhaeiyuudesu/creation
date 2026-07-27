@@ -36,35 +36,15 @@
           <textarea v-model="f.body" rows="2" class="gh-input text-[13px]" placeholder="回答本文（例：宿の前に2台分あります。到着したら…）" />
         </li>
       </ul>
-      <button type="button" class="gh-btn-ghost !h-9 mt-2.5" @click="add('info')">＋ 事務案内を追加</button>
+      <button type="button" class="gh-btn-ghost !h-9 mt-2.5" @click="add()">＋ 事務案内を追加</button>
     </div>
 
-    <!-- おすすめ素材（tip・フェーズ3の提案に使う）-->
-    <div>
-      <div class="flex items-center justify-between mb-1">
-        <label class="gh-label !mb-0">おすすめ素材（旅の提案に使う）</label>
-        <span class="text-[11px] text-[var(--gh-ink-faint)]">{{ tipFacts.length }} 件</span>
-      </div>
-      <p class="gh-hint">高野山の巡り方・近隣の食事処・季節の見どころなど。<b>お客様には自動応答しません</b>。相談が来たとき、AIが提案の下書きを作る素材として使います。</p>
-
-      <ul class="space-y-2.5">
-        <li v-for="f in tipFacts" :key="f._k" class="rounded-2xl border border-[color-mix(in_srgb,var(--gh-persimmon)_35%,var(--gh-line))] bg-[#fdf6ee] p-3.5">
-          <div class="flex items-center gap-2 mb-2">
-            <input v-model="f.category" class="gh-input !w-[8.5rem] !py-1.5 text-[13px]" placeholder="分類" list="gh-tip-categories" />
-            <input v-model="f.title" class="gh-input !py-1.5 text-[13px]" placeholder="見出し（例：高野山のおすすめ）" />
-            <button type="button" class="shrink-0 w-8 h-8 rounded-full text-[var(--gh-ink-faint)] hover:bg-black/[0.05] hover:text-[var(--gh-warn)] transition" title="削除" @click="remove(f)">✕</button>
-          </div>
-          <textarea v-model="f.body" rows="2" class="gh-input text-[13px]" placeholder="内容（例：奥之院は朝が静かでおすすめ。バスは○○発が便利…）" />
-        </li>
-      </ul>
-      <button type="button" class="gh-btn-ghost !h-9 mt-2.5" @click="add('tip')">＋ おすすめ素材を追加</button>
-    </div>
+    <p class="gh-hint !mb-0">
+      観光・高野山・食事などの「旅の情報」は、<b>「旅の情報」ページ</b>でホスト共通としてまとめて登録します（相談の下書きに使われます）。
+    </p>
 
     <datalist id="gh-categories">
       <option v-for="c in CATEGORY_PRESETS" :key="c" :value="c" />
-    </datalist>
-    <datalist id="gh-tip-categories">
-      <option v-for="c in TIP_PRESETS" :key="c" :value="c" />
     </datalist>
 
     <!-- AI取り込みモーダル -->
@@ -172,13 +152,11 @@ watch(
 )
 
 const infoFacts = computed(() => form.facts.filter((f) => f.type === 'info'))
-const tipFacts = computed(() => form.facts.filter((f) => f.type === 'tip'))
 
 const CATEGORY_PRESETS = ['駐車場', '鍵・チェックイン', 'チェックアウト', 'Wi-Fi', 'ゴミ出し', 'アクセス・地図', '設備', 'その他']
-const TIP_PRESETS = ['高野山', '観光', '食事', '近隣', '季節の見どころ', '体験']
 
-function add(type: FactType, category = '', title = '') {
-  form.facts.push({ _k: keySeq++, category, title, body: '', type })
+function add(category = '', title = '') {
+  form.facts.push({ _k: keySeq++, category, title, body: '', type: 'info' })
 }
 function remove(f: FactForm) {
   const i = form.facts.indexOf(f)
@@ -192,7 +170,7 @@ function addStarters() {
     ['ゴミ出し', 'ゴミはどうすればいい？'],
     ['アクセス・地図', '最寄り駅からの行き方は？'],
   ]
-  for (const [c, t] of starters) add('info', c, t)
+  for (const [c, t] of starters) add(c, t)
 }
 
 // ── AI取り込み（貼り付け→抽出→確認→追加。取り込むのは事務案内=info）──

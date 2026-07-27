@@ -174,6 +174,25 @@ export interface SessionSummary {
   updatedAt: string
 }
 
+/** 全宿横断の「最近の会話」（管理トップ用）。宿名付き。 */
+export interface RecentSession extends SessionSummary {
+  houseId: string
+  houseName: string
+}
+
+/** 旅の情報（おすすめ素材）。ホスト共通で1か所に持つ。相談の下書きの素材に使う。 */
+export interface Tip {
+  id: string
+  category: string // 高野山 / 観光 / 食事 / 近隣 など
+  title: string
+  body: string
+}
+
+/** 旅の情報の一括置換リクエスト。 */
+export interface TipsInput {
+  tips: { category: string; title: string; body: string }[]
+}
+
 /** ホストが読む会話の詳細（メッセージ全文）。 */
 export interface SessionDetail {
   id: string
