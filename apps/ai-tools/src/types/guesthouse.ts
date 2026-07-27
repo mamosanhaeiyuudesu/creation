@@ -193,6 +193,20 @@ export interface TipsInput {
   tips: { category: string; title: string; body: string }[]
 }
 
+/** 旅の情報の取り込み候補。mergeId が既存 tip の id なら「その項目に差分マージ（body は統合後の全文）」、null なら新規。 */
+export interface ExtractedTip {
+  mergeId: string | null
+  category: string
+  title: string
+  body: string
+}
+
+/** 旅の情報の取り込み結果。 */
+export interface TipExtractResult {
+  items: ExtractedTip[]
+  dropped: string[]
+}
+
 /** ホストが読む会話の詳細（メッセージ全文）。 */
 export interface SessionDetail {
   id: string

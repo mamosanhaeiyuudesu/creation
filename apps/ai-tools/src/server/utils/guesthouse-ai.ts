@@ -2,7 +2,7 @@
 // 相談の下書き・お客さん日記・お礼/レビュー依頼・傾向抽出。すべて「下書き」で、人が確認して使う前提。
 import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
 import { buildKnowledgeBase } from '~/server/utils/guesthouse'
-import type { DiaryContent, Diary, FarewellDraft, House, ThreadMessage, TrendItem } from '~/types/guesthouse'
+import type { DiaryContent, Diary, ExtractedTip, FarewellDraft, House, ThreadMessage, Tip, TipExtractResult, TrendItem } from '~/types/guesthouse'
 
 /** 会話を読みやすいテキスト起こしにする（プロンプト用）。 */
 export function threadTranscript(messages: ThreadMessage[]): string {
@@ -129,6 +129,57 @@ export async function generateFarewell(
   })
   const p = parseJsonLoose<any>(out) ?? {}
   return { thanks: String(p?.thanks ?? '').trim(), reviewRequest: String(p?.reviewRequest ?? '').trim() }
+}
+
+/**
+ * 貼り付けたメモ/文章から「旅の情報（おすすめ素材）」を抽出する。
+ * 既存の項目と重複する内容は、その項目に差分マージ（mergeId＝既存id・body は統合後の全文）する。
+ */
+export async function extractTips(apiKey: string, existing: Tip[], text: string): Promise<TipExtractResult> {
+  const existingBlock = existing.length
+    ? existing.map((t) => `- id:${t.id} 分類:${t.category} 見出し:${t.title}\n  内容:${t.body}`).join('\n')
+    : '（既存の旅の情報はまだありません）'
+
+  const system = `あなたは、ゲストハウスのホスト「阪中さん」のアシスタントです。貼り付けられたメモや文章から、観光相談への提案に使う「旅の情報（おすすめ素材）」を、話題ごとに分割して整理します。高野山・観光・食事・近隣・季節の見どころ・アクセスなどが対象です。
+
+# 既存の旅の情報（重複判定に使う）
+${existingBlock}
+
+# やること
+- 貼り付け文を話題ごとに分割し、それぞれ category（分類）/ title（見出し）/ body（内容）にまとめる。
+- 【重要】既存の項目と同じ話題があれば、新規に作らず、その項目に差分マージする:
+  - mergeId に既存の id を入れる。
+  - body には「既存の内容＋新しく分かった情報」を自然に統合した全文を書く（既存の有用な記述を消さない。矛盾する場合は新しい方を優先しつつ、要点を残す）。
+  - 重複がなければ mergeId は null（新規）。
+- 個人情報（特定のお客様の氏名・日付など）や一過性の内容は含めない。除外したものは dropped に日本語で簡潔に列挙する。
+- お客様向けの事務連絡（駐車場・鍵・Wi-Fiなど）は旅の情報ではないので含めない。
+
+# 出力（この JSON のみ。前後に説明やコードブロック記号を付けない）
+{
+  "items": [ { "mergeId": "既存id または null", "category": "分類", "title": "見出し", "body": "内容（マージ時は統合後の全文）" } ],
+  "dropped": ["除外した内容の説明", "..."]
+}`
+
+  const out = await callClaudeText(apiKey, {
+    system,
+    maxTokens: 2200,
+    messages: [{ role: 'user', content: `次のメモ/文章から旅の情報を抽出してください:\n"""\n${text}\n"""` }],
+  })
+  const p = parseJsonLoose<any>(out) ?? {}
+  const validIds = new Set(existing.map((t) => t.id))
+  const items: ExtractedTip[] = (Array.isArray(p?.items) ? p.items : [])
+    .map((it: any) => {
+      const mergeId = typeof it?.mergeId === 'string' && validIds.has(it.mergeId) ? it.mergeId : null
+      return {
+        mergeId,
+        category: String(it?.category ?? '').trim(),
+        title: String(it?.title ?? '').trim(),
+        body: String(it?.body ?? '').trim(),
+      }
+    })
+    .filter((it: ExtractedTip) => it.title || it.body)
+  const dropped = (Array.isArray(p?.dropped) ? p.dropped : []).map((d: any) => String(d).trim()).filter(Boolean)
+  return { items, dropped }
 }
 
 /** 複数のお客さん日記から傾向（学習ループ）を抽出。 */
