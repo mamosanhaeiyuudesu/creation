@@ -12,7 +12,7 @@ export default defineEventHandler(async (event): Promise<TipExtractResult> => {
   const body = await readBody<{ text: string }>(event)
   const text = (body?.text ?? '').trim()
   if (!text) throw createError({ statusCode: 400, message: '取り込むテキストを入力してください' })
-  if (text.length > 20000) throw createError({ statusCode: 400, message: 'テキストが長すぎます（2万文字まで）' })
+  if (text.length > 40000) throw createError({ statusCode: 400, message: 'テキストが長すぎます（4万文字まで）' })
 
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) throw createError({ statusCode: 500, message: 'Anthropic API key is not configured.' })
