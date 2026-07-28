@@ -8,10 +8,6 @@
       </HelpTip>
     </h1>
 
-    <div class="mb-5">
-      <NuxtLink to="/guesthouse/new" class="gh-btn inline-flex items-center">＋ 宿を追加</NuxtLink>
-    </div>
-
     <div v-if="notAdmin" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] px-4 py-10 text-center">
       <p class="text-[15px] font-bold mb-1">管理者専用のページです</p>
     </div>
@@ -22,7 +18,7 @@
       </div>
 
       <p v-else-if="!houses.length" class="text-center text-[var(--gh-ink-soft)] py-16 text-[14px]">
-        まだ宿がありません。「＋ 宿を追加」から柿畑の宿・高野口の宿などを登録できます。
+        まだ宿がありません。下の「＋ 宿を追加」から柿畑の宿・高野口の宿などを登録できます。
       </p>
       <ul v-else class="space-y-2.5">
         <li v-for="h in houses" :key="h.id">
@@ -37,6 +33,11 @@
           </NuxtLink>
         </li>
       </ul>
+
+      <!-- 宿を追加（一覧の下） -->
+      <div v-if="!loading" class="mt-6">
+        <NuxtLink to="/guesthouse/new" class="gh-btn inline-flex items-center">＋ 宿を追加</NuxtLink>
+      </div>
     </template>
 
     <AuthModal v-if="showAuthModal" accent="orange" />

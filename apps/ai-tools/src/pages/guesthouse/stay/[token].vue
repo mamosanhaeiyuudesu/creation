@@ -84,7 +84,7 @@
             class="gh-input !py-2.5 resize-none max-h-32"
             placeholder="質問を入力（駐車場・Wi-Fiなど）"
             :disabled="sending"
-            @keydown.enter.exact.prevent="send"
+            @keydown.enter="onEnterKey"
             @input="autoGrow"
           />
           <button type="submit" class="gh-btn !px-5 shrink-0" :disabled="sending || !draft.trim()">送信</button>
@@ -163,6 +163,15 @@ async function persistName() {
   } catch {
     /* 一時的な失敗は無視（次回送信時にも反映される） */
   }
+}
+
+// Enter送信。ただし日本語などのIME変換確定のEnterでは送信しない（変換中は e.isComposing / keyCode 229）。
+// Shift/Ctrl/Cmd/Alt併用時も送信せず改行に任せる。
+function onEnterKey(e: KeyboardEvent) {
+  if (e.isComposing || (e as any).keyCode === 229) return
+  if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return
+  e.preventDefault()
+  send()
 }
 
 function ask(text: string) {
