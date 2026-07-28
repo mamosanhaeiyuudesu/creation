@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto max-w-[620px] min-h-screen flex flex-col px-4 sm:px-6">
+  <div class="mx-auto max-w-[620px] h-[100dvh] flex flex-col px-4 sm:px-6">
     <div v-if="pending" class="flex-1 grid place-items-center text-[13px] text-[var(--gh-ink-soft)]">読み込み中…</div>
 
     <div v-else-if="!info" class="flex-1 grid place-items-center text-center px-6">
@@ -25,7 +25,7 @@
       </header>
 
       <!-- 会話エリア -->
-      <div ref="scrollEl" class="flex-1 overflow-y-auto py-2 space-y-4">
+      <div ref="scrollEl" class="flex-1 overflow-y-auto py-2 space-y-4" @scroll="onScroll">
         <!-- ウェルカム -->
         <div class="gh-rise">
           <div class="inline-block rounded-2xl rounded-tl-md bg-[var(--gh-card)] border border-[var(--gh-line)] px-4 py-3 max-w-[88%]">
@@ -75,7 +75,14 @@
       </div>
 
       <!-- 入力欄 -->
-      <div class="sticky bottom-0 bg-gradient-to-t from-[var(--gh-paper)] via-[var(--gh-paper)] to-transparent pt-3 pb-4">
+      <div class="relative shrink-0 bg-gradient-to-t from-[var(--gh-paper)] via-[var(--gh-paper)] to-transparent pt-3 pb-4">
+        <button
+          v-if="!atBottom"
+          type="button"
+          class="absolute right-0 -top-2 w-9 h-9 flex items-center justify-center rounded-full border border-[var(--gh-line)] bg-[var(--gh-card)] text-[var(--gh-ink-soft)] shadow-md hover:text-[var(--gh-forest-deep)] transition"
+          title="一番下へ"
+          @click="scrollToBottom"
+        >▼</button>
         <form class="flex items-end gap-2" @submit.prevent="send">
           <textarea
             ref="taEl"
@@ -122,6 +129,7 @@ const messages = ref<ThreadMessage[]>([])
 const draft = ref('')
 const guestName = ref('')
 const sending = ref(false)
+const atBottom = ref(true)
 const scrollEl = ref<HTMLElement | null>(null)
 const taEl = ref<HTMLTextAreaElement | null>(null)
 let pollTimer: ReturnType<typeof setInterval> | null = null
@@ -149,10 +157,18 @@ function autoGrow() {
   el.style.height = Math.min(el.scrollHeight, 128) + 'px'
 }
 
+// 一番下付近にいるか（「▼一番下へ」の表示判定）。多少の余白を許容する。
+function onScroll() {
+  const el = scrollEl.value
+  if (!el) return
+  atBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight < 24
+}
+
 async function scrollToBottom() {
   await nextTick()
   const el = scrollEl.value
   if (el) el.scrollTop = el.scrollHeight
+  atBottom.value = true
 }
 
 async function persistName() {
