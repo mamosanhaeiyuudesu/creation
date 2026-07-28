@@ -1,14 +1,16 @@
 <template>
   <div class="max-w-[680px] mx-auto px-4 sm:px-6 pt-6 pb-24">
-    <div class="flex items-center gap-2 mb-1">
-      <NuxtLink to="/guesthouse" class="text-[13px] text-[var(--gh-ink-soft)] hover:text-[var(--gh-ink)]">← 管理トップ</NuxtLink>
-    </div>
-    <h1 class="gh-display text-[22px] font-bold mb-1">旅の情報</h1>
-    <ul class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed mb-5 space-y-1">
-      <li class="flex gap-1.5"><span class="shrink-0">・</span><span>高野山・観光・食事などのおすすめを、すべての宿で共通に使う情報として登録します。</span></li>
-      <li class="flex gap-1.5"><span class="shrink-0">・</span><span>「<b>モデルコース</b>」の分類には、近隣スポットや食事を組み合わせた1日プラン・周遊コースを入れておくと、旅程に合わせた提案に活きます。</span></li>
-      <li class="flex gap-1.5"><span class="shrink-0">・</span><span><b>お客様には自動応答しません</b>。観光の相談が来たとき、AIが「阪中さんの返信」の下書きを作る素材として使います。</span></li>
-    </ul>
+    <Breadcrumb class="mb-2" :items="[{ label: '管理トップ', to: '/guesthouse' }, { label: '旅の情報' }]" />
+    <h1 class="gh-display text-[22px] font-bold mb-5 flex items-center gap-2">
+      旅の情報
+      <HelpTip label="このページの説明">
+        <ul class="space-y-1.5">
+          <li class="flex gap-1.5"><span class="shrink-0">・</span><span>高野山・観光・食事などのおすすめを、すべての宿で共通に使う情報として登録します。</span></li>
+          <li class="flex gap-1.5"><span class="shrink-0">・</span><span>「<b>モデルコース</b>」の分類には、近隣スポットや食事を組み合わせた1日プラン・周遊コースを入れておくと、旅程に合わせた提案に活きます。</span></li>
+          <li class="flex gap-1.5"><span class="shrink-0">・</span><span>お客様チャットで観光の相談が来たとき、AIが答える<b>素材</b>として使われます。</span></li>
+        </ul>
+      </HelpTip>
+    </h1>
 
     <div v-if="notAdmin" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] px-4 py-10 text-center">
       <p class="text-[15px] font-bold mb-1">管理者専用のページです</p>
@@ -117,6 +119,8 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
+import HelpTip from '~/components/guesthouse/HelpTip.vue'
+import Breadcrumb from '~/components/guesthouse/Breadcrumb.vue'
 import type { ExtractedTip, Tip, TipExtractResult } from '~/types/guesthouse'
 
 definePageMeta({ layout: 'guesthouse' })

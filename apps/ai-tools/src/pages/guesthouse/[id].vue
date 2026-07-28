@@ -1,8 +1,10 @@
 <template>
   <div class="max-w-[680px] mx-auto px-4 sm:px-6 pt-6 pb-24">
     <div class="flex items-center justify-between gap-2 mb-4">
-      <NuxtLink to="/guesthouse/houses" class="text-[13px] text-[var(--gh-ink-soft)] hover:text-[var(--gh-ink)]">← 宿一覧</NuxtLink>
-      <button v-if="house" class="text-[12.5px] text-[var(--gh-ink-faint)] hover:text-[var(--gh-warn)]" @click="remove">この宿を削除</button>
+      <Breadcrumb
+        :items="[{ label: '管理トップ', to: '/guesthouse' }, { label: '宿の情報', to: '/guesthouse/houses' }, { label: house?.name || '宿' }]"
+      />
+      <button v-if="house" class="text-[12.5px] text-[var(--gh-ink-faint)] hover:text-[var(--gh-warn)] shrink-0" @click="remove">この宿を削除</button>
     </div>
 
     <div v-if="loading" class="py-24 text-center text-[var(--gh-ink-soft)] text-[13px]">読み込み中…</div>
@@ -31,9 +33,11 @@
       <template v-else-if="tab === 'sessions'">
         <!-- お客様の会話を新規発行（1人＝1リンク＝1会話・日記） -->
         <div class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] p-4 mb-5">
-          <p class="gh-display font-bold text-[15px] mb-1">お客様の会話を新規発行</p>
-          <p class="text-[11.5px] text-[var(--gh-ink-soft)] leading-relaxed mb-3">
-            お客様1人ごとに専用リンクを発行します。予約が確定したお客様にお渡しください。
+          <p class="gh-display font-bold text-[15px] mb-3 flex items-center gap-2">
+            お客様の会話を新規発行
+            <HelpTip label="新規発行とは">
+              お客様1人ごとに専用リンクを発行します。予約が確定したお客様にお渡しください。1人＝1リンク＝1会話・日記になります。
+            </HelpTip>
           </p>
           <div class="flex items-center gap-2">
             <input
@@ -105,6 +109,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import HouseForm from '~/components/guesthouse/HouseForm.vue'
 import SharePanel from '~/components/guesthouse/SharePanel.vue'
+import HelpTip from '~/components/guesthouse/HelpTip.vue'
+import Breadcrumb from '~/components/guesthouse/Breadcrumb.vue'
 import type { Diary, House, HouseInput, SessionSummary } from '~/types/guesthouse'
 
 definePageMeta({ layout: 'guesthouse' })

@@ -13,6 +13,7 @@ import type {
   HouseSummary,
   MessageRole,
   SessionDetail,
+  SessionListItem,
   SessionSummary,
   ThreadMessage,
   Tip,
@@ -426,6 +427,91 @@ export async function updateGuestNameIfChanged(event: H3Event, db: any, session:
 
 export async function touchSession(db: any, sessionId: string): Promise<void> {
   await db.prepare("UPDATE guesthouse_sessions SET updated_at = datetime('now') WHERE id = ?").bind(sessionId).run()
+}
+
+/** セッションをクローズ/再開する（所有者チェック込み）。実際に変更できたら true。 */
+export async function setSessionStatus(db: any, userId: string, sessionId: string, status: SessionStatus): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `UPDATE guesthouse_sessions SET status = ?, updated_at = datetime('now')
+       WHERE id = ? AND house_id IN (SELECT id FROM guesthouse_houses WHERE user_id = ?)`
+    )
+    .bind(status, sessionId, userId)
+    .run()
+  return (res?.meta?.changes ?? 0) > 0
+}
+
+/** クローズ済みのセッションに新しい発言が来たら active に戻す（お客様チャット用・所有者チェック不要）。 */
+export async function reopenSession(db: any, sessionId: string): Promise<void> {
+  await db.prepare("UPDATE guesthouse_sessions SET status = 'active' WHERE id = ?").bind(sessionId).run()
+}
+
+/**
+ * 全宿横断のセッション一覧（管理トップの進行中パネル／チャット一覧ページ共通）。ユーザー所有分のみ・宿名付き。
+ * opts.status: 'active' | 'closed' | 'all'（既定 all）。opts.houseId で宿で絞り込み。
+ * opts.onlyStarted=true でメッセージ0件（未開封）を除外。opts.limit で件数制限。
+ */
+export async function loadSessions(
+  event: H3Event,
+  db: any,
+  userId: string,
+  opts: { status?: 'active' | 'closed' | 'all'; houseId?: string; onlyStarted?: boolean; limit?: number } = {}
+): Promise<SessionListItem[]> {
+  const where: string[] = ['h.user_id = ?']
+  const binds: any[] = [userId]
+  if (opts.houseId) {
+    where.push('s.house_id = ?')
+    binds.push(opts.houseId)
+  }
+  if (opts.status && opts.status !== 'all') {
+    where.push('s.status = ?')
+    binds.push(opts.status)
+  }
+  if (opts.onlyStarted) where.push('EXISTS (SELECT 1 FROM guesthouse_messages m WHERE m.session_id = s.id)')
+  let sql = `SELECT s.*, h.name AS house_name FROM guesthouse_sessions s
+     JOIN guesthouse_houses h ON h.id = s.house_id
+     WHERE ${where.join(' AND ')}
+     ORDER BY s.updated_at DESC`
+  if (opts.limit) {
+    sql += ' LIMIT ?'
+    binds.push(opts.limit)
+  }
+  const rows = await db.prepare(sql).bind(...binds).all<SessionRow & { house_name: string }>()
+  const sessions: (SessionRow & { house_name: string })[] = rows?.results ?? []
+  if (!sessions.length) return []
+  const ids = sessions.map((s) => s.id)
+  const ph = ids.map(() => '?').join(',')
+  const msgCounts = await db
+    .prepare(`SELECT session_id, COUNT(*) AS c FROM guesthouse_messages WHERE session_id IN (${ph}) GROUP BY session_id`)
+    .bind(...ids)
+    .all<{ session_id: string; c: number }>()
+  const diaryRows = await db
+    .prepare(`SELECT DISTINCT session_id FROM guesthouse_diaries WHERE session_id IN (${ph})`)
+    .bind(...ids)
+    .all<{ session_id: string }>()
+  const consultRows = await db
+    .prepare(`SELECT session_id, COUNT(*) AS c FROM guesthouse_consults WHERE session_id IN (${ph}) AND status = 'pending' GROUP BY session_id`)
+    .bind(...ids)
+    .all<{ session_id: string; c: number }>()
+  const countBy = new Map<string, number>()
+  for (const r of msgCounts?.results ?? []) countBy.set(r.session_id, r.c)
+  const hasDiary = new Set<string>((diaryRows?.results ?? []).map((r: any) => r.session_id))
+  const pendingBy = new Map<string, number>()
+  for (const r of consultRows?.results ?? []) pendingBy.set(r.session_id, r.c)
+
+  return Promise.all(
+    sessions.map(async (s) => ({
+      id: s.id,
+      houseId: s.house_id,
+      houseName: s.house_name,
+      guestName: await decryptName(event, s.guest_name),
+      messageCount: countBy.get(s.id) ?? 0,
+      hasDiary: hasDiary.has(s.id),
+      pendingConsults: pendingBy.get(s.id) ?? 0,
+      status: s.status === 'closed' ? 'closed' : 'active',
+      updatedAt: s.updated_at,
+    }))
+  )
 }
 
 export async function addMessage(

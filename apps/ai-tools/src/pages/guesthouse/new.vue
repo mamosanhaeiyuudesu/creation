@@ -1,8 +1,9 @@
 <template>
   <div class="max-w-[680px] mx-auto px-4 sm:px-6 pt-6 pb-24">
-    <div class="flex items-center gap-2 mb-4">
-      <NuxtLink to="/guesthouse/houses" class="text-[13px] text-[var(--gh-ink-soft)] hover:text-[var(--gh-ink)]">← 宿一覧</NuxtLink>
-    </div>
+    <Breadcrumb
+      class="mb-4"
+      :items="[{ label: '管理トップ', to: '/guesthouse' }, { label: '宿の情報', to: '/guesthouse/houses' }, { label: '宿を追加' }]"
+    />
     <h1 class="gh-display text-[22px] font-bold mb-5">宿を追加</h1>
 
     <HouseForm v-model="form" />
@@ -21,6 +22,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import HouseForm from '~/components/guesthouse/HouseForm.vue'
+import Breadcrumb from '~/components/guesthouse/Breadcrumb.vue'
 import type { House, HouseInput } from '~/types/guesthouse'
 
 definePageMeta({ layout: 'guesthouse' })

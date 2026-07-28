@@ -4,8 +4,12 @@
       <div class="flex items-center gap-2.5">
         <span class="text-3xl" style="font-family:'Apple Color Emoji','Segoe UI Emoji',sans-serif">🏡</span>
         <div>
-          <h1 class="gh-display text-[22px] sm:text-[26px] font-bold leading-none">ゲストハウス案内（管理）</h1>
-          <p class="text-[12px] text-[var(--gh-ink-soft)] mt-1">お客様への返信・確認の管理ページ</p>
+          <h1 class="gh-display text-[22px] sm:text-[26px] font-bold leading-none flex items-center gap-2">
+            ゲストハウス案内（管理）
+            <HelpTip label="このページの説明">
+              お客様への返信・確認をおこなう管理ページです。左（スマホは上）が<b>対応待ちの相談</b>、右（スマホは下）が<b>傾向</b>です。上のボタンから宿の情報・旅の情報の登録に進めます。
+            </HelpTip>
+          </h1>
         </div>
       </div>
       <button v-if="isLoggedIn" class="text-[13px] text-[var(--gh-ink-soft)] px-2.5 py-1.5 rounded-full hover:bg-black/[0.04]" @click="doLogout">ログアウト</button>
@@ -24,18 +28,53 @@
       <div class="flex flex-wrap items-center gap-2 mt-4 mb-6">
         <NuxtLink to="/guesthouse/houses" class="gh-btn-ghost inline-flex items-center">🏠 宿の情報</NuxtLink>
         <NuxtLink to="/guesthouse/tips" class="gh-btn-ghost inline-flex items-center">🗺 旅の情報</NuxtLink>
+        <button type="button" class="gh-btn-ghost inline-flex items-center" @click="issueOpen = true">✉️ 会話を発行</button>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
-        <!-- 左（スマホは上）：対応待ちの相談 -->
+        <!-- 左（スマホは上）：進行中のチャット → 対応待ちの相談 -->
+        <div class="space-y-8">
+        <!-- 進行中のチャット -->
         <section>
-          <h2 class="gh-display text-[16px] font-bold mb-2 flex items-center gap-2">
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <h2 class="gh-display text-[16px] font-bold flex items-center gap-2">
+              進行中のチャット
+              <span v-if="activeSessions.length" class="inline-grid place-items-center min-w-[20px] h-[20px] px-1 rounded-full bg-[var(--gh-forest)] text-white text-[11px]">{{ activeSessions.length }}</span>
+              <HelpTip label="進行中のチャットとは">
+                お客様とやりとり中のチャットです。行をタップで会話を開けます。「すべて見る」から、クローズ済みも含めて宿・状態で絞り込み表示できます。
+              </HelpTip>
+            </h2>
+            <NuxtLink to="/guesthouse/sessions" class="gh-btn-ghost !h-9 !px-3.5 text-[12.5px] shrink-0 inline-flex items-center">すべて見る</NuxtLink>
+          </div>
+          <div v-if="loading" class="h-20 rounded-2xl bg-[var(--gh-paper-2)]/70 animate-pulse" />
+          <p v-else-if="!activeSessions.length" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] text-center text-[var(--gh-ink-soft)] py-8 text-[13.5px]">
+            進行中のチャットはありません。
+          </p>
+          <ul v-else class="space-y-2">
+            <li v-for="s in activeSessions" :key="s.id">
+              <NuxtLink :to="`/guesthouse/session/${s.id}`" class="block rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] px-4 py-3 transition hover:border-[var(--gh-forest-soft)]">
+                <div class="flex items-center gap-2">
+                  <span class="gh-chip !py-0.5 !px-2 !text-[11px]">{{ s.houseName }}</span>
+                  <p class="font-bold text-[14px] truncate">{{ s.guestName || '名前未設定のお客様' }}</p>
+                  <span v-if="s.pendingConsults" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-warn)] !border-[color-mix(in_srgb,var(--gh-warn)_40%,transparent)]">相談 {{ s.pendingConsults }}</span>
+                  <span v-if="s.hasDiary" class="gh-chip !py-0.5 !px-2 !text-[10.5px]">日記あり</span>
+                  <span v-if="!s.messageCount" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-ink-faint)]">未開封</span>
+                  <span class="ml-auto text-[11px] text-[var(--gh-ink-faint)] shrink-0">{{ s.messageCount }}件 ・ {{ formatDate(s.updatedAt) }}</span>
+                </div>
+              </NuxtLink>
+            </li>
+          </ul>
+        </section>
+
+        <!-- 対応待ちの相談 -->
+        <section>
+          <h2 class="gh-display text-[16px] font-bold mb-3 flex items-center gap-2">
             対応待ちの相談
             <span v-if="consults.length" class="inline-grid place-items-center min-w-[20px] h-[20px] px-1 rounded-full bg-[var(--gh-warn)] text-white text-[11px]">{{ consults.length }}</span>
+            <HelpTip label="対応待ちの相談とは">
+              AIでは答えられない・対応してはいけない緊急や重要な相談です（例：鍵が開かない、トラブルなど）。AIの下書きを確認・修正して送ると、お客様に<b>「阪中さん」</b>として届きます。
+            </HelpTip>
           </h2>
-          <p class="text-[12px] text-[var(--gh-ink-soft)] leading-relaxed mb-3">
-            AIが答えられなかった相談です。下書きを確認・修正して送ると、お客様に<b>「阪中さん」</b>として届きます。
-          </p>
 
           <div v-if="loading" class="h-32 rounded-2xl bg-[var(--gh-paper-2)]/70 animate-pulse" />
           <p v-else-if="!consults.length" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] text-center text-[var(--gh-ink-soft)] py-8 text-[13.5px]">
@@ -64,21 +103,22 @@
             </li>
           </ul>
         </section>
+        </div>
 
         <!-- 右（スマホは下）：傾向 -->
         <section>
-          <div class="flex items-center justify-between gap-2 mb-2">
+          <div class="flex items-center justify-between gap-2 mb-3">
             <h2 class="gh-display text-[16px] font-bold flex items-center gap-2">
               傾向
               <span v-if="trends?.stale" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-forest-deep)]">新しい日記あり</span>
+              <HelpTip label="傾向とは">
+                お客さん日記から、次の一手に活きる傾向をAIが見つけます（日記が2件以上で有効）。「更新」で最新の日記をもとに再計算します（日記に変化がなければ再計算しません）。
+              </HelpTip>
             </h2>
             <button class="gh-btn-ghost !h-9 !px-3.5 text-[12.5px] shrink-0" :disabled="trendsBusy || loading" @click="refreshTrends">
               {{ trendsBusy ? '分析中…' : '更新' }}
             </button>
           </div>
-          <p class="text-[12px] text-[var(--gh-ink-soft)] leading-relaxed mb-3">
-            お客さん日記から、次の一手に活きる傾向をAIが見つけます（日記が2件以上で有効）。「更新」で最新の日記をもとに再計算します（日記に変化がなければ再計算しません）。
-          </p>
 
           <div v-if="loading" class="h-32 rounded-2xl bg-[var(--gh-paper-2)]/70 animate-pulse" />
           <template v-else-if="trends">
@@ -100,6 +140,7 @@
       </div>
     </template>
 
+    <IssueSessionModal :open="issueOpen" @close="issueOpen = false" @issued="loadActiveSessions" />
     <AuthModal v-if="showAuthModal" accent="orange" />
   </div>
 </template>
@@ -108,7 +149,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
-import type { Consult, Trends, TrendsRefreshResult } from '~/types/guesthouse'
+import HelpTip from '~/components/guesthouse/HelpTip.vue'
+import IssueSessionModal from '~/components/guesthouse/IssueSessionModal.vue'
+import type { Consult, SessionListItem, Trends, TrendsRefreshResult } from '~/types/guesthouse'
 
 definePageMeta({ layout: 'guesthouse' })
 useHead({ title: 'ゲストハウス案内（管理）' })
@@ -121,17 +164,27 @@ interface ConsultRow extends Consult {
   error: string
 }
 const consults = ref<ConsultRow[]>([])
+const activeSessions = ref<SessionListItem[]>([])
 const trends = ref<Trends | null>(null)
 const trendsBusy = ref(false)
 const trendsError = ref('')
 const loading = ref(true)
 const notAdmin = ref(false)
+const issueOpen = ref(false)
+
+// 進行中（active）のチャット。発行しただけ（未開封）も作った時点で出す。
+async function loadActiveSessions() {
+  activeSessions.value = await $fetch<SessionListItem[]>('/api/guesthouse/sessions', {
+    query: { status: 'active', limit: 8 },
+  })
+}
 
 async function load() {
   loading.value = true
   try {
-    const [c, t] = await Promise.all([
+    const [c, , t] = await Promise.all([
       $fetch<Consult[]>('/api/guesthouse/consults'),
+      loadActiveSessions(),
       $fetch<Trends>('/api/guesthouse/trends'),
     ])
     consults.value = c.map((x) => ({ ...x, busy: false, error: '' }))
@@ -139,6 +192,7 @@ async function load() {
   } catch (e: any) {
     if ((e?.statusCode ?? e?.response?.status) === 403) notAdmin.value = true
     consults.value = []
+    activeSessions.value = []
     trends.value = null
   } finally {
     loading.value = false

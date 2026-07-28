@@ -1,12 +1,12 @@
 <template>
   <div class="max-w-[760px] mx-auto px-4 sm:px-6 pt-6 pb-24">
-    <div class="flex items-center gap-2 mb-1">
-      <NuxtLink to="/guesthouse" class="text-[13px] text-[var(--gh-ink-soft)] hover:text-[var(--gh-ink)]">← 管理トップ</NuxtLink>
-    </div>
-    <h1 class="gh-display text-[22px] font-bold mb-1">宿の情報</h1>
-    <p class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed mb-5">
-      宿ごとにコンセプトと事務案内（駐車場・鍵・Wi-Fi・ゴミ出しなど）を登録し、お客様用の共有リンク・QRを発行します。
-    </p>
+    <Breadcrumb class="mb-2" :items="[{ label: '管理トップ', to: '/guesthouse' }, { label: '宿の情報' }]" />
+    <h1 class="gh-display text-[22px] font-bold mb-5 flex items-center gap-2">
+      宿の情報
+      <HelpTip label="このページの説明">
+        宿ごとにコンセプトと事務案内（駐車場・鍵・Wi-Fi・ゴミ出しなど）を登録し、お客様用の共有リンク・QRを発行します。
+      </HelpTip>
+    </h1>
 
     <div class="mb-5">
       <NuxtLink to="/guesthouse/new" class="gh-btn inline-flex items-center">＋ 宿を追加</NuxtLink>
@@ -47,6 +47,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
+import HelpTip from '~/components/guesthouse/HelpTip.vue'
+import Breadcrumb from '~/components/guesthouse/Breadcrumb.vue'
 import type { HouseSummary } from '~/types/guesthouse'
 
 definePageMeta({ layout: 'guesthouse' })

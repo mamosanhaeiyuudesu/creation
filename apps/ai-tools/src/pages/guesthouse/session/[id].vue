@@ -1,16 +1,25 @@
 <template>
   <div class="max-w-[720px] mx-auto px-4 sm:px-6 pt-6 pb-24">
-    <div class="flex items-center gap-2 mb-3">
-      <NuxtLink to="/guesthouse" class="text-[13px] text-[var(--gh-ink-soft)] hover:text-[var(--gh-ink)]">← 管理トップ</NuxtLink>
-    </div>
+    <Breadcrumb
+      class="mb-3"
+      :items="[{ label: '管理トップ', to: '/guesthouse' }, { label: 'チャット一覧', to: '/guesthouse/sessions' }, { label: detail?.guestName || '会話' }]"
+    />
 
     <div v-if="loading" class="py-24 text-center text-[var(--gh-ink-soft)] text-[13px]">読み込み中…</div>
     <div v-else-if="!detail" class="py-24 text-center text-[var(--gh-ink-soft)] text-[14px]">会話が見つかりませんでした。</div>
 
     <template v-else>
-      <header class="mb-4">
-        <p class="text-[11px] text-[var(--gh-ink-faint)] mb-0.5">{{ detail.houseName }}</p>
-        <h1 class="gh-display text-[21px] font-bold">{{ detail.guestName || '名前未設定のお客様' }}</h1>
+      <header class="mb-4 flex items-start justify-between gap-2">
+        <div class="min-w-0">
+          <p class="text-[11px] text-[var(--gh-ink-faint)] mb-0.5">{{ detail.houseName }}</p>
+          <h1 class="gh-display text-[21px] font-bold flex items-center gap-2 flex-wrap">
+            {{ detail.guestName || '名前未設定のお客様' }}
+            <span v-if="detail.status === 'closed'" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-ink-faint)]">クローズ済み</span>
+          </h1>
+        </div>
+        <button class="gh-btn-ghost !h-9 !px-3.5 text-[12.5px] shrink-0" :disabled="statusBusy" @click="toggleStatus">
+          {{ statusBusy ? '…' : detail.status === 'closed' ? '再開する' : 'クローズする' }}
+        </button>
       </header>
 
       <!-- 会話ログ -->
@@ -101,6 +110,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import Breadcrumb from '~/components/guesthouse/Breadcrumb.vue'
 import type { Diary, DiaryContent, FarewellDraft, SessionDetail } from '~/types/guesthouse'
 
 definePageMeta({ layout: 'guesthouse' })
@@ -110,6 +120,7 @@ const id = route.params.id as string
 
 const detail = ref<SessionDetail | null>(null)
 const loading = ref(true)
+const statusBusy = ref(false)
 
 // 日記
 const diary = ref<{ summary: string; content: DiaryContent } | null>(null)
@@ -136,6 +147,20 @@ async function load() {
     detail.value = null
   } finally {
     loading.value = false
+  }
+}
+
+async function toggleStatus() {
+  if (!detail.value) return
+  statusBusy.value = true
+  try {
+    const next = detail.value.status === 'closed' ? 'active' : 'closed'
+    await $fetch(`/api/guesthouse/sessions/${id}/status`, { method: 'POST', body: { status: next } })
+    detail.value = { ...detail.value, status: next }
+  } catch {
+    /* noop */
+  } finally {
+    statusBusy.value = false
   }
 }
 

@@ -164,6 +164,9 @@ export interface FarewellDraft {
   reviewRequest: string // レビュー依頼文（予約サイトに貼るコピー用）
 }
 
+/** 滞在セッションの状態。active=進行中 / closed=ホストがクローズ済み（再開可）。 */
+export type SessionStatus = 'active' | 'closed'
+
 /** ホストの会話一覧用サマリ。 */
 export interface SessionSummary {
   id: string
@@ -171,6 +174,19 @@ export interface SessionSummary {
   messageCount: number
   hasDiary: boolean
   pendingConsults: number
+  updatedAt: string
+}
+
+/** チャット一覧の1行（全宿横断・管理トップの進行中パネル/一覧ページ共通）。宿名と状態付き。 */
+export interface SessionListItem {
+  id: string
+  houseId: string
+  houseName: string
+  guestName: string
+  messageCount: number
+  hasDiary: boolean
+  pendingConsults: number
+  status: SessionStatus
   updatedAt: string
 }
 

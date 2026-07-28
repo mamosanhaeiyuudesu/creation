@@ -7,6 +7,7 @@ import {
   loadMessages,
   createConsult,
   loadHouseOwnerTipsText,
+  reopenSession,
 } from '~/server/utils/guesthouse'
 import { triageGuestMessage, answerGuestMessage, draftConsultReply, draftEmergencyReply } from '~/server/utils/guesthouse-ai'
 import type { ReplyKind, StayChatReply, StayChatRequest } from '~/types/guesthouse'
@@ -39,6 +40,8 @@ export default defineEventHandler(async (event): Promise<StayChatReply> => {
   // お客様が名前を入力・変更していれば反映し、お客様の発言を保存する。
   await updateGuestNameIfChanged(event, db, session, body?.guestName)
   await addMessage(event, db, session.id, 'guest', message)
+  // クローズ済みのチャットにお客様から新しい発言が来たら、進行中に戻す（取りこぼし防止）。
+  if (session.status === 'closed') await reopenSession(db, session.id)
 
   const thread = await loadMessages(event, db, session.id) // 末尾は今回の guest 発言
 
