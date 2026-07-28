@@ -155,9 +155,14 @@ async function scrollToBottom() {
   if (el) el.scrollTop = el.scrollHeight
 }
 
-function persistName() {
-  // 名前はサーバーには次回送信時に反映される。ローカルにも控えておく（再読込時の再入力を省く）。
+async function persistName() {
+  // ローカルに控えつつ（再読込時の再入力を省く）、サーバーにも即反映する（管理側の一覧に名前を出すため）。
   if (process.client) localStorage.setItem(nameKey, guestName.value)
+  try {
+    await $fetch(`/api/guesthouse/stay/${token}/name`, { method: 'POST', body: { guestName: guestName.value } })
+  } catch {
+    /* 一時的な失敗は無視（次回送信時にも反映される） */
+  }
 }
 
 function ask(text: string) {

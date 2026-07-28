@@ -17,17 +17,23 @@
             <span v-if="detail.status === 'closed'" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-ink-faint)]">クローズ済み</span>
           </h1>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <button class="gh-btn-ghost !h-9 !px-3.5 text-[12.5px] inline-flex items-center" @click="showShare = !showShare">
-            {{ showShare ? 'リンクを隠す' : 'お客様リンク・QR' }}
-          </button>
-          <button class="gh-btn-ghost !h-9 !px-3.5 text-[12.5px] inline-flex items-center" :disabled="statusBusy" @click="toggleStatus">
-            {{ statusBusy ? '…' : detail.status === 'closed' ? '再開する' : 'クローズする' }}
-          </button>
-        </div>
+        <button class="gh-btn-ghost !h-9 !px-3.5 text-[12.5px] inline-flex items-center shrink-0" :disabled="statusBusy" @click="toggleStatus">
+          {{ statusBusy ? '…' : detail.status === 'closed' ? '再開する' : 'クローズする' }}
+        </button>
       </header>
 
-      <!-- お客様の共有リンク・QR（お渡し用） -->
+      <!-- お客様チャットへの導線（別タブで開く・リンク/QR） -->
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4">
+        <a
+          :href="`/guesthouse/stay/${id}`"
+          target="_blank"
+          rel="noopener"
+          class="text-[12.5px] text-[var(--gh-forest-deep)] hover:underline underline-offset-2 inline-flex items-center gap-1"
+        >お客様チャットを別タブで開く ↗</a>
+        <button class="text-[12.5px] text-[var(--gh-ink-soft)] hover:text-[var(--gh-ink)]" @click="showShare = !showShare">
+          {{ showShare ? 'リンク・QRを隠す' : 'リンク・QRを表示' }}
+        </button>
+      </div>
       <div v-if="showShare" class="mb-4">
         <SharePanel :token="id" />
       </div>
