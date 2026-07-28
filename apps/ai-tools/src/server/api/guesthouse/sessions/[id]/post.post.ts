@@ -7,13 +7,13 @@ export default defineEventHandler(async (event) => {
   await ensureGuesthouseTables(db)
   const id = getRouterParam(event, 'id') || ''
 
-  const detail = await loadSessionDetail(db, user.id, id)
+  const detail = await loadSessionDetail(event, db, user.id, id)
   if (!detail) throw createError({ statusCode: 404, message: '会話が見つかりません' })
 
   const body = await readBody<{ content: string }>(event)
   const content = (body?.content ?? '').trim()
   if (!content) throw createError({ statusCode: 400, message: 'メッセージを入力してください' })
 
-  await addMessage(db, id, 'host', content, 'reply')
+  await addMessage(event, db, id, 'host', content, 'reply')
   return { ok: true }
 })

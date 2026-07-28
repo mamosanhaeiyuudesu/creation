@@ -9,7 +9,7 @@ export default defineEventHandler(async (event): Promise<FarewellDraft> => {
   await ensureGuesthouseTables(db)
   const id = getRouterParam(event, 'id') || ''
 
-  const detail = await loadSessionDetail(db, user.id, id)
+  const detail = await loadSessionDetail(event, db, user.id, id)
   if (!detail) throw createError({ statusCode: 404, message: '会話が見つかりません' })
 
   const house = await loadHouse(db, { userId: user.id, houseId: detail.houseId })

@@ -12,7 +12,7 @@ export default defineEventHandler(async (event): Promise<Trends> => {
   const house = await getOwnedHouse(db, user.id, id)
   if (!house) throw createError({ statusCode: 404, message: '宿が見つかりません' })
 
-  const diaries = await loadDiaries(db, id)
+  const diaries = await loadDiaries(event, db, id)
   if (diaries.length < 2) return { items: [], basedOn: diaries.length }
 
   const { anthropicApiKey } = useRuntimeConfig(event)

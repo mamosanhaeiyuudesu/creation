@@ -60,11 +60,11 @@ export default defineEventHandler(async (event): Promise<StayChatReply> => {
   if (!message) throw createError({ statusCode: 400, message: '質問を入力してください' })
 
   // セッションを解決（無ければ新規発行）し、お客様の発言を保存する。
-  const session = await resolveSession(db, house.id, body?.sessionId, body?.guestName)
-  await addMessage(db, session.id, 'guest', message)
+  const session = await resolveSession(event, db, house.id, body?.sessionId, body?.guestName)
+  await addMessage(event, db, session.id, 'guest', message)
 
   // 直近の会話を文脈として Claude に渡す。
-  const thread = await loadMessages(db, session.id)
+  const thread = await loadMessages(event, db, session.id)
   const history: ChatMessage[] = thread
     .slice(-12)
     .map((m) => ({ role: m.role === 'guest' ? 'user' : 'assistant', content: m.content }))
@@ -82,12 +82,12 @@ export default defineEventHandler(async (event): Promise<StayChatReply> => {
   if (!reply) reply = 'すみません、阪中さんに確認しますね。少しお待ちください。'
 
   if (kind === 'auto' && parsed?.kind === 'auto') {
-    await addMessage(db, session.id, 'auto', reply, 'auto')
+    await addMessage(event, db, session.id, 'auto', reply, 'auto')
     return { sessionId: session.id, kind: 'auto', reply }
   }
 
   // handoff：会話には「確認しますね」を残し、阪中さんの受信箱に相談＋AI下書きを作る。
-  await addMessage(db, session.id, 'auto', reply, 'handoff')
+  await addMessage(event, db, session.id, 'auto', reply, 'handoff')
   let draft = ''
   try {
     const tips = await loadHouseOwnerTipsText(db, house.id)
@@ -95,7 +95,7 @@ export default defineEventHandler(async (event): Promise<StayChatReply> => {
   } catch {
     draft = '' // 下書き生成に失敗しても相談自体は登録する（阪中さんが手で書ける）。
   }
-  await createConsult(db, session.id, house.id, message, draft)
+  await createConsult(event, db, session.id, house.id, message, draft)
 
   return { sessionId: session.id, kind: 'handoff', reply }
 })

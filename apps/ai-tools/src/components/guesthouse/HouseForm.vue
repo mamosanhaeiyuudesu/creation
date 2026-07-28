@@ -19,7 +19,10 @@
         <label class="gh-label !mb-0">事務案内（AIが即答する内容）</label>
         <span class="text-[11px] text-[var(--gh-ink-faint)]">{{ infoFacts.length }} 件</span>
       </div>
-      <p class="gh-hint">駐車場・鍵・チェックイン方法・Wi-Fi・ゴミ出しなど、答えが決まっている事務的なこと。<br>お客様チャットでそのまま自動応答されます。</p>
+      <ul class="gh-hint space-y-1">
+        <li class="flex gap-1.5"><span class="shrink-0">・</span><span>駐車場・鍵・チェックイン方法・Wi-Fi・ゴミ出しなど、答えが決まっている事務的なこと。</span></li>
+        <li class="flex gap-1.5"><span class="shrink-0">・</span><span>お客様チャットでそのまま自動応答されます。</span></li>
+      </ul>
 
       <div class="flex flex-wrap gap-2 mb-3">
         <button type="button" class="gh-btn-ghost !h-9" @click="importOpen = true">✎ AIで会話・メモから取り込み</button>

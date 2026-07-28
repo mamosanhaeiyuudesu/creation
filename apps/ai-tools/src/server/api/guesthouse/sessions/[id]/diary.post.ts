@@ -9,7 +9,7 @@ export default defineEventHandler(async (event): Promise<{ content: DiaryContent
   await ensureGuesthouseTables(db)
   const id = getRouterParam(event, 'id') || ''
 
-  const detail = await loadSessionDetail(db, user.id, id)
+  const detail = await loadSessionDetail(event, db, user.id, id)
   if (!detail) throw createError({ statusCode: 404, message: '会話が見つかりません' })
   if (!detail.messages.length) throw createError({ statusCode: 400, message: 'まだ会話がありません' })
 

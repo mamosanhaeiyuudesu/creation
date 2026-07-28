@@ -9,5 +9,5 @@ export default defineEventHandler(async (event) => {
 
   const house = await getOwnedHouse(db, user.id, id)
   if (!house) throw createError({ statusCode: 404, message: '宿が見つかりません' })
-  return await loadSessionSummaries(db, id)
+  return await loadSessionSummaries(event, db, id)
 })

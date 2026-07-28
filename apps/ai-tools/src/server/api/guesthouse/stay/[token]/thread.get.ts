@@ -1,4 +1,5 @@
 import { requireGuesthouseDb, ensureGuesthouseTables, loadHouse, loadMessages } from '~/server/utils/guesthouse'
+import { decryptComment } from '~/server/utils/encrypt'
 import type { StayThread } from '~/types/guesthouse'
 
 // お客様チャットのスレッド取得（ログイン不要・ポーリング用）。
@@ -20,5 +21,9 @@ export default defineEventHandler(async (event): Promise<StayThread> => {
     .first<{ id: string; guest_name: string }>()
   if (!row) return { sessionId: '', guestName: '', messages: [] }
 
-  return { sessionId: row.id, guestName: row.guest_name, messages: await loadMessages(db, sessionId) }
+  return {
+    sessionId: row.id,
+    guestName: await decryptComment(event, row.guest_name ?? ''),
+    messages: await loadMessages(event, db, sessionId),
+  }
 })

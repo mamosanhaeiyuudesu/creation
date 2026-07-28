@@ -14,6 +14,6 @@ export default defineEventHandler(async (event) => {
   const answer = (body?.answer ?? '').trim()
   if (!answer) throw createError({ statusCode: 400, message: '返信内容を入力してください' })
 
-  await answerConsult(db, consult, answer)
+  await answerConsult(event, db, consult, answer)
   return { ok: true }
 })

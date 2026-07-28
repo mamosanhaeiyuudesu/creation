@@ -5,5 +5,5 @@ export default defineEventHandler(async (event) => {
   const user = await requireGuesthouseUser(event)
   const db = requireGuesthouseDb(event)
   await ensureGuesthouseTables(db)
-  return await loadPendingConsults(db, user.id)
+  return await loadPendingConsults(event, db, user.id)
 })

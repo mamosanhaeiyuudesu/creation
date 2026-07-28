@@ -11,7 +11,7 @@ export default defineEventHandler(async (event): Promise<Diary> => {
   const sessionId = (body?.sessionId ?? '').trim()
   if (!sessionId) throw createError({ statusCode: 400, message: 'セッションが指定されていません' })
 
-  const detail = await loadSessionDetail(db, user.id, sessionId)
+  const detail = await loadSessionDetail(event, db, user.id, sessionId)
   if (!detail) throw createError({ statusCode: 404, message: '会話が見つかりません' })
 
   const c = body?.content ?? ({} as DiaryContent)
@@ -21,5 +21,5 @@ export default defineEventHandler(async (event): Promise<Diary> => {
     highlights: String(c?.highlights ?? '').trim(),
     notes: String(c?.notes ?? '').trim(),
   }
-  return await saveDiary(db, sessionId, detail.houseId, detail.guestName, content, (body?.summary ?? '').trim())
+  return await saveDiary(event, db, sessionId, detail.houseId, detail.guestName, content, (body?.summary ?? '').trim())
 })

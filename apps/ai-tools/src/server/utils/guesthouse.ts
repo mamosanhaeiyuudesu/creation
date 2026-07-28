@@ -1,7 +1,9 @@
 // ゲストハウス案内アプリ (guesthouse) のサーバー共通処理。
 // 認証は既存の WHISPER_DB / users / sessions に相乗りし、宿は user_id でスコープする。
 // 共有リンクは share_token で公開し、ログイン不要でお客様がチャットにアクセスできる。
+import type { H3Event } from 'h3'
 import { getAppDb } from '~/server/utils/auth'
+import { encryptComment, decryptComment } from '~/server/utils/encrypt'
 import type {
   Consult,
   Diary,
@@ -356,27 +358,39 @@ interface MessageRow {
   created_at: string
 }
 
-function shapeMessage(row: MessageRow): ThreadMessage {
+function shapeMessage(row: MessageRow, content: string): ThreadMessage {
   const role: MessageRole = row.role === 'auto' ? 'auto' : row.role === 'host' ? 'host' : 'guest'
-  return { id: row.id, role, content: row.content, kind: row.kind, createdAt: row.created_at }
+  return { id: row.id, role, content, kind: row.kind, createdAt: row.created_at }
 }
 
-/** 宿(share_token)に紐づくセッションを取得または新規作成。所属チェック込み。 */
+// ── 会話・相談・日記の本文はお客様の個人情報を含みうるため、保存時に暗号化（AES-GCM）する。
+// 読み出し時にサーバー側で復号してからUI/AIに渡すので、見え方は変わらない（DB直読みだけが暗号文になる）。
+// 平文の既存データは decryptComment のフォールバックでそのまま読める。
+
+/** 宿(share_token)に紐づくセッションを取得または新規作成。所属チェック込み。guest_name は暗号化保存。 */
 export async function resolveSession(
+  event: H3Event,
   db: any,
   houseId: string,
   sessionId?: string,
   guestName?: string
 ): Promise<SessionRow> {
+  const name = (guestName ?? '').trim()
   if (sessionId && /^[0-9a-f]{32}$/.test(sessionId)) {
     const row = await db
       .prepare('SELECT * FROM guesthouse_sessions WHERE id = ? AND house_id = ?')
       .bind(sessionId, houseId)
       .first<SessionRow>()
     if (row) {
-      if (guestName && guestName.trim() && guestName.trim() !== row.guest_name) {
-        await db.prepare('UPDATE guesthouse_sessions SET guest_name = ? WHERE id = ?').bind(guestName.trim(), sessionId).run()
-        row.guest_name = guestName.trim()
+      const currentName = await decryptComment(event, row.guest_name)
+      if (name && name !== currentName) {
+        await db
+          .prepare('UPDATE guesthouse_sessions SET guest_name = ? WHERE id = ?')
+          .bind(await encryptComment(event, name), sessionId)
+          .run()
+        row.guest_name = name
+      } else {
+        row.guest_name = currentName
       }
       return row
     }
@@ -384,9 +398,9 @@ export async function resolveSession(
   const id = makeSessionToken()
   await db
     .prepare('INSERT INTO guesthouse_sessions (id, house_id, guest_name) VALUES (?, ?, ?)')
-    .bind(id, houseId, (guestName ?? '').trim())
+    .bind(id, houseId, await encryptComment(event, name))
     .run()
-  return { id, house_id: houseId, guest_name: (guestName ?? '').trim(), status: 'active', created_at: '', updated_at: '' }
+  return { id, house_id: houseId, guest_name: name, status: 'active', created_at: '', updated_at: '' }
 }
 
 export async function touchSession(db: any, sessionId: string): Promise<void> {
@@ -394,6 +408,7 @@ export async function touchSession(db: any, sessionId: string): Promise<void> {
 }
 
 export async function addMessage(
+  event: H3Event,
   db: any,
   sessionId: string,
   role: MessageRole,
@@ -402,17 +417,24 @@ export async function addMessage(
 ): Promise<void> {
   await db
     .prepare('INSERT INTO guesthouse_messages (id, session_id, role, content, kind) VALUES (?, ?, ?, ?, ?)')
-    .bind(crypto.randomUUID(), sessionId, role, content, kind)
+    .bind(crypto.randomUUID(), sessionId, role, await encryptComment(event, content), kind)
     .run()
   await touchSession(db, sessionId)
 }
 
-export async function loadMessages(db: any, sessionId: string): Promise<ThreadMessage[]> {
+export async function loadMessages(event: H3Event, db: any, sessionId: string): Promise<ThreadMessage[]> {
   const rows = await db
     .prepare('SELECT * FROM guesthouse_messages WHERE session_id = ? ORDER BY created_at ASC, rowid ASC')
     .bind(sessionId)
     .all<MessageRow>()
-  return (rows?.results ?? []).map(shapeMessage)
+  return Promise.all(
+    (rows?.results ?? []).map(async (r: MessageRow) => shapeMessage(r, await decryptComment(event, r.content)))
+  )
+}
+
+/** 暗号化された guest_name を復号する小ヘルパー。 */
+async function decryptName(event: H3Event, name: string): Promise<string> {
+  return decryptComment(event, name ?? '')
 }
 
 // ── ホスト向け：会話一覧 / 詳細 ───────────────────────────
@@ -425,7 +447,7 @@ export async function getOwnedHouse(db: any, userId: string, houseId: string): P
     .first<{ id: string; name: string }>()
 }
 
-export async function loadSessionSummaries(db: any, houseId: string): Promise<SessionSummary[]> {
+export async function loadSessionSummaries(event: H3Event, db: any, houseId: string): Promise<SessionSummary[]> {
   const rows = await db
     .prepare('SELECT * FROM guesthouse_sessions WHERE house_id = ? ORDER BY updated_at DESC')
     .bind(houseId)
@@ -453,18 +475,20 @@ export async function loadSessionSummaries(db: any, houseId: string): Promise<Se
   const pendingBy = new Map<string, number>()
   for (const r of consultRows?.results ?? []) pendingBy.set(r.session_id, r.c)
 
-  return sessions.map((s) => ({
-    id: s.id,
-    guestName: s.guest_name,
-    messageCount: countBy.get(s.id) ?? 0,
-    hasDiary: hasDiary.has(s.id),
-    pendingConsults: pendingBy.get(s.id) ?? 0,
-    updatedAt: s.updated_at,
-  }))
+  return Promise.all(
+    sessions.map(async (s) => ({
+      id: s.id,
+      guestName: await decryptName(event, s.guest_name),
+      messageCount: countBy.get(s.id) ?? 0,
+      hasDiary: hasDiary.has(s.id),
+      pendingConsults: pendingBy.get(s.id) ?? 0,
+      updatedAt: s.updated_at,
+    }))
+  )
 }
 
 /** 全宿横断の最近の会話（管理トップ用）。ユーザー所有分のみ、宿名付き。 */
-export async function loadRecentSessions(db: any, userId: string, limit = 20): Promise<RecentSession[]> {
+export async function loadRecentSessions(event: H3Event, db: any, userId: string, limit = 20): Promise<RecentSession[]> {
   const rows = await db
     .prepare(
       `SELECT s.*, h.name AS house_name FROM guesthouse_sessions s
@@ -495,20 +519,22 @@ export async function loadRecentSessions(db: any, userId: string, limit = 20): P
   const pendingBy = new Map<string, number>()
   for (const r of consultRows?.results ?? []) pendingBy.set(r.session_id, r.c)
 
-  return sessions.map((s) => ({
-    id: s.id,
-    houseId: s.house_id,
-    houseName: s.house_name,
-    guestName: s.guest_name,
-    messageCount: countBy.get(s.id) ?? 0,
-    hasDiary: hasDiary.has(s.id),
-    pendingConsults: pendingBy.get(s.id) ?? 0,
-    updatedAt: s.updated_at,
-  }))
+  return Promise.all(
+    sessions.map(async (s) => ({
+      id: s.id,
+      houseId: s.house_id,
+      houseName: s.house_name,
+      guestName: await decryptName(event, s.guest_name),
+      messageCount: countBy.get(s.id) ?? 0,
+      hasDiary: hasDiary.has(s.id),
+      pendingConsults: pendingBy.get(s.id) ?? 0,
+      updatedAt: s.updated_at,
+    }))
+  )
 }
 
 /** 会話詳細（所有者チェック込み）。宿を所有していなければ null。 */
-export async function loadSessionDetail(db: any, userId: string, sessionId: string): Promise<SessionDetail | null> {
+export async function loadSessionDetail(event: H3Event, db: any, userId: string, sessionId: string): Promise<SessionDetail | null> {
   const row = await db
     .prepare(
       `SELECT s.*, h.name AS house_name, h.user_id AS owner_id
@@ -518,13 +544,13 @@ export async function loadSessionDetail(db: any, userId: string, sessionId: stri
     .bind(sessionId)
     .first<SessionRow & { house_name: string; owner_id: string }>()
   if (!row || row.owner_id !== userId) return null
-  const messages = await loadMessages(db, sessionId)
-  const diary = await getDiaryBySession(db, sessionId)
+  const messages = await loadMessages(event, db, sessionId)
+  const diary = await getDiaryBySession(event, db, sessionId)
   return {
     id: row.id,
     houseId: row.house_id,
     houseName: row.house_name,
-    guestName: row.guest_name,
+    guestName: await decryptName(event, row.guest_name),
     status: row.status,
     messages,
     diary,
@@ -547,6 +573,7 @@ interface ConsultRow {
 }
 
 export async function createConsult(
+  event: H3Event,
   db: any,
   sessionId: string,
   houseId: string,
@@ -555,12 +582,12 @@ export async function createConsult(
 ): Promise<void> {
   await db
     .prepare('INSERT INTO guesthouse_consults (id, session_id, house_id, question, draft) VALUES (?, ?, ?, ?, ?)')
-    .bind(crypto.randomUUID(), sessionId, houseId, question, draft)
+    .bind(crypto.randomUUID(), sessionId, houseId, await encryptComment(event, question), await encryptComment(event, draft))
     .run()
 }
 
-/** 未対応の相談を、宿名・お客様名込みでユーザー所有分だけ取得。 */
-export async function loadPendingConsults(db: any, userId: string): Promise<Consult[]> {
+/** 未対応の相談を、宿名・お客様名込みでユーザー所有分だけ取得（本文・お客様名は復号）。 */
+export async function loadPendingConsults(event: H3Event, db: any, userId: string): Promise<Consult[]> {
   const rows = await db
     .prepare(
       `SELECT c.*, h.name AS house_name, s.guest_name AS guest_name
@@ -572,18 +599,20 @@ export async function loadPendingConsults(db: any, userId: string): Promise<Cons
     )
     .bind(userId)
     .all<ConsultRow & { house_name: string; guest_name: string }>()
-  return (rows?.results ?? []).map((r: any) => ({
-    id: r.id,
-    houseId: r.house_id,
-    houseName: r.house_name,
-    sessionId: r.session_id,
-    guestName: r.guest_name ?? '',
-    question: r.question,
-    draft: r.draft,
-    answer: r.answer,
-    status: (r.status as Consult['status']) ?? 'pending',
-    createdAt: r.created_at,
-  }))
+  return Promise.all(
+    (rows?.results ?? []).map(async (r: any) => ({
+      id: r.id,
+      houseId: r.house_id,
+      houseName: r.house_name,
+      sessionId: r.session_id,
+      guestName: await decryptName(event, r.guest_name ?? ''),
+      question: await decryptComment(event, r.question ?? ''),
+      draft: await decryptComment(event, r.draft ?? ''),
+      answer: await decryptComment(event, r.answer ?? ''),
+      status: (r.status as Consult['status']) ?? 'pending',
+      createdAt: r.created_at,
+    }))
+  )
 }
 
 /** 相談を取得（所有者チェック込み）。 */
@@ -598,12 +627,12 @@ export async function getOwnedConsult(db: any, userId: string, consultId: string
   return row ?? null
 }
 
-/** 相談に回答（承認）。会話スレッドに阪中さんメッセージとして投稿し、相談を answered に。 */
-export async function answerConsult(db: any, consult: ConsultRow, answer: string): Promise<void> {
-  await addMessage(db, consult.session_id, 'host', answer, 'reply')
+/** 相談に回答（承認）。会話スレッドに阪中さんメッセージとして投稿し、相談を answered に。回答本文は暗号化保存。 */
+export async function answerConsult(event: H3Event, db: any, consult: ConsultRow, answer: string): Promise<void> {
+  await addMessage(event, db, consult.session_id, 'host', answer, 'reply')
   await db
     .prepare("UPDATE guesthouse_consults SET answer = ?, status = 'answered', updated_at = datetime('now') WHERE id = ?")
-    .bind(answer, consult.id)
+    .bind(await encryptComment(event, answer), consult.id)
     .run()
 }
 
@@ -626,10 +655,14 @@ interface DiaryRow {
   created_at: string
 }
 
-function shapeDiary(row: DiaryRow): Diary {
+/** DiaryRow を復号して Diary に整形する（content/summary/guest_name は暗号化保存されている）。 */
+async function shapeDiaryDecrypted(event: H3Event, row: DiaryRow): Promise<Diary> {
+  const contentPlainText = await decryptComment(event, row.content)
+  const summary = await decryptComment(event, row.summary)
+  const guestName = await decryptName(event, row.guest_name)
   let content: DiaryContent
   try {
-    const p = JSON.parse(row.content)
+    const p = JSON.parse(contentPlainText)
     content = {
       nationality: String(p?.nationality ?? ''),
       itinerary: String(p?.itinerary ?? ''),
@@ -643,15 +676,16 @@ function shapeDiary(row: DiaryRow): Diary {
     id: row.id,
     houseId: row.house_id,
     sessionId: row.session_id,
-    guestName: row.guest_name,
+    guestName,
     content,
-    summary: row.summary,
+    summary,
     createdAt: row.created_at,
   }
 }
 
-/** 日記を保存（1セッション1件・既存があれば置換）。 */
+/** 日記を保存（1セッション1件・既存があれば置換）。content/summary/guest_name は暗号化保存。 */
 export async function saveDiary(
+  event: H3Event,
   db: any,
   sessionId: string,
   houseId: string,
@@ -663,24 +697,31 @@ export async function saveDiary(
   const id = crypto.randomUUID()
   await db
     .prepare('INSERT INTO guesthouse_diaries (id, session_id, house_id, guest_name, content, summary) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(id, sessionId, houseId, guestName, JSON.stringify(content), summary)
+    .bind(
+      id,
+      sessionId,
+      houseId,
+      await encryptComment(event, guestName),
+      await encryptComment(event, JSON.stringify(content)),
+      await encryptComment(event, summary)
+    )
     .run()
-  const row = await db.prepare('SELECT * FROM guesthouse_diaries WHERE id = ?').bind(id).first<DiaryRow>()
-  return shapeDiary(row)
+  // 保存した平文の値からそのまま返す（再取得・復号は不要）。
+  return { id, houseId, sessionId, guestName, content, summary, createdAt: '' }
 }
 
-export async function getDiaryBySession(db: any, sessionId: string): Promise<Diary | null> {
+export async function getDiaryBySession(event: H3Event, db: any, sessionId: string): Promise<Diary | null> {
   const row = await db
     .prepare('SELECT * FROM guesthouse_diaries WHERE session_id = ? ORDER BY created_at DESC LIMIT 1')
     .bind(sessionId)
     .first<DiaryRow>()
-  return row ? shapeDiary(row) : null
+  return row ? await shapeDiaryDecrypted(event, row) : null
 }
 
-export async function loadDiaries(db: any, houseId: string): Promise<Diary[]> {
+export async function loadDiaries(event: H3Event, db: any, houseId: string): Promise<Diary[]> {
   const rows = await db
     .prepare('SELECT * FROM guesthouse_diaries WHERE house_id = ? ORDER BY created_at DESC')
     .bind(houseId)
     .all<DiaryRow>()
-  return (rows?.results ?? []).map(shapeDiary)
+  return Promise.all((rows?.results ?? []).map((r: DiaryRow) => shapeDiaryDecrypted(event, r)))
 }

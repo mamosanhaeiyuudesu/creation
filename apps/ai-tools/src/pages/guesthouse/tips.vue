@@ -4,11 +4,11 @@
       <NuxtLink to="/guesthouse" class="text-[13px] text-[var(--gh-ink-soft)] hover:text-[var(--gh-ink)]">← 管理トップ</NuxtLink>
     </div>
     <h1 class="gh-display text-[22px] font-bold mb-1">旅の情報</h1>
-    <p class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed mb-5">
-      高野山・観光・食事などのおすすめを、すべての宿で共通に使う情報として登録します。
-      「<b>モデルコース</b>」の分類には、近隣スポットや食事を組み合わせた1日プラン・周遊コースを入れておくと、旅程に合わせた提案に活きます。
-      <b>お客様には自動応答しません</b>。観光の相談が来たとき、AIが「阪中さんの返信」の下書きを作る素材として使います。
-    </p>
+    <ul class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed mb-5 space-y-1">
+      <li class="flex gap-1.5"><span class="shrink-0">・</span><span>高野山・観光・食事などのおすすめを、すべての宿で共通に使う情報として登録します。</span></li>
+      <li class="flex gap-1.5"><span class="shrink-0">・</span><span>「<b>モデルコース</b>」の分類には、近隣スポットや食事を組み合わせた1日プラン・周遊コースを入れておくと、旅程に合わせた提案に活きます。</span></li>
+      <li class="flex gap-1.5"><span class="shrink-0">・</span><span><b>お客様には自動応答しません</b>。観光の相談が来たとき、AIが「阪中さんの返信」の下書きを作る素材として使います。</span></li>
+    </ul>
 
     <div v-if="notAdmin" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] px-4 py-10 text-center">
       <p class="text-[15px] font-bold mb-1">管理者専用のページです</p>
@@ -147,7 +147,11 @@ function add() {
 }
 function removeAt(t: TipForm) {
   const i = tips.value.indexOf(t)
-  if (i >= 0) tips.value.splice(i, 1)
+  if (i < 0) return
+  // 入力済みの項目は誤削除を防ぐため確認する。空行はそのまま削除。
+  const hasContent = t.title.trim() || t.body.trim()
+  if (hasContent && !confirm(`「${t.title.trim() || 'この項目'}」を削除します。よろしいですか？`)) return
+  tips.value.splice(i, 1)
 }
 
 // 旅の情報も常に最低1行の入力欄を表示する（空でもよい。空行は保存時にスキップされる）。
