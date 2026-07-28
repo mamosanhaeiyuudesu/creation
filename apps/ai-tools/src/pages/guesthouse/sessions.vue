@@ -44,10 +44,10 @@
             <div class="flex items-center gap-2 flex-wrap">
               <span class="gh-chip !py-0.5 !px-2 !text-[11px]">{{ s.houseName }}</span>
               <p class="font-bold text-[14.5px] truncate">{{ s.guestName || '名前未設定のお客様' }}</p>
-              <span v-if="s.status === 'closed'" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-ink-faint)]">クローズ済み</span>
+              <span v-if="s.status === 'active'" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-forest-deep)] !border-[color-mix(in_srgb,var(--gh-forest)_40%,transparent)]">進行中</span>
+              <span v-else class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-ink-faint)]">クローズ済み</span>
               <span v-if="s.pendingConsults" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-warn)] !border-[color-mix(in_srgb,var(--gh-warn)_40%,transparent)]">相談 {{ s.pendingConsults }}</span>
               <span v-if="s.hasDiary" class="gh-chip !py-0.5 !px-2 !text-[10.5px]">日記あり</span>
-              <span v-if="!s.messageCount" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-ink-faint)]">未開封</span>
               <span class="ml-auto text-[11px] text-[var(--gh-ink-faint)] shrink-0">{{ s.messageCount }}件 ・ {{ formatDate(s.updatedAt) }}</span>
             </div>
           </NuxtLink>

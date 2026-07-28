@@ -17,10 +17,20 @@
             <span v-if="detail.status === 'closed'" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-ink-faint)]">クローズ済み</span>
           </h1>
         </div>
-        <button class="gh-btn-ghost !h-9 !px-3.5 text-[12.5px] shrink-0" :disabled="statusBusy" @click="toggleStatus">
-          {{ statusBusy ? '…' : detail.status === 'closed' ? '再開する' : 'クローズする' }}
-        </button>
+        <div class="flex items-center gap-2 shrink-0">
+          <button class="gh-btn-ghost !h-9 !px-3.5 text-[12.5px] inline-flex items-center" @click="showShare = !showShare">
+            {{ showShare ? 'リンクを隠す' : 'お客様リンク・QR' }}
+          </button>
+          <button class="gh-btn-ghost !h-9 !px-3.5 text-[12.5px] inline-flex items-center" :disabled="statusBusy" @click="toggleStatus">
+            {{ statusBusy ? '…' : detail.status === 'closed' ? '再開する' : 'クローズする' }}
+          </button>
+        </div>
       </header>
+
+      <!-- お客様の共有リンク・QR（お渡し用） -->
+      <div v-if="showShare" class="mb-4">
+        <SharePanel :token="id" />
+      </div>
 
       <!-- 会話ログ -->
       <section class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] p-4 mb-4">
@@ -104,13 +114,36 @@
           宿泊後のお礼と、予約サイト用のレビュー依頼文をAIが下書きします。お礼はチャットへ、レビュー依頼はコピーして予約サイトに貼れます。
         </p>
       </section>
+
+      <!-- 会話の削除 -->
+      <div class="mt-8 text-center">
+        <button class="text-[12.5px] text-[var(--gh-ink-faint)] hover:text-[var(--gh-warn)]" @click="showDelete = true">この会話を削除</button>
+      </div>
     </template>
+
+    <!-- 削除確認ポップアップ -->
+    <div v-if="showDelete" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[200]" @click.self="showDelete = false">
+      <div class="w-full max-w-[400px] bg-[var(--gh-card)] rounded-2xl p-5 gh-rise">
+        <p class="gh-display font-bold text-[16px] mb-1">この会話を削除しますか？</p>
+        <p class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed mb-4">
+          会話ログ・お客さん日記・関連する相談がすべて削除されます。この操作は取り消せません。
+        </p>
+        <p v-if="deleteError" class="text-[12.5px] text-[var(--gh-warn)] mb-2">{{ deleteError }}</p>
+        <div class="flex gap-2">
+          <button class="gh-btn-ghost flex-1" :disabled="deleting" @click="showDelete = false">キャンセル</button>
+          <button class="gh-btn flex-1 !bg-[var(--gh-warn)]" :disabled="deleting" @click="confirmDelete">
+            {{ deleting ? '削除中…' : '削除する' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import Breadcrumb from '~/components/guesthouse/Breadcrumb.vue'
+import SharePanel from '~/components/guesthouse/SharePanel.vue'
 import type { Diary, DiaryContent, FarewellDraft, SessionDetail } from '~/types/guesthouse'
 
 definePageMeta({ layout: 'guesthouse' })
@@ -121,6 +154,10 @@ const id = route.params.id as string
 const detail = ref<SessionDetail | null>(null)
 const loading = ref(true)
 const statusBusy = ref(false)
+const showShare = ref(false)
+const showDelete = ref(false)
+const deleting = ref(false)
+const deleteError = ref('')
 
 // 日記
 const diary = ref<{ summary: string; content: DiaryContent } | null>(null)
@@ -147,6 +184,18 @@ async function load() {
     detail.value = null
   } finally {
     loading.value = false
+  }
+}
+
+async function confirmDelete() {
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await $fetch(`/api/guesthouse/sessions/${id}`, { method: 'DELETE' })
+    await navigateTo('/guesthouse/sessions')
+  } catch (e: any) {
+    deleteError.value = e?.data?.message || '削除に失敗しました。'
+    deleting.value = false
   }
 }
 

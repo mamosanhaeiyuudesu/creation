@@ -446,6 +446,24 @@ export async function reopenSession(db: any, sessionId: string): Promise<void> {
   await db.prepare("UPDATE guesthouse_sessions SET status = 'active' WHERE id = ?").bind(sessionId).run()
 }
 
+/** 会話（滞在セッション）を関連データごと削除する（所有者チェック込み）。削除できたら true。 */
+export async function deleteSession(db: any, userId: string, sessionId: string): Promise<boolean> {
+  // この会話が自分の宿のものか確認してから消す。
+  const owned = await db
+    .prepare(
+      `SELECT s.id FROM guesthouse_sessions s JOIN guesthouse_houses h ON h.id = s.house_id
+       WHERE s.id = ? AND h.user_id = ?`
+    )
+    .bind(sessionId, userId)
+    .first<{ id: string }>()
+  if (!owned) return false
+  await db.prepare('DELETE FROM guesthouse_messages WHERE session_id = ?').bind(sessionId).run()
+  await db.prepare('DELETE FROM guesthouse_consults WHERE session_id = ?').bind(sessionId).run()
+  await db.prepare('DELETE FROM guesthouse_diaries WHERE session_id = ?').bind(sessionId).run()
+  await db.prepare('DELETE FROM guesthouse_sessions WHERE id = ?').bind(sessionId).run()
+  return true
+}
+
 /**
  * 全宿横断のセッション一覧（管理トップの進行中パネル／チャット一覧ページ共通）。ユーザー所有分のみ・宿名付き。
  * opts.status: 'active' | 'closed' | 'all'（既定 all）。opts.houseId で宿で絞り込み。

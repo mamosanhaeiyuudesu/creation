@@ -58,7 +58,6 @@
                   <p class="font-bold text-[14px] truncate">{{ s.guestName || '名前未設定のお客様' }}</p>
                   <span v-if="s.pendingConsults" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-warn)] !border-[color-mix(in_srgb,var(--gh-warn)_40%,transparent)]">相談 {{ s.pendingConsults }}</span>
                   <span v-if="s.hasDiary" class="gh-chip !py-0.5 !px-2 !text-[10.5px]">日記あり</span>
-                  <span v-if="!s.messageCount" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-ink-faint)]">未開封</span>
                   <span class="ml-auto text-[11px] text-[var(--gh-ink-faint)] shrink-0">{{ s.messageCount }}件 ・ {{ formatDate(s.updatedAt) }}</span>
                 </div>
               </NuxtLink>
