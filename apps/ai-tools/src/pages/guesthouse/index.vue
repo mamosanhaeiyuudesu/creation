@@ -123,7 +123,7 @@
           <div v-if="loading" class="h-32 rounded-2xl bg-[var(--gh-paper-2)]/70 animate-pulse" />
           <template v-else-if="trends">
             <p v-if="!trends.items.length" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] text-center text-[var(--gh-ink-soft)] py-8 text-[13.5px]">
-              まだ傾向はありません。「更新」で分析できます（日記が2件以上必要・現在 {{ trends.basedOn }} 件）。
+              まだ傾向はありません。
             </p>
             <ul v-else class="space-y-2.5">
               <li v-for="(t, i) in trends.items" :key="i" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] p-4">
