@@ -28,6 +28,7 @@
       <div class="flex flex-wrap items-center gap-2 mt-4 mb-6">
         <NuxtLink to="/guesthouse/houses" class="gh-btn-ghost inline-flex items-center">🏠 宿の情報</NuxtLink>
         <NuxtLink to="/guesthouse/tips" class="gh-btn-ghost inline-flex items-center">🗺 旅の情報</NuxtLink>
+        <NuxtLink to="/guesthouse/reviews" class="gh-btn-ghost inline-flex items-center">📝 レビュー・意見</NuxtLink>
         <button type="button" class="gh-btn-ghost inline-flex items-center" @click="issueOpen = true">✉️ 会話を発行</button>
       </div>
 
@@ -109,9 +110,9 @@
           <div class="flex items-center justify-between gap-2 mb-3">
             <h2 class="gh-display text-[16px] font-bold flex items-center gap-2">
               傾向
-              <span v-if="trends?.stale" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-forest-deep)]">新しい日記あり</span>
+              <span v-if="trends?.stale" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-forest-deep)]">新しいデータあり</span>
               <HelpTip label="傾向とは">
-                お客さん日記から、次の一手に活きる傾向をAIが見つけます（日記が2件以上で有効）。「更新」で最新の日記をもとに再計算します（日記に変化がなければ再計算しません）。
+                お客さん日記と「レビュー・意見」から、次の一手に活きる傾向をAIが見つけます（合わせて2件以上で有効）。「更新」で最新の日記・レビューをもとに再計算します（変化がなければ再計算しません）。
               </HelpTip>
             </h2>
             <button class="gh-btn-ghost !h-9 !px-3.5 text-[12.5px] shrink-0" :disabled="trendsBusy || loading" @click="refreshTrends">
@@ -122,7 +123,7 @@
           <div v-if="loading" class="h-32 rounded-2xl bg-[var(--gh-paper-2)]/70 animate-pulse" />
           <template v-else-if="trends">
             <p v-if="!trends.items.length" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] text-center text-[var(--gh-ink-soft)] py-8 text-[13.5px]">
-              まだ傾向はありません。
+              まだ傾向はありません。「更新」で分析できます（日記＋レビューが2件以上必要・現在 日記{{ trends.basedOn }}件＋レビュー{{ trends.reviewsBasedOn }}件）。
             </p>
             <ul v-else class="space-y-2.5">
               <li v-for="(t, i) in trends.items" :key="i" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] p-4">
@@ -131,7 +132,7 @@
               </li>
             </ul>
             <p v-if="trends.computedAt" class="text-[11px] text-[var(--gh-ink-faint)] mt-2">
-              最終更新：{{ formatDate(trends.computedAt) }} ・ 日記 {{ trends.basedOn }} 件
+              最終更新：{{ formatDate(trends.computedAt) }} ・ 日記 {{ trends.basedOn }} 件＋レビュー {{ trends.reviewsBasedOn }} 件
             </p>
           </template>
           <p v-if="trendsError" class="text-[12.5px] text-[var(--gh-warn)] mt-2">{{ trendsError }}</p>
