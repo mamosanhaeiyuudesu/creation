@@ -6,6 +6,7 @@
     <h1 class="gh-display text-[22px] font-bold mb-1">旅の情報</h1>
     <p class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed mb-5">
       高野山・観光・食事などのおすすめを、すべての宿で共通に使う情報として登録します。
+      「<b>モデルコース</b>」の分類には、近隣スポットや食事を組み合わせた1日プラン・周遊コースを入れておくと、旅程に合わせた提案に活きます。
       <b>お客様には自動応答しません</b>。観光の相談が来たとき、AIが「阪中さんの返信」の下書きを作る素材として使います。
     </p>
 
@@ -113,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
 import type { ExtractedTip, Tip, TipExtractResult } from '~/types/guesthouse'
@@ -139,7 +140,7 @@ const saved = ref(false)
 const notAdmin = ref(false)
 const errorMsg = ref('')
 
-const TIP_PRESETS = ['高野山', '観光', '食事', '近隣', '季節の見どころ', '体験', 'アクセス']
+const TIP_PRESETS = ['モデルコース', '組み合わせプラン', '高野山', '観光', '食事', '近隣', '季節の見どころ', '体験', 'アクセス']
 
 function add() {
   tips.value.push({ _k: keySeq++, category: '', title: '', body: '' })
@@ -148,6 +149,14 @@ function removeAt(t: TipForm) {
   const i = tips.value.indexOf(t)
   if (i >= 0) tips.value.splice(i, 1)
 }
+
+// 旅の情報も常に最低1行の入力欄を表示する（空でもよい。空行は保存時にスキップされる）。
+watch(
+  () => tips.value.length,
+  (n) => {
+    if (!loading.value && n === 0) add()
+  }
+)
 
 function mapRows(list: Tip[]) {
   return list.map((t) => ({ _k: keySeq++, id: t.id, category: t.category, title: t.title, body: t.body }))
@@ -163,6 +172,7 @@ async function load() {
     tips.value = []
   } finally {
     loading.value = false
+    if (!notAdmin.value && !tips.value.length) add()
   }
 }
 

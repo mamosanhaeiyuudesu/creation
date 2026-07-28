@@ -19,11 +19,11 @@
         <label class="gh-label !mb-0">事務案内（AIが即答する内容）</label>
         <span class="text-[11px] text-[var(--gh-ink-faint)]">{{ infoFacts.length }} 件</span>
       </div>
-      <p class="gh-hint">駐車場・鍵・チェックイン方法・Wi-Fi・ゴミ出しなど、答えが決まっている事務的なこと。お客様チャットでそのまま自動応答されます。</p>
+      <p class="gh-hint">駐車場・鍵・チェックイン方法・Wi-Fi・ゴミ出しなど、答えが決まっている事務的なこと。<br>お客様チャットでそのまま自動応答されます。</p>
 
       <div class="flex flex-wrap gap-2 mb-3">
         <button type="button" class="gh-btn-ghost !h-9" @click="importOpen = true">✎ AIで会話・メモから取り込み</button>
-        <button v-if="!infoFacts.length" type="button" class="gh-btn-ghost !h-9" @click="addStarters">よくある項目のひな形を入れる</button>
+        <button v-if="!hasContent" type="button" class="gh-btn-ghost !h-9" @click="addStarters">よくある項目のひな形を入れる</button>
       </div>
 
       <ul class="space-y-2.5">
@@ -38,10 +38,6 @@
       </ul>
       <button type="button" class="gh-btn-ghost !h-9 mt-2.5" @click="add()">＋ 事務案内を追加</button>
     </div>
-
-    <p class="gh-hint !mb-0">
-      観光・高野山・食事などの「旅の情報」は、<b>「旅の情報」ページ</b>でホスト共通としてまとめて登録します（相談の下書きに使われます）。
-    </p>
 
     <datalist id="gh-categories">
       <option v-for="c in CATEGORY_PRESETS" :key="c" :value="c" />
@@ -152,12 +148,27 @@ watch(
 )
 
 const infoFacts = computed(() => form.facts.filter((f) => f.type === 'info'))
+// 中身のある事務案内があるか（ひな形ボタンの表示判定に使う）
+const hasContent = computed(() => infoFacts.value.some((f) => f.title.trim() || f.body.trim()))
 
 const CATEGORY_PRESETS = ['駐車場', '鍵・チェックイン', 'チェックアウト', 'Wi-Fi', 'ゴミ出し', 'アクセス・地図', '設備', 'その他']
 
 function add(category = '', title = '') {
   form.facts.push({ _k: keySeq++, category, title, body: '', type: 'info' })
 }
+
+// 事務案内は常に最低1行の入力欄を表示する（空でもよいので、すぐ書き始められるように）。
+// 空行は保存時に自動スキップされるため、そのまま保存しても影響はない。
+function ensureBlankRow() {
+  if (!infoFacts.value.length) add()
+}
+ensureBlankRow()
+watch(
+  () => infoFacts.value.length,
+  (n) => {
+    if (n === 0) add()
+  }
+)
 function remove(f: FactForm) {
   const i = form.facts.indexOf(f)
   if (i >= 0) form.facts.splice(i, 1)
