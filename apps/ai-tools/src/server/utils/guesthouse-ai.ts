@@ -2,12 +2,86 @@
 // 相談の下書き・お客さん日記・お礼/レビュー依頼・傾向抽出。すべて「下書き」で、人が確認して使う前提。
 import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
 import { buildKnowledgeBase } from '~/server/utils/guesthouse'
-import type { DiaryContent, Diary, ExtractResult, ExtractedFact, ExtractedTip, FarewellDraft, House, ThreadMessage, Tip, TipExtractResult, TrendItem } from '~/types/guesthouse'
+import { buildTriageSystem, buildAnswerSystem, buildEmergencyReplySystem, WEB_SEARCH } from '~/server/utils/guesthouse-policy'
+import type { ChatMessage, DiaryContent, Diary, ExtractResult, ExtractedFact, ExtractedTip, FarewellDraft, House, ThreadMessage, Tip, TipExtractResult, TrendItem } from '~/types/guesthouse'
 
 /** 会話を読みやすいテキスト起こしにする（プロンプト用）。 */
 export function threadTranscript(messages: ThreadMessage[]): string {
   const label: Record<string, string> = { guest: 'お客様', auto: '自動応答', host: '阪中さん' }
   return messages.map((m) => `${label[m.role] ?? m.role}: ${m.content}`).join('\n')
+}
+
+/** スレッド（保存形式）を Claude の messages（user/assistant）に変換する。 */
+function toClaudeMessages(messages: ThreadMessage[], take = 12): ChatMessage[] {
+  return messages.slice(-take).map((m) => ({
+    role: m.role === 'guest' ? 'user' : 'assistant',
+    content: m.content,
+  }))
+}
+
+/**
+ * お客様の最新発言が「人間（阪中さん）へ今すぐ引き継ぐべき緊急・対応不能」かを判定する。
+ * 線引き（匙加減）は guesthouse-policy.ts の EMERGENCY_CRITERIA。失敗時は emergency=false に倒す（AIが答える）。
+ */
+export async function triageGuestMessage(
+  apiKey: string,
+  messages: ThreadMessage[]
+): Promise<{ emergency: boolean; reason: string }> {
+  try {
+    const out = await callClaudeText(apiKey, {
+      system: buildTriageSystem(),
+      maxTokens: 200,
+      messages: toClaudeMessages(messages, 8),
+    })
+    const p = parseJsonLoose<{ emergency?: boolean; reason?: string }>(out)
+    return { emergency: p?.emergency === true, reason: String(p?.reason ?? '') }
+  } catch {
+    return { emergency: false, reason: '' }
+  }
+}
+
+/**
+ * お客様の質問に AI が自分で答える（通常応答）。宿情報を正解の根拠にしつつ、観光等は一般知識＋
+ * （ポリシーで有効なら）Web 検索で補う。Web 検索が使えない環境では自動的に検索なしで再試行する。
+ */
+export async function answerGuestMessage(
+  apiKey: string,
+  house: House,
+  tips: string,
+  messages: ThreadMessage[]
+): Promise<string> {
+  const system = buildAnswerSystem(buildKnowledgeBase(house), tips)
+  const claudeMessages = toClaudeMessages(messages, 12)
+  try {
+    return await callClaudeText(apiKey, {
+      system,
+      maxTokens: 900,
+      messages: claudeMessages,
+      webSearch: WEB_SEARCH.enabled ? { maxUses: WEB_SEARCH.maxUses } : undefined,
+    })
+  } catch (e) {
+    // Web 検索が無効/未対応のアカウント等で失敗したら、検索なしでもう一度だけ答える。
+    if (WEB_SEARCH.enabled) {
+      return await callClaudeText(apiKey, { system, maxTokens: 900, messages: claudeMessages })
+    }
+    throw e
+  }
+}
+
+/**
+ * 緊急時にお客様へ返す短い「すぐホストに取り次ぎます」返信を作る（お客様の言語で）。
+ * 生成に失敗したら空文字を返し、呼び出し側で定型文にフォールバックする。
+ */
+export async function draftEmergencyReply(apiKey: string, messages: ThreadMessage[]): Promise<string> {
+  try {
+    return await callClaudeText(apiKey, {
+      system: buildEmergencyReplySystem(),
+      maxTokens: 300,
+      messages: toClaudeMessages(messages, 6),
+    })
+  } catch {
+    return ''
+  }
 }
 
 /**

@@ -25,23 +25,54 @@
             {{ saving ? '保存中…' : saved ? '保存しました' : '保存する' }}
           </button>
         </div>
-        <SharePanel :share-token="house.shareToken" />
       </template>
 
       <!-- 会話ログ -->
       <template v-else-if="tab === 'sessions'">
+        <!-- お客様の会話を新規発行（1人＝1リンク＝1会話・日記） -->
+        <div class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] p-4 mb-5">
+          <p class="gh-display font-bold text-[15px] mb-1">お客様の会話を新規発行</p>
+          <p class="text-[11.5px] text-[var(--gh-ink-soft)] leading-relaxed mb-3">
+            お客様1人ごとに専用リンクを発行します。予約が確定したお客様にお渡しください。
+          </p>
+          <div class="flex items-center gap-2">
+            <input
+              v-model="newGuestName"
+              class="gh-input !py-2 flex-1 text-[13px]"
+              placeholder="お客様のお名前（任意・後からでもOK）"
+              @keydown.enter.prevent="issueSession"
+            />
+            <button class="gh-btn shrink-0" :disabled="issuing" @click="issueSession">
+              {{ issuing ? '発行中…' : '＋ 発行' }}
+            </button>
+          </div>
+          <p v-if="subError" class="text-[12.5px] text-[var(--gh-warn)] mt-2">{{ subError }}</p>
+          <div v-if="issuedToken" class="mt-4">
+            <SharePanel :token="issuedToken" />
+          </div>
+        </div>
+
         <div v-if="sub.loading" class="text-center text-[var(--gh-ink-soft)] py-10 text-[13px]">読み込み中…</div>
-        <p v-else-if="!sessions.length" class="text-center text-[var(--gh-ink-soft)] py-12 text-[14px]">まだお客様との会話はありません。</p>
+        <p v-else-if="!sessions.length" class="text-center text-[var(--gh-ink-soft)] py-12 text-[14px]">まだお客様との会話はありません。上のボタンからリンクを発行できます。</p>
         <ul v-else class="space-y-2">
-          <li v-for="s in sessions" :key="s.id">
-            <NuxtLink :to="`/guesthouse/session/${s.id}`" class="block rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] px-4 py-3 transition hover:border-[var(--gh-forest-soft)]">
+          <li v-for="s in sessions" :key="s.id" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] overflow-hidden transition hover:border-[var(--gh-forest-soft)]">
+            <NuxtLink :to="`/guesthouse/session/${s.id}`" class="block px-4 pt-3 pb-2">
               <div class="flex items-center gap-2">
                 <p class="font-bold text-[14.5px] truncate">{{ s.guestName || '名前未設定のお客様' }}</p>
                 <span v-if="s.pendingConsults" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-warn)] !border-[color-mix(in_srgb,var(--gh-warn)_40%,transparent)]">相談 {{ s.pendingConsults }}</span>
                 <span v-if="s.hasDiary" class="gh-chip !py-0.5 !px-2 !text-[10.5px]">日記あり</span>
+                <span v-if="!s.messageCount" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-ink-faint)]">未開封</span>
                 <span class="ml-auto text-[11px] text-[var(--gh-ink-faint)]">{{ s.messageCount }}件 ・ {{ formatDate(s.updatedAt) }}</span>
               </div>
             </NuxtLink>
+            <div class="flex items-center gap-3 px-4 pb-2.5 border-t border-[var(--gh-line)] pt-2">
+              <button class="text-[12px] text-[var(--gh-forest-deep)] hover:underline underline-offset-2" @click="copySessionLink(s.id)">
+                {{ copiedId === s.id ? 'コピーしました' : 'お客様リンクをコピー' }}
+              </button>
+              <button class="text-[12px] text-[var(--gh-ink-soft)] hover:text-[var(--gh-ink)]" @click="issuedToken = s.id">
+                QRを表示
+              </button>
+            </div>
           </li>
         </ul>
       </template>
@@ -66,26 +97,6 @@
           </li>
         </ul>
       </template>
-
-      <!-- 傾向 -->
-      <template v-else-if="tab === 'trends'">
-        <p class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed mb-3">
-          お客さん日記から、次の一手に活きる傾向をAIが見つけます（日記が2件以上で有効）。
-        </p>
-        <button class="gh-btn-ghost !h-10 mb-4" :disabled="sub.loading" @click="loadTrends">
-          {{ sub.loading ? '分析中…' : trends ? '再分析する' : '傾向を分析する' }}
-        </button>
-        <p v-if="trends && !trends.items.length" class="text-center text-[var(--gh-ink-soft)] py-8 text-[13px]">
-          傾向を出すにはもう少し日記が必要です（現在 {{ trends.basedOn }} 件）。
-        </p>
-        <ul v-else-if="trends" class="space-y-2.5">
-          <li v-for="(t, i) in trends.items" :key="i" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] p-4">
-            <p class="gh-display font-bold text-[14.5px] text-[var(--gh-forest-deep)] mb-1">{{ t.title }}</p>
-            <p class="text-[13px] leading-relaxed">{{ t.detail }}</p>
-          </li>
-        </ul>
-        <p v-if="subError" class="text-[12.5px] text-[var(--gh-warn)] mt-2">{{ subError }}</p>
-      </template>
     </template>
   </div>
 </template>
@@ -94,19 +105,18 @@
 import { ref, reactive, onMounted } from 'vue'
 import HouseForm from '~/components/guesthouse/HouseForm.vue'
 import SharePanel from '~/components/guesthouse/SharePanel.vue'
-import type { Diary, House, HouseInput, SessionSummary, Trends } from '~/types/guesthouse'
+import type { Diary, House, HouseInput, SessionSummary } from '~/types/guesthouse'
 
 definePageMeta({ layout: 'guesthouse' })
 
 const route = useRoute()
 const id = route.params.id as string
 
-type Tab = 'edit' | 'sessions' | 'diaries' | 'trends'
+type Tab = 'edit' | 'sessions' | 'diaries'
 const TABS: { key: Tab; label: string }[] = [
   { key: 'edit', label: '案内の編集' },
   { key: 'sessions', label: '会話ログ' },
   { key: 'diaries', label: 'お客さん日記' },
-  { key: 'trends', label: '傾向' },
 ]
 const tab = ref<Tab>('edit')
 
@@ -119,9 +129,14 @@ const errorMsg = ref('')
 
 const sessions = ref<SessionSummary[]>([])
 const diaries = ref<Diary[]>([])
-const trends = ref<Trends | null>(null)
 const sub = reactive({ loading: false })
 const subError = ref('')
+
+// お客様の会話（滞在）を新規発行
+const newGuestName = ref('')
+const issuing = ref(false)
+const issuedToken = ref('')
+const copiedId = ref('')
 
 useHead(() => ({ title: `${house.value?.name ?? '宿'} | ゲストハウス案内` }))
 
@@ -154,15 +169,32 @@ async function switchTab(t: Tab) {
   }
 }
 
-async function loadTrends() {
-  sub.loading = true
-  subError.value = ''
+async function issueSession() {
+  if (issuing.value) return
+  issuing.value = true
   try {
-    trends.value = await $fetch<Trends>(`/api/guesthouse/houses/${id}/trends`)
+    const s = await $fetch<SessionSummary>(`/api/guesthouse/houses/${id}/sessions`, {
+      method: 'POST',
+      body: { guestName: newGuestName.value || undefined },
+    })
+    newGuestName.value = ''
+    issuedToken.value = s.id // 発行したリンク（＋QR）をすぐ表示
+    sessions.value = [s, ...sessions.value] // 一覧の先頭に「未開封」で追加
   } catch (e: any) {
-    subError.value = e?.data?.message || '分析に失敗しました。'
+    subError.value = e?.data?.message || 'リンクの発行に失敗しました。'
   } finally {
-    sub.loading = false
+    issuing.value = false
+  }
+}
+
+async function copySessionLink(sessionId: string) {
+  const url = `${window.location.origin}/guesthouse/stay/${sessionId}`
+  try {
+    await navigator.clipboard.writeText(url)
+    copiedId.value = sessionId
+    setTimeout(() => (copiedId.value = ''), 1600)
+  } catch {
+    issuedToken.value = sessionId // クリップボード不可の環境はQR/リンク欄を出す
   }
 }
 

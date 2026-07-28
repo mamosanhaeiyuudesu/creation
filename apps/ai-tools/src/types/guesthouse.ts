@@ -174,12 +174,6 @@ export interface SessionSummary {
   updatedAt: string
 }
 
-/** 全宿横断の「最近の会話」（管理トップ用）。宿名付き。 */
-export interface RecentSession extends SessionSummary {
-  houseId: string
-  houseName: string
-}
-
 /** 旅の情報（おすすめ素材）。ホスト共通で1か所に持つ。相談の下書きの素材に使う。 */
 export interface Tip {
   id: string
@@ -228,4 +222,11 @@ export interface TrendItem {
 export interface Trends {
   items: TrendItem[]
   basedOn: number // 集計に使った日記件数
+  computedAt: string | null // 最終計算時刻（未計算なら null）
+  stale: boolean // 前回計算後に日記が変わり、「更新」で再計算できる状態か
+}
+
+/** 傾向の更新（再計算）結果。updated=false は「日記に変化がなく再計算せずスキップ」した場合。 */
+export interface TrendsRefreshResult extends Trends {
+  updated: boolean
 }

@@ -1,8 +1,8 @@
 <template>
   <div class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] p-4">
-    <p class="gh-display font-bold text-[15px] mb-1">お客様用の共有リンク</p>
+    <p class="gh-display font-bold text-[15px] mb-1">このお客様専用の共有リンク</p>
     <p class="text-[11.5px] text-[var(--gh-ink-soft)] leading-relaxed mb-3">
-      予約が確定したお客様に、このリンクまたはQRコードをお渡しください。ログイン不要でチャットに入れます。
+      このお客様に、下のリンクまたはQRコードをお渡しください。ログイン不要でチャットに入れます。1人につき1つのリンク＝1つの会話・日記になります。
     </p>
 
     <div class="flex items-center gap-2 mb-3">
@@ -22,13 +22,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 
-const props = defineProps<{ shareToken: string }>()
+// token はお客様1人ぶんの滞在セッションのトークン。この URL がその会話を指す。
+const props = defineProps<{ token: string }>()
 
 const qrEl = ref<HTMLElement | null>(null)
 const copied = ref(false)
 
 const shareUrl = computed(() =>
-  typeof window !== 'undefined' ? `${window.location.origin}/guesthouse/stay/${props.shareToken}` : ''
+  typeof window !== 'undefined' ? `${window.location.origin}/guesthouse/stay/${props.token}` : ''
 )
 
 function selectAll(e: FocusEvent) {
@@ -85,5 +86,5 @@ async function renderQr() {
 }
 
 onMounted(renderQr)
-watch(() => props.shareToken, renderQr)
+watch(() => props.token, renderQr)
 </script>

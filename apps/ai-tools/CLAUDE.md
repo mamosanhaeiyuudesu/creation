@@ -59,7 +59,7 @@ NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
 | `/kaki` | 柿の木 里親アプリ。里親は自分の木の詳細（成長写真・観察日記・病歴・応援コメント）を閲覧。`/kaki/admin` は農家用（木の登録編集・観察記録投稿・AI変換）。絵本トーンの専用レイアウト |
 | `/momo` | 桃農家向け 注文管理アプリ。SNSの会話ログを貼り付け→AI(Claude)が注文情報を構造化抽出→確認・修正して保存。納品日順一覧・品種×サイズ選果集計・佐川e飛伝III取込CSV出力（宛先空欄）。桃色の専用レイアウト（ナビ非表示・直接URL） |
 | `/ippon` | 什器・インテリア設計者向け Sketch2View。紙スケッチを撮影→前処理(クライアントCanvas)→Claude(vision)が形状を読み解き→3D生成→3Dビュー(model-viewer)＋公開共有リンク。目的はイメージ伝達で製作精度は非目的。3D生成は `ippon-provider.ts` で抽象化（provider=mock はマッシングGLBを手続き生成／tripo はTripo AI）。工房トーンの専用レイアウト（ナビ非表示・直接URL）。`/ippon/view/:token` はログイン不要の共有閲覧 |
-| `/guesthouse` | ゲストハウス案内アプリ（阪中さん向け）。ホスト側は管理者(admin)専用＝mamorin/sakana のみ（kaki と同じ `users.role` 共用）。**`/guesthouse` は管理トップ（ダッシュボード）**＝「対応待ちの相談（AI下書きを確認・修正・送信）」＋「最近の会話」。登録系は `/guesthouse/houses`（宿ごとにコンセプト＋事務案内(info)＋共有リンク/QR。編集は `/guesthouse/[id]`）と `/guesthouse/tips`（ホスト共通の旅の情報＝おすすめ素材）。**フェーズ1**：`/guesthouse/stay/:token` はログイン不要のお客様チャット。Claudeが info だけを根拠に事務質問へ即答（「自動応答」）。答えられない相談は「阪中さんに確認します」と引き継ぐ(handoff)＝人間のフリはしない。多言語。**フェーズ2**：会話を滞在セッションとして永続化（宿ごと1リンク・session_id はお客様ブラウザ保持）。handoff は相談として管理トップに出る→AIが下書き→承認して送ると「阪中さん」ラベルでお客様スレッドに届く（お客様側は5秒ポーリング受信）。会話詳細(`/guesthouse/session/:id`)でお客さん日記の自動生成・お礼＆レビュー依頼の下書き。**フェーズ3**：相談下書きは共通の旅の情報(tips)＋旅程を踏まえた提案に。宿[id]の「傾向」タブで日記からAIが傾向抽出（学習ループ）。AI呼び出しは `guesthouse-ai.ts`。里山トーンの専用レイアウト（ナビ非表示・直接URL） |
+| `/guesthouse` | ゲストハウス案内アプリ（阪中さん向け）。ホスト側は管理者(admin)専用＝mamorin/sakana のみ（kaki と同じ `users.role` 共用）。**`/guesthouse` は管理トップ（ダッシュボード）**＝左「対応待ちの相談（AI下書きを確認・修正・送信）」／右「傾向」の2カラム（スマホは上下）。傾向は全宿横断でユーザー単位にキャッシュ（`guesthouse_trends`）、「更新」ボタンで再計算するが**日記の指紋が前回と同じなら再計算せずスキップ**（指紋＝件数＋日記id集合。日記編集は毎回id振り直しのため変更検知にバージョン管理不要）。登録系は `/guesthouse/houses`（宿ごとにコンセプト＋事務案内(info)＋共有リンク/QR。編集は `/guesthouse/[id]`＝案内の編集/会話ログ/お客さん日記の3タブ）と `/guesthouse/tips`（ホスト共通の旅の情報＝おすすめ素材）。**お客様チャット**：`/guesthouse/stay/:token` はログイン不要（宿ごと1リンク・session_id はお客様ブラウザ保持で滞在セッションを永続化）。**原則 AI が自分で答える**（auto）＝宿の質問は info を根拠に、観光・食事・周辺は一般知識＋**Web検索**(Claudeのweb_searchツール)で補う。人間のフリはしない。**本当に緊急・AIでは対応不能なものだけ**阪中さんへ引き継ぐ(handoff)→短い「すぐ取り次ぎます」を会話に残し、相談＋AI下書きが管理トップに出る→承認して送ると「阪中さん」ラベルでお客様スレッドへ（5秒ポーリング受信）。**この匙加減（緊急の線引き・Web検索の有無/回数・応答方針）は `guesthouse-policy.ts` に集約**（後で調整しやすいよう1か所に）。会話詳細(`/guesthouse/session/:id`)でお客さん日記の自動生成・お礼＆レビュー依頼の下書き。日記からAIが傾向抽出（学習ループ）。AI呼び出しは `guesthouse-ai.ts`。里山トーンの専用レイアウト（ナビ非表示・直接URL） |
 
 ### 現在メンテ対象外（ナビからコメントアウト済み・修正不要）
 
@@ -81,8 +81,8 @@ NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
   - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/032_momo.sql`
 - `WHISPER_DB` 相乗り（ippon）: ippon_projects / ippon_versions。既存 users/sessions 認証に相乗りし、案件は `user_id` でスコープ。共有リンクは `share_token` で公開（ログイン不要閲覧）。スケッチ・GLBは R2 を使わず data URL のまま TEXT 保存（kaki 方式）。テーブルは `ensureIpponTables()` で自動生成もされる。
   - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/033_ippon.sql`
-- `WHISPER_DB` 相乗り（guesthouse）: guesthouse_houses / guesthouse_facts（`type` 列は残るが実質 info専用）/ guesthouse_sessions / guesthouse_messages / guesthouse_consults / guesthouse_diaries / guesthouse_tips（旅の情報＝ホスト共通・`user_id` スコープ）。既存 users/sessions 認証に相乗りし、宿は `user_id` でスコープ。ホスト側は admin 専用（`requireGuesthouseUser` が role=admin を要求。管理者は `UPDATE users SET role='admin' WHERE username IN ('mamorin','sakana')` 済み）。共有リンクは `share_token` で公開。お客様チャットはフェーズ2で永続化（滞在セッション・宿ごと1リンクのまま `session_id` はお客様ブラウザの localStorage 保持）。テーブルは `ensureGuesthouseTables()` で自動生成もされる。
-  - 適用: `034_guesthouse.sql` → `035_guesthouse_phase2.sql`（facts へ `type` 追加＋会話/相談/日記。ALTER 含むので再実行不可）→ `036_guesthouse_tips.sql`（旅の情報の共通テーブル）を順に `wrangler d1 execute whisper-db --remote --file ...`
+- `WHISPER_DB` 相乗り（guesthouse）: guesthouse_houses / guesthouse_facts（`type` 列は残るが実質 info専用）/ guesthouse_sessions / guesthouse_messages / guesthouse_consults / guesthouse_diaries / guesthouse_tips（旅の情報＝ホスト共通・`user_id` スコープ）/ guesthouse_trends（傾向キャッシュ＝ユーザー単位で前回結果＋日記の指紋を1組保持）。既存 users/sessions 認証に相乗りし、宿は `user_id` でスコープ。ホスト側は admin 専用（`requireGuesthouseUser` が role=admin を要求。管理者は `UPDATE users SET role='admin' WHERE username IN ('mamorin','sakana')` 済み）。共有リンクは `share_token` で公開。お客様チャットはフェーズ2で永続化（滞在セッション・宿ごと1リンクのまま `session_id` はお客様ブラウザの localStorage 保持）。テーブルは `ensureGuesthouseTables()` で自動生成もされる。
+  - 適用: `034_guesthouse.sql` → `035_guesthouse_phase2.sql`（facts へ `type` 追加＋会話/相談/日記。ALTER 含むので再実行不可）→ `036_guesthouse_tips.sql`（旅の情報の共通テーブル）→ `037_guesthouse_trends.sql`（傾向キャッシュ）を順に `wrangler d1 execute whisper-db --remote --file ...`
 - `MLB_DB`（`mlb-db`）: MLB選手・試合データ  
   `src/server/tasks/mlb-sync.ts` の Cron（1時間ごと）で同期
 - **ローカルdev**: macOSの制約でD1が使えないため `mlb-dev.ts` が静的JSONにフォールバック
@@ -110,7 +110,8 @@ NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
 | `ippon-provider.ts` | 3D生成プロバイダの抽象化（`MeshProvider`）。`getMeshProvider(config)` で mock/tripo を解決（鍵無しは mock にフォールバック） |
 | `ippon-massing.ts` | Claude の読み取り寸法から grey マッシングモデル(GLB data URL)を手続き生成。mock プロバイダの本体 |
 | `guesthouse.ts` | guesthouse の認証（admin判定・user_idスコープ）・テーブル用意・宿/案内項目(info/tip)の整形・共有トークン・知識ベース組み立て・滞在セッション/メッセージ/相談/日記の読み書き |
-| `guesthouse-ai.ts` | guesthouse フェーズ2・3の Claude 呼び出し集約（相談の下書き・お客さん日記生成・お礼/レビュー依頼下書き・傾向抽出）。すべて人が確認する下書き |
+| `guesthouse-ai.ts` | guesthouse の Claude 呼び出し集約（お客様チャットの緊急判定 triage・通常応答 answer(Web検索対応)・緊急時の取り次ぎ返信・相談の下書き・お客さん日記生成・お礼/レビュー依頼下書き・傾向抽出） |
+| `guesthouse-policy.ts` | guesthouse お客様チャットの**匙加減を集約**（緊急=handoff の線引き `EMERGENCY_CRITERIA`・Web検索の有無/回数 `WEB_SEARCH`・triage/通常応答/緊急返信の各システムプロンプト）。方針変更は基本ここだけ編集 |
 
 ## コーディング規則
 

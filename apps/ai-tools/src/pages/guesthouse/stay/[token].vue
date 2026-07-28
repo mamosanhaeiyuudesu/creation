@@ -105,8 +105,9 @@ import type { StayChatReply, StayInfo, StayThread, ThreadMessage } from '~/types
 definePageMeta({ layout: 'guesthouse' })
 
 const route = useRoute()
+// token はホストが発行した滞在セッションのトークン。この URL 自体が1人ぶんの会話を指す。
 const token = route.params.token as string
-const storageKey = `gh-session-${token}`
+const nameKey = `gh-name-${token}`
 
 const { data: info, pending } = await useFetch<StayInfo>(`/api/guesthouse/stay/${token}`, { key: `gh-stay-${token}` })
 useHead(() => ({ title: info.value?.name ? `${info.value.name} 案内` : 'ゲストハウス案内' }))
@@ -121,7 +122,6 @@ const messages = ref<ThreadMessage[]>([])
 const draft = ref('')
 const guestName = ref('')
 const sending = ref(false)
-const sessionId = ref('')
 const scrollEl = ref<HTMLElement | null>(null)
 const taEl = ref<HTMLTextAreaElement | null>(null)
 let pollTimer: ReturnType<typeof setInterval> | null = null
@@ -156,8 +156,8 @@ async function scrollToBottom() {
 }
 
 function persistName() {
-  // 名前はサーバーには次回送信時に反映される。ローカルにも控えておく。
-  if (process.client) localStorage.setItem(`${storageKey}-name`, guestName.value)
+  // 名前はサーバーには次回送信時に反映される。ローカルにも控えておく（再読込時の再入力を省く）。
+  if (process.client) localStorage.setItem(nameKey, guestName.value)
 }
 
 function ask(text: string) {
@@ -177,12 +177,10 @@ async function send() {
 
   sending.value = true
   try {
-    const res = await $fetch<StayChatReply>(`/api/guesthouse/stay/${token}/chat`, {
+    await $fetch<StayChatReply>(`/api/guesthouse/stay/${token}/chat`, {
       method: 'POST',
-      body: { sessionId: sessionId.value || undefined, guestName: guestName.value || undefined, message: text },
+      body: { guestName: guestName.value || undefined, message: text },
     })
-    sessionId.value = res.sessionId
-    if (process.client) localStorage.setItem(storageKey, res.sessionId)
     await refreshThread()
   } catch (e: any) {
     messages.value.push({
@@ -198,11 +196,10 @@ async function send() {
   }
 }
 
-// サーバーの会話を正として取り込む（阪中さんの返信もここで反映される）。
+// サーバーの会話を正として取り込む（阪中さんの返信もここで反映される）。token がこの会話を指す。
 async function refreshThread() {
-  if (!sessionId.value) return
   try {
-    const t = await $fetch<StayThread>(`/api/guesthouse/stay/${token}/thread`, { params: { session: sessionId.value } })
+    const t = await $fetch<StayThread>(`/api/guesthouse/stay/${token}/thread`)
     if (t.sessionId) {
       messages.value = t.messages
       if (t.guestName && !guestName.value) guestName.value = t.guestName
@@ -214,13 +211,10 @@ async function refreshThread() {
 
 onMounted(async () => {
   if (process.client) {
-    sessionId.value = localStorage.getItem(storageKey) || ''
-    guestName.value = localStorage.getItem(`${storageKey}-name`) || ''
+    guestName.value = localStorage.getItem(nameKey) || ''
   }
-  if (sessionId.value) {
-    await refreshThread()
-    await scrollToBottom()
-  }
+  await refreshThread()
+  await scrollToBottom()
   // 阪中さんの返信を受け取るため、表示中は定期的にスレッドを更新。
   pollTimer = setInterval(() => {
     if (!sending.value && document.visibilityState === 'visible') refreshThread()

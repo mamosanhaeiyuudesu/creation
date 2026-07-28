@@ -11,27 +11,42 @@ interface CallOptions {
   messages: ChatMessage[]
   maxTokens: number
   model?: string
+  /** 指定すると Web 検索（サーバーツール）を有効にする。応答は全テキストブロックを連結して返す。 */
+  webSearch?: { maxUses?: number }
 }
 
-/** Claude を1回呼び出し、最初のテキストブロックを返す（thinkingは無効）。失敗時は createError を throw。 */
+/**
+ * Claude を1回呼び出し、応答のテキストブロックを連結して返す（thinkingは無効）。失敗時は createError を throw。
+ * webSearch 指定時はサーバーツール web_search を有効化する（モデルが検索→本文の順に返す）。
+ */
 export async function callClaudeText(apiKey: string, opts: CallOptions): Promise<string> {
+  const body: Record<string, unknown> = {
+    model: opts.model ?? DEFAULT_MODEL,
+    max_tokens: opts.maxTokens,
+    thinking: { type: 'disabled' },
+    system: opts.system,
+    messages: opts.messages,
+  }
+  if (opts.webSearch) {
+    body.tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: opts.webSearch.maxUses ?? 3 }]
+  }
   const response = await fetch(MESSAGES_URL, {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: opts.model ?? DEFAULT_MODEL,
-      max_tokens: opts.maxTokens,
-      thinking: { type: 'disabled' },
-      system: opts.system,
-      messages: opts.messages,
-    }),
+    body: JSON.stringify(body),
   })
   if (!response.ok) {
     const err = await response.json().catch(() => null)
     throw createError({ statusCode: response.status, statusMessage: err?.error?.message || 'Claude APIの呼び出しに失敗しました。' })
   }
   const data = await response.json()
-  return (data?.content?.[0]?.text ?? '').trim()
+  // Web検索時は content に server_tool_use / web_search_tool_result 等が混ざるので text だけを連結する。
+  const blocks: any[] = Array.isArray(data?.content) ? data.content : []
+  return blocks
+    .filter((b) => b?.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim()
 }
 
 interface VisionOptions {

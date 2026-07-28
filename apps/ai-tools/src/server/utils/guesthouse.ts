@@ -12,11 +12,11 @@ import type {
   House,
   HouseSummary,
   MessageRole,
-  RecentSession,
   SessionDetail,
   SessionSummary,
   ThreadMessage,
   Tip,
+  TrendItem,
 } from '~/types/guesthouse'
 
 const SESSION_COOKIE = 'app-session'
@@ -86,6 +86,15 @@ export async function ensureGuesthouseTables(db: any): Promise<void> {
     CREATE TABLE IF NOT EXISTS guesthouse_tips (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, category TEXT NOT NULL DEFAULT '',
       title TEXT NOT NULL DEFAULT '', body TEXT NOT NULL DEFAULT '', sort_order INTEGER NOT NULL DEFAULT 0
+    )
+  `).catch(() => {})
+  // 傾向のキャッシュ（学習ループ）。管理トップの全宿横断傾向を、ユーザー単位で
+  // 前回結果＋日記の指紋とともに1組だけ保持する（「更新」時に指紋一致なら再計算をスキップ）。
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS guesthouse_trends (
+      user_id TEXT PRIMARY KEY, items TEXT NOT NULL DEFAULT '[]',
+      fingerprint TEXT NOT NULL DEFAULT '', based_on INTEGER NOT NULL DEFAULT 0,
+      computed_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `).catch(() => {})
 }
@@ -367,40 +376,52 @@ function shapeMessage(row: MessageRow, content: string): ThreadMessage {
 // 読み出し時にサーバー側で復号してからUI/AIに渡すので、見え方は変わらない（DB直読みだけが暗号文になる）。
 // 平文の既存データは decryptComment のフォールバックでそのまま読める。
 
-/** 宿(share_token)に紐づくセッションを取得または新規作成。所属チェック込み。guest_name は暗号化保存。 */
-export async function resolveSession(
-  event: H3Event,
-  db: any,
-  houseId: string,
-  sessionId?: string,
-  guestName?: string
-): Promise<SessionRow> {
-  const name = (guestName ?? '').trim()
-  if (sessionId && /^[0-9a-f]{32}$/.test(sessionId)) {
-    const row = await db
-      .prepare('SELECT * FROM guesthouse_sessions WHERE id = ? AND house_id = ?')
-      .bind(sessionId, houseId)
-      .first<SessionRow>()
-    if (row) {
-      const currentName = await decryptComment(event, row.guest_name)
-      if (name && name !== currentName) {
-        await db
-          .prepare('UPDATE guesthouse_sessions SET guest_name = ? WHERE id = ?')
-          .bind(await encryptComment(event, name), sessionId)
-          .run()
-        row.guest_name = name
-      } else {
-        row.guest_name = currentName
-      }
-      return row
-    }
-  }
+/** ホストがお客様1人ぶんの会話（滞在）を新規発行する。返す id がお客様URLのトークンになる。 */
+export async function createSession(event: H3Event, db: any, houseId: string, guestName?: string): Promise<string> {
   const id = makeSessionToken()
   await db
     .prepare('INSERT INTO guesthouse_sessions (id, house_id, guest_name) VALUES (?, ?, ?)')
-    .bind(id, houseId, await encryptComment(event, name))
+    .bind(id, houseId, await encryptComment(event, (guestName ?? '').trim()))
     .run()
-  return { id, house_id: houseId, guest_name: name, status: 'active', created_at: '', updated_at: '' }
+  return id
+}
+
+/**
+ * お客様URL（= セッショントークン）から、セッションとその宿を解決する。公開（ログイン不要）用。
+ * トークンを知っていること自体がアクセス権（推測困難な32桁UUID）。無効なら null。
+ */
+export async function loadStaySession(
+  db: any,
+  token: string
+): Promise<{ session: SessionRow; house: House } | null> {
+  if (!/^[0-9a-f]{32}$/.test(token)) return null
+  const session = await db
+    .prepare('SELECT * FROM guesthouse_sessions WHERE id = ?')
+    .bind(token)
+    .first<SessionRow>()
+  if (!session) return null
+  const houseRow = await db
+    .prepare('SELECT * FROM guesthouse_houses WHERE id = ?')
+    .bind(session.house_id)
+    .first<HouseRow>()
+  if (!houseRow) return null
+  const factRows = await db
+    .prepare('SELECT * FROM guesthouse_facts WHERE house_id = ? ORDER BY sort_order ASC')
+    .bind(houseRow.id)
+    .all<FactRow>()
+  return { session, house: shapeHouse(houseRow, factRows?.results ?? []) }
+}
+
+/** セッションのお客様名を必要なら更新する（お客様が名前を入力・変更したとき）。 */
+export async function updateGuestNameIfChanged(event: H3Event, db: any, session: SessionRow, name?: string): Promise<void> {
+  const clean = (name ?? '').trim()
+  if (!clean) return
+  const current = await decryptComment(event, session.guest_name ?? '')
+  if (clean === current) return
+  await db
+    .prepare('UPDATE guesthouse_sessions SET guest_name = ? WHERE id = ?')
+    .bind(await encryptComment(event, clean), session.id)
+    .run()
 }
 
 export async function touchSession(db: any, sessionId: string): Promise<void> {
@@ -478,52 +499,6 @@ export async function loadSessionSummaries(event: H3Event, db: any, houseId: str
   return Promise.all(
     sessions.map(async (s) => ({
       id: s.id,
-      guestName: await decryptName(event, s.guest_name),
-      messageCount: countBy.get(s.id) ?? 0,
-      hasDiary: hasDiary.has(s.id),
-      pendingConsults: pendingBy.get(s.id) ?? 0,
-      updatedAt: s.updated_at,
-    }))
-  )
-}
-
-/** 全宿横断の最近の会話（管理トップ用）。ユーザー所有分のみ、宿名付き。 */
-export async function loadRecentSessions(event: H3Event, db: any, userId: string, limit = 20): Promise<RecentSession[]> {
-  const rows = await db
-    .prepare(
-      `SELECT s.*, h.name AS house_name FROM guesthouse_sessions s
-       JOIN guesthouse_houses h ON h.id = s.house_id
-       WHERE h.user_id = ? ORDER BY s.updated_at DESC LIMIT ?`
-    )
-    .bind(userId, limit)
-    .all<SessionRow & { house_name: string }>()
-  const sessions: (SessionRow & { house_name: string })[] = rows?.results ?? []
-  if (!sessions.length) return []
-  const ids = sessions.map((s) => s.id)
-  const ph = ids.map(() => '?').join(',')
-  const msgCounts = await db
-    .prepare(`SELECT session_id, COUNT(*) AS c FROM guesthouse_messages WHERE session_id IN (${ph}) GROUP BY session_id`)
-    .bind(...ids)
-    .all<{ session_id: string; c: number }>()
-  const diaryRows = await db
-    .prepare(`SELECT DISTINCT session_id FROM guesthouse_diaries WHERE session_id IN (${ph})`)
-    .bind(...ids)
-    .all<{ session_id: string }>()
-  const consultRows = await db
-    .prepare(`SELECT session_id, COUNT(*) AS c FROM guesthouse_consults WHERE session_id IN (${ph}) AND status = 'pending' GROUP BY session_id`)
-    .bind(...ids)
-    .all<{ session_id: string; c: number }>()
-  const countBy = new Map<string, number>()
-  for (const r of msgCounts?.results ?? []) countBy.set(r.session_id, r.c)
-  const hasDiary = new Set<string>((diaryRows?.results ?? []).map((r: any) => r.session_id))
-  const pendingBy = new Map<string, number>()
-  for (const r of consultRows?.results ?? []) pendingBy.set(r.session_id, r.c)
-
-  return Promise.all(
-    sessions.map(async (s) => ({
-      id: s.id,
-      houseId: s.house_id,
-      houseName: s.house_name,
       guestName: await decryptName(event, s.guest_name),
       messageCount: countBy.get(s.id) ?? 0,
       hasDiary: hasDiary.has(s.id),
@@ -724,4 +699,77 @@ export async function loadDiaries(event: H3Event, db: any, houseId: string): Pro
     .bind(houseId)
     .all<DiaryRow>()
   return Promise.all((rows?.results ?? []).map((r: DiaryRow) => shapeDiaryDecrypted(event, r)))
+}
+
+/** 指定ユーザーの全宿の日記（管理トップの傾向用）。復号済み・新しい順。 */
+export async function loadAllDiaries(event: H3Event, db: any, userId: string): Promise<Diary[]> {
+  const rows = await db
+    .prepare(
+      `SELECT d.* FROM guesthouse_diaries d
+       JOIN guesthouse_houses h ON h.id = d.house_id
+       WHERE h.user_id = ? ORDER BY d.created_at DESC`
+    )
+    .bind(userId)
+    .all<DiaryRow>()
+  return Promise.all((rows?.results ?? []).map((r: DiaryRow) => shapeDiaryDecrypted(event, r)))
+}
+
+// ── 傾向のキャッシュ（学習ループ）───────────────────────────
+// 日記は編集のたびに「DELETE→新UUIDでINSERT」される（saveDiary）ため、id 集合＝内容の指紋になる。
+// 復号せず id だけで済むので軽い。件数も併記して削除も検知できるようにする。
+export async function loadDiaryFingerprint(db: any, userId: string): Promise<{ fingerprint: string; count: number }> {
+  const rows = await db
+    .prepare(
+      `SELECT d.id FROM guesthouse_diaries d
+       JOIN guesthouse_houses h ON h.id = d.house_id
+       WHERE h.user_id = ? ORDER BY d.id`
+    )
+    .bind(userId)
+    .all<{ id: string }>()
+  const ids = (rows?.results ?? []).map((r: { id: string }) => r.id)
+  return { fingerprint: `${ids.length}:${ids.join('.')}`, count: ids.length }
+}
+
+export interface StoredTrends {
+  items: TrendItem[]
+  basedOn: number
+  computedAt: string
+  fingerprint: string
+}
+
+/** 保存済みの傾向（前回計算結果）を読む。未計算なら null。 */
+export async function loadStoredTrends(db: any, userId: string): Promise<StoredTrends | null> {
+  const row = await db
+    .prepare('SELECT items, fingerprint, based_on, computed_at FROM guesthouse_trends WHERE user_id = ?')
+    .bind(userId)
+    .first<{ items: string; fingerprint: string; based_on: number; computed_at: string }>()
+  if (!row) return null
+  let items: TrendItem[] = []
+  try {
+    const p = JSON.parse(row.items)
+    if (Array.isArray(p)) items = p
+  } catch {
+    /* noop */
+  }
+  return { items, basedOn: row.based_on ?? 0, computedAt: row.computed_at, fingerprint: row.fingerprint ?? '' }
+}
+
+/** 傾向を保存（ユーザー単位で1組・upsert）。指紋と件数も一緒に更新する。 */
+export async function saveTrendsCache(
+  db: any,
+  userId: string,
+  items: TrendItem[],
+  fingerprint: string,
+  basedOn: number
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO guesthouse_trends (user_id, items, fingerprint, based_on, computed_at)
+       VALUES (?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(user_id) DO UPDATE SET
+         items = excluded.items, fingerprint = excluded.fingerprint,
+         based_on = excluded.based_on, computed_at = excluded.computed_at`
+    )
+    .bind(userId, JSON.stringify(items), fingerprint, basedOn)
+    .run()
 }
