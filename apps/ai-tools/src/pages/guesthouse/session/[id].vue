@@ -61,6 +61,27 @@
           </div>
           <p v-if="!detail.messages.length" class="text-[13px] text-[var(--gh-ink-soft)] text-center py-6">まだ会話がありません。</p>
         </div>
+
+        <!-- 阪中さんから直接メッセージを送る -->
+        <div class="mt-4 pt-4 border-t border-[var(--gh-line)]">
+          <label class="gh-dlabel">お客様に直接メッセージを送る</label>
+          <p class="text-[11.5px] text-[var(--gh-ink-faint)] mb-2 leading-relaxed">
+            ここで送ると「阪中さん」名義でお客様のチャットに届きます（お客様の画面に自動で表示されます）。
+          </p>
+          <textarea
+            v-model="directMsg"
+            rows="3"
+            class="gh-input text-[13.5px]"
+            placeholder="例）本日は到着予定より少し早めでも大丈夫ですよ。お気をつけてお越しください。"
+            @keydown.enter="onDirectEnter"
+          />
+          <div v-if="directError" class="text-[12.5px] text-[var(--gh-warn)] mt-1">{{ directError }}</div>
+          <div class="flex justify-end mt-1.5">
+            <button class="gh-btn" :disabled="directBusy || !directMsg.trim()" @click="sendDirect">
+              {{ directBusy ? '送信中…' : directSent ? '送信しました' : 'メッセージを送る' }}
+            </button>
+          </div>
+        </div>
       </section>
 
       <!-- お客さん日記 -->
@@ -165,6 +186,12 @@ const showDelete = ref(false)
 const deleting = ref(false)
 const deleteError = ref('')
 
+// お客様への直接メッセージ
+const directMsg = ref('')
+const directBusy = ref(false)
+const directError = ref('')
+const directSent = ref(false)
+
 // 日記
 const diary = ref<{ summary: string; content: DiaryContent } | null>(null)
 const diaryBusy = ref(false)
@@ -216,6 +243,33 @@ async function toggleStatus() {
     /* noop */
   } finally {
     statusBusy.value = false
+  }
+}
+
+// Enter送信（IME変換中・修飾キー併用は改行）。お客様チャット入力欄と同じ挙動。
+function onDirectEnter(e: KeyboardEvent) {
+  if (e.isComposing || (e as any).keyCode === 229) return
+  if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return
+  e.preventDefault()
+  sendDirect()
+}
+
+// 阪中さんから会話スレッドに直接メッセージを投稿する（相談承認とは別の任意メッセージ）。
+async function sendDirect() {
+  const content = directMsg.value.trim()
+  if (!content || directBusy.value) return
+  directBusy.value = true
+  directError.value = ''
+  try {
+    await $fetch(`/api/guesthouse/sessions/${id}/post`, { method: 'POST', body: { content } })
+    directMsg.value = ''
+    directSent.value = true
+    setTimeout(() => (directSent.value = false), 2500)
+    await load()
+  } catch (e: any) {
+    directError.value = e?.data?.message || '送信に失敗しました。'
+  } finally {
+    directBusy.value = false
   }
 }
 
