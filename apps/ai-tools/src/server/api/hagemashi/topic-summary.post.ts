@@ -96,6 +96,8 @@ export default defineEventHandler(async (event) => {
 
   // アドバイスタブ（scope='advice'）は要約ではなく、テーマに沿った実践的なアドバイスを返す
   const isAdvice = body.scope === 'advice'
+  // 分析タブ（scope='emotion'）は、選ばれた単語に対して抱いている「感情」を切り口に読み解く
+  const isEmotion = body.scope === 'emotion'
 
   const summarySystem = `あなたはユーザーの日々の記録（中間データ）を読み解き、要約して伝えるアシスタントです。
 ユーザーが選んだテーマ「${body.keyword}」に関連しそうな記録を、時期ごとに分けて与えます。各見出しは「2025年5〜8月頃」のようにその時期の実際の年月です。文字表記が完全一致しなくても、内容が意味的に関連していれば対象として扱ってください。無関係な記録も混ざっています。
@@ -145,6 +147,36 @@ export default defineEventHandler(async (event) => {
 - タイトルはそのブロックのアドバイスの観点を表す10字前後のラベルにする
 - JSON以外の文字列は一切出力しない`
 
+  const emotionSystem = `あなたはユーザーの日々の記録（中間データ）から、ある言葉に対して本人が抱いている「感情」を読み解くアシスタントです。
+ユーザーが選んだ言葉「${body.keyword}」に触れている記録を、時期ごとに分けて与えます。各見出しは「2025年5〜8月頃」のようにその時期の実際の年月です。文字表記が完全一致しなくても、内容が意味的に「${body.keyword}」に関わっていれば対象として扱ってください。無関係な記録も混ざっています。
+
+手順:
+1. 「${body.keyword}」に意味的に関わる記録を各時期から自分で選び出す（特定の時期に偏らず、すべての時期を確認する）
+2. それらの記録から、ユーザーが「${body.keyword}」に対してどんな気持ちを抱いているかを読み取り、感情の種類ごとにまとめる
+3. 同じ言葉でもポジティブな感情とネガティブな感情の両方が見つかることがある（両価性）。その場合は両方をそれぞれのブロックとして必ず示す
+4. 関連する記録がどの時期にも1件もなければ blocks を空配列にする
+
+必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
+{"blocks":[{"title":"感情のラベル","text":"本文"}]}
+
+感情ラベル（title）の付け方（最重要）:
+- そのブロックがどんな気持ちなのかを表す短い言葉にする（例:「つまらなさ」「不安」「やりがい」「誇らしさ」「もやもや」など、10字以内）
+- 「${body.keyword}について」のような説明ではなく、感情そのものを表す言葉にする
+
+本文（text）の書き方:
+- なぜその感情を抱いているのか、記録から読み取れる具体的な状況や背景を、あなた自身の言葉で2〜3文にまとめる
+- 記録の文をそのまま引き写したり羅列したりせず、自然に流れる読みやすい文章にする
+- 「〜という記録があった」のような報告口調ではなく、本人に語りかけるように書く
+
+出力ルール:
+- blocks は1〜4個。感情が1種類ならブロックは1個でよい。ポジ・ネガ両方あれば必ず両方出す
+- 感情の強い順・主要な順に並べる
+- 期間に言及するときは「初期」等の抽象語ではなく、与えられた見出しの実際の年月で具体的に書く
+- 全ブロックの text を合計しておよそ500文字以内に収める
+- JSON以外の文字列は一切出力しない`
+
+  const system = isAdvice ? adviceSystem : isEmotion ? emotionSystem : summarySystem
+
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -157,7 +189,7 @@ export default defineEventHandler(async (event) => {
         model: 'claude-sonnet-5',
         max_tokens: 700,
         thinking: { type: 'disabled' },
-        system: isAdvice ? adviceSystem : summarySystem,
+        system,
         messages: [{ role: 'user', content: `${sourceText}${noteContext}` }],
       }),
     })

@@ -105,7 +105,7 @@
         </div>
         <div
           class="flex items-center gap-2 mb-1"
-          :class="activeTab === 'summary' || activeTab === 'words' || isProfileTab || activeTab === 'transcription' || activeTab === 'achievement' || activeTab === 'achieved' || activeTab === 'gratitude' || activeTab === 'kokoro'
+          :class="activeTab === 'summary' || activeTab === 'words' || activeTab === 'analysis' || isProfileTab || activeTab === 'transcription' || activeTab === 'achievement' || activeTab === 'achieved' || activeTab === 'gratitude' || activeTab === 'kokoro'
             ? 'min-h-8'
             : 'min-h-0'"
         >
@@ -147,7 +147,7 @@
               {{ migrateStatus || '再生成' }}
             </button>
           </template>
-          <template v-if="activeTab === 'words'">
+          <template v-if="activeTab === 'words' || activeTab === 'analysis'">
             <label class="ml-auto flex items-center gap-1.5 text-[11px] text-slate-500">
               <span>出現回数</span>
               <select
@@ -232,6 +232,31 @@
           @delete="deleteEncourageHistory"
           @updateTitle="updateEncourageHistoryTitle"
         />
+        <!-- 分析タブ（単語×感情） -->
+        <div v-else-if="activeTab === 'analysis'" class="py-2">
+          <div v-if="wordEmotionData.length === 0" class="text-center text-slate-500 text-sm py-10">
+            要約が生成されると、単語ごとの感情を可視化します
+          </div>
+          <div v-else class="flex flex-col gap-2.5">
+            <p class="m-0 text-[11px] text-slate-500 leading-relaxed">
+              あなたがよく口にする言葉を、その言葉について感じていること（ポジ/ネガ）で色づけしています。<br class="hidden sm:block" />
+              単語をタップすると、その言葉に対する気持ちをAIが読み解きます。
+            </p>
+            <HagemashiWordEmotionCloud
+              :words="wordEmotionData.slice(0, 120)"
+              :height="380"
+              @word-click="activeEmotionWord = $event"
+            />
+            <!-- 凡例 -->
+            <div class="flex items-center justify-center gap-2 text-[10px] text-slate-500">
+              <span class="text-orange-400 font-semibold">ネガ寄り</span>
+              <span class="h-1.5 w-24 rounded-full" :style="{ background: 'linear-gradient(90deg, rgb(251,146,60), rgb(148,163,184), rgb(52,211,153))' }" />
+              <span class="text-emerald-400 font-semibold">ポジ寄り</span>
+              <span class="text-slate-600">（中間＝両価的）</span>
+            </div>
+          </div>
+        </div>
+
         <!-- 要約タブ -->
         <div v-else-if="activeTab === 'summary'" class="py-2">
           <div v-if="summaryRows.length === 0" class="text-center text-slate-500 text-sm py-10">
@@ -1060,6 +1085,20 @@
       @exclude="confirmingStopword = activeWordPopup!.name; activeWordPopup = null"
     />
 
+    <!-- 分析タブ 単語クリック時のAI分析ポップアップ（単語に対する感情を読み解く） -->
+    <HagemashiTopicAnalysisModal
+      v-if="activeEmotionWord"
+      :key="`emotion-${activeEmotionWord.name}`"
+      :title="activeEmotionWord.name"
+      :meta="`ポジ ${activeEmotionWord.pos} ・ ネガ ${activeEmotionWord.neg}`"
+      :keyword="activeEmotionWord.name"
+      scope="emotion"
+      :matched-items="activeEmotionMatches"
+      show-exclude
+      @close="activeEmotionWord = null"
+      @exclude="confirmingStopword = activeEmotionWord!.name; activeEmotionWord = null"
+    />
+
     <!-- 心の要素クリック時のAI分析ポップアップ -->
     <HagemashiTopicAnalysisModal
       v-if="activeKokoroPopup"
@@ -1238,9 +1277,9 @@ const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-type RecordingTab = 'transcription' | 'words' | 'summary' | 'achievement' | 'kokoro' | 'strengths' | 'achieved' | 'gratitude' | 'advice'
+type RecordingTab = 'transcription' | 'analysis' | 'words' | 'summary' | 'achievement' | 'kokoro' | 'strengths' | 'achieved' | 'gratitude' | 'advice'
 type TabKey = 'consult' | 'mood' | RecordingTab
-const TAB_KEYS: TabKey[] = ['transcription', 'words', 'summary', 'achievement', 'kokoro', 'strengths', 'achieved', 'gratitude', 'advice', 'consult', 'mood']
+const TAB_KEYS: TabKey[] = ['transcription', 'analysis', 'words', 'summary', 'achievement', 'kokoro', 'strengths', 'achieved', 'gratitude', 'advice', 'consult', 'mood']
 
 // 記録タブ内の表示切り替え（記録 / はげまし）
 const recordView = ref<'record' | 'encourage'>('record')
@@ -1265,6 +1304,7 @@ watch(() => route.query.tab, () => {
 // 常に表示する主タブ
 const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'transcription', label: '記録', short: '記録' },
+  { key: 'analysis', label: '分析', short: '分析' },
   { key: 'kokoro', label: '心', short: '心' },
   { key: 'strengths', label: '強み', short: '強み' },
   { key: 'achieved', label: '達成', short: '達成' },
@@ -2200,17 +2240,51 @@ const combinedSummaryRows = computed(() => {
 
 // --- 単語・心クリック時のAI分析ポップアップ（キャッシュ・保存はしない） ---
 interface ActiveWordPopup { name: string; count: number }
+interface ActiveEmotionWord { name: string; count: number; pos: number; neg: number }
 interface ActiveKokoroPopup { name: string; note: string; group: string; weight: number }
 interface ActiveProfilePopup { name: string; note: string; weight: number }
 const activeWordPopup = ref<ActiveWordPopup | null>(null)
+const activeEmotionWord = ref<ActiveEmotionWord | null>(null)
 const activeKokoroPopup = ref<ActiveKokoroPopup | null>(null)
 const activeProfilePopup = ref<ActiveProfilePopup | null>(null)
+
+// 分析タブ用: 要約行を単語分割し、単語ごとにポジ/ネガ出現数を集計する。
+// 感情（sentiment）は要約行にしか無いため、単語の抽出元も要約行に揃える
+// （こうすると全単語が必ず感情データを持ち、クリック時の文字列一致も確実に取れる）。
+// stoplist / minWordCount は単語クラウドと共通の設定を使う。
+const wordEmotionData = computed(() => {
+  const map = new Map<string, { pos: number; neg: number }>()
+  for (const row of summaryRows.value) {
+    const seen = new Set<string>()
+    for (const w of extractWords(row.text)) {
+      if (seen.has(w)) continue // 同一行内での重複はまとめて1回として数える
+      seen.add(w)
+      const e = map.get(w) ?? { pos: 0, neg: 0 }
+      if (row.sentiment === 'ポジ') e.pos++
+      else e.neg++
+      map.set(w, e)
+    }
+  }
+  return [...map.entries()]
+    .map(([word, e]) => ({ word, count: e.pos + e.neg, pos: e.pos, neg: e.neg }))
+    .filter(w => w.count >= minWordCount.value)
+    .sort((a, b) => b.count - a.count)
+})
 
 // summaryRows は新しい順のため、AIには古い→新しいの時系列順で渡す
 // （新しい順のまま渡すと直近の内容が先頭に来て過度に強調されやすいため）
 const activeWordMatches = computed(() => {
   if (!activeWordPopup.value) return []
   const keyword = activeWordPopup.value.name
+  return summaryRows.value
+    .filter(r => r.text.includes(keyword))
+    .map(r => ({ date: r.fullDate, text: r.text }))
+    .reverse()
+})
+// 分析タブ: クリックした単語を含む要約行を、その単語に対する感情の根拠としてAIへ渡す
+const activeEmotionMatches = computed(() => {
+  if (!activeEmotionWord.value) return []
+  const keyword = activeEmotionWord.value.name
   return summaryRows.value
     .filter(r => r.text.includes(keyword))
     .map(r => ({ date: r.fullDate, text: r.text }))
