@@ -240,7 +240,7 @@
           <div v-else class="flex flex-col gap-2.5">
             <p class="m-0 text-[11px] text-slate-500 leading-relaxed">
               あなたがよく口にする言葉を、その言葉について感じていること（ポジ/ネガ）で色づけしています。<br class="hidden sm:block" />
-              単語をタップすると、その言葉に対する気持ちをAIが読み解きます。
+              単語をタップすると、結びついている言葉（例:「仕事」→「つらい」）→ 該当する記録 → AI要約 の順で掘り下げられます。
             </p>
             <HagemashiWordEmotionCloud
               :words="wordEmotionData.slice(0, 120)"
@@ -1085,16 +1085,13 @@
       @exclude="confirmingStopword = activeWordPopup!.name; activeWordPopup = null"
     />
 
-    <!-- 分析タブ 単語クリック時のAI分析ポップアップ（単語に対する感情を読み解く） -->
-    <HagemashiTopicAnalysisModal
+    <!-- 分析タブ 単語クリック時のドリルダウン（関連語 → 該当記録 → AI要約） -->
+    <HagemashiWordRelationModal
       v-if="activeEmotionWord"
-      :key="`emotion-${activeEmotionWord.name}`"
-      :title="activeEmotionWord.name"
-      :meta="`ポジ ${activeEmotionWord.pos} ・ ネガ ${activeEmotionWord.neg}`"
+      :key="`relation-${activeEmotionWord.name}`"
       :keyword="activeEmotionWord.name"
-      scope="emotion"
-      :matched-items="activeEmotionMatches"
-      show-exclude
+      :meta="`ポジ ${activeEmotionWord.pos} ・ ネガ ${activeEmotionWord.neg}`"
+      :items="activeEmotionMatches"
       @close="activeEmotionWord = null"
       @exclude="confirmingStopword = activeEmotionWord!.name; activeEmotionWord = null"
     />
@@ -2281,14 +2278,20 @@ const activeWordMatches = computed(() => {
     .map(r => ({ date: r.fullDate, text: r.text }))
     .reverse()
 })
-// 分析タブ: クリックした単語を含む要約行を、その単語に対する感情の根拠としてAIへ渡す
+// 分析タブ: クリックした単語を含む要約行を、係り受け抽出の入力としてAIへ渡す。
+// 関連語の参照インデックス(refs)がこの配列を指すため、送信配列＝表示に使う配列を固定する。
+// 多すぎるとトークン過多になるので、時系列の偏りが出ないよう均等サンプリングで80件に丸める。
 const activeEmotionMatches = computed(() => {
   if (!activeEmotionWord.value) return []
   const keyword = activeEmotionWord.value.name
-  return summaryRows.value
+  const all = summaryRows.value
     .filter(r => r.text.includes(keyword))
     .map(r => ({ date: r.fullDate, text: r.text }))
     .reverse()
+  const MAX = 80
+  if (all.length <= MAX) return all
+  const step = all.length / MAX
+  return Array.from({ length: MAX }, (_, i) => all[Math.floor(i * step)])
 })
 // 心の要素名はAIが生成した抽象的なラベルのため文字列一致では拾えない。
 // 中間データ全体をそのままAIに渡し、意味的な関連判断はAI自身にやらせる
