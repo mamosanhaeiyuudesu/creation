@@ -31,6 +31,9 @@ const isLoading = ref(false)
 const errorMsg = ref('')
 
 const pairs = computed(() => edgesOf(props.graph, props.word))
+// 図に線が引かれているものと、見やすさのために線を省略したものを分けて見せる
+const drawnPairs = computed(() => pairs.value.filter(e => e.drawn))
+const hiddenPairs = computed(() => pairs.value.filter(e => !e.drawn))
 
 const moodLabel = computed(() => {
   const v = props.df ? (props.pos - props.neg) / props.df : 0
@@ -131,9 +134,11 @@ function backToList() {
               <p class="m-0 mb-3 text-[11px] text-slate-500 leading-relaxed">
                 「{{ word }}」と結びついている組み合わせです。強い順。タップするとAIが読み解きます。
               </p>
-              <div class="flex flex-col gap-2">
+
+              <!-- 図で線が引かれている組み合わせ -->
+              <div v-if="drawnPairs.length" class="flex flex-col gap-2">
                 <button
-                  v-for="e in pairs"
+                  v-for="e in drawnPairs"
                   :key="`${e.a}-${e.b}`"
                   class="w-full text-left px-3 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] cursor-pointer hover:bg-white/[0.07] hover:border-white/20 transition-all"
                   @click="openPair(e)"
@@ -155,6 +160,41 @@ function backToList() {
                   </div>
                 </button>
               </div>
+
+              <!-- 図では線を省略した組み合わせ（結びつき自体はある） -->
+              <template v-if="hiddenPairs.length">
+                <div class="flex items-center gap-2 mt-4 mb-2">
+                  <span class="h-px flex-1 bg-white/[0.08]" />
+                  <span class="text-[10px] text-slate-600 shrink-0">図では線を省略</span>
+                  <span class="h-px flex-1 bg-white/[0.08]" />
+                </div>
+                <p class="m-0 mb-2 text-[10px] text-slate-600 leading-relaxed">
+                  図が見づらくならないよう線を間引いています。結びつき自体はあるので、同じように掘り下げられます。
+                </p>
+                <div class="flex flex-col gap-2">
+                  <button
+                    v-for="e in hiddenPairs"
+                    :key="`${e.a}-${e.b}`"
+                    class="w-full text-left px-3 py-2.5 rounded-xl border border-dashed border-white/[0.10] bg-transparent cursor-pointer hover:bg-white/[0.05] hover:border-white/20 transition-all"
+                    @click="openPair(e)"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="flex items-center gap-1.5 text-sm font-semibold text-slate-400">
+                        <span>{{ word }}</span>
+                        <span class="text-slate-600 text-[10px]">×</span>
+                        <span :style="{ color: valenceColor(e.valence) }">{{ partnerOf(e) }}</span>
+                      </span>
+                      <span class="text-[10px] text-slate-600 tabular-nums shrink-0">
+                        {{ e.co }}件 ・ 強さ {{ e.strength.toFixed(2) }}
+                      </span>
+                    </div>
+                    <div class="mt-1.5 h-1 rounded-full bg-white/[0.06] overflow-hidden flex opacity-70">
+                      <span class="h-full bg-emerald-400" :style="{ width: `${(e.pos / e.co) * 100}%` }" />
+                      <span class="h-full bg-orange-400" :style="{ width: `${(e.neg / e.co) * 100}%` }" />
+                    </div>
+                  </button>
+                </div>
+              </template>
             </template>
           </template>
 

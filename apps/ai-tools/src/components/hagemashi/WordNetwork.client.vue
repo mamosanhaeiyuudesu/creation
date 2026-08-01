@@ -274,8 +274,21 @@ defineExpose({ relayout, clearSelection })
 // グラフの中身が変わったら描き直す。座標が使えれば復元されるので絵は動かない
 watch(() => props.signature, () => render(true))
 
-onMounted(() => render(true))
+// 高さは画面サイズに追従するため、コンテナのサイズ変化を cytoscape に伝える。
+// fit はやり直さない（見ている位置が勝手に動くのを避ける）
+let ro: ResizeObserver | null = null
+
+onMounted(() => {
+  render(true)
+  if (container.value && typeof ResizeObserver !== 'undefined') {
+    ro = new ResizeObserver(() => cy?.resize())
+    ro.observe(container.value)
+  }
+})
+
 onBeforeUnmount(() => {
+  ro?.disconnect()
+  ro = null
   cy?.destroy()
   cy = null
 })

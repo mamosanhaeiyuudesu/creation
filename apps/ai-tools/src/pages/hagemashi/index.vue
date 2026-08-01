@@ -1,9 +1,10 @@
 <template>
-  <div class="flex flex-col items-center px-4 pt-4 lg:pt-8 pb-12 min-h-screen" @click="showSettingsMenu = false">
+  <div class="flex flex-col items-center px-4 pt-4 lg:pt-5 pb-12 lg:pb-5 min-h-screen" @click="showSettingsMenu = false">
     <div v-if="showSettingsMenu" class="fixed inset-0 z-40" @click="showSettingsMenu = false" />
-    <div class="relative z-50 w-full max-w-[600px] ml-2.5">
+    <!-- PC では画面幅を活かして広いカードにする（スマホは従来どおり600px上限の1カラム） -->
+    <div class="relative z-50 w-full max-w-[600px] lg:max-w-[1100px] ml-2.5 lg:ml-0">
       <div class="absolute inset-x-0 top-0 h-[2px] rounded-t-2xl bg-gradient-to-r from-orange-500 to-pink-500 z-10" />
-      <div class="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl pt-7 px-3.5 pb-3 shadow-[0_20px_80px_rgba(0,0,0,0.35),0_0_40px_rgba(249,115,22,0.06)] backdrop-blur-[10px] grid gap-4 max-h-[90dvh] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
+      <div class="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl pt-7 px-3.5 lg:px-6 pb-3 shadow-[0_20px_80px_rgba(0,0,0,0.35),0_0_40px_rgba(249,115,22,0.06)] backdrop-blur-[10px] grid gap-4 max-h-[90dvh] lg:max-h-[calc(100dvh-2.5rem)] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
 
       <!-- Header -->
       <header class="relative flex items-center justify-start">
@@ -264,16 +265,16 @@
             </template>
           </div>
           <div v-else class="flex flex-col gap-2.5">
-            <p class="m-0 text-[11px] text-slate-500 leading-relaxed">
+            <!-- <p class="m-0 text-[11px] text-slate-500 leading-relaxed">
               同じ要約に一緒に出てくる言葉どうしを線で結んでいます。色はポジ/ネガ、線の太さは結びつきの強さ。<br class="hidden sm:block" />
               単語をタップすると、組み合わせ（例:「仕事 × 締切」）→ AI分析 の順で掘り下げられます。
-            </p>
+            </p> -->
 
             <HagemashiWordNetwork
               ref="networkRef"
               :graph="networkGraph"
               :signature="networkSignature"
-              :height="isMobile() ? 340 : 420"
+              :height="networkHeight"
               @node-click="activePairWord = $event"
             />
 
@@ -1259,7 +1260,7 @@
 
 <script setup lang="ts">
 definePageMeta({ alias: ['/hagemashi', '/hagemashi/'] })
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { marked } from 'marked'
 
 useHead({
@@ -2318,7 +2319,28 @@ const pendingRowCount = computed(() =>
   networkBuiltAt.value === null ? 0 : Math.max(0, summaryRows.value.length - networkBuiltRows.value)
 )
 
-const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 640
+// ビューポートを追従して持つ。PC では図の高さを画面に合わせて広げるため、
+// また画面幅でノード数の上限を切り替えるために使う（SSR 時は PC 想定の初期値）
+const viewportWidth = ref(1024)
+const viewportHeight = ref(800)
+function syncViewport() {
+  viewportWidth.value = window.innerWidth
+  viewportHeight.value = window.innerHeight
+}
+onMounted(() => {
+  syncViewport()
+  window.addEventListener('resize', syncViewport)
+})
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') window.removeEventListener('resize', syncViewport)
+})
+
+const isMobile = () => viewportWidth.value < 640
+
+// カード内の他の要素（タブ・説明文・凡例）を除いた分を図に回す
+const networkHeight = computed(() =>
+  isMobile() ? 340 : Math.max(420, Math.min(780, Math.round(viewportHeight.value - 290))),
+)
 
 // 集計だけを行う（配置は動かさない）。tokenize + 共起計算で、記録2000行でも数百ms程度
 function buildNetworkGraph() {
