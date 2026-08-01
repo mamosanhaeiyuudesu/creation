@@ -85,8 +85,9 @@
             :class="activeTab === t.key ? 'border-orange-500/60 bg-orange-500/15 text-orange-300' : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
             @click="activeTab = t.key"
           ><span class="sm:hidden">{{ t.short }}</span><span class="hidden sm:inline">{{ t.label }}</span></button>
-          <!-- 展開アイコン -->
+          <!-- 展開アイコン（副タブが1つも無いときは出さない） -->
           <button
+            v-if="secondaryTabs.length > 0"
             class="w-6 h-6 flex items-center justify-center rounded-full text-xs border transition-all cursor-pointer shrink-0"
             :class="secondaryVisible ? 'border-orange-500/40 text-orange-300 bg-orange-500/10' : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
             :title="secondaryVisible ? '閉じる' : 'その他のタブ'"
@@ -1324,7 +1325,12 @@ const resultCopied = ref(false)
 const isEncouraging = ref(false)
 type RecordingTab = 'transcription' | 'analysis' | 'words' | 'summary' | 'achievement' | 'kokoro' | 'strengths' | 'achieved' | 'gratitude' | 'advice'
 type TabKey = 'consult' | 'mood' | RecordingTab
-const TAB_KEYS: TabKey[] = ['transcription', 'analysis', 'words', 'summary', 'achievement', 'kokoro', 'strengths', 'achieved', 'gratitude', 'advice', 'consult', 'mood']
+// ?tab= で指定を受け付けるタブ。ここに無いキーは無視され「記録」に落ちる。
+// 非表示中のタブを残すと ?tab=kokoro でタブバーの無い画面に入り込めてしまうため、
+// primaryTabs / secondaryTabs のコメントアウトと歩調を合わせている。
+// （consult / mood はタブバーではなくボタンから開くので残す）
+const TAB_KEYS: TabKey[] = ['transcription', 'analysis', 'consult', 'mood']
+// 非表示中: 'words', 'summary', 'achievement', 'kokoro', 'strengths', 'achieved', 'gratitude', 'advice'
 
 // 記録タブ内の表示切り替え（記録 / はげまし）
 const recordView = ref<'record' | 'encourage'>('record')
@@ -1347,19 +1353,21 @@ watch(() => route.query.tab, () => {
 })
 
 // 常に表示する主タブ
+// 現在は「記録」「分析」のみ運用中。他はコメントアウトしている（表示のみ停止・実装は残置）。
+// 戻すときはこの配列と下の TAB_KEYS の両方を戻すこと。
 const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'transcription', label: '記録', short: '記録' },
   { key: 'analysis', label: '分析', short: '分析' },
-  { key: 'kokoro', label: '心', short: '心' },
-  { key: 'strengths', label: '強み', short: '強み' },
-  { key: 'achieved', label: '達成', short: '達成' },
-  { key: 'gratitude', label: '感謝', short: '感謝' },
-  { key: 'advice', label: '助言', short: '助言' },
+  // { key: 'kokoro', label: '心', short: '心' },
+  // { key: 'strengths', label: '強み', short: '強み' },
+  // { key: 'achieved', label: '達成', short: '達成' },
+  // { key: 'gratitude', label: '感謝', short: '感謝' },
+  // { key: 'advice', label: '助言', short: '助言' },
 ]
-// 展開アイコンを開くと表示する副タブ
+// 展開アイコンを開くと表示する副タブ（現在はすべてコメントアウト＝展開アイコン自体も非表示）
 const secondaryTabs: { key: RecordingTab; label: string; short: string }[] = [
-  { key: 'words', label: '単語', short: '単語' },
-  { key: 'summary', label: '要約', short: '要約' },
+  // { key: 'words', label: '単語', short: '単語' },
+  // { key: 'summary', label: '要約', short: '要約' },
   // { key: 'achievement', label: '達成リスト', short: '達成' }, // 「達成」ツリーマップタブに統合したためコメントアウト
 ]
 const recordingTabs: { key: RecordingTab; label: string; short: string }[] = [...primaryTabs, ...secondaryTabs]
