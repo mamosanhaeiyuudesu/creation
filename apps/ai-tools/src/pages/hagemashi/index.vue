@@ -162,6 +162,24 @@
               @click="stoplistOpen = true"
             >除外単語</button>
           </template>
+          <!-- 分析タブ: 集計は自動、配置の組み直しはこのボタンでだけ行う -->
+          <template v-if="activeTab === 'analysis'">
+            <span v-if="networkBuiltAt" class="text-[11px] text-slate-600 hidden sm:inline">
+              最終更新: {{ formatBuiltAt(networkBuiltAt) }}
+            </span>
+            <button
+              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+              :disabled="isBuildingNetwork || summaryRows.length === 0"
+              @click="refreshNetwork"
+            >
+              <span v-if="isBuildingNetwork" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
+              更新
+              <span
+                v-if="pendingRowCount > 0"
+                class="px-1.5 rounded-full bg-orange-500 text-slate-900 text-[10px] font-bold tabular-nums"
+              >{{ pendingRowCount }}</span>
+            </button>
+          </template>
           <template v-if="activeTab === 'kokoro'">
             <div class="flex-1" />
             <span v-if="kokoroHistory.length > 0" class="text-[11px] text-slate-600">最終更新: {{ formatProfileDate(kokoroHistory[0].generatedAt) }}</span>
@@ -232,27 +250,51 @@
           @delete="deleteEncourageHistory"
           @updateTitle="updateEncourageHistoryTitle"
         />
-        <!-- 分析タブ（単語×感情） -->
+        <!-- 分析タブ（単語の共起ネットワーク） -->
         <div v-else-if="activeTab === 'analysis'" class="py-2">
-          <div v-if="wordEmotionData.length === 0" class="text-center text-slate-500 text-sm py-10">
-            要約が生成されると、単語ごとの感情を可視化します
+          <div v-if="summaryRows.length === 0" class="text-center text-slate-500 text-sm py-10">
+            要約が生成されると、言葉のつながりを可視化します
+          </div>
+          <div v-else-if="networkGraph.nodes.length === 0" class="text-center text-slate-500 text-sm py-10">
+            <template v-if="isBuildingNetwork">集計中...</template>
+            <template v-else>
+              つながりを描けるだけの記録がまだありません。<br />
+              記録が増えるか、「出現回数」を下げると表示されます。
+            </template>
           </div>
           <div v-else class="flex flex-col gap-2.5">
             <p class="m-0 text-[11px] text-slate-500 leading-relaxed">
-              あなたがよく口にする言葉を、その言葉について感じていること（ポジ/ネガ）で色づけしています。<br class="hidden sm:block" />
-              単語をタップすると、結びついている言葉（例:「仕事」→「つらい」）→ 該当する記録 → AI要約 の順で掘り下げられます。
+              同じ要約に一緒に出てくる言葉どうしを線で結んでいます。色はポジ/ネガ、線の太さは結びつきの強さ。<br class="hidden sm:block" />
+              単語をタップすると、組み合わせ（例:「仕事 × 締切」）→ AI分析 の順で掘り下げられます。
             </p>
-            <HagemashiWordEmotionCloud
-              :words="wordEmotionData.slice(0, 120)"
-              :height="380"
-              @word-click="activeEmotionWord = $event"
+
+            <HagemashiWordNetwork
+              ref="networkRef"
+              :graph="networkGraph"
+              :signature="networkSignature"
+              :height="isMobile() ? 340 : 420"
+              @node-click="activePairWord = $event"
             />
+
             <!-- 凡例 -->
-            <div class="flex items-center justify-center gap-2 text-[10px] text-slate-500">
-              <span class="text-orange-400 font-semibold">ネガ寄り</span>
-              <span class="h-1.5 w-24 rounded-full" :style="{ background: 'linear-gradient(90deg, rgb(251,146,60), rgb(148,163,184), rgb(52,211,153))' }" />
-              <span class="text-emerald-400 font-semibold">ポジ寄り</span>
-              <span class="text-slate-600">（中間＝両価的）</span>
+            <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[10px] text-slate-500">
+              <span class="flex items-center gap-1.5">
+                <span class="text-orange-400 font-semibold">ネガ</span>
+                <span class="h-1.5 w-20 rounded-full" :style="{ background: 'linear-gradient(90deg, rgb(251,146,60), rgb(148,163,184), rgb(52,211,153))' }" />
+                <span class="text-emerald-400 font-semibold">ポジ</span>
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" />
+                <span class="w-2.5 h-2.5 rounded-full bg-slate-400 inline-block" />
+                <span class="w-3.5 h-3.5 rounded-full bg-slate-400 inline-block" />
+                出現の多さ
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-6 h-px bg-slate-400 inline-block" />
+                <span class="w-6 h-[3px] bg-slate-400 inline-block" />
+                結びつきの強さ
+              </span>
+              <span class="text-slate-600 tabular-nums">{{ networkGraph.nodes.length }} 語 ・ {{ networkGraph.edges.length }} 接続</span>
             </div>
           </div>
         </div>
@@ -1085,15 +1127,19 @@
       @exclude="confirmingStopword = activeWordPopup!.name; activeWordPopup = null"
     />
 
-    <!-- 分析タブ 単語クリック時のドリルダウン（関連語 → 該当記録 → AI要約） -->
-    <HagemashiWordRelationModal
-      v-if="activeEmotionWord"
-      :key="`relation-${activeEmotionWord.name}`"
-      :keyword="activeEmotionWord.name"
-      :meta="`ポジ ${activeEmotionWord.pos} ・ ネガ ${activeEmotionWord.neg}`"
-      :items="activeEmotionMatches"
-      @close="activeEmotionWord = null"
-      @exclude="confirmingStopword = activeEmotionWord!.name; activeEmotionWord = null"
+    <!-- 分析タブ 単語クリック時のドリルダウン（組み合わせ一覧 → AI分析） -->
+    <HagemashiPairListModal
+      v-if="activePairWord"
+      :key="`pair-${activePairWord.word}`"
+      :word="activePairWord.word"
+      :pos="activePairWord.pos"
+      :neg="activePairWord.neg"
+      :df="activePairWord.df"
+      :graph="networkGraph"
+      :rows="networkRows"
+      @close="closePairModal"
+      @focus="focusPairWord"
+      @exclude="confirmingStopword = activePairWord!.word; closePairModal()"
     />
 
     <!-- 心の要素クリック時のAI分析ポップアップ -->
@@ -1212,7 +1258,7 @@
 
 <script setup lang="ts">
 definePageMeta({ alias: ['/hagemashi', '/hagemashi/'] })
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { marked } from 'marked'
 
 useHead({
@@ -1232,6 +1278,8 @@ useHead({
 import { useHistory } from '~/composables/useHistory'
 import { useAuth } from '~/composables/useAuth'
 import { useAudioRecorder, fetchTitle } from '~/composables/useAudioRecorder'
+import { tokenize } from '~/utils/hagemashi/tokenize'
+import { buildNetwork, graphSignature, type NetGraph } from '~/utils/hagemashi/cooccurrence'
 
 const $dev = import.meta.dev
 
@@ -1766,14 +1814,11 @@ function addStopwordInput() {
   }
 }
 
+// 単語分割は utils/hagemashi/tokenize.ts に集約している。
+// Intl.Segmenter による分割で、従来の正規表現より精度が高い（「話聞」のような
+// 語をまたいだ漢字の連結が出ない）。非対応環境では内部で正規表現に落ちる。
 function extractWords(text: string): string[] {
-  const words: string[] = []
-  const kanjiRe = /[一-鿿㐀-䶿]{2,}/g
-  const katakanaRe = /[゠-ヿ]{2,}/g
-  let m
-  while ((m = kanjiRe.exec(text)) !== null) if (!stoplistSet.value.has(m[0])) words.push(m[0])
-  while ((m = katakanaRe.exec(text)) !== null) if (!stoplistSet.value.has(m[0])) words.push(m[0])
-  return words
+  return tokenize(text, stoplistSet.value)
 }
 
 async function reTokenize() {
@@ -2237,36 +2282,105 @@ const combinedSummaryRows = computed(() => {
 
 // --- 単語・心クリック時のAI分析ポップアップ（キャッシュ・保存はしない） ---
 interface ActiveWordPopup { name: string; count: number }
-interface ActiveEmotionWord { name: string; count: number; pos: number; neg: number }
 interface ActiveKokoroPopup { name: string; note: string; group: string; weight: number }
 interface ActiveProfilePopup { name: string; note: string; weight: number }
 const activeWordPopup = ref<ActiveWordPopup | null>(null)
-const activeEmotionWord = ref<ActiveEmotionWord | null>(null)
 const activeKokoroPopup = ref<ActiveKokoroPopup | null>(null)
 const activeProfilePopup = ref<ActiveProfilePopup | null>(null)
 
-// 分析タブ用: 要約行を単語分割し、単語ごとにポジ/ネガ出現数を集計する。
-// 感情（sentiment）は要約行にしか無いため、単語の抽出元も要約行に揃える
-// （こうすると全単語が必ず感情データを持ち、クリック時の文字列一致も確実に取れる）。
-// stoplist / minWordCount は単語クラウドと共通の設定を使う。
-const wordEmotionData = computed(() => {
-  const map = new Map<string, { pos: number; neg: number }>()
-  for (const row of summaryRows.value) {
-    const seen = new Set<string>()
-    for (const w of extractWords(row.text)) {
-      if (seen.has(w)) continue // 同一行内での重複はまとめて1回として数える
-      seen.add(w)
-      const e = map.get(w) ?? { pos: 0, neg: 0 }
-      if (row.sentiment === 'ポジ') e.pos++
-      else e.neg++
-      map.set(w, e)
-    }
+// --- 分析タブ: 単語の共起ネットワーク ---
+//
+// 集計元は要約行。感情（sentiment）が行単位で付いているのはここだけで、
+// ノードだけでなく「その組み合わせが出た行」の感情も色にできる。
+//
+// あえて computed にしていない。computed にすると summaryRows や stoplist が
+// 変わった瞬間に再計算が走り、「更新ボタンで図の組み直しを制御する」が成立しなくなる。
+// 単語ランキング（wordRanking）が ref なのと同じ理由。
+const networkGraph = ref<NetGraph>({ nodes: [], edges: [], rowCount: 0 })
+const networkBuiltAt = ref<number | null>(null)
+// 集計に使った要約行数。今の行数との差が「更新ボタンのバッジ」になる
+const networkBuiltRows = ref(0)
+const isBuildingNetwork = ref(false)
+const networkRef = ref<{ relayout: () => void; clearSelection: () => void } | null>(null)
+
+const networkSignature = computed(() => graphSignature(networkGraph.value))
+
+// 未反映の記録数。0 なら図は最新
+const pendingRowCount = computed(() =>
+  networkBuiltAt.value === null ? 0 : Math.max(0, summaryRows.value.length - networkBuiltRows.value)
+)
+
+const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 640
+
+// 集計だけを行う（配置は動かさない）。tokenize + 共起計算で、記録2000行でも数百ms程度
+function buildNetworkGraph() {
+  networkGraph.value = buildNetwork(
+    summaryRows.value.map(r => ({ text: r.text, sentiment: r.sentiment })),
+    {
+      minWordCount: minWordCount.value,
+      stoplist: stoplistSet.value,
+      maxNodes: isMobile() ? 40 : 80,
+      maxEdgesPerNode: isMobile() ? 4 : 5,
+    },
+  )
+  networkBuiltAt.value = Date.now()
+  networkBuiltRows.value = summaryRows.value.length
+}
+
+// 更新ボタン。集計し直し、さらに配置も組み直す（絵が変わるのはここだけ）
+async function refreshNetwork() {
+  if (isBuildingNetwork.value) return
+  isBuildingNetwork.value = true
+  activePairWord.value = null
+  await new Promise(r => setTimeout(r, 0))
+  try {
+    buildNetworkGraph()
+    await nextTick()
+    networkRef.value?.relayout()
+  } finally {
+    isBuildingNetwork.value = false
   }
-  return [...map.entries()]
-    .map(([word, e]) => ({ word, count: e.pos + e.neg, pos: e.pos, neg: e.neg }))
-    .filter(w => w.count >= minWordCount.value)
-    .sort((a, b) => b.count - a.count)
-})
+}
+
+// 分析タブを初めて開いたときに一度だけ集計する（開かない人に計算を払わせない）。
+// 記録の読み込みは非同期なので、タブが analysis のまま後から行が届く場合も拾えるよう
+// 行数の変化も見る。2回目以降は networkBuiltAt が入っているので走らない
+watch([activeTab, () => summaryRows.value.length], ([tab, rows]) => {
+  if (tab === 'analysis' && networkBuiltAt.value === null && (rows as number) > 0) {
+    buildNetworkGraph()
+  }
+}, { immediate: true })
+
+// 除外単語・出現回数の変更は即反映する。「除外したのに消えない」は明確なバグ感があるため。
+// 集計はし直すが配置は組み直さない（保存済み座標が使われ、消えた語の分だけ図から抜ける）
+watch([stoplist, minWordCount], () => {
+  if (networkBuiltAt.value !== null) buildNetworkGraph()
+}, { deep: true })
+
+// ネットワーク図で単語をタップしたときのドリルダウン対象
+interface ActivePairWord { word: string; pos: number; neg: number; df: number }
+const activePairWord = ref<ActivePairWord | null>(null)
+
+// PairListModal が「2語を含む記録」を自分で絞り込めるよう、要約行をそのまま渡す
+const networkRows = computed(() =>
+  summaryRows.value.map(r => ({ fullDate: r.fullDate, text: r.text })),
+)
+
+function closePairModal() {
+  activePairWord.value = null
+  networkRef.value?.clearSelection()
+}
+
+// AI分析から「相手の語を起点に見る」を押したとき、その語のドリルダウンへ移る
+function focusPairWord(word: string) {
+  const node = networkGraph.value.nodes.find(n => n.word === word)
+  if (node) activePairWord.value = { word: node.word, pos: node.pos, neg: node.neg, df: node.df }
+}
+
+const formatBuiltAt = (ts: number) => {
+  const d = new Date(ts)
+  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
 
 // summaryRows は新しい順のため、AIには古い→新しいの時系列順で渡す
 // （新しい順のまま渡すと直近の内容が先頭に来て過度に強調されやすいため）
@@ -2277,21 +2391,6 @@ const activeWordMatches = computed(() => {
     .filter(r => r.text.includes(keyword))
     .map(r => ({ date: r.fullDate, text: r.text }))
     .reverse()
-})
-// 分析タブ: クリックした単語を含む要約行を、係り受け抽出の入力としてAIへ渡す。
-// 関連語の参照インデックス(refs)がこの配列を指すため、送信配列＝表示に使う配列を固定する。
-// 多すぎるとトークン過多になるので、時系列の偏りが出ないよう均等サンプリングで80件に丸める。
-const activeEmotionMatches = computed(() => {
-  if (!activeEmotionWord.value) return []
-  const keyword = activeEmotionWord.value.name
-  const all = summaryRows.value
-    .filter(r => r.text.includes(keyword))
-    .map(r => ({ date: r.fullDate, text: r.text }))
-    .reverse()
-  const MAX = 80
-  if (all.length <= MAX) return all
-  const step = all.length / MAX
-  return Array.from({ length: MAX }, (_, i) => all[Math.floor(i * step)])
 })
 // 心の要素名はAIが生成した抽象的なラベルのため文字列一致では拾えない。
 // 中間データ全体をそのままAIに渡し、意味的な関連判断はAI自身にやらせる
