@@ -4,11 +4,11 @@
     <!-- ナビゲーション -->
     <nav class="ac-nav">
       <div class="ac-nav-inner">
-        <span class="ac-nav-logo">data-vis</span>
+        <span class="ac-nav-logo">prototyper</span>
         <ul class="ac-nav-links">
           <li><a href="#services">できること</a></li>
-          <li><a href="#portfolio">ポートフォリオ</a></li>
-          <!-- <li><a href="#for-you">こんな方へ</a></li> -->
+          <li><a href="#process">進め方</a></li>
+          <li><a href="#portfolio">制作事例</a></li>
           <li><a href="#about">自己紹介</a></li>
           <li><a href="#terms">ご依頼について</a></li>
           <li><a href="#contact">お問い合わせ</a></li>
@@ -21,22 +21,21 @@
       <div class="ac-wrap">
         <div class="hero-inner">
           <div class="hero-text">
-            <span class="hero-eyebrow">Data Visualization &amp; Prototype Development</span>
+            <span class="hero-eyebrow">Interview &rarr; Working Prototype</span>
             <h1 class="hero-catch">
-              あなたのデータは、<br />
-              <span>宝の山</span>
+              動くものを、<br />
+              <span>いちばん早く。</span>
             </h1>
             <div class="hero-sub">
-              <p>手元に眠っている数値データや文章、ちゃんと活かせていますか？</p>
+              <p>「こういうのが欲しいかも」——その、もやっとした段階から話を聞きに行きます。</p>
               <p>
-                集めたまま放置されているデータは、見方を変えるだけでまったく違う顔を見せます。<br />
-                性別・年代・地域・時間——多様な切り口を持つデータほど、料理のしがいがある素材です。
+                大事にしているのは、表面的な要望の奥にある「本当は何に困っているか」を掴むこと。<br />
+                そこを掴んだら、仕様書ではなく<strong>動くプロトタイプ</strong>にして持っていきます。議論より、触れるもの。
               </p>
               <p>
-                私がやることはシンプルです。<br/>「もやっとしたデータ」を、人が見て面白い！なるほど！と思える形に変えること。<br />
-                見せ方ひとつで「へえ、そうだったのか」と思ってもらえる瞬間——そこに一番の喜びを感じています。
+                実装はAIとのバイブコーディングが軸なので、とにかく速い。<br />
+                だからこそ、既製のアプリでは手の届かない「うちのやり方だとここが違う」という細かいところまで、作り込むことができます。
               </p>
-              <p>データはある。<br />でも何をすればいいかわからない。<br />そんなもやっとした感覚を持っていたら、ぜひ一度声をかけてください。</p>
             </div>
             <a href="#contact" class="hero-cta">
               まずは相談する
@@ -44,69 +43,60 @@
             </a>
           </div>
           <div class="hero-viz-deco" aria-hidden="true">
-            <svg viewBox="0 0 380 268" fill="none" xmlns="http://www.w3.org/2000/svg" class="hero-chart-svg">
-              <defs>
-                <linearGradient id="heroAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="rgba(27,95,217,0.10)"/>
-                  <stop offset="100%" stop-color="rgba(27,95,217,0.00)"/>
-                </linearGradient>
-              </defs>
-              <!-- チャートタイトル -->
-              <text x="58" y="13" font-family="'IBM Plex Mono',monospace" font-size="8" font-weight="500" fill="rgba(27,95,217,0.42)" letter-spacing="0.12em">INSIGHT_INDEX ↑</text>
-              <!-- 水平グリッド線 -->
-              <line x1="58" y1="38" x2="362" y2="38" stroke="rgba(27,95,217,0.09)" stroke-width="1" stroke-dasharray="3 5"/>
-              <line x1="58" y1="84" x2="362" y2="84" stroke="rgba(27,95,217,0.09)" stroke-width="1" stroke-dasharray="3 5"/>
-              <line x1="58" y1="130" x2="362" y2="130" stroke="rgba(27,95,217,0.09)" stroke-width="1" stroke-dasharray="3 5"/>
-              <line x1="58" y1="176" x2="362" y2="176" stroke="rgba(27,95,217,0.09)" stroke-width="1" stroke-dasharray="3 5"/>
-              <!-- 軸 -->
-              <line x1="58" y1="20" x2="58" y2="228" stroke="rgba(27,95,217,0.22)" stroke-width="1.5"/>
-              <line x1="58" y1="228" x2="370" y2="228" stroke="rgba(27,95,217,0.22)" stroke-width="1.5"/>
-              <!-- Y軸目盛り -->
-              <line x1="52" y1="38" x2="58" y2="38" stroke="rgba(27,95,217,0.3)" stroke-width="1.5"/>
-              <line x1="52" y1="84" x2="58" y2="84" stroke="rgba(27,95,217,0.3)" stroke-width="1.5"/>
-              <line x1="52" y1="130" x2="58" y2="130" stroke="rgba(27,95,217,0.3)" stroke-width="1.5"/>
-              <line x1="52" y1="176" x2="58" y2="176" stroke="rgba(27,95,217,0.3)" stroke-width="1.5"/>
-              <!-- Y軸ラベル -->
-              <text x="46" y="42" font-family="'IBM Plex Mono',monospace" font-size="8.5" fill="rgba(27,95,217,0.38)" text-anchor="end">4k</text>
-              <text x="46" y="88" font-family="'IBM Plex Mono',monospace" font-size="8.5" fill="rgba(27,95,217,0.38)" text-anchor="end">3k</text>
-              <text x="46" y="134" font-family="'IBM Plex Mono',monospace" font-size="8.5" fill="rgba(27,95,217,0.38)" text-anchor="end">2k</text>
-              <text x="46" y="180" font-family="'IBM Plex Mono',monospace" font-size="8.5" fill="rgba(27,95,217,0.38)" text-anchor="end">1k</text>
-              <!-- バー -->
-              <g class="hero-chart-bars">
-                <rect x="70" y="198" width="26" height="30" fill="rgba(27,95,217,0.10)" rx="2"/>
-                <rect x="112" y="176" width="26" height="52" fill="rgba(27,95,217,0.12)" rx="2"/>
-                <rect x="154" y="152" width="26" height="76" fill="rgba(27,95,217,0.14)" rx="2"/>
-                <rect x="196" y="124" width="26" height="104" fill="rgba(27,95,217,0.16)" rx="2"/>
-                <rect x="238" y="90" width="26" height="138" fill="rgba(27,95,217,0.18)" rx="2"/>
-                <rect x="280" y="60" width="26" height="168" fill="rgba(27,95,217,0.20)" rx="2"/>
-                <rect x="322" y="32" width="26" height="196" fill="rgba(27,95,217,0.22)" rx="2"/>
+            <svg viewBox="0 0 380 272" fill="none" xmlns="http://www.w3.org/2000/svg" class="hero-flow-svg">
+              <!-- ヒアリング（会話） -->
+              <text x="8" y="10" font-family="'IBM Plex Mono',monospace" font-size="8" font-weight="500" fill="rgba(27,95,217,0.42)" letter-spacing="0.14em">HEARING</text>
+              <g class="hero-bubbles">
+                <g class="hero-bubble">
+                  <rect x="6" y="18" width="198" height="54" rx="13" fill="rgba(245,112,10,0.06)" stroke="rgba(245,112,10,0.22)" stroke-width="1"/>
+                  <rect x="22" y="33" width="152" height="6" rx="3" fill="rgba(245,112,10,0.22)"/>
+                  <rect x="22" y="47" width="112" height="6" rx="3" fill="rgba(245,112,10,0.14)"/>
+                </g>
+                <g class="hero-bubble">
+                  <rect x="146" y="82" width="166" height="46" rx="13" fill="rgba(27,95,217,0.07)" stroke="rgba(27,95,217,0.20)" stroke-width="1"/>
+                  <rect x="162" y="96" width="118" height="6" rx="3" fill="rgba(27,95,217,0.20)"/>
+                  <rect x="162" y="110" width="80" height="6" rx="3" fill="rgba(27,95,217,0.13)"/>
+                </g>
               </g>
-              <!-- エリア塗り -->
-              <path d="M83,200 L125,178 L167,155 L209,127 L251,93 L293,63 L335,35 L335,228 L83,228 Z" fill="url(#heroAreaGrad)"/>
-              <!-- トレンドライン -->
-              <polyline points="83,200 125,178 167,155 209,127 251,93 293,63 335,35" fill="none" stroke="#1b5fd9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hero-trend-line"/>
-              <!-- データポイント -->
-              <g class="hero-data-pts">
-                <circle cx="83" cy="200" r="3.5" fill="#f0f4fb" stroke="#1b5fd9" stroke-width="1.5"/>
-                <circle cx="125" cy="178" r="3.5" fill="#f0f4fb" stroke="#1b5fd9" stroke-width="1.5"/>
-                <circle cx="167" cy="155" r="3.5" fill="#f0f4fb" stroke="#1b5fd9" stroke-width="1.5"/>
-                <circle cx="209" cy="127" r="3.5" fill="#f0f4fb" stroke="#1b5fd9" stroke-width="1.5"/>
-                <circle cx="251" cy="93" r="3.5" fill="#f0f4fb" stroke="#1b5fd9" stroke-width="1.5"/>
-                <circle cx="293" cy="63" r="3.5" fill="#f0f4fb" stroke="#1b5fd9" stroke-width="1.5"/>
+
+              <!-- 変換（バイブコーディング） -->
+              <g class="hero-flow-arrow">
+                <line x1="120" y1="134" x2="120" y2="148" stroke="rgba(245,112,10,0.5)" stroke-width="1.2" stroke-dasharray="3 3"/>
+                <path d="M116,148 L124,148 L120,155 Z" fill="rgba(245,112,10,0.6)"/>
+                <text x="132" y="150" font-family="'IBM Plex Mono',monospace" font-size="7.5" font-weight="600" fill="#f5700a" letter-spacing="0.12em">VIBE CODING</text>
               </g>
-              <!-- ピークポイント（オレンジ） -->
-              <circle cx="335" cy="35" r="5.5" fill="#f5700a" class="hero-data-peak"/>
-              <circle cx="335" cy="35" r="11" fill="none" stroke="#f5700a" stroke-width="1.2" class="hero-peak-ring"/>
-              <!-- ピークアノテーション -->
-              <g class="hero-peak-annotation">
-                <line x1="335" y1="22" x2="335" y2="14" stroke="#f5700a" stroke-width="1.2" stroke-dasharray="2 2"/>
-                <text x="335" y="10" font-family="'IBM Plex Mono',monospace" font-size="7.5" fill="#f5700a" font-weight="600" text-anchor="middle" letter-spacing="0.1em">PEAK</text>
+
+              <!-- 動くプロトタイプ -->
+              <g class="hero-window">
+                <rect x="28" y="158" width="324" height="102" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
+                <line x1="28" y1="180" x2="352" y2="180" stroke="rgba(27,95,217,0.16)" stroke-width="1"/>
+                <circle cx="42" cy="169" r="3" fill="rgba(245,112,10,0.45)"/>
+                <circle cx="53" cy="169" r="3" fill="rgba(27,95,217,0.28)"/>
+                <circle cx="64" cy="169" r="3" fill="rgba(27,95,217,0.16)"/>
+                <rect x="80" y="163" width="130" height="12" rx="6" fill="rgba(27,95,217,0.06)"/>
+
+                <g class="hero-window-body">
+                  <!-- 可視化パーツ -->
+                  <line x1="42" y1="248" x2="196" y2="248" stroke="rgba(27,95,217,0.15)" stroke-width="1"/>
+                  <g class="hero-mini-bars">
+                    <rect x="46" y="232" width="12" height="16" rx="2" fill="rgba(27,95,217,0.12)"/>
+                    <rect x="66" y="222" width="12" height="26" rx="2" fill="rgba(27,95,217,0.14)"/>
+                    <rect x="86" y="226" width="12" height="22" rx="2" fill="rgba(27,95,217,0.13)"/>
+                    <rect x="106" y="214" width="12" height="34" rx="2" fill="rgba(27,95,217,0.16)"/>
+                    <rect x="126" y="204" width="12" height="44" rx="2" fill="rgba(27,95,217,0.18)"/>
+                    <rect x="146" y="210" width="12" height="38" rx="2" fill="rgba(27,95,217,0.17)"/>
+                    <rect x="166" y="196" width="12" height="52" rx="2" fill="rgba(27,95,217,0.20)"/>
+                  </g>
+                  <polyline points="52,228 72,218 92,222 112,210 132,200 152,206 172,192" fill="none" stroke="#1b5fd9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="hero-mini-line"/>
+                  <circle cx="172" cy="192" r="3.5" fill="#f5700a" class="hero-mini-peak"/>
+
+                  <!-- UIパーツ -->
+                  <rect x="216" y="192" width="120" height="11" rx="3" fill="rgba(27,95,217,0.09)"/>
+                  <rect x="216" y="211" width="120" height="11" rx="3" fill="rgba(27,95,217,0.07)"/>
+                  <rect x="216" y="230" width="72" height="18" rx="9" fill="rgba(245,112,10,0.85)"/>
+                </g>
               </g>
-              <!-- X軸ラベル -->
-              <text x="83" y="244" font-family="'IBM Plex Mono',monospace" font-size="8.5" fill="rgba(27,95,217,0.36)" text-anchor="middle">'18</text>
-              <text x="167" y="244" font-family="'IBM Plex Mono',monospace" font-size="8.5" fill="rgba(27,95,217,0.36)" text-anchor="middle">'20</text>
-              <text x="251" y="244" font-family="'IBM Plex Mono',monospace" font-size="8.5" fill="rgba(27,95,217,0.36)" text-anchor="middle">'22</text>
-              <text x="335" y="244" font-family="'IBM Plex Mono',monospace" font-size="8.5" fill="rgba(27,95,217,0.58)" text-anchor="middle" font-weight="600">'24</text>
+              <text x="28" y="270" font-family="'IBM Plex Mono',monospace" font-size="7.5" font-weight="500" fill="rgba(27,95,217,0.38)" letter-spacing="0.14em" class="hero-flow-caption">RUNNING IN DAYS</text>
             </svg>
           </div>
         </div>
@@ -118,45 +108,68 @@
       <div class="ac-wrap">
         <p class="section-label">Services</p>
         <h2 class="section-title">できること</h2>
+        <p class="section-body">
+          お客さんのニーズを丁寧に伺って、一般のアプリでは手の届かない「かゆいところ」まで届く道具を作ります。
+        </p>
         <div class="service-grid">
 
           <div class="service-card">
-            <div class="service-icon">📊</div>
-            <h3 class="service-card-title">テキスト・データ可視化</h3>
+            <div class="service-icon">🎧</div>
+            <h3 class="service-card-title">丁寧なヒアリング</h3>
             <div class="service-card-body">
               <p>
-                社内に眠っているテキストデータや数値データは、見せ方を変えるだけで全く違う景色になります。
+                仕様よりも先に、人に会って話を聞く。表面的な要望の奥にある「本当は何に困っているか」を掴み、そこから逆算して作るものを決めます。
               </p>
               <p>
-                議事録・社内ログ・検索データ・アクセス履歴——これらはただの記録ではなく、組織や利用者の行動パターンが詰まった資産です。
-              </p>
-              <p>
-                形態素解析やAIを活用した前処理から、Highcharts・EChartsを使ったインタラクティブな可視化まで、バックエンドの集計処理を含めて一貫して対応します。
+                現場ごとの例外処理や、運用のクセ。既製のサービスが拾いきれないのは、たいていそこです。聞き出して、そこを作り込みます。
               </p>
             </div>
           </div>
 
-          <!-- <div class="service-card">
-            <div class="service-icon">🤖</div>
-            <h3 class="service-card-title">メンタル系チャットボット開発</h3>
+          <div class="service-card">
+            <div class="service-icon">⚡</div>
+            <h3 class="service-card-title">高速プロトタイピング</h3>
             <div class="service-card-body">
               <p>
-                傾聴・はげまし・セルフケアサポートなど、メンタルヘルス領域に特化したAIチャットボットの開発実績があります。
+                アイデアが浮かんだら、まず動くものを作る。壊される前提で作ることに抵抗がなく、フィードバックを受けて何度でも作り直します。
               </p>
               <p>
-                「こういう雰囲気で話しかけてほしい」「こんな場面で使いたい」という感覚的なイメージから、AIの応答スタイルや会話の流れを一緒に設計します。
-              </p>
-              <p>
-                セラピスト・カウンセラー・支援職の方が現場で使えるツールを、現場の声を聞きながらプロトタイプします。
+                何十時間も結論の出なかった会議に、動くプロトタイプを持ち込んで「これで決まり」となった経験が何度もあります。
               </p>
             </div>
-          </div> -->
+          </div>
+
+          <div class="service-card">
+            <div class="service-icon">🤖</div>
+            <h3 class="service-card-title">AIによる開発の高速化</h3>
+            <div class="service-card-body">
+              <p>
+                バイブコーディングが開発の軸です。AIに実装や叩き台の生成を任せ、自分は全体設計・価値判断・軌道修正に集中する。
+              </p>
+              <p>
+                AIが出したものの矛盾や粗を見つけ、対話しながら磨いて、また実行させる。優秀なパートナーに指示を出す感覚で進めるので、とにかく速い。
+              </p>
+            </div>
+          </div>
+
+          <div class="service-card">
+            <div class="service-icon">🛠️</div>
+            <h3 class="service-card-title">全体を見渡す設計と実装</h3>
+            <div class="service-card-body">
+              <p>
+                フロントエンドからバックエンド、API設計、データベース、非同期処理まで一人で通せるので、「どこがボトルネックか」「どこを直せば価値が最大になるか」を自分で判断できます。
+              </p>
+              <p>
+                データの集計・可視化やAI機能の実装も、この中の一部として対応します（形態素解析などの前処理から、ECharts・Highchartsによるインタラクティブな可視化まで）。
+              </p>
+            </div>
+          </div>
 
         </div>
         <div class="services-scope">
           <div class="services-scope-item services-scope-in">
             <span class="scope-label">担当範囲</span>
-            <span class="scope-text">アイデアの検証 / プロトタイプ開発</span>
+            <span class="scope-text">ヒアリング / アイデアの検証 / プロトタイプ開発</span>
           </div>
           <div class="services-scope-item services-scope-out">
             <span class="scope-label">対象外</span>
@@ -166,14 +179,76 @@
       </div>
     </section>
 
+    <!-- 進め方 -->
+    <section id="process" class="ac-process">
+      <div class="ac-wrap">
+        <p class="section-label">Process</p>
+        <h2 class="section-title">進め方</h2>
+        <p class="section-body">
+          企画書を書いてから作るのではなく、聞いた話をそのまま動くものにして、それを叩き台に議論を前へ進めます。
+        </p>
+
+        <ol class="process-list">
+          <li class="process-item">
+            <span class="process-num">01</span>
+            <div class="process-body">
+              <strong>聞く</strong>
+              お困りごと、現場の運用、「本当はこうしたい」を伺います。要件が決まっていなくて大丈夫です。むしろその段階から声をかけてください。
+            </div>
+          </li>
+          <li class="process-item">
+            <span class="process-num">02</span>
+            <div class="process-body">
+              <strong>すぐ作る</strong>
+              伺った話を、そのまま動くプロトタイプにします。文章で仕様を確認し合うより、触ってもらったほうが早いからです。
+            </div>
+          </li>
+          <li class="process-item">
+            <span class="process-num">03</span>
+            <div class="process-body">
+              <strong>触って、直す</strong>
+              「ここは違う」「これも欲しい」を受けて作り直します。ここが一番価値の出るところなので、遠慮なく壊してください。
+            </div>
+          </li>
+          <li class="process-item">
+            <span class="process-num">04</span>
+            <div class="process-body">
+              <strong>お渡しする</strong>
+              触って動くWebアプリとしてお渡しします。そのまま社内での提案や、次の判断の材料に使えます。
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
     <!-- ポートフォリオ -->
     <section id="portfolio" class="ac-portfolio">
       <div class="ac-wrap">
         <p class="section-label">Portfolio</p>
         <h2 class="section-title">制作事例</h2>
         <p class="section-body" style="margin-bottom: 0;">
-          実際に開発したツールをご紹介します。
+          実際に作ってきたものをご紹介します。
         </p>
+
+        <!-- TODO: スクリーンショットと機能詳細が揃い次第、portfolio-features / portfolio-tech を追加する -->
+        <div class="portfolio-card">
+          <div class="portfolio-card-header">
+            <span class="portfolio-tag portfolio-tag-soft">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              ご依頼いただいた事例
+            </span>
+            <h3 class="portfolio-card-title">鍼灸院向け LINE予約アプリ</h3>
+            <p class="portfolio-card-lead">
+              鍼灸院の先生からのご相談で開発した、LINEから予約が完結するアプリです。<br />
+              既製の予約サービスでは合わなかった、その院ならではの受け付け方・運用に合わせて作りました。
+            </p>
+          </div>
+          <div class="portfolio-card-body">
+            <div class="portfolio-note">
+              スクリーンショットと機能の詳細は準備中です。近日公開します。
+            </div>
+          </div>
+        </div>
 
         <div class="portfolio-card">
           <div class="portfolio-card-header">
@@ -183,7 +258,8 @@
             </span>
             <h3 class="portfolio-card-title">宮古島市議会議事録 分析ツール</h3>
             <p class="portfolio-card-lead">
-              公開されている宮古島市議会の議事録テキストを自然言語処理で分析し、キーワードの出現傾向をインタラクティブに可視化。AIによる議論要約も搭載したWebアプリです。
+              「議事録は公開されているのに、誰も読めていない」という素朴な疑問から作ったツールです。<br />
+              公開されている宮古島市議会の議事録テキストを自然言語処理で分析し、キーワードの出現傾向をインタラクティブに可視化。AIによる議論要約も搭載しています。
             </p>
           </div>
           <div class="portfolio-card-body">
@@ -263,69 +339,37 @@
 
         <div class="portfolio-card">
           <div class="portfolio-card-header">
-            <span class="portfolio-tag">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              公開デモあり
+            <span class="portfolio-tag portfolio-tag-soft">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>
+              プロトタイプから製品になった事例
             </span>
-            <h3 class="portfolio-card-title">MLB 日本人選手成績ダッシュボード</h3>
+            <h3 class="portfolio-card-title">キーワードマップ（企業向けデータ可視化SaaS）</h3>
             <p class="portfolio-card-lead">
-              メジャーリーグで活躍する日本人選手の成績をリアルタイムに取得・集計し、速報・今シーズン・年度別の3つの切り口でインタラクティブに可視化したWebアプリです。
+              大手インターネット企業で、検索データを可視化する企業向けSaaSの主力機能「キーワードマップ」を、自らのプロトタイピングから考案・実装しました。
             </p>
           </div>
           <div class="portfolio-card-body">
-            <div class="portfolio-features">
-              <div class="portfolio-feature">
-                <span class="feature-dot"></span>
-                <div class="feature-text">
-                  <strong>速報 ー 直近の試合成績</strong>
-                  各選手の最新試合成績をリアルタイムに反映。出場状況・打率・投球内容などを一覧で確認できます。
-                  <br>
-                  <a href="https://prototype.insightlens.jp/japanese-mlb-player" class="feature-link" target="_blank">
-                    速報を見る
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  </a>
-                  <img src="/images/mlb-sokuhou.png" alt="速報のスクリーンショット" class="feature-screenshot" @click="openLightbox('/images/mlb-sokuhou.png', '速報のスクリーンショット')" />
-                </div>
+            <div class="portfolio-metrics">
+              <div class="portfolio-metric">
+                <span class="metric-value">500社+</span>
+                <span class="metric-label">導入企業</span>
               </div>
-              <div class="portfolio-feature">
-                <span class="feature-dot"></span>
-                <div class="feature-text">
-                  <strong>今シーズン ー シーズン累計成績</strong>
-                  今シーズンの累計成績を選手ごとに集計。打者・投手それぞれの主要指標をわかりやすく表示します。
-                  <br>
-                  <a href="https://prototype.insightlens.jp/japanese-mlb-player?tab=season" class="feature-link" target="_blank">
-                    今シーズン成績を見る
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  </a>
-                  <img src="/images/mlb-this.png" alt="今シーズン成績のスクリーンショット" class="feature-screenshot" @click="openLightbox('/images/mlb-this.png', '今シーズン成績のスクリーンショット')" />
-                </div>
+              <div class="portfolio-metric">
+                <span class="metric-value">8億規模</span>
+                <span class="metric-label">プロダクト売上</span>
               </div>
-              <div class="portfolio-feature">
-                <span class="feature-dot"></span>
-                <div class="feature-text">
-                  <strong>年度別 ー キャリア推移</strong>
-                  選手ごとのシーズン別成績を年度軸で比較。キャリアの伸びや変化を時系列グラフで追えます。
-                  <br>
-                  <a href="https://prototype.insightlens.jp/japanese-mlb-player?tab=yearly" class="feature-link" target="_blank">
-                    年度別成績を見る
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  </a>
-                  <img src="/images/mlb-yearly.png" alt="年度別成績のスクリーンショット" class="feature-screenshot" @click="openLightbox('/images/mlb-yearly.png', '年度別成績のスクリーンショット')" />
-                </div>
+              <div class="portfolio-metric">
+                <span class="metric-value">15年</span>
+                <span class="metric-label">データ可視化の経験</span>
               </div>
             </div>
+            <p class="portfolio-card-note">
+              「これは無理だ」「意味がない」と言われたところから、プロトタイプで可能性を示し、対話しながら実用に育てていったものです。<br />
+              テレビや雑誌などのマスコミ媒体でも繰り返し取り上げられ、後続の新機能を生み出す原動力にもなりました。
+            </p>
 
-            <div class="portfolio-tech">
-              <span class="tech-badge">Nuxt 3</span>
-              <span class="tech-badge">ECharts</span>
-              <span class="tech-badge">MLB Stats API</span>
-              <span class="tech-badge">Cloudflare Workers</span>
-              <span class="tech-badge">Cloudflare D1</span>
-              <span class="tech-badge">TypeScript</span>
-            </div>
-
-            <a href="https://prototype.insightlens.jp/japanese-mlb-player" class="portfolio-link" target="_blank">
-              デモを見る
+            <a href="https://ds.yahoo.co.jp/service/insight/" class="portfolio-link" target="_blank" rel="noopener noreferrer">
+              サービスサイトを見る
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </a>
           </div>
@@ -342,15 +386,19 @@
         <ul class="for-you-list">
           <li>
             <span class="check">✓</span>
-            データはあるけど、どう見せればいいかわからない人。
+            「なんとなくこういうものが欲しい」という段階で止まっている人。
           </li>
           <li>
             <span class="check">✓</span>
-            「なんとなくこういう画面が欲しい」という段階で止まっている人。
+            既製のアプリだと、うちのやり方に合わないと感じている人。
           </li>
           <li>
             <span class="check">✓</span>
-            プロトタイプをまず作って、社内で見せてみたい人。
+            まず動くものを見てから、社内で判断したい人。
+          </li>
+          <li>
+            <span class="check">✓</span>
+            手元に眠っているデータを、何かに活かしたい人。
           </li>
           <li>
             <span class="check">✓</span>
@@ -369,21 +417,43 @@
     <section id="about" class="ac-about">
       <div class="ac-wrap">
         <p class="section-label">About</p>
-        <h2 class="section-title">データを「気づきに変える」エンジニア</h2>
+        <h2 class="section-title">動くものを、先に出すエンジニア</h2>
         <p class="about-intro">
-          大手インターネット企業に15年勤務し、データ可視化・分析に携わってきたエンジニアです。
+          15年以上、検索データやユーザー行動データを「誰かの意思決定を動かす形」に変えることを仕事にしてきました。
         </p>
 
         <div class="about-grid">
 
           <div class="about-card">
             <div class="about-card-header">
-              <span class="about-card-icon">🔍</span>
-              <h3 class="about-card-title">データから「気づき」を生む</h3>
+              <span class="about-card-icon">🎧</span>
+              <h3 class="about-card-title">要件が固まる前の段階に飛び込む</h3>
             </div>
             <div class="about-card-body">
-              <p>ずっとやってきたのは、埋もれているデータを「見た人が何かに気づける」形に変えること。<br />検索データ・ログ・議事録・テキストなど、そのままでは意味を読み取りにくいデータを、インタラクティブなグラフやダッシュボードとして可視化してきました。</p>
-              <p>「どう集計すれば面白いインサイトが出るか」「どう見せれば一番伝わるか」を、データの性質から一緒に考えるのが自分の仕事だと思っています。</p>
+              <p>得意なのは、要件が曖昧なままの段階に飛び込み、ユーザーや現場の声を丁寧に聞きながら、その場でプロトタイプを作ってしまうことです。</p>
+              <p>聞くことと作ることを分けない。話しながら手を動かすので、「言ったことと違うものが出てくる」というズレが起きにくいのが強みです。</p>
+            </div>
+          </div>
+
+          <div class="about-card">
+            <div class="about-card-header">
+              <span class="about-card-icon">⚡</span>
+              <h3 class="about-card-title">プロトタイプが企画書</h3>
+            </div>
+            <div class="about-card-body">
+              <p>仕様書や企画書を先に作るのではなく、動くものを先に作り、それを叩き台にして議論を前に進めます。</p>
+              <p>何十時間も結論が出なかった会議に、動くプロトタイプを持ち込んで「これで決まり」となった経験が何度もあります。言葉を重ねるより、そのほうが速い。</p>
+            </div>
+          </div>
+
+          <div class="about-card">
+            <div class="about-card-header">
+              <span class="about-card-icon">🤖</span>
+              <h3 class="about-card-title">AIと二人三脚のものづくり</h3>
+            </div>
+            <div class="about-card-body">
+              <p>近年は生成AIを使い、このサイクルをさらに高速化しています。AIに大枠の実装や選択肢を出させ、そこにある矛盾や粗を見つけて対話しながら磨き上げ、また実行させる。</p>
+              <p>優秀なパートナーに指示を出すように進めるこのスタイルは、「まず作って直す」という自分のやり方と非常に相性が良いと感じています。</p>
             </div>
           </div>
 
@@ -393,33 +463,20 @@
               <h3 class="about-card-title">キャリアと実績</h3>
             </div>
             <div class="about-card-body">
-              <p>大手インターネット企業では、大規模トラフィックデータを活用した分析SaaSツールの企画・開発に従事。<br />性別・年齢・地域などの顧客属性データを軸に、ネットワーク図・散布図・棒グラフ・ヒートマップなど目的に応じた可視化手法を設計し、ユーザーが直感的にインサイトを得られるプロダクトを開発してきました。</p>
-              <p>自分のプロトタイプから生まれたプロダクトは、一部上場企業を中心に500社以上に導入。<br>テレビや雑誌をはじめとするマスコミ媒体でも繰り返し取り上げられ、幾多の新製品を生み出す原動力にもなってきました。</p>
+              <p>大手インターネット企業に15年勤務し、大規模トラフィックデータを活用した分析SaaSの企画・開発に従事。性別・年齢・地域といった属性を軸に、ネットワーク図・散布図・ヒートマップなど目的に応じた可視化を設計してきました。</p>
+              <p>自分のプロトタイプから生まれたプロダクトは、一部上場企業を中心に500社以上へ導入されています。</p>
             </div>
           </div>
 
-          <div class="about-card">
-            <div class="about-card-header">
-              <span class="about-card-icon">⚡</span>
-              <h3 class="about-card-title">プロトタイプファースト</h3>
-            </div>
-            <div class="about-card-body">
-              <p>「プロトタイプが企画書だ」という信念のもと、会議や議論の場で言葉を重ねるよりも、まず手を動かしてアイデアを形にすることでプロジェクトを前に進めてきました。</p>
-              <p>自身の長年の経験に加えて、類似事例を素早く参照・応用しながら具体的なプロトタイプを作り、チームや顧客の意思決定を加速させるスタイルが自分の強みです。</p>
-            </div>
-          </div>
+        </div>
 
-          <div class="about-card">
-            <div class="about-card-header">
-              <span class="about-card-icon">🛠️</span>
-              <h3 class="about-card-title">集計から可視化・AIまで一気通貫の開発</h3>
-            </div>
-            <div class="about-card-body">
-              <p>クライアントへのヒアリングからバックエンド（Python）・フロントエンド（Nuxt）まで一貫して自分一人で担当し、顧客の声を聞きながら試行錯誤で改善していくプロセスを得意としています。</p>
-              <p>近年は生成AIを活用した分析機能の実装にも取り組んでいます。</p>
-            </div>
-          </div>
-
+        <div class="about-belief">
+          <span class="about-belief-label">大切にしていること</span>
+          <p>まだ誰も見えていないものを、形にして、人の「できる」を増やすこと。</p>
+          <p class="about-belief-sub">
+            「これは無理だ」「意味がない」と言われたところから、プロトタイプで可能性を示し、対話しながら実用に育てていく。<br />
+            そのプロセスそのものに、一番のやりがいを感じています。
+          </p>
         </div>
 
         <div class="about-profile">
@@ -454,7 +511,7 @@
           <div class="terms-card">
             <div class="terms-icon">🛠️</div>
             <h3 class="terms-card-title">技術スタック</h3>
-            <p class="terms-card-body">Nuxt 3 / TypeScript / Cloudflare Workers / ECharts・Highcharts（可視化）/ OpenAI API・Claude API（生成AI）を中心に使用。<br />案件の内容に応じて最適な技術を選定します。</p>
+            <p class="terms-card-body">Nuxt 3 / TypeScript / Cloudflare Workers・D1 / ECharts・Highcharts（可視化）/ OpenAI API・Claude API（生成AI）/ LINE連携 を中心に使用。<br />案件の内容に応じて最適な技術を選定します。</p>
           </div>
 
           <div class="terms-card">
@@ -528,7 +585,7 @@
     <!-- フッター -->
     <footer class="ac-footer">
       <div class="ac-footer-inner">
-        <span class="ac-footer-copy">&copy; 2026 Prototyper</span>
+        <span class="ac-footer-copy">&copy; 2026 prototyper</span>
         <a href="https://prototype.insightlens.jp/miyako" class="ac-footer-link">Portfolio: 宮古島市議事録分析 →</a>
       </div>
     </footer>
@@ -566,11 +623,11 @@ onMounted(() => {
 })
 
 useHead({
-  title: 'data-biz | あなたのデータは宝の山',
+  title: 'prototyper | 動くものを、いちばん早く。',
   meta: [
-    { name: 'description', content: 'データ可視化・プロトタイプ開発の相談窓口。手元に眠っているデータを、触れて気づきが得られるインタラクティブな可視化に変えます。大手企業でデータ可視化・分析に15年以上携わってきたエンジニアです。' },
-    { property: 'og:title', content: 'Prototyper | あなたのデータは、宝の山' },
-    { property: 'og:description', content: 'データ可視化・プロトタイプ開発の相談窓口。手元に眠っているデータを、触れて気づきが得られるインタラクティブな可視化に変えます。' },
+    { name: 'description', content: '丁寧なヒアリングと高速プロトタイピングの相談窓口。現場の声を聞き、一般のアプリでは手の届かないところまで届く道具を、AIによるバイブコーディングで素早く形にします。データ可視化・AI機能もその一部として対応。' },
+    { property: 'og:title', content: 'prototyper | 動くものを、いちばん早く。' },
+    { property: 'og:description', content: '丁寧なヒアリングと高速プロトタイピングの相談窓口。議論より、動くプロトタイプ。要件が固まる前の段階からご相談ください。' },
   ],
   link: [{ rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛠️</text></svg>` }],
 })
