@@ -6588,6 +6588,14 @@ __metadata:
   languageName: node
   linkType: hard
 
+"hareruya@workspace:apps/hareruya":
+  version: 0.0.0-use.local
+  resolution: "hareruya@workspace:apps/hareruya"
+  dependencies:
+    nuxt: "npm:^3.13.2"
+  languageName: unknown
+  linkType: soft
+
 "has-bigints@npm:^1.0.2":
   version: 1.1.0
   resolution: "has-bigints@npm:1.1.0"
