@@ -19,7 +19,9 @@ const emit = defineEmits<{
   'node-click': [{ word: string; pos: number; neg: number; df: number }]
 }>()
 
-const LS_LAYOUT = 'hagemashi-network-layout'
+// v1 は初期化時の既定 grid レイアウトに座標を上書きされた状態で保存されており、
+// 復元すると格子状のまま表示されてしまう。キーを変えて捨てる。
+const LS_LAYOUT = 'hagemashi-network-layout-v2'
 
 const container = ref<HTMLElement>()
 const isRendering = ref(false)
@@ -204,6 +206,10 @@ async function render(useSaved: boolean) {
     container: container.value,
     elements,
     style: STYLE as any,
+    // layout を省略すると cytoscape はブラウザ環境で既定の grid レイアウトを初期化時に実行し、
+    // elements に渡した座標を格子状に上書きしてしまう（headless では既定が null なので再現しない）。
+    // preset を明示して、こちらが決めた座標をそのまま使わせる。
+    layout: { name: 'preset', fit: false } as any,
     wheelSensitivity: 0.2,
     minZoom: 0.25,
     maxZoom: 2.5,
@@ -220,7 +226,7 @@ async function render(useSaved: boolean) {
   }
 
   if (positions) {
-    cy.layout({ name: 'preset', fit: false } as any).run()
+    // 座標は生成時の preset で適用済みなので、レイアウトの実行は不要
     finish()
   } else {
     const layout = cy.layout({
