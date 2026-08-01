@@ -1,0 +1,17 @@
+name = "hareruya"
+compatibility_date = "2026-03-12"
+
+# カスタムドメイン（insightlens.jp は同一 Cloudflare アカウントの Zone である必要あり）
+# デプロイ時に DNS レコードと SSL 証明書が自動作成される
+routes = [
+  { pattern = "hareruya.insightlens.jp", custom_domain = true }
+]
+
+[build]
+command = "yarn build"
+
+# nuxt generate による完全な静的サイトのため、Worker スクリプト（main）は持たない
+# アセット配信のみの Worker として動作する
+[assets]
+directory = ".output/public"
+not_found_handling = "404-page"
