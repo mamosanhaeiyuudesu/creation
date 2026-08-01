@@ -55,4 +55,23 @@ yarn build:tools      # ai-tools をビルド（Cloudflare Workers向け）
 yarn build:<name>     # 個別のホームページをビルド（静的生成）
 ```
 
+### ⚠️ dev 起動中に build を実行しないこと
+
+`yarn dev` が動いている間に `yarn build` を走らせると Nuxt が壊れ、**以降ファイルを編集するたびに**
+次のエラーが出るようになる:
+
+```
+Package import specifier "#internal/nuxt/paths" is not defined in package .../package.json
+imported from .../.nuxt/dist/server/server.mjs
+```
+
+dev と build は `.nuxt/` を共有している。dev 中の `.nuxt/dist/server/server.mjs` は
+`vite-node.mjs` を再エクスポートするだけのスタブだが、build がこれを本番バンドルで上書きし、
+その中の `#internal/nuxt/paths`（Nitro がビルド時にしか解決できないエイリアス）を
+dev が読めずに落ちる。
+
+- ビルドする前に dev を止める（`pkill -f nuxt`。他人の dev が動いていないか `pgrep -fl "nuxt dev"` で確認）
+- 型チェックだけなら `npx vue-tsc --noEmit` は `.nuxt` を壊さないので dev 中でも安全
+- **復旧**: dev停止 → `rm -rf .nuxt .output node_modules/.vite` → dev再起動
+
 各アプリの詳細は `apps/ai-tools/CLAUDE.md` を参照。
