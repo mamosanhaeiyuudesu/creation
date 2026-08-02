@@ -24,33 +24,34 @@ export function requireLifeDb(event: any): any {
   return db
 }
 
-/** life-analyzer 用テーブルを（無ければ）用意する。未マイグレーション環境向けの保険。 */
+/**
+ * life-analyzer 用テーブルを（無ければ）用意する。未マイグレーション環境向けの保険。
+ * D1 の `exec` は改行ごとに1文として扱うため複数行のCREATEが通らない。
+ * ここでは `prepare().run()` を使う（1文ずつなら改行を含んでよい）。
+ */
 export async function ensureLifeTables(db: any): Promise<void> {
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS life_documents (
+  const statements = [
+    `CREATE TABLE IF NOT EXISTS life_documents (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, title TEXT NOT NULL DEFAULT '',
       content TEXT NOT NULL DEFAULT '', excerpt TEXT NOT NULL DEFAULT '',
       char_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `).catch(() => { })
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS life_analyses (
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_life_documents_user ON life_documents(user_id, created_at)`,
+    `CREATE TABLE IF NOT EXISTS life_analyses (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, doc_ids TEXT NOT NULL DEFAULT '[]',
       signature TEXT NOT NULL DEFAULT '', result TEXT NOT NULL DEFAULT '{}',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `).catch(() => { })
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS life_episode_summaries (
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_life_analyses_user ON life_analyses(user_id, signature, created_at)`,
+    `CREATE TABLE IF NOT EXISTS life_episode_summaries (
       id TEXT PRIMARY KEY, analysis_id TEXT NOT NULL, node_key TEXT NOT NULL,
       result TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `).catch(() => { })
-  // 要約の upsert（ON CONFLICT）が効くように一意インデックスまで作る。
-  // D1 の exec は改行区切りで文を分けるため、インデックスは1行で書く。
-  await db.exec(
-    'CREATE UNIQUE INDEX IF NOT EXISTS idx_life_episode_summaries_node ON life_episode_summaries(analysis_id, node_key)'
-  ).catch(() => { })
+    )`,
+    // 要約の upsert（ON CONFLICT）が効くように一意インデックスまで作る。
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_life_episode_summaries_node ON life_episode_summaries(analysis_id, node_key)`,
+  ]
+  // ここで失敗したら後続のクエリも必ず失敗するので握りつぶさず、原因が分かるように投げる。
+  for (const sql of statements) await db.prepare(sql).run()
 }
 
 // ── テキスト（履歴）──────────────────────────────
