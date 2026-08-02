@@ -7,6 +7,17 @@ const getKey = async (event: H3Event): Promise<CryptoKey | null> => {
   return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
 }
 
+// String.fromCharCode(...bytes) は引数が数万個になるとスタックを超えて落ちるため、
+// 長文（life-analyzer の人生テキスト等）でも安全なように分割して変換する。
+const toBase64 = (bytes: Uint8Array): string => {
+  let binary = ''
+  const CHUNK = 8192
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
+  }
+  return btoa(binary)
+}
+
 export const encryptComment = async (event: H3Event, text: string): Promise<string> => {
   if (!text) return text
   const key = await getKey(event)
@@ -14,9 +25,7 @@ export const encryptComment = async (event: H3Event, text: string): Promise<stri
   const iv = crypto.getRandomValues(new Uint8Array(12))
   const encoded = new TextEncoder().encode(text)
   const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded)
-  const ivB64 = btoa(String.fromCharCode(...iv))
-  const ctB64 = btoa(String.fromCharCode(...new Uint8Array(ciphertext)))
-  return `enc:${ivB64}:${ctB64}`
+  return `enc:${toBase64(iv)}:${toBase64(new Uint8Array(ciphertext))}`
 }
 
 export const decryptComment = async (event: H3Event, text: string): Promise<string> => {

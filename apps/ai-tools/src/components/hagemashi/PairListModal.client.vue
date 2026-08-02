@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // ネットワーク図でノードをタップしたときのドリルダウン。
 // 1) その語に結びついている「組み合わせ」を強い順に一覧（集計のみ・AIは呼ばない）
-// 2) 組み合わせをタップすると、2語が同時に出た記録をAIが読み解く
-// 3) 相手の語を起点に図を描き直すこともできる
+// 2) 組み合わせをタップすると、2語が同時に出た記録をそのまま表示（ここでもAIは呼ばない）
+// 3) 「AI分析」ボタンを押して初めてAIが読み解く
+// 4) 相手の語を起点に図を描き直すこともできる
 import type { NetEdge, NetGraph } from '~/utils/hagemashi/cooccurrence'
 import { edgesOf, otherWord, valenceColor } from '~/utils/hagemashi/cooccurrence'
 
@@ -29,6 +30,7 @@ const selected = ref<NetEdge | null>(null)
 const blocks = ref<AnalysisBlock[]>([])
 const isLoading = ref(false)
 const errorMsg = ref('')
+const hasAnalyzed = ref(false)
 
 const pairs = computed(() => edgesOf(props.graph, props.word))
 // 図に線が引かれているものと、見やすさのために線を省略したものを分けて見せる
@@ -58,10 +60,22 @@ function matchedItems(edge: NetEdge): SourceItem[] {
 
 const selectedItems = computed(() => (selected.value ? matchedItems(selected.value) : []))
 
-async function openPair(edge: NetEdge) {
+// 組み合わせを開くのは記録の表示だけ。AIは呼ばない
+function openPair(edge: NetEdge) {
   selected.value = edge
   blocks.value = []
   errorMsg.value = ''
+  hasAnalyzed.value = false
+}
+
+// 「AI分析」ボタンで初めて呼ぶ
+async function runAnalysis() {
+  const edge = selected.value
+  if (!edge || isLoading.value) return
+
+  blocks.value = []
+  errorMsg.value = ''
+  hasAnalyzed.value = true
 
   const items = selectedItems.value
   if (!items.length) {
@@ -91,6 +105,7 @@ function backToList() {
   selected.value = null
   blocks.value = []
   errorMsg.value = ''
+  hasAnalyzed.value = false
 }
 </script>
 
@@ -132,7 +147,7 @@ function backToList() {
             </div>
             <template v-else>
               <p class="m-0 mb-3 text-[11px] text-slate-500 leading-relaxed">
-                「{{ word }}」と結びついている組み合わせです。強い順。タップするとAIが読み解きます。
+                「{{ word }}」と結びついている組み合わせです。強い順。タップすると該当する記録が見られます。
               </p>
 
               <!-- 図で線が引かれている組み合わせ -->
@@ -198,22 +213,50 @@ function backToList() {
             </template>
           </template>
 
-          <!-- AI分析 -->
+          <!-- 該当記録 → その下に AI分析 -->
           <template v-else>
             <button
               class="mb-3 flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-200 bg-transparent border-none cursor-pointer px-0 transition-colors"
               @click="backToList"
             >← 組み合わせ一覧へ戻る</button>
 
-            <div v-if="isLoading" class="flex items-center justify-center gap-2 py-8 text-slate-400 text-sm">
-              <span class="w-4 h-4 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
-              記録を読み解いています...
+            <!-- 該当記録（AIを待たずにそのまま表示） -->
+            <div v-if="!selectedItems.length" class="text-center text-slate-500 text-sm py-4">
+              該当する記録が見つかりませんでした
+            </div>
+            <div v-else class="flex flex-col gap-0">
+              <div
+                v-for="(it, i) in selectedItems"
+                :key="i"
+                class="flex items-start gap-2.5 px-1 py-2 border-b border-white/[0.05] last:border-b-0"
+              >
+                <span class="text-[11px] text-slate-500 shrink-0 w-[38px] pt-[2px] tabular-nums">{{ it.date }}</span>
+                <span class="text-sm text-slate-200 leading-relaxed flex-1">{{ it.text }}</span>
+              </div>
             </div>
 
-            <div v-else-if="errorMsg" class="text-center text-rose-400 text-sm py-4">{{ errorMsg }}</div>
+            <!-- AI分析（ボタンを押して初めて実行） -->
+            <div class="mt-4 pt-4 border-t border-white/[0.08]">
+              <button
+                v-if="!hasAnalyzed && selectedItems.length"
+                class="w-full px-3 py-2.5 rounded-lg text-xs font-semibold border border-orange-500/30 bg-orange-500/10 text-orange-300 cursor-pointer hover:bg-orange-500/20 transition-colors"
+                @click="runAnalysis"
+              >この {{ selectedItems.length }} 件をAIが読み解く</button>
 
-            <template v-else>
-              <div class="flex flex-col gap-3 mb-4">
+              <div v-else-if="isLoading" class="flex items-center justify-center gap-2 py-6 text-slate-400 text-sm">
+                <span class="w-4 h-4 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
+                記録を読み解いています...
+              </div>
+
+              <div v-else-if="errorMsg" class="flex flex-col gap-2">
+                <p class="m-0 text-center text-rose-400 text-sm py-2">{{ errorMsg }}</p>
+                <button
+                  class="w-full px-3 py-2 rounded-lg text-xs font-semibold border border-white/10 bg-white/[0.03] text-slate-300 cursor-pointer hover:bg-white/[0.07] transition-colors"
+                  @click="runAnalysis"
+                >もう一度AI分析する</button>
+              </div>
+
+              <div v-else-if="blocks.length" class="flex flex-col gap-3">
                 <div
                   v-for="(b, i) in blocks"
                   :key="i"
@@ -223,24 +266,12 @@ function backToList() {
                   <p class="m-0 text-sm text-slate-200 leading-relaxed whitespace-pre-line">{{ b.text }}</p>
                 </div>
               </div>
+            </div>
 
-              <button
-                class="w-full mb-4 px-3 py-2 rounded-lg text-xs font-semibold border border-orange-500/30 bg-orange-500/10 text-orange-300 cursor-pointer hover:bg-orange-500/20 transition-colors"
-                @click="emit('focus', partnerOf(selected))"
-              >「{{ partnerOf(selected) }}」を起点に見る</button>
-
-              <!-- 該当記録 -->
-              <div class="flex flex-col gap-0">
-                <div
-                  v-for="(it, i) in selectedItems"
-                  :key="i"
-                  class="flex items-start gap-2.5 px-1 py-2 border-b border-white/[0.05] last:border-b-0"
-                >
-                  <span class="text-[11px] text-slate-500 shrink-0 w-[38px] pt-[2px] tabular-nums">{{ it.date }}</span>
-                  <span class="text-sm text-slate-200 leading-relaxed flex-1">{{ it.text }}</span>
-                </div>
-              </div>
-            </template>
+            <button
+              class="w-full mt-4 px-3 py-2 rounded-lg text-xs font-semibold border border-white/10 bg-white/[0.03] text-slate-300 cursor-pointer hover:bg-white/[0.07] transition-colors"
+              @click="emit('focus', partnerOf(selected))"
+            >「{{ partnerOf(selected) }}」を起点に見る</button>
           </template>
         </div>
 
