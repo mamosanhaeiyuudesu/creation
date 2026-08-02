@@ -6,7 +6,7 @@
         <div class="min-w-0 flex items-center gap-2.5">
           <span class="text-2xl leading-none">🕯</span>
           <div class="min-w-0">
-            <h1 class="la-display text-[17px] sm:text-[20px] font-semibold leading-none">人生の光と影</h1>
+            <h1 class="la-display text-[17px] sm:text-[20px] font-semibold leading-none">人生の影と光</h1>
             <p class="text-[11px] text-[var(--la-ink-faint)] mt-1 truncate">
               <span v-if="analysis">{{ analysis.docTitles.join('・') }}</span>
               <span v-else>語られた人生から、コアとなる影と光を見つめ直す</span>
@@ -15,16 +15,17 @@
         </div>
 
         <div class="ml-auto flex items-center gap-1.5">
-          <template v-if="analysis">
-            <div class="hidden sm:flex gap-1 p-1 rounded-full bg-white/[0.04] border border-[var(--la-line)]">
-              <button v-for="s in SIDES" :key="s.value" class="px-3 h-7 rounded-full text-[11.5px] font-bold transition-colors"
-                :class="side === s.value ? 'bg-white/[0.09] text-[var(--la-ink)]' : 'text-[var(--la-ink-faint)] hover:text-[var(--la-ink-soft)]'"
-                @click="focusSide(s.value)"
-              >{{ s.label }}</button>
-            </div>
-            <button class="la-btn-ghost hidden sm:inline-flex items-center" :disabled="analyzing" @click="runAnalyze(selectedIds, true)">分析し直す</button>
-          </template>
+          <div v-if="analysis" class="hidden sm:flex gap-1 p-1 rounded-full bg-white/[0.04] border border-[var(--la-line)]">
+            <button v-for="s in SIDES" :key="s.value" class="px-3 h-7 rounded-full text-[11.5px] font-bold transition-colors"
+              :class="side === s.value ? 'bg-white/[0.09] text-[var(--la-ink)]' : 'text-[var(--la-ink-faint)] hover:text-[var(--la-ink-soft)]'"
+              @click="focusSide(s.value)"
+            >{{ s.label }}</button>
+          </div>
           <button class="la-btn-ghost lg:hidden" @click="sidebarOpen = true">テキスト</button>
+          <!-- 分析は保存とは別の操作。履歴で選んだテキストをここから分析する -->
+          <button v-if="isLoggedIn" class="la-btn !h-9" :disabled="!selectedIds.length || analyzing" @click="runAnalyze(selectedIds, analyzedCurrent)">
+            {{ analyzing ? '分析中…' : analyzedCurrent ? '分析し直す' : '分析する' }}
+          </button>
           <button v-if="isLoggedIn" class="hidden lg:inline text-[12px] text-[var(--la-ink-faint)] hover:text-[var(--la-ink-soft)] px-2" @click="doLogout">ログアウト</button>
         </div>
       </header>
@@ -92,7 +93,6 @@
         :loading-docs="loadingDocs"
         @update:selected-ids="selectedIds = $event"
         @save="onSave"
-        @analyze="runAnalyze($event)"
         @delete="onDelete"
         @open-doc="onOpenDoc"
       />
@@ -115,7 +115,6 @@
             :loading-docs="loadingDocs"
             @update:selected-ids="selectedIds = $event"
             @save="onSave"
-            @analyze="onAnalyzeFromDrawer"
             @delete="onDelete"
             @open-doc="onOpenDoc"
           />
@@ -152,7 +151,7 @@ import SidePanel from '~/components/life-analyzer/SidePanel.vue'
 import type { EpisodeSummary, LifeAnalysis, LifeDocument, LifeDocumentSummary, Polarity } from '~/types/life-analyzer'
 
 definePageMeta({ layout: 'life-analyzer' })
-useHead({ title: 'life-analyzer — 人生の光と影' })
+useHead({ title: 'life-analyzer — 人生の影と光' })
 
 const { isLoggedIn, checked, checkAuth, logout } = useAuth()
 const showAuthModal = computed(() => checked.value && !isLoggedIn.value)
@@ -192,7 +191,7 @@ const emptyMessage = computed(() => {
   if (!isLoggedIn.value) return 'ログインすると、自分のテキストを保存して分析できます。'
   if (!docs.value.length) return '自分について語られたテキストを右のパネルから貼り付けると、そこからコアとなる影と光を5つずつ取り出します。'
   if (!selectedIds.value.length) return '履歴からテキストを選ぶと、その内容をもとに分析できます。'
-  return '選んだテキストで分析を始めましょう。'
+  return '右上の「分析する」を押すと、選んだテキストから影と光のコアを取り出します。'
 })
 
 function toMessage(e: any, fallback: string): string {
@@ -218,9 +217,8 @@ async function onSave(text: string) {
   try {
     const doc = await $fetch<LifeDocument>('/api/life-analyzer/documents', { method: 'POST', body: { text } })
     await loadDocs()
-    // 追加した1件をそのまま分析する（続けて分析したいのが普通なので）。
+    // 保存と分析は別の操作。追加した1件を選んだ状態にするだけで、AIは呼ばない。
     selectedIds.value = [doc.id]
-    await runAnalyze(selectedIds.value)
   } catch (e: any) {
     errorMessage.value = toMessage(e, '保存に失敗しました')
   } finally {
@@ -282,10 +280,13 @@ async function restoreAnalysis(ids: string[]) {
   } catch { /* 復元できなければ空の状態のままでよい */ }
 }
 
-function onAnalyzeFromDrawer(ids: string[]) {
-  sidebarOpen.value = false
-  runAnalyze(ids)
-}
+/** いま選んでいるテキストの組み合わせが、そのまま表示中の分析かどうか（＝押すと「分析し直す」になる）。 */
+const analyzedCurrent = computed(() => {
+  if (!analysis.value || !selectedIds.value.length) return false
+  const shown = [...analysis.value.docIds].sort().join('|')
+  const picked = [...new Set(selectedIds.value)].sort().join('|')
+  return shown === picked
+})
 
 function focusSide(value: 'all' | 'shadow' | 'light') {
   side.value = value

@@ -1,4 +1,4 @@
-// life-analyzer（人生の光と影）のサーバー共通処理。
+// life-analyzer（人生の影と光）のサーバー共通処理。
 // 認証は既存の WHISPER_DB / users / sessions に相乗りし、記録・分析は user_id でスコープする。
 // 本文と分析結果は極めて私的な内容なので encrypt.ts で暗号化して保存する。
 import { getSessionUser, getAppDb } from '~/server/utils/auth'
@@ -32,25 +32,25 @@ export async function ensureLifeTables(db: any): Promise<void> {
       content TEXT NOT NULL DEFAULT '', excerpt TEXT NOT NULL DEFAULT '',
       char_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
-  `).catch(() => {})
+  `).catch(() => { })
   await db.exec(`
     CREATE TABLE IF NOT EXISTS life_analyses (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, doc_ids TEXT NOT NULL DEFAULT '[]',
       signature TEXT NOT NULL DEFAULT '', result TEXT NOT NULL DEFAULT '{}',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
-  `).catch(() => {})
+  `).catch(() => { })
   await db.exec(`
     CREATE TABLE IF NOT EXISTS life_episode_summaries (
       id TEXT PRIMARY KEY, analysis_id TEXT NOT NULL, node_key TEXT NOT NULL,
       result TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
-  `).catch(() => {})
+  `).catch(() => { })
   // 要約の upsert（ON CONFLICT）が効くように一意インデックスまで作る。
   // D1 の exec は改行区切りで文を分けるため、インデックスは1行で書く。
   await db.exec(
     'CREATE UNIQUE INDEX IF NOT EXISTS idx_life_episode_summaries_node ON life_episode_summaries(analysis_id, node_key)'
-  ).catch(() => {})
+  ).catch(() => { })
 }
 
 // ── テキスト（履歴）──────────────────────────────

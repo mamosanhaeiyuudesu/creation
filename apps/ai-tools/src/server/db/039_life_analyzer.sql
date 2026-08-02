@@ -1,4 +1,4 @@
--- life-analyzer: 人生について語られたテキストから「光と影のコア」を抽出し内省を深めるツール
+-- life-analyzer: 人生について語られたテキストから「影と光のコア」を抽出し内省を深めるツール
 -- WHISPER_DB に相乗り（既存の users/sessions で認証）。記録・分析は user_id でスコープ。
 -- 適用: wrangler d1 execute whisper-db --remote --file src/server/db/039_life_analyzer.sql
 

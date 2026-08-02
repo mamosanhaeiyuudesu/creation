@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // 右サイドバー。テキストの貼り付け（保存＝AIが名前を付ける）と、保存済みテキストの履歴。
-// 履歴はチェックで複数選べて、選んだ組み合わせで分析できる（人生を横断して見たいとき用）。
+// 履歴はチェックで複数選べる（人生を横断して見たいとき用）。
+// 保存と分析は別の操作＝ここは保存と選択までで、分析はヘッダーの「分析する」から行う。
 import type { LifeDocumentSummary } from '~/types/life-analyzer'
 
 const props = defineProps<{
@@ -13,7 +14,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   save: [string]
-  analyze: [string[]]
   delete: [string]
   'open-doc': [string]
   'update:selectedIds': [string[]]
@@ -84,8 +84,11 @@ watch(() => props.docs.length, (len, prev) => {
         <button v-if="charCount" class="text-[11px] text-[var(--la-ink-faint)] hover:text-[var(--la-ink-soft)]" @click="text = ''">クリア</button>
       </div>
       <button class="la-btn w-full" :disabled="!canSave" @click="submit">
-        {{ saving ? '保存しています…' : '保存して分析する' }}
+        {{ saving ? '保存しています…' : '保存する' }}
       </button>
+      <p class="text-[11px] text-[var(--la-ink-faint)] leading-[1.7] mt-2">
+        保存すると履歴に入ります。分析は履歴で選んでから、画面上部の「分析する」で行います。
+      </p>
     </div>
 
     <!-- 履歴 -->
@@ -129,10 +132,10 @@ watch(() => props.docs.length, (len, prev) => {
         </div>
       </div>
 
-      <div class="p-3 pt-0 shrink-0">
-        <button class="la-btn w-full" :disabled="!selectedIds.length || analyzing" @click="emit('analyze', selectedIds)">
-          {{ analyzing ? '分析しています…' : `選んだ ${selectedIds.length} 件で分析する` }}
-        </button>
+      <div v-if="docs.length" class="px-4 py-3 shrink-0 border-t border-[var(--la-line)]">
+        <p class="text-[11px] text-[var(--la-ink-faint)] leading-[1.7]">
+          {{ analyzing ? '分析しています…' : '選んだテキストは、画面上部の「分析する」で分析できます。' }}
+        </p>
       </div>
     </div>
   </div>
