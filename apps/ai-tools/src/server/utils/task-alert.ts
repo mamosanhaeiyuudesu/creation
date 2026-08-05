@@ -4,7 +4,7 @@
  * - 設定の読み書き（task_alerts テーブル。メールアドレスは encrypt.ts で暗号化）
  * - Trello から重要タスク（赤ラベル）を収集
  * - メール本文の組み立て
- * - Cloudflare Email Sending バインディング（env.EMAIL）での送信
+ * - Resend（HTTP API）での送信
  *
  * Cron（src/server/tasks/task-alert.ts）とAPI（src/server/api/task/alert*.ts）の
  * 両方から使うため、H3Event ではなく Worker の env を受け取る形にしている。
@@ -202,23 +202,38 @@ export function buildAlertMail(tasks: AlertTask[], appUrl = ''): { subject: stri
 // --- 送信 ---
 
 /**
- * Cloudflare Email Sending バインディング（env.EMAIL）で送る。
- * 送信元は env.NUXT_ALERT_MAIL_FROM（Email Sending を有効化したドメインのアドレス）。
+ * Resend（HTTP API）で送る。
+ * Cloudflare の Email Sending は Workers Paid 必須だったため、無料枠のある Resend を使っている。
+ *   env.NUXT_RESEND_API_KEY  … Resend の API キー（wrangler secret put）
+ *   env.NUXT_ALERT_MAIL_FROM … 送信元（Resend で認証済みドメインのアドレス）
  */
 export async function sendAlertMail(env: any, to: string, mail: { subject: string; html: string; text: string }): Promise<void> {
-  const binding = env?.EMAIL
-  if (!binding) throw new Error('EMAIL バインディングが見つかりません（wrangler.toml の send_email 設定を確認してください）')
+  const apiKey = env?.NUXT_RESEND_API_KEY
+  if (!apiKey) throw new Error('NUXT_RESEND_API_KEY が未設定です（wrangler secret put NUXT_RESEND_API_KEY）')
 
   const from = env?.NUXT_ALERT_MAIL_FROM
   if (!from) throw new Error('NUXT_ALERT_MAIL_FROM が未設定です（送信元アドレスを設定してください）')
 
-  await binding.send({
-    to,
-    from: { email: from, name: 'タスクくん' },
-    subject: mail.subject,
-    html: mail.html,
-    text: mail.text,
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: `タスクくん <${from}>`,
+      to: [to],
+      subject: mail.subject,
+      html: mail.html,
+      text: mail.text,
+    }),
   })
+
+  if (!res.ok) {
+    // Resend はエラー詳細を JSON で返すので、原因が分かるようそのまま載せる
+    const detail = await res.text().catch(() => '')
+    throw new Error(`Resend API Error: ${res.status} ${detail}`)
+  }
 }
 
 /**

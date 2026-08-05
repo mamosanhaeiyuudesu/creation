@@ -24,23 +24,27 @@ NUXT_ENCRYPTION_KEY=...   # marriage コメント・Google Healthトークン暗
 NUXT_FITBIT_CLIENT_ID=...      # Google Cloud の OAuth 2.0 クライアントID（fitbit連携用）
 NUXT_FITBIT_CLIENT_SECRET=...  # 同上シークレット
 NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
+NUXT_RESEND_API_KEY=...        # task アラートのメール送信（Resend）。dev では未使用
 ```
 
 ### task アラート（メール通知）のセットアップ
 
-送信は **Cloudflare Email Sending**（`wrangler.toml` の `[[send_email]] name = "EMAIL"`）。
-`.env` ではなく **wrangler.toml の `[vars]`** に置く（Cron の scheduled task は runtimeConfig ではなく Worker の env から読むため）:
+送信は **Resend**（HTTP API）。Cloudflare の Email Sending は **Workers Paid 必須**だったため不採用。
+
+設定値は `.env` ではなく **wrangler.toml の `[vars]`** に置く（Cron の scheduled task は runtimeConfig ではなく Worker の env から読むため）:
 
 ```toml
-NUXT_ALERT_MAIL_FROM = "task@<Email Sendingを有効化したドメイン>"   # 送信元。必須
-NUXT_APP_URL = "https://<host>"                                   # メール本文のリンク。任意
+NUXT_ALERT_MAIL_FROM = "task@<Resendで認証済みのドメイン>"   # 送信元。必須
+NUXT_APP_URL = "https://<host>"                            # メール本文のリンク。任意
 ```
 
-1. ドメインのオンボーディング（Cloudflare ダッシュボード、または wrangler 更新後に `wrangler email sending enable <domain>`。4.75 には未搭載）
-2. `wrangler.toml` の `[vars]` に上記2つを設定して `wrangler deploy`
-3. `/task` の設定 →「🔔 アラート」で「テスト送信」を押して疎通確認
+1. Resend に登録し、送信元ドメインを認証（DNS レコードを Cloudflare DNS に追加）
+2. `wrangler secret put NUXT_RESEND_API_KEY` で API キーを登録
+3. `wrangler.toml` の `[vars]` に上記2つを設定して `wrangler deploy`
+4. `/task` の設定 →「🔔 アラート」で「テスト送信」を押して疎通確認
 
-※ ローカル dev は D1 もメール送信バインディングも無いため、アラート設定は localStorage に保存され、テスト送信はできない（`useTaskAlert.ts`）。
+※ ドメイン未認証だと Resend は送信元アカウントのアドレス宛にしか送れない。任意の宛先に送るにはドメイン認証が要る。
+※ ローカル dev は D1 も無く送信もできないため、アラート設定は localStorage に保存され、テスト送信はできない（`useTaskAlert.ts`）。
 
 ※ `/fitbit` のデータ源は **Google Health API**（旧 Fitbit Web API は2026年9月停止のため後継。サーバー間REST＋Google OAuth2）。認証情報名は `NUXT_FITBIT_*` のままだが中身はGoogle OAuthのもの。
 ※ ローカル dev では実API・OAuthは使わず `fitbit-dev.ts` の決定的スタブで動作。実データのパース検証は dev限定の `GET /api/fitbit/diag?token=<Playgroundのaccess_token>`。
@@ -133,7 +137,7 @@ NUXT_APP_URL = "https://<host>"                                   # メール本
 | `guesthouse.ts` | guesthouse の認証（admin判定・user_idスコープ）・テーブル用意・宿/案内項目(info/tip)の整形・共有トークン・知識ベース組み立て・滞在セッション/メッセージ/相談/日記の読み書き |
 | `guesthouse-ai.ts` | guesthouse の Claude 呼び出し集約（お客様チャットの緊急判定 triage・通常応答 answer(Web検索対応)・緊急時の取り次ぎ返信・相談の下書き・お客さん日記生成・お礼/レビュー依頼下書き・傾向抽出） |
 | `life-analyzer.ts` | life-analyzer の認証（user_idスコープ）・テーブル用意・テキスト/分析/要約の読み書き（本文と結果は `encrypt.ts` で暗号化）・分析キャッシュの署名（`analysisSignature`）・AIに渡す資料の組み立て（`buildSourceText`＝複数テキストを均等に上限まで） |
-| `task-alert.ts` | task アラートの集約（task_alerts の用意、Trello から重要タスク＝赤ラベルの収集、メール本文の組み立て、`env.EMAIL`（Cloudflare Email Sending）での送信）。Cron と API の両方から使うため H3Event ではなく Worker の env を受け取る |
+| `task-alert.ts` | task アラートの集約（task_alerts の用意、Trello から重要タスク＝赤ラベルの収集、メール本文の組み立て、Resend の HTTP API での送信）。Cron と API の両方から使うため H3Event ではなく Worker の env を受け取る |
 | `life-analyzer-ai.ts` | life-analyzer の Claude 呼び出し集約（テキストの命名・影5/光5のコア抽出・出来事ノードの要約）。**「診断」ではなく本人が気づくための材料**という姿勢をシステムプロンプトに集約しているので、トーン調整はここだけ触る |
 | `guesthouse-policy.ts` | guesthouse お客様チャットの**匙加減を集約**（緊急=handoff の線引き `EMERGENCY_CRITERIA`・Web検索の有無/回数 `WEB_SEARCH`・triage/通常応答/緊急返信の各システムプロンプト）。方針変更は基本ここだけ編集 |
 

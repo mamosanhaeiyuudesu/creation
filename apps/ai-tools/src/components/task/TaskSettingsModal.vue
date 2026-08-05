@@ -15,14 +15,12 @@ const emit = defineEmits<{
 }>()
 
 const workingProfiles = ref<Profile[]>([])
-// 数値はアカウントのタブ番号、'alert' はアラート設定タブ
-const activeTab = ref<number | 'alert'>(0)
+const activeTab = ref(0)
 
 const { alert, saving: alertSaving, testing, error: alertError, testResult, load: loadAlert, save: saveAlert, sendTest } = useTaskAlert()
 const alertForm = ref<AlertSettings>(emptyAlert())
 
-const activeIndex = computed(() => (typeof activeTab.value === 'number' ? activeTab.value : -1))
-const activeProfile = computed(() => (activeIndex.value >= 0 ? workingProfiles.value[activeIndex.value] : undefined))
+const activeProfile = computed(() => workingProfiles.value[activeTab.value])
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const selectedHoursLabel = computed(() =>
@@ -65,7 +63,7 @@ async function save() {
 
   const ok = await saveAlert({ ...alertForm.value, email: alertForm.value.email.trim() })
   // 保存に失敗したらモーダルを閉じずにエラーを見せる
-  if (!ok) { activeTab.value = 'alert'; return }
+  if (!ok) return
 
   emit('save', valid)
 }
@@ -76,6 +74,8 @@ async function save() {
     <div v-if="show" class="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-sm flex items-center justify-center p-5" @click.self="emit('update:show', false)">
       <div class="w-[min(560px,100%)] bg-[#1e293b] border border-white/10 rounded-2xl p-7 flex flex-col gap-2.5 max-h-[90vh] overflow-y-auto">
         <h2 class="m-0 mb-1 text-lg font-bold text-slate-50">設定</h2>
+
+        <h3 class="m-0 text-[15px] font-bold text-slate-50">🔗 Trello アカウント</h3>
 
         <div class="flex items-end gap-0 border-b border-white/10 mb-2 overflow-x-auto">
           <button
@@ -92,20 +92,12 @@ async function save() {
             title="新しいアカウントを追加"
             @click="addProfile"
           >＋</button>
-          <span class="mx-1.5 mb-2 w-px h-4 bg-white/10 flex-shrink-0" />
-          <button
-            :class="[
-              'px-3 py-1.5 text-[13px] font-medium rounded-t-lg border-b-2 transition-all cursor-pointer whitespace-nowrap flex-shrink-0',
-              activeTab === 'alert' ? 'border-rose-400 text-rose-400 bg-white/[0.04]' : 'border-transparent text-slate-500 hover:text-slate-300 bg-transparent',
-            ]"
-            @click="activeTab = 'alert'"
-          >🔔 アラート</button>
         </div>
 
-        <!-- アカウント設定 -->
+        <!-- アカウント設定（タブで切り替え） -->
         <template v-if="activeProfile">
           <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em] mt-1">アカウント名</label>
-          <input v-model="activeProfile.name" class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)]" type="text" :placeholder="`アカウント${activeIndex + 1}`" />
+          <input v-model="activeProfile.name" class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)]" type="text" :placeholder="`アカウント${activeTab + 1}`" />
 
           <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em] mt-1">Trello API Key</label>
           <input v-model="activeProfile.key" class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)]" type="text" placeholder="API Key" />
@@ -117,13 +109,14 @@ async function save() {
           <textarea v-model="activeProfile.excluded" class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)] resize-y min-h-[80px] font-mono text-xs leading-relaxed" rows="4" />
 
           <div v-if="workingProfiles.length > 1" class="flex justify-start mt-1">
-            <button class="px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 text-[12px] cursor-pointer transition-all hover:bg-red-500/20" @click="removeProfile(activeIndex)">このアカウントを削除</button>
+            <button class="px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 text-[12px] cursor-pointer transition-all hover:bg-red-500/20" @click="removeProfile(activeTab)">このアカウントを削除</button>
           </div>
         </template>
 
-        <!-- アラート設定（全アカウント共通・1ユーザーに1つ） -->
-        <template v-else-if="activeTab === 'alert'">
-          <p class="m-0 mt-1 text-[12px] text-slate-400 leading-relaxed">
+        <!-- メール通知（アカウントをまたいで共通・1ユーザーに1つ） -->
+        <div class="mt-5 pt-4 border-t border-white/10 flex flex-col gap-2.5">
+          <h3 class="m-0 text-[15px] font-bold text-slate-50">🔔 メール通知</h3>
+          <p class="m-0 text-[12px] text-slate-400 leading-relaxed">
             重要（赤ラベル）のタスクを、毎日決まった時刻にメールでお知らせします。時刻は複数選べます。<br>
             対象は全アカウントの TODO / DOING。重要タスクが0件のときは送りません。
           </p>
@@ -170,7 +163,7 @@ async function save() {
           </div>
 
           <p v-if="alertError" class="m-0 mt-1 text-[12px] text-red-400">{{ alertError }}</p>
-        </template>
+        </div>
 
         <div class="flex justify-end gap-2 mt-2">
           <button class="px-4 py-2 rounded-lg bg-white/[0.08] border border-white/10 text-slate-400 text-[13px] cursor-pointer transition-all hover:bg-white/[0.12]" @click="emit('update:show', false)">キャンセル</button>
