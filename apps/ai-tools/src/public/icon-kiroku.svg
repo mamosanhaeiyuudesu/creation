@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="22" fill="#f4f1ea"/>
+  <circle cx="50" cy="50" r="34" fill="none" stroke="#c8d3ce" stroke-width="1.5"/>
+  <text x="50" y="50" font-size="46" fill="#3d4f4a" text-anchor="middle" dominant-baseline="central" font-family="Hiragino Mincho ProN, YuMincho, serif">記</text>
+</svg>

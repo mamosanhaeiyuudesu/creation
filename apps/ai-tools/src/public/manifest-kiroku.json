@@ -1,0 +1,14 @@
+{
+  "name": "kiroku",
+  "short_name": "kiroku",
+  "description": "感情の気づきを、そのまま書き留めるメモ",
+  "theme_color": "#f4f1ea",
+  "background_color": "#f4f1ea",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/kiroku",
+  "scope": "/kiroku",
+  "icons": [
+    { "src": "/apple-touch-icon-kiroku.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

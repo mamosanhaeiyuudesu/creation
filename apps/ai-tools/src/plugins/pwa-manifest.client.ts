@@ -3,6 +3,7 @@ const MANIFEST_MAP: Record<string, string> = {
   '/hagemashi': '/manifest-hagemashi.json',
   '/whisper': '/manifest-whisper.json',
   '/task': '/manifest-task.json',
+  '/kiroku': '/manifest-kiroku.json',
 }
 
 function getManifestHref(path: string): string | null {
