@@ -9,6 +9,17 @@ compatibility_date = "2025-12-31"
 #   wrangler secret put NUXT_ANTHROPIC_API_KEY
 #   wrangler secret put NUXT_MIYAKO_VECTOR_STORE_ID
 #   wrangler secret put NUXT_ENCRYPTION_KEY  ← marriage コメント暗号化キー（32文字以上推奨）
+# task アラート（重要タスクのメール通知）用。秘密情報ではないのでここに書く:
+#   NUXT_ALERT_MAIL_FROM = 送信元アドレス（Email Sending を有効化したドメインのもの）
+#   NUXT_APP_URL         = メール本文に載せるアプリのURL（任意。未設定ならリンクを出さない）
+# NUXT_ALERT_MAIL_FROM = "task@example.com"
+# NUXT_APP_URL = "https://example.com"
+
+# メール送信（Cloudflare Email Sending）。task アラートで使用。
+# 事前にドメインのオンボーディングが必要:
+#   wrangler email sending enable <your-domain>   （wrangler 4.75 には未搭載。ダッシュボードか wrangler 更新後に実行）
+[[send_email]]
+name = "EMAIL"
 
 [[d1_databases]]
 binding = "WHISPER_DB"
@@ -59,4 +70,8 @@ database_id = "a89cb679-8a17-4d46-9c90-dada3e35691b"
 binding = "MLB_DB"
 database_name = "mlb-db"
 database_id = "7698b7b5-b0c8-4289-b19e-a99c669ca75f"
+
+# 名前付き環境はトップレベルのバインディングを引き継がないため、プレビューにも同じ定義が要る
+[[env.preview.send_email]]
+name = "EMAIL"
 

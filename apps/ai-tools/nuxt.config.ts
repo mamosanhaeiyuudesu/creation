@@ -66,7 +66,8 @@ gtag('config', 'G-JRBVTJYCEH');`,
       tasks: true,
     },
     scheduledTasks: {
-      '0 * * * *': ['mlb-sync'],
+      // task-alert は毎時走り、その時刻を送信時刻に設定しているユーザーだけにメールを送る
+      '0 * * * *': ['mlb-sync', 'task-alert'],
     },
     devServer: {
       // @ts-ignore — Nitro の型定義に maxBodySize がないが、h3 dev server では有効
