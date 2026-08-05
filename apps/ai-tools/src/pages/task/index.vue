@@ -89,6 +89,8 @@ watch(showAll, v => {
 
 // --- Settings menu ---
 const showSettingsMenu = ref(false)
+// メール設定（重要タスクのアラート）モーダル
+const showAlertModal = ref(false)
 
 function openSettingsMenu() { showSettingsMenu.value = !showSettingsMenu.value }
 function closeSettingsMenu() { showSettingsMenu.value = false }
@@ -524,6 +526,9 @@ watch(isLoggedIn, async (v) => {
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openSettings(); closeSettingsMenu()">
               <span>🔑</span> アカウント設定
             </button>
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="showAlertModal = true; closeSettingsMenu()">
+              <span>📧</span> メール設定
+            </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="downloadDone">
               <span>⬇</span> ダウンロード
             </button>
@@ -602,6 +607,7 @@ watch(isLoggedIn, async (v) => {
       :active-profile-id="activeProfileId"
       @save="handleSettingsSave"
     />
+    <TaskAlertModal v-model:show="showAlertModal" />
     <TaskModal
       v-model:show="showTaskModal"
       :boards="boards"
