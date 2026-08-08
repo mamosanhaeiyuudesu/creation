@@ -149,13 +149,21 @@ export interface Consult {
   createdAt: string
 }
 
-/** お客さん日記。content は自由記述（旅程・国籍/出身・印象・気づきなどを1つの文章にまとめる）。 */
+/** お客さん日記の中身（構造化）。 */
+export interface DiaryContent {
+  nationality: string // 国籍・出身（分かれば）
+  itinerary: string // 旅程（どこから来てどこへ行くか）
+  highlights: string // 印象的だったこと
+  notes: string // 阪中さんの気づき・次への活かし方
+}
+
+/** お客さん日記。 */
 export interface Diary {
   id: string
   houseId: string
   sessionId: string
   guestName: string
-  content: string
+  content: DiaryContent
   createdAt: string
 }
 

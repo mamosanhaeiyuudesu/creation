@@ -91,7 +91,12 @@
               <p class="font-bold text-[14.5px]">{{ d.guestName || '匿名のお客様' }}</p>
               <NuxtLink :to="`/guesthouse/session/${d.sessionId}`" class="ml-auto text-[12px] text-[var(--gh-forest-deep)] underline underline-offset-2">会話・編集</NuxtLink>
             </div>
-            <p class="text-[13px] text-[var(--gh-ink)] whitespace-pre-wrap leading-relaxed">{{ d.content }}</p>
+            <dl class="text-[12.5px] text-[var(--gh-ink-soft)] space-y-0.5">
+              <div v-if="d.content.nationality"><span class="font-bold">国籍：</span>{{ d.content.nationality }}</div>
+              <div v-if="d.content.itinerary"><span class="font-bold">旅程：</span>{{ d.content.itinerary }}</div>
+              <div v-if="d.content.highlights"><span class="font-bold">印象：</span>{{ d.content.highlights }}</div>
+              <div v-if="d.content.notes"><span class="font-bold">気づき：</span>{{ d.content.notes }}</div>
+            </dl>
           </li>
         </ul>
       </template>

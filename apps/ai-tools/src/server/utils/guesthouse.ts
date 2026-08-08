@@ -7,6 +7,7 @@ import { encryptComment, decryptComment } from '~/server/utils/encrypt'
 import type {
   Consult,
   Diary,
+  DiaryContent,
   GuestFact,
   HearingNote,
   House,
@@ -848,8 +849,20 @@ interface DiaryRow {
 
 /** DiaryRow を復号して Diary に整形する（content/guest_name は暗号化保存されている）。summary 列は未使用。 */
 async function shapeDiaryDecrypted(event: H3Event, row: DiaryRow): Promise<Diary> {
-  const content = await decryptComment(event, row.content)
+  const contentPlainText = await decryptComment(event, row.content)
   const guestName = await decryptName(event, row.guest_name)
+  let content: DiaryContent
+  try {
+    const p = JSON.parse(contentPlainText)
+    content = {
+      nationality: String(p?.nationality ?? ''),
+      itinerary: String(p?.itinerary ?? ''),
+      highlights: String(p?.highlights ?? ''),
+      notes: String(p?.notes ?? ''),
+    }
+  } catch {
+    content = { nationality: '', itinerary: '', highlights: '', notes: '' }
+  }
   return {
     id: row.id,
     houseId: row.house_id,
@@ -860,13 +873,13 @@ async function shapeDiaryDecrypted(event: H3Event, row: DiaryRow): Promise<Diary
   }
 }
 
-/** 日記を保存（1セッション1件・既存があれば置換、自由記述の本文）。content/guest_name は暗号化保存。 */
-export async function saveDiary(event: H3Event, db: any, sessionId: string, houseId: string, guestName: string, content: string): Promise<Diary> {
+/** 日記を保存（1セッション1件・既存があれば置換）。content/guest_name は暗号化保存。 */
+export async function saveDiary(event: H3Event, db: any, sessionId: string, houseId: string, guestName: string, content: DiaryContent): Promise<Diary> {
   await db.prepare('DELETE FROM guesthouse_diaries WHERE session_id = ?').bind(sessionId).run()
   const id = crypto.randomUUID()
   await db
     .prepare('INSERT INTO guesthouse_diaries (id, session_id, house_id, guest_name, content) VALUES (?, ?, ?, ?, ?)')
-    .bind(id, sessionId, houseId, await encryptComment(event, guestName), await encryptComment(event, content))
+    .bind(id, sessionId, houseId, await encryptComment(event, guestName), await encryptComment(event, JSON.stringify(content)))
     .run()
   // 保存した平文の値からそのまま返す（再取得・復号は不要）。
   return { id, houseId, sessionId, guestName, content, createdAt: '' }
