@@ -149,6 +149,14 @@ export interface Diary {
   createdAt: string
 }
 
+/** 阪中さんが対面などで直接聞き取った内容のメモ（自由記述）。1セッションに複数件持てる。 */
+export interface HearingNote {
+  id: string
+  sessionId: string
+  content: string
+  createdAt: string
+}
+
 /** お礼＆レビュー依頼の下書き（宿泊後）。 */
 export interface FarewellDraft {
   thanks: string // お礼メッセージ（チャットに投稿できる）
@@ -217,6 +225,7 @@ export interface SessionDetail {
   status: string
   messages: ThreadMessage[]
   diary: Diary | null
+  hearingNotes: HearingNote[]
   createdAt: string
   updatedAt: string
 }

@@ -8,6 +8,7 @@ import type {
   Consult,
   Diary,
   GuestFact,
+  HearingNote,
   House,
   HouseSummary,
   MessageRole,
@@ -107,6 +108,13 @@ export async function ensureGuesthouseTables(db: any): Promise<void> {
       source TEXT NOT NULL DEFAULT '', body TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `).catch(() => {})
+  // 聞き取りメモ（阪中さんが対面などで直接聞いた内容）。自由記述・1セッションに複数件。content は暗号化保存。
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS guesthouse_hearing_notes (
+      id TEXT PRIMARY KEY, session_id TEXT NOT NULL, house_id TEXT NOT NULL,
+      content TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `).catch(() => {})
 }
@@ -530,6 +538,7 @@ export async function deleteSession(db: any, userId: string, sessionId: string):
   await db.prepare('DELETE FROM guesthouse_messages WHERE session_id = ?').bind(sessionId).run()
   await db.prepare('DELETE FROM guesthouse_consults WHERE session_id = ?').bind(sessionId).run()
   await db.prepare('DELETE FROM guesthouse_diaries WHERE session_id = ?').bind(sessionId).run()
+  await db.prepare('DELETE FROM guesthouse_hearing_notes WHERE session_id = ?').bind(sessionId).run()
   await db.prepare('DELETE FROM guesthouse_sessions WHERE id = ?').bind(sessionId).run()
   return true
 }
@@ -695,6 +704,7 @@ export async function loadSessionDetail(event: H3Event, db: any, userId: string,
   if (!row || row.owner_id !== userId) return null
   const messages = await loadMessages(event, db, sessionId)
   const diary = await getDiaryBySession(event, db, sessionId)
+  const hearingNotes = await loadHearingNotes(event, db, sessionId)
   return {
     id: row.id,
     houseId: row.house_id,
@@ -703,6 +713,7 @@ export async function loadSessionDetail(event: H3Event, db: any, userId: string,
     status: row.status,
     messages,
     diary,
+    hearingNotes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -857,6 +868,54 @@ export async function loadAllDiaries(event: H3Event, db: any, userId: string): P
     .bind(userId)
     .all<DiaryRow>()
   return Promise.all((rows?.results ?? []).map((r: DiaryRow) => shapeDiaryDecrypted(event, r)))
+}
+
+// ── 聞き取りメモ（阪中さんが対面などで直接聞いた内容・自由記述・1セッションに複数可）──
+
+interface HearingNoteRow {
+  id: string
+  session_id: string
+  content: string
+  created_at: string
+}
+
+/** セッションの聞き取りメモを取得（content は復号）。新しい順。 */
+export async function loadHearingNotes(event: H3Event, db: any, sessionId: string): Promise<HearingNote[]> {
+  const rows = await db
+    .prepare('SELECT id, session_id, content, created_at FROM guesthouse_hearing_notes WHERE session_id = ? ORDER BY created_at DESC')
+    .bind(sessionId)
+    .all<HearingNoteRow>()
+  return Promise.all(
+    (rows?.results ?? []).map(async (r: HearingNoteRow) => ({
+      id: r.id,
+      sessionId: r.session_id,
+      content: await decryptComment(event, r.content),
+      createdAt: r.created_at,
+    }))
+  )
+}
+
+/** 聞き取りメモを1件追加。作成した行のIDを返す。 */
+export async function createHearingNote(event: H3Event, db: any, sessionId: string, houseId: string, content: string): Promise<string> {
+  const id = crypto.randomUUID()
+  await db
+    .prepare('INSERT INTO guesthouse_hearing_notes (id, session_id, house_id, content) VALUES (?, ?, ?, ?)')
+    .bind(id, sessionId, houseId, await encryptComment(event, content))
+    .run()
+  return id
+}
+
+/** 聞き取りメモを削除（宿の所有者チェック込み）。削除できたら true。 */
+export async function deleteHearingNote(db: any, userId: string, id: string): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `DELETE FROM guesthouse_hearing_notes WHERE id = ? AND session_id IN (
+         SELECT s.id FROM guesthouse_sessions s JOIN guesthouse_houses h ON h.id = s.house_id WHERE h.user_id = ?
+       )`
+    )
+    .bind(id, userId)
+    .run()
+  return (res?.meta?.changes ?? 0) > 0
 }
 
 // ── 傾向のキャッシュ（学習ループ）───────────────────────────

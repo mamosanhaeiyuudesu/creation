@@ -84,6 +84,35 @@
         </div>
       </section>
 
+      <!-- 聞き取りメモ -->
+      <section class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] p-4 mb-4">
+        <p class="gh-display text-[15px] font-bold mb-2">聞き取りメモ</p>
+        <p class="text-[12.5px] text-[var(--gh-ink-soft)] mb-2.5">対面などで直接聞いた内容を書き留めておけます。何件でも追加できます。</p>
+
+        <textarea
+          v-model="newNote"
+          rows="3"
+          class="gh-input text-[13.5px]"
+          placeholder="例）明日は高野山に行くと言っていた。犬を飼っているそう。"
+        />
+        <div v-if="noteError" class="text-[12.5px] text-[var(--gh-warn)] mt-1">{{ noteError }}</div>
+        <div class="flex justify-end mt-1.5">
+          <button class="gh-btn" :disabled="noteBusy || !newNote.trim()" @click="addNote">
+            {{ noteBusy ? '追加中…' : 'メモを追加' }}
+          </button>
+        </div>
+
+        <ul v-if="detail.hearingNotes.length" class="space-y-2 mt-3 pt-3 border-t border-[var(--gh-line)]">
+          <li v-for="n in detail.hearingNotes" :key="n.id" class="rounded-xl bg-white/40 border border-[var(--gh-line)] p-2.5">
+            <p class="text-[13px] whitespace-pre-wrap leading-relaxed">{{ n.content }}</p>
+            <div class="flex items-center justify-between mt-1">
+              <p class="text-[10.5px] text-[var(--gh-ink-faint)]">{{ formatDate(n.createdAt) }}</p>
+              <button class="text-[11.5px] text-[var(--gh-ink-faint)] hover:text-[var(--gh-warn)]" @click="removeNote(n.id)">削除</button>
+            </div>
+          </li>
+        </ul>
+      </section>
+
       <!-- お客さん日記 -->
       <section class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] p-4 mb-4">
         <div class="flex items-center justify-between mb-2">
@@ -152,7 +181,7 @@
       <div class="w-full max-w-[400px] bg-[var(--gh-card)] rounded-2xl p-5 gh-rise">
         <p class="gh-display font-bold text-[16px] mb-1">この会話を削除しますか？</p>
         <p class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed mb-4">
-          会話ログ・お客さん日記・関連する相談がすべて削除されます。この操作は取り消せません。
+          会話ログ・お客さん日記・聞き取りメモ・関連する相談がすべて削除されます。この操作は取り消せません。
         </p>
         <p v-if="deleteError" class="text-[12.5px] text-[var(--gh-warn)] mb-2">{{ deleteError }}</p>
         <div class="flex gap-2">
@@ -170,7 +199,7 @@
 import { ref, computed, onMounted } from 'vue'
 import Breadcrumb from '~/components/guesthouse/Breadcrumb.vue'
 import SharePanel from '~/components/guesthouse/SharePanel.vue'
-import type { Diary, FarewellDraft, SessionDetail } from '~/types/guesthouse'
+import type { Diary, FarewellDraft, HearingNote, SessionDetail } from '~/types/guesthouse'
 
 definePageMeta({ layout: 'guesthouse' })
 
@@ -190,6 +219,11 @@ const directMsg = ref('')
 const directBusy = ref(false)
 const directError = ref('')
 const directSent = ref(false)
+
+// 聞き取りメモ（対面などで直接聞いた内容。自由記述・1セッションに複数可）
+const newNote = ref('')
+const noteBusy = ref(false)
+const noteError = ref('')
 
 // 日記（自由記述。自分で手入力もできるよう、生成前から空文字で用意しておく）
 const diary = ref('')
@@ -273,6 +307,33 @@ async function sendDirect() {
   }
 }
 
+// 聞き取りメモを1件追加する（対面などで直接聞いた内容。何件でも追加できる）。
+async function addNote() {
+  const content = newNote.value.trim()
+  if (!content || noteBusy.value || !detail.value) return
+  noteBusy.value = true
+  noteError.value = ''
+  try {
+    const note = await $fetch<HearingNote>(`/api/guesthouse/sessions/${id}/notes`, { method: 'POST', body: { content } })
+    detail.value.hearingNotes = [note, ...detail.value.hearingNotes]
+    newNote.value = ''
+  } catch (e: any) {
+    noteError.value = e?.data?.message || '追加に失敗しました。'
+  } finally {
+    noteBusy.value = false
+  }
+}
+
+async function removeNote(noteId: string) {
+  if (!detail.value || !confirm('このメモを削除しますか？')) return
+  try {
+    await $fetch(`/api/guesthouse/notes/${noteId}`, { method: 'DELETE' })
+    detail.value.hearingNotes = detail.value.hearingNotes.filter((n) => n.id !== noteId)
+  } catch (e: any) {
+    noteError.value = e?.data?.message || '削除に失敗しました。'
+  }
+}
+
 async function genDiary() {
   // すでに手入力/生成済みの内容があるときは、上書きしてよいかではなく「マージするか」を確認する。
   const merge = hasDiaryContent.value
@@ -348,6 +409,11 @@ async function copyReview() {
   } catch {
     /* コピー不可環境は無視 */
   }
+}
+
+function formatDate(s: string): string {
+  const m = s?.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  return m ? `${Number(m[2])}/${Number(m[3])}` : s || ''
 }
 
 onMounted(load)
