@@ -49,8 +49,8 @@ CREATE TABLE IF NOT EXISTS guesthouse_diaries (
   session_id TEXT NOT NULL,
   house_id   TEXT NOT NULL,
   guest_name TEXT NOT NULL DEFAULT '',
-  content    TEXT NOT NULL DEFAULT '{}',           -- {nationality,itinerary,highlights,notes} のJSON
-  summary    TEXT NOT NULL DEFAULT '',             -- ひとこと要約
+  content    TEXT NOT NULL DEFAULT '',             -- 自由記述の日記本文
+  summary    TEXT NOT NULL DEFAULT '',             -- 未使用（過去互換のため列は残す）
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_gh_diaries_house ON guesthouse_diaries(house_id, created_at);

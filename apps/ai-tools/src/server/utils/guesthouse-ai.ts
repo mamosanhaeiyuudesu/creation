@@ -3,7 +3,7 @@
 import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
 import { buildKnowledgeBase } from '~/server/utils/guesthouse'
 import { buildTriageSystem, buildAnswerSystem, buildEmergencyReplySystem, WEB_SEARCH } from '~/server/utils/guesthouse-policy'
-import type { ChatMessage, DiaryContent, Diary, ExtractResult, ExtractedFact, ExtractedReview, ExtractedTip, FarewellDraft, House, Review, ReviewExtractResult, ThreadMessage, Tip, TipExtractResult, TrendItem } from '~/types/guesthouse'
+import type { ChatMessage, Diary, ExtractResult, ExtractedFact, ExtractedReview, ExtractedTip, FarewellDraft, House, Review, ReviewExtractResult, ThreadMessage, Tip, TipExtractResult, TrendItem } from '~/types/guesthouse'
 
 /** 会話を読みやすいテキスト起こしにする（プロンプト用）。 */
 export function threadTranscript(messages: ThreadMessage[]): string {
@@ -128,48 +128,33 @@ ${tips || '（登録なし）'}
 }
 
 /**
- * 会話からお客さん日記の下書きを生成（旅程・国籍・印象・気づき＋ひとこと要約）。
+ * 会話からお客さん日記（自由記述）の下書きを生成する。
  * existing を渡すと、その内容（阪中さんが手入力/編集済み）を消さずに会話から分かった情報を統合する。
  */
-export async function generateDiary(
-  apiKey: string,
-  house: House,
-  messages: ThreadMessage[],
-  guestName: string,
-  existing?: { summary: string; content: DiaryContent }
-): Promise<{ content: DiaryContent; summary: string }> {
-  const existingBlock = existing
+export async function generateDiary(apiKey: string, house: House, messages: ThreadMessage[], guestName: string, existing?: string): Promise<string> {
+  const existingBlock = existing?.trim()
     ? `
 
 # 既存の日記（阪中さんがすでに書いた内容）
-要約: ${existing.summary || '（空欄）'}
-国籍・出身: ${existing.content.nationality || '（空欄）'}
-旅程: ${existing.content.itinerary || '（空欄）'}
-印象的だったこと: ${existing.content.highlights || '（空欄）'}
-気づき: ${existing.content.notes || '（空欄）'}
+"""
+${existing.trim()}
+"""
 
 上記の既存の内容は消さず、会話から新しく分かった情報を自然に統合する（既存の記述＋新しい情報）。矛盾する場合は会話の内容を優先しつつ、既存の要点は残す。`
     : ''
 
-  const system = `あなたは、ゲストハウスのホスト「阪中さん」のリサーチノート「お客さん日記」の下書きを作るアシスタントです。お客様との会話から、次のお客様への提案や宿の運営に活きる気づきを整理します。
-
-次の JSON のみを返す（前後に説明やコードブロック記号を付けない）:
-{
-  "nationality": "国籍・出身（会話から分かれば。不明なら空文字）",
-  "itinerary": "旅程（どこから来て、次にどこへ行くか等。分かる範囲で）",
-  "highlights": "この滞在で印象的だったこと・お客様が喜んだこと",
-  "notes": "阪中さんの気づき／次のお客様や宿づくりへの活かし方",
-  "summary": "ひとことの要約（日本語・30字程度）"
-}
+  const system = `あなたは、ゲストハウスのホスト「阪中さん」のリサーチノート「お客さん日記」の下書きを作るアシスタントです。お客様との会話から、旅程・国籍/出身・印象的だったこと・次のお客様や宿の運営に活きる気づきなどを、自由な文章で整理します。
 
 # 方針
-- 会話に書かれていないことは想像で埋めない。分からない欄は空文字にする。
+- 会話に書かれていないことは想像で埋めない。分からないことは書かない。
 - 個人が特定される連絡先などは書かない（旅の傾向や好みなど、運営に活きる情報に絞る）。
-- 日本語で書く。${existingBlock}`
+- 見出しや箇条書きは使わず、阪中さんが手で書いたメモのような自然な文章で3〜6文程度にまとめる。
+- 日本語で書く。
+- 日記本文だけを出力する（前置き・見出し・引用符は不要）。${existingBlock}`
 
   const out = await callClaudeText(apiKey, {
     system,
-    maxTokens: 900,
+    maxTokens: 700,
     messages: [
       {
         role: 'user',
@@ -177,16 +162,7 @@ export async function generateDiary(
       },
     ],
   })
-  const p = parseJsonLoose<any>(out) ?? {}
-  return {
-    content: {
-      nationality: String(p?.nationality ?? '').trim(),
-      itinerary: String(p?.itinerary ?? '').trim(),
-      highlights: String(p?.highlights ?? '').trim(),
-      notes: String(p?.notes ?? '').trim(),
-    },
-    summary: String(p?.summary ?? '').trim(),
-  }
+  return out.trim()
 }
 
 /** 宿泊後のお礼メッセージとレビュー依頼文の下書きを生成。 */
@@ -410,12 +386,7 @@ const REVIEW_CORPUS_LIMIT = 12000
 
 /** 複数のお客さん日記＋レビュー・意見から傾向（学習ループ）を抽出。両方を統合して1つの傾向リストにする。 */
 export async function computeTrends(apiKey: string, diaries: Diary[], reviews: Review[] = []): Promise<TrendItem[]> {
-  const diaryCorpus = diaries
-    .map((d, i) => {
-      const c = d.content
-      return `【日記${i + 1}】${d.guestName || '匿名'}\n 国籍:${c.nationality} / 旅程:${c.itinerary}\n 印象:${c.highlights}\n 気づき:${c.notes}`
-    })
-    .join('\n\n')
+  const diaryCorpus = diaries.map((d, i) => `【日記${i + 1}】${d.guestName || '匿名'}\n${d.content}`).join('\n\n')
 
   // レビューは長文になりがちなので、合計が上限を超えたら打ち切る（打ち切った旨は末尾に注記）。
   let used = 0

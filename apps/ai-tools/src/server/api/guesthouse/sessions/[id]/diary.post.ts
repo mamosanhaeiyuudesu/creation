@@ -1,9 +1,8 @@
 import { requireGuesthouseUser, requireGuesthouseDb, ensureGuesthouseTables, loadSessionDetail, loadHouse } from '~/server/utils/guesthouse'
 import { generateDiary } from '~/server/utils/guesthouse-ai'
-import type { DiaryContent } from '~/types/guesthouse'
 
-// 会話からお客さん日記の下書きを生成する（保存はしない・確認用）。F2。
-export default defineEventHandler(async (event): Promise<{ content: DiaryContent; summary: string }> => {
+// 会話からお客さん日記（自由記述）の下書きを生成する（保存はしない・確認用）。F2。
+export default defineEventHandler(async (event): Promise<{ content: string }> => {
   const user = await requireGuesthouseUser(event)
   const db = requireGuesthouseDb(event)
   await ensureGuesthouseTables(db)
@@ -19,19 +18,9 @@ export default defineEventHandler(async (event): Promise<{ content: DiaryContent
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) throw createError({ statusCode: 500, message: 'Anthropic API key is not configured.' })
 
-  const body = await readBody<{ merge?: boolean; existing?: { summary: string; content: DiaryContent } }>(event)
-  const existing =
-    body?.merge && body.existing
-      ? {
-          summary: String(body.existing.summary ?? '').trim(),
-          content: {
-            nationality: String(body.existing.content?.nationality ?? '').trim(),
-            itinerary: String(body.existing.content?.itinerary ?? '').trim(),
-            highlights: String(body.existing.content?.highlights ?? '').trim(),
-            notes: String(body.existing.content?.notes ?? '').trim(),
-          },
-        }
-      : undefined
+  const body = await readBody<{ merge?: boolean; existing?: string }>(event)
+  const existing = body?.merge ? String(body.existing ?? '').trim() : undefined
 
-  return await generateDiary(anthropicApiKey as string, house, detail.messages, detail.guestName, existing)
+  const content = await generateDiary(anthropicApiKey as string, house, detail.messages, detail.guestName, existing)
+  return { content }
 })

@@ -7,7 +7,6 @@ import { encryptComment, decryptComment } from '~/server/utils/encrypt'
 import type {
   Consult,
   Diary,
-  DiaryContent,
   GuestFact,
   House,
   HouseSummary,
@@ -79,7 +78,7 @@ export async function ensureGuesthouseTables(db: any): Promise<void> {
   await db.exec(`
     CREATE TABLE IF NOT EXISTS guesthouse_diaries (
       id TEXT PRIMARY KEY, session_id TEXT NOT NULL, house_id TEXT NOT NULL,
-      guest_name TEXT NOT NULL DEFAULT '', content TEXT NOT NULL DEFAULT '{}',
+      guest_name TEXT NOT NULL DEFAULT '', content TEXT NOT NULL DEFAULT '',
       summary TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `).catch(() => {})
@@ -805,59 +804,30 @@ interface DiaryRow {
   created_at: string
 }
 
-/** DiaryRow を復号して Diary に整形する（content/summary/guest_name は暗号化保存されている）。 */
+/** DiaryRow を復号して Diary に整形する（content/guest_name は暗号化保存されている）。summary 列は未使用。 */
 async function shapeDiaryDecrypted(event: H3Event, row: DiaryRow): Promise<Diary> {
-  const contentPlainText = await decryptComment(event, row.content)
-  const summary = await decryptComment(event, row.summary)
+  const content = await decryptComment(event, row.content)
   const guestName = await decryptName(event, row.guest_name)
-  let content: DiaryContent
-  try {
-    const p = JSON.parse(contentPlainText)
-    content = {
-      nationality: String(p?.nationality ?? ''),
-      itinerary: String(p?.itinerary ?? ''),
-      highlights: String(p?.highlights ?? ''),
-      notes: String(p?.notes ?? ''),
-    }
-  } catch {
-    content = { nationality: '', itinerary: '', highlights: '', notes: '' }
-  }
   return {
     id: row.id,
     houseId: row.house_id,
     sessionId: row.session_id,
     guestName,
     content,
-    summary,
     createdAt: row.created_at,
   }
 }
 
-/** 日記を保存（1セッション1件・既存があれば置換）。content/summary/guest_name は暗号化保存。 */
-export async function saveDiary(
-  event: H3Event,
-  db: any,
-  sessionId: string,
-  houseId: string,
-  guestName: string,
-  content: DiaryContent,
-  summary: string
-): Promise<Diary> {
+/** 日記を保存（1セッション1件・既存があれば置換、自由記述の本文）。content/guest_name は暗号化保存。 */
+export async function saveDiary(event: H3Event, db: any, sessionId: string, houseId: string, guestName: string, content: string): Promise<Diary> {
   await db.prepare('DELETE FROM guesthouse_diaries WHERE session_id = ?').bind(sessionId).run()
   const id = crypto.randomUUID()
   await db
-    .prepare('INSERT INTO guesthouse_diaries (id, session_id, house_id, guest_name, content, summary) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(
-      id,
-      sessionId,
-      houseId,
-      await encryptComment(event, guestName),
-      await encryptComment(event, JSON.stringify(content)),
-      await encryptComment(event, summary)
-    )
+    .prepare('INSERT INTO guesthouse_diaries (id, session_id, house_id, guest_name, content) VALUES (?, ?, ?, ?, ?)')
+    .bind(id, sessionId, houseId, await encryptComment(event, guestName), await encryptComment(event, content))
     .run()
   // 保存した平文の値からそのまま返す（再取得・復号は不要）。
-  return { id, houseId, sessionId, guestName, content, summary, createdAt: '' }
+  return { id, houseId, sessionId, guestName, content, createdAt: '' }
 }
 
 export async function getDiaryBySession(event: H3Event, db: any, sessionId: string): Promise<Diary | null> {

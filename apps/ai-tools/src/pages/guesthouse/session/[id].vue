@@ -92,16 +92,15 @@
             {{ diaryBusy ? '作成中…' : hasDiaryContent ? 'AIで作り直す' : 'AIで日記を作る' }}
           </button>
         </div>
-        <p class="text-[12.5px] text-[var(--gh-ink-soft)] mb-2.5">自分で書くか、滞在の会話からAIに旅程・国籍・印象・気づきを整理させることができます。</p>
+        <p class="text-[12.5px] text-[var(--gh-ink-soft)] mb-2.5">自分で書くか、滞在の会話からAIに下書きさせることができます。</p>
 
         <div class="space-y-2.5">
-          <div><label class="gh-dlabel">ひとこと要約</label><input v-model="diary.summary" class="gh-input text-[13.5px]" /></div>
-          <div class="grid sm:grid-cols-2 gap-2.5">
-            <div><label class="gh-dlabel">国籍・出身</label><input v-model="diary.content.nationality" class="gh-input text-[13.5px]" /></div>
-            <div><label class="gh-dlabel">旅程</label><input v-model="diary.content.itinerary" class="gh-input text-[13.5px]" /></div>
-          </div>
-          <div><label class="gh-dlabel">印象的だったこと</label><textarea v-model="diary.content.highlights" rows="2" class="gh-input text-[13.5px]" /></div>
-          <div><label class="gh-dlabel">気づき・次への活かし方</label><textarea v-model="diary.content.notes" rows="2" class="gh-input text-[13.5px]" /></div>
+          <textarea
+            v-model="diary"
+            rows="6"
+            class="gh-input text-[13.5px]"
+            placeholder="旅程・国籍/出身・印象的だったこと・気づきなど、自由に書けます。"
+          />
           <div v-if="diaryError" class="text-[12.5px] text-[var(--gh-warn)]">{{ diaryError }}</div>
           <div class="flex justify-end">
             <button class="gh-btn" :disabled="diaryBusy" @click="saveDiary">{{ savedDiary ? '保存しました' : '日記を保存' }}</button>
@@ -171,7 +170,7 @@
 import { ref, computed, onMounted } from 'vue'
 import Breadcrumb from '~/components/guesthouse/Breadcrumb.vue'
 import SharePanel from '~/components/guesthouse/SharePanel.vue'
-import type { Diary, DiaryContent, FarewellDraft, SessionDetail } from '~/types/guesthouse'
+import type { Diary, FarewellDraft, SessionDetail } from '~/types/guesthouse'
 
 definePageMeta({ layout: 'guesthouse' })
 
@@ -192,18 +191,12 @@ const directBusy = ref(false)
 const directError = ref('')
 const directSent = ref(false)
 
-// 日記（自分で手入力もできるよう、生成前から空の状態で用意しておく）
-const diary = ref<{ summary: string; content: DiaryContent }>({
-  summary: '',
-  content: { nationality: '', itinerary: '', highlights: '', notes: '' },
-})
+// 日記（自由記述。自分で手入力もできるよう、生成前から空文字で用意しておく）
+const diary = ref('')
 const diaryBusy = ref(false)
 const savedDiary = ref(false)
 const diaryError = ref('')
-const hasDiaryContent = computed(() => {
-  const c = diary.value.content
-  return !!(diary.value.summary.trim() || c.nationality.trim() || c.itinerary.trim() || c.highlights.trim() || c.notes.trim())
-})
+const hasDiaryContent = computed(() => !!diary.value.trim())
 
 // お礼・レビュー
 const farewell = ref<FarewellDraft | null>(null)
@@ -219,7 +212,7 @@ async function load() {
   try {
     const d = await $fetch<SessionDetail>(`/api/guesthouse/sessions/${id}`)
     detail.value = d
-    if (d.diary) diary.value = { summary: d.diary.summary, content: { ...d.diary.content } }
+    if (d.diary) diary.value = d.diary.content
   } catch {
     detail.value = null
   } finally {
@@ -288,11 +281,11 @@ async function genDiary() {
   diaryBusy.value = true
   diaryError.value = ''
   try {
-    const res = await $fetch<{ content: DiaryContent; summary: string }>(`/api/guesthouse/sessions/${id}/diary`, {
+    const res = await $fetch<{ content: string }>(`/api/guesthouse/sessions/${id}/diary`, {
       method: 'POST',
-      body: merge ? { merge: true, existing: { summary: diary.value.summary, content: diary.value.content } } : {},
+      body: merge ? { merge: true, existing: diary.value } : {},
     })
-    diary.value = { summary: res.summary, content: res.content }
+    diary.value = res.content
   } catch (e: any) {
     diaryError.value = e?.data?.message || '作成に失敗しました。'
   } finally {
@@ -306,9 +299,9 @@ async function saveDiary() {
   try {
     const saved = await $fetch<Diary>('/api/guesthouse/diaries', {
       method: 'POST',
-      body: { sessionId: id, content: diary.value.content, summary: diary.value.summary },
+      body: { sessionId: id, content: diary.value },
     })
-    diary.value = { summary: saved.summary, content: { ...saved.content } }
+    diary.value = saved.content
     savedDiary.value = true
     setTimeout(() => (savedDiary.value = false), 2000)
   } catch (e: any) {
