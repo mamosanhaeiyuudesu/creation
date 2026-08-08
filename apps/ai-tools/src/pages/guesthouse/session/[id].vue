@@ -40,7 +40,12 @@
 
       <!-- 会話ログ -->
       <section class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] p-4 mb-4">
-        <p class="text-[12px] font-bold text-[var(--gh-ink-soft)] mb-3">会話ログ</p>
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-[12px] font-bold text-[var(--gh-ink-soft)]">会話ログ</p>
+          <button class="text-[12px] text-[var(--gh-forest-deep)] hover:underline underline-offset-2" @click="openImport">
+            Booking.comの履歴を取り込む
+          </button>
+        </div>
         <div class="space-y-3 max-h-[45vh] overflow-y-auto pr-1">
           <div v-for="m in detail.messages" :key="m.id">
             <div v-if="m.role === 'guest'" class="flex justify-end">
@@ -206,6 +211,50 @@
         </div>
       </div>
     </div>
+
+    <!-- Booking.com取り込みポップアップ -->
+    <div v-if="importOpen" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 sm:p-4 z-[200]" @click.self="closeImport">
+      <div class="w-full max-w-[560px] max-h-[88vh] overflow-y-auto bg-[var(--gh-card)] rounded-2xl p-5 gh-rise">
+        <h2 class="gh-display font-bold text-[17px] mb-1">Booking.comの履歴を取り込む</h2>
+        <p class="text-[12px] text-[var(--gh-ink-soft)] leading-relaxed mb-3">
+          Booking.comのメッセージ画面からコピーした内容を貼り付けると、メッセージを機械的に分割し、AIがゲスト/阪中さんを振り分けます。取り込むと現在の会話の続きとして追加されます。保存前に発言者をご確認・修正いただけます。
+        </p>
+
+        <template v-if="!importCandidates.length">
+          <textarea v-model="importText" rows="10" class="gh-input text-[12.5px]" placeholder="ここにBooking.comのメッセージ履歴を貼り付け…" />
+          <p v-if="importError" class="text-[12.5px] text-[var(--gh-warn)] mt-2">{{ importError }}</p>
+          <div class="flex gap-2 mt-4">
+            <button class="gh-btn-ghost flex-1" @click="closeImport">キャンセル</button>
+            <button class="gh-btn flex-1" :disabled="importing || !importText.trim()" @click="runImportPreview">
+              {{ importing ? '解析中…' : 'AIで解析する' }}
+            </button>
+          </div>
+        </template>
+
+        <template v-else>
+          <p class="text-[12px] font-bold mb-1.5">{{ importCandidates.length }}件のメッセージを検出しました。発言者を確認してください。</p>
+          <ul class="space-y-2 mb-3">
+            <li v-for="(c, i) in importCandidates" :key="i" class="rounded-xl border border-[var(--gh-line)] bg-[var(--gh-paper)] p-3">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[10.5px] text-[var(--gh-ink-faint)]">{{ formatDateTime(c.createdAt) }}</span>
+                <div class="flex gap-1">
+                  <button class="gh-chip !py-0.5 !px-2 !text-[10.5px]" :class="{ 'gh-chip--on': c.role === 'guest' }" @click="c.role = 'guest'">ゲスト</button>
+                  <button class="gh-chip !py-0.5 !px-2 !text-[10.5px]" :class="{ 'gh-chip--on': c.role === 'host' }" @click="c.role = 'host'">阪中さん</button>
+                </div>
+              </div>
+              <p class="text-[12.5px] leading-relaxed whitespace-pre-wrap">{{ c.content }}</p>
+            </li>
+          </ul>
+          <p v-if="importError" class="text-[12.5px] text-[var(--gh-warn)] mt-1">{{ importError }}</p>
+          <div class="flex gap-2 mt-2">
+            <button class="gh-btn-ghost flex-1" :disabled="savingImport" @click="importCandidates = []">戻る</button>
+            <button class="gh-btn flex-1" :disabled="savingImport" @click="confirmImport">
+              {{ savingImport ? '取り込み中…' : `${importCandidates.length}件を取り込む` }}
+            </button>
+          </div>
+        </template>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -213,7 +262,7 @@
 import { ref, computed, onMounted } from 'vue'
 import Breadcrumb from '~/components/guesthouse/Breadcrumb.vue'
 import SharePanel from '~/components/guesthouse/SharePanel.vue'
-import type { Diary, FarewellDraft, HearingNote, SessionDetail } from '~/types/guesthouse'
+import type { Diary, FarewellDraft, HearingNote, ImportedMessage, SessionDetail } from '~/types/guesthouse'
 
 definePageMeta({ layout: 'guesthouse' })
 
@@ -233,6 +282,14 @@ const directMsg = ref('')
 const directBusy = ref(false)
 const directError = ref('')
 const directSent = ref(false)
+
+// Booking.comの履歴取り込み（コピペ原文→機械的に分割→AIで発言者を分類→確認して保存）
+const importOpen = ref(false)
+const importText = ref('')
+const importing = ref(false)
+const importError = ref('')
+const importCandidates = ref<ImportedMessage[]>([])
+const savingImport = ref(false)
 
 // 聞き取りメモ（対面などで直接聞いた内容。自由記述・1セッションに複数可）
 const newNote = ref('')
@@ -320,6 +377,51 @@ async function sendDirect() {
     directError.value = e?.data?.message || '送信に失敗しました。'
   } finally {
     directBusy.value = false
+  }
+}
+
+function openImport() {
+  importText.value = ''
+  importCandidates.value = []
+  importError.value = ''
+  importOpen.value = true
+}
+
+function closeImport() {
+  importOpen.value = false
+}
+
+// 貼り付けた原文を機械的に分割し、AIで発言者(ゲスト/阪中さん)を分類する（保存はまだしない・確認用）。
+async function runImportPreview() {
+  if (!importText.value.trim() || importing.value) return
+  importing.value = true
+  importError.value = ''
+  try {
+    const res = await $fetch<{ items: ImportedMessage[] }>(`/api/guesthouse/sessions/${id}/import-preview`, {
+      method: 'POST',
+      body: { text: importText.value },
+    })
+    importCandidates.value = res.items
+  } catch (e: any) {
+    importError.value = e?.data?.message || '解析に失敗しました。'
+  } finally {
+    importing.value = false
+  }
+}
+
+// 確認・修正した内容を、会話の続きとして確定保存する。
+async function confirmImport() {
+  if (!importCandidates.value.length || savingImport.value) return
+  savingImport.value = true
+  importError.value = ''
+  try {
+    await $fetch(`/api/guesthouse/sessions/${id}/import`, { method: 'POST', body: { items: importCandidates.value } })
+    importOpen.value = false
+    await load()
+  } catch (e: any) {
+    importError.value = e?.data?.message || '取り込みに失敗しました。'
+  } finally {
+    savingImport.value = false
   }
 }
 
@@ -458,6 +560,14 @@ async function copyReview() {
 function formatDate(s: string): string {
   const m = s?.match(/^(\d{4})-(\d{2})-(\d{2})/)
   return m ? `${Number(m[2])}/${Number(m[3])}` : s || ''
+}
+
+// 取り込みプレビュー用：DB規約(UTC)の日時文字列をJSTの "M/D HH:MM" に整形する。
+function formatDateTime(s: string): string {
+  const d = toJSTDate(s)
+  const hh = String(d.getUTCHours()).padStart(2, '0')
+  const mm = String(d.getUTCMinutes()).padStart(2, '0')
+  return `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${hh}:${mm}`
 }
 
 onMounted(load)

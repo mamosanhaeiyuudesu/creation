@@ -99,8 +99,18 @@ export interface ThreadMessage {
   id: string
   role: MessageRole
   content: string
-  kind: string // auto / handoff / reply など
+  kind: string // auto / handoff / reply / import など
   createdAt: string
+}
+
+/**
+ * Booking.com等のメッセージ履歴から取り込む1件（保存前の下書き）。
+ * content/createdAt はコピペ原文から機械的に復元し、role だけAIが判定する（人が確認・修正できる）。
+ */
+export interface ImportedMessage {
+  content: string
+  createdAt: string // "YYYY-MM-DD HH:MM:SS"（UTC。guesthouse_messages.created_at の規約に合わせる）
+  role: 'guest' | 'host'
 }
 
 /** お客様チャットのスレッド（初期読み込み・ポーリング）。 */

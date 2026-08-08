@@ -176,6 +176,47 @@ ${existing.trim()}
   return out.trim()
 }
 
+/**
+ * Booking.com等から取り込んだメッセージ群が、お客様(guest)と阪中さん(host)のどちらの発言かをAIで判定する。
+ * メッセージの分割・日時の復元は guesthouse-import.ts が機械的に行う。ここでは発言者の分類だけを担う。
+ */
+export async function classifyImportedMessages(apiKey: string, house: House, texts: string[]): Promise<('guest' | 'host')[]> {
+  if (!texts.length) return []
+
+  // 交互パターン（最初はホストの可能性が高い）をAI失敗時のフォールバックにする。
+  const fallback = (): ('guest' | 'host')[] => texts.map((_, i) => (i % 2 === 0 ? 'host' : 'guest'))
+
+  const numbered = texts.map((t, i) => `[${i}] ${t}`).join('\n\n---\n\n')
+
+  const system = `あなたは、ゲストハウスのホスト「阪中さん」が運営する宿のBooking.com上のメッセージ履歴を読み、各メッセージが「お客様（ゲスト）」と「ホスト（阪中さん）」のどちらの発言かを判定するアシスタントです。
+
+# 宿の情報（ホストの発言かどうかの手がかりに使う）
+${buildKnowledgeBase(house)}
+
+# 判定の手がかり
+- ホストは宿の説明・案内・提案・料金の案内などをする側。「当宿」「私たちは」のような主語や、宿の設備・周辺情報の説明が多い。
+- お客様は宿泊のお願い・質問・お礼・要望を伝える側。
+- 会話は交互に進むことが多いが、同じ人が連続して複数回発言することもある（内容から判断する）。
+- 最初のメッセージは宿泊予約への歓迎メッセージであることが多く、その場合はホストの発言。
+
+次の JSON のみを返す（前後に説明やコードブロック記号を付けない）:
+{ "roles": ["host", "guest", ...] }
+配列の要素は渡された順番のまま、必ずメッセージ数と同じ件数にする（各要素は "guest" か "host" のどちらか）。`
+
+  try {
+    const out = await callClaudeText(apiKey, {
+      system,
+      maxTokens: 2000,
+      messages: [{ role: 'user', content: `メッセージ一覧（${texts.length}件。[番号] は参考で本文には含まれない）:\n"""\n${numbered}\n"""` }],
+    })
+    const p = parseJsonLoose<{ roles?: any[] }>(out)
+    const roles = Array.isArray(p?.roles) ? p!.roles.map((r) => (r === 'host' ? 'host' : 'guest')) : []
+    return roles.length === texts.length ? (roles as ('guest' | 'host')[]) : fallback()
+  } catch {
+    return fallback()
+  }
+}
+
 /** 宿泊後のお礼メッセージとレビュー依頼文の下書きを生成。 */
 export async function generateFarewell(
   apiKey: string,

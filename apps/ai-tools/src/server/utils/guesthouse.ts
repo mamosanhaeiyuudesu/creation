@@ -11,6 +11,7 @@ import type {
   HearingNote,
   House,
   HouseSummary,
+  ImportedMessage,
   MessageRole,
   Review,
   SessionDetail,
@@ -624,6 +625,36 @@ export async function addMessage(
     .bind(crypto.randomUUID(), sessionId, role, await encryptComment(event, content), kind)
     .run()
   await touchSession(db, sessionId)
+}
+
+const IMPORTED_CREATED_AT_RE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/
+
+/**
+ * Booking.com等から取り込んだメッセージ群を、指定した日時のまま一括保存する（会話の続きとして追加）。
+ * kind='import' で区別できるようにする。session の updated_at は最後に1回だけ更新。保存できた件数を返す。
+ */
+export async function importMessages(event: H3Event, db: any, sessionId: string, items: ImportedMessage[]): Promise<number> {
+  let saved = 0
+  for (const it of items) {
+    const content = (it?.content ?? '').trim()
+    if (!content) continue
+    const role: MessageRole = it.role === 'host' ? 'host' : 'guest'
+    const createdAt = IMPORTED_CREATED_AT_RE.test(it?.createdAt ?? '') ? it.createdAt : null
+    if (createdAt) {
+      await db
+        .prepare('INSERT INTO guesthouse_messages (id, session_id, role, content, kind, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+        .bind(crypto.randomUUID(), sessionId, role, await encryptComment(event, content), 'import', createdAt)
+        .run()
+    } else {
+      await db
+        .prepare('INSERT INTO guesthouse_messages (id, session_id, role, content, kind) VALUES (?, ?, ?, ?, ?)')
+        .bind(crypto.randomUUID(), sessionId, role, await encryptComment(event, content), 'import')
+        .run()
+    }
+    saved++
+  }
+  if (saved) await touchSession(db, sessionId)
+  return saved
 }
 
 export async function loadMessages(event: H3Event, db: any, sessionId: string): Promise<ThreadMessage[]> {
