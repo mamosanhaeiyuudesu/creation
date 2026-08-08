@@ -60,7 +60,7 @@
               </div>
               <p class="text-[10px] font-bold mt-0.5 pl-1"
                 :class="m.role === 'host' ? 'text-[var(--gh-forest)]' : m.kind === 'handoff' ? 'text-[var(--gh-warn)]' : 'text-[var(--gh-forest-deep)]'">
-                {{ m.role === 'host' ? '阪中さん' : m.kind === 'handoff' ? '阪中さんに確認' : '自動応答' }}
+                {{ (m.role === 'host' ? '阪中さん' : m.kind === 'handoff' ? '阪中さんに確認' : '自動応答') + `（${formatDateTime(m.createdAt)}）` }}
               </p>
             </div>
           </div>
@@ -217,7 +217,7 @@
       <div class="w-full max-w-[560px] max-h-[88vh] overflow-y-auto bg-[var(--gh-card)] rounded-2xl p-5 gh-rise">
         <h2 class="gh-display font-bold text-[17px] mb-1">Booking.comの履歴を取り込む</h2>
         <p class="text-[12px] text-[var(--gh-ink-soft)] leading-relaxed mb-3">
-          Booking.comのメッセージ画面からコピーした内容を貼り付けると、メッセージを機械的に分割し、AIがゲスト/阪中さんを振り分けます。取り込むと現在の会話の続きとして追加されます。保存前に発言者をご確認・修正いただけます。
+          Booking.comのメッセージ画面からコピーした内容を貼り付けると、メッセージを機械的に分割し、AIがゲスト/ホストを振り分けます。取り込むと現在の会話の続きとして追加されます。保存前に発言者をご確認・修正いただけます。
         </p>
 
         <template v-if="!importCandidates.length">
@@ -237,10 +237,12 @@
             <li v-for="(c, i) in importCandidates" :key="i" class="rounded-xl border border-[var(--gh-line)] bg-[var(--gh-paper)] p-3">
               <div class="flex items-center justify-between mb-1.5">
                 <span class="text-[10.5px] text-[var(--gh-ink-faint)]">{{ formatDateTime(c.createdAt) }}</span>
-                <div class="flex gap-1">
-                  <button class="gh-chip !py-0.5 !px-2 !text-[10.5px]" :class="{ 'gh-chip--on': c.role === 'guest' }" @click="c.role = 'guest'">ゲスト</button>
-                  <button class="gh-chip !py-0.5 !px-2 !text-[10.5px]" :class="{ 'gh-chip--on': c.role === 'host' }" @click="c.role = 'host'">阪中さん</button>
-                </div>
+                <button
+                  class="gh-chip gh-chip--on !py-0.5 !px-2 !text-[10.5px]"
+                  @click="c.role = c.role === 'guest' ? 'host' : 'guest'"
+                >
+                  {{ c.role === 'guest' ? 'ゲスト' : 'ホスト' }}
+                </button>
               </div>
               <p class="text-[12.5px] leading-relaxed whitespace-pre-wrap">{{ c.content }}</p>
             </li>
