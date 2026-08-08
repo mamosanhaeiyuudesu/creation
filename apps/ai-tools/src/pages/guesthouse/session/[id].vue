@@ -89,11 +89,12 @@
         <div class="flex items-center justify-between mb-2">
           <p class="gh-display text-[15px] font-bold">お客さん日記</p>
           <button class="gh-btn-ghost !h-9" :disabled="diaryBusy || !detail.messages.length" @click="genDiary">
-            {{ diaryBusy ? '作成中…' : diary ? 'AIで作り直す' : 'AIで日記を作る' }}
+            {{ diaryBusy ? '作成中…' : hasDiaryContent ? 'AIで作り直す' : 'AIで日記を作る' }}
           </button>
         </div>
+        <p class="text-[12.5px] text-[var(--gh-ink-soft)] mb-2.5">自分で書くか、滞在の会話からAIに旅程・国籍・印象・気づきを整理させることができます。</p>
 
-        <div v-if="diary" class="space-y-2.5">
+        <div class="space-y-2.5">
           <div><label class="gh-dlabel">ひとこと要約</label><input v-model="diary.summary" class="gh-input text-[13.5px]" /></div>
           <div class="grid sm:grid-cols-2 gap-2.5">
             <div><label class="gh-dlabel">国籍・出身</label><input v-model="diary.content.nationality" class="gh-input text-[13.5px]" /></div>
@@ -106,7 +107,6 @@
             <button class="gh-btn" :disabled="diaryBusy" @click="saveDiary">{{ savedDiary ? '保存しました' : '日記を保存' }}</button>
           </div>
         </div>
-        <p v-else class="text-[12.5px] text-[var(--gh-ink-soft)]">滞在の会話から、旅程・国籍・印象・気づきを整理した日記を作れます。</p>
       </section>
 
       <!-- お礼＆レビュー依頼 -->
@@ -168,7 +168,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import Breadcrumb from '~/components/guesthouse/Breadcrumb.vue'
 import SharePanel from '~/components/guesthouse/SharePanel.vue'
 import type { Diary, DiaryContent, FarewellDraft, SessionDetail } from '~/types/guesthouse'
@@ -192,11 +192,18 @@ const directBusy = ref(false)
 const directError = ref('')
 const directSent = ref(false)
 
-// 日記
-const diary = ref<{ summary: string; content: DiaryContent } | null>(null)
+// 日記（自分で手入力もできるよう、生成前から空の状態で用意しておく）
+const diary = ref<{ summary: string; content: DiaryContent }>({
+  summary: '',
+  content: { nationality: '', itinerary: '', highlights: '', notes: '' },
+})
 const diaryBusy = ref(false)
 const savedDiary = ref(false)
 const diaryError = ref('')
+const hasDiaryContent = computed(() => {
+  const c = diary.value.content
+  return !!(diary.value.summary.trim() || c.nationality.trim() || c.itinerary.trim() || c.highlights.trim() || c.notes.trim())
+})
 
 // お礼・レビュー
 const farewell = ref<FarewellDraft | null>(null)
@@ -274,10 +281,17 @@ async function sendDirect() {
 }
 
 async function genDiary() {
+  // すでに手入力/生成済みの内容があるときは、上書きしてよいかではなく「マージするか」を確認する。
+  const merge = hasDiaryContent.value
+    ? confirm('すでに日記の内容が入力されています。AIが作る内容とマージしますか？\n（いいえの場合は入力内容を上書きします）')
+    : false
   diaryBusy.value = true
   diaryError.value = ''
   try {
-    const res = await $fetch<{ content: DiaryContent; summary: string }>(`/api/guesthouse/sessions/${id}/diary`, { method: 'POST' })
+    const res = await $fetch<{ content: DiaryContent; summary: string }>(`/api/guesthouse/sessions/${id}/diary`, {
+      method: 'POST',
+      body: merge ? { merge: true, existing: { summary: diary.value.summary, content: diary.value.content } } : {},
+    })
     diary.value = { summary: res.summary, content: res.content }
   } catch (e: any) {
     diaryError.value = e?.data?.message || '作成に失敗しました。'
@@ -287,7 +301,6 @@ async function genDiary() {
 }
 
 async function saveDiary() {
-  if (!diary.value) return
   diaryBusy.value = true
   diaryError.value = ''
   try {

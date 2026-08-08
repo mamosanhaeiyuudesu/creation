@@ -19,5 +19,19 @@ export default defineEventHandler(async (event): Promise<{ content: DiaryContent
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) throw createError({ statusCode: 500, message: 'Anthropic API key is not configured.' })
 
-  return await generateDiary(anthropicApiKey as string, house, detail.messages, detail.guestName)
+  const body = await readBody<{ merge?: boolean; existing?: { summary: string; content: DiaryContent } }>(event)
+  const existing =
+    body?.merge && body.existing
+      ? {
+          summary: String(body.existing.summary ?? '').trim(),
+          content: {
+            nationality: String(body.existing.content?.nationality ?? '').trim(),
+            itinerary: String(body.existing.content?.itinerary ?? '').trim(),
+            highlights: String(body.existing.content?.highlights ?? '').trim(),
+            notes: String(body.existing.content?.notes ?? '').trim(),
+          },
+        }
+      : undefined
+
+  return await generateDiary(anthropicApiKey as string, house, detail.messages, detail.guestName, existing)
 })

@@ -127,13 +127,30 @@ ${tips || '（登録なし）'}
   return text.trim()
 }
 
-/** 会話からお客さん日記の下書きを生成（旅程・国籍・印象・気づき＋ひとこと要約）。 */
+/**
+ * 会話からお客さん日記の下書きを生成（旅程・国籍・印象・気づき＋ひとこと要約）。
+ * existing を渡すと、その内容（阪中さんが手入力/編集済み）を消さずに会話から分かった情報を統合する。
+ */
 export async function generateDiary(
   apiKey: string,
   house: House,
   messages: ThreadMessage[],
-  guestName: string
+  guestName: string,
+  existing?: { summary: string; content: DiaryContent }
 ): Promise<{ content: DiaryContent; summary: string }> {
+  const existingBlock = existing
+    ? `
+
+# 既存の日記（阪中さんがすでに書いた内容）
+要約: ${existing.summary || '（空欄）'}
+国籍・出身: ${existing.content.nationality || '（空欄）'}
+旅程: ${existing.content.itinerary || '（空欄）'}
+印象的だったこと: ${existing.content.highlights || '（空欄）'}
+気づき: ${existing.content.notes || '（空欄）'}
+
+上記の既存の内容は消さず、会話から新しく分かった情報を自然に統合する（既存の記述＋新しい情報）。矛盾する場合は会話の内容を優先しつつ、既存の要点は残す。`
+    : ''
+
   const system = `あなたは、ゲストハウスのホスト「阪中さん」のリサーチノート「お客さん日記」の下書きを作るアシスタントです。お客様との会話から、次のお客様への提案や宿の運営に活きる気づきを整理します。
 
 次の JSON のみを返す（前後に説明やコードブロック記号を付けない）:
@@ -148,7 +165,7 @@ export async function generateDiary(
 # 方針
 - 会話に書かれていないことは想像で埋めない。分からない欄は空文字にする。
 - 個人が特定される連絡先などは書かない（旅の傾向や好みなど、運営に活きる情報に絞る）。
-- 日本語で書く。`
+- 日本語で書く。${existingBlock}`
 
   const out = await callClaudeText(apiKey, {
     system,
