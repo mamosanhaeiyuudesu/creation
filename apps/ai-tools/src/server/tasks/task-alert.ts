@@ -13,6 +13,8 @@ import {
   ensureTaskAlertTable,
   parseHours,
   collectImportantTasksForUser,
+  collectDoneTasksForUser,
+  buildPraiseText,
   buildAlertMail,
   sendAlertMail,
 } from '../utils/task-alert'
@@ -53,7 +55,9 @@ export default defineTask({
 
         const tasks = await collectImportantTasksForUser(db, encryptionKey, row.user_id)
         if (tasks.length) {
-          await sendAlertMail(env, email, buildAlertMail(tasks, appUrl))
+          const doneTasks = await collectDoneTasksForUser(db, encryptionKey, row.user_id)
+          const praiseText = await buildPraiseText(env, doneTasks)
+          await sendAlertMail(env, email, buildAlertMail(tasks, appUrl, doneTasks, praiseText))
           sent++
         } else {
           skipped++

@@ -11,6 +11,7 @@
  */
 
 import { decryptWithKey } from './encrypt'
+import { callOpenAi, extractText } from './openai'
 
 export interface AlertSettings {
   enabled: boolean
@@ -72,6 +73,15 @@ async function trelloGet(key: string, token: string, path: string): Promise<any>
   return res.json()
 }
 
+export interface DoneTask {
+  /** 複数アカウントのときだけ入る表示用のアカウント名 */
+  account: string
+  board: string
+  name: string
+  /** 完了日時（Done移動時に due として記録される。useTaskBoards の execMarkDone と同じ規則） */
+  doneAt: string
+}
+
 /** 期限までの残り時間を表示用に整形（useTaskBoards の timeRemaining と同じ規則） */
 function describeDue(due: string | null): Pick<AlertTask, 'dueLabel' | 'overdue' | 'urgent'> {
   if (!due) return { dueLabel: '期限なし', overdue: false, urgent: false }
@@ -125,6 +135,36 @@ export async function collectImportantTasks(
   return sortTasks(perBoard.flat())
 }
 
+/**
+ * Trello の DONE リストから、直近 sinceMs 以内に完了したタスクを集める。
+ * 完了日時は Done へ移動した際に due に記録される値（useTaskBoards の execMarkDone と同じ規則）。
+ */
+export async function collectDoneTasks(
+  key: string,
+  token: string,
+  excludedBoards: string[],
+  sinceMs: number,
+  account = '',
+): Promise<DoneTask[]> {
+  const rawBoards = await trelloGet(key, token, '/members/me/boards?fields=id,name')
+  const boards = (rawBoards as any[]).filter(b => !excludedBoards.includes(b.name))
+
+  const perBoard = await Promise.all(
+    boards.map(async (b: any) => {
+      const lists = await trelloGet(key, token, `/boards/${b.id}/lists?fields=id,name`)
+      const target = (lists as any[]).find(l => String(l.name).toLowerCase() === 'done')
+      if (!target) return []
+
+      const cards = await trelloGet(key, token, `/lists/${target.id}/cards?fields=id,name,due`)
+      return (cards as any[])
+        .filter(c => c.due && new Date(c.due).getTime() >= sinceMs)
+        .map((c): DoneTask => ({ account, board: b.name, name: stripEffort(c.name), doneAt: c.due }))
+    }),
+  )
+
+  return perBoard.flat().sort((a, b) => new Date(b.doneAt).getTime() - new Date(a.doneAt).getTime())
+}
+
 /** 期限超過 → 24時間以内 → 期限が近い順 → 期限なし の順に並べる */
 export function sortTasks(tasks: AlertTask[]): AlertTask[] {
   return [...tasks].sort((a, b) => {
@@ -147,7 +187,12 @@ function stampJST(): string {
   return `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
 }
 
-export function buildAlertMail(tasks: AlertTask[], appUrl = ''): { subject: string; html: string; text: string } {
+export function buildAlertMail(
+  tasks: AlertTask[],
+  appUrl = '',
+  doneTasks: DoneTask[] = [],
+  praiseText = '',
+): { subject: string; html: string; text: string } {
   const overdueCount = tasks.filter(t => t.overdue).length
   const subject = overdueCount
     ? `【重要タスク ${tasks.length}件・期限超過 ${overdueCount}件】${stampJST()}`
@@ -172,6 +217,20 @@ export function buildAlertMail(tasks: AlertTask[], appUrl = ''): { subject: stri
     ? `<p style="margin:20px 0 0;font-size:13px;"><a href="${escapeHtml(appUrl)}/task" style="color:#0284c7;">タスクくんを開く</a></p>`
     : ''
 
+  const doneSection = doneTasks.length ? `
+    <div style="padding:16px 20px 4px;">
+      <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:8px;">✅ 直近24時間で完了（${doneTasks.length}件）</div>
+      <ul style="margin:0;padding:0 0 0 18px;">
+        ${doneTasks.map(t => `<li style="font-size:13px;color:#334155;margin-bottom:4px;">${escapeHtml(t.name)}<span style="color:#94a3b8;">（${escapeHtml([t.account, t.board].filter(Boolean).join(' / '))}）</span></li>`).join('')}
+      </ul>
+    </div>` : ''
+
+  const praiseSection = praiseText ? `
+    <div style="padding:14px 20px;margin:0 20px 16px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;">
+      <div style="font-size:12px;font-weight:700;color:#0284c7;margin-bottom:6px;">💬 ひとこと</div>
+      <p style="margin:0;font-size:13px;line-height:1.7;color:#0f172a;white-space:pre-wrap;">${escapeHtml(praiseText)}</p>
+    </div>` : ''
+
   const html = `
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif;background:#f8fafc;padding:20px;">
   <div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
@@ -180,6 +239,8 @@ export function buildAlertMail(tasks: AlertTask[], appUrl = ''): { subject: stri
       <div style="color:#94a3b8;font-size:12px;margin-top:4px;">${escapeHtml(stampJST())} 時点・${tasks.length}件${overdueCount ? `（うち期限超過 ${overdueCount}件）` : ''}</div>
     </div>
     <table style="width:100%;border-collapse:collapse;">${rows}</table>
+    ${doneSection}
+    ${praiseSection}
     <div style="padding:14px 20px;background:#f8fafc;">
       ${link}
       <p style="margin:${link ? '10px' : '0'} 0 0;font-size:11px;color:#94a3b8;">この通知はタスクくんの設定 → アラートから停止・変更できます。</p>
@@ -191,6 +252,8 @@ export function buildAlertMail(tasks: AlertTask[], appUrl = ''): { subject: stri
     `重要タスクのお知らせ（${stampJST()} 時点・${tasks.length}件）`,
     '',
     ...tasks.map(t => `・[${t.dueLabel}] ${t.name}（${[t.account, t.board].filter(Boolean).join(' / ')}・${t.status}）`),
+    ...(doneTasks.length ? ['', `直近24時間で完了（${doneTasks.length}件）`, ...doneTasks.map(t => `・${t.name}（${[t.account, t.board].filter(Boolean).join(' / ')}）`)] : []),
+    ...(praiseText ? ['', praiseText] : []),
     '',
     appUrl ? `${appUrl}/task` : '',
     'この通知はタスクくんの設定 → アラートから停止・変更できます。',
@@ -259,4 +322,70 @@ export async function collectImportantTasksForUser(db: any, encryptionKey: strin
   }
 
   return sortTasks(collected)
+}
+
+/**
+ * 指定ユーザーの全 Trello アカウントから、直近24時間で完了したタスクを集める。
+ * アカウントが複数あるときだけ、タスクにアカウント名を添える。
+ */
+export async function collectDoneTasksForUser(db: any, encryptionKey: string, userId: string): Promise<DoneTask[]> {
+  const profiles = await db
+    .prepare('SELECT name, key_enc, token_enc, excluded FROM task_profiles WHERE user_id = ? ORDER BY sort_order')
+    .bind(userId)
+    .all<{ name: string; key_enc: string; token_enc: string; excluded: string }>()
+
+  const rows = profiles.results ?? []
+  const multi = rows.length > 1
+  const sinceMs = Date.now() - 24 * 3_600_000
+  const collected: DoneTask[] = []
+
+  for (const p of rows) {
+    const key = await decryptWithKey(encryptionKey, p.key_enc)
+    const token = await decryptWithKey(encryptionKey, p.token_enc)
+    if (!key || !token) continue
+    const excluded = String(p.excluded ?? '').split(',').map((s: string) => s.trim()).filter(Boolean)
+    collected.push(...await collectDoneTasks(key, token, excluded, sinceMs, multi ? p.name : ''))
+  }
+
+  return collected.sort((a, b) => new Date(b.doneAt).getTime() - new Date(a.doneAt).getTime())
+}
+
+// --- 褒めメッセージ ---
+
+/**
+ * 直近24時間の完了タスクを踏まえ、落ち着いたトーンで労うメッセージを生成する（日本語300文字程度）。
+ * OpenAI呼び出しに失敗しても通知本体は送りたいので、失敗時は空文字を返す（呼び出し側で握りつぶす）。
+ */
+export async function buildPraiseText(env: any, doneTasks: DoneTask[]): Promise<string> {
+  if (!doneTasks.length) return ''
+  const apiKey = env?.NUXT_OPENAI_API_KEY
+  if (!apiKey) return ''
+
+  const boards = [...new Set(doneTasks.map(t => t.board))]
+  const tasksText = doneTasks.map(t => `・[${[t.account, t.board].filter(Boolean).join(' / ')}] ${t.name}`).join('\n')
+
+  const systemPrompt = `あなたは相手の努力を「冷静かつ的確に」認め、労う存在です。タスク管理データを踏まえたうえで、落ち着いたトーンで称えてください。
+以下のルールを厳守してください：
+
+- 誇張しない：感嘆符を多用せず、事実に基づいた穏やかな言葉で評価する
+- タスク名を具体的に引用する：タスク名や内容から事実を拾い、「【タスク名】を進められたのは着実な前進です」のように具体的に触れる
+- 落ち着いた励まし：「よく取り組まれています」「着実に積み重ねられています」など、信頼感のある言葉を使う
+- ボード横断：${boards.length > 1 ? `複数のボード（${boards.join('・')}）にまたがる活動全体をバランスよく振り返る` : '全タスクをバランスよく振り返る'}
+- 感嘆符は使わないか、使っても最小限にとどめる
+- 最後は穏やかな労いや今後への後押しで締める
+- 中学生でもわかる平易な言葉を使う
+- 日本語300文字程度で出力`
+
+  try {
+    const data = await callOpenAi(apiKey, {
+      model: 'gpt-4.1-mini',
+      input: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `【直近24時間で完了したタスク（${doneTasks.length}件）】\n${tasksText}\n\n上記のタスク内容に踏み込んだ労いのメッセージを日本語300文字程度で。` },
+      ],
+    }, undefined, 'task/alert-praise')
+    return extractText(data)
+  } catch {
+    return ''
+  }
 }

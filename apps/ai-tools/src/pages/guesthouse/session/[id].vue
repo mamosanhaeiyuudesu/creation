@@ -104,11 +104,25 @@
 
         <ul v-if="detail.hearingNotes.length" class="space-y-2 mt-3 pt-3 border-t border-[var(--gh-line)]">
           <li v-for="n in detail.hearingNotes" :key="n.id" class="rounded-xl bg-white/40 border border-[var(--gh-line)] p-2.5">
-            <p class="text-[13px] whitespace-pre-wrap leading-relaxed">{{ n.content }}</p>
-            <div class="flex items-center justify-between mt-1">
-              <p class="text-[10.5px] text-[var(--gh-ink-faint)]">{{ formatDate(n.createdAt) }}</p>
-              <button class="text-[11.5px] text-[var(--gh-ink-faint)] hover:text-[var(--gh-warn)]" @click="removeNote(n.id)">削除</button>
-            </div>
+            <template v-if="editingNoteId === n.id">
+              <textarea v-model="editingNoteContent" rows="3" class="gh-input text-[13px]" />
+              <div class="flex justify-end gap-2 mt-1.5">
+                <button class="gh-btn-ghost !h-8 !px-3 text-[12px]" :disabled="noteBusy" @click="cancelEditNote">キャンセル</button>
+                <button class="gh-btn !h-8 !px-3 text-[12px]" :disabled="noteBusy || !editingNoteContent.trim()" @click="saveEditNote(n.id)">
+                  {{ noteBusy ? '保存中…' : '保存' }}
+                </button>
+              </div>
+            </template>
+            <template v-else>
+              <p class="text-[13px] whitespace-pre-wrap leading-relaxed">{{ n.content }}</p>
+              <div class="flex items-center justify-between mt-1">
+                <p class="text-[10.5px] text-[var(--gh-ink-faint)]">{{ formatDate(n.createdAt) }}</p>
+                <div class="flex items-center gap-3">
+                  <button class="text-[11.5px] text-[var(--gh-forest-deep)] hover:underline underline-offset-2" @click="startEditNote(n)">編集</button>
+                  <button class="text-[11.5px] text-[var(--gh-ink-faint)] hover:text-[var(--gh-warn)]" @click="removeNote(n.id)">削除</button>
+                </div>
+              </div>
+            </template>
           </li>
         </ul>
       </section>
@@ -117,11 +131,11 @@
       <section class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] p-4 mb-4">
         <div class="flex items-center justify-between mb-2">
           <p class="gh-display text-[15px] font-bold">お客さん日記</p>
-          <button class="gh-btn-ghost !h-9" :disabled="diaryBusy || !detail.messages.length" @click="genDiary">
+          <button class="gh-btn-ghost !h-9" :disabled="diaryBusy || (!detail.messages.length && !detail.hearingNotes.length)" @click="genDiary">
             {{ diaryBusy ? '作成中…' : hasDiaryContent ? 'AIで作り直す' : 'AIで日記を作る' }}
           </button>
         </div>
-        <p class="text-[12.5px] text-[var(--gh-ink-soft)] mb-2.5">自分で書くか、滞在の会話からAIに下書きさせることができます。</p>
+        <p class="text-[12.5px] text-[var(--gh-ink-soft)] mb-2.5">自分で書くか、滞在の会話・聞き取りメモからAIに下書きさせることができます。</p>
 
         <div class="space-y-2.5">
           <textarea
@@ -224,6 +238,8 @@ const directSent = ref(false)
 const newNote = ref('')
 const noteBusy = ref(false)
 const noteError = ref('')
+const editingNoteId = ref<string | null>(null)
+const editingNoteContent = ref('')
 
 // 日記（自由記述。自分で手入力もできるよう、生成前から空文字で用意しておく）
 const diary = ref('')
@@ -331,6 +347,34 @@ async function removeNote(noteId: string) {
     detail.value.hearingNotes = detail.value.hearingNotes.filter((n) => n.id !== noteId)
   } catch (e: any) {
     noteError.value = e?.data?.message || '削除に失敗しました。'
+  }
+}
+
+function startEditNote(n: HearingNote) {
+  editingNoteId.value = n.id
+  editingNoteContent.value = n.content
+  noteError.value = ''
+}
+
+function cancelEditNote() {
+  editingNoteId.value = null
+  editingNoteContent.value = ''
+}
+
+async function saveEditNote(noteId: string) {
+  const content = editingNoteContent.value.trim()
+  if (!content || noteBusy.value || !detail.value) return
+  noteBusy.value = true
+  noteError.value = ''
+  try {
+    await $fetch(`/api/guesthouse/notes/${noteId}`, { method: 'PUT', body: { content } })
+    const target = detail.value.hearingNotes.find((n) => n.id === noteId)
+    if (target) target.content = content
+    cancelEditNote()
+  } catch (e: any) {
+    noteError.value = e?.data?.message || '保存に失敗しました。'
+  } finally {
+    noteBusy.value = false
   }
 }
 

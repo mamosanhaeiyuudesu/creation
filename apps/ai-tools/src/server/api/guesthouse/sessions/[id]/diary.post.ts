@@ -10,7 +10,7 @@ export default defineEventHandler(async (event): Promise<{ content: string }> =>
 
   const detail = await loadSessionDetail(event, db, user.id, id)
   if (!detail) throw createError({ statusCode: 404, message: '会話が見つかりません' })
-  if (!detail.messages.length) throw createError({ statusCode: 400, message: 'まだ会話がありません' })
+  if (!detail.messages.length && !detail.hearingNotes.length) throw createError({ statusCode: 400, message: 'まだ会話も聞き取りメモもありません' })
 
   const house = await loadHouse(db, { userId: user.id, houseId: detail.houseId })
   if (!house) throw createError({ statusCode: 404, message: '宿が見つかりません' })
@@ -20,7 +20,8 @@ export default defineEventHandler(async (event): Promise<{ content: string }> =>
 
   const body = await readBody<{ merge?: boolean; existing?: string }>(event)
   const existing = body?.merge ? String(body.existing ?? '').trim() : undefined
+  const hearingNotes = detail.hearingNotes.map((n) => n.content)
 
-  const content = await generateDiary(anthropicApiKey as string, house, detail.messages, detail.guestName, existing)
+  const content = await generateDiary(anthropicApiKey as string, house, detail.messages, detail.guestName, hearingNotes, existing)
   return { content }
 })

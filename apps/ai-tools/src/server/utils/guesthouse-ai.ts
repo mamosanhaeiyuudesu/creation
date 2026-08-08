@@ -131,7 +131,14 @@ ${tips || '（登録なし）'}
  * 会話からお客さん日記（自由記述）の下書きを生成する。
  * existing を渡すと、その内容（阪中さんが手入力/編集済み）を消さずに会話から分かった情報を統合する。
  */
-export async function generateDiary(apiKey: string, house: House, messages: ThreadMessage[], guestName: string, existing?: string): Promise<string> {
+export async function generateDiary(
+  apiKey: string,
+  house: House,
+  messages: ThreadMessage[],
+  guestName: string,
+  hearingNotes: string[] = [],
+  existing?: string
+): Promise<string> {
   const existingBlock = existing?.trim()
     ? `
 
@@ -140,13 +147,17 @@ export async function generateDiary(apiKey: string, house: House, messages: Thre
 ${existing.trim()}
 """
 
-上記の既存の内容は消さず、会話から新しく分かった情報を自然に統合する（既存の記述＋新しい情報）。矛盾する場合は会話の内容を優先しつつ、既存の要点は残す。`
+上記の既存の内容は消さず、会話・聞き取りメモから新しく分かった情報を自然に統合する（既存の記述＋新しい情報）。矛盾する場合は新しい情報を優先しつつ、既存の要点は残す。`
     : ''
 
-  const system = `あなたは、ゲストハウスのホスト「阪中さん」のリサーチノート「お客さん日記」の下書きを作るアシスタントです。お客様との会話から、旅程・国籍/出身・印象的だったこと・次のお客様や宿の運営に活きる気づきなどを、自由な文章で整理します。
+  const notesBlock = hearingNotes.length
+    ? `\n\n聞き取りメモ（阪中さんが対面などで直接聞いた内容）:\n"""\n${hearingNotes.map((n, i) => `${i + 1}. ${n}`).join('\n')}\n"""`
+    : ''
+
+  const system = `あなたは、ゲストハウスのホスト「阪中さん」のリサーチノート「お客さん日記」の下書きを作るアシスタントです。お客様との会話や、阪中さんが対面などで直接聞いた内容（聞き取りメモ）から、旅程・国籍/出身・印象的だったこと・次のお客様や宿の運営に活きる気づきなどを、自由な文章で整理します。
 
 # 方針
-- 会話に書かれていないことは想像で埋めない。分からないことは書かない。
+- 会話・聞き取りメモに書かれていないことは想像で埋めない。分からないことは書かない。
 - 個人が特定される連絡先などは書かない（旅の傾向や好みなど、運営に活きる情報に絞る）。
 - 見出しや箇条書きは使わず、阪中さんが手で書いたメモのような自然な文章で3〜6文程度にまとめる。
 - 日本語で書く。
@@ -158,7 +169,7 @@ ${existing.trim()}
     messages: [
       {
         role: 'user',
-        content: `宿: ${house.name}\nお客様の呼び名: ${guestName || '（不明）'}\n\n会話:\n"""\n${threadTranscript(messages)}\n"""`,
+        content: `宿: ${house.name}\nお客様の呼び名: ${guestName || '（不明）'}\n\n会話:\n"""\n${threadTranscript(messages)}\n"""${notesBlock}`,
       },
     ],
   })

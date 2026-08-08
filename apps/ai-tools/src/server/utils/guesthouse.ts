@@ -905,6 +905,19 @@ export async function createHearingNote(event: H3Event, db: any, sessionId: stri
   return id
 }
 
+/** 聞き取りメモを編集（宿の所有者チェック込み）。更新できたら true。 */
+export async function updateHearingNote(event: H3Event, db: any, userId: string, id: string, content: string): Promise<boolean> {
+  const res = await db
+    .prepare(
+      `UPDATE guesthouse_hearing_notes SET content = ? WHERE id = ? AND session_id IN (
+         SELECT s.id FROM guesthouse_sessions s JOIN guesthouse_houses h ON h.id = s.house_id WHERE h.user_id = ?
+       )`
+    )
+    .bind(await encryptComment(event, content), id, userId)
+    .run()
+  return (res?.meta?.changes ?? 0) > 0
+}
+
 /** 聞き取りメモを削除（宿の所有者チェック込み）。削除できたら true。 */
 export async function deleteHearingNote(db: any, userId: string, id: string): Promise<boolean> {
   const res = await db

@@ -3,7 +3,7 @@
  * 保存済みの設定ではなく、画面で入力中のアドレス宛に今すぐ1通送る。
  */
 import { getSessionUser, getAppDb } from '~/server/utils/auth'
-import { isValidEmail, collectImportantTasksForUser, buildAlertMail, sendAlertMail } from '~/server/utils/task-alert'
+import { isValidEmail, collectImportantTasksForUser, collectDoneTasksForUser, buildPraiseText, buildAlertMail, sendAlertMail } from '~/server/utils/task-alert'
 
 export default defineEventHandler(async (event) => {
   const user = await getSessionUser(event)
@@ -20,8 +20,10 @@ export default defineEventHandler(async (event) => {
   const { encryptionKey } = useRuntimeConfig(event)
 
   const tasks = await collectImportantTasksForUser(db, (encryptionKey as string) ?? '', user.id)
+  const doneTasks = await collectDoneTasksForUser(db, (encryptionKey as string) ?? '', user.id)
+  const praiseText = await buildPraiseText(env, doneTasks)
   // 定期便は0件なら送らないが、テストは届くこと自体の確認なので0件でも送る
-  const mail = buildAlertMail(tasks, env?.NUXT_APP_URL ?? '')
+  const mail = buildAlertMail(tasks, env?.NUXT_APP_URL ?? '', doneTasks, praiseText)
 
   try {
     await sendAlertMail(env, email, { ...mail, subject: `[テスト] ${mail.subject}` })
