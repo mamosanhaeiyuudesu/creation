@@ -48,10 +48,13 @@
         </div>
         <div class="space-y-3 max-h-[45vh] overflow-y-auto pr-1">
           <div v-for="m in detail.messages" :key="m.id">
-            <div v-if="m.role === 'guest'" class="flex justify-end">
+            <div v-if="m.role === 'guest'" class="flex flex-col items-end">
               <div class="inline-block rounded-2xl rounded-tr-md bg-[var(--gh-forest)] text-white px-3.5 py-2 max-w-[85%]">
                 <p class="text-[13.5px] leading-relaxed whitespace-pre-wrap">{{ m.content }}</p>
               </div>
+              <p class="text-[10px] font-bold mt-0.5 pr-1 text-[var(--gh-forest)]">
+                {{ `${detail.guestName ? detail.guestName + 'さん' : 'お客様'}（${formatDateTime(m.createdAt)}）` }}
+              </p>
             </div>
             <div v-else>
               <div class="inline-block rounded-2xl rounded-tl-md border px-3.5 py-2 max-w-[85%]"
