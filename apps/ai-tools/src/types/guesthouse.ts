@@ -256,35 +256,8 @@ export interface TrendItem {
 export interface Trends {
   items: TrendItem[]
   basedOn: number // 集計に使った日記件数
-  reviewsBasedOn: number // 集計に使ったレビュー・意見の件数
   computedAt: string | null // 最終計算時刻（未計算なら null）
-  stale: boolean // 前回計算後に日記/レビューが変わり、「更新」で再計算できる状態か
-}
-
-// ── レビュー・意見（顧客の声。傾向分析の第2の入力源。ホスト共通・宿横断）──
-
-/** レビュー・意見の1件。source=出典ラベル（Airbnb/アンケート等）、body=本文。 */
-export interface Review {
-  id: string
-  source: string
-  body: string
-  createdAt: string
-}
-
-/** レビュー・意見の作成/更新リクエスト。 */
-export interface ReviewInput {
-  source: string
-  body: string
-}
-
-/** 貼り付けテキストからAIが切り出したレビュー候補（保存前・人が確認する下書き）。 */
-export interface ExtractedReview {
-  body: string
-}
-
-/** レビュー・意見の取り込み結果。 */
-export interface ReviewExtractResult {
-  items: ExtractedReview[]
+  stale: boolean // 前回計算後に日記が変わり、「更新」で再計算できる状態か
 }
 
 /** 傾向の更新（再計算）結果。updated=false は「日記に変化がなく再計算せずスキップ」した場合。 */

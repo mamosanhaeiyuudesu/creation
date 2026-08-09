@@ -3,7 +3,7 @@
 import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
 import { buildKnowledgeBase } from '~/server/utils/guesthouse'
 import { buildTriageSystem, buildAnswerSystem, buildEmergencyReplySystem, buildInfoGapReplySystem, WEB_SEARCH } from '~/server/utils/guesthouse-policy'
-import type { ChatMessage, Diary, DiaryContent, ExtractResult, ExtractedFact, ExtractedReview, ExtractedTip, FarewellDraft, House, Review, ReviewExtractResult, ThreadMessage, Tip, TipExtractResult, TrendItem } from '~/types/guesthouse'
+import type { ChatMessage, Diary, DiaryContent, ExtractResult, ExtractedFact, ExtractedTip, FarewellDraft, House, ThreadMessage, Tip, TipExtractResult, TrendItem } from '~/types/guesthouse'
 
 /** 会話を読みやすいテキスト起こしにする（プロンプト用）。 */
 export function threadTranscript(messages: ThreadMessage[]): string {
@@ -462,11 +462,8 @@ async function extractFactsChunk(apiKey: string, text: string): Promise<ExtractR
   }
 }
 
-/** 傾向コーパスに渡すレビュー本文の合計文字数上限（大きすぎるとコスト・レイテンシが増えるためトリム）。 */
-const REVIEW_CORPUS_LIMIT = 12000
-
-/** 複数のお客さん日記＋レビュー・意見から傾向（学習ループ）を抽出。両方を統合して1つの傾向リストにする。 */
-export async function computeTrends(apiKey: string, diaries: Diary[], reviews: Review[] = []): Promise<TrendItem[]> {
+/** 複数のお客さん日記から傾向（学習ループ）を抽出。 */
+export async function computeTrends(apiKey: string, diaries: Diary[]): Promise<TrendItem[]> {
   const diaryCorpus = diaries
     .map((d, i) => {
       const c = d.content
@@ -474,35 +471,17 @@ export async function computeTrends(apiKey: string, diaries: Diary[], reviews: R
     })
     .join('\n\n')
 
-  // レビューは長文になりがちなので、合計が上限を超えたら打ち切る（打ち切った旨は末尾に注記）。
-  let used = 0
-  let truncated = false
-  const reviewLines: string[] = []
-  for (let i = 0; i < reviews.length; i++) {
-    const r = reviews[i]
-    const line = `【レビュー${i + 1}${r.source ? `・${r.source}` : ''}】\n${r.body}`
-    if (used + line.length > REVIEW_CORPUS_LIMIT) {
-      truncated = true
-      break
-    }
-    reviewLines.push(line)
-    used += line.length
-  }
-  const reviewCorpus = reviewLines.join('\n\n') + (truncated ? '\n\n（※レビューが多いため一部のみを対象にしています）' : '')
-
-  const system = `あなたは、ゲストハウスのホスト「阪中さん」の資料（お客さん日記＋お客様レビュー・意見）を分析し、次の一手に活きる「傾向」を見つけるアナリストです。
+  const system = `あなたは、ゲストハウスのホスト「阪中さん」の資料（お客さん日記）を分析し、次の一手に活きる「傾向」を見つけるアナリストです。
 
 次の JSON のみを返す（前後に説明やコードブロック記号を付けない）:
 { "items": [ { "title": "傾向の見出し（短く）", "detail": "根拠と、次の提案・宿づくりへの活かし方（1〜2文）" } ] }
 
 # 方針
-- 日記とレビューを分け隔てなく統合して分析し、複数の資料に共通して見える傾向を優先する（例: 高野山に来る人は熊野・京都にもよく行く／精進料理・ベジ対応の需要が高い／早朝の奥之院の満足度が高い）。
+- 複数の日記に共通して見える傾向を優先する（例: 高野山に来る人は熊野・京都にもよく行く／精進料理・ベジ対応の需要が高い／早朝の奥之院の満足度が高い）。
 - 3〜6件。数が少なく傾向が弱い場合は無理に出さず、言える範囲だけにする。
 - 日本語で書く。断定しすぎず、根拠に基づく。`
 
-  const userContent =
-    `お客さん日記（${diaries.length}件）:\n"""\n${diaryCorpus || '（なし）'}\n"""\n\n` +
-    `お客様レビュー・意見（${reviews.length}件）:\n"""\n${reviewCorpus || '（なし）'}\n"""`
+  const userContent = `お客さん日記（${diaries.length}件）:\n"""\n${diaryCorpus || '（なし）'}\n"""`
 
   const out = await callClaudeText(apiKey, {
     system,
@@ -514,33 +493,4 @@ export async function computeTrends(apiKey: string, diaries: Diary[], reviews: R
   return items
     .map((it: any) => ({ title: String(it?.title ?? '').trim(), detail: String(it?.detail ?? '').trim() }))
     .filter((it: TrendItem) => it.title || it.detail)
-}
-
-/**
- * 貼り付けたレビュー・意見の長文を、AIが1件ずつの声に切り分ける（保存前の下書き候補）。
- * 出典ラベルは取り込み時に人がまとめて付けるので、本文だけを返す。
- */
-export async function extractReviews(apiKey: string, text: string): Promise<ReviewExtractResult> {
-  const system = `あなたは、ゲストハウスに寄せられた口コミ・レビュー・アンケートの貼り付けテキストを、1件ずつの「お客様の声」に切り分ける整理係です。
-
-次の JSON のみを返す（前後に説明やコードブロック記号を付けない）:
-{ "items": [ { "body": "1件ぶんのレビュー本文" } ] }
-
-# 方針
-- 元の文章の意味を変えず、レビュー/意見の単位で分割する。1件が長い場合はそのまま1件にする。
-- 星評価や日付などのメタ情報は本文に含めてよい（傾向分析の手がかりになる）。
-- 宿名・ホスト名・投稿者名などの固有名や個人が特定される情報は省いてよい。
-- 空要素や重複は返さない。日本語以外はそのままの言語で残す。`
-
-  const out = await callClaudeText(apiKey, {
-    system,
-    maxTokens: 4000,
-    messages: [{ role: 'user', content: `次のレビュー・意見テキストを1件ずつに切り分けてください:\n"""\n${text}\n"""` }],
-  })
-  const p = parseJsonLoose<{ items?: any[] }>(out)
-  if (!p) throw createError({ statusCode: 502, message: '取り込みに失敗しました。もう一度お試しください。' })
-  const items: ExtractedReview[] = (Array.isArray(p.items) ? p.items : [])
-    .map((it: any) => ({ body: String(it?.body ?? '').trim() }))
-    .filter((it: ExtractedReview) => it.body)
-  return { items }
 }

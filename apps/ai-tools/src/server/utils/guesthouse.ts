@@ -14,7 +14,6 @@ import type {
   HouseSummary,
   ImportedMessage,
   MessageRole,
-  Review,
   SessionDetail,
   SessionListItem,
   SessionSummary,
@@ -93,23 +92,12 @@ export async function ensureGuesthouseTables(db: any): Promise<void> {
     )
   `).catch(() => {})
   // 傾向のキャッシュ（学習ループ）。管理トップの全宿横断傾向を、ユーザー単位で
-  // 前回結果＋日記/レビューの指紋とともに1組だけ保持する（「更新」時に指紋一致なら再計算をスキップ）。
+  // 前回結果＋日記の指紋とともに1組だけ保持する（「更新」時に指紋一致なら再計算をスキップ）。
   await db.exec(`
     CREATE TABLE IF NOT EXISTS guesthouse_trends (
       user_id TEXT PRIMARY KEY, items TEXT NOT NULL DEFAULT '[]',
       fingerprint TEXT NOT NULL DEFAULT '', based_on INTEGER NOT NULL DEFAULT 0,
       computed_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `).catch(() => {})
-  // 傾向の材料件数（レビュー・意見の件数）。既にあれば duplicate column で失敗するので握りつぶす。
-  await db.exec(`ALTER TABLE guesthouse_trends ADD COLUMN reviews_based_on INTEGER NOT NULL DEFAULT 0`).catch(() => {})
-  // レビュー・意見（顧客の声）。傾向分析の第2の入力源。ホスト共通・user_id スコープ。body は暗号化保存。
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS guesthouse_reviews (
-      id TEXT PRIMARY KEY, user_id TEXT NOT NULL,
-      source TEXT NOT NULL DEFAULT '', body TEXT NOT NULL DEFAULT '',
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `).catch(() => {})
   // 聞き取りメモ（阪中さんが対面などで直接聞いた内容）。自由記述・1セッションに複数件。content は暗号化保存。
@@ -345,65 +333,6 @@ export async function replaceTips(
       .bind(crypto.randomUUID(), userId, category, title, body, order++)
       .run()
   }
-}
-
-// ── レビュー・意見（顧客の声・傾向分析の第2入力源）──────────
-// body は暗号化保存。source は出典ラベル（平文）。編集時は updated_at を更新し、指紋で変更検知する。
-
-interface ReviewRow {
-  id: string
-  source: string
-  body: string
-  created_at: string
-  updated_at: string
-}
-
-/** ホストのレビュー・意見を取得（body は復号）。新しい順。 */
-export async function loadReviews(event: H3Event, db: any, userId: string): Promise<Review[]> {
-  const rows = await db
-    .prepare('SELECT id, source, body, created_at FROM guesthouse_reviews WHERE user_id = ? ORDER BY created_at DESC')
-    .bind(userId)
-    .all<ReviewRow>()
-  return Promise.all(
-    (rows?.results ?? []).map(async (r: ReviewRow) => ({
-      id: r.id,
-      source: r.source,
-      body: await decryptComment(event, r.body),
-      createdAt: r.created_at,
-    }))
-  )
-}
-
-/** レビュー・意見を1件追加。作成した行のIDを返す。 */
-export async function createReview(event: H3Event, db: any, userId: string, source: string, body: string): Promise<string> {
-  const id = crypto.randomUUID()
-  await db
-    .prepare('INSERT INTO guesthouse_reviews (id, user_id, source, body) VALUES (?, ?, ?, ?)')
-    .bind(id, userId, (source ?? '').trim(), await encryptComment(event, (body ?? '').trim()))
-    .run()
-  return id
-}
-
-/** レビュー・意見を更新（所有者チェック込み）。updated_at も更新（指紋の変更検知用）。変更できたら true。 */
-export async function updateReview(
-  event: H3Event,
-  db: any,
-  userId: string,
-  id: string,
-  source: string,
-  body: string
-): Promise<boolean> {
-  const res = await db
-    .prepare("UPDATE guesthouse_reviews SET source = ?, body = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?")
-    .bind((source ?? '').trim(), await encryptComment(event, (body ?? '').trim()), id, userId)
-    .run()
-  return (res?.meta?.changes ?? 0) > 0
-}
-
-/** レビュー・意見を削除（所有者チェック込み）。削除できたら true。 */
-export async function deleteReview(db: any, userId: string, id: string): Promise<boolean> {
-  const res = await db.prepare('DELETE FROM guesthouse_reviews WHERE id = ? AND user_id = ?').bind(id, userId).run()
-  return (res?.meta?.changes ?? 0) > 0
 }
 
 /** 指定した宿のオーナーの旅の情報を、相談下書き用のテキストにまとめる。無ければ空文字。 */
@@ -976,13 +905,8 @@ export async function deleteHearingNote(db: any, userId: string, id: string): Pr
 }
 
 // ── 傾向のキャッシュ（学習ループ）───────────────────────────
-// 傾向の材料＝日記＋レビュー・意見。両方の指紋を合成して変更検知する。
-// 日記は編集のたび「DELETE→新UUIDでINSERT」される（id 集合が指紋になる）。
-// レビューは in-place 更新なので id＋updated_at を指紋に含める。復号せず済むので軽い。
-export async function loadTrendsMeta(
-  db: any,
-  userId: string
-): Promise<{ fingerprint: string; diaryCount: number; reviewCount: number }> {
+// 傾向の材料＝日記。日記は編集のたび「DELETE→新UUIDでINSERT」される（id 集合が指紋になる）。
+export async function loadTrendsMeta(db: any, userId: string): Promise<{ fingerprint: string; diaryCount: number }> {
   const dRows = await db
     .prepare(
       `SELECT d.id FROM guesthouse_diaries d
@@ -991,20 +915,14 @@ export async function loadTrendsMeta(
     )
     .bind(userId)
     .all<{ id: string }>()
-  const rRows = await db
-    .prepare('SELECT id, updated_at FROM guesthouse_reviews WHERE user_id = ? ORDER BY id')
-    .bind(userId)
-    .all<{ id: string; updated_at: string }>()
   const diaryIds = (dRows?.results ?? []).map((r: { id: string }) => r.id)
-  const reviewParts = (rRows?.results ?? []).map((r: { id: string; updated_at: string }) => `${r.id}@${r.updated_at}`)
-  const fingerprint = `d:${diaryIds.length}:${diaryIds.join('.')}|r:${reviewParts.length}:${reviewParts.join('.')}`
-  return { fingerprint, diaryCount: diaryIds.length, reviewCount: reviewParts.length }
+  const fingerprint = `d:${diaryIds.length}:${diaryIds.join('.')}`
+  return { fingerprint, diaryCount: diaryIds.length }
 }
 
 export interface StoredTrends {
   items: TrendItem[]
   basedOn: number
-  reviewsBasedOn: number
   computedAt: string
   fingerprint: string
 }
@@ -1012,9 +930,9 @@ export interface StoredTrends {
 /** 保存済みの傾向（前回計算結果）を読む。未計算なら null。 */
 export async function loadStoredTrends(db: any, userId: string): Promise<StoredTrends | null> {
   const row = await db
-    .prepare('SELECT items, fingerprint, based_on, reviews_based_on, computed_at FROM guesthouse_trends WHERE user_id = ?')
+    .prepare('SELECT items, fingerprint, based_on, computed_at FROM guesthouse_trends WHERE user_id = ?')
     .bind(userId)
-    .first<{ items: string; fingerprint: string; based_on: number; reviews_based_on: number; computed_at: string }>()
+    .first<{ items: string; fingerprint: string; based_on: number; computed_at: string }>()
   if (!row) return null
   let items: TrendItem[] = []
   try {
@@ -1026,29 +944,21 @@ export async function loadStoredTrends(db: any, userId: string): Promise<StoredT
   return {
     items,
     basedOn: row.based_on ?? 0,
-    reviewsBasedOn: row.reviews_based_on ?? 0,
     computedAt: row.computed_at,
     fingerprint: row.fingerprint ?? '',
   }
 }
 
-/** 傾向を保存（ユーザー単位で1組・upsert）。指紋と件数（日記・レビュー）も一緒に更新する。 */
-export async function saveTrendsCache(
-  db: any,
-  userId: string,
-  items: TrendItem[],
-  fingerprint: string,
-  basedOn: number,
-  reviewsBasedOn: number
-): Promise<void> {
+/** 傾向を保存（ユーザー単位で1組・upsert）。指紋と件数（日記）も一緒に更新する。 */
+export async function saveTrendsCache(db: any, userId: string, items: TrendItem[], fingerprint: string, basedOn: number): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO guesthouse_trends (user_id, items, fingerprint, based_on, reviews_based_on, computed_at)
-       VALUES (?, ?, ?, ?, ?, datetime('now'))
+      `INSERT INTO guesthouse_trends (user_id, items, fingerprint, based_on, computed_at)
+       VALUES (?, ?, ?, ?, datetime('now'))
        ON CONFLICT(user_id) DO UPDATE SET
          items = excluded.items, fingerprint = excluded.fingerprint,
-         based_on = excluded.based_on, reviews_based_on = excluded.reviews_based_on, computed_at = excluded.computed_at`
+         based_on = excluded.based_on, computed_at = excluded.computed_at`
     )
-    .bind(userId, JSON.stringify(items), fingerprint, basedOn, reviewsBasedOn)
+    .bind(userId, JSON.stringify(items), fingerprint, basedOn)
     .run()
 }
