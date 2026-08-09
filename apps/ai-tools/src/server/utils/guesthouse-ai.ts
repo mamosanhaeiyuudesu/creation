@@ -2,7 +2,7 @@
 // 相談の下書き・お客さん日記・お礼/レビュー依頼・傾向抽出。すべて「下書き」で、人が確認して使う前提。
 import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
 import { buildKnowledgeBase } from '~/server/utils/guesthouse'
-import { buildTriageSystem, buildAnswerSystem, buildEmergencyReplySystem, WEB_SEARCH } from '~/server/utils/guesthouse-policy'
+import { buildTriageSystem, buildAnswerSystem, buildEmergencyReplySystem, buildInfoGapReplySystem, WEB_SEARCH } from '~/server/utils/guesthouse-policy'
 import type { ChatMessage, Diary, DiaryContent, ExtractResult, ExtractedFact, ExtractedReview, ExtractedTip, FarewellDraft, House, Review, ReviewExtractResult, ThreadMessage, Tip, TipExtractResult, TrendItem } from '~/types/guesthouse'
 
 /** 会話を読みやすいテキスト起こしにする（プロンプト用）。 */
@@ -76,6 +76,22 @@ export async function draftEmergencyReply(apiKey: string, messages: ThreadMessag
   try {
     return await callClaudeText(apiKey, {
       system: buildEmergencyReplySystem(),
+      maxTokens: 300,
+      messages: toClaudeMessages(messages, 6),
+    })
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * 宿の案内情報でカバーされていない事務的な質問だったときにお客様へ返す短い「確認します」返信を作る。
+ * 生成に失敗したら空文字を返し、呼び出し側で定型文にフォールバックする。
+ */
+export async function draftInfoGapReply(apiKey: string, messages: ThreadMessage[]): Promise<string> {
+  try {
+    return await callClaudeText(apiKey, {
+      system: buildInfoGapReplySystem(),
       maxTokens: 300,
       messages: toClaudeMessages(messages, 6),
     })

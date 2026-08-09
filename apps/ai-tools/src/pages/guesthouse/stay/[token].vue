@@ -97,7 +97,7 @@
           <button type="submit" class="gh-btn !px-5 shrink-0" :disabled="sending || !draft.trim()">送信</button>
         </form>
         <p class="text-center text-[10.5px] text-[var(--gh-ink-faint)] mt-2">
-          事務的なことはAIが即答します。夜間や込み入ったご相談は、阪中さんからの返信をお待ちください。
+          事務的なことはAIが即答します。夜間や込み入ったご相談は、ゲストハウス管理人からの返信をお待ちください。
         </p>
       </div>
     </template>
@@ -145,8 +145,8 @@ function labelClass(m: ThreadMessage): string {
   return 'gh-label-auto'
 }
 function labelText(m: ThreadMessage): string {
-  if (m.role === 'host') return '阪中さん'
-  if (m.kind === 'handoff') return '阪中さんに確認します'
+  if (m.role === 'host') return 'ゲストハウス管理人'
+  if (m.kind === 'handoff') return 'ゲストハウス管理人に確認します'
   return '自動応答'
 }
 
@@ -216,7 +216,7 @@ async function send() {
     messages.value.push({
       id: `err-${Date.now()}`,
       role: 'auto',
-      content: e?.data?.message || 'すみません、うまくお答えできませんでした。阪中さんに確認しますね。',
+      content: e?.data?.message || 'すみません、うまくお答えできませんでした。ゲストハウス管理人に確認しますね。',
       kind: 'handoff',
       createdAt: '',
     })

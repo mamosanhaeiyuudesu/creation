@@ -72,7 +72,7 @@
             対応待ちの相談
             <span v-if="consults.length" class="inline-grid place-items-center min-w-[20px] h-[20px] px-1 rounded-full bg-[var(--gh-warn)] text-white text-[11px]">{{ consults.length }}</span>
             <HelpTip label="対応待ちの相談とは">
-              AIでは答えられない・対応してはいけない緊急や重要な相談です（例：鍵が開かない、トラブルなど）。AIの下書きを確認・修正して送ると、お客様に<b>「阪中さん」</b>として届きます。
+              AIでは答えられない・対応してはいけない緊急や重要な相談です（例：鍵が開かない、トラブルなど）。AIの下書きを確認・修正して送ると、お客様に<b>「ゲストハウス管理人」</b>として届きます。
             </HelpTip>
           </h2>
 

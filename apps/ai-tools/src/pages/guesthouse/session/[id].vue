@@ -63,18 +63,18 @@
               </div>
               <p class="text-[10px] font-bold mt-0.5 pl-1"
                 :class="m.role === 'host' ? 'text-[var(--gh-forest)]' : m.kind === 'handoff' ? 'text-[var(--gh-warn)]' : 'text-[var(--gh-forest-deep)]'">
-                {{ (m.role === 'host' ? '阪中さん' : m.kind === 'handoff' ? '阪中さんに確認' : '自動応答') + `（${formatDateTime(m.createdAt)}）` }}
+                {{ (m.role === 'host' ? 'ゲストハウス管理人' : m.kind === 'handoff' ? 'ゲストハウス管理人に確認' : '自動応答') + `（${formatDateTime(m.createdAt)}）` }}
               </p>
             </div>
           </div>
           <p v-if="!detail.messages.length" class="text-[13px] text-[var(--gh-ink-soft)] text-center py-6">まだ会話がありません。</p>
         </div>
 
-        <!-- 阪中さんから直接メッセージを送る -->
+        <!-- ゲストハウス管理人から直接メッセージを送る -->
         <div class="mt-4 pt-4 border-t border-[var(--gh-line)]">
           <label class="gh-dlabel">お客様に直接メッセージを送る</label>
           <p class="text-[11.5px] text-[var(--gh-ink-faint)] mb-2 leading-relaxed">
-            ここで送ると「阪中さん」名義でお客様のチャットに届きます（お客様の画面に自動で表示されます）。
+            ここで送ると「ゲストハウス管理人」名義でお客様のチャットに届きます（お客様の画面に自動で表示されます）。
           </p>
           <textarea
             v-model="directMsg"
