@@ -29,6 +29,7 @@
         <NuxtLink to="/guesthouse/houses" class="gh-btn-ghost inline-flex items-center">🏠 宿の情報</NuxtLink>
         <NuxtLink to="/guesthouse/tips" class="gh-btn-ghost inline-flex items-center">🗺 旅の情報</NuxtLink>
         <button type="button" class="gh-btn-ghost inline-flex items-center" @click="issueOpen = true">✉️ 会話を発行</button>
+        <NuxtLink to="/guesthouse/insights" class="gh-btn-ghost inline-flex items-center">📊 顧客分析</NuxtLink>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">

@@ -9,8 +9,11 @@ import type {
   Diary,
   DiaryContent,
   GuestFact,
+  GuestProfile,
+  GuestProfileData,
   HearingNote,
   House,
+  Insights,
   HouseSummary,
   ImportedMessage,
   MessageRole,
@@ -105,6 +108,14 @@ export async function ensureGuesthouseTables(db: any): Promise<void> {
     CREATE TABLE IF NOT EXISTS guesthouse_hearing_notes (
       id TEXT PRIMARY KEY, session_id TEXT NOT NULL, house_id TEXT NOT NULL,
       content TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `).catch(() => {})
+  // 顧客分析の中間データ（日記＋聞き取りメモを固定語彙で構造化）。ゲスト1組＝1行の純粋なキャッシュ。
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS guesthouse_guest_profiles (
+      session_id TEXT PRIMARY KEY, house_id TEXT NOT NULL, diary_id TEXT NOT NULL,
+      data TEXT NOT NULL DEFAULT '', vocab_version INTEGER NOT NULL DEFAULT 1,
+      computed_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `).catch(() => {})
 }
@@ -961,4 +972,160 @@ export async function saveTrendsCache(db: any, userId: string, items: TrendItem[
     )
     .bind(userId, JSON.stringify(items), fingerprint, basedOn)
     .run()
+}
+
+// ── 顧客分析の中間データ（guesthouse_guest_profiles）────────────────
+// 日記1件＝ゲスト1組を固定語彙で構造化した結果のキャッシュ。日記から必ず再生成できるので、
+// 壊れたら丸ごと消して作り直してよい（真実は日記側にある）。
+//
+// 「作り直すべきか」の判定は日記の id で行う。saveDiary が編集のたび DELETE→新UUIDで INSERT するため、
+// 日記の id が変わっていない＝中身も変わっていない、と言い切れる（ハッシュを計算する必要がない）。
+
+interface ProfileRow {
+  session_id: string
+  house_id: string
+  diary_id: string
+  data: string
+  vocab_version: number
+  computed_at: string
+}
+
+/** 保存済みプロファイルを sessionId をキーにして読む（復号済み）。 */
+export async function loadGuestProfiles(
+  event: H3Event,
+  db: any,
+  userId: string
+): Promise<Map<string, { diaryId: string; vocabVersion: number; computedAt: string; data: GuestProfileData }>> {
+  const rows = await db
+    .prepare(
+      `SELECT p.* FROM guesthouse_guest_profiles p
+       JOIN guesthouse_houses h ON h.id = p.house_id
+       WHERE h.user_id = ?`
+    )
+    .bind(userId)
+    .all<ProfileRow>()
+
+  const out = new Map<string, { diaryId: string; vocabVersion: number; computedAt: string; data: GuestProfileData }>()
+  for (const r of rows?.results ?? []) {
+    let data: GuestProfileData | null = null
+    try {
+      data = JSON.parse(await decryptComment(event, r.data))
+    } catch {
+      continue // 壊れた行は無かったことにする（次回の更新で作り直される）
+    }
+    if (data) {
+      out.set(r.session_id, {
+        diaryId: r.diary_id,
+        vocabVersion: r.vocab_version ?? 0,
+        computedAt: r.computed_at,
+        data,
+      })
+    }
+  }
+  return out
+}
+
+/** プロファイルを保存（ゲスト1組＝1行・upsert）。data はお客様の情報を含むので暗号化する。 */
+export async function saveGuestProfile(
+  event: H3Event,
+  db: any,
+  sessionId: string,
+  houseId: string,
+  diaryId: string,
+  vocabVersion: number,
+  data: GuestProfileData
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO guesthouse_guest_profiles (session_id, house_id, diary_id, data, vocab_version, computed_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(session_id) DO UPDATE SET
+         house_id = excluded.house_id, diary_id = excluded.diary_id, data = excluded.data,
+         vocab_version = excluded.vocab_version, computed_at = excluded.computed_at`
+    )
+    .bind(sessionId, houseId, diaryId, await encryptComment(event, JSON.stringify(data)), vocabVersion)
+    .run()
+}
+
+/** 日記が消えた（セッションごと削除された）ゲストのプロファイルを片付ける。 */
+export async function pruneGuestProfiles(db: any, userId: string, liveSessionIds: string[]): Promise<void> {
+  const rows = await db
+    .prepare(
+      `SELECT p.session_id FROM guesthouse_guest_profiles p
+       JOIN guesthouse_houses h ON h.id = p.house_id
+       WHERE h.user_id = ?`
+    )
+    .bind(userId)
+    .all<{ session_id: string }>()
+  const live = new Set(liveSessionIds)
+  const orphans = (rows?.results ?? []).map((r: { session_id: string }) => r.session_id).filter((id: string) => !live.has(id))
+  for (const id of orphans) {
+    await db.prepare('DELETE FROM guesthouse_guest_profiles WHERE session_id = ?').bind(id).run()
+  }
+}
+
+/** 宿id → 宿名 の対応表（プロファイルに宿名を添えるため）。 */
+export async function loadHouseNames(db: any, userId: string): Promise<Map<string, string>> {
+  const rows = await db
+    .prepare('SELECT id, name FROM guesthouse_houses WHERE user_id = ?')
+    .bind(userId)
+    .all<{ id: string; name: string }>()
+  return new Map((rows?.results ?? []).map((r: { id: string; name: string }) => [r.id, r.name]))
+}
+
+/**
+ * 顧客分析ページに渡すデータ一式を、保存済みのプロファイルから組み立てる（Claude は呼ばない）。
+ * 日記があるのに新鮮なプロファイルが無い＝まだ抽出していない／日記が編集された、なので stale になる。
+ */
+export async function buildInsights(event: H3Event, db: any, userId: string, vocabVersion: number): Promise<Insights> {
+  const [diaries, cached, houseNames] = await Promise.all([
+    loadAllDiaries(event, db, userId),
+    loadGuestProfiles(event, db, userId),
+    loadHouseNames(db, userId),
+  ])
+
+  const profiles: GuestProfile[] = []
+  let computedAt: string | null = null
+
+  for (const d of diaries) {
+    const hit = cached.get(d.sessionId)
+    // 日記の id が変わっている＝編集された、語彙が上がった＝作り直しが必要。どちらも「無い」扱いにする。
+    if (!hit || hit.diaryId !== d.id || hit.vocabVersion !== vocabVersion) continue
+    profiles.push({
+      ...hit.data,
+      sessionId: d.sessionId,
+      houseId: d.houseId,
+      houseName: houseNames.get(d.houseId) ?? '',
+      guestName: d.guestName,
+    })
+    if (!computedAt || hit.computedAt > computedAt) computedAt = hit.computedAt
+  }
+
+  return {
+    profiles,
+    basedOn: profiles.length,
+    diaryCount: diaries.length,
+    computedAt,
+    stale: profiles.length !== diaries.length,
+  }
+}
+
+/** 全宿の聞き取りメモを sessionId でまとめて読む（プロファイル抽出でセッションごとに引かないため）。 */
+export async function loadAllHearingNotesBySession(event: H3Event, db: any, userId: string): Promise<Map<string, string[]>> {
+  const rows = await db
+    .prepare(
+      `SELECT n.session_id, n.content FROM guesthouse_hearing_notes n
+       JOIN guesthouse_houses h ON h.id = n.house_id
+       WHERE h.user_id = ? ORDER BY n.created_at`
+    )
+    .bind(userId)
+    .all<{ session_id: string; content: string }>()
+
+  const out = new Map<string, string[]>()
+  for (const r of rows?.results ?? []) {
+    const text = await decryptComment(event, r.content)
+    if (!text) continue
+    out.set(r.session_id, [...(out.get(r.session_id) ?? []), text])
+  }
+  return out
 }

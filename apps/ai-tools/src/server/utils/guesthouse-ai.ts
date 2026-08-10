@@ -3,7 +3,8 @@
 import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
 import { buildKnowledgeBase } from '~/server/utils/guesthouse'
 import { buildTriageSystem, buildAnswerSystem, buildEmergencyReplySystem, buildInfoGapReplySystem, WEB_SEARCH } from '~/server/utils/guesthouse-policy'
-import type { ChatMessage, Diary, DiaryContent, ExtractResult, ExtractedFact, ExtractedTip, FarewellDraft, House, ThreadMessage, Tip, TipExtractResult, TrendItem } from '~/types/guesthouse'
+import { buildProfileExtractSystem, INTEREST_TOPICS, SATISFACTION_ASPECTS } from '~/server/utils/guesthouse-insights'
+import type { AspectMention, ChatMessage, Diary, DiaryContent, ExtractResult, ExtractedFact, ExtractedTip, FarewellDraft, GuestProfileData, House, StayType, ThreadMessage, Tip, TipExtractResult, TrendItem } from '~/types/guesthouse'
 
 /** 会話を読みやすいテキスト起こしにする（プロンプト用）。 */
 export function threadTranscript(messages: ThreadMessage[]): string {
@@ -176,13 +177,23 @@ export async function generateDiary(
 次の JSON のみを返す（前後に説明やコードブロック記号を付けない）:
 {
   "nationality": "国籍・出身（会話・メモから分かれば。不明なら空文字）",
-  "itinerary": "旅程（どこから来て、次にどこへ行くか等。分かる範囲で）",
+  "itinerary": "旅程。下の「旅程に必ず含めること」に沿って書く",
   "highlights": "この滞在で印象的だったこと・お客様が喜んだこと",
   "notes": "阪中さんの気づき／次のお客様や宿づくりへの活かし方"
 }
 
+# 旅程に必ず含めること
+この宿は、旅行者にとって高野山エリアに滞在する数日の一部です。宿の中だけでなく、
+「この地域での数日間がどんな旅だったか」が後から読み取れるように、分かる範囲で次を入れる。
+1. 何泊したか
+2. **エリア内でどこへ行き、どう時間を使ったか**（例：丸一日で奥之院・壇上伽藍、早朝に散策、半日だけ観光して午後は宿で休息）
+3. どこから来て、次にどこへ向かうか（例：大阪から入り京都へ抜ける／関空へ直行）
+4. 移動手段（例：ケーブルカー、レンタカー、路線バス）
+5. 宿が提供した体験に参加したか（例：川遊び案内、農園の果物、食事）
+
 # 方針
 - 会話・聞き取りメモに書かれていないことは想像で埋めない。分からない欄は空文字にする。
+  上の1〜5も、書かれていない項目は無理に埋めず、分かるものだけ書く。
 - 個人が特定される連絡先などは書かない（旅の傾向や好みなど、運営に活きる情報に絞る）。
 - 日本語で書く。${existingBlock}`
 
@@ -493,4 +504,63 @@ export async function computeTrends(apiKey: string, diaries: Diary[]): Promise<T
   return items
     .map((it: any) => ({ title: String(it?.title ?? '').trim(), detail: String(it?.detail ?? '').trim() }))
     .filter((it: TrendItem) => it.title || it.detail)
+}
+
+/**
+ * 日記1件＋その滞在の聞き取りメモから、顧客分析用の構造化データ（中間データ）を抽出する。
+ * 語彙・方針は guesthouse-insights.ts に集約。ここは呼び出しと、固定語彙への正規化だけを担う。
+ */
+export async function extractGuestProfile(
+  apiKey: string,
+  diary: Diary,
+  hearingNotes: string[] = []
+): Promise<GuestProfileData> {
+  const c = diary.content
+  const notesBlock = hearingNotes.length
+    ? `\n\n聞き取りメモ:\n"""\n${hearingNotes.map((n, i) => `${i + 1}. ${n}`).join('\n')}\n"""`
+    : ''
+
+  const out = await callClaudeText(apiKey, {
+    system: buildProfileExtractSystem(),
+    maxTokens: 1200,
+    messages: [
+      {
+        role: 'user',
+        content: `お客さん日記:\n"""\n国籍・出身: ${c.nationality}\n旅程: ${c.itinerary}\n印象的だったこと: ${c.highlights}\n気づき: ${c.notes}\n"""${notesBlock}`,
+      },
+    ],
+  })
+
+  const p = parseJsonLoose<any>(out) ?? {}
+  const str = (v: any) => String(v ?? '').trim()
+  // 固定語彙から外れた値は捨てる（AIが勝手な語を作っても集計が壊れないようにする）。
+  const strList = (v: any, allowed?: readonly string[]) =>
+    (Array.isArray(v) ? v : [])
+      .map((x: any) => str(x))
+      .filter((x: string) => x && (!allowed || allowed.includes(x)))
+
+  const stayType: StayType = (['base', 'destination', 'transit'] as const).includes(p?.stayType)
+    ? p.stayType
+    : 'unknown'
+
+  return {
+    stayType,
+    nights: Number.isFinite(Number(p?.nights)) ? Math.max(0, Math.trunc(Number(p.nights))) : 0,
+    originCountry: str(p?.originCountry),
+    prevStop: str(p?.prevStop),
+    nextStop: str(p?.nextStop),
+    areaSpots: strList(p?.areaSpots),
+    innExperiences: strList(p?.innExperiences),
+    topics: strList(p?.topics, INTEREST_TOPICS),
+    aspects: (Array.isArray(p?.aspects) ? p.aspects : [])
+      .map((a: any) => ({
+        aspect: str(a?.aspect),
+        sentiment: a?.sentiment === 'negative' ? ('negative' as const) : ('positive' as const),
+        quote: str(a?.quote),
+      }))
+      // 引用が無いものは根拠を追えないので捨てる（阪中さんが元の言葉に戻れることが前提）。
+      .filter((a: AspectMention) => a.quote && SATISFACTION_ASPECTS.includes(a.aspect as any)),
+    beforeExpectation: str(p?.beforeExpectation),
+    afterImpression: str(p?.afterImpression),
+  }
 }
