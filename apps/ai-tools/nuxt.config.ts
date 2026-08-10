@@ -50,6 +50,10 @@ gtag('config', 'G-JRBVTJYCEH');`,
     fitbitClientId: '',
     fitbitClientSecret: '',
     fitbitRedirectUri: '',
+    // life（人生のインタビュー）Google連携。Sheets/Driveへの書き込み用（fitbitとは別のOAuthクライアント）
+    lifeGoogleClientId: '',
+    lifeGoogleClientSecret: '',
+    lifeGoogleRedirectUri: '',
     // ippon（Sketch2View）3D生成プロバイダ。鍵が無ければ mock にフォールバック。
     ipponProvider: '', // 'tripo' | 'mock'（既定 mock）
     tripoApiKey: '',
