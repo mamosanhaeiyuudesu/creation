@@ -47,7 +47,7 @@ const {
 
 const {
   boards, allDates, loading, saving, error,
-  showBoardEditModal, boardEditForm,
+  showBoardEditModal, boardEditTarget, boardEditForm,
   openEditBoard, saveBoardMeta,
   showTaskModal, editTarget, taskForm, isEditing, modalTitle,
   pendingDone, pendingDueInput,
@@ -56,7 +56,8 @@ const {
   load: loadBoards, formatDate, doneTotal, doneEffort, boardDoingEffort, boardTodoEffort, boardColor, boardBorderStyle,
   markDone, confirmMarkDone, unmarkDone,
   openAddTask, openEditTask, openEditDoneTask, saveTask, deleteTask,
-} = useTaskBoards(apiKey, apiToken, excludedBoards, startMonth, endMonth)
+  moveBoardLeft, moveBoardRight,
+} = useTaskBoards(apiKey, apiToken, excludedBoards, activeProfileId, startMonth, endMonth)
 
 const {
   dragging, dragOverCardId, dragOverEndKey,
@@ -249,6 +250,11 @@ const showPendingDone = computed({
   set: (v: boolean) => { if (!v) pendingDone.value = null },
 })
 
+const boardEditIndex = computed(() => {
+  const target = boardEditTarget.value
+  return target ? boards.value.findIndex(b => b.id === target.id) : -1
+})
+
 onMounted(async () => {
   await checkAuth()
   if (!isLoggedIn.value) return
@@ -390,30 +396,53 @@ watch(isLoggedIn, async (v) => {
   <!-- ボード編集ダイアログ -->
   <div v-if="showBoardEditModal" class="fixed inset-0 z-[200] flex items-center justify-center">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showBoardEditModal = false" />
-    <div class="relative bg-[#1e293b] border border-white/[0.12] rounded-2xl p-5 w-[360px] shadow-2xl" @click.stop>
-      <h3 class="text-[14px] font-semibold text-slate-200 mb-4">ボードを編集</h3>
-      <div class="flex flex-col gap-3 mb-5">
-        <div>
-          <label class="block text-[11px] text-slate-500 mb-1.5">ボード名</label>
-          <input
-            v-model="boardEditForm.name"
-            type="text"
-            class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-slate-200 focus:outline-none focus:border-sky-400/50"
-          />
-        </div>
-        <div>
-          <label class="block text-[11px] text-slate-500 mb-1.5">概要 <span class="text-slate-600">（AIによる称賛に反映されます）</span></label>
-          <textarea
-            v-model="boardEditForm.description"
-            rows="4"
-            class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-slate-200 resize-none focus:outline-none focus:border-sky-400/50 placeholder-slate-600"
-            placeholder="このボードの目的・概要を入力..."
-          />
+    <div class="relative w-[min(480px,100%)] bg-[#1e293b] border border-white/10 rounded-2xl p-7 flex flex-col gap-3" @click.stop>
+      <h2 class="m-0 mb-1 text-lg font-bold text-slate-50">ボードを編集</h2>
+
+      <div class="flex flex-col gap-1">
+        <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">ボード名</label>
+        <input
+          v-model="boardEditForm.name"
+          type="text"
+          class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)]"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">概要 <span class="text-slate-600 normal-case">（AIによる称賛に反映されます）</span></label>
+        <textarea
+          v-model="boardEditForm.description"
+          rows="3"
+          class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.1)] resize-y min-h-[80px] leading-relaxed"
+          placeholder="このボードの目的・概要を入力..."
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">表示順</label>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            class="flex-1 px-3 py-2 rounded-lg border border-white/10 bg-white/[0.06] text-slate-300 text-[13px] cursor-pointer hover:bg-white/[0.12] disabled:opacity-30 disabled:cursor-not-allowed"
+            :disabled="boardEditIndex <= 0"
+            @click="boardEditTarget && moveBoardLeft(boardEditTarget)"
+          >← 左へ</button>
+          <button
+            type="button"
+            class="flex-1 px-3 py-2 rounded-lg border border-white/10 bg-white/[0.06] text-slate-300 text-[13px] cursor-pointer hover:bg-white/[0.12] disabled:opacity-30 disabled:cursor-not-allowed"
+            :disabled="boardEditIndex < 0 || boardEditIndex >= boards.length - 1"
+            @click="boardEditTarget && moveBoardRight(boardEditTarget)"
+          >右へ →</button>
         </div>
       </div>
-      <div class="flex justify-end gap-2">
-        <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-slate-400 text-[12px] cursor-pointer hover:bg-white/[0.08]" @click="showBoardEditModal = false">キャンセル</button>
-        <button class="px-4 py-1.5 rounded-lg border-none bg-gradient-to-br from-sky-400 to-indigo-500 text-white text-[12px] font-semibold cursor-pointer hover:opacity-90 disabled:opacity-50" :disabled="saving" @click="saveBoardMeta">{{ saving ? '保存中…' : '保存' }}</button>
+
+      <div class="flex items-center gap-2 mt-1">
+        <button class="px-4 py-2 rounded-lg bg-white/[0.08] border border-white/10 text-slate-400 text-[13px] cursor-pointer transition-all hover:bg-white/[0.12]" @click="showBoardEditModal = false">キャンセル</button>
+        <button
+          class="px-4 py-2 rounded-lg border-none bg-gradient-to-br from-sky-400 to-indigo-500 text-white text-[13px] font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="saving"
+          @click="saveBoardMeta"
+        >{{ saving ? '保存中…' : '保存' }}</button>
       </div>
     </div>
   </div>
