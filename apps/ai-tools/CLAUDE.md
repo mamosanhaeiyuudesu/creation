@@ -25,7 +25,25 @@ NUXT_FITBIT_CLIENT_ID=...      # Google Cloud の OAuth 2.0 クライアントID
 NUXT_FITBIT_CLIENT_SECRET=...  # 同上シークレット
 NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
 NUXT_RESEND_API_KEY=...        # task アラートのメール送信（Resend）。dev では未使用
+NUXT_LIFE_GOOGLE_CLIENT_ID=...      # Google Cloud の OAuth 2.0 クライアントID（life連携用。fitbitとは別クライアント）
+NUXT_LIFE_GOOGLE_CLIENT_SECRET=...  # 同上シークレット
+NUXT_LIFE_GOOGLE_REDIRECT_URI=...   # 例: https://<host>/api/life/google/callback
 ```
+
+### life（人生のインタビュー）のGoogle連携セットアップ
+
+fitbitとは別に、Google Cloud で新規に OAuth 2.0 クライアントを発行する（Sheets/Driveへの書き込み用で、
+スコープが異なるため使い回さない）。
+
+1. Google Cloud Console で対象プロジェクトの「Google Sheets API」「Google Drive API」を有効化
+2. OAuth同意画面でスコープに `drive.file` を追加（アプリが作成したファイルにのみアクセスする最小権限）
+3. OAuth 2.0 クライアントID（ウェブアプリケーション）を発行し、リダイレクトURIに
+   `https://<host>/api/life/google/callback`（ローカルは `http://localhost:3000/api/life/google/callback`）を登録
+4. `.env` に `NUXT_LIFE_GOOGLE_CLIENT_ID` / `NUXT_LIFE_GOOGLE_CLIENT_SECRET` / `NUXT_LIFE_GOOGLE_REDIRECT_URI` を設定
+   （本番は `wrangler secret put` でシークレットを登録し、`NUXT_LIFE_GOOGLE_REDIRECT_URI` は `wrangler.toml` の `[vars]`）
+
+※ 回答本文はD1に保存しない。連携ユーザーの「本人のGoogleドライブ」に作成した専用スプレッドシートへ
+Sheets APIで直接読み書きする（`life-google.ts`）。D1が持つのはリフレッシュトークン（暗号化）とスプレッドシートIDの参照だけ。
 
 ### task アラート（メール通知）のセットアップ
 
@@ -80,6 +98,7 @@ NUXT_APP_URL = "https://<host>"                            # メール本文の�
 | `/momo` | 桃農家向け 注文管理アプリ。SNSの会話ログを貼り付け→AI(Claude)が注文情報を構造化抽出→確認・修正して保存。納品日順一覧・品種×サイズ選果集計・佐川e飛伝III取込CSV出力（宛先空欄）。桃色の専用レイアウト（ナビ非表示・直接URL） |
 | `/ippon` | 什器・インテリア設計者向け Sketch2View。紙スケッチを撮影→前処理(クライアントCanvas)→Claude(vision)が形状を読み解き→3D生成→3Dビュー(model-viewer)＋公開共有リンク。目的はイメージ伝達で製作精度は非目的。3D生成は `ippon-provider.ts` で抽象化（provider=mock はマッシングGLBを手続き生成／tripo はTripo AI）。工房トーンの専用レイアウト（ナビ非表示・直接URL）。`/ippon/view/:token` はログイン不要の共有閲覧 |
 | `/life-analyzer` | 人生の影と光。自分について語られたテキストを貼り付けて保存（名前はAIが命名）→ 履歴から1件でも複数件でも選んで分析 → **影5つ（左）・光5つ（右）のコア**（日本語15文字以内）を cytoscape の図に出す。各コアの外側にそれを裏づける具体的な出来事が3つ並び、クリックすると元テキストを読み返したAI要約＋引用＋問いかけのポップアップが出る（1度作ったら `life_episode_summaries` にキャッシュ）。図の配置は意味を持つので力学レイアウトではなく **preset（決め打ち座標）**。コアをクリックするとその周りへ寄る。分析は対象テキストの組み合わせ（signature）でキャッシュし、「分析し直す」だけ AI を呼び直す。本文・分析結果は `encrypt.ts` で暗号化保存。夜明け前トーンの専用レイアウト（ナビ非表示・直接URL） |
+| `/life` | 人生のインタビュー。ライフステージ別（幼少期・学童期・思春期・青年期・現在）のテーマカードから選び、AIインタビュアーとチャット形式で深掘りしていく。テーマの軸をずらさず一問一答で深掘りするトーンは `life-chat.ts` の `buildLifeSystemPrompt` に集約。**回答内容はD1に保存せず、本人のGoogleアカウントと連携（`drive.file`スコープのみ）して作成した専用スプレッドシートへテーマごとのタブ（日時・話者・発言）として直接書き込む**（運営者は内容を保存・閲覧しない）。連携解除してもスプレッドシート自体は本人のドライブに残る。ロジックは `life-google.ts`（OAuth・Sheets API）と `life-chat.ts`（プロンプト・整形）。生成りの紙トーンの専用レイアウト（ナビ非表示・直接URL） |
 | `/kiroku` | 感情メモアプリ。開いたら即書けるテキストボックス1つの入力画面と、記録一覧（`/kiroku/notes`）だけ。**保存先は端末の localStorage のみ**（サーバー・D1・認証・API を一切使わない＝感情の記録が外に出ないことが前提）。**AIによる分析・要約・助言、感情のタグ付け、採点、連続日数（ストリーク）、催促通知は意図的に実装しない**（読み解きは人間同士のセッションに委ねる、というコンセプト）。達成感は「足跡」で与える＝保存時の控えめな「記録しました」、隅の「これまで N の気づき」、記録した日に印がつくカレンダー（書かなかった日は強調しない）。一覧では日付ごとに区切って表示・3行で省略しタップで全文・編集/削除（確認ダイアログ）・キーワード検索・日で絞り込み・まとめてコピー/.txt保存（セッションで一緒に読み返すため）。書きかけは下書きとして端末に残る。生成りの紙トーンの専用レイアウト（ナビ非表示・直接URL）、ダークモード対応（既定は端末設定）、PWA（`manifest-kiroku.json`）。ロジックは `composables/kiroku/` |
 | `/keiko` | 剣道 けいこ記録アプリ（護さん家族向け）。デフォルトは週表示（日曜始まり）＝縦にメンバー（護・匡・真啓、既定値でシード）、横に日付・曜日、練習項目（素振り等。設定⚙から事前設定・表示/非表示・削除が可能）ごとの行で、セルをタップすると花丸（💮）がつく/消える。ログイン必須（既存 users/sessions に相乗り、記録は user_id でスコープ）。週の前後移動・「今週に戻る」あり。道場トーンの専用レイアウト（ナビ非表示・直接URL） |
 | `/guesthouse` | ゲストハウス案内アプリ（阪中さん向け）。ホスト側は管理者(admin)専用＝mamorin/sakana のみ（kaki と同じ `users.role` 共用）。**`/guesthouse` は管理トップ（ダッシュボード）**＝左は「進行中のチャット」＋「対応待ちの相談（AI下書きを確認・修正・送信）」、右は「傾向」の2カラム（スマホは上下）。進行中パネルの「すべて見る」→ `/guesthouse/sessions`（全宿横断のチャット一覧・**進行中/クローズ済み/宿で絞り込み**）。チャットはホストが**クローズ/再開**でき（`guesthouse_sessions.status`＝active/closed。会話詳細と一覧から切替。クローズ済みでもお客様が新規発言すると自動で active に戻る＝取りこぼし防止）。傾向は全宿横断でユーザー単位にキャッシュ（`guesthouse_trends`）、材料は**お客さん日記**（`computeTrends`。レビュー・意見機能は廃止済み）。「更新」ボタンで再計算するが**指紋（日記id集合）が前回と同じなら再計算せずスキップ**。件数は「日記N件」で表示。管理トップの「顧客分析」タブから `/guesthouse/insights`（**顧客分析**＝日記＋聞き取りメモを**固定語彙**でAI構造化した中間データ `guesthouse_guest_profiles` を集計して見せる。①**旅程のなかの宿**＝前の滞在地→宿→次の行き先の Sankey（echarts。「大阪から入り大阪へ」の往復で循環エラーにならないよう列ごとに接頭辞を付けてノードを分ける）②**宿が占めた位置**＝拠点型/目的地型/通過型の内訳（さかなさんの「エリア数日の中で宿がどんな位置を占めるか」に答える軸。時間配分は日記から取れないが役割なら読める）③**満足度**＝側面ごとの言及数と根拠になった原文の引用（**点数は付けない**＝自由記述から数値を作ると根拠のない精度が出るため、件数と引用だけ）④関心の対象・エリア内の立ち寄り先・宿が提供した体験・お客様ごとの読み取り結果）。各ページの説明は見出し横の「?」（`components/guesthouse/HelpTip.vue`）のポップアップに集約。登録系は `/guesthouse/houses`（宿ごとにコンセプト＋事務案内(info)＋共有リンク/QR。編集は `/guesthouse/[id]`＝案内の編集/会話ログ/お客さん日記の3タブ）、`/guesthouse/tips`（ホスト共通の旅の情報＝おすすめ素材）。**お客様チャット**：`/guesthouse/stay/:token` はログイン不要（宿ごと1リンク・session_id はお客様ブラウザ保持で滞在セッションを永続化）。**原則 AI が自分で答える**（auto）＝宿の質問は info を根拠に、観光・食事・周辺は一般知識＋**Web検索**(Claudeのweb_searchツール)で補う。人間のフリはしない。**本当に緊急・AIでは対応不能なものだけ**阪中さんへ引き継ぐ(handoff)→短い「すぐ取り次ぎます」を会話に残し、相談＋AI下書きが管理トップに出る→承認して送ると「阪中さん」ラベルでお客様スレッドへ（5秒ポーリング受信）。**この匙加減（緊急の線引き・Web検索の有無/回数・応答方針）は `guesthouse-policy.ts` に集約**（後で調整しやすいよう1か所に）。会話詳細(`/guesthouse/session/:id`)でお客さん日記（自由記述1本。自分で手入力もできるし、AIが**会話＋聞き取りメモ**から下書きも作れる。日記の `itinerary` は顧客分析の主材料なので、生成プロンプトが**エリア内でどこへ行きどう時間を使ったか・前後の導線・移動手段・宿発の体験**まで書くよう指示している＝阪中さんの入力の手間を増やさずに分析の材料を厚くする方針。すでに書かれている内容がある状態でAI生成すると、上書きかマージか確認する）・聞き取りメモ（阪中さんが対面などで直接聞いた内容を自由記述で書き留める。日記と違い1セッションに複数件持て、追加/編集/削除ができる。AI生成はなく手入力のみ）・お礼＆レビュー依頼の下書き。**実際の予約対応は今もBooking.com上で行っており、このアプリのチャット機能自体はまだ使われていない**ため、会話ログには「Booking.comの履歴を取り込む」機能がある＝コピペした原文を貼ると、メッセージ本文と日時（時刻＋日付区切り「YYYY年M月D日」/曜日1文字/「今日」）を**プログラムで機械的に**1件ずつへ分割し（`guesthouse-import.ts` の `parseBookingThread`）、**発言者（ゲスト/阪中さん）の分類だけAIに判定させ**（`classifyImportedMessages`）、確認・修正してから会話の続きとして保存する（`kind='import'`）。日記からAIが傾向抽出（学習ループ）。AI呼び出しは `guesthouse-ai.ts`。里山トーンの専用レイアウト（ナビ非表示・直接URL） |
@@ -108,6 +127,8 @@ NUXT_APP_URL = "https://<host>"                            # メール本文の�
   - 適用: `034_guesthouse.sql` → `035_guesthouse_phase2.sql`（facts へ `type` 追加＋会話/相談/日記。ALTER 含むので再実行不可）→ `036_guesthouse_tips.sql`（旅の情報の共通テーブル）→ `037_guesthouse_trends.sql`（傾向キャッシュ）→ `038_guesthouse_reviews.sql`（レビュー・意見＋傾向に reviews_based_on 列追加。ALTER 含むので再実行不可）→ `041_guesthouse_hearing_notes.sql`（聞き取りメモ）→ `043_guesthouse_guest_profiles.sql`（顧客分析の中間データ）を順に `wrangler d1 execute whisper-db --remote --file ...`
 - `WHISPER_DB` 相乗り（life-analyzer）: life_documents（貼り付けたテキスト。本文・抜粋は暗号化）/ life_analyses（影5・光5のコア＝分析キャッシュ。`signature`＝対象テキストIDのソート連結がキー。結果JSONは暗号化）/ life_episode_summaries（出来事ノードのAI要約キャッシュ。analysis_id × node_key で一意）。既存 users/sessions 認証に相乗りし、すべて `user_id` でスコープ。テーブルは `ensureLifeTables()` で自動生成もされる。
   - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/039_life_analyzer.sql`
+- `WHISPER_DB` 相乗り（life）: life_google_connections（Google連携1件＝ユーザーごと1行。`refresh_token` は暗号化、`spreadsheet_id`/`spreadsheet_url` は本人のドライブに作成したスプレッドシートへの参照）/ life_oauth_states（fitbitと同じ理由でのOAuth一時state保管）。**回答本文・会話ログはここには一切保存しない**（本人のスプレッドシートが唯一の保存先）。テーブルは `ensureLifeGoogleTables()` で自動生成もされる。
+  - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/042_life.sql`
 - `WHISPER_DB` 相乗り（task アラート）: task_alerts（重要タスクのメール通知設定。ユーザーごとに1行。`hours` は JST の送信時刻をカンマ区切り "8,13,18"、`email_enc` は `encrypt.ts` で暗号化、`last_sent_at` は "YYYY-MM-DD HH" で同一時間帯の二重送信を防ぐ）。テーブルは `ensureTaskAlertTable()` で自動生成もされる。
   - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/040_task_alerts.sql`
 - `WHISPER_DB` 相乗り（keiko）: keiko_members（メンバー。ユーザーごとに管理、既定値で護/匡/真啓をシード）/ keiko_items（練習項目カタログ。`active`列で表示/非表示）/ keiko_records（花丸＝メンバー×項目×日で1件。存在する＝できた、`(member_id, item_id, date)` に一意制約）。既存 users/sessions 認証に相乗りし、すべて `user_id` でスコープ。テーブルは `ensureKeikoTables()` で自動生成もされる。
@@ -141,6 +162,8 @@ NUXT_APP_URL = "https://<host>"                            # メール本文の�
 | `guesthouse.ts` | guesthouse の認証（admin判定・user_idスコープ）・テーブル用意・宿/案内項目(info/tip)の整形・共有トークン・知識ベース組み立て・滞在セッション/メッセージ/相談/日記の読み書き |
 | `guesthouse-ai.ts` | guesthouse の Claude 呼び出し集約（お客様チャットの緊急判定 triage・通常応答 answer(Web検索対応)・緊急時の取り次ぎ返信・相談の下書き・お客さん日記生成・お礼/レビュー依頼下書き・傾向抽出・Booking.com取り込みメッセージの発言者分類 `classifyImportedMessages`・顧客分析の構造化抽出 `extractGuestProfile`＝固定語彙から外れたタグや原文にない引用を捨てる正規化までここで行う） |
 | `life-analyzer.ts` | life-analyzer の認証（user_idスコープ）・テーブル用意・テキスト/分析/要約の読み書き（本文と結果は `encrypt.ts` で暗号化）・分析キャッシュの署名（`analysisSignature`）・AIに渡す資料の組み立て（`buildSourceText`＝複数テキストを均等に上限まで） |
+| `life-google.ts` | life の Google OAuth2（PKCE, スコープ `drive.file` のみ）・専用スプレッドシートの作成（初回連携時、テーマごとのタブ＋見出し行を用意）・テーマのタブへの会話ログの読み書き（`readThemeHistory`/`appendThemeRows`）。access_tokenは永続化せず都度リフレッシュする |
+| `life-chat.ts` | life チャットのシステムプロンプト（`buildLifeSystemPrompt`＝テーマの軸をずらさず一問一答で深掘りする、という要件をここに集約。トーン調整はここだけ触ればよい）と日時整形 |
 | `task-alert.ts` | task アラートの集約（task_alerts の用意、Trello から重要タスク＝赤ラベルの収集、メール本文の組み立て、Resend の HTTP API での送信）。Cron と API の両方から使うため H3Event ではなく Worker の env を受け取る |
 | `life-analyzer-ai.ts` | life-analyzer の Claude 呼び出し集約（テキストの命名・影5/光5のコア抽出・出来事ノードの要約）。**「診断」ではなく本人が気づくための材料**という姿勢をシステムプロンプトに集約しているので、トーン調整はここだけ触る |
 | `guesthouse-insights.ts` | guesthouse **顧客分析の匙加減を集約**（滞在の型の判定基準・満足度の側面と関心の対象の**固定語彙**・抽出システムプロンプト・`VOCAB_VERSION`）。AIに自由にタグを振らせると「食事/料理/ごはん」が別タグになり時系列で見ているものが語彙のブレになるため語彙を閉じている。**語彙や方針を変えたら `VOCAB_VERSION` を +1**（全プロファイルが作り直される）。分析軸の変更は基本ここだけ編集 |
