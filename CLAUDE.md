@@ -23,7 +23,7 @@ apps/
 
 ## どのディレクトリで作業するか
 
-`apps/ai-tools/` → キーワード: **miyako・whisper・hagemashi・task・deepheart・mlb・office・kaki・momo・ippon・guesthouse・life-analyzer・life・kiroku・ai-tools 全般**
+`apps/ai-tools/` → キーワード: **miyako・whisper・hagemashi・task・deepheart・mlb・office・kaki・momo・ippon・guesthouse・life-analyzer・kiroku・keiko・ai-tools 全般**
 
 各ホームページ → 下表のキーワードのディレクトリ
 

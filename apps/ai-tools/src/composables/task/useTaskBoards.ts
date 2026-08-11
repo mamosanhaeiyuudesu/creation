@@ -2,8 +2,8 @@ import { ref, computed } from 'vue'
 import type { ComputedRef, Ref } from 'vue'
 
 export function parseTaskName(name: string): { displayName: string; effort: number } {
-  const m = name.match(/ (\d{1,2})$/)
-  if (m) return { displayName: name.slice(0, -m[0].length), effort: parseInt(m[1], 10) }
+  const m = name.match(/ (\d{1,2}(?:\.\d{1,2})?)$/)
+  if (m) return { displayName: name.slice(0, -m[0].length), effort: parseFloat(m[1]) }
   return { displayName: name, effort: 1 }
 }
 
@@ -48,6 +48,7 @@ export function useTaskBoards(
   apiKey: ComputedRef<string>,
   apiToken: ComputedRef<string>,
   excludedBoards: ComputedRef<string[]>,
+  profileId: Ref<string>,
   startMonth: Ref<string>,
   endMonth: Ref<string>,
 ) {
@@ -109,10 +110,15 @@ export function useTaskBoards(
   const todoEffort = computed(() => boards.value.reduce((s, b) => s + b.todo.reduce((a, c) => a + c.effort, 0), 0))
 
   // --- Trello API ---
+  async function trelloError(res: Response): Promise<Error> {
+    const text = await res.text().catch(() => '')
+    return new Error(`Trello API Error: ${res.status}${text ? ` - ${text}` : ''}`)
+  }
+
   async function trelloGet(path: string) {
     const sep = path.includes('?') ? '&' : '?'
     const res = await fetch(`https://api.trello.com/1${path}${sep}key=${apiKey.value}&token=${apiToken.value}`)
-    if (!res.ok) throw new Error(`Trello API Error: ${res.status}`)
+    if (!res.ok) throw await trelloError(res)
     return res.json()
   }
 
@@ -122,7 +128,7 @@ export function useTaskBoards(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...body, key: apiKey.value, token: apiToken.value }),
     })
-    if (!res.ok) throw new Error(`Trello API Error: ${res.status}`)
+    if (!res.ok) throw await trelloError(res)
     return res.json()
   }
 
@@ -132,14 +138,14 @@ export function useTaskBoards(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...body, key: apiKey.value, token: apiToken.value }),
     })
-    if (!res.ok) throw new Error(`Trello API Error: ${res.status}`)
+    if (!res.ok) throw await trelloError(res)
     return res.json()
   }
 
   async function trelloDelete(path: string) {
     const sep = path.includes('?') ? '&' : '?'
     const res = await fetch(`https://api.trello.com/1${path}${sep}key=${apiKey.value}&token=${apiToken.value}`, { method: 'DELETE' })
-    if (!res.ok) throw new Error(`Trello API Error: ${res.status}`)
+    if (!res.ok) throw await trelloError(res)
   }
 
   async function ensureRedLabel(board: Board): Promise<string> {
@@ -202,6 +208,39 @@ export function useTaskBoards(
   function boardTodoEffort(board: Board) {
     return board.todo.reduce((s, c) => s + c.effort, 0)
   }
+
+  // --- ボード表示順（端末のlocalStorageに保存） ---
+  function boardOrderKey() {
+    return `trello_board_order_${profileId.value}`
+  }
+
+  function applyBoardOrder(sorted: Board[]): Board[] {
+    let order: string[] = []
+    try { order = JSON.parse(localStorage.getItem(boardOrderKey()) ?? '[]') } catch { order = [] }
+    const orderIndex = new Map(order.map((id, i) => [id, i]))
+    return [...sorted].sort((a, b) => {
+      const ai = orderIndex.has(a.id) ? orderIndex.get(a.id)! : Infinity
+      const bi = orderIndex.has(b.id) ? orderIndex.get(b.id)! : Infinity
+      return ai !== bi ? ai - bi : 0
+    })
+  }
+
+  function saveBoardOrder() {
+    localStorage.setItem(boardOrderKey(), JSON.stringify(boards.value.map(b => b.id)))
+  }
+
+  function moveBoard(board: Board, dir: -1 | 1) {
+    const idx = boards.value.findIndex(b => b.id === board.id)
+    if (idx < 0) return
+    const newIdx = idx + dir
+    if (newIdx < 0 || newIdx >= boards.value.length) return
+    const arr = boards.value
+    ;[arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]]
+    saveBoardOrder()
+  }
+
+  function moveBoardLeft(board: Board) { moveBoard(board, -1) }
+  function moveBoardRight(board: Board) { moveBoard(board, 1) }
 
   function boardColor(board: Board): string {
     const idx = boards.value.findIndex(b => b.id === board.id)
@@ -289,7 +328,8 @@ export function useTaskBoards(
         }),
       )
 
-      boards.value = results.sort((a, b) => a.name.localeCompare(b.name, 'ja'))
+      results.sort((a, b) => a.name.localeCompare(b.name, 'ja'))
+      boards.value = applyBoardOrder(results)
       const dateSet = new Set<string>()
       results.forEach(b => Object.keys(b.done).forEach(d => dateSet.add(d)))
       allDates.value = [...dateSet].sort().reverse()
@@ -392,7 +432,7 @@ export function useTaskBoards(
       if (!board) throw new Error('ボードが見つかりません')
       const dueIso = taskForm.value.due ? new Date(taskForm.value.due).toISOString() : ''
       const baseName = taskForm.value.name.trim()
-      const trelloName = taskForm.value.effort > 1 ? `${baseName} ${taskForm.value.effort}` : baseName
+      const trelloName = taskForm.value.effort !== 1 ? `${baseName} ${taskForm.value.effort}` : baseName
 
       if (isEditing.value && editTarget.value?.status === 'done') {
         const { card, boardId: oldBoardId, dateKey } = editTarget.value
@@ -576,6 +616,7 @@ export function useTaskBoards(
     trelloPut,
     load, buildCard, formatDate, doneTotal, doneEffort, boardDoingEffort, boardTodoEffort, boardColor, boardBorderStyle, getArr,
     rebuildAllDates, addToDoneTable,
+    moveBoardLeft, moveBoardRight,
     markDone, confirmMarkDone, unmarkDone,
     openAddTask, openEditTask, openEditDoneTask, saveTask, deleteTask,
   }

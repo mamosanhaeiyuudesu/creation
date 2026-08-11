@@ -264,3 +264,53 @@ export interface Trends {
 export interface TrendsRefreshResult extends Trends {
   updated: boolean
 }
+
+// ── 顧客分析（/guesthouse/insights）──────────────────────────
+// 日記＋聞き取りメモを固定語彙で構造化した「中間データ」。語彙とプロンプトは guesthouse-insights.ts。
+
+/** 滞在の型。base=拠点／destination=目的地／transit=通過／unknown=判断材料なし。 */
+export type StayType = 'base' | 'destination' | 'transit' | 'unknown'
+
+/** 満足度の1件。自由記述から点数は作らず、「どの側面がどちら向きに語られたか」＋原文の引用だけを持つ。 */
+export interface AspectMention {
+  aspect: string // SATISFACTION_ASPECTS の固定語彙
+  sentiment: 'positive' | 'negative'
+  quote: string // 根拠になった日記・メモの原文（言い換えなし）
+}
+
+/** AIが日記1件から抽出した内容そのもの（DBに JSON で入る部分）。 */
+export interface GuestProfileData {
+  stayType: StayType
+  nights: number
+  originCountry: string
+  prevStop: string
+  nextStop: string
+  areaSpots: string[]
+  innExperiences: string[]
+  aspects: AspectMention[]
+  topics: string[]
+  beforeExpectation: string
+  afterImpression: string
+}
+
+/** ゲスト1組分のプロファイル（抽出結果＋どのゲストのものか）。 */
+export interface GuestProfile extends GuestProfileData {
+  sessionId: string
+  houseId: string
+  houseName: string
+  guestName: string
+}
+
+/** 顧客分析ページが受け取るデータ一式。 */
+export interface Insights {
+  profiles: GuestProfile[]
+  basedOn: number // 抽出済みのゲスト組数
+  diaryCount: number // 現在の日記件数（未抽出を含む）
+  computedAt: string | null
+  stale: boolean // 日記が増減・編集されており「更新」で再抽出できる状態か
+}
+
+/** 顧客分析の更新（再抽出）結果。extracted=今回 Claude を呼んで作り直した件数。 */
+export interface InsightsRefreshResult extends Insights {
+  extracted: number
+}
