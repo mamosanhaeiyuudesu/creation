@@ -26,6 +26,21 @@ const form = ref<TaskForm>({ name: '', desc: '', due: '', boardId: '', status: '
 watch(() => props.show, (v) => {
   if (v) form.value = { ...props.initialForm }
 })
+
+// 工数は 0.25 / 0.5 の小刻みと、1以上は1刻みの2段階ステップ
+function decrementEffort() {
+  const e = form.value.effort
+  if (e === 0.5) form.value.effort = 0.25
+  else if (e === 1) form.value.effort = 0.5
+  else if (e > 1) form.value.effort = e - 1
+}
+
+function incrementEffort() {
+  const e = form.value.effort
+  if (e === 0.25) form.value.effort = 0.5
+  else if (e === 0.5) form.value.effort = 1
+  else form.value.effort = Math.min(99, e + 1)
+}
 </script>
 
 <template>
@@ -88,13 +103,13 @@ watch(() => props.show, (v) => {
               <button
                 type="button"
                 class="w-7 h-[38px] rounded-lg bg-white/[0.06] border border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/[0.12] transition-all cursor-pointer text-base leading-none"
-                @click="form.effort = Math.max(1, form.effort - 1)"
+                @click="decrementEffort"
               >−</button>
-              <span class="w-7 text-center text-[15px] font-bold text-slate-200 select-none">{{ form.effort }}</span>
+              <span class="w-10 text-center text-[15px] font-bold text-slate-200 select-none">{{ form.effort }}h</span>
               <button
                 type="button"
                 class="w-7 h-[38px] rounded-lg bg-white/[0.06] border border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/[0.12] transition-all cursor-pointer text-base leading-none"
-                @click="form.effort = Math.min(99, form.effort + 1)"
+                @click="incrementEffort"
               >＋</button>
             </div>
           </div>

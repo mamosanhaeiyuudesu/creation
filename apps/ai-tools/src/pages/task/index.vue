@@ -691,7 +691,7 @@ watch(isLoggedIn, async (v) => {
         <section class="hidden md:block px-5 pt-3 mb-8">
           <div class="flex items-center gap-2.5 mb-3.5">
             <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-sky-400/15 text-white border border-sky-400/30">DOING</span>
-            <span class="text-xl font-bold text-slate-600">{{ doingEffort }}</span>
+            <span class="text-xl font-bold text-slate-600">{{ doingEffort }}h</span>
           </div>
           <div class="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
             <div
@@ -701,7 +701,7 @@ watch(isLoggedIn, async (v) => {
               :style="boardBorderStyle(board)"
             >
               <div class="flex items-center gap-1 mb-2.5">
-                <span class="text-[11px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="boardDoingEffort(board)" class="ml-1 opacity-70">({{ boardDoingEffort(board) }})</span></span>
+                <span class="text-[11px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="boardDoingEffort(board)" class="ml-1 opacity-70">({{ boardDoingEffort(board) }}h)</span></span>
                 <button class="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-slate-400 hover:text-slate-200 cursor-pointer" title="ボードを編集" @click.stop="openEditBoard(board)">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>
                 </button>
@@ -734,7 +734,7 @@ watch(isLoggedIn, async (v) => {
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-1.5">
                         <span class="text-[13px] leading-snug text-white">{{ card.displayName }}</span>
-                        <span v-if="card.effort > 1" class="inline-block px-1 rounded text-[10px] font-bold bg-sky-400/15 text-sky-400 flex-shrink-0">{{ card.effort }}</span>
+                        <span class="inline-block px-1 rounded text-[10px] font-bold bg-sky-400/15 text-sky-400 flex-shrink-0">{{ card.effort }}h</span>
                       </div>
                       <span v-if="card.desc" class="text-[11px] text-slate-500 block mt-0.5 truncate">{{ card.desc }}</span>
                     </div>
@@ -757,7 +757,7 @@ watch(isLoggedIn, async (v) => {
         <section class="hidden md:block px-5 mb-8">
           <div class="flex items-center gap-2.5 mb-3.5">
             <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-amber-500/15 text-white border border-amber-500/30">TODO</span>
-            <span class="text-xl font-bold text-slate-600">{{ todoEffort }}</span>
+            <span class="text-xl font-bold text-slate-600">{{ todoEffort }}h</span>
           </div>
           <div class="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
             <div
@@ -767,7 +767,7 @@ watch(isLoggedIn, async (v) => {
               :style="boardBorderStyle(board)"
             >
               <div class="flex items-center gap-1 mb-2.5">
-                <span class="text-[11px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="boardTodoEffort(board)" class="ml-1 opacity-70">({{ boardTodoEffort(board) }})</span></span>
+                <span class="text-[11px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="boardTodoEffort(board)" class="ml-1 opacity-70">({{ boardTodoEffort(board) }}h)</span></span>
                 <button class="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-slate-400 hover:text-slate-200 cursor-pointer" title="ボードを編集" @click.stop="openEditBoard(board)">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>
                 </button>
@@ -800,7 +800,7 @@ watch(isLoggedIn, async (v) => {
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-1.5">
                         <span class="text-[13px] leading-snug text-white">{{ card.displayName }}</span>
-                        <span v-if="card.effort > 1" class="inline-block px-1 rounded text-[10px] font-bold bg-amber-500/15 text-amber-400 flex-shrink-0">{{ card.effort }}</span>
+                        <span class="inline-block px-1 rounded text-[10px] font-bold bg-amber-500/15 text-amber-400 flex-shrink-0">{{ card.effort }}h</span>
                       </div>
                       <span v-if="card.desc" class="text-[11px] text-slate-500 block mt-0.5 truncate">{{ card.desc }}</span>
                     </div>
@@ -823,7 +823,7 @@ watch(isLoggedIn, async (v) => {
         <section class="hidden md:block px-5">
           <div class="flex items-center gap-2.5 mb-3.5">
             <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-emerald-500/15 text-white border border-emerald-500/30">DONE</span>
-            <span class="text-xl font-bold text-slate-600">{{ boards.reduce((s, b) => s + doneEffort(b), 0) }}</span>
+            <span class="text-xl font-bold text-slate-600">{{ boards.reduce((s, b) => s + doneEffort(b), 0) }}h</span>
             <div class="ml-auto flex items-center gap-1">
               <button
                 v-for="opt in doneViewOptions"
@@ -934,10 +934,10 @@ watch(isLoggedIn, async (v) => {
           <!-- ヘッダー: TODO/DOING 合計 -->
           <div class="mb-3 flex items-center gap-2">
             <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-amber-500/15 text-white border border-amber-500/30">TODO</span>
-            <span class="text-slate-400 text-base font-bold">({{ todoEffort }})</span>
+            <span class="text-slate-400 text-base font-bold">({{ todoEffort }}h)</span>
             <span class="mx-1 text-slate-700">/</span>
             <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-sky-400/15 text-white border border-sky-400/30">DOING</span>
-            <span class="text-slate-400 text-base font-bold">({{ doingEffort }})</span>
+            <span class="text-slate-400 text-base font-bold">({{ doingEffort }}h)</span>
           </div>
 
           <!-- ボードごとに TODO(左) DOING(右) -->
@@ -954,7 +954,7 @@ watch(isLoggedIn, async (v) => {
             <div class="grid grid-cols-2 gap-1.5">
               <!-- TODO (左) -->
               <div class="rounded-xl p-2 border flex flex-col" :style="boardBorderStyle(board)">
-                <div class="text-[11px] font-bold mb-1 text-white/80">TODO<span v-if="boardTodoEffort(board)" class="ml-1">({{ boardTodoEffort(board) }})</span></div>
+                <div class="text-[11px] font-bold mb-1 text-white/80">TODO<span v-if="boardTodoEffort(board)" class="ml-1">({{ boardTodoEffort(board) }}h)</span></div>
                 <ul :class="['list-none m-0 p-0 flex flex-col gap-1 min-h-[28px]', showAll ? '' : 'overflow-y-auto max-h-[300px]']">
                   <li
                     v-for="card in board.todo"
@@ -986,7 +986,7 @@ watch(isLoggedIn, async (v) => {
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-1.5">
                         <span class="text-[14px] leading-snug text-white break-words">{{ card.displayName }}</span>
-                        <span v-if="card.effort > 1" class="inline-block px-1 rounded text-[10px] font-bold bg-amber-500/15 text-amber-400 flex-shrink-0">{{ card.effort }}</span>
+                        <span class="inline-block px-1 rounded text-[10px] font-bold bg-amber-500/15 text-amber-400 flex-shrink-0">{{ card.effort }}h</span>
                       </div>
                     </div>
                   </li>
@@ -1002,7 +1002,7 @@ watch(isLoggedIn, async (v) => {
               </div>
               <!-- DOING (右) -->
               <div class="rounded-xl p-2 border flex flex-col" :style="boardBorderStyle(board)">
-                <div class="text-[11px] font-bold mb-1 text-white/80">DOING<span v-if="boardDoingEffort(board)" class="ml-1">({{ boardDoingEffort(board) }})</span></div>
+                <div class="text-[11px] font-bold mb-1 text-white/80">DOING<span v-if="boardDoingEffort(board)" class="ml-1">({{ boardDoingEffort(board) }}h)</span></div>
                 <ul :class="['list-none m-0 p-0 flex flex-col gap-1 min-h-[28px]', showAll ? '' : 'overflow-y-auto max-h-[300px]']">
                   <li
                     v-for="card in board.doing"
@@ -1034,7 +1034,7 @@ watch(isLoggedIn, async (v) => {
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-1.5">
                         <span class="text-[14px] leading-snug text-white break-words">{{ card.displayName }}</span>
-                        <span v-if="card.effort > 1" class="inline-block px-1 rounded text-[10px] font-bold bg-sky-400/15 text-sky-400 flex-shrink-0">{{ card.effort }}</span>
+                        <span class="inline-block px-1 rounded text-[10px] font-bold bg-sky-400/15 text-sky-400 flex-shrink-0">{{ card.effort }}h</span>
                       </div>
                     </div>
                   </li>
@@ -1055,7 +1055,7 @@ watch(isLoggedIn, async (v) => {
           <div class="mt-4 pt-4 border-t border-white/[0.06]">
             <div class="flex items-center gap-2 mb-3">
               <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-emerald-500/15 text-white border border-emerald-500/30">DONE</span>
-              <span class="text-slate-400 text-base font-bold">({{ boards.reduce((s, b) => s + doneEffort(b), 0) }})</span>
+              <span class="text-slate-400 text-base font-bold">({{ boards.reduce((s, b) => s + doneEffort(b), 0) }}h)</span>
             </div>
             <div class="flex gap-3">
               <!-- 左半分: 直近1週間のDONEリスト -->

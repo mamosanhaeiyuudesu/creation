@@ -2,8 +2,8 @@ import { ref, computed } from 'vue'
 import type { ComputedRef, Ref } from 'vue'
 
 export function parseTaskName(name: string): { displayName: string; effort: number } {
-  const m = name.match(/ (\d{1,2})$/)
-  if (m) return { displayName: name.slice(0, -m[0].length), effort: parseInt(m[1], 10) }
+  const m = name.match(/ (\d{1,2}(?:\.\d{1,2})?)$/)
+  if (m) return { displayName: name.slice(0, -m[0].length), effort: parseFloat(m[1]) }
   return { displayName: name, effort: 1 }
 }
 
@@ -432,7 +432,7 @@ export function useTaskBoards(
       if (!board) throw new Error('ボードが見つかりません')
       const dueIso = taskForm.value.due ? new Date(taskForm.value.due).toISOString() : ''
       const baseName = taskForm.value.name.trim()
-      const trelloName = taskForm.value.effort > 1 ? `${baseName} ${taskForm.value.effort}` : baseName
+      const trelloName = taskForm.value.effort !== 1 ? `${baseName} ${taskForm.value.effort}` : baseName
 
       if (isEditing.value && editTarget.value?.status === 'done') {
         const { card, boardId: oldBoardId, dateKey } = editTarget.value
