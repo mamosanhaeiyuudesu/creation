@@ -10,6 +10,49 @@ export function useDragDrop(
   const dragOverCardId = ref<string | null>(null)
   const dragOverEndKey = ref<string | null>(null)
 
+  // --- DONE: ボード間移動のみ（並び順は日付で決まるため位置調整は不要） ---
+  const draggingDone = ref<{ cardId: string; boardId: string; dateKey: string } | null>(null)
+  const dragOverDoneBoardId = ref<string | null>(null)
+
+  function onDragStartDone(e: DragEvent, item: { id: string }, boardId: string, dateKey: string) {
+    draggingDone.value = { cardId: item.id, boardId, dateKey }
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
+  }
+
+  function onDragEndDone() {
+    draggingDone.value = null
+    dragOverDoneBoardId.value = null
+  }
+
+  function onDragOverDoneBoard(e: DragEvent, boardId: string) {
+    e.preventDefault()
+    dragOverDoneBoardId.value = boardId
+  }
+
+  async function onDropDoneBoard(targetBoardId: string) {
+    dragOverDoneBoardId.value = null
+    if (!draggingDone.value) return
+    const { cardId, boardId: srcBoardId, dateKey } = draggingDone.value
+    draggingDone.value = null
+    if (srcBoardId === targetBoardId) return
+
+    const srcBoard = boards.value.find(b => b.id === srcBoardId)
+    const targetBoard = boards.value.find(b => b.id === targetBoardId)
+    if (!srcBoard || !targetBoard || !targetBoard.doneListId) return
+
+    try {
+      await trelloPut(`/cards/${cardId}`, { idList: targetBoard.doneListId, idBoard: targetBoardId })
+      const arr = srcBoard.done[dateKey]
+      const idx = arr?.findIndex(c => c.id === cardId) ?? -1
+      if (idx < 0) return
+      const [item] = arr!.splice(idx, 1)
+      if (arr!.length === 0) delete srcBoard.done[dateKey]
+      ;(targetBoard.done[dateKey] ??= []).push(item)
+    } catch (e: any) {
+      console.error(e)
+    }
+  }
+
   function getArr(boardId: string, status: 'doing' | 'todo') {
     const b = boards.value.find(b => b.id === boardId)
     return b ? (status === 'doing' ? b.doing : b.todo) : null
@@ -228,5 +271,7 @@ export function useDragDrop(
     dragging, dragOverCardId, dragOverEndKey,
     onDragStart, onDragEnd, onDragOverCard, onDragOverEnd, onDropCard, onDropEnd,
     onMobileTouchStart,
+    draggingDone, dragOverDoneBoardId,
+    onDragStartDone, onDragEndDone, onDragOverDoneBoard, onDropDoneBoard,
   }
 }

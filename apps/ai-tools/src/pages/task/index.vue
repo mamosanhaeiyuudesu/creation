@@ -17,11 +17,11 @@ useHead({
   ],
 })
 import { useTaskProfiles } from '~/composables/task/useTaskProfiles'
-import { useTaskBoards, BOARD_COLORS, parseTaskName } from '~/composables/task/useTaskBoards'
+import { useTaskBoards, parseTaskName } from '~/composables/task/useTaskBoards'
+import type { Board } from '~/composables/task/useTaskBoards'
 import { useDragDrop } from '~/composables/task/useDragDrop'
-import { useMonthPicker } from '~/composables/task/useMonthPicker'
+import { useDatePicker } from '~/composables/task/useDatePicker'
 import { useTaskStats } from '~/composables/task/useTaskStats'
-import type { DoneView } from '~/composables/task/useTaskStats'
 import { useHistory } from '~/composables/useHistory'
 import type { HistoryItem } from '~/types/history'
 
@@ -32,11 +32,12 @@ const { isLoggedIn, checked, checkAuth, logout } = useAuth()
 const showAuthModal = computed(() => !import.meta.dev && !isLoggedIn.value && checked.value)
 
 const now = nowJST()
-const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 2, 1))
-const defaultStart = `${startDate.getUTCFullYear()}-${String(startDate.getUTCMonth() + 1).padStart(2, '0')}`
-const defaultEnd = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
-const startMonth = ref((route.query.start as string) || defaultStart)
-const endMonth = ref((route.query.end as string) || defaultEnd)
+const defaultStartDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 2, now.getUTCDate()))
+const defaultStart = `${defaultStartDate.getUTCFullYear()}-${String(defaultStartDate.getUTCMonth() + 1).padStart(2, '0')}-${String(defaultStartDate.getUTCDate()).padStart(2, '0')}`
+const defaultEnd = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`
+const periodStart = ref((route.query.start as string) || defaultStart)
+// end は空文字＝「指定なし（現在まで）」を明示的に表すため、クエリにキーがあれば空でもそのまま使う
+const periodEnd = ref(route.query.end !== undefined ? (route.query.end as string) : defaultEnd)
 
 // --- Composables ---
 const {
@@ -53,31 +54,29 @@ const {
   pendingDone, pendingDueInput,
   doingEffort, todoEffort,
   trelloPut,
-  load: loadBoards, formatDate, doneTotal, doneEffort, boardDoingEffort, boardTodoEffort, boardColor, boardBorderStyle,
+  load: loadBoards, doneTotal, doneEffort, boardDoingEffort, boardTodoEffort, boardColor, boardBorderStyle,
   markDone, confirmMarkDone, unmarkDone,
   openAddTask, openEditTask, openEditDoneTask, saveTask, deleteTask,
   moveBoardLeft, moveBoardRight,
-} = useTaskBoards(apiKey, apiToken, excludedBoards, activeProfileId, startMonth, endMonth)
+} = useTaskBoards(apiKey, apiToken, excludedBoards, activeProfileId, periodStart, periodEnd)
 
 const {
   dragging, dragOverCardId, dragOverEndKey,
   onDragStart, onDragEnd, onDragOverCard, onDragOverEnd, onDropCard, onDropEnd,
   onMobileTouchStart,
+  draggingDone, dragOverDoneBoardId,
+  onDragStartDone, onDragEndDone, onDragOverDoneBoard, onDropDoneBoard,
 } = useDragDrop(boards, trelloPut)
 
 const {
-  pickerOpen, pickerYearStart, pickerYearEnd, showMobilePeriod,
-  formatMonthLabel, formatMonthShort,
-  toggleMobilePeriod, togglePicker, prevYear, nextYear, selectMonth, isSelectedMonth,
-} = useMonthPicker(startMonth, endMonth)
+  pickerOpen, showMobilePeriod,
+  formatDateLabel, formatDateShort,
+  toggleMobilePeriod, togglePicker,
+  monthLabel, prevMonth, nextMonth, gridDays,
+  selectDay, isSelectedDay, isTodayDay, clearEnd,
+} = useDatePicker(periodStart, periodEnd)
 
-const {
-  doneView, doneViewOptions,
-  chartRef, selectedDate, renderDoneChart,
-  compPeriod, compChartRef, renderCompChart,
-  compPeriodData, compPeriodTotal,
-  thisWeekDoneFlat, weekComparison, weekCompTotal,
-} = useTaskStats(boards, allDates, route.query.view as DoneView)
+const { thisWeekDoneFlat } = useTaskStats(boards)
 
 // 全件表示
 const showAll = ref(route.query.showAll !== '0')
@@ -125,6 +124,10 @@ function downloadDone() {
   a.download = `tasks-done-${new Date().toISOString().slice(0, 10)}.csv`
   a.click()
   URL.revokeObjectURL(url)
+}
+
+function boardDoneFlat(board: Board) {
+  return allDates.value.flatMap(date => (board.done[date] ?? []).map(item => ({ item, date })))
 }
 
 const praiseDialog = ref(false)
@@ -211,21 +214,13 @@ async function generatePraise() {
 // --- Page-level orchestration ---
 function syncUrl() {
   const url = new URL(window.location.href)
-  url.searchParams.set('start', startMonth.value)
-  url.searchParams.set('end', endMonth.value)
-  url.searchParams.set('view', doneView.value)
+  url.searchParams.set('start', periodStart.value)
+  url.searchParams.set('end', periodEnd.value)
   url.searchParams.set('profile', activeProfileId.value)
   window.history.replaceState({}, '', url.toString())
 }
 
-watch(doneView, () => {
-  const url = new URL(window.location.href)
-  url.searchParams.set('view', doneView.value)
-  window.history.replaceState({}, '', url.toString())
-})
-
 async function load() {
-  selectedDate.value = null
   syncUrl()
   await loadBoards()
 }
@@ -485,45 +480,62 @@ watch(isLoggedIn, async (v) => {
           </label>
           <div class="relative z-50" @click.stop>
             <button
-              class="bg-white/[0.06] border border-white/10 rounded-md px-2.5 py-1.5 text-[#e2e8f0] text-[13px] cursor-pointer hover:bg-white/[0.1] transition-colors min-w-[90px] text-left"
+              class="bg-white/[0.06] border border-white/10 rounded-md px-2.5 py-1.5 text-[#e2e8f0] text-[13px] cursor-pointer hover:bg-white/[0.1] transition-colors min-w-[110px] text-left"
               @click="togglePicker('start')"
-            >{{ formatMonthLabel(startMonth) }}</button>
-            <div v-if="pickerOpen === 'start'" class="absolute top-full left-0 mt-1 bg-[#1e293b] border border-white/10 rounded-xl p-3 shadow-xl w-44">
+            >{{ formatDateLabel(periodStart) }}</button>
+            <div v-if="pickerOpen === 'start'" class="absolute top-full left-0 mt-1 bg-[#1e293b] border border-white/10 rounded-xl p-3 shadow-xl w-64">
               <div class="flex items-center justify-between mb-2">
-                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm" @click="prevYear('start')">‹</button>
-                <span class="text-[13px] font-semibold text-slate-200">{{ pickerYearStart }}年</span>
-                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm" @click="nextYear('start')">›</button>
+                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm cursor-pointer" @click="prevMonth('start')">‹</button>
+                <span class="text-[13px] font-semibold text-slate-200">{{ monthLabel('start') }}</span>
+                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm cursor-pointer" @click="nextMonth('start')">›</button>
               </div>
-              <div class="grid grid-cols-3 gap-1">
-                <button
-                  v-for="m in 12" :key="m"
-                  class="py-1 rounded-md text-[12px] transition-colors cursor-pointer"
-                  :class="isSelectedMonth('start', m) ? 'bg-sky-500 text-white font-semibold' : 'text-slate-300 hover:bg-white/10'"
-                  @click="selectMonth('start', m)"
-                >{{ m }}月</button>
+              <div class="grid grid-cols-7 mb-1">
+                <div v-for="w in ['月', '火', '水', '木', '金', '土', '日']" :key="w" class="text-center text-[10px] font-semibold py-0.5" :class="w === '土' ? 'text-sky-400' : w === '日' ? 'text-rose-400' : 'text-slate-500'">{{ w }}</div>
+              </div>
+              <div class="grid grid-cols-7 gap-y-0.5">
+                <div v-for="(day, i) in gridDays('start')" :key="i" class="flex justify-center">
+                  <button
+                    v-if="day !== null"
+                    type="button"
+                    class="w-7 h-7 rounded-full text-[12px] transition-all cursor-pointer"
+                    :class="isSelectedDay('start', day) ? 'bg-sky-500 text-white font-semibold' : isTodayDay('start', day) ? 'text-sky-400 font-semibold hover:bg-white/10' : 'text-slate-300 hover:bg-white/10'"
+                    @click="selectDay('start', day)"
+                  >{{ day }}</button>
+                </div>
               </div>
             </div>
           </div>
           <span class="text-slate-600">〜</span>
           <div class="relative z-50" @click.stop>
             <button
-              class="bg-white/[0.06] border border-white/10 rounded-md px-2.5 py-1.5 text-[#e2e8f0] text-[13px] cursor-pointer hover:bg-white/[0.1] transition-colors min-w-[90px] text-left"
+              class="bg-white/[0.06] border border-white/10 rounded-md px-2.5 py-1.5 text-[#e2e8f0] text-[13px] cursor-pointer hover:bg-white/[0.1] transition-colors min-w-[110px] text-left"
               @click="togglePicker('end')"
-            >{{ formatMonthLabel(endMonth) }}</button>
-            <div v-if="pickerOpen === 'end'" class="absolute top-full left-0 mt-1 bg-[#1e293b] border border-white/10 rounded-xl p-3 shadow-xl w-44">
+            >{{ formatDateLabel(periodEnd) }}</button>
+            <div v-if="pickerOpen === 'end'" class="absolute top-full left-0 mt-1 bg-[#1e293b] border border-white/10 rounded-xl p-3 shadow-xl w-64">
               <div class="flex items-center justify-between mb-2">
-                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm" @click="prevYear('end')">‹</button>
-                <span class="text-[13px] font-semibold text-slate-200">{{ pickerYearEnd }}年</span>
-                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm" @click="nextYear('end')">›</button>
+                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm cursor-pointer" @click="prevMonth('end')">‹</button>
+                <span class="text-[13px] font-semibold text-slate-200">{{ monthLabel('end') }}</span>
+                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm cursor-pointer" @click="nextMonth('end')">›</button>
               </div>
-              <div class="grid grid-cols-3 gap-1">
-                <button
-                  v-for="m in 12" :key="m"
-                  class="py-1 rounded-md text-[12px] transition-colors cursor-pointer"
-                  :class="isSelectedMonth('end', m) ? 'bg-sky-500 text-white font-semibold' : 'text-slate-300 hover:bg-white/10'"
-                  @click="selectMonth('end', m)"
-                >{{ m }}月</button>
+              <div class="grid grid-cols-7 mb-1">
+                <div v-for="w in ['月', '火', '水', '木', '金', '土', '日']" :key="w" class="text-center text-[10px] font-semibold py-0.5" :class="w === '土' ? 'text-sky-400' : w === '日' ? 'text-rose-400' : 'text-slate-500'">{{ w }}</div>
               </div>
+              <div class="grid grid-cols-7 gap-y-0.5">
+                <div v-for="(day, i) in gridDays('end')" :key="i" class="flex justify-center">
+                  <button
+                    v-if="day !== null"
+                    type="button"
+                    class="w-7 h-7 rounded-full text-[12px] transition-all cursor-pointer"
+                    :class="isSelectedDay('end', day) ? 'bg-sky-500 text-white font-semibold' : isTodayDay('end', day) ? 'text-sky-400 font-semibold hover:bg-white/10' : 'text-slate-300 hover:bg-white/10'"
+                    @click="selectDay('end', day)"
+                  >{{ day }}</button>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="mt-2 w-full py-1.5 rounded-md text-[12px] font-semibold border border-dashed border-white/15 text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-colors cursor-pointer"
+                @click="clearEnd"
+              >指定なし（現在まで）</button>
             </div>
           </div>
           <button
@@ -585,39 +597,56 @@ watch(isLoggedIn, async (v) => {
           <button
             class="w-full bg-white/[0.06] border border-white/10 rounded-md px-2 py-1 text-[#e2e8f0] text-[12px] cursor-pointer hover:bg-white/[0.1] transition-colors text-left whitespace-nowrap"
             @click="toggleMobilePeriod"
-          >{{ formatMonthShort(startMonth) }}〜{{ formatMonthShort(endMonth) }}</button>
-          <div v-if="showMobilePeriod" class="absolute top-full left-0 mt-1 bg-[#1e293b] border border-white/10 rounded-xl p-3 shadow-xl z-50 flex gap-4">
+          >{{ formatDateShort(periodStart) }}〜{{ formatDateShort(periodEnd) }}</button>
+          <div v-if="showMobilePeriod" class="absolute top-full left-0 mt-1 bg-[#1e293b] border border-white/10 rounded-xl p-3 shadow-xl z-50 flex flex-col gap-3 w-60">
             <div>
               <div class="text-[11px] text-slate-400 mb-1.5 font-semibold">開始</div>
               <div class="flex items-center justify-between mb-2">
-                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm cursor-pointer" @click="prevYear('start')">‹</button>
-                <span class="text-[12px] font-semibold text-slate-200">{{ pickerYearStart }}年</span>
-                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm cursor-pointer" @click="nextYear('start')">›</button>
+                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm cursor-pointer" @click="prevMonth('start')">‹</button>
+                <span class="text-[12px] font-semibold text-slate-200">{{ monthLabel('start') }}</span>
+                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm cursor-pointer" @click="nextMonth('start')">›</button>
               </div>
-              <div class="grid grid-cols-3 gap-1">
-                <button
-                  v-for="m in 12" :key="m"
-                  class="py-1 rounded-md text-[12px] transition-colors cursor-pointer"
-                  :class="isSelectedMonth('start', m) ? 'bg-sky-500 text-white font-semibold' : 'text-slate-300 hover:bg-white/10'"
-                  @click="selectMonth('start', m)"
-                >{{ m }}月</button>
+              <div class="grid grid-cols-7 mb-1">
+                <div v-for="w in ['月', '火', '水', '木', '金', '土', '日']" :key="w" class="text-center text-[10px] font-semibold py-0.5" :class="w === '土' ? 'text-sky-400' : w === '日' ? 'text-rose-400' : 'text-slate-500'">{{ w }}</div>
+              </div>
+              <div class="grid grid-cols-7 gap-y-0.5">
+                <div v-for="(day, i) in gridDays('start')" :key="i" class="flex justify-center">
+                  <button
+                    v-if="day !== null"
+                    type="button"
+                    class="w-7 h-7 rounded-full text-[12px] transition-all cursor-pointer"
+                    :class="isSelectedDay('start', day) ? 'bg-sky-500 text-white font-semibold' : isTodayDay('start', day) ? 'text-sky-400 font-semibold hover:bg-white/10' : 'text-slate-300 hover:bg-white/10'"
+                    @click="selectDay('start', day)"
+                  >{{ day }}</button>
+                </div>
               </div>
             </div>
             <div>
               <div class="text-[11px] text-slate-400 mb-1.5 font-semibold">終了</div>
               <div class="flex items-center justify-between mb-2">
-                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm cursor-pointer" @click="prevYear('end')">‹</button>
-                <span class="text-[12px] font-semibold text-slate-200">{{ pickerYearEnd }}年</span>
-                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm cursor-pointer" @click="nextYear('end')">›</button>
+                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm cursor-pointer" @click="prevMonth('end')">‹</button>
+                <span class="text-[12px] font-semibold text-slate-200">{{ monthLabel('end') }}</span>
+                <button class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors text-sm cursor-pointer" @click="nextMonth('end')">›</button>
               </div>
-              <div class="grid grid-cols-3 gap-1">
-                <button
-                  v-for="m in 12" :key="m"
-                  class="py-1 rounded-md text-[12px] transition-colors cursor-pointer"
-                  :class="isSelectedMonth('end', m) ? 'bg-sky-500 text-white font-semibold' : 'text-slate-300 hover:bg-white/10'"
-                  @click="selectMonth('end', m)"
-                >{{ m }}月</button>
+              <div class="grid grid-cols-7 mb-1">
+                <div v-for="w in ['月', '火', '水', '木', '金', '土', '日']" :key="w" class="text-center text-[10px] font-semibold py-0.5" :class="w === '土' ? 'text-sky-400' : w === '日' ? 'text-rose-400' : 'text-slate-500'">{{ w }}</div>
               </div>
+              <div class="grid grid-cols-7 gap-y-0.5">
+                <div v-for="(day, i) in gridDays('end')" :key="i" class="flex justify-center">
+                  <button
+                    v-if="day !== null"
+                    type="button"
+                    class="w-7 h-7 rounded-full text-[12px] transition-all cursor-pointer"
+                    :class="isSelectedDay('end', day) ? 'bg-sky-500 text-white font-semibold' : isTodayDay('end', day) ? 'text-sky-400 font-semibold hover:bg-white/10' : 'text-slate-300 hover:bg-white/10'"
+                    @click="selectDay('end', day)"
+                  >{{ day }}</button>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="mt-2 w-full py-1.5 rounded-md text-[11px] font-semibold border border-dashed border-white/15 text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-colors cursor-pointer"
+                @click="clearEnd"
+              >指定なし</button>
             </div>
           </div>
         </div>
@@ -701,7 +730,7 @@ watch(isLoggedIn, async (v) => {
               :style="boardBorderStyle(board)"
             >
               <div class="flex items-center gap-1 mb-2.5">
-                <span class="text-[11px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="boardDoingEffort(board)" class="ml-1 opacity-70">({{ boardDoingEffort(board) }}h)</span></span>
+                <span class="text-[11px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="boardDoingEffort(board)" class="ml-1 opacity-70">({{ boardDoingEffort(board) }}h)</span><TaskBoardDescTip :desc="board.desc" /></span>
                 <button class="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-slate-400 hover:text-slate-200 cursor-pointer" title="ボードを編集" @click.stop="openEditBoard(board)">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>
                 </button>
@@ -767,7 +796,7 @@ watch(isLoggedIn, async (v) => {
               :style="boardBorderStyle(board)"
             >
               <div class="flex items-center gap-1 mb-2.5">
-                <span class="text-[11px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="boardTodoEffort(board)" class="ml-1 opacity-70">({{ boardTodoEffort(board) }}h)</span></span>
+                <span class="text-[11px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="boardTodoEffort(board)" class="ml-1 opacity-70">({{ boardTodoEffort(board) }}h)</span><TaskBoardDescTip :desc="board.desc" /></span>
                 <button class="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-slate-400 hover:text-slate-200 cursor-pointer" title="ボードを編集" @click.stop="openEditBoard(board)">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>
                 </button>
@@ -824,109 +853,47 @@ watch(isLoggedIn, async (v) => {
           <div class="flex items-center gap-2.5 mb-3.5">
             <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-emerald-500/15 text-white border border-emerald-500/30">DONE</span>
             <span class="text-xl font-bold text-slate-600">{{ boards.reduce((s, b) => s + doneEffort(b), 0) }}h</span>
-            <div class="ml-auto flex items-center gap-1">
-              <button
-                v-for="opt in doneViewOptions"
-                :key="opt.key"
-                :class="[
-                  'px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-all cursor-pointer',
-                  doneView === opt.key
-                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-                    : 'bg-white/[0.04] border-white/10 text-slate-500 hover:bg-white/[0.08] hover:text-slate-300',
-                ]"
-                @click="doneView = opt.key"
-              >{{ opt.label }}</button>
-            </div>
           </div>
           <div v-if="allDates.length === 0" class="px-4 py-4 text-slate-600 text-[13px]">期間内の完了タスクなし</div>
           <template v-else>
-            <!-- Table -->
-            <div v-if="doneView === 'table'" class="overflow-x-auto rounded-xl border border-white/[0.07]">
-              <table class="border-collapse text-[13px] w-full table-fixed">
-                <thead>
-                  <tr>
-                    <th class="border border-white/[0.06] pl-2.5 pr-1 py-2 text-left text-slate-500 text-[11px] font-bold whitespace-nowrap w-[72px] min-w-[72px] bg-emerald-500/[0.08]">日付</th>
-                    <th v-for="board in boards" :key="board.id" class="border border-white/[0.06] px-2.5 py-2 text-left text-[11px] font-bold whitespace-nowrap" :style="{ backgroundColor: boardColor(board) + '1a', color: boardColor(board) }">
-                      <span class="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" :style="{ backgroundColor: boardColor(board) }" />{{ board.name }}
-                    </th>
-                  </tr>
-                  <tr>
-                    <td class="border border-white/[0.06] pl-2.5 pr-1 py-2 text-slate-400 font-bold bg-white/[0.03]">合計</td>
-                    <td v-for="board in boards" :key="board.id" class="border border-white/[0.06] px-2.5 py-2 text-slate-400 font-bold bg-white/[0.03]">{{ doneTotal(board) }}</td>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="date in allDates" :key="date">
-                    <td class="border border-white/[0.06] pl-2.5 pr-1 py-2 whitespace-nowrap text-slate-500 text-xs w-[72px] min-w-[72px]">{{ formatDate(date) }}</td>
-                    <td v-for="board in boards" :key="board.id" class="border border-white/[0.06] px-2.5 py-2 align-top">
-                      <ul v-if="board.done[date]" class="list-none m-0 p-0 flex flex-col gap-1">
-                        <li v-for="item in board.done[date]" :key="item.id" class="flex items-center gap-1.5 px-1.5 py-1 rounded bg-white/[0.03] hover:bg-white/[0.06] cursor-pointer" @click="openEditDoneTask(item, date, board)">
-                          <button
-                            class="flex-shrink-0 w-3.5 h-3.5 rounded border border-white/40 bg-white/10 flex items-center justify-center text-white text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer"
-                            title="DOINGに戻す"
-                            @click.stop="unmarkDone(item, date, board)"
-                          >✓</button>
-                          <span class="leading-snug text-white text-[13px]">{{ parseTaskName(item.name).displayName }}</span>
-                        </li>
-                      </ul>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <!-- Chart -->
-            <div v-else class="flex gap-4 items-start">
-              <div ref="chartRef" class="flex-1 min-w-0 h-[480px] rounded-xl border border-white/[0.07]" style="cursor:pointer" />
-              <transition name="slide-fade">
-                <div v-if="selectedDate && (doneView === 'line' || doneView === 'stacked')" class="w-80 flex-none bg-white/[0.04] border border-white/[0.08] rounded-xl p-3 self-stretch overflow-y-auto max-h-[480px]">
-                  <div class="flex items-center justify-between mb-1">
-                    <span class="text-[13px] font-bold text-white">{{ formatDate(selectedDate) }}</span>
-                    <button class="w-5 h-5 flex items-center justify-center text-slate-500 hover:text-slate-300 text-xs cursor-pointer" @click="selectedDate = null">✕</button>
-                  </div>
-                  <template v-for="board in boards" :key="board.id">
-                    <template v-if="board.done[selectedDate]?.length">
-                      <p class="m-0 mb-1 text-[11px] font-bold uppercase tracking-wide" :style="{ color: boardColor(board) }">{{ board.name }}</p>
-                      <ul class="list-none m-0 p-0 mb-1 flex flex-col gap-1">
-                        <li v-for="item in board.done[selectedDate]" :key="item.id" class="flex items-center gap-1.5 px-1.5 py-0.5 rounded border-l-2 cursor-pointer hover:brightness-125" :style="{ backgroundColor: boardColor(board) + '14', borderColor: boardColor(board) + '60' }" @click="openEditDoneTask(item, selectedDate, board)">
-                          <button class="flex-shrink-0 w-3.5 h-3.5 rounded border border-white/40 bg-white/10 flex items-center justify-center text-white text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer" title="DOINGに戻す" @click.stop="unmarkDone(item, selectedDate, board)">✓</button>
-                          <span class="leading-snug text-white text-xs">{{ parseTaskName(item.name).displayName }}</span>
-                        </li>
-                      </ul>
-                    </template>
-                  </template>
+            <!-- ボード別リスト -->
+            <div class="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
+              <div
+                v-for="board in boards"
+                :key="board.id"
+                class="group w-[220px] flex-shrink-0 rounded-xl p-3 border flex flex-col transition-colors"
+                :style="dragOverDoneBoardId === board.id ? { borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.08)' } : boardBorderStyle(board)"
+                @dragover="onDragOverDoneBoard($event, board.id)"
+                @drop.prevent="onDropDoneBoard(board.id)"
+              >
+                <div class="flex items-center gap-1 mb-2.5">
+                  <span class="text-[11px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="doneEffort(board)" class="ml-1 opacity-70">({{ doneEffort(board) }}h)</span><TaskBoardDescTip :desc="board.desc" /></span>
+                  <button class="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-slate-400 hover:text-slate-200 cursor-pointer" title="ボードを編集" @click.stop="openEditBoard(board)">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>
+                  </button>
                 </div>
-              </transition>
+                <ul v-if="doneTotal(board)" class="list-none m-0 p-0 flex flex-col gap-1.5 overflow-y-auto max-h-[420px]">
+                  <li
+                    v-for="row in boardDoneFlat(board)"
+                    :key="row.item.id"
+                    :class="['flex items-center gap-1.5 px-1.5 py-1 rounded bg-white/[0.03] hover:bg-white/[0.06] cursor-grab select-none', draggingDone?.cardId === row.item.id ? 'opacity-40' : '']"
+                    draggable="true"
+                    @dragstart="onDragStartDone($event, row.item, board.id, row.date)"
+                    @dragend="onDragEndDone"
+                    @click="openEditDoneTask(row.item, row.date, board)"
+                  >
+                    <button
+                      class="flex-shrink-0 w-3.5 h-3.5 rounded border border-white/40 bg-white/10 flex items-center justify-center text-white text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer"
+                      title="DOINGに戻す"
+                      @click.stop="unmarkDone(row.item, row.date, board)"
+                    >✓</button>
+                    <span class="leading-snug text-white text-[13px] truncate">{{ parseTaskName(row.item.name).displayName }}</span>
+                  </li>
+                </ul>
+                <div v-else class="text-[12px] text-slate-600 py-3 text-center">完了タスクなし</div>
+              </div>
             </div>
           </template>
-        </section>
-
-        <!-- DONE 期間比較 (PC only) -->
-        <section class="hidden md:block px-5 mt-6 pb-8">
-          <div class="flex items-center gap-2.5 mb-3.5">
-            <span class="text-[13px] font-bold text-slate-400">前期間との比較</span>
-            <div class="flex items-center gap-1 ml-2">
-              <button
-                v-for="p in ([7, 30, 90, 180] as const)"
-                :key="p"
-                :class="[
-                  'px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-all cursor-pointer',
-                  compPeriod === p
-                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-                    : 'bg-white/[0.04] border-white/10 text-slate-500 hover:bg-white/[0.08] hover:text-slate-300',
-                ]"
-                @click="compPeriod = p"
-              >{{ p }}日</button>
-            </div>
-            <div class="ml-auto flex items-center gap-3 text-[13px]">
-              <span class="text-slate-500">前期: <span class="font-bold text-slate-400">{{ compPeriodTotal.prev }}</span></span>
-              <span :class="compPeriodTotal.current >= compPeriodTotal.prev ? 'text-emerald-400' : 'text-red-400'">
-                今期: <span class="font-bold">{{ compPeriodTotal.current }}</span>
-                <span v-if="compPeriodTotal.current > compPeriodTotal.prev"> ↑</span>
-                <span v-else-if="compPeriodTotal.current < compPeriodTotal.prev"> ↓</span>
-              </span>
-            </div>
-          </div>
-          <div ref="compChartRef" class="h-[280px] rounded-xl border border-white/[0.07]" />
         </section>
 
         <!-- スマホ版レイアウト (md未満のみ表示) -->
@@ -946,7 +913,7 @@ watch(isLoggedIn, async (v) => {
               class="flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-[0.05em] mb-1.5 px-1.5 py-1 rounded-lg border-l-4"
               :style="{ color: boardColor(board), borderColor: boardColor(board), backgroundColor: boardColor(board) + '12' }"
             >
-              <span class="flex-1 min-w-0">{{ board.name }}</span>
+              <span class="flex-1 min-w-0">{{ board.name }}<TaskBoardDescTip :desc="board.desc" /></span>
               <button class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded opacity-60 active:opacity-100 text-current cursor-pointer" title="ボードを編集" @click.stop="openEditBoard(board)">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="11" height="11" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>
               </button>
@@ -1057,63 +1024,23 @@ watch(isLoggedIn, async (v) => {
               <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-emerald-500/15 text-white border border-emerald-500/30">DONE</span>
               <span class="text-slate-400 text-base font-bold">({{ boards.reduce((s, b) => s + doneEffort(b), 0) }}h)</span>
             </div>
-            <div class="flex gap-3">
-              <!-- 左半分: 直近1週間のDONEリスト -->
-              <div class="flex-1 min-w-0">
-                <div class="text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">直近7日</div>
-                <div v-if="thisWeekDoneFlat.length === 0" class="text-[13px] text-slate-600 py-3 text-center">完了タスクなし</div>
-                <ul v-else class="list-none m-0 p-0 flex flex-col gap-0.5">
-                  <li
-                    v-for="row in thisWeekDoneFlat"
-                    :key="row.card.id"
-                    class="flex items-center gap-1 px-1.5 py-1 rounded bg-white/[0.03] hover:bg-white/[0.06] cursor-pointer"
-                    @click="openEditDoneTask(row.card, row.date, row.board)"
-                  >
-                    <button
-                      class="flex-shrink-0 w-3.5 h-3.5 rounded border border-white/40 bg-white/10 flex items-center justify-center text-white text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer"
-                      title="DOINGに戻す"
-                      @click.stop="unmarkDone(row.card, row.date, row.board)"
-                    >✓</button>
-                    <span class="text-[14px] leading-snug text-white truncate" :style="{ color: boardColor(row.board) + 'cc' }">{{ parseTaskName(row.card.name).displayName }}</span>
-                  </li>
-                </ul>
-              </div>
-              <!-- 右半分: 今週 vs 先週比較 -->
-              <div class="flex-1 min-w-0">
-                <div class="text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">今週 vs 先週</div>
-                <table class="w-full border-collapse text-[14px]">
-                  <thead>
-                    <tr>
-                      <th class="text-left py-1 px-1 text-slate-500 text-[14px] font-bold border-b border-white/[0.06]"></th>
-                      <th class="text-right py-1 px-1 text-slate-500 text-[14px] font-bold border-b border-white/[0.06]">先週</th>
-                      <th class="text-right py-1 px-1 text-emerald-500/70 text-[14px] font-bold border-b border-white/[0.06]">今週</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr class="border-b border-white/[0.05]">
-                      <td class="py-1 px-1 text-slate-400 font-bold text-[14px]">合計</td>
-                      <td class="py-1 px-1 text-right text-slate-500">{{ weekCompTotal.prevWeek }}</td>
-                      <td
-                        class="py-1 px-1 text-right font-bold"
-                        :class="weekCompTotal.thisWeek > weekCompTotal.prevWeek ? 'text-emerald-400' : weekCompTotal.thisWeek < weekCompTotal.prevWeek ? 'text-red-400' : 'text-slate-400'"
-                      >{{ weekCompTotal.thisWeek }}<span v-if="weekCompTotal.thisWeek > weekCompTotal.prevWeek">↑</span><span v-else-if="weekCompTotal.thisWeek < weekCompTotal.prevWeek">↓</span></td>
-                    </tr>
-                    <tr
-                      v-for="(row, ri) in weekComparison"
-                      :key="row.name"
-                      class="border-b border-white/[0.03]"
-                    >
-                      <td class="py-1 px-1 text-[14px] truncate max-w-0 w-1/2" :style="{ color: BOARD_COLORS[ri % BOARD_COLORS.length] }">{{ row.name }}</td>
-                      <td class="py-1 px-1 text-right text-slate-500">{{ row.prevWeek }}</td>
-                      <td
-                        class="py-1 px-1 text-right"
-                        :class="row.thisWeek > row.prevWeek ? 'text-emerald-400' : row.thisWeek < row.prevWeek ? 'text-red-400' : 'text-slate-400'"
-                      >{{ row.thisWeek }}<span v-if="row.thisWeek > row.prevWeek">↑</span><span v-else-if="row.thisWeek < row.prevWeek">↓</span></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <div class="text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">直近7日</div>
+            <div v-if="thisWeekDoneFlat.length === 0" class="text-[13px] text-slate-600 py-3 text-center">完了タスクなし</div>
+            <ul v-else class="list-none m-0 p-0 flex flex-col gap-0.5">
+              <li
+                v-for="row in thisWeekDoneFlat"
+                :key="row.card.id"
+                class="flex items-center gap-1 px-1.5 py-1 rounded bg-white/[0.03] hover:bg-white/[0.06] cursor-pointer"
+                @click="openEditDoneTask(row.card, row.date, row.board)"
+              >
+                <button
+                  class="flex-shrink-0 w-3.5 h-3.5 rounded border border-white/40 bg-white/10 flex items-center justify-center text-white text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer"
+                  title="DOINGに戻す"
+                  @click.stop="unmarkDone(row.card, row.date, row.board)"
+                >✓</button>
+                <span class="text-[14px] leading-snug text-white truncate" :style="{ color: boardColor(row.board) + 'cc' }">{{ parseTaskName(row.card.name).displayName }}</span>
+              </li>
+            </ul>
           </div>
 
         </div>

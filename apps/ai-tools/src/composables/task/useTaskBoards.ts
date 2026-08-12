@@ -49,9 +49,17 @@ export function useTaskBoards(
   apiToken: ComputedRef<string>,
   excludedBoards: ComputedRef<string[]>,
   profileId: Ref<string>,
-  startMonth: Ref<string>,
-  endMonth: Ref<string>,
+  periodStart: Ref<string>,
+  periodEnd: Ref<string>,
 ) {
+  function periodRange(): [Date, Date] {
+    const [sy, sm, sd] = periodStart.value.split('-').map(Number)
+    const rangeStart = new Date(sy, sm - 1, sd)
+    if (!periodEnd.value) return [rangeStart, new Date()]
+    const [ey, em, ed] = periodEnd.value.split('-').map(Number)
+    return [rangeStart, new Date(ey, em - 1, ed, 23, 59, 59)]
+  }
+
   const boards = ref<Board[]>([])
   const allDates = ref<string[]>([])
   const loading = ref(false)
@@ -187,12 +195,6 @@ export function useTaskBoards(
     return c
   }
 
-  function formatDate(dateStr: string) {
-    const [y, m, d] = dateStr.split('-').map(Number)
-    const day = ['日', '月', '火', '水', '木', '金', '土'][new Date(y, m - 1, d).getDay()]
-    return `${m}/${d}(${day})`
-  }
-
   function doneTotal(board: Board) {
     return Object.values(board.done).reduce((s, arr) => s + arr.length, 0)
   }
@@ -266,9 +268,8 @@ export function useTaskBoards(
   function addToDoneTable(board: Board, card: Card) {
     if (!card.due) return
     const due = new Date(card.due)
-    const [sy, sm] = startMonth.value.split('-').map(Number)
-    const [ey, em] = endMonth.value.split('-').map(Number)
-    if (due < new Date(sy, sm - 1, 1) || due > new Date(ey, em, 0, 23, 59, 59)) return
+    const [rangeStart, rangeEnd] = periodRange()
+    if (due < rangeStart || due > rangeEnd) return
     const key = toJSTDate(due).toISOString().slice(0, 10)
     ;(board.done[key] ??= []).push({ id: card.id, name: card.name, desc: card.desc ?? '' })
     rebuildAllDates()
@@ -285,10 +286,7 @@ export function useTaskBoards(
       const rawBoards = await trelloGet('/members/me/boards')
       const filtered = rawBoards.filter((b: any) => !excludedBoards.value.includes(b.name))
 
-      const [sy, sm] = startMonth.value.split('-').map(Number)
-      const [ey, em] = endMonth.value.split('-').map(Number)
-      const rangeStart = new Date(sy, sm - 1, 1)
-      const rangeEnd = new Date(ey, em, 0, 23, 59, 59)
+      const [rangeStart, rangeEnd] = periodRange()
 
       const results: Board[] = await Promise.all(
         filtered.map(async (b: any) => {
@@ -614,7 +612,7 @@ export function useTaskBoards(
     pendingDone, pendingDueInput,
     doingTotal, todoTotal, doingEffort, todoEffort,
     trelloPut,
-    load, buildCard, formatDate, doneTotal, doneEffort, boardDoingEffort, boardTodoEffort, boardColor, boardBorderStyle, getArr,
+    load, buildCard, doneTotal, doneEffort, boardDoingEffort, boardTodoEffort, boardColor, boardBorderStyle, getArr,
     rebuildAllDates, addToDoneTable,
     moveBoardLeft, moveBoardRight,
     markDone, confirmMarkDone, unmarkDone,
