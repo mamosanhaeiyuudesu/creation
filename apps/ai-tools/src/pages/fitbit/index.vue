@@ -79,7 +79,11 @@
               <IntradayPanel :points="data.caloriesSeries" color="#f97316" unit="kcal" :decimals="0" :zero-based="true" label="" />
             </div>
             <div class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4">
-              <IntradayPanel :points="data.heartRateSeries" color="#f87171" unit="bpm" :decimals="0" :zero-based="false" label="❤️ 心拍数（5分間隔）" />
+              <div class="flex items-baseline justify-between gap-2 mb-2">
+                <div class="text-xs font-semibold text-slate-400">❤️ 心拍数（5分間隔）</div>
+                <div class="text-lg font-bold text-rose-400 tabular-nums">{{ latestHeartRate ?? '—' }}<span class="text-[10px] text-slate-500 font-normal ml-0.5">bpm・現在</span></div>
+              </div>
+              <IntradayPanel :points="data.heartRateSeries" color="#f87171" unit="bpm" :decimals="0" :zero-based="false" label="" />
             </div>
           </div>
 
@@ -238,6 +242,12 @@ function trendPts(key: string): { date: string; value: number | null }[] {
 
 // 消費カロリーの時間別パネル用: 当日は現在時刻までに切り詰め済みの系列なので、合計がそのまま「現在までの合計」になる
 const caloriesSoFar = computed(() => Math.round((data.value?.caloriesSeries ?? []).reduce((sum, p) => sum + p.v, 0)))
+
+// 心拍数の時間別パネル用: 系列の最後の値（直近の実測）。消費カロリーパネルとヘッダーの高さを揃える目的も兼ねる
+const latestHeartRate = computed(() => {
+  const series = data.value?.heartRateSeries ?? []
+  return series.length ? series[series.length - 1].v : null
+})
 
 interface MetricRow {
   key: string; icon: string; label: string; value: string | number; unit: string

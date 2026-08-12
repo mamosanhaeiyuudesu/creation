@@ -888,6 +888,7 @@ watch(isLoggedIn, async (v) => {
                       @click.stop="unmarkDone(row.item, row.date, board)"
                     >✓</button>
                     <span class="leading-snug text-white text-[13px] truncate">{{ parseTaskName(row.item.name).displayName }}</span>
+                    <span class="inline-block px-1 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 flex-shrink-0">{{ parseTaskName(row.item.name).effort }}h</span>
                   </li>
                 </ul>
                 <div v-else class="text-[12px] text-slate-600 py-3 text-center">完了タスクなし</div>
@@ -1039,6 +1040,7 @@ watch(isLoggedIn, async (v) => {
                   @click.stop="unmarkDone(row.card, row.date, row.board)"
                 >✓</button>
                 <span class="text-[14px] leading-snug text-white truncate" :style="{ color: boardColor(row.board) + 'cc' }">{{ parseTaskName(row.card.name).displayName }}</span>
+                <span class="inline-block px-1 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 flex-shrink-0">{{ parseTaskName(row.card.name).effort }}h</span>
               </li>
             </ul>
           </div>
