@@ -8,7 +8,7 @@
     "start": "nuxt start"
   },
   "dependencies": {
-    "cytoscape": "^3.33.3",
+    "cytoscape": "^3.34.0",
     "echarts": "^5",
     "echarts-wordcloud": "^2.1.0",
     "leaflet": "^1.9.4",

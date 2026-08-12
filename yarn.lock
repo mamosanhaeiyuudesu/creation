@@ -4092,7 +4092,7 @@ __metadata:
     "@types/leaflet": "npm:^1.9.21"
     "@types/marked": "npm:^6.0.0"
     "@vite-pwa/nuxt": "npm:^1.1.1"
-    cytoscape: "npm:^3.33.3"
+    cytoscape: "npm:^3.34.0"
     echarts: "npm:^5"
     echarts-wordcloud: "npm:^2.1.0"
     leaflet: "npm:^1.9.4"
@@ -5196,10 +5196,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cytoscape@npm:^3.33.3":
-  version: 3.33.3
-  resolution: "cytoscape@npm:3.33.3"
-  checksum: 10c0/f0d01f682d3e443cbeea9aa294ccd6934442362df3ce259e7b0fe3b9a8ce534d901840c503db8b53da814542bc1508f7f14a69e4fe725f919c25483a7200efe7
+"cytoscape@npm:^3.34.0":
+  version: 3.34.0
+  resolution: "cytoscape@npm:3.34.0"
+  checksum: 10c0/cb17b3dcacb9492f058cff653debf7b5a713e7532a9866cc72ae79d207757e8a9b68430874fe986f2a6404a8161b4fb5c1a2f1ca9ac5b1a21e316f57ed9d1243
   languageName: node
   linkType: hard
 
