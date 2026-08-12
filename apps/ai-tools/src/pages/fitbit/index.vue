@@ -74,7 +74,7 @@
             <div class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4">
               <div class="flex items-baseline justify-between gap-2 mb-2">
                 <div class="text-xs font-semibold text-slate-400">🔥 消費カロリー（時間別）</div>
-                <div class="text-lg font-bold text-orange-400 tabular-nums">{{ caloriesSoFar.toLocaleString() }}<span class="text-[10px] text-slate-500 font-normal ml-0.5">kcal・現在までの合計</span></div>
+                <div class="text-lg font-bold text-orange-400 tabular-nums">{{ caloriesSoFar.toLocaleString() }}<span class="text-[10px] text-slate-500 font-normal ml-0.5">kcal・現在まで</span></div>
               </div>
               <IntradayPanel :points="data.caloriesSeries" color="#f97316" unit="kcal" :decimals="0" :zero-based="true" label="" />
             </div>
