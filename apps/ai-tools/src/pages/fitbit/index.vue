@@ -66,8 +66,8 @@
         <div v-else-if="error" class="mt-16 text-center text-rose-400 text-sm">{{ error }}</div>
 
         <template v-else-if="data">
-          <!-- 睡眠ステージ -->
-          <SleepStagesPanel :date="date" />
+          <!-- 睡眠 -->
+          <SleepStagesPanel :date="date" @open="sleepOpen = true" />
 
           <!-- 消費カロリー・心拍数の時間別 -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -106,21 +106,8 @@
             <div v-else class="text-xs text-slate-600">記録された運動はありません</div>
           </button>
 
-          <!-- 下段: メトリクスグリッド（睡眠 + 8指標。数値 + 7日スパークライン） -->
+          <!-- 下段: メトリクスグリッド（8指標。数値 + 7日スパークライン） -->
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <button
-              class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-3.5 flex flex-col gap-1.5 hover:bg-white/[0.06] transition-colors text-left"
-              @click="sleepOpen = true"
-            >
-              <div class="flex items-center gap-1.5 text-[11px] text-slate-400"><span>😴</span>睡眠</div>
-              <div class="flex items-baseline gap-1">
-                <span class="text-xl font-bold tabular-nums text-indigo-300">{{ fmtDuration(data.sleep.asleepMinutes) }}</span>
-              </div>
-              <div class="w-full">
-                <Sparkline :points="trendPts('sleepAsleepHours')" color="#818cf8" :h="40" unit="時間" :decimals="1" :zero-based="true" />
-              </div>
-            </button>
-
             <button
               v-for="m in metrics"
               :key="m.key"
@@ -227,13 +214,6 @@ function shiftDate(delta: number) {
   const next = d.toISOString().slice(0, 10)
   if (next > todayStr()) return
   date.value = next
-}
-
-function fmtDuration(min: number): string {
-  const h = Math.floor(min / 60)
-  const m = min % 60
-  if (h > 0) return m > 0 ? `${h}時間${m}分` : `${h}時間`
-  return `${m}分`
 }
 
 function trendPts(key: string): { date: string; value: number | null }[] {

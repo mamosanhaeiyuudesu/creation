@@ -161,14 +161,17 @@ const bars = computed(() =>
     const bedAxis = d.bed as number
     const yTop = yScale(bedAxis)
     const yBot = yScale(d.wake as number)
-    const h = Math.floor(d.totalMinutes / 60)
-    const m = d.totalMinutes % 60
     // ステージ帯（覚醒/レム/浅い/深い）を就寝軸に沿って描く。データが無ければ空配列→単色帯にフォールバック。
     const segments = (d.timeline ?? []).map((seg) => {
       const segTop = yScale(bedAxis + seg.start)
       const segBot = yScale(bedAxis + seg.start + seg.duration)
       return { stage: seg.stage, y: segTop, height: Math.max(1, segBot - segTop) }
     })
+    // ツールチップの睡眠時間は覚醒時間を除いた実睡眠時間にする（totalMinutesは就寝〜起床の全体で中途覚醒を含むため）
+    const wakeMinutes = (d.timeline ?? []).reduce((sum, seg) => seg.stage === 'wake' ? sum + seg.duration : sum, 0)
+    const asleepMinutes = Math.max(0, d.totalMinutes - wakeMinutes)
+    const h = Math.floor(asleepMinutes / 60)
+    const m = asleepMinutes % 60
     return {
       i: idx,
       x: x - bw / 2,

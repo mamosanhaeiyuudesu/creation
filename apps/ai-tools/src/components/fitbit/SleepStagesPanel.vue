@@ -1,13 +1,23 @@
 <template>
-  <div class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4">
+  <div
+    class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4 cursor-pointer hover:bg-white/[0.06] transition-colors"
+    @click="$emit('open')"
+  >
     <div v-if="loading" class="h-[120px] flex items-center justify-center text-slate-500 text-xs animate-pulse">読み込み中…</div>
     <div v-else-if="error" class="h-[120px] flex items-center justify-center text-rose-400 text-xs">{{ error }}</div>
     <div v-else-if="!data || data.totalMinutes <= 0" class="h-[120px] flex items-center justify-center text-slate-600 text-xs">睡眠データがありません</div>
 
     <div v-else>
-      <div class="flex items-baseline justify-between gap-2 mb-2">
-        <div class="text-xs font-semibold text-slate-400">😴 睡眠ステージ</div>
+      <div class="flex items-baseline justify-between gap-2 mb-1">
+        <div class="text-xs font-semibold text-slate-400">😴 睡眠</div>
         <div class="text-lg font-bold text-indigo-300 tabular-nums">{{ fmtDuration(data.asleepMinutes) }}</div>
+      </div>
+      <div class="flex items-center gap-2.5 mb-3 text-[11px] text-slate-400">
+        <span class="tabular-nums">{{ data.bedtime }} → {{ data.waketime }}</span>
+        <span class="text-slate-700">|</span>
+        <span>睡眠効率 <span class="font-semibold text-slate-200 tabular-nums">{{ data.efficiency }}%</span></span>
+        <span class="text-slate-700">|</span>
+        <span>中途覚醒 <span class="font-semibold text-slate-200 tabular-nums">{{ data.awakeCount }}回</span></span>
       </div>
       <div class="flex items-stretch gap-2">
         <!-- 左: ステージ名 -->
@@ -76,6 +86,7 @@ import type { SleepDetail, SleepStage } from '~/types/fitbit'
 import { SLEEP_STAGE_GOAL_MIN, SLEEP_STAGE_LEVELS, sleepStageColor, sleepStageJp } from '~/utils/sleepStage'
 
 const props = defineProps<{ date: string }>()
+defineEmits<{ open: [] }>()
 
 const data = ref<SleepDetail | null>(null)
 const loading = ref(true)
