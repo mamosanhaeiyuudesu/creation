@@ -33,6 +33,9 @@
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openVisionModal(); showSettingsMenu = false">
               <span>🎯</span> ビジョン設定
             </button>
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="modelModalOpen = true; showSettingsMenu = false">
+              <span>🤖</span> モデル変更
+            </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); showSettingsMenu = false">
               <span>🚪</span> ログアウト
             </button>
@@ -894,6 +897,14 @@
       </div>
     </div>
 
+    <!-- モデル選択モーダル -->
+    <TranscriptionModelModal
+      v-if="modelModalOpen"
+      v-model="transcriptionModel"
+      accent="orange"
+      @close="modelModalOpen = false"
+    />
+
     <!-- はげまし確認ポップアップ（記録直後） -->
     <div v-if="encourageConfirmOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="declineEncourage">
       <div class="w-full max-w-[300px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-5">
@@ -1280,6 +1291,7 @@ useHead({
 import { useHistory } from '~/composables/useHistory'
 import { useAuth } from '~/composables/useAuth'
 import { useAudioRecorder, fetchTitle } from '~/composables/useAudioRecorder'
+import { useTranscriptionModel } from '~/composables/useTranscriptionModel'
 import { tokenize } from '~/utils/hagemashi/tokenize'
 import { buildNetwork, graphSignature, type NetGraph } from '~/utils/hagemashi/cooccurrence'
 
@@ -1308,6 +1320,8 @@ const ENCOURAGE_PROMPTS = {
 const error = ref('')
 const recordConfirmOpen = ref(false)
 const textInputOpen = ref(false)
+const { transcriptionModel } = useTranscriptionModel()
+const modelModalOpen = ref(false)
 const textInputValue = ref('')
 const isSubmittingText = ref(false)
 const showSettingsMenu = ref(false)
@@ -2634,5 +2648,6 @@ const { isRecording, isPaused, isProcessing, duration, formatTime, startRecordin
   onTranscribed: handleTranscribed,
   onError: (msg) => { error.value = msg },
   getPrompt: getWhisperPrompt,
+  getModel: () => transcriptionModel.value,
 })
 </script>

@@ -113,6 +113,14 @@
 
     <!-- Auth Modal -->
     <AuthModal v-if="!$dev && checked && !isLoggedIn" accent="sky" />
+
+    <!-- モデル選択モーダル -->
+    <TranscriptionModelModal
+      v-if="modelModalOpen"
+      v-model="transcriptionModel"
+      accent="sky"
+      @close="modelModalOpen = false"
+    />
   </div>
 </template>
 
@@ -137,6 +145,7 @@ useHead({
 import { useHistory } from '~/composables/useHistory'
 import { useAuth } from '~/composables/useAuth'
 import { useAudioRecorder, splitAndTranscribeBlob, fetchTitle } from '~/composables/useAudioRecorder'
+import { useTranscriptionModel } from '~/composables/useTranscriptionModel'
 
 const $dev = import.meta.dev
 
@@ -152,7 +161,11 @@ if (!$dev) {
 
 const { history, copiedHistoryId, addHistory, deleteHistory, copyHistory, updateHistoryTitle } = useHistory('whisper-history', 'whisper')
 
+const { transcriptionModel } = useTranscriptionModel()
+const modelModalOpen = ref(false)
+
 const menuItems = [
+  { icon: '🤖', label: 'モデル変更', action: () => { modelModalOpen.value = true } },
   { icon: '🚪', label: 'ログアウト', action: logout },
 ]
 
@@ -166,6 +179,7 @@ const handleTranscribed = async (text: string) => {
 const { isRecording, isPaused, isProcessing, duration, formatTime, startRecording, pauseRecording, resumeRecording, transcribeRecording, cancelRecording } = useAudioRecorder({
   onTranscribed: handleTranscribed,
   onError: (msg) => { error.value = msg },
+  getModel: () => transcriptionModel.value,
 })
 
 // --- ファイルアップロード ---
@@ -178,7 +192,7 @@ const onFileSelected = async (event: Event) => {
 
   isUploading.value = true
   try {
-    const text = await splitAndTranscribeBlob(file, file.name)
+    const text = await splitAndTranscribeBlob(file, file.name, undefined, transcriptionModel.value)
     await handleTranscribed(text)
   } catch (err) {
     error.value = err instanceof Error ? err.message : '予期しないエラーが発生しました'

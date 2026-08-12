@@ -4,7 +4,7 @@
     <div class="relative w-full sm:max-w-[560px] max-h-[92dvh] overflow-y-auto bg-[#0f172a] border border-white/[0.08] rounded-t-3xl sm:rounded-3xl shadow-2xl [scrollbar-width:thin]">
       <!-- ハンドル / 日送り / 閉じる -->
       <div class="sticky top-0 z-10 flex items-center justify-between px-5 py-3 bg-[#0f172a]/95 backdrop-blur border-b border-white/[0.06]">
-        <h2 class="text-sm font-bold text-slate-100">睡眠スコア</h2>
+        <h2 class="text-sm font-bold text-slate-100">睡眠</h2>
         <div class="flex items-center gap-1">
           <button class="w-7 h-7 rounded-lg text-slate-300 hover:bg-white/10 flex items-center justify-center" @click="shiftDay(-1)">‹</button>
           <span class="text-xs font-semibold text-slate-200 min-w-[76px] text-center tabular-nums">{{ dateLabel }}</span>
@@ -14,7 +14,6 @@
             :disabled="isToday"
             @click="shiftDay(1)"
           >›</button>
-          <MetricInfoButton metric="sleepScore" class="ml-1" />
           <!-- 更新（最新データに取り直す。キャッシュを無視） -->
           <button
             class="w-7 h-7 rounded-lg text-slate-300 flex items-center justify-center hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent"
@@ -30,19 +29,14 @@
       <div v-else-if="error" class="p-10 text-center text-rose-400 text-sm">{{ error }}</div>
 
       <div v-else-if="data" class="p-5 flex flex-col gap-6">
-        <!-- スコア + 総睡眠 -->
-        <div class="flex items-center gap-5">
-          <ScoreGauge :score="data.score.score" label="睡眠スコア" :size="108" from="#818cf8" to="#6366f1" />
-          <div class="flex flex-col gap-1">
-            <div class="text-2xl font-bold text-slate-100 tabular-nums">{{ fmtDuration(data.asleepMinutes) }}</div>
-            <div class="text-sm text-slate-400">{{ data.bedtime }} → {{ data.waketime }}</div>
-            <div class="text-xs text-indigo-300 mt-0.5">{{ data.score.label }}</div>
-            <div class="flex items-center gap-2.5 mt-1 text-[11px] text-slate-400">
-              <span>睡眠効率 <span class="font-semibold text-slate-200 tabular-nums">{{ data.efficiency }}%</span></span>
-              <span class="text-slate-700">|</span>
-              <span>中途覚醒 <span class="font-semibold text-slate-200 tabular-nums">{{ data.awakeCount }}回</span></span>
-            </div>
-            <div v-if="data.score.provisional" class="text-[10px] text-amber-400/80 mt-1">※ ベースライン蓄積中のため参考値</div>
+        <!-- 総睡眠 -->
+        <div class="flex flex-col gap-1">
+          <div class="text-2xl font-bold text-slate-100 tabular-nums">{{ fmtDuration(data.asleepMinutes) }}</div>
+          <div class="text-sm text-slate-400">{{ data.bedtime }} → {{ data.waketime }}</div>
+          <div class="flex items-center gap-2.5 mt-1 text-[11px] text-slate-400">
+            <span>睡眠効率 <span class="font-semibold text-slate-200 tabular-nums">{{ data.efficiency }}%</span></span>
+            <span class="text-slate-700">|</span>
+            <span>中途覚醒 <span class="font-semibold text-slate-200 tabular-nums">{{ data.awakeCount }}回</span></span>
           </div>
         </div>
 
@@ -111,12 +105,6 @@
           </div>
         </div>
 
-        <!-- 睡眠スコアの推移（7日 / 1か月 / 3か月） -->
-        <div class="border-t border-white/[0.06] pt-4">
-          <div class="text-xs font-semibold text-slate-400 mb-2">睡眠スコアの推移</div>
-          <TrendPanel metric="sleepScore" color="#818cf8" :date="activeDate" :decimals="0" :zero-based="true" />
-        </div>
-
         <!-- 睡眠時間の推移（合計／ステージ別を切り替え） -->
         <div class="border-t border-white/[0.06] pt-4">
           <div class="flex items-center gap-2 mb-2">
@@ -150,10 +138,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import type { SleepDetail, SleepStage } from '~/types/fitbit'
-import ScoreGauge from '~/components/fitbit/ScoreGauge.vue'
 import TrendPanel from '~/components/fitbit/TrendPanel.vue'
 import SleepScheduleChart from '~/components/fitbit/SleepScheduleChart.vue'
-import MetricInfoButton from '~/components/fitbit/MetricInfoButton.vue'
 import { mdWeekday, todayJST } from '~/utils/jst'
 import { SLEEP_STAGE_GOAL_MIN, SLEEP_STAGE_LEVELS, sleepStageColor, sleepStageJp } from '~/utils/sleepStage'
 

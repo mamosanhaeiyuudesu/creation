@@ -45,6 +45,7 @@ gtag('config', 'G-JRBVTJYCEH');`,
   runtimeConfig: {
     openaiApiKey: '',
     anthropicApiKey: '',
+    geminiApiKey: '',
     miyakoVectorStoreId: '',
     encryptionKey: '',
     fitbitClientId: '',

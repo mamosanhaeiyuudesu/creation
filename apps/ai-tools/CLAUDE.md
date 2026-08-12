@@ -17,6 +17,7 @@ wrangler deploy  # Cloudflare Workersへデプロイ
 ```
 NUXT_OPENAI_API_KEY=...
 NUXT_ANTHROPIC_API_KEY=...
+NUXT_GEMINI_API_KEY=...      # whisper文字起こしでGeminiを選んだ場合のGoogle AI Studio鍵（未設定だとGemini選択時にエラー）
 NUXT_MIYAKO_VECTOR_STORE_ID=...
 NUXT_IPPON_PROVIDER=...   # ippon の3D生成プロバイダ（tripo|mock。未設定なら mock）
 NUXT_TRIPO_API_KEY=...    # ippon で provider=tripo のときの Tripo AI 鍵（無ければ mock にフォールバック）
@@ -82,8 +83,8 @@ NUXT_APP_URL = "https://<host>"                            # メール本文の�
 
 | ルート | 概要 |
 |--------|------|
-| `/whisper` | マイク録音または音声ファイルで文字起こし・要約・校正 |
-| `/hagemashi` | 状況を入力するとAIがはげましメッセージとテーマを生成 |
+| `/whisper` | マイク録音または音声ファイルで文字起こし・要約・校正。文字起こしモデルはWhisper(既定)/Geminiを設定メニューから切替可（`useTranscriptionModel`、選択はlocalStorage） |
+| `/hagemashi` | 状況を入力するとAIがはげましメッセージとテーマを生成。記録の音声文字起こしは`/whisper`と同じく設定メニューでWhisper/Geminiを切替可 |
 | `/fitbit` | Fitbitヘルスダッシュボード（エナジー/睡眠スコア・歩数・心拍・HRV・SpO2等を1画面集約、睡眠は詳細分解） |
 | `/task` | Trello連携のタスク管理ビュー（DOING/TODO/DONE）。設定 →「🔔 アラート」で**重要タスク（赤ラベル）のメール通知**を設定できる（ユーザーに1つ・全Trelloアカウント横断で1通。送信時刻は JST の「時」を複数指定）。送信は毎時の Cron（`src/server/tasks/task-alert.ts`）。重要タスクが0件の回は送らない |
 | `/office` | 勤怠管理（日付・打刻記録） |
@@ -142,6 +143,7 @@ NUXT_APP_URL = "https://<host>"                            # メール本文の�
 | ファイル | 役割 |
 |----------|------|
 | `openai.ts` | `callOpenAi()` / `fetchOpenAi()` / `extractText()` 等、OpenAI API呼び出し共通処理 |
+| `gemini.ts` | `getGeminiKey()`。whisper文字起こしでGeminiモデルを選んだ場合のAPI鍵取得のみ（呼び出し自体は `api/whisper/index.post.ts` に直書き、他プロバイダと同様の粒度） |
 | `auth.ts` | WHISPER_DB経由の認証・セッション管理 |
 | `mlbstats.ts` | MLB Stats API呼び出し |
 | `fangraphs.ts` | FanGraphs API呼び出し |

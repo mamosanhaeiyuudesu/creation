@@ -66,64 +66,53 @@
         <div v-else-if="error" class="mt-16 text-center text-rose-400 text-sm">{{ error }}</div>
 
         <template v-else-if="data">
-          <p v-if="data.energyScore.provisional" class="text-[11px] text-amber-400/80 text-center -mt-1">
-            ※ 使い始めのためベースライン蓄積中。スコアは数日後に精度が上がります。
-          </p>
+          <!-- 睡眠ステージ -->
+          <SleepStagesPanel :date="date" />
 
-          <!-- 上段: 2大スコア（数値 + 7日推移スパークライン） -->
-          <div class="grid grid-cols-2 gap-3">
-            <button
-              class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4 flex flex-col items-center gap-2 hover:bg-white/[0.06] transition-colors"
-              @click="openTrend({ trend: 'energyScore', label: 'エナジースコア', icon: '⚡️', color: '#14b8a6', unit: '', decimals: 0, zeroBased: true })"
-            >
-              <ScoreGauge :score="data.energyScore.score" label="エナジー" :size="120" from="#34d399" to="#14b8a6" />
-              <div class="text-xs text-emerald-300 font-medium">{{ data.energyScore.label }}</div>
-              <div class="w-full mt-0.5">
-                <Sparkline :points="trendPts('energyScore')" color="#2dd4bf" :h="40" :zero-based="true" />
+          <!-- 移動距離・心拍数の時間別 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4">
+              <IntradayPanel :points="data.distanceSeries" color="#a3e635" unit="km" :decimals="1" :zero-based="true" label="📍 移動距離（時間別）" />
+            </div>
+            <div class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4">
+              <IntradayPanel :points="data.heartRateSeries" color="#f87171" unit="bpm" :decimals="0" :zero-based="false" label="❤️ 心拍数（5分間隔）" />
+            </div>
+          </div>
+
+          <!-- アクティビティ概要 -->
+          <button
+            class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4 flex flex-col gap-2.5 hover:bg-white/[0.06] transition-colors text-left"
+            @click="activityOpen = true"
+          >
+            <div class="text-xs font-semibold text-slate-400">🏃 アクティビティ</div>
+            <div v-if="data.activities.length" class="flex flex-col gap-2">
+              <div v-for="(a, i) in data.activities" :key="i" class="flex items-center gap-3">
+                <span class="text-2xl leading-none shrink-0">{{ a.icon }}</span>
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-semibold text-slate-100">{{ a.label }}</div>
+                  <div class="text-[11px] text-slate-500 tabular-nums">{{ a.start }} 〜 {{ a.end }}・{{ a.durationMin }}分</div>
+                </div>
+                <div class="text-sm font-bold text-orange-400 tabular-nums shrink-0">{{ a.caloriesKcal }}<span class="text-[10px] text-slate-500 ml-0.5">kcal</span></div>
               </div>
-            </button>
+            </div>
+            <div v-else class="text-xs text-slate-600">記録された運動はありません</div>
+          </button>
 
+          <!-- 下段: メトリクスグリッド（睡眠 + 8指標。数値 + 7日スパークライン） -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <button
-              class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4 flex flex-col items-center gap-2 hover:bg-white/[0.06] transition-colors"
+              class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-3.5 flex flex-col gap-1.5 hover:bg-white/[0.06] transition-colors text-left"
               @click="sleepOpen = true"
             >
-              <ScoreGauge :score="data.sleepScore.score" label="睡眠スコア" :size="120" from="#818cf8" to="#6366f1" />
-              <div class="text-xs text-indigo-300 font-medium flex items-center gap-1.5">
-                <span>{{ fmtDuration(data.sleep.asleepMinutes) }}</span>
-                <span class="text-indigo-400/60">·</span>
-                <span>{{ data.sleepScore.label }}</span>
+              <div class="flex items-center gap-1.5 text-[11px] text-slate-400"><span>😴</span>睡眠</div>
+              <div class="flex items-baseline gap-1">
+                <span class="text-xl font-bold tabular-nums text-indigo-300">{{ fmtDuration(data.sleep.asleepMinutes) }}</span>
               </div>
-              <div class="w-full mt-0.5">
-                <Sparkline :points="trendPts('sleepScore')" color="#818cf8" :h="40" :zero-based="true" />
+              <div class="w-full">
+                <Sparkline :points="trendPts('sleepAsleepHours')" color="#818cf8" :h="40" unit="時間" :decimals="1" :zero-based="true" />
               </div>
             </button>
-          </div>
 
-          <!-- 今日のアドバイス + アクティビティ概要: スマホは縦積み（アドバイスが上）、PCは横並び（アドバイスが左） -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <AdviceCard :date="date" />
-
-            <button
-              class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4 flex flex-col gap-2.5 hover:bg-white/[0.06] transition-colors text-left"
-              @click="activityOpen = true"
-            >
-              <div class="text-xs font-semibold text-slate-400">🏃 アクティビティ</div>
-              <div v-if="data.activities.length" class="flex flex-col gap-2">
-                <div v-for="(a, i) in data.activities" :key="i" class="flex items-center gap-3">
-                  <span class="text-2xl leading-none shrink-0">{{ a.icon }}</span>
-                  <div class="min-w-0 flex-1">
-                    <div class="text-sm font-semibold text-slate-100">{{ a.label }}</div>
-                    <div class="text-[11px] text-slate-500 tabular-nums">{{ a.start }} 〜 {{ a.end }}・{{ a.durationMin }}分</div>
-                  </div>
-                  <div class="text-sm font-bold text-orange-400 tabular-nums shrink-0">{{ a.caloriesKcal }}<span class="text-[10px] text-slate-500 ml-0.5">kcal</span></div>
-                </div>
-              </div>
-              <div v-else class="text-xs text-slate-600">記録された運動はありません</div>
-            </button>
-          </div>
-
-          <!-- 下段: メトリクスグリッド（数値 + 7日スパークライン） -->
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <button
               v-for="m in metrics"
               :key="m.key"
@@ -140,10 +129,6 @@
               </div>
             </button>
           </div>
-
-          <p class="text-[10px] text-slate-600 text-center mt-2 leading-relaxed">
-            エナジー／睡眠スコアはFitbit公式APIでは提供されないため、取得可能な指標から独自に近似算出しています。各指標の意味・算出方法・目安は、カードを開いた先の右上「？」から確認できます。
-          </p>
         </template>
       </template>
     </div>
@@ -177,12 +162,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import type { DashboardData, TimePoint } from '~/types/fitbit'
-import ScoreGauge from '~/components/fitbit/ScoreGauge.vue'
 import Sparkline from '~/components/fitbit/Sparkline.vue'
+import IntradayPanel from '~/components/fitbit/IntradayPanel.vue'
+import SleepStagesPanel from '~/components/fitbit/SleepStagesPanel.vue'
 import SleepModal from '~/components/fitbit/SleepModal.vue'
 import TrendModal from '~/components/fitbit/TrendModal.vue'
 import ActivityModal from '~/components/fitbit/ActivityModal.vue'
-import AdviceCard from '~/components/fitbit/AdviceCard.vue'
 import AuthModal from '~/components/AuthModal.vue'
 import { useAuth } from '~/composables/useAuth'
 
