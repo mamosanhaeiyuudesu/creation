@@ -7,7 +7,7 @@
     <div v-else>
       <div class="flex items-baseline justify-between gap-2 mb-2">
         <div class="text-xs font-semibold text-slate-400">😴 睡眠ステージ</div>
-        <div class="text-[10px] text-slate-500">目安＝7時間睡眠での標準的な配分（深い1.2h・浅い3.5h・レム1.5h）</div>
+        <div class="text-lg font-bold text-indigo-300 tabular-nums">{{ fmtDuration(data.asleepMinutes) }}</div>
       </div>
       <div class="flex items-stretch gap-2">
         <!-- 左: ステージ名 -->
@@ -51,17 +51,17 @@
             <span class="ml-1.5 text-slate-500 tabular-nums">{{ segClock(hoverSeg) }}</span>
           </div>
         </div>
-        <!-- 右: 時間・目安に対する達成率 -->
-        <div class="relative shrink-0 w-[124px]" :style="{ height: `${hypH}px` }">
+        <!-- 右: 時間・目安に対する達成率（列幅を固定し、目安の有無に関わらず縦に揃える） -->
+        <div class="relative shrink-0 w-[132px]" :style="{ height: `${hypH}px` }">
           <div
             v-for="(lv, i) in stageLevels"
             :key="lv.stage"
-            class="absolute right-0 flex items-center justify-end gap-1.5 text-[10px] text-slate-400 tabular-nums whitespace-nowrap"
+            class="absolute right-0 flex items-center gap-1.5 text-[10px] text-slate-400 tabular-nums whitespace-nowrap"
             :style="{ top: `${rowY(i)}px`, height: `${rowH}px` }"
           >
-            <span>{{ fmtDuration(data.stages[lv.stage].minutes) }}</span>
-            <span v-if="goalPct(lv.stage) !== null" class="font-semibold" :class="goalPctClass(lv.stage)">
-              目安の{{ goalPct(lv.stage) }}%
+            <span class="w-14 text-right shrink-0">{{ fmtDuration(data.stages[lv.stage].minutes) }}</span>
+            <span class="w-16 text-right shrink-0 font-semibold" :class="goalPctClass(lv.stage)">
+              {{ goalPct(lv.stage) !== null ? `目安の${goalPct(lv.stage)}%` : '' }}
             </span>
           </div>
         </div>

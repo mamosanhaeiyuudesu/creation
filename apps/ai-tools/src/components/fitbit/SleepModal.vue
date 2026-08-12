@@ -88,17 +88,17 @@
                 <span class="ml-1.5 text-slate-500 tabular-nums">{{ segClock(hoverSeg) }}</span>
               </div>
             </div>
-            <!-- 右: 時間・目安に対する達成率 -->
-            <div class="relative shrink-0 w-[124px]" :style="{ height: `${hypH}px` }">
+            <!-- 右: 時間・目安に対する達成率（列幅を固定し、目安の有無に関わらず縦に揃える） -->
+            <div class="relative shrink-0 w-[132px]" :style="{ height: `${hypH}px` }">
               <div
                 v-for="(lv, i) in stageLevels"
                 :key="lv.stage"
-                class="absolute right-0 flex items-center justify-end gap-1.5 text-[10px] text-slate-400 tabular-nums whitespace-nowrap"
+                class="absolute right-0 flex items-center gap-1.5 text-[10px] text-slate-400 tabular-nums whitespace-nowrap"
                 :style="{ top: `${rowY(i)}px`, height: `${rowH}px` }"
               >
-                <span>{{ fmtDuration(data.stages[lv.stage].minutes) }}</span>
-                <span v-if="goalPct(lv.stage) !== null" class="font-semibold" :class="goalPctClass(lv.stage)">
-                  目安の{{ goalPct(lv.stage) }}%
+                <span class="w-14 text-right shrink-0">{{ fmtDuration(data.stages[lv.stage].minutes) }}</span>
+                <span class="w-16 text-right shrink-0 font-semibold" :class="goalPctClass(lv.stage)">
+                  {{ goalPct(lv.stage) !== null ? `目安の${goalPct(lv.stage)}%` : '' }}
                 </span>
               </div>
             </div>
