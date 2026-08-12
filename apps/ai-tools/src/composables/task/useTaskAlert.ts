@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 
 /**
- * 重要タスクのメール通知（アラート）設定。
+ * 本日期限のタスクのメール通知（アラート）設定。
  * 本番は D1（/api/task/alert）に保存、dev は D1 が使えないので localStorage に持つ。
  * useTaskProfiles と同じ dev/本番の切り分け方。
  */
@@ -83,7 +83,7 @@ export function useTaskAlert() {
         return
       }
       const res = await $fetch<{ ok: boolean; count: number }>('/api/task/alert-test', { method: 'POST', body: { email } })
-      testResult.value = `テストメールを送りました（重要タスク ${res.count}件）`
+      testResult.value = `テストメールを送りました（本日期限のタスク ${res.count}件）`
     } catch (e: any) {
       error.value = e?.data?.message || e?.message || 'テスト送信に失敗しました'
     } finally {

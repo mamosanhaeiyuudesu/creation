@@ -46,8 +46,8 @@ async function submit() {
         <h2 class="m-0 mb-1 text-lg font-bold text-slate-50">📧 メール設定</h2>
 
         <p class="m-0 text-[12px] text-slate-400 leading-relaxed">
-          重要（赤ラベル）のタスクを、毎日決まった時刻にメールでお知らせします。時刻は複数選べます。<br>
-          対象は全アカウントの TODO / DOING。重要タスクが0件のときは送りません。
+          その日（JST）が期限のタスクを、毎日決まった時刻にメールでお知らせします。時刻は複数選べます。<br>
+          対象は全アカウントの TODO / DOING。対象タスクが0件のときは送りません。
         </p>
 
         <label class="flex items-center gap-2 mt-2 cursor-pointer group w-fit" @click="form.enabled = !form.enabled">

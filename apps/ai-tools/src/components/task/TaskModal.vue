@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Board } from '~/composables/task/useTaskBoards'
 import TaskDatePicker from './TaskDatePicker.vue'
 
-type TaskForm = { name: string; desc: string; due: string; boardId: string; status: 'todo' | 'doing' | 'done'; isImportant: boolean; effort: number }
+type TaskForm = { name: string; desc: string; due: string; boardId: string; status: 'todo' | 'doing' | 'done'; effort: number }
 
 const props = defineProps<{
   show: boolean
@@ -21,7 +21,7 @@ const emit = defineEmits<{
   delete: []
 }>()
 
-const form = ref<TaskForm>({ name: '', desc: '', due: '', boardId: '', status: 'todo', isImportant: false, effort: 1 })
+const form = ref<TaskForm>({ name: '', desc: '', due: '', boardId: '', status: 'todo', effort: 1 })
 
 watch(() => props.show, (v) => {
   if (v) form.value = { ...props.initialForm }
@@ -40,6 +40,26 @@ function incrementEffort() {
   if (e === 0.25) form.value.effort = 0.5
   else if (e === 0.5) form.value.effort = 1
   else form.value.effort = Math.min(99, e + 1)
+}
+
+function pad2(n: number) { return String(n).padStart(2, '0') }
+
+// 今週（月曜始まり）の日曜 23:59 を TaskDatePicker と同じ "YYYY-MM-DDTHH:MM" 形式で返す
+function sundayOfThisWeekDue(): string {
+  const t = nowJST()
+  const dow = t.getUTCDay() // 0=日〜6=土
+  const daysUntilSunday = (7 - dow) % 7
+  const d = new Date(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate())
+  d.setDate(d.getDate() + daysUntilSunday)
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T23:59`
+}
+
+const isUntilSunday = computed(() => !!form.value.due && form.value.due === sundayOfThisWeekDue())
+
+// 週末までは即座に確定させたい操作のため、チェックを入れた瞬間に保存してポップアップを閉じる
+function setUntilSunday() {
+  form.value.due = sundayOfThisWeekDue()
+  emit('save', form.value)
 }
 </script>
 
@@ -72,7 +92,23 @@ function incrementEffort() {
         </div>
 
         <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">期限</label>
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">期限</label>
+            <label class="flex items-center gap-1.5 cursor-pointer select-none group">
+              <div
+                :class="[
+                  'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all flex-shrink-0',
+                  isUntilSunday
+                    ? 'bg-sky-500/20 border-sky-400/70'
+                    : 'bg-white/[0.04] border-white/20 group-hover:border-white/40',
+                ]"
+                @click="setUntilSunday"
+              >
+                <svg v-if="isUntilSunday" xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <span :class="['text-[11px] font-medium transition-colors', isUntilSunday ? 'text-sky-400' : 'text-slate-500 group-hover:text-slate-300']">週末まで</span>
+            </label>
+          </div>
           <TaskDatePicker v-model="form.due" />
         </div>
 
@@ -87,7 +123,7 @@ function incrementEffort() {
             </select>
           </div>
           <div class="flex flex-col gap-1 flex-1">
-            <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">リスト</label>
+            <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">ステータス</label>
             <select
               v-model="form.status"
               class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 [color-scheme:dark] cursor-pointer"
@@ -114,21 +150,6 @@ function incrementEffort() {
             </div>
           </div>
         </div>
-
-        <label class="flex items-center gap-2.5 cursor-pointer select-none group w-fit">
-          <div
-            :class="[
-              'w-4 h-4 rounded border flex items-center justify-center transition-all flex-shrink-0',
-              form.isImportant
-                ? 'bg-red-500/20 border-red-400/70'
-                : 'bg-white/[0.04] border-white/20 group-hover:border-white/40',
-            ]"
-            @click="form.isImportant = !form.isImportant"
-          >
-            <svg v-if="form.isImportant" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-red-400"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          <span :class="['text-[13px] font-medium transition-colors', form.isImportant ? 'text-red-400' : 'text-slate-400 group-hover:text-slate-300']">重要</span>
-        </label>
 
         <div v-if="error" class="px-3 py-2 bg-red-500/12 border border-red-500/30 rounded-lg text-red-300 text-[13px]">⚠ {{ error }}</div>
 

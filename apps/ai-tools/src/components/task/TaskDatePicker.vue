@@ -10,7 +10,7 @@ const tempMonth = ref(0)
 const tempDay = ref<number | null>(null)
 const tempTime = ref('23:59')
 
-const WEEK = ['月', '火', '水', '木', '金', '土', '日']
+const WEEK = ['日', '月', '火', '水', '木', '金', '土']
 
 const currentDate = computed(() => {
   if (!props.modelValue) return null
@@ -40,8 +40,7 @@ function open() {
 const monthLabel = computed(() => `${tempYear.value}年${tempMonth.value + 1}月`)
 
 const gridDays = computed(() => {
-  const firstDow = new Date(tempYear.value, tempMonth.value, 1).getDay()
-  const offset = (firstDow + 6) % 7
+  const offset = new Date(tempYear.value, tempMonth.value, 1).getDay() // 日曜始まり
   const total = new Date(tempYear.value, tempMonth.value + 1, 0).getDate()
   const cells: (number | null)[] = Array(offset).fill(null)
   for (let d = 1; d <= total; d++) cells.push(d)
@@ -141,8 +140,8 @@ function confirm() {
                     : isToday(day)
                       ? 'text-sky-400 font-semibold hover:bg-white/10'
                       : 'text-slate-300 hover:bg-white/10',
-                  (i % 7 === 5) && !isSelected(day) ? 'text-sky-400' : '',
-                  (i % 7 === 6) && !isSelected(day) ? 'text-rose-400' : '',
+                  (i % 7 === 6) && !isSelected(day) ? 'text-sky-400' : '',
+                  (i % 7 === 0) && !isSelected(day) ? 'text-rose-400' : '',
                 ]"
                 @click="tempDay = day"
               >{{ day }}</button>

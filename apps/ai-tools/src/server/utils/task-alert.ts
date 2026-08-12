@@ -1,8 +1,8 @@
 /**
- * task アラート（重要タスクのメール通知）の共通処理。
+ * task アラート（本日期限のタスクのメール通知）の共通処理。
  *
  * - 設定の読み書き（task_alerts テーブル。メールアドレスは encrypt.ts で暗号化）
- * - Trello から重要タスク（赤ラベル）を収集
+ * - Trello から本日（JST）が期限のタスクを収集
  * - メール本文の組み立て
  * - Resend（HTTP API）での送信
  *
@@ -82,6 +82,13 @@ export interface DoneTask {
   doneAt: string
 }
 
+/** 期限のJST暦日が今日と一致するか（useTaskBoards の isDueTodayJST と同じ規則） */
+function isDueTodayJST(due: string): boolean {
+  const d = toJSTDate(due)
+  const now = nowJST()
+  return d.getUTCFullYear() === now.getUTCFullYear() && d.getUTCMonth() === now.getUTCMonth() && d.getUTCDate() === now.getUTCDate()
+}
+
 /** 期限までの残り時間を表示用に整形（useTaskBoards の timeRemaining と同じ規則） */
 function describeDue(due: string | null): Pick<AlertTask, 'dueLabel' | 'overdue' | 'urgent'> {
   if (!due) return { dueLabel: '期限なし', overdue: false, urgent: false }
@@ -95,10 +102,10 @@ function describeDue(due: string | null): Pick<AlertTask, 'dueLabel' | 'overdue'
 }
 
 /**
- * Trello の TODO / DOING リストから重要タスク（赤ラベル付き）を集める。
+ * Trello の TODO / DOING リストから、本日（JST）が期限のタスクを集める。
  * 画面側と同じく、リスト名が todo / doing のものだけを対象にする。
  */
-export async function collectImportantTasks(
+export async function collectDueTodayTasks(
   key: string,
   token: string,
   excludedBoards: string[],
@@ -114,10 +121,10 @@ export async function collectImportantTasks(
 
       const perList = await Promise.all(
         targets.map(async (list: any) => {
-          const cards = await trelloGet(key, token, `/lists/${list.id}/cards?fields=id,name,due,labels`)
+          const cards = await trelloGet(key, token, `/lists/${list.id}/cards?fields=id,name,due`)
           const status = String(list.name).toLowerCase() === 'doing' ? 'DOING' : 'TODO'
           return (cards as any[])
-            .filter(c => Array.isArray(c.labels) && c.labels.some((l: any) => l.color === 'red'))
+            .filter(c => c.due && isDueTodayJST(c.due))
             .map((c): AlertTask => ({
               account,
               board: b.name,
@@ -195,8 +202,8 @@ export function buildAlertMail(
 ): { subject: string; html: string; text: string } {
   const overdueCount = tasks.filter(t => t.overdue).length
   const subject = overdueCount
-    ? `【重要タスク ${tasks.length}件・期限超過 ${overdueCount}件】${stampJST()}`
-    : `【重要タスク ${tasks.length}件】${stampJST()}`
+    ? `【本日期限のタスク ${tasks.length}件・期限超過 ${overdueCount}件】${stampJST()}`
+    : `【本日期限のタスク ${tasks.length}件】${stampJST()}`
 
   const rows = tasks.map(t => {
     const color = t.overdue ? '#dc2626' : t.urgent ? '#d97706' : '#64748b'
@@ -235,7 +242,7 @@ export function buildAlertMail(
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif;background:#f8fafc;padding:20px;">
   <div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
     <div style="background:#0f172a;padding:16px 20px;">
-      <div style="color:#f8fafc;font-size:16px;font-weight:700;">📋 重要タスクのお知らせ</div>
+      <div style="color:#f8fafc;font-size:16px;font-weight:700;">📋 本日期限のタスクのお知らせ</div>
       <div style="color:#94a3b8;font-size:12px;margin-top:4px;">${escapeHtml(stampJST())} 時点・${tasks.length}件${overdueCount ? `（うち期限超過 ${overdueCount}件）` : ''}</div>
     </div>
     <table style="width:100%;border-collapse:collapse;">${rows}</table>
@@ -249,7 +256,7 @@ export function buildAlertMail(
 </div>`.trim()
 
   const text = [
-    `重要タスクのお知らせ（${stampJST()} 時点・${tasks.length}件）`,
+    `本日期限のタスクのお知らせ（${stampJST()} 時点・${tasks.length}件）`,
     '',
     ...tasks.map(t => `・[${t.dueLabel}] ${t.name}（${[t.account, t.board].filter(Boolean).join(' / ')}・${t.status}）`),
     ...(doneTasks.length ? ['', `直近24時間で完了（${doneTasks.length}件）`, ...doneTasks.map(t => `・${t.name}（${[t.account, t.board].filter(Boolean).join(' / ')}）`)] : []),
@@ -300,10 +307,10 @@ export async function sendAlertMail(env: any, to: string, mail: { subject: strin
 }
 
 /**
- * 指定ユーザーの全 Trello アカウントから重要タスクを集める。
+ * 指定ユーザーの全 Trello アカウントから、本日（JST）が期限のタスクを集める。
  * アカウントが複数あるときだけ、タスクにアカウント名を添える。
  */
-export async function collectImportantTasksForUser(db: any, encryptionKey: string, userId: string): Promise<AlertTask[]> {
+export async function collectDueTodayTasksForUser(db: any, encryptionKey: string, userId: string): Promise<AlertTask[]> {
   const profiles = await db
     .prepare('SELECT name, key_enc, token_enc, excluded FROM task_profiles WHERE user_id = ? ORDER BY sort_order')
     .bind(userId)
@@ -318,7 +325,7 @@ export async function collectImportantTasksForUser(db: any, encryptionKey: strin
     const token = await decryptWithKey(encryptionKey, p.token_enc)
     if (!key || !token) continue
     const excluded = String(p.excluded ?? '').split(',').map((s: string) => s.trim()).filter(Boolean)
-    collected.push(...await collectImportantTasks(key, token, excluded, multi ? p.name : ''))
+    collected.push(...await collectDueTodayTasks(key, token, excluded, multi ? p.name : ''))
   }
 
   return sortTasks(collected)

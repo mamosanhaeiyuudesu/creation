@@ -21,7 +21,6 @@ import { useTaskBoards, parseTaskName } from '~/composables/task/useTaskBoards'
 import type { Board } from '~/composables/task/useTaskBoards'
 import { useDragDrop } from '~/composables/task/useDragDrop'
 import { useDatePicker } from '~/composables/task/useDatePicker'
-import { useTaskStats } from '~/composables/task/useTaskStats'
 import { useHistory } from '~/composables/useHistory'
 import type { HistoryItem } from '~/types/history'
 
@@ -76,8 +75,6 @@ const {
   selectDay, isSelectedDay, isTodayDay, clearEnd,
 } = useDatePicker(periodStart, periodEnd)
 
-const { thisWeekDoneFlat } = useTaskStats(boards)
-
 // 全件表示
 const showAll = ref(route.query.showAll !== '0')
 watch(showAll, v => {
@@ -89,7 +86,7 @@ watch(showAll, v => {
 
 // --- Settings menu ---
 const showSettingsMenu = ref(false)
-// メール設定（重要タスクのアラート）モーダル
+// メール設定（本日期限タスクのアラート）モーダル
 const showAlertModal = ref(false)
 
 function openSettingsMenu() { showSettingsMenu.value = !showSettingsMenu.value }
@@ -126,9 +123,129 @@ function downloadDone() {
   URL.revokeObjectURL(url)
 }
 
-function boardDoneFlat(board: Board) {
-  return allDates.value.flatMap(date => (board.done[date] ?? []).map(item => ({ item, date })))
+// 月曜始まりの週でグルーピング（DONE欄をPC版で週ごとに縦積み表示するため）
+function mondayOf(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  const diffFromMonday = (date.getDay() + 6) % 7
+  date.setDate(date.getDate() - diffFromMonday)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
+
+function addDays(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  date.setDate(date.getDate() + days)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+const doneWeekGroups = computed(() => {
+  const map = new Map<string, string[]>()
+  for (const date of allDates.value) {
+    const monday = mondayOf(date)
+    if (!map.has(monday)) map.set(monday, [])
+    map.get(monday)!.push(date)
+  }
+  return [...map.entries()]
+    .sort((a, b) => (a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0))
+    .map(([monday, dates]) => ({
+      monday,
+      label: `${formatDateShort(monday)}(月)〜${formatDateShort(addDays(monday, 6))}(日)`,
+      dates: [...dates].sort().reverse(),
+    }))
+})
+
+function boardDoneFlatForDates(board: Board, dates: string[]) {
+  return dates.flatMap(date => (board.done[date] ?? []).map(item => ({ item, date })))
+}
+
+function weekBoardEffort(board: Board, dates: string[]) {
+  return dates.reduce((s, date) => s + (board.done[date] ?? []).reduce((a, c) => a + parseTaskName(c.name).effort, 0), 0)
+}
+
+function weekBoardTotal(board: Board, dates: string[]) {
+  return dates.reduce((s, date) => s + (board.done[date] ?? []).length, 0)
+}
+
+function weekTotalEffort(dates: string[]) {
+  return boards.value.reduce((s, board) => s + weekBoardEffort(board, dates), 0)
+}
+
+// 週次DONE推移チャート用データ（古い週→新しい週の時系列順）
+const doneChartData = computed(() => {
+  const weeksAsc = [...doneWeekGroups.value].reverse()
+  return {
+    weekLabels: weeksAsc.map(w => w.label),
+    axisLabels: weeksAsc.map(w => formatDateShort(w.monday)),
+    series: boards.value.map(board => ({
+      name: board.name,
+      color: boardColor(board),
+      data: weeksAsc.map(w => weekBoardEffort(board, w.dates)),
+    })),
+  }
+})
+
+// 指定日付群のうち、期限がその日付群に入っているTODO/DOINGカードの工数合計
+function pendingHoursForDates(dates: string[]) {
+  return boards.value.reduce((sum, board) => {
+    const cards = [...board.todo, ...board.doing]
+    return sum + cards.reduce((s, c) => {
+      if (!c.due) return s
+      const dueDate = toJSTDate(c.due).toISOString().slice(0, 10)
+      return dates.includes(dueDate) ? s + c.effort : s
+    }, 0)
+  }, 0)
+}
+
+// 今週（月曜始まり）の進捗（ヘッダー表示用）: 分母=期限が今週のタスク工数、分子=そのうち完了済み
+const thisWeekDates = computed(() => {
+  const monday = mondayOf(todayJST())
+  return Array.from({ length: 7 }, (_, i) => addDays(monday, i))
+})
+
+const thisWeekDoneHours = computed(() => weekTotalEffort(thisWeekDates.value))
+
+const thisWeekPlannedHours = computed(() => thisWeekDoneHours.value + pendingHoursForDates(thisWeekDates.value))
+
+const thisWeekPercent = computed(() => {
+  if (thisWeekPlannedHours.value <= 0) return 0
+  return Math.round((thisWeekDoneHours.value / thisWeekPlannedHours.value) * 100)
+})
+
+// 今日・明日の進捗: 分母=期限がその日のタスク工数、分子=そのうち完了済み
+const todayDateKey = computed(() => todayJST())
+const tomorrowDateKey = computed(() => addDays(todayJST(), 1))
+
+const todayDoneHours = computed(() => weekTotalEffort([todayDateKey.value]))
+const todayPlannedHours = computed(() => todayDoneHours.value + pendingHoursForDates([todayDateKey.value]))
+const todayPercent = computed(() => {
+  if (todayPlannedHours.value <= 0) return 0
+  return Math.round((todayDoneHours.value / todayPlannedHours.value) * 100)
+})
+
+const tomorrowDoneHours = computed(() => weekTotalEffort([tomorrowDateKey.value]))
+const tomorrowPlannedHours = computed(() => tomorrowDoneHours.value + pendingHoursForDates([tomorrowDateKey.value]))
+const tomorrowPercent = computed(() => {
+  if (tomorrowPlannedHours.value <= 0) return 0
+  return Math.round((tomorrowDoneHours.value / tomorrowPlannedHours.value) * 100)
+})
+
+// 今週の月曜日から今日までの経過日数（月曜=1日目）で割った1日あたりの平均完了工数
+const thisWeekDailyAvgHours = computed(() => {
+  const daysElapsed = ((nowJST().getUTCDay() + 6) % 7) + 1
+  return Math.round((thisWeekDoneHours.value / daysElapsed) * 10) / 10
+})
+
+// 今週の各日の完了工数の推移（棒グラフ用）
+const thisWeekDailyBars = computed(() => {
+  const hours = thisWeekDates.value.map(d => weekTotalEffort([d]))
+  const max = Math.max(...hours, 1)
+  return thisWeekDates.value.map((date, i) => ({
+    date,
+    hours: hours[i],
+    heightPct: Math.round((hours[i] / max) * 100),
+  }))
+})
 
 const praiseDialog = ref(false)
 const praiseDays = ref(3)
@@ -720,7 +837,39 @@ watch(isLoggedIn, async (v) => {
         <section class="hidden md:block px-5 pt-3 mb-8">
           <div class="flex items-center gap-2.5 mb-3.5">
             <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-sky-400/15 text-white border border-sky-400/30">DOING</span>
-            <span class="text-xl font-bold text-slate-600">{{ doingEffort }}h</span>
+            <!-- 今週の進捗（完了/今週が期限の工数・割合・プログレスバー） -->
+            <div class="flex items-center gap-1.5 text-[12px]" title="今週が期限のタスクのうち、完了済みの工数">
+              <span class="text-slate-500">週</span>
+              <span class="font-bold text-slate-300">{{ thisWeekDoneHours }}h</span>
+              <span class="text-slate-600">/</span>
+              <span class="text-slate-500">{{ thisWeekPlannedHours }}h</span>
+              <span class="text-slate-500">（{{ thisWeekPercent }}%）</span>
+              <span class="w-12 h-1.5 rounded-full bg-white/10 overflow-hidden flex-shrink-0">
+                <span class="block h-full rounded-full bg-emerald-400 transition-all" :style="{ width: `${thisWeekPercent}%` }" />
+              </span>
+              <span class="text-slate-700">|</span>
+              <span class="text-slate-500">今日</span>
+              <span class="font-bold text-slate-300">{{ todayDoneHours }}h</span>
+              <span class="text-slate-600">/</span>
+              <span class="text-slate-500">{{ todayPlannedHours }}h</span>
+              <span class="text-slate-500">（{{ todayPercent }}%）</span>
+              <span class="text-slate-700">|</span>
+              <span class="text-slate-500">明日</span>
+              <span class="font-bold text-slate-300">{{ tomorrowDoneHours }}h</span>
+              <span class="text-slate-600">/</span>
+              <span class="text-slate-500">{{ tomorrowPlannedHours }}h</span>
+              <span class="text-slate-500">（{{ tomorrowPercent }}%）</span>
+              <span class="w-[200px] h-[50px] flex items-end gap-[3px] flex-shrink-0">
+                <span
+                  v-for="bar in thisWeekDailyBars"
+                  :key="bar.date"
+                  class="flex-1 rounded-sm bg-emerald-400/70"
+                  :style="{ height: `${Math.max(bar.heightPct, 2)}%` }"
+                  :title="`${mdWeekday(bar.date)} ${bar.hours}h`"
+                />
+              </span>
+              <span class="text-slate-500" title="今週の月曜日から今日までの1日あたり平均完了工数">平均{{ thisWeekDailyAvgHours }}h/日</span>
+            </div>
           </div>
           <div class="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
             <div
@@ -730,7 +879,7 @@ watch(isLoggedIn, async (v) => {
               :style="boardBorderStyle(board)"
             >
               <div class="flex items-center gap-1 mb-2.5">
-                <span class="text-[11px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="boardDoingEffort(board)" class="ml-1 opacity-70">({{ boardDoingEffort(board) }}h)</span><TaskBoardDescTip :desc="board.desc" /></span>
+                <span class="text-[12px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="boardDoingEffort(board)" class="ml-1 opacity-70">({{ boardDoingEffort(board) }}h)</span><TaskBoardDescTip :desc="board.desc" /></span>
                 <button class="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-slate-400 hover:text-slate-200 cursor-pointer" title="ボードを編集" @click.stop="openEditBoard(board)">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>
                 </button>
@@ -741,7 +890,8 @@ watch(isLoggedIn, async (v) => {
                   :key="card.id"
                   :class="[
                     'bg-white/[0.04] border border-white/[0.07] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 transition-all hover:bg-white/[0.07] cursor-grab select-none',
-                    card.isImportant && !card.isOverdue ? 'border-rose-400/70 bg-rose-400/[0.09] shadow-[0_0_0_1px_rgba(251,113,133,0.6),0_0_12px_rgba(251,113,133,0.22)]' : '',
+                    card.isDueToday && !card.isOverdue ? 'border-red-800 bg-red-800/[0.22] shadow-[0_0_0_1px_rgba(153,27,27,0.9),0_0_16px_rgba(153,27,27,0.4)]' : '',
+                    card.isDueTomorrow && !card.isOverdue ? 'border-rose-300/80 bg-rose-300/[0.09] shadow-[0_0_0_1px_rgba(253,164,175,0.6),0_0_10px_rgba(253,164,175,0.2)]' : '',
                     card.isOverdue ? 'border-red-500/40 bg-red-500/[0.06]' : '',
                     card.isUrgent && !card.isOverdue ? 'border-amber-500/40 bg-amber-500/[0.06]' : '',
                     dragging?.cardId === card.id ? 'opacity-40' : '',
@@ -796,7 +946,7 @@ watch(isLoggedIn, async (v) => {
               :style="boardBorderStyle(board)"
             >
               <div class="flex items-center gap-1 mb-2.5">
-                <span class="text-[11px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="boardTodoEffort(board)" class="ml-1 opacity-70">({{ boardTodoEffort(board) }}h)</span><TaskBoardDescTip :desc="board.desc" /></span>
+                <span class="text-[12px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="boardTodoEffort(board)" class="ml-1 opacity-70">({{ boardTodoEffort(board) }}h)</span><TaskBoardDescTip :desc="board.desc" /></span>
                 <button class="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-slate-400 hover:text-slate-200 cursor-pointer" title="ボードを編集" @click.stop="openEditBoard(board)">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>
                 </button>
@@ -807,7 +957,8 @@ watch(isLoggedIn, async (v) => {
                   :key="card.id"
                   :class="[
                     'bg-white/[0.04] border border-white/[0.07] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 transition-all hover:bg-white/[0.07] cursor-grab select-none',
-                    card.isImportant && !card.isOverdue ? 'border-rose-400/70 bg-rose-400/[0.09] shadow-[0_0_0_1px_rgba(251,113,133,0.6),0_0_12px_rgba(251,113,133,0.22)]' : '',
+                    card.isDueToday && !card.isOverdue ? 'border-red-800 bg-red-800/[0.22] shadow-[0_0_0_1px_rgba(153,27,27,0.9),0_0_16px_rgba(153,27,27,0.4)]' : '',
+                    card.isDueTomorrow && !card.isOverdue ? 'border-rose-300/80 bg-rose-300/[0.09] shadow-[0_0_0_1px_rgba(253,164,175,0.6),0_0_10px_rgba(253,164,175,0.2)]' : '',
                     card.isOverdue ? 'border-red-500/40 bg-red-500/[0.06]' : '',
                     card.isUrgent && !card.isOverdue ? 'border-amber-500/40 bg-amber-500/[0.06]' : '',
                     dragging?.cardId === card.id ? 'opacity-40' : '',
@@ -854,44 +1005,63 @@ watch(isLoggedIn, async (v) => {
             <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-emerald-500/15 text-white border border-emerald-500/30">DONE</span>
             <span class="text-xl font-bold text-slate-600">{{ boards.reduce((s, b) => s + doneEffort(b), 0) }}h</span>
           </div>
-          <div v-if="allDates.length === 0" class="px-4 py-4 text-slate-600 text-[13px]">期間内の完了タスクなし</div>
-          <template v-else>
-            <!-- ボード別リスト -->
-            <div class="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
-              <div
+          <div class="flex items-end gap-4 mb-3">
+            <div class="flex gap-2 overflow-x-auto pb-1 max-w-[45%] flex-shrink-0 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
+              <button
                 v-for="board in boards"
                 :key="board.id"
-                class="group w-[220px] flex-shrink-0 rounded-xl p-3 border flex flex-col transition-colors"
-                :style="dragOverDoneBoardId === board.id ? { borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.08)' } : boardBorderStyle(board)"
-                @dragover="onDragOverDoneBoard($event, board.id)"
-                @drop.prevent="onDropDoneBoard(board.id)"
-              >
-                <div class="flex items-center gap-1 mb-2.5">
-                  <span class="text-[11px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="doneEffort(board)" class="ml-1 opacity-70">({{ doneEffort(board) }}h)</span><TaskBoardDescTip :desc="board.desc" /></span>
-                  <button class="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-slate-400 hover:text-slate-200 cursor-pointer" title="ボードを編集" @click.stop="openEditBoard(board)">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>
-                  </button>
+                class="flex-shrink-0 px-2.5 py-1 rounded-lg border border-dashed text-[11px] cursor-pointer transition-all opacity-60 hover:opacity-100"
+                :style="{ borderColor: boardColor(board), color: boardColor(board) }"
+                @click="openAddTask(board.id, 'done')"
+              >＋ {{ board.name }}</button>
+            </div>
+            <TaskDoneWeeklyChart v-if="doneChartData.weekLabels.length" :data="doneChartData" class="flex-1 min-w-0" />
+          </div>
+          <div v-if="allDates.length === 0" class="px-4 py-4 text-slate-600 text-[13px]">期間内の完了タスクなし</div>
+          <template v-else>
+            <!-- 週ごと（月曜〜日曜）に縦積み -->
+            <div v-for="week in doneWeekGroups" :key="week.monday" class="mb-4 last:mb-0">
+              <div class="flex items-baseline gap-2 mb-1.5">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{{ week.label }}</span>
+                <span class="text-[13px] font-bold text-slate-400">{{ weekTotalEffort(week.dates) }}h</span>
+              </div>
+              <!-- ボード別リスト -->
+              <div class="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
+                <div
+                  v-for="board in boards"
+                  :key="board.id"
+                  class="group w-[220px] flex-shrink-0 rounded-xl p-3 border flex flex-col transition-colors"
+                  :style="dragOverDoneBoardId === board.id ? { borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.08)' } : boardBorderStyle(board)"
+                  @dragover="onDragOverDoneBoard($event, board.id)"
+                  @drop.prevent="onDropDoneBoard(board.id)"
+                >
+                  <div class="flex items-center gap-1 mb-2.5">
+                    <span class="text-[12px] font-bold uppercase tracking-[0.05em]" :style="{ color: boardColor(board) }">{{ board.name }}<span v-if="weekBoardEffort(board, week.dates)" class="ml-1 opacity-70">({{ weekBoardEffort(board, week.dates) }}h)</span><TaskBoardDescTip :desc="board.desc" /></span>
+                    <button class="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity text-slate-400 hover:text-slate-200 cursor-pointer" title="ボードを編集" @click.stop="openEditBoard(board)">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>
+                    </button>
+                  </div>
+                  <ul v-if="weekBoardTotal(board, week.dates)" class="list-none m-0 p-0 flex flex-col gap-1.5 overflow-y-auto max-h-[420px]">
+                    <li
+                      v-for="row in boardDoneFlatForDates(board, week.dates)"
+                      :key="row.item.id"
+                      :class="['flex items-center gap-1.5 px-1.5 py-1 rounded bg-white/[0.03] hover:bg-white/[0.06] cursor-grab select-none', draggingDone?.cardId === row.item.id ? 'opacity-40' : '']"
+                      draggable="true"
+                      @dragstart="onDragStartDone($event, row.item, board.id, row.date)"
+                      @dragend="onDragEndDone"
+                      @click="openEditDoneTask(row.item, row.date, board)"
+                    >
+                      <button
+                        class="flex-shrink-0 w-3.5 h-3.5 rounded border border-white/40 bg-white/10 flex items-center justify-center text-white text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer"
+                        title="DOINGに戻す"
+                        @click.stop="unmarkDone(row.item, row.date, board)"
+                      >✓</button>
+                      <span class="leading-snug text-white text-[13px] truncate">{{ parseTaskName(row.item.name).displayName }}</span>
+                      <span class="inline-block px-1 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 flex-shrink-0">{{ parseTaskName(row.item.name).effort }}h</span>
+                    </li>
+                  </ul>
+                  <div v-else class="text-[12px] text-slate-600 py-3 text-center">完了タスクなし</div>
                 </div>
-                <ul v-if="doneTotal(board)" class="list-none m-0 p-0 flex flex-col gap-1.5 overflow-y-auto max-h-[420px]">
-                  <li
-                    v-for="row in boardDoneFlat(board)"
-                    :key="row.item.id"
-                    :class="['flex items-center gap-1.5 px-1.5 py-1 rounded bg-white/[0.03] hover:bg-white/[0.06] cursor-grab select-none', draggingDone?.cardId === row.item.id ? 'opacity-40' : '']"
-                    draggable="true"
-                    @dragstart="onDragStartDone($event, row.item, board.id, row.date)"
-                    @dragend="onDragEndDone"
-                    @click="openEditDoneTask(row.item, row.date, board)"
-                  >
-                    <button
-                      class="flex-shrink-0 w-3.5 h-3.5 rounded border border-white/40 bg-white/10 flex items-center justify-center text-white text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer"
-                      title="DOINGに戻す"
-                      @click.stop="unmarkDone(row.item, row.date, board)"
-                    >✓</button>
-                    <span class="leading-snug text-white text-[13px] truncate">{{ parseTaskName(row.item.name).displayName }}</span>
-                    <span class="inline-block px-1 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 flex-shrink-0">{{ parseTaskName(row.item.name).effort }}h</span>
-                  </li>
-                </ul>
-                <div v-else class="text-[12px] text-slate-600 py-3 text-center">完了タスクなし</div>
               </div>
             </div>
           </template>
@@ -932,7 +1102,8 @@ watch(isLoggedIn, async (v) => {
                     data-status="todo"
                     :class="[
                       'bg-white/[0.04] border border-white/[0.07] rounded-lg px-2 py-1.5 flex items-start gap-1.5 cursor-grab active:bg-white/[0.07] select-none',
-                      card.isImportant && !card.isOverdue ? 'border-rose-400/70 bg-rose-400/[0.09] shadow-[0_0_0_1px_rgba(251,113,133,0.6),0_0_12px_rgba(251,113,133,0.22)]' : '',
+                      card.isDueToday && !card.isOverdue ? 'border-red-800 bg-red-800/[0.22] shadow-[0_0_0_1px_rgba(153,27,27,0.9),0_0_16px_rgba(153,27,27,0.4)]' : '',
+                      card.isDueTomorrow && !card.isOverdue ? 'border-rose-300/80 bg-rose-300/[0.09] shadow-[0_0_0_1px_rgba(253,164,175,0.6),0_0_10px_rgba(253,164,175,0.2)]' : '',
                       card.isOverdue ? 'border-red-500/40 bg-red-500/[0.06]' : '',
                       card.isUrgent && !card.isOverdue ? 'border-amber-500/40 bg-amber-500/[0.06]' : '',
                       dragging?.cardId === card.id ? 'opacity-40' : '',
@@ -980,7 +1151,8 @@ watch(isLoggedIn, async (v) => {
                     data-status="doing"
                     :class="[
                       'bg-white/[0.04] border border-white/[0.07] rounded-lg px-2 py-1.5 flex items-start gap-1.5 cursor-grab active:bg-white/[0.07] select-none',
-                      card.isImportant && !card.isOverdue ? 'border-rose-400/70 bg-rose-400/[0.09] shadow-[0_0_0_1px_rgba(251,113,133,0.6),0_0_12px_rgba(251,113,133,0.22)]' : '',
+                      card.isDueToday && !card.isOverdue ? 'border-red-800 bg-red-800/[0.22] shadow-[0_0_0_1px_rgba(153,27,27,0.9),0_0_16px_rgba(153,27,27,0.4)]' : '',
+                      card.isDueTomorrow && !card.isOverdue ? 'border-rose-300/80 bg-rose-300/[0.09] shadow-[0_0_0_1px_rgba(253,164,175,0.6),0_0_10px_rgba(253,164,175,0.2)]' : '',
                       card.isOverdue ? 'border-red-500/40 bg-red-500/[0.06]' : '',
                       card.isUrgent && !card.isOverdue ? 'border-amber-500/40 bg-amber-500/[0.06]' : '',
                       dragging?.cardId === card.id ? 'opacity-40' : '',
@@ -1017,32 +1189,6 @@ watch(isLoggedIn, async (v) => {
                 >＋</button>
               </div>
             </div>
-          </div>
-
-          <!-- スマホ版 DONE -->
-          <div class="mt-4 pt-4 border-t border-white/[0.06]">
-            <div class="flex items-center gap-2 mb-3">
-              <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-emerald-500/15 text-white border border-emerald-500/30">DONE</span>
-              <span class="text-slate-400 text-base font-bold">({{ boards.reduce((s, b) => s + doneEffort(b), 0) }}h)</span>
-            </div>
-            <div class="text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">直近7日</div>
-            <div v-if="thisWeekDoneFlat.length === 0" class="text-[13px] text-slate-600 py-3 text-center">完了タスクなし</div>
-            <ul v-else class="list-none m-0 p-0 flex flex-col gap-0.5">
-              <li
-                v-for="row in thisWeekDoneFlat"
-                :key="row.card.id"
-                class="flex items-center gap-1 px-1.5 py-1 rounded bg-white/[0.03] hover:bg-white/[0.06] cursor-pointer"
-                @click="openEditDoneTask(row.card, row.date, row.board)"
-              >
-                <button
-                  class="flex-shrink-0 w-3.5 h-3.5 rounded border border-white/40 bg-white/10 flex items-center justify-center text-white text-[10px] hover:bg-red-500/20 hover:border-red-400/60 hover:text-red-400 transition-all cursor-pointer"
-                  title="DOINGに戻す"
-                  @click.stop="unmarkDone(row.card, row.date, row.board)"
-                >✓</button>
-                <span class="text-[14px] leading-snug text-white truncate" :style="{ color: boardColor(row.board) + 'cc' }">{{ parseTaskName(row.card.name).displayName }}</span>
-                <span class="inline-block px-1 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 flex-shrink-0">{{ parseTaskName(row.card.name).effort }}h</span>
-              </li>
-            </ul>
           </div>
 
         </div>

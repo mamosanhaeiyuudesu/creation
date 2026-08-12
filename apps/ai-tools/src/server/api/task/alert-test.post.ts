@@ -3,7 +3,7 @@
  * 保存済みの設定ではなく、画面で入力中のアドレス宛に今すぐ1通送る。
  */
 import { getSessionUser, getAppDb } from '~/server/utils/auth'
-import { isValidEmail, collectImportantTasksForUser, collectDoneTasksForUser, buildPraiseText, buildAlertMail, sendAlertMail } from '~/server/utils/task-alert'
+import { isValidEmail, collectDueTodayTasksForUser, collectDoneTasksForUser, buildPraiseText, buildAlertMail, sendAlertMail } from '~/server/utils/task-alert'
 
 export default defineEventHandler(async (event) => {
   const user = await getSessionUser(event)
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   const env = event.context.cloudflare?.env
   const { encryptionKey } = useRuntimeConfig(event)
 
-  const tasks = await collectImportantTasksForUser(db, (encryptionKey as string) ?? '', user.id)
+  const tasks = await collectDueTodayTasksForUser(db, (encryptionKey as string) ?? '', user.id)
   const doneTasks = await collectDoneTasksForUser(db, (encryptionKey as string) ?? '', user.id)
   const praiseText = await buildPraiseText(env, doneTasks)
   // 定期便は0件なら送らないが、テストは届くこと自体の確認なので0件でも送る

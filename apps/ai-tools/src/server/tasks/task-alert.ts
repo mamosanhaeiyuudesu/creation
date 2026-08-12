@@ -3,8 +3,8 @@
  * nuxt.config.ts の nitro.scheduledTasks で登録済み。
  *
  * 各ユーザーのアラート設定（task_alerts）を見て、現在の JST 時が送信時刻に
- * 含まれていれば、Trello の重要タスク（赤ラベル）をまとめてメールで送る。
- * 重要タスクが0件のときは送らない（毎回「0件です」が届くのを避けるため）。
+ * 含まれていれば、Trello の本日（JST）が期限のタスクをまとめてメールで送る。
+ * 対象タスクが0件のときは送らない（毎回「0件です」が届くのを避けるため）。
  */
 
 import { nowJST, todayJST } from '~/utils/jst'
@@ -12,7 +12,7 @@ import { decryptWithKey } from '../utils/encrypt'
 import {
   ensureTaskAlertTable,
   parseHours,
-  collectImportantTasksForUser,
+  collectDueTodayTasksForUser,
   collectDoneTasksForUser,
   buildPraiseText,
   buildAlertMail,
@@ -22,7 +22,7 @@ import {
 export default defineTask({
   meta: {
     name: 'task:alert',
-    description: 'タスクくんの重要タスクを設定時刻にメール通知',
+    description: 'タスクくんの本日期限のタスクを設定時刻にメール通知',
   },
   async run({ context }) {
     const env = (context as Record<string, any>)?.cloudflare?.env
@@ -53,7 +53,7 @@ export default defineTask({
         const email = await decryptWithKey(encryptionKey, row.email_enc ?? '')
         if (!email) { skipped++; continue }
 
-        const tasks = await collectImportantTasksForUser(db, encryptionKey, row.user_id)
+        const tasks = await collectDueTodayTasksForUser(db, encryptionKey, row.user_id)
         if (tasks.length) {
           const doneTasks = await collectDoneTasksForUser(db, encryptionKey, row.user_id)
           const praiseText = await buildPraiseText(env, doneTasks)
