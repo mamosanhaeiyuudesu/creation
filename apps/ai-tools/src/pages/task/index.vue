@@ -1069,13 +1069,32 @@ watch(isLoggedIn, async (v) => {
 
         <!-- スマホ版レイアウト (md未満のみ表示) -->
         <div class="md:hidden px-2 pt-3 pb-8">
-          <!-- ヘッダー: TODO/DOING 合計 -->
-          <div class="mb-3 flex items-center gap-2">
-            <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-amber-500/15 text-white border border-amber-500/30">TODO</span>
-            <span class="text-slate-400 text-base font-bold">({{ todoEffort }}h)</span>
-            <span class="mx-1 text-slate-700">/</span>
-            <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-sky-400/15 text-white border border-sky-400/30">DOING</span>
-            <span class="text-slate-400 text-base font-bold">({{ doingEffort }}h)</span>
+          <!-- ヘッダー: 今日・明日の進捗 -->
+          <div class="mb-3 grid grid-cols-2 gap-2">
+            <div class="rounded-xl p-2.5 border border-white/10 bg-white/[0.04] flex flex-col gap-1.5">
+              <span class="text-[11px] text-slate-500 font-semibold">今日</span>
+              <div class="flex items-baseline gap-1">
+                <span class="text-[16px] font-bold text-slate-200">{{ todayDoneHours }}h</span>
+                <span class="text-slate-600 text-[12px]">/</span>
+                <span class="text-[12px] text-slate-500">{{ todayPlannedHours }}h</span>
+                <span class="text-[12px] text-slate-500">（{{ todayPercent }}%）</span>
+              </div>
+              <span class="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <span class="block h-full rounded-full bg-emerald-400 transition-all" :style="{ width: `${todayPercent}%` }" />
+              </span>
+            </div>
+            <div class="rounded-xl p-2.5 border border-white/10 bg-white/[0.04] flex flex-col gap-1.5">
+              <span class="text-[11px] text-slate-500 font-semibold">明日</span>
+              <div class="flex items-baseline gap-1">
+                <span class="text-[16px] font-bold text-slate-200">{{ tomorrowDoneHours }}h</span>
+                <span class="text-slate-600 text-[12px]">/</span>
+                <span class="text-[12px] text-slate-500">{{ tomorrowPlannedHours }}h</span>
+                <span class="text-[12px] text-slate-500">（{{ tomorrowPercent }}%）</span>
+              </div>
+              <span class="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <span class="block h-full rounded-full bg-emerald-400 transition-all" :style="{ width: `${tomorrowPercent}%` }" />
+              </span>
+            </div>
           </div>
 
           <!-- ボードごとに TODO(左) DOING(右) -->

@@ -14,7 +14,30 @@
             <li><a href="#access">アクセス</a></li>
           </ul>
           <LineButton class="hr-nav-cta" label="ご予約" pending-label="準備中" />
+          <button
+            type="button"
+            class="hr-nav-toggle"
+            :class="{ 'is-active': isMenuOpen }"
+            :aria-expanded="isMenuOpen"
+            aria-controls="hr-nav-mobile-menu"
+            :aria-label="isMenuOpen ? 'メニューを閉じる' : 'メニューを開く'"
+            @click="isMenuOpen = !isMenuOpen"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
         </div>
+      </div>
+      <div id="hr-nav-mobile-menu" class="hr-nav-mobile" :class="{ 'is-open': isMenuOpen }">
+        <ul class="hr-nav-mobile-links">
+          <li><a href="#worry" @click="isMenuOpen = false">お悩み</a></li>
+          <li><a href="#about" @click="isMenuOpen = false">当院について</a></li>
+          <li><a href="#feature" @click="isMenuOpen = false">特徴</a></li>
+          <li><a href="#menu" @click="isMenuOpen = false">料金</a></li>
+          <li><a href="#access" @click="isMenuOpen = false">アクセス</a></li>
+        </ul>
+        <LineButton class="hr-nav-mobile-cta" label="ご予約" pending-label="準備中" @click="isMenuOpen = false" />
       </div>
     </nav>
 
@@ -29,16 +52,19 @@
           height="634"
         />
         <h1 class="hero-catch">
-          不調の“根っこ”に向き合う、<br />
-          <em>内臓鍼灸</em>と<em>ソフトカイロ矯正</em>。
+          お腹の反応から不調を紐解く<br />
+          <em>内臓鍼灸</em><br />
+          ×<br />
+          骨格、関節の位置を調節する<br />
+          <em>ソフトカイロ矯正</em>
         </h1>
         <p class="hero-sub">
-          助産師でもある鍼灸師が、<br class="sp-only" />女性のからだの声に寄り添います。
+          助産師でもある鍼灸師が、<br class="sp-only" />ゆらぎやすい女性のからだ
         </p>
         <div class="hero-badges">
           <span class="hero-badge">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-            {{ site.openDays }}
+            {{ site.openDays }}に開催
           </span>
           <span class="hero-badge">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
@@ -46,7 +72,8 @@
           </span>
           <span class="hero-badge">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            横浜市旭区若葉台 Wakka 内
+            横浜市旭区若葉台3-5-1<br />（ショッピングタウンわかば『wakkaわっか』）<br />
+             その他、不定期で東急田園都市線青葉台駅周辺のレンタルサロンでも施術を行っています。
           </span>
         </div>
         <LineButton class="hero-cta" />
@@ -339,6 +366,8 @@
 import { site, isPricePending } from '~/config/site'
 
 definePageMeta({ layout: 'hareruya' })
+
+const isMenuOpen = ref(false)
 
 const worries = [
   '病院に行くほどではないけれど、なんとなく不調が続いている',

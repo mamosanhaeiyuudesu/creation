@@ -151,6 +151,46 @@
   pointer-events: none;
 }
 
+.hr-nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.hr-nav-toggle span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--c-brown);
+  border-radius: 2px;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+
+.hr-nav-toggle.is-active span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.hr-nav-toggle.is-active span:nth-child(2) {
+  opacity: 0;
+}
+
+.hr-nav-toggle.is-active span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.hr-nav-mobile {
+  display: none;
+}
+
 /* ==========================================
    共通レイアウト
    ========================================== */
@@ -1099,6 +1139,64 @@
 
   .hr-nav-cta {
     display: none;
+  }
+
+  .hr-nav-toggle {
+    display: flex;
+  }
+
+  .hr-nav-mobile {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    padding: 8px 24px 28px;
+    background: var(--c-cream);
+    border-bottom: 1px solid var(--c-pink-line);
+    box-shadow: 0 16px 24px -16px rgba(103, 72, 62, 0.28);
+  }
+
+  .hr-nav-mobile.is-open {
+    display: flex;
+  }
+
+  .hr-nav-mobile-links {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hr-nav-mobile-links a {
+    display: block;
+    padding: 14px 2px;
+    font-size: 15px;
+    color: var(--c-brown-mid);
+    border-bottom: 1px solid var(--c-brown-line);
+  }
+
+  .hr-nav-mobile-links li:last-child a {
+    border-bottom: none;
+  }
+
+  .hr-nav-mobile-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 46px;
+    margin-top: 18px;
+    border-radius: 999px;
+    background: var(--c-line-green);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .hr-nav-mobile-cta.is-pending {
+    background: var(--c-brown-dim);
+    cursor: default;
+    pointer-events: none;
   }
 
   .hero-inner {
