@@ -407,13 +407,13 @@ export function useTaskBoards(
     showTaskModal.value = true
   }
 
-  function openEditDoneTask(item: { id: string; name: string }, dateKey: string, board: Board) {
+  function openEditDoneTask(item: { id: string; name: string; desc: string }, dateKey: string, board: Board) {
     const { displayName, effort } = parseTaskName(item.name)
     const dueForInput = dateKey + 'T12:00'
     const dueIso = new Date(dueForInput).toISOString()
-    const card: Card = { id: item.id, name: item.name, displayName, effort, desc: '', due: dueIso, pos: 0, isOverdue: false, isUrgent: false, isDueToday: false, isDueTomorrow: false, display: '' }
+    const card: Card = { id: item.id, name: item.name, displayName, effort, desc: item.desc, due: dueIso, pos: 0, isOverdue: false, isUrgent: false, isDueToday: false, isDueTomorrow: false, display: '' }
     editTarget.value = { card, boardId: board.id, status: 'done', dateKey }
-    taskForm.value = { name: displayName, desc: '', due: dueForInput, boardId: board.id, status: 'done', effort }
+    taskForm.value = { name: displayName, desc: item.desc, due: dueForInput, boardId: board.id, status: 'done', effort }
     showTaskModal.value = true
   }
 

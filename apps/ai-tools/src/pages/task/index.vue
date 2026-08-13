@@ -171,6 +171,10 @@ function weekTotalEffort(dates: string[]) {
   return boards.value.reduce((s, board) => s + weekBoardEffort(board, dates), 0)
 }
 
+function firstThreeBoardsEffort(dates: string[]) {
+  return boards.value.slice(0, 3).reduce((s, board) => s + weekBoardEffort(board, dates), 0)
+}
+
 // 週次DONE推移チャート用データ（古い週→新しい週の時系列順）
 const doneChartData = computed(() => {
   const weeksAsc = [...doneWeekGroups.value].reverse()
@@ -182,6 +186,7 @@ const doneChartData = computed(() => {
       color: boardColor(board),
       data: weeksAsc.map(w => weekBoardEffort(board, w.dates)),
     })),
+    firstThreeEffort: weeksAsc.map(w => firstThreeBoardsEffort(w.dates)),
   }
 })
 
@@ -244,6 +249,7 @@ const thisWeekDailyBars = computed(() => {
     date,
     hours: hours[i],
     heightPct: Math.round((hours[i] / max) * 100),
+    first3Pct: Math.round((firstThreeBoardsEffort([date]) / max) * 100),
   }))
 })
 
@@ -838,35 +844,48 @@ watch(isLoggedIn, async (v) => {
           <div class="flex items-center gap-2.5 mb-3.5">
             <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-sky-400/15 text-white border border-sky-400/30">DOING</span>
             <!-- 今週の進捗（完了/今週が期限の工数・割合・プログレスバー） -->
-            <div class="flex items-center gap-1.5 text-[12px]" title="今週が期限のタスクのうち、完了済みの工数">
-              <span class="text-slate-500">週</span>
-              <span class="font-bold text-slate-300">{{ thisWeekDoneHours }}h</span>
-              <span class="text-slate-600">/</span>
-              <span class="text-slate-500">{{ thisWeekPlannedHours }}h</span>
-              <span class="text-slate-500">（{{ thisWeekPercent }}%）</span>
-              <span class="w-12 h-1.5 rounded-full bg-white/10 overflow-hidden flex-shrink-0">
-                <span class="block h-full rounded-full bg-emerald-400 transition-all" :style="{ width: `${thisWeekPercent}%` }" />
-              </span>
+            <div class="flex items-center gap-4 text-[12px]">
+              <div class="flex items-center gap-1.5" title="今週が期限のタスクのうち、完了済みの工数">
+                <span class="text-slate-500">週</span>
+                <span class="font-bold text-slate-300">{{ thisWeekDoneHours }}h</span>
+                <span class="text-slate-600">/</span>
+                <span class="text-slate-500">{{ thisWeekPlannedHours }}h</span>
+                <span class="text-slate-500">（{{ thisWeekPercent }}%）</span>
+                <span class="w-12 h-1.5 rounded-full bg-white/10 overflow-hidden flex-shrink-0">
+                  <span class="block h-full rounded-full bg-emerald-400 transition-all" :style="{ width: `${thisWeekPercent}%` }" />
+                </span>
+              </div>
               <span class="text-slate-700">|</span>
-              <span class="text-slate-500">今日</span>
-              <span class="font-bold text-slate-300">{{ todayDoneHours }}h</span>
-              <span class="text-slate-600">/</span>
-              <span class="text-slate-500">{{ todayPlannedHours }}h</span>
-              <span class="text-slate-500">（{{ todayPercent }}%）</span>
+              <div class="flex items-center gap-1.5" title="今日が期限のタスクのうち、完了済みの工数">
+                <span class="text-slate-500">今日</span>
+                <span class="font-bold text-slate-300">{{ todayDoneHours }}h</span>
+                <span class="text-slate-600">/</span>
+                <span class="text-slate-500">{{ todayPlannedHours }}h</span>
+                <span class="text-slate-500">（{{ todayPercent }}%）</span>
+              </div>
               <span class="text-slate-700">|</span>
-              <span class="text-slate-500">明日</span>
-              <span class="font-bold text-slate-300">{{ tomorrowDoneHours }}h</span>
-              <span class="text-slate-600">/</span>
-              <span class="text-slate-500">{{ tomorrowPlannedHours }}h</span>
-              <span class="text-slate-500">（{{ tomorrowPercent }}%）</span>
+              <div class="flex items-center gap-1.5" title="明日が期限のタスクのうち、完了済みの工数">
+                <span class="text-slate-500">明日</span>
+                <span class="font-bold text-slate-300">{{ tomorrowDoneHours }}h</span>
+                <span class="text-slate-600">/</span>
+                <span class="text-slate-500">{{ tomorrowPlannedHours }}h</span>
+                <span class="text-slate-500">（{{ tomorrowPercent }}%）</span>
+              </div>
               <span class="w-[200px] h-[50px] flex items-end gap-[3px] flex-shrink-0">
                 <span
                   v-for="bar in thisWeekDailyBars"
                   :key="bar.date"
-                  class="flex-1 rounded-sm bg-emerald-400/70"
-                  :style="{ height: `${Math.max(bar.heightPct, 2)}%` }"
+                  class="relative flex-1 h-full flex items-end"
                   :title="`${mdWeekday(bar.date)} ${bar.hours}h`"
-                />
+                >
+                  <span class="w-full rounded-sm bg-emerald-400/70" :style="{ height: `${Math.max(bar.heightPct, 2)}%` }" />
+                  <span
+                    v-if="bar.hours > 0"
+                    class="absolute left-0 right-0 h-[1.5px] bg-white/80"
+                    :style="{ bottom: `${bar.first3Pct}%` }"
+                    title="先頭3ボードの合計値"
+                  />
+                </span>
               </span>
               <span class="text-slate-500" title="今週の月曜日から今日までの1日あたり平均完了工数">平均{{ thisWeekDailyAvgHours }}h/日</span>
             </div>

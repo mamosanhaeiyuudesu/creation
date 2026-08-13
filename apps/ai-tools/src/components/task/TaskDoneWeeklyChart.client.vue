@@ -1,6 +1,6 @@
 <script setup lang="ts">
 interface WeekSeries { name: string; color: string; data: number[] }
-interface ChartData { weekLabels: string[]; axisLabels: string[]; series: WeekSeries[] }
+interface ChartData { weekLabels: string[]; axisLabels: string[]; series: WeekSeries[]; firstThreeEffort?: number[] }
 
 const props = defineProps<{
   data: ChartData
@@ -21,6 +21,7 @@ async function loadECharts() {
   ])
   core.use([
     charts.BarChart,
+    charts.CustomChart,
     components.GridComponent,
     components.TooltipComponent,
     components.LegendComponent,
@@ -35,12 +36,13 @@ async function renderChart() {
   if (!chartEl.value) return
   if (!chart) chart = EC.init(chartEl.value, undefined, { renderer: 'svg' })
 
-  const { weekLabels, axisLabels, series } = props.data
+  const { weekLabels, axisLabels, series, firstThreeEffort } = props.data
 
   chart.setOption({
     grid: { top: 28, left: 32, right: 8, bottom: 20 },
     legend: {
       top: 0,
+      data: series.map(s => s.name),
       textStyle: { color: '#94a3b8', fontSize: 10 },
       itemWidth: 10,
       itemHeight: 10,
@@ -53,9 +55,10 @@ async function renderChart() {
       borderColor: 'rgba(255,255,255,0.1)',
       textStyle: { color: '#e2e8f0', fontSize: 12 },
       formatter: (params: any[]) => {
-        const idx = params[0]?.dataIndex ?? 0
-        const rows = params.filter(p => p.value > 0).map(p => `${p.marker}${p.seriesName} ${p.value}h`).join('<br/>')
-        const total = params.reduce((s, p) => s + (p.value ?? 0), 0)
+        const barParams = params.filter(p => p.seriesType === 'bar')
+        const idx = barParams[0]?.dataIndex ?? 0
+        const rows = [...barParams].reverse().filter(p => p.value > 0).map(p => `${p.marker}${p.seriesName} ${p.value}h`).join('<br/>')
+        const total = barParams.reduce((s, p) => s + (p.value ?? 0), 0)
         return `<b>${weekLabels[idx] ?? ''}</b><br/>${rows || '完了タスクなし'}<br/><b>合計 ${total}h</b>`
       },
     },
@@ -72,14 +75,35 @@ async function renderChart() {
       axisLine: { show: false },
       splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
     },
-    series: series.map(s => ({
-      name: s.name,
-      type: 'bar',
-      stack: 'total',
-      barMaxWidth: 28,
-      data: s.data,
-      itemStyle: { color: s.color },
-    })),
+    series: [
+      ...series.map(s => ({
+        name: s.name,
+        type: 'bar',
+        stack: 'total',
+        barMaxWidth: 28,
+        data: s.data,
+        itemStyle: { color: s.color },
+      })),
+      {
+        name: '先頭3ボード合計',
+        type: 'custom',
+        silent: true,
+        z: 10,
+        renderItem: (_params: any, api: any) => {
+          const value = api.value(1)
+          if (!value) return { type: 'group', children: [] }
+          const point = api.coord([api.value(0), value])
+          const halfWidth = 14
+          return {
+            type: 'line',
+            shape: { x1: point[0] - halfWidth, y1: point[1], x2: point[0] + halfWidth, y2: point[1] },
+            style: { stroke: '#ffffff', lineWidth: 1.5 },
+          }
+        },
+        data: (firstThreeEffort ?? []).map((v, i) => [i, v]),
+        tooltip: { show: false },
+      },
+    ],
   }, true)
 }
 
