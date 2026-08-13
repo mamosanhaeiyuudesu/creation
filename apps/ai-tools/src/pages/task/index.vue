@@ -35,7 +35,7 @@ const defaultStartDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth
 const defaultStart = `${defaultStartDate.getUTCFullYear()}-${String(defaultStartDate.getUTCMonth() + 1).padStart(2, '0')}-${String(defaultStartDate.getUTCDate()).padStart(2, '0')}`
 const defaultEnd = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`
 const periodStart = ref((route.query.start as string) || defaultStart)
-// end は空文字＝「指定なし（現在まで）」を明示的に表すため、クエリにキーがあれば空でもそのまま使う
+// end は空文字＝「指定なし（今週まで）」を明示的に表すため、クエリにキーがあれば空でもそのまま使う
 const periodEnd = ref(route.query.end !== undefined ? (route.query.end as string) : defaultEnd)
 
 // --- Composables ---
@@ -658,7 +658,7 @@ watch(isLoggedIn, async (v) => {
                 type="button"
                 class="mt-2 w-full py-1.5 rounded-md text-[12px] font-semibold border border-dashed border-white/15 text-slate-400 hover:bg-white/10 hover:text-slate-200 transition-colors cursor-pointer"
                 @click="clearEnd"
-              >指定なし（現在まで）</button>
+              >指定なし（今週まで）</button>
             </div>
           </div>
           <button

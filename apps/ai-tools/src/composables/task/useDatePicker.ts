@@ -36,7 +36,7 @@ export function useDatePicker(startDate: Ref<string>, endDate: Ref<string>) {
   }
 
   function formatDateShort(val: string) {
-    if (!val) return '現在'
+    if (!val) return '今週末'
     const [, m, d] = val.split('-').map(Number)
     return `${m}/${d}`
   }

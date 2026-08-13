@@ -54,7 +54,13 @@ export function useTaskBoards(
   function periodRange(): [Date, Date] {
     const [sy, sm, sd] = periodStart.value.split('-').map(Number)
     const rangeStart = new Date(sy, sm - 1, sd)
-    if (!periodEnd.value) return [rangeStart, new Date()]
+    if (!periodEnd.value) {
+      // 終了日未指定は「今週いっぱい」を上限にする（期限が未来でも今週内のDONEは表示したいため）
+      const now = new Date()
+      const diffFromMonday = (now.getDay() + 6) % 7
+      const sunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffFromMonday + 6, 23, 59, 59)
+      return [rangeStart, sunday]
+    }
     const [ey, em, ed] = periodEnd.value.split('-').map(Number)
     return [rangeStart, new Date(ey, em - 1, ed, 23, 59, 59)]
   }
