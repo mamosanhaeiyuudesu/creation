@@ -159,6 +159,9 @@ function boardDoneFlatForDates(board: Board, dates: string[]) {
   return dates.flatMap(date => (board.done[date] ?? []).map(item => ({ item, date })))
 }
 
+// スマホ版DONE列は直近の週（doneWeekGroupsの先頭）のみ表示
+const mobileDoneDates = computed(() => doneWeekGroups.value[0]?.dates ?? [])
+
 function weekBoardEffort(board: Board, dates: string[]) {
   return dates.reduce((s, date) => s + (board.done[date] ?? []).reduce((a, c) => a + parseTaskName(c.name).effort, 0), 0)
 }
@@ -1116,6 +1119,27 @@ watch(isLoggedIn, async (v) => {
             </div>
           </div>
 
+          <!-- 日次工数推移（今週・月〜日） -->
+          <div class="mb-3 rounded-xl p-2.5 border border-white/10 bg-white/[0.04]">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] text-slate-500 font-semibold">今週の完了工数（日別）</span>
+              <span class="text-[11px] text-slate-500">平均{{ thisWeekDailyAvgHours }}h/日</span>
+            </div>
+            <div class="flex items-end gap-1.5">
+              <div v-for="bar in thisWeekDailyBars" :key="bar.date" class="flex-1 flex flex-col items-center gap-1">
+                <span class="text-[9px] text-slate-500 h-3 leading-3">{{ bar.hours > 0 ? `${bar.hours}h` : '' }}</span>
+                <div class="w-full h-[46px] flex items-end">
+                  <span
+                    class="w-full rounded-sm transition-all"
+                    :class="bar.date === todayDateKey ? 'bg-emerald-400' : 'bg-emerald-400/50'"
+                    :style="{ height: `${Math.max(bar.heightPct, 4)}%` }"
+                  />
+                </div>
+                <span class="text-[10px]" :class="bar.date === todayDateKey ? 'text-emerald-400 font-bold' : 'text-slate-500'">{{ weekdayJa(bar.date) }}</span>
+              </div>
+            </div>
+          </div>
+
           <!-- ボードごとに TODO(左) DOING(右) -->
           <div v-for="board in boards" :key="board.id" class="mb-3">
             <div
@@ -1127,9 +1151,9 @@ watch(isLoggedIn, async (v) => {
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="11" height="11" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>
               </button>
             </div>
-            <div class="grid grid-cols-2 gap-1.5">
+            <div class="flex gap-1.5 overflow-x-auto snap-x snap-mandatory [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
               <!-- TODO (左) -->
-              <div class="rounded-xl p-2 border flex flex-col" :style="boardBorderStyle(board)">
+              <div class="snap-start shrink-0 w-[44%] rounded-xl p-2 border flex flex-col" :style="boardBorderStyle(board)">
                 <div class="text-[11px] font-bold mb-1 text-white/80">TODO<span v-if="boardTodoEffort(board)" class="ml-1">({{ boardTodoEffort(board) }}h)</span></div>
                 <ul :class="['list-none m-0 p-0 flex flex-col gap-1 min-h-[28px]', showAll ? '' : 'overflow-y-auto max-h-[300px]']">
                   <li
@@ -1177,8 +1201,8 @@ watch(isLoggedIn, async (v) => {
                   @drop.prevent="onDropEnd(board.id, 'todo')"
                 >＋</button>
               </div>
-              <!-- DOING (右) -->
-              <div class="rounded-xl p-2 border flex flex-col" :style="boardBorderStyle(board)">
+              <!-- DOING (中) -->
+              <div class="snap-start shrink-0 w-[44%] rounded-xl p-2 border flex flex-col" :style="boardBorderStyle(board)">
                 <div class="text-[11px] font-bold mb-1 text-white/80">DOING<span v-if="boardDoingEffort(board)" class="ml-1">({{ boardDoingEffort(board) }}h)</span></div>
                 <ul :class="['list-none m-0 p-0 flex flex-col gap-1 min-h-[28px]', showAll ? '' : 'overflow-y-auto max-h-[300px]']">
                   <li
@@ -1224,6 +1248,37 @@ watch(isLoggedIn, async (v) => {
                   @click="openAddTask(board.id, 'doing')"
                   @dragover="onDragOverEnd($event, `${board.id}:doing`)"
                   @drop.prevent="onDropEnd(board.id, 'doing')"
+                >＋</button>
+              </div>
+              <!-- DONE (右・今週分。右スクロールでDOINGと並ぶ) -->
+              <div class="snap-start shrink-0 w-[44%] rounded-xl p-2 border flex flex-col" :style="boardBorderStyle(board)">
+                <div class="text-[11px] font-bold mb-1 text-white/80">DONE<span v-if="weekBoardEffort(board, mobileDoneDates)" class="ml-1">({{ weekBoardEffort(board, mobileDoneDates) }}h)</span></div>
+                <ul v-if="weekBoardTotal(board, mobileDoneDates)" :class="['list-none m-0 p-0 flex flex-col gap-1 min-h-[28px]', showAll ? '' : 'overflow-y-auto max-h-[300px]']">
+                  <li
+                    v-for="row in boardDoneFlatForDates(board, mobileDoneDates)"
+                    :key="row.item.id"
+                    class="bg-white/[0.04] border border-white/[0.07] rounded-lg px-2 py-1.5 flex items-start gap-1.5 select-none"
+                    @click="openEditDoneTask(row.item, row.date, board)"
+                  >
+                    <button
+                      data-no-drag="true"
+                      class="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-emerald-400/60 bg-emerald-400/10 text-emerald-400 flex items-center justify-center text-[10px] cursor-pointer"
+                      title="DOINGに戻す"
+                      @click.stop="unmarkDone(row.item, row.date, board)"
+                    >✓</button>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-baseline gap-1.5">
+                        <span class="text-[14px] leading-snug text-white break-words">{{ parseTaskName(row.item.name).displayName }}</span>
+                        <span class="inline-block px-1 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 flex-shrink-0">{{ parseTaskName(row.item.name).effort }}h</span>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+                <div v-else class="text-[12px] text-slate-600 py-3 text-center">完了タスクなし</div>
+                <button
+                  class="mt-1.5 w-full py-1 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all opacity-40 hover:opacity-80"
+                  :style="{ borderColor: boardColor(board), color: boardColor(board) }"
+                  @click="openAddTask(board.id, 'done')"
                 >＋</button>
               </div>
             </div>

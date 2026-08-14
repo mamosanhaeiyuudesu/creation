@@ -27,18 +27,22 @@ watch(() => props.show, (v) => {
   if (v) form.value = { ...props.initialForm }
 })
 
-// 工数は 0.25 / 0.5 の小刻みと、1以上は1刻みの2段階ステップ
+// 工数は 0.25 / 0.5 / 1.5 の小刻みと、2以上は1刻みの2段階ステップ
 function decrementEffort() {
   const e = form.value.effort
   if (e === 0.5) form.value.effort = 0.25
   else if (e === 1) form.value.effort = 0.5
-  else if (e > 1) form.value.effort = e - 1
+  else if (e === 1.5) form.value.effort = 1
+  else if (e === 2) form.value.effort = 1.5
+  else if (e > 2) form.value.effort = e - 1
 }
 
 function incrementEffort() {
   const e = form.value.effort
   if (e === 0.25) form.value.effort = 0.5
   else if (e === 0.5) form.value.effort = 1
+  else if (e === 1) form.value.effort = 1.5
+  else if (e === 1.5) form.value.effort = 2
   else form.value.effort = Math.min(99, e + 1)
 }
 
