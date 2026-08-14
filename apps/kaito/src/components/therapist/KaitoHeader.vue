@@ -33,7 +33,7 @@
 const navItems = [
   { id: 'for-you', label: 'こんな方へ' },
   { id: 'style', label: 'セッションのスタイル' },
-  { id: 'services', label: 'サービス内容' },
+  { id: 'services', label: 'セッションの内容' },
   { id: 'about', label: '月ノ瀬 直について' },
   { id: 'testimonials', label: 'お客様の声' },
   { id: 'faq', label: 'よくある質問' },

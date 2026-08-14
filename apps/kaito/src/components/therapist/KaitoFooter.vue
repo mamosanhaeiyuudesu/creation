@@ -4,7 +4,7 @@
       <nav class="footer-nav" aria-label="ページ内リンク">
         <a href="#for-you">こんな方へ</a>
         <a href="#style">セッションのスタイル</a>
-        <a href="#services">サービス内容</a>
+        <a href="#services">セッションの内容</a>
         <a href="#about">月ノ瀬 直について</a>
         <a href="#testimonials">お客様の声</a>
         <a href="#faq">よくある質問</a>

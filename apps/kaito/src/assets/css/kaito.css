@@ -380,7 +380,8 @@ body.home h6 {
   background: rgba(56, 163, 165, 0.1);
 }
 
-.not-for-you {
+/* 「できないこと」を正直に伝える枠。断り書きではなく前提の共有として、主張は控えめに */
+.limits-box {
   background: rgba(200, 200, 200, 0.1);
   border-radius: var(--radius-medium);
   padding: 24px;
@@ -388,19 +389,23 @@ body.home h6 {
   border: 1px solid rgba(100, 100, 100, 0.1);
 }
 
-.not-for-you h3 {
+.limits-box h3 {
   color: #666 !important;
   margin: 0 0 16px;
   font-size: 1.02rem;
   font-weight: 500;
 }
 
-.not-for-you ul {
+.limits-box ul {
   margin: 0;
   padding-left: 1.2rem;
   color: #555;
   line-height: 1.9;
-  font-size: 0.95rem;
+  font-size: 0.93rem;
+}
+
+.limits-box li + li {
+  margin-top: 8px;
 }
 
 .note-text {
@@ -562,13 +567,15 @@ body.home h6 {
   white-space: nowrap;
 }
 
-.prayer-quote {
-  font-family: var(--f-serif);
-  margin: 24px 0;
-  padding: 4px 0 4px 20px;
-  border-left: 4px solid var(--color-primary);
-  color: #3d5252;
-  line-height: 2;
+/* 専門用語の言い換え注記。本文より一段落として、読み飛ばせるようにする */
+.term-note {
+  font-size: 0.89rem !important;
+  color: #64807f !important;
+  line-height: 1.9 !important;
+  padding: 14px 16px;
+  border-left: 2px solid rgba(56, 163, 165, 0.25);
+  background: rgba(56, 163, 165, 0.035);
+  border-radius: 0 8px 8px 0;
 }
 
 .hero-quote {
@@ -637,30 +644,6 @@ body.home h6 {
 .testimonial-card p {
   margin: 0 !important;
   line-height: 1.95 !important;
-}
-
-.before-after {
-  display: grid;
-  gap: 16px;
-  padding: 22px;
-  background: rgba(56, 163, 165, 0.08);
-  border-radius: var(--radius-medium);
-}
-
-.before-after strong {
-  display: block;
-  margin-bottom: 8px;
-  font-family: var(--f-mono);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--color-primary-dark);
-}
-
-.before-after p {
-  margin: 0 !important;
-  font-size: 0.95rem;
 }
 
 /* ===== よくある質問 ===== */
@@ -825,7 +808,7 @@ body.home h6 {
   }
 
   .callout-box,
-  .not-for-you,
+  .limits-box,
   .faq-item,
   .testimonial-card,
   .style-card {
@@ -887,11 +870,6 @@ body.home h6 {
 
   .section-inner {
     padding: 52px 60px;
-  }
-
-  .before-after {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px;
   }
 
   .home-cta {
