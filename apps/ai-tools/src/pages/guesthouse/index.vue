@@ -12,7 +12,10 @@
           </h1>
         </div>
       </div>
-      <button v-if="isLoggedIn" class="text-[13px] text-[var(--gh-ink-soft)] px-2.5 py-1.5 rounded-full hover:bg-black/[0.04]" @click="doLogout">ログアウト</button>
+      <div class="flex items-center gap-1">
+        <button v-if="isLoggedIn" class="text-[13px] text-[var(--gh-ink-soft)] px-2.5 py-1.5 rounded-full hover:bg-black/[0.04]" @click="showPasswordModal = true">パスワード変更</button>
+        <button v-if="isLoggedIn" class="text-[13px] text-[var(--gh-ink-soft)] px-2.5 py-1.5 rounded-full hover:bg-black/[0.04]" @click="doLogout">ログアウト</button>
+      </div>
     </div>
 
     <div v-if="notAdmin" class="mt-6 rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] px-4 py-10 text-center">
@@ -142,6 +145,7 @@
 
     <IssueSessionModal :open="issueOpen" @close="issueOpen = false" @issued="loadActiveSessions" />
     <AuthModal v-if="showAuthModal" accent="orange" />
+    <PasswordModal v-model:show="showPasswordModal" accent="orange" />
   </div>
 </template>
 
@@ -158,6 +162,7 @@ useHead({ title: 'ゲストハウス案内（管理）' })
 
 const { isLoggedIn, checked, checkAuth, logout } = useAuth()
 const showAuthModal = computed(() => checked.value && !isLoggedIn.value)
+const showPasswordModal = ref(false)
 
 interface ConsultRow extends Consult {
   busy: boolean

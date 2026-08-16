@@ -10,6 +10,7 @@
       </div>
       <div class="flex items-center gap-1.5">
         <button class="momo-btn-ghost !h-9" @click="openSettings">依頼主設定</button>
+        <button v-if="isLoggedIn" class="text-[13px] text-[var(--momo-ink-soft)] px-2.5 py-1.5 rounded-full hover:bg-black/[0.04]" @click="showPasswordModal = true">パスワード変更</button>
         <button v-if="isLoggedIn" class="text-[13px] text-[var(--momo-ink-soft)] px-2.5 py-1.5 rounded-full hover:bg-black/[0.04]" @click="doLogout">ログアウト</button>
       </div>
     </div>
@@ -109,6 +110,7 @@
     </div>
 
     <AuthModal v-if="showAuthModal" accent="orange" />
+    <PasswordModal v-model:show="showPasswordModal" accent="orange" />
   </div>
 </template>
 
@@ -124,6 +126,7 @@ useHead({ title: 'momo 桃の注文管理' })
 
 const { isLoggedIn, checked, checkAuth, logout } = useAuth()
 const showAuthModal = computed(() => checked.value && !isLoggedIn.value)
+const showPasswordModal = ref(false)
 
 const STATUSES: { value: OrderStatus; label: string }[] = [
   { value: 'draft', label: '下書き' },

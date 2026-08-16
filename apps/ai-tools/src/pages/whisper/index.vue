@@ -114,6 +114,9 @@
     <!-- Auth Modal -->
     <AuthModal v-if="!$dev && checked && !isLoggedIn" accent="sky" />
 
+    <!-- パスワード変更 -->
+    <PasswordModal v-model:show="passwordModalOpen" accent="sky" />
+
     <!-- モデル選択モーダル -->
     <TranscriptionModelModal
       v-if="modelModalOpen"
@@ -164,8 +167,11 @@ const { history, copiedHistoryId, addHistory, deleteHistory, copyHistory, update
 const { transcriptionModel } = useTranscriptionModel()
 const modelModalOpen = ref(false)
 
+const passwordModalOpen = ref(false)
+
 const menuItems = [
   { icon: '🤖', label: 'モデル変更', action: () => { modelModalOpen.value = true } },
+  { icon: '🔒', label: 'パスワード変更', action: () => { passwordModalOpen.value = true } },
   { icon: '🚪', label: 'ログアウト', action: logout },
 ]
 

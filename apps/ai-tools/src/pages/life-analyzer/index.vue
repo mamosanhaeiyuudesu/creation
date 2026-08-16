@@ -26,6 +26,7 @@
           <button v-if="isLoggedIn" class="la-btn !h-9" :disabled="!selectedIds.length || analyzing" @click="runAnalyze(selectedIds, analyzedCurrent)">
             {{ analyzing ? '分析中…' : analyzedCurrent ? '分析し直す' : '分析する' }}
           </button>
+          <button v-if="isLoggedIn" class="hidden lg:inline text-[12px] text-[var(--la-ink-faint)] hover:text-[var(--la-ink-soft)] px-2" @click="showPasswordModal = true">パスワード変更</button>
           <button v-if="isLoggedIn" class="hidden lg:inline text-[12px] text-[var(--la-ink-faint)] hover:text-[var(--la-ink-soft)] px-2" @click="doLogout">ログアウト</button>
         </div>
       </header>
@@ -138,6 +139,7 @@
     />
 
     <AuthModal v-if="showAuthModal" accent="sky" />
+    <PasswordModal v-model:show="showPasswordModal" accent="sky" />
   </div>
 </template>
 
@@ -155,6 +157,7 @@ useHead({ title: 'life-analyzer — 人生の影と光' })
 
 const { isLoggedIn, checked, checkAuth, logout } = useAuth()
 const showAuthModal = computed(() => checked.value && !isLoggedIn.value)
+const showPasswordModal = ref(false)
 
 const SIDES = [
   { value: 'all' as const, label: '全体' },

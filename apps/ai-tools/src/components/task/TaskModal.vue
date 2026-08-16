@@ -23,6 +23,14 @@ const emit = defineEmits<{
 
 const form = ref<TaskForm>({ name: '', desc: '', due: '', boardId: '', status: 'todo', effort: 1 })
 
+// ステータスのタブ。選択中の色はボードの列見出し（TODO=amber / DOING=sky / DONE=emerald）に合わせて、
+// モーダルと盤面で同じステータスが同じ色に見えるようにしている
+const statusTabs = [
+  { value: 'todo', label: 'TODO', activeClass: 'bg-amber-500/15 text-amber-200 border-amber-500/40' },
+  { value: 'doing', label: 'DOING', activeClass: 'bg-sky-400/15 text-sky-200 border-sky-400/40' },
+  { value: 'done', label: 'DONE', activeClass: 'bg-emerald-500/15 text-emerald-200 border-emerald-500/40' },
+] as const satisfies ReadonlyArray<{ value: TaskForm['status']; label: string; activeClass: string }>
+
 watch(() => props.show, (v) => {
   if (v) form.value = { ...props.initialForm }
 })
@@ -144,17 +152,6 @@ function setUntilSunday(weeksAhead = 0) {
               <option v-for="b in boards" :key="b.id" :value="b.id">{{ b.name }}</option>
             </select>
           </div>
-          <div class="flex flex-col gap-1 flex-1">
-            <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">ステータス</label>
-            <select
-              v-model="form.status"
-              class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2.5 text-[#e2e8f0] text-[13px] font-[inherit] box-border outline-none focus:border-sky-400/50 [color-scheme:dark] cursor-pointer"
-            >
-              <option value="todo">TODO</option>
-              <option value="doing">DOING</option>
-              <option value="done">DONE</option>
-            </select>
-          </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">工数</label>
             <div class="flex items-center gap-1">
@@ -170,6 +167,24 @@ function setUntilSunday(weeksAhead = 0) {
                 @click="incrementEffort"
               >＋</button>
             </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">ステータス</label>
+          <div class="flex gap-1 bg-white/[0.06] border border-white/10 rounded-lg p-1">
+            <button
+              v-for="tab in statusTabs"
+              :key="tab.value"
+              type="button"
+              :class="[
+                'flex-1 py-2 rounded-md border text-[12px] font-[800] tracking-[0.1em] transition-all cursor-pointer',
+                form.status === tab.value
+                  ? tab.activeClass
+                  : 'border-transparent bg-transparent text-slate-500 hover:text-slate-300 hover:bg-white/[0.05]',
+              ]"
+              @click="form.status = tab.value"
+            >{{ tab.label }}</button>
           </div>
         </div>
 

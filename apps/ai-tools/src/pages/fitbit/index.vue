@@ -2,6 +2,9 @@
   <!-- 認証モーダル -->
   <AuthModal v-if="showAuthModal" accent="sky" />
 
+  <!-- パスワード変更 -->
+  <PasswordModal v-model:show="showPasswordModal" accent="sky" />
+
   <!-- 設定メニューの背景クリックで閉じる -->
   <div v-if="showSettingsMenu" class="fixed inset-0 z-40" @click="showSettingsMenu = false" />
 
@@ -40,6 +43,10 @@
                 class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2"
                 @click="disconnectFitbit"
               ><span>⌚️</span> Fitbit連携を解除</button>
+              <button
+                class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2"
+                @click="showPasswordModal = true; showSettingsMenu = false"
+              ><span>🔒</span> パスワード変更</button>
               <button
                 class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2"
                 @click="doLogout"
@@ -188,6 +195,7 @@ const isDev = import.meta.dev
 const { user, isLoggedIn, checked, checkAuth, logout } = useAuth()
 const showAuthModal = computed(() => !isDev && checked.value && !isLoggedIn.value)
 const showSettingsMenu = ref(false)
+const showPasswordModal = ref(false)
 
 const todayStr = () => new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10)
 

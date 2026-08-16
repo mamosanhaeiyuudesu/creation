@@ -10,6 +10,7 @@
       </div>
       <div class="flex items-center gap-1.5">
         <button class="keiko-btn-ghost !h-9 !px-2.5" title="設定" @click="openSettings">⚙</button>
+        <button v-if="isLoggedIn" class="text-[13px] text-[var(--keiko-ink-soft)] px-2.5 py-1.5 rounded-full hover:bg-black/[0.04]" @click="showPasswordModal = true">パスワード変更</button>
         <button v-if="isLoggedIn" class="text-[13px] text-[var(--keiko-ink-soft)] px-2.5 py-1.5 rounded-full hover:bg-black/[0.04]" @click="doLogout">ログアウト</button>
       </div>
     </div>
@@ -334,6 +335,7 @@
     </div>
 
     <AuthModal v-if="showAuthModal" accent="sky" />
+    <PasswordModal v-model:show="showPasswordModal" accent="sky" />
   </div>
 </template>
 
@@ -348,6 +350,7 @@ useHead({ title: 'けいこ記録' })
 
 const { isLoggedIn, checked, checkAuth, logout } = useAuth()
 const showAuthModal = computed(() => checked.value && !isLoggedIn.value)
+const showPasswordModal = ref(false)
 
 type Mode = 'week' | 'month' | 'year'
 const MODES: { key: Mode; label: string }[] = [

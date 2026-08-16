@@ -10,6 +10,7 @@
         </div>
       </div>
       <div class="flex items-center gap-2">
+        <button v-if="isLoggedIn" class="text-[13px] text-[var(--kaki-ink-soft)] px-3 py-1.5 rounded-full hover:bg-black/[0.04]" @click="showPasswordModal = true">パスワード変更</button>
         <button v-if="isLoggedIn" class="text-[13px] text-[var(--kaki-ink-soft)] px-3 py-1.5 rounded-full hover:bg-black/[0.04]" @click="doLogout">ログアウト</button>
       </div>
     </header>
@@ -49,6 +50,7 @@
     </div>
 
     <AuthModal v-if="showAuthModal" accent="orange" />
+    <PasswordModal v-model:show="showPasswordModal" accent="orange" />
   </div>
 </template>
 
@@ -68,6 +70,7 @@ useHead({
 const isDev = import.meta.dev
 const { isLoggedIn, checked, checkAuth, logout } = useAuth()
 const showAuthModal = computed(() => !isDev && checked.value && !isLoggedIn.value)
+const showPasswordModal = ref(false)
 
 const me = ref<KakiMe | null>(null)
 const trees = ref<TreeSummary[]>([])

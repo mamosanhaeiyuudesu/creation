@@ -2,7 +2,10 @@
   <div class="max-w-[900px] mx-auto px-4 sm:px-6 pt-6 pb-20">
     <div class="flex items-center justify-between gap-2 mb-3">
       <Breadcrumb :items="[{ label: '柿の木のいえ', to: '/kaki' }, { label: '木の管理' }]" />
-      <button v-if="isLoggedIn" class="shrink-0 text-[13px] text-[var(--kaki-ink-soft)] px-3 py-1.5 rounded-full hover:bg-black/[0.04]" @click="doLogout">ログアウト</button>
+      <div class="shrink-0 flex items-center gap-1">
+        <button v-if="isLoggedIn" class="text-[13px] text-[var(--kaki-ink-soft)] px-3 py-1.5 rounded-full hover:bg-black/[0.04]" @click="showPasswordModal = true">パスワード変更</button>
+        <button v-if="isLoggedIn" class="text-[13px] text-[var(--kaki-ink-soft)] px-3 py-1.5 rounded-full hover:bg-black/[0.04]" @click="doLogout">ログアウト</button>
+      </div>
     </div>
     <header class="flex items-center gap-2.5 mb-6">
       <span class="text-3xl" style="font-family:'Apple Color Emoji','Segoe UI Emoji',sans-serif">🧑‍🌾</span>
@@ -67,6 +70,7 @@
     </ul>
 
     <AuthModal v-if="showAuthModal" accent="orange" />
+    <PasswordModal v-model:show="showPasswordModal" accent="orange" />
   </div>
 </template>
 
@@ -84,6 +88,7 @@ useHead({ title: '木の管理 | 柿の木のいえ' })
 const isDev = import.meta.dev
 const { isLoggedIn, checked, checkAuth, logout } = useAuth()
 const showAuthModal = computed(() => !isDev && checked.value && !isLoggedIn.value)
+const showPasswordModal = ref(false)
 const router = useRouter()
 
 const trees = ref<TreeSummary[]>([])

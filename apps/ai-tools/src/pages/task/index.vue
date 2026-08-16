@@ -29,6 +29,7 @@ const isMounted = ref(false)
 
 const { isLoggedIn, checked, checkAuth, logout } = useAuth()
 const showAuthModal = computed(() => !import.meta.dev && !isLoggedIn.value && checked.value)
+const showPasswordModal = ref(false)
 
 const now = nowJST()
 const defaultStartDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 2, now.getUTCDate()))
@@ -428,6 +429,9 @@ watch(isLoggedIn, async (v) => {
   <!-- 認証モーダル -->
   <AuthModal v-if="showAuthModal" accent="sky" />
 
+  <!-- パスワード変更 -->
+  <PasswordModal v-model:show="showPasswordModal" accent="sky" />
+
   <!-- Backdrop (month picker / settings menu) -->
   <div v-if="pickerOpen || showMobilePeriod || showSettingsMenu" class="fixed inset-0 z-40" @click="pickerOpen = null; showMobilePeriod = false; showSettingsMenu = false" />
 
@@ -819,6 +823,9 @@ watch(isLoggedIn, async (v) => {
             </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="downloadDone">
               <span>⬇</span> ダウンロード
+            </button>
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="showPasswordModal = true; closeSettingsMenu()">
+              <span>🔒</span> パスワード変更
             </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); closeSettingsMenu()">
               <span>🚪</span> ログアウト

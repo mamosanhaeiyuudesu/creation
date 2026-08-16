@@ -101,7 +101,9 @@ Sheets APIで直接読み書きする（`life-google.ts`）。D1が持つのは�
     `node scripts/create-user.mjs <username> <password> [--admin] [--local]` で INSERT 文を作って D1 に流す
     （`password_hash` は PBKDF2 の独自形式で SQL だけでは作れないのでこのスクリプトを使う）。
     その代わり **パスワードの変更は本人ができる**（`POST /api/auth/password`＝ユーザー名＋現在のパスワードで本人確認。
-    ログイン画面 `AuthModal.vue` の「パスワードを変更する」から。変更時に既存セッションを全削除して発行し直す）
+    変更時に既存セッションを全削除して発行し直す＝他端末のログインは切れる）。入り口は2つ:
+    ログイン前はログイン画面 `AuthModal.vue` の「パスワードを変更する」、ログイン中は各ページの
+    ログアウトの隣／設定メニューの「パスワード変更」（`components/PasswordModal.vue`。ユーザー名はセッションから）
 - `WHISPER_DB` 相乗り（kaki）: kaki_trees / kaki_observations / kaki_comments / kaki_health_events。既存 `users` に `role`（admin/foster）列を追加して認証に相乗り。写真はR2を使わず base64 data URL を D1 に保存（アップロード時にクライアント側で縮小・圧縮）。
   - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/031_kaki.sql`
   - 農家（阪中さん）を管理者にする: `wrangler d1 execute whisper-db --remote --command "UPDATE users SET role='admin' WHERE username='<農家のユーザー名>'"`

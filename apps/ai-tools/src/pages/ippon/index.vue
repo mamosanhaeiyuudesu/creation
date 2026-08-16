@@ -8,7 +8,10 @@
           <p class="text-[12px] text-[var(--ip-ink-soft)] mt-1">スケッチ → 顧客に見せる3Dイメージ</p>
         </div>
       </div>
-      <button v-if="isLoggedIn" class="text-[13px] text-[var(--ip-ink-soft)] px-3 py-1.5 rounded-full hover:bg-white/[0.05]" @click="doLogout">ログアウト</button>
+      <div class="flex items-center gap-1">
+        <button v-if="isLoggedIn" class="text-[13px] text-[var(--ip-ink-soft)] px-3 py-1.5 rounded-full hover:bg-white/[0.05]" @click="showPasswordModal = true">パスワード変更</button>
+        <button v-if="isLoggedIn" class="text-[13px] text-[var(--ip-ink-soft)] px-3 py-1.5 rounded-full hover:bg-white/[0.05]" @click="doLogout">ログアウト</button>
+      </div>
     </div>
 
     <NuxtLink to="/ippon/new" class="block ip-card p-5 mb-6 hover:border-[var(--ip-accent)] transition-colors group">
@@ -54,6 +57,7 @@
     </div>
 
     <AuthModal v-if="showAuthModal" accent="sky" />
+    <PasswordModal v-model:show="showPasswordModal" accent="sky" />
   </div>
 </template>
 
@@ -69,6 +73,7 @@ useHead({ title: 'ippon — スケッチから3D' })
 
 const { isLoggedIn, checked, checkAuth, logout } = useAuth()
 const showAuthModal = computed(() => checked.value && !isLoggedIn.value)
+const showPasswordModal = ref(false)
 
 const { data: projects, pending, refresh } = await useFetch<ProjectSummary[]>('/api/ippon/projects', {
   key: 'ippon-projects',

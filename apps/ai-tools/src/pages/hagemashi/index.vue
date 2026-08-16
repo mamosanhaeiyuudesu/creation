@@ -36,6 +36,9 @@
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="modelModalOpen = true; showSettingsMenu = false">
               <span>🤖</span> モデル変更
             </button>
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="passwordModalOpen = true; showSettingsMenu = false">
+              <span>🔒</span> パスワード変更
+            </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="logout(); showSettingsMenu = false">
               <span>🚪</span> ログアウト
             </button>
@@ -702,6 +705,9 @@
 
     <!-- Auth Modal -->
     <AuthModal v-if="!$dev && checked && !isLoggedIn" accent="orange" />
+
+    <!-- パスワード変更 -->
+    <PasswordModal v-model:show="passwordModalOpen" accent="orange" />
 
     <!-- ログ（利用回数） -->
     <HagemashiLogModal
@@ -1870,6 +1876,7 @@ async function reTokenize() {
 }
 
 const { isLoggedIn, checked, checkAuth, logout } = useAuth()
+const passwordModalOpen = ref(false)
 
 if (!$dev) {
   onMounted(checkAuth)
