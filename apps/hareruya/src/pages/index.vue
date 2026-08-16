@@ -11,7 +11,8 @@
               <a :href="link.href">{{ link.label }}</a>
             </li>
           </ul>
-          <LineButton class="hr-nav-cta" label="ご予約" pending-label="準備中" />
+          <LineButton class="hr-nav-cta" label="ご予約・お問い合わせ" fallback-href="#contact" brand />
+          <InstagramButton class="hr-nav-insta" label="施術の様子" brand />
           <button
             type="button"
             class="hr-nav-toggle"
@@ -33,7 +34,19 @@
             <a :href="link.href" @click="isMenuOpen = false">{{ link.label }}</a>
           </li>
         </ul>
-        <LineButton class="hr-nav-mobile-cta" label="ご予約" pending-label="準備中" @click="isMenuOpen = false" />
+        <LineButton
+          class="hr-nav-mobile-cta"
+          label="ご予約・お問い合わせ"
+          fallback-href="#contact"
+          brand
+          @click="isMenuOpen = false"
+        />
+        <InstagramButton
+          class="hr-nav-mobile-insta"
+          label="施術の様子"
+          brand
+          @click="isMenuOpen = false"
+        />
       </div>
     </nav>
 
@@ -72,7 +85,6 @@
              その他、不定期で東急田園都市線青葉台駅周辺のレンタルサロンでも施術を行っています。
           </span>
         </div>
-        <LineButton class="hero-cta" />
       </div>
       <svg class="hero-wave" viewBox="0 0 1440 48" preserveAspectRatio="none" aria-hidden="true">
         <path d="M0,24 C240,52 480,0 720,12 C960,24 1200,52 1440,28 L1440,48 L0,48 Z" fill="currentColor" />
@@ -217,15 +229,17 @@
               <span class="menu-duration">{{ menu.duration }}</span>
             </div>
             <div class="menu-price">
-              {{ menu.price }}
-              <span v-if="isPricePending" class="price-pending">準備中</span>
+              <template v-if="isPricePending">
+                <span class="price-ask">LINEにてご案内</span>
+              </template>
+              <template v-else>{{ menu.price }}</template>
             </div>
             <p class="menu-desc">{{ menu.desc }}</p>
           </div>
         </div>
         <p class="menu-note">
           <template v-if="isPricePending">
-            ※ 料金は準備中です。確定次第、こちらに掲載します。現在の料金はLINEにてお問い合わせください。<br />
+            ※ 料金はLINEにてご案内しています。お気軽にお問い合わせください。<br />
           </template>
           ※ 初回はカウンセリングのお時間を含みます。お時間に余裕をもってお越しください。<br />
           ※ 施術内容は、その日のからだの状態にあわせてご相談のうえ決めていきます。
@@ -289,9 +303,9 @@
               allowfullscreen
             ></iframe>
           </div>
-          <div v-else class="access-map-pending">
+          <div v-else class="access-map-note">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span>地図は準備中です。<br />場所の詳細はLINEにてご案内しています。</span>
+            <span>ショッピングタウン若葉台内「Wakka（わっか）」<br />場所の詳細はLINEにてご案内しています。</span>
           </div>
         </div>
       </div>
@@ -326,14 +340,12 @@
           </p>
           <div class="cta-buttons">
             <LineButton class="btn-line" />
-            <a :href="site.instagramUrl" class="btn-insta" target="_blank" rel="noopener noreferrer">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1.1" fill="currentColor" stroke="none"/></svg>
-              Instagram @{{ site.instagramId }}
-            </a>
+            <InstagramButton class="btn-insta" />
           </div>
           <p class="cta-note">
             施術日は{{ site.openDays }}です。<br />
-            ご希望の日時をいくつかお知らせいただけると、やりとりがスムーズです。
+            ご希望の日時をいくつかお知らせいただけると、やりとりがスムーズです。<br />
+            Instagram（@{{ site.instagramId }}）では、施術の様子や営業日の詳細を発信しています。
           </p>
         </div>
       </div>
@@ -352,7 +364,8 @@
 
     <!-- モバイル固定予約バー -->
     <div class="hr-mobile-bar">
-      <LineButton />
+      <LineButton class="hr-mobile-bar-line" label="ご予約・お問い合わせ" fallback-href="#contact" brand />
+      <InstagramButton class="hr-mobile-bar-insta" label="施術の様子" brand />
     </div>
 
   </div>
