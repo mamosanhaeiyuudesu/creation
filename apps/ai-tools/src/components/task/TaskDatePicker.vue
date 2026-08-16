@@ -7,10 +7,8 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const isOpen = ref(false)
 const tempYear = ref(0)
 const tempMonth = ref(0)
-const tempDay = ref<number | null>(null)
-const tempTime = ref('23:59')
 
-const WEEK = ['月', '火', '水', '木', '金', '土', '日']
+const WEEK = ['日', '月', '火', '水', '木', '金', '土']
 
 const currentDate = computed(() => {
   if (!props.modelValue) return null
@@ -22,6 +20,7 @@ const displayLabel = computed(() => {
   if (!currentDate.value) return null
   const d = currentDate.value
   const date = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
+  if (d.getHours() === 23 && d.getMinutes() === 59) return date
   const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
   return `${date} ${time}`
 })
@@ -30,18 +29,13 @@ function open() {
   const base = currentDate.value ?? new Date()
   tempYear.value = base.getFullYear()
   tempMonth.value = base.getMonth()
-  tempDay.value = currentDate.value ? currentDate.value.getDate() : null
-  tempTime.value = currentDate.value
-    ? `${String(currentDate.value.getHours()).padStart(2, '0')}:${String(currentDate.value.getMinutes()).padStart(2, '0')}`
-    : '23:59'
   isOpen.value = true
 }
 
 const monthLabel = computed(() => `${tempYear.value}年${tempMonth.value + 1}月`)
 
 const gridDays = computed(() => {
-  const firstDow = new Date(tempYear.value, tempMonth.value, 1).getDay()
-  const offset = (firstDow + 6) % 7
+  const offset = new Date(tempYear.value, tempMonth.value, 1).getDay() // 日曜始まり
   const total = new Date(tempYear.value, tempMonth.value + 1, 0).getDate()
   const cells: (number | null)[] = Array(offset).fill(null)
   for (let d = 1; d <= total; d++) cells.push(d)
@@ -59,7 +53,8 @@ function nextMonth() {
 }
 
 function isSelected(day: number | null) {
-  return day !== null && day === tempDay.value
+  if (day === null || !currentDate.value) return false
+  return currentDate.value.getFullYear() === tempYear.value && currentDate.value.getMonth() === tempMonth.value && currentDate.value.getDate() === day
 }
 
 function isToday(day: number | null) {
@@ -68,25 +63,24 @@ function isToday(day: number | null) {
   return t.getUTCFullYear() === tempYear.value && t.getUTCMonth() === tempMonth.value && t.getUTCDate() === day
 }
 
-function setToday() {
+// 日をクリックした瞬間に23:59で確定し、カレンダーを閉じる
+function pickDay(day: number) {
+  const yyyy = tempYear.value
+  const mm = String(tempMonth.value + 1).padStart(2, '0')
+  const dd = String(day).padStart(2, '0')
+  emit('update:modelValue', `${yyyy}-${mm}-${dd}T23:59`)
+  isOpen.value = false
+}
+
+function pickToday() {
   const t = nowJST()
   tempYear.value = t.getUTCFullYear()
   tempMonth.value = t.getUTCMonth()
-  tempDay.value = t.getUTCDate()
+  pickDay(t.getUTCDate())
 }
 
 function clear() {
   emit('update:modelValue', '')
-  isOpen.value = false
-}
-
-function confirm() {
-  if (tempDay.value !== null) {
-    const yyyy = tempYear.value
-    const mm = String(tempMonth.value + 1).padStart(2, '0')
-    const dd = String(tempDay.value).padStart(2, '0')
-    emit('update:modelValue', `${yyyy}-${mm}-${dd}T${tempTime.value}`)
-  }
   isOpen.value = false
 }
 </script>
@@ -141,26 +135,16 @@ function confirm() {
                     : isToday(day)
                       ? 'text-sky-400 font-semibold hover:bg-white/10'
                       : 'text-slate-300 hover:bg-white/10',
-                  (i % 7 === 5) && !isSelected(day) ? 'text-sky-400' : '',
-                  (i % 7 === 6) && !isSelected(day) ? 'text-rose-400' : '',
+                  (i % 7 === 6) && !isSelected(day) ? 'text-sky-400' : '',
+                  (i % 7 === 0) && !isSelected(day) ? 'text-rose-400' : '',
                 ]"
-                @click="tempDay = day"
+                @click="pickDay(day)"
               >{{ day }}</button>
             </div>
           </div>
 
-          <!-- 時刻入力 -->
-          <div class="mt-3 flex items-center gap-2">
-            <span class="text-[12px] text-slate-500 shrink-0">時刻</span>
-            <input
-              v-model="tempTime"
-              type="time"
-              class="flex-1 bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1.5 text-[#e2e8f0] text-[13px] font-[inherit] outline-none focus:border-sky-400/50 [color-scheme:dark]"
-            />
-          </div>
-
           <!-- ボタン行 -->
-          <div class="mt-4 flex items-center gap-2">
+          <div class="mt-3 flex items-center gap-2">
             <button
               type="button"
               class="px-3 py-1.5 rounded-lg text-[12px] text-rose-400 border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 transition-colors"
@@ -169,15 +153,8 @@ function confirm() {
             <button
               type="button"
               class="px-3 py-1.5 rounded-lg text-[12px] text-slate-300 border border-white/10 bg-white/[0.06] hover:bg-white/[0.12] transition-colors"
-              @click="setToday"
+              @click="pickToday"
             >今日</button>
-            <div class="flex-1" />
-            <button
-              type="button"
-              class="px-4 py-1.5 rounded-lg text-[12px] font-semibold text-white border-none bg-gradient-to-br from-sky-400 to-indigo-500 disabled:opacity-40"
-              :disabled="tempDay === null"
-              @click="confirm"
-            >決定</button>
           </div>
         </div>
       </div>

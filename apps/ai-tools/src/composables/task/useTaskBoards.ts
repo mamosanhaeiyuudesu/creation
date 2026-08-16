@@ -17,9 +17,9 @@ export interface Card {
   pos: number
   isOverdue: boolean
   isUrgent: boolean
+  isDueToday: boolean
+  isDueTomorrow: boolean
   display: string
-  isImportant: boolean
-  redLabelId: string | null
 }
 
 export interface Board {
@@ -32,7 +32,6 @@ export interface Board {
   doingListId: string
   todoListId: string
   doneListId: string
-  redLabelId: string | null
 }
 
 export type EditTarget = {
@@ -55,7 +54,13 @@ export function useTaskBoards(
   function periodRange(): [Date, Date] {
     const [sy, sm, sd] = periodStart.value.split('-').map(Number)
     const rangeStart = new Date(sy, sm - 1, sd)
-    if (!periodEnd.value) return [rangeStart, new Date()]
+    if (!periodEnd.value) {
+      // 終了日未指定は「今週いっぱい」を上限にする（期限が未来でも今週内のDONEは表示したいため）
+      const now = new Date()
+      const diffFromMonday = (now.getDay() + 6) % 7
+      const sunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffFromMonday + 6, 23, 59, 59)
+      return [rangeStart, sunday]
+    }
     const [ey, em, ed] = periodEnd.value.split('-').map(Number)
     return [rangeStart, new Date(ey, em - 1, ed, 23, 59, 59)]
   }
@@ -104,7 +109,7 @@ export function useTaskBoards(
   // Task modal state
   const showTaskModal = ref(false)
   const editTarget = ref<EditTarget>(null)
-  const taskForm = ref({ name: '', desc: '', due: '', boardId: '', status: 'todo' as 'todo' | 'doing' | 'done', isImportant: false, effort: 1 })
+  const taskForm = ref({ name: '', desc: '', due: '', boardId: '', status: 'todo' as 'todo' | 'doing' | 'done', effort: 1 })
   const isEditing = computed(() => editTarget.value !== null)
   const modalTitle = computed(() => isEditing.value ? 'タスクを編集' : 'タスクを追加')
 
@@ -150,49 +155,48 @@ export function useTaskBoards(
     return res.json()
   }
 
-  async function trelloDelete(path: string) {
-    const sep = path.includes('?') ? '&' : '?'
-    const res = await fetch(`https://api.trello.com/1${path}${sep}key=${apiKey.value}&token=${apiToken.value}`, { method: 'DELETE' })
-    if (!res.ok) throw await trelloError(res)
-  }
-
-  async function ensureRedLabel(board: Board): Promise<string> {
-    if (board.redLabelId) return board.redLabelId
-    const labels = await trelloGet(`/boards/${board.id}/labels`)
-    const existing = labels.find((l: any) => l.color === 'red')
-    if (existing) { board.redLabelId = existing.id; return existing.id }
-    const created = await trelloPost(`/boards/${board.id}/labels`, { name: '重要', color: 'red' })
-    board.redLabelId = created.id
-    return created.id
-  }
-
-  async function syncImportantLabel(cardId: string, card: Card, board: Board, nowImportant: boolean) {
-    if (card.isImportant === nowImportant) return
-    if (nowImportant) {
-      const labelId = await ensureRedLabel(board)
-      await trelloPost(`/cards/${cardId}/idLabels`, { value: labelId })
-    } else if (card.redLabelId) {
-      await trelloDelete(`/cards/${cardId}/idLabels/${card.redLabelId}`)
-    }
-  }
-
   // --- Utilities ---
-  function timeRemaining(dueStr: string): Pick<Card, 'isOverdue' | 'isUrgent' | 'display'> {
+  /** 期限のJST暦日が今日と一致するか（時刻に関わらず「その日のうちに」を判定） */
+  function isDueTodayJST(dueStr: string): boolean {
+    const d = toJSTDate(dueStr)
+    const now = nowJST()
+    return d.getUTCFullYear() === now.getUTCFullYear() && d.getUTCMonth() === now.getUTCMonth() && d.getUTCDate() === now.getUTCDate()
+  }
+
+  /** 期限のJST暦日が明日と一致するか */
+  function isDueTomorrowJST(dueStr: string): boolean {
+    const d = toJSTDate(dueStr)
+    const now = nowJST()
+    const tomorrow = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    return d.getUTCFullYear() === tomorrow.getFullYear() && d.getUTCMonth() === tomorrow.getMonth() && d.getUTCDate() === tomorrow.getDate()
+  }
+
+  function timeRemaining(dueStr: string): Pick<Card, 'isOverdue' | 'isUrgent' | 'isDueToday' | 'isDueTomorrow' | 'display'> {
     const diffH = (new Date(dueStr).getTime() - Date.now()) / 3_600_000
+    const isDueToday = isDueTodayJST(dueStr)
+    const isDueTomorrow = isDueTomorrowJST(dueStr)
     if (diffH < 0) {
       const d = Math.floor(-diffH / 24)
-      return { isOverdue: true, isUrgent: false, display: d > 0 ? `${d}日超過` : `${Math.floor(-diffH)}h超過` }
+      return { isOverdue: true, isUrgent: false, isDueToday, isDueTomorrow, display: d > 0 ? `${d}日超過` : `${Math.floor(-diffH)}h超過` }
     }
-    if (diffH < 24) return { isOverdue: false, isUrgent: true, display: `残り${Math.floor(diffH)}h` }
-    return { isOverdue: false, isUrgent: false, display: `残り${Math.floor(diffH / 24)}日` }
+    if (diffH < 24) return { isOverdue: false, isUrgent: true, isDueToday, isDueTomorrow, display: `残り${Math.floor(diffH)}h` }
+    return { isOverdue: false, isUrgent: false, isDueToday, isDueTomorrow, display: `残り${Math.floor(diffH / 24)}日` }
   }
 
   function buildCard(raw: any): Card {
-    const redLabel = Array.isArray(raw.labels) ? raw.labels.find((l: any) => l.color === 'red') : null
     const { displayName, effort } = parseTaskName(raw.name)
-    const c: Card = { id: raw.id, name: raw.name, displayName, effort, desc: raw.desc || '', due: raw.due || null, pos: raw.pos ?? 0, isOverdue: false, isUrgent: false, display: '', isImportant: !!redLabel, redLabelId: redLabel?.id ?? null }
+    const c: Card = { id: raw.id, name: raw.name, displayName, effort, desc: raw.desc || '', due: raw.due || null, pos: raw.pos ?? 0, isOverdue: false, isUrgent: false, isDueToday: false, isDueTomorrow: false, display: '' }
     if (raw.due) Object.assign(c, timeRemaining(raw.due))
     return c
+  }
+
+  /** 期限が近い順（期限なしは末尾） */
+  function compareByDue(a: Card, b: Card): number {
+    if (!a.due && !b.due) return 0
+    if (!a.due) return 1
+    if (!b.due) return -1
+    return new Date(a.due).getTime() - new Date(b.due).getTime()
   }
 
   function doneTotal(board: Board) {
@@ -291,7 +295,7 @@ export function useTaskBoards(
       const results: Board[] = await Promise.all(
         filtered.map(async (b: any) => {
           const lists = await trelloGet(`/boards/${b.id}/lists`)
-          const board: Board = { id: b.id, name: b.name, desc: b.desc || '', doing: [], todo: [], done: {}, doingListId: '', todoListId: '', doneListId: '', redLabelId: null }
+          const board: Board = { id: b.id, name: b.name, desc: b.desc || '', doing: [], todo: [], done: {}, doingListId: '', todoListId: '', doneListId: '' }
 
           await Promise.all(
             lists.map(async (list: any) => {
@@ -317,11 +321,8 @@ export function useTaskBoards(
             }),
           )
 
-          board.doing.sort((a, b) => {
-            if (a.isOverdue !== b.isOverdue) return a.isOverdue ? 1 : -1
-            if (a.isUrgent !== b.isUrgent) return a.isUrgent ? -1 : 1
-            return 0
-          })
+          board.doing.sort(compareByDue)
+          board.todo.sort(compareByDue)
           return board
         }),
       )
@@ -385,6 +386,7 @@ export function useTaskBoards(
         rebuildAllDates()
       }
       board.doing.push(buildCard(raw))
+      board.doing.sort(compareByDue)
     } catch (e: any) {
       error.value = e.message
     } finally {
@@ -399,25 +401,25 @@ export function useTaskBoards(
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
   }
 
-  function openAddTask(boardId: string, status: 'todo' | 'doing') {
+  function openAddTask(boardId: string, status: 'todo' | 'doing' | 'done') {
     editTarget.value = null
-    taskForm.value = { name: '', desc: '', due: '', boardId, status, isImportant: false, effort: 1 }
+    taskForm.value = { name: '', desc: '', due: '', boardId, status, effort: 1 }
     showTaskModal.value = true
   }
 
   function openEditTask(card: Card, boardId: string, status: 'doing' | 'todo') {
     editTarget.value = { card, boardId, status }
-    taskForm.value = { name: card.displayName, desc: card.desc, due: card.due ? toLocalDatetimeInput(card.due) : '', boardId, status, isImportant: card.isImportant, effort: card.effort }
+    taskForm.value = { name: card.displayName, desc: card.desc, due: card.due ? toLocalDatetimeInput(card.due) : '', boardId, status, effort: card.effort }
     showTaskModal.value = true
   }
 
-  function openEditDoneTask(item: { id: string; name: string }, dateKey: string, board: Board) {
+  function openEditDoneTask(item: { id: string; name: string; desc: string }, dateKey: string, board: Board) {
     const { displayName, effort } = parseTaskName(item.name)
     const dueForInput = dateKey + 'T12:00'
     const dueIso = new Date(dueForInput).toISOString()
-    const card: Card = { id: item.id, name: item.name, displayName, effort, desc: '', due: dueIso, pos: 0, isOverdue: false, isUrgent: false, display: '', isImportant: false, redLabelId: null }
+    const card: Card = { id: item.id, name: item.name, displayName, effort, desc: item.desc, due: dueIso, pos: 0, isOverdue: false, isUrgent: false, isDueToday: false, isDueTomorrow: false, display: '' }
     editTarget.value = { card, boardId: board.id, status: 'done', dateKey }
-    taskForm.value = { name: displayName, desc: '', due: dueForInput, boardId: board.id, status: 'done', isImportant: false, effort }
+    taskForm.value = { name: displayName, desc: item.desc, due: dueForInput, boardId: board.id, status: 'done', effort }
     showTaskModal.value = true
   }
 
@@ -479,14 +481,9 @@ export function useTaskBoards(
             rebuildAllDates()
           }
           const newCard = buildCard(raw)
-          if (taskForm.value.isImportant) {
-            const labelId = await ensureRedLabel(board)
-            await trelloPost(`/cards/${raw.id}/idLabels`, { value: labelId })
-            newCard.isImportant = true
-            newCard.redLabelId = labelId
-          }
           const dstArr = newStatus === 'doing' ? board.doing : board.todo
           dstArr.push(newCard)
+          dstArr.sort(compareByDue)
         }
         showTaskModal.value = false
         return
@@ -525,27 +522,16 @@ export function useTaskBoards(
         if (boardChanged) body.idBoard = board.id
         const raw = await trelloPut(`/cards/${card.id}`, body)
         const updated = buildCard(raw)
-        if (boardChanged) {
-          // ボード移動後はラベルがリセットされるため、旧ボードのラベルIDを使わず再設定
-          if (taskForm.value.isImportant) {
-            const labelId = await ensureRedLabel(board)
-            await trelloPost(`/cards/${raw.id}/idLabels`, { value: labelId })
-            updated.isImportant = true
-            updated.redLabelId = labelId
-          }
-        } else {
-          await syncImportantLabel(card.id, card, board, taskForm.value.isImportant)
-          updated.isImportant = taskForm.value.isImportant
-          updated.redLabelId = taskForm.value.isImportant ? (board.redLabelId ?? card.redLabelId) : null
-        }
         const srcArr = status === 'doing' ? oldBoard.doing : oldBoard.todo
         const idx = srcArr.findIndex(c => c.id === card.id)
         if (!boardChanged && newStatus === status) {
           if (idx >= 0) srcArr[idx] = updated
+          srcArr.sort(compareByDue)
         } else {
           if (idx >= 0) srcArr.splice(idx, 1)
           const dstArr = newStatus === 'doing' ? board.doing : board.todo
           dstArr.push(updated)
+          dstArr.sort(compareByDue)
         }
       } else {
         const listId = taskForm.value.status === 'doing' ? board.doingListId : board.todoListId
@@ -553,14 +539,9 @@ export function useTaskBoards(
         body.idList = listId
         const raw = await trelloPost('/cards', body)  // body.name already set to trelloName above
         const newCard = buildCard(raw)
-        if (taskForm.value.isImportant) {
-          const labelId = await ensureRedLabel(board)
-          await trelloPost(`/cards/${raw.id}/idLabels`, { value: labelId })
-          newCard.isImportant = true
-          newCard.redLabelId = labelId
-        }
         const arr = taskForm.value.status === 'doing' ? board.doing : board.todo
         arr.push(newCard)
+        arr.sort(compareByDue)
       }
 
       showTaskModal.value = false

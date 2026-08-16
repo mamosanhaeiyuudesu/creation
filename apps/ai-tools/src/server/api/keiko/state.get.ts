@@ -3,7 +3,7 @@ import {
   requireKeikoDb,
   ensureKeikoTables,
   seedDefaultMembersIfEmpty,
-  seedDefaultItemsIfEmpty,
+  migrateSharedItemsToMembers,
   loadMembers,
   loadItems,
   loadRecords,
@@ -11,13 +11,13 @@ import {
 } from '~/server/utils/keiko'
 import type { KeikoState } from '~/types/keiko'
 
-// 週表示に必要な一式（メンバー・練習項目・期間内の花丸）をまとめて返す。
+// 週表示に必要な一式（メンバー・練習項目・期間内の記録）をまとめて返す。
 export default defineEventHandler(async (event): Promise<KeikoState> => {
   const user = await requireKeikoUser(event)
   const db = requireKeikoDb(event)
   await ensureKeikoTables(db)
   await seedDefaultMembersIfEmpty(db, user.id)
-  await seedDefaultItemsIfEmpty(db, user.id)
+  await migrateSharedItemsToMembers(db, user.id)
 
   const query = getQuery(event)
   const from = isValidDate(query.from) ? query.from : null
