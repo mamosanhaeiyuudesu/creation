@@ -8,8 +8,8 @@
     "start": "nuxt start"
   },
   "dependencies": {
-    "echarts": "^6",
     "cytoscape": "^3.34.0",
+    "echarts": "^6",
     "echarts-wordcloud": "^2.1.0",
     "leaflet": "^1.9.4",
     "marked": "^17.0.4",
