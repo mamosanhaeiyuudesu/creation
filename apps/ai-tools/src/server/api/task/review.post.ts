@@ -82,22 +82,7 @@ export default defineEventHandler(async (event) => {
       .join('\n')
     : '（なし）'
 
-  if (import.meta.dev) {
-    const top = [...boards].sort((a, b) => (b.hours || 0) - (a.hours || 0))[0]
-    return {
-      feedback: `【サンプルデータ】
-■ 時間の使い方
-${periodLabel}に完了したタスクは${totalCount}件、合計${round1(totalHours)}時間でした。もっとも時間を使ったのは「${top?.name ?? '（なし）'}」で${round1(top?.hours ?? 0)}時間です。
-${boardLines || '（ボードのデータがありません）'}
-
-■ 気づき
-売上に近い仕事に時間が寄っている週だったと読めます。目の前の現金を作る動きが取れているのは強みですが、ミッションに近い仕事と、将来のための投資の時間が細っていないかは見ておきたいところです。
-
-■ 次の週へ
-まずは投資の時間を週2時間だけ先に確保して、残りを営業に充てる形を試してみてください。`,
-    }
-  }
-
+  // 振り返りは中身がすべてなので、dev でもサンプルを返さず実際に AI に答えさせる（.env の鍵を使う）
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) {
     throw createError({ statusCode: 500, statusMessage: 'Anthropic API key is not configured.' })
