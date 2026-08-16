@@ -16,7 +16,10 @@ export default defineEventHandler(async (event): Promise<{ done: boolean }> => {
 
   const member = await db.prepare('SELECT id FROM keiko_members WHERE id = ? AND user_id = ?').bind(memberId, user.id).first<{ id: string }>()
   if (!member) throw createError({ statusCode: 404, message: 'メンバーが見つかりません' })
-  const item = await db.prepare('SELECT id FROM keiko_items WHERE id = ? AND user_id = ?').bind(itemId, user.id).first<{ id: string }>()
+  const item = await db
+    .prepare('SELECT id FROM keiko_items WHERE id = ? AND user_id = ? AND member_id = ?')
+    .bind(itemId, user.id, memberId)
+    .first<{ id: string }>()
   if (!item) throw createError({ statusCode: 404, message: '項目が見つかりません' })
 
   const existing = await db

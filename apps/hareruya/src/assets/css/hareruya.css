@@ -27,9 +27,11 @@
   --c-white: #ffffff;
   --c-cream: #fffafb;
 
-  /* ご予約ボタン。LINEグリーンではなくロゴの水色（--c-sky と同色）を使い、文字は茶色 */
+  /* ボタンの地色。LINEはロゴの水色、Instagramはヒーローのピンク。文字はどちらも茶色 */
   --c-cta: #94e5f7;
   --c-cta-hover: #7cddf3;
+  --c-insta: #febfca;
+  --c-insta-hover: #fda2b2;
 
   --content-max: 880px;
   --section-gap: 88px;
@@ -191,13 +193,12 @@
   height: 38px;
   padding: 0 14px;
   border-radius: 999px;
-  border: 1px solid var(--c-pink-line);
-  background: var(--c-white);
-  color: var(--c-brown-mid);
+  background: var(--c-insta);
+  color: var(--c-brown);
   font-size: 12.5px;
   font-weight: 700;
   white-space: nowrap;
-  transition: color 0.2s, border-color 0.2s;
+  transition: background 0.2s, transform 0.2s;
 }
 
 .hr-nav-insta svg {
@@ -207,8 +208,8 @@
 }
 
 .hr-nav-insta:hover {
-  color: var(--c-pink-deep);
-  border-color: var(--c-pink-deep);
+  background: var(--c-insta-hover);
+  transform: translateY(-1px);
 }
 
 .hr-nav-cta.is-pending {
@@ -374,6 +375,30 @@
   letter-spacing: 0.06em;
   color: var(--c-brown);
   margin-top: 4px;
+  position: relative;
+  z-index: 0;
+  padding: 26px 0;
+}
+
+/* キャッチコピーの背後に施術風景を透かしで敷く。
+   周囲をマスクでぼかし、ヒーローのピンクに溶け込ませる */
+.hero-catch::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: min(1080px, 124vw);
+  transform: translateX(-50%);
+  z-index: -1;
+  background-image: url('/images/hero-treatment.jpg');
+  background-size: cover;
+  background-position: center 42%;
+  opacity: 0.24;
+  filter: saturate(0.55);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 38%, transparent 76%);
+  mask-image: radial-gradient(ellipse at center, #000 38%, transparent 76%);
+  pointer-events: none;
 }
 
 .hero-catch em {
@@ -1141,9 +1166,8 @@
 }
 
 .hr-mobile-bar-insta {
-  border: 1px solid var(--c-pink-line);
-  background: var(--c-white);
-  color: var(--c-brown-mid);
+  background: var(--c-insta);
+  color: var(--c-brown);
 }
 
 /* 横幅を折半するため、文字は中央寄せ＋狭い端末では折り返す */
@@ -1241,8 +1265,7 @@
     height: 46px;
     margin-top: 10px;
     border-radius: 999px;
-    border: 1px solid var(--c-pink-line);
-    background: var(--c-white);
+    background: var(--c-insta);
     color: var(--c-brown);
     font-size: 14px;
     font-weight: 700;

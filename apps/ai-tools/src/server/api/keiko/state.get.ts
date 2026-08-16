@@ -3,7 +3,7 @@ import {
   requireKeikoDb,
   ensureKeikoTables,
   seedDefaultMembersIfEmpty,
-  seedDefaultItemsIfEmpty,
+  migrateSharedItemsToMembers,
   loadMembers,
   loadItems,
   loadRecords,
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event): Promise<KeikoState> => {
   const db = requireKeikoDb(event)
   await ensureKeikoTables(db)
   await seedDefaultMembersIfEmpty(db, user.id)
-  await seedDefaultItemsIfEmpty(db, user.id)
+  await migrateSharedItemsToMembers(db, user.id)
 
   const query = getQuery(event)
   const from = isValidDate(query.from) ? query.from : null
