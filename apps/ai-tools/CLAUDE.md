@@ -25,7 +25,6 @@ NUXT_ENCRYPTION_KEY=...   # marriage コメント・Google Healthトークン暗
 NUXT_FITBIT_CLIENT_ID=...      # Google Cloud の OAuth 2.0 クライアントID（fitbit連携用）
 NUXT_FITBIT_CLIENT_SECRET=...  # 同上シークレット
 NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
-NUXT_RESEND_API_KEY=...        # task アラートのメール送信（Resend）。dev では未使用
 NUXT_LIFE_GOOGLE_CLIENT_ID=...      # Google Cloud の OAuth 2.0 クライアントID（life連携用。fitbitとは別クライアント）
 NUXT_LIFE_GOOGLE_CLIENT_SECRET=...  # 同上シークレット
 NUXT_LIFE_GOOGLE_REDIRECT_URI=...   # 例: https://<host>/api/life/google/callback
@@ -45,25 +44,6 @@ fitbitとは別に、Google Cloud で新規に OAuth 2.0 クライアントを�
 
 ※ 回答本文はD1に保存しない。連携ユーザーの「本人のGoogleドライブ」に作成した専用スプレッドシートへ
 Sheets APIで直接読み書きする（`life-google.ts`）。D1が持つのはリフレッシュトークン（暗号化）とスプレッドシートIDの参照だけ。
-
-### task アラート（メール通知）のセットアップ
-
-送信は **Resend**（HTTP API）。Cloudflare の Email Sending は **Workers Paid 必須**だったため不採用。
-
-設定値は `.env` ではなく **wrangler.toml の `[vars]`** に置く（Cron の scheduled task は runtimeConfig ではなく Worker の env から読むため）:
-
-```toml
-NUXT_ALERT_MAIL_FROM = "task@<Resendで認証済みのドメイン>"   # 送信元。必須
-NUXT_APP_URL = "https://<host>"                            # メール本文のリンク。任意
-```
-
-1. Resend に登録し、送信元ドメインを認証（DNS レコードを Cloudflare DNS に追加）
-2. `wrangler secret put NUXT_RESEND_API_KEY` で API キーを登録
-3. `wrangler.toml` の `[vars]` に上記2つを設定して `wrangler deploy`
-4. `/task` の設定 →「🔔 アラート」で「テスト送信」を押して疎通確認
-
-※ ドメイン未認証だと Resend は送信元アカウントのアドレス宛にしか送れない。任意の宛先に送るにはドメイン認証が要る。
-※ ローカル dev は D1 も無く送信もできないため、アラート設定は localStorage に保存され、テスト送信はできない（`useTaskAlert.ts`）。
 
 ※ `/fitbit` のデータ源は **Google Health API**（旧 Fitbit Web API は2026年9月停止のため後継。サーバー間REST＋Google OAuth2）。認証情報名は `NUXT_FITBIT_*` のままだが中身はGoogle OAuthのもの。
 ※ ローカル dev では実API・OAuthは使わず `fitbit-dev.ts` の決定的スタブで動作。実データのパース検証は dev限定の `GET /api/fitbit/diag?token=<Playgroundのaccess_token>`。
@@ -86,7 +66,7 @@ NUXT_APP_URL = "https://<host>"                            # メール本文の�
 | `/whisper` | マイク録音または音声ファイルで文字起こし・要約・校正。文字起こしモデルはWhisper(既定)/Geminiを設定メニューから切替可（`useTranscriptionModel`、選択はlocalStorage） |
 | `/hagemashi` | 状況を入力するとAIがはげましメッセージとテーマを生成。記録の音声文字起こしは`/whisper`と同じく設定メニューでWhisper/Geminiを切替可 |
 | `/fitbit` | Fitbitヘルスダッシュボード（エナジー/睡眠スコア・歩数・心拍・HRV・SpO2等を1画面集約、睡眠は詳細分解） |
-| `/task` | Trello連携のタスク管理ビュー（DOING/TODO/DONE）。TODO/DOINGのカードは**期限が今日（JST）のものを自動で赤枠**にする（`useTaskBoards.ts` の `isDueToday`。手動の「重要」フラグは廃止済み）。設定 →「🔔 アラート」で**本日期限のタスクのメール通知**を設定できる（ユーザーに1つ・全Trelloアカウント横断で1通。送信時刻は JST の「時」を複数指定）。送信は毎時の Cron（`src/server/tasks/task-alert.ts`）。対象タスクが0件の回は送らない |
+| `/task` | Trello連携のタスク管理ビュー（DOING/TODO/DONE）。TODO/DOINGのカードは**期限が今日（JST）のものを自動で赤枠**にする（`useTaskBoards.ts` の `isDueToday`。手動の「重要」フラグは廃止済み）。ヘッダーの「振り返る」で**その期間にどのボードへ時間を使ったかのAIフィードバック**を生成できる（既定は今日を含む週＝月〜日、`TaskRangeCalendar.vue` で任意の期間も選べる。文字数は1000/2000）。結果は履歴（`app-history` の `task/review`）に残り「振り返り履歴」から読み返せる。プロンプトと**お金に近い/ミッションに近い/投資/運用**という見方は `server/api/task/review.post.ts` に集約。集計対象は画面に読み込み済みのDONEデータなので、ヘッダーの表示期間の外を選ぶと0件になる（ダイアログに件数を出して気づけるようにしている）。**メール通知（定期メール）は廃止済み** |
 | `/office` | 勤怠管理（日付・打刻記録） |
 | `/games` | ゲーム一覧（リンク集） |
 | `/games/panel-de-pon` | SFC版パネルでポン（5ステージ・進捗保存） |
@@ -130,8 +110,7 @@ NUXT_APP_URL = "https://<host>"                            # メール本文の�
   - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/039_life_analyzer.sql`
 - `WHISPER_DB` 相乗り（life）: life_google_connections（Google連携1件＝ユーザーごと1行。`refresh_token` は暗号化、`spreadsheet_id`/`spreadsheet_url` は本人のドライブに作成したスプレッドシートへの参照）/ life_oauth_states（fitbitと同じ理由でのOAuth一時state保管）。**回答本文・会話ログはここには一切保存しない**（本人のスプレッドシートが唯一の保存先）。テーブルは `ensureLifeGoogleTables()` で自動生成もされる。
   - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/042_life.sql`
-- `WHISPER_DB` 相乗り（task アラート）: task_alerts（本日期限のタスクのメール通知設定。ユーザーごとに1行。`hours` は JST の送信時刻をカンマ区切り "8,13,18"、`email_enc` は `encrypt.ts` で暗号化、`last_sent_at` は "YYYY-MM-DD HH" で同一時間帯の二重送信を防ぐ）。テーブルは `ensureTaskAlertTable()` で自動生成もされる。
-  - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/040_task_alerts.sql`
+  - ※ task のメール通知は廃止したため `task_alerts` テーブルは未使用（消すなら `wrangler d1 execute whisper-db --remote --command "DROP TABLE IF EXISTS task_alerts"`）
 - `WHISPER_DB` 相乗り（keiko）: keiko_members（メンバー。ユーザーごとに管理、既定値で護/匡/真啓をシード）/ keiko_items（練習項目カタログ。`active`列で表示/非表示）/ keiko_records（花丸＝メンバー×項目×日で1件。存在する＝できた、`(member_id, item_id, date)` に一意制約）。既存 users/sessions 認証に相乗りし、すべて `user_id` でスコープ。テーブルは `ensureKeikoTables()` で自動生成もされる。
   - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/042_keiko.sql`
 - `MLB_DB`（`mlb-db`）: MLB選手・試合データ  
@@ -166,7 +145,6 @@ NUXT_APP_URL = "https://<host>"                            # メール本文の�
 | `life-analyzer.ts` | life-analyzer の認証（user_idスコープ）・テーブル用意・テキスト/分析/要約の読み書き（本文と結果は `encrypt.ts` で暗号化）・分析キャッシュの署名（`analysisSignature`）・AIに渡す資料の組み立て（`buildSourceText`＝複数テキストを均等に上限まで） |
 | `life-google.ts` | life の Google OAuth2（PKCE, スコープ `drive.file` のみ）・専用スプレッドシートの作成（初回連携時、テーマごとのタブ＋見出し行を用意）・テーマのタブへの会話ログの読み書き（`readThemeHistory`/`appendThemeRows`）。access_tokenは永続化せず都度リフレッシュする |
 | `life-chat.ts` | life チャットのシステムプロンプト（`buildLifeSystemPrompt`＝テーマの軸をずらさず一問一答で深掘りする、という要件をここに集約。トーン調整はここだけ触ればよい）と日時整形 |
-| `task-alert.ts` | task アラートの集約（task_alerts の用意、Trello から本日（JST）が期限のタスクの収集、メール本文の組み立て、Resend の HTTP API での送信）。Cron と API の両方から使うため H3Event ではなく Worker の env を受け取る |
 | `life-analyzer-ai.ts` | life-analyzer の Claude 呼び出し集約（テキストの命名・影5/光5のコア抽出・出来事ノードの要約）。**「診断」ではなく本人が気づくための材料**という姿勢をシステムプロンプトに集約しているので、トーン調整はここだけ触る |
 | `guesthouse-insights.ts` | guesthouse **顧客分析の匙加減を集約**（滞在の型の判定基準・満足度の側面と関心の対象の**固定語彙**・抽出システムプロンプト・`VOCAB_VERSION`）。AIに自由にタグを振らせると「食事/料理/ごはん」が別タグになり時系列で見ているものが語彙のブレになるため語彙を閉じている。**語彙や方針を変えたら `VOCAB_VERSION` を +1**（全プロファイルが作り直される）。分析軸の変更は基本ここだけ編集 |
 | `guesthouse-policy.ts` | guesthouse お客様チャットの**匙加減を集約**（緊急=handoff の線引き `EMERGENCY_CRITERIA`・Web検索の有無/回数 `WEB_SEARCH`・triage/通常応答/緊急返信の各システムプロンプト）。方針変更は基本ここだけ編集 |

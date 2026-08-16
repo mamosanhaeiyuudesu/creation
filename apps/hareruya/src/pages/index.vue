@@ -7,11 +7,9 @@
         <a href="#top" class="hr-nav-logo">晴レルヤ鍼灸院</a>
         <div class="hr-nav-right">
           <ul class="hr-nav-links">
-            <li><a href="#worry">お悩み</a></li>
-            <li><a href="#about">当院について</a></li>
-            <li><a href="#feature">特徴</a></li>
-            <li><a href="#menu">料金</a></li>
-            <li><a href="#access">アクセス</a></li>
+            <li v-for="link in navLinks" :key="link.href">
+              <a :href="link.href">{{ link.label }}</a>
+            </li>
           </ul>
           <LineButton class="hr-nav-cta" label="ご予約" pending-label="準備中" />
           <button
@@ -31,11 +29,9 @@
       </div>
       <div id="hr-nav-mobile-menu" class="hr-nav-mobile" :class="{ 'is-open': isMenuOpen }">
         <ul class="hr-nav-mobile-links">
-          <li><a href="#worry" @click="isMenuOpen = false">お悩み</a></li>
-          <li><a href="#about" @click="isMenuOpen = false">当院について</a></li>
-          <li><a href="#feature" @click="isMenuOpen = false">特徴</a></li>
-          <li><a href="#menu" @click="isMenuOpen = false">料金</a></li>
-          <li><a href="#access" @click="isMenuOpen = false">アクセス</a></li>
+          <li v-for="link in navLinks" :key="link.href">
+            <a :href="link.href" @click="isMenuOpen = false">{{ link.label }}</a>
+          </li>
         </ul>
         <LineButton class="hr-nav-mobile-cta" label="ご予約" pending-label="準備中" @click="isMenuOpen = false" />
       </div>
@@ -368,6 +364,14 @@ import { site, isPricePending } from '~/config/site'
 definePageMeta({ layout: 'hareruya' })
 
 const isMenuOpen = ref(false)
+
+const navLinks = [
+  { href: '#about', label: '当院について' },
+  { href: '#feature', label: '3つの特徴' },
+  { href: '#profile', label: '施術者について' },
+  { href: '#flow', label: '施術の流れ' },
+  { href: '#access', label: 'アクセス' },
+]
 
 const worries = [
   '病院に行くほどではないけれど、なんとなく不調が続いている',

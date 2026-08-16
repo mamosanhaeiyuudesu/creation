@@ -86,8 +86,6 @@ watch(showAll, v => {
 
 // --- Settings menu ---
 const showSettingsMenu = ref(false)
-// メール設定（本日期限タスクのアラート）モーダル
-const showAlertModal = ref(false)
 
 function openSettingsMenu() { showSettingsMenu.value = !showSettingsMenu.value }
 function closeSettingsMenu() { showSettingsMenu.value = false }
@@ -256,84 +254,84 @@ const thisWeekDailyBars = computed(() => {
   }))
 })
 
-const praiseDialog = ref(false)
-const praiseDays = ref(3)
-const praiseDaysOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 60, 180, 365]
-const praiseChars = ref(500)
-const praiseCharsOptions = [500, 1000, 1500, 2000]
-const praiseMode = ref<'exaggerated' | 'calm'>('exaggerated')
-const praiseModeOptions: { value: 'exaggerated' | 'calm'; label: string }[] = [
-  { value: 'exaggerated', label: '大げさ' },
-  { value: 'calm', label: '冷静' },
-]
-const praiseFeedback = ref('')
-const praiseLoading = ref(false)
-const praiseError = ref('')
+// --- 振り返り（期間内のDONEタスクから「どのボードに時間を使ったか」をAIがフィードバック） ---
+// 既定は今日が含まれる週（月〜日）。カレンダーで任意の期間に変えられる。
+const reviewDialog = ref(false)
+const reviewStart = ref(mondayOf(todayJST()))
+const reviewEnd = ref(addDays(mondayOf(todayJST()), 6))
+const reviewChars = ref(1000)
+const reviewCharsOptions = [1000, 2000]
+const reviewFeedback = ref('')
+const reviewLoading = ref(false)
+const reviewError = ref('')
 
-const { history: praiseHistory, addHistory: addPraiseHistory } = useHistory('task-praise-history', 'task/praise')
-const showPraiseResult = ref(false)
-const showPraiseHistory = ref(false)
-const selectedPraiseItem = ref<HistoryItem | null>(null)
-const selectedPraiseSentences = computed(() => {
-  if (!selectedPraiseItem.value) return []
-  return selectedPraiseItem.value.text
-    .split('。')
-    .map(s => s.trim())
-    .filter(s => s.length > 0)
-    .map(s => s + '。')
+const { history: reviewHistory, addHistory: addReviewHistory } = useHistory('task-review-history', 'task/review')
+const showReviewResult = ref(false)
+const showReviewHistory = ref(false)
+const selectedReviewItem = ref<HistoryItem | null>(null)
+
+const reviewDates = computed(() => {
+  const start = reviewStart.value
+  const end = reviewEnd.value
+  if (!start || !end || end < start) return []
+  const dates: string[] = []
+  for (let d = start; d <= end && dates.length < 400; d = addDays(d, 1)) dates.push(d)
+  return dates
 })
-const praiseSentences = computed(() =>
-  praiseFeedback.value
-    .split('。')
-    .map(s => s.trim())
-    .filter(s => s.length > 0)
-    .map(s => s + '。')
+
+// 集計元は読み込み済みのDONEデータ。ヘッダーの表示期間の外を選ぶと0件になるので、件数を出して気づけるようにする。
+const reviewTasks = computed(() =>
+  reviewDates.value.flatMap(date =>
+    boards.value.flatMap(board =>
+      (board.done[date] ?? []).map((card) => {
+        const { displayName, effort } = parseTaskName(card.name)
+        return { board: board.name, task: displayName, date, effort }
+      })
+    )
+  )
 )
 
-const praisePeriodFlat = computed(() => {
-  const keys = Array.from({ length: praiseDays.value }, (_, i) => {
-    const d = nowJST()
-    d.setUTCDate(d.getUTCDate() - i)
-    return d.toISOString().slice(0, 10)
-  })
-  const items: { card: any; board: any; date: string }[] = []
-  for (const date of keys) {
-    for (const board of boards.value) {
-      for (const card of board.done[date] ?? []) {
-        items.push({ card, board, date })
-      }
-    }
-  }
-  return items
-})
+// 0時間のボードも「その週は手が回らなかった」という事実なので落とさずに渡す
+const reviewBoards = computed(() =>
+  boards.value.map(board => ({
+    name: board.name,
+    desc: board.desc ?? '',
+    hours: weekBoardEffort(board, reviewDates.value),
+    count: weekBoardTotal(board, reviewDates.value),
+  }))
+)
 
-async function generatePraise() {
-  praiseDialog.value = false
-  showPraiseResult.value = true
-  praiseLoading.value = true
-  praiseFeedback.value = ''
-  praiseError.value = ''
+const reviewTotalHours = computed(() => reviewBoards.value.reduce((s, b) => s + b.hours, 0))
+
+function resetReviewToThisWeek() {
+  const monday = mondayOf(todayJST())
+  reviewStart.value = monday
+  reviewEnd.value = addDays(monday, 6)
+}
+
+async function generateReview() {
+  reviewDialog.value = false
+  showReviewResult.value = true
+  reviewLoading.value = true
+  reviewFeedback.value = ''
+  reviewError.value = ''
   try {
-    const res = await $fetch<{ feedback: string }>('/api/task/praise', {
+    const res = await $fetch<{ feedback: string }>('/api/task/review', {
       method: 'POST',
       body: {
-        tasks: praisePeriodFlat.value.map(r => ({ board: r.board.name, task: r.card.name, date: r.date })),
-        days: praiseDays.value,
-        chars: praiseChars.value,
-        mode: praiseMode.value,
-        boardContexts: boards.value
-          .filter(b => b.desc)
-          .map(b => ({ name: b.name, description: b.desc })),
+        start: reviewStart.value,
+        end: reviewEnd.value,
+        chars: reviewChars.value,
+        boards: reviewBoards.value,
+        tasks: reviewTasks.value,
       },
     })
-    praiseFeedback.value = res.feedback
-    const today = new Date().toISOString().slice(0, 10)
-    const modeLabel = praiseModeOptions.find(m => m.value === praiseMode.value)?.label
-    addPraiseHistory(res.feedback, `${today}（${praiseDays.value}日間・${modeLabel}）`)
+    reviewFeedback.value = res.feedback
+    addReviewHistory(res.feedback, `${reviewStart.value}〜${reviewEnd.value}`)
   } catch (e: any) {
-    praiseError.value = e?.data?.statusMessage || 'エラーが発生しました'
+    reviewError.value = e?.data?.statusMessage || 'エラーが発生しました'
   } finally {
-    praiseLoading.value = false
+    reviewLoading.value = false
   }
 }
 
@@ -401,65 +399,57 @@ watch(isLoggedIn, async (v) => {
   <!-- Backdrop (month picker / settings menu) -->
   <div v-if="pickerOpen || showMobilePeriod || showSettingsMenu" class="fixed inset-0 z-40" @click="pickerOpen = null; showMobilePeriod = false; showSettingsMenu = false" />
 
-  <!-- 称賛ダイアログ -->
-  <div v-if="praiseDialog" class="fixed inset-0 z-[200] flex items-center justify-center">
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="praiseDialog = false" />
-    <div class="relative bg-[#1e293b] border border-white/[0.12] rounded-2xl p-5 w-[320px] shadow-2xl" @click.stop>
-      <h3 class="text-[14px] font-semibold text-slate-200 mb-4">称賛の設定</h3>
+  <!-- 振り返りダイアログ -->
+  <div v-if="reviewDialog" class="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="reviewDialog = false" />
+    <div class="relative bg-[#1e293b] border border-white/[0.12] rounded-2xl p-5 w-[340px] max-h-[calc(100vh-2rem)] overflow-y-auto shadow-2xl" @click.stop>
+      <h3 class="text-[14px] font-semibold text-slate-200 mb-4">振り返りの設定</h3>
       <div class="flex flex-col gap-3 mb-5">
         <div>
-          <label class="block text-[11px] text-slate-500 mb-1.5">期間</label>
-          <select
-            v-model="praiseDays"
-            class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-slate-200 cursor-pointer focus:outline-none focus:border-violet-400/50"
-          >
-            <option v-for="d in praiseDaysOptions" :key="d" :value="d" class="bg-[#1e293b] text-slate-200">{{ d }}日</option>
-          </select>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-[11px] text-slate-500">期間</label>
+            <button
+              type="button"
+              class="px-2 py-0.5 rounded-md border border-white/10 bg-white/[0.06] text-slate-400 text-[10px] cursor-pointer hover:bg-white/[0.12] hover:text-slate-200 transition-colors"
+              @click="resetReviewToThisWeek"
+            >今週</button>
+          </div>
+          <TaskRangeCalendar v-model:start="reviewStart" v-model:end="reviewEnd" />
+          <div class="mt-2 text-[11px] text-slate-500">
+            {{ reviewStart }} 〜 {{ reviewEnd }}
+            <span class="text-slate-600">／ 完了 {{ reviewTasks.length }}件・{{ Math.round(reviewTotalHours * 10) / 10 }}時間</span>
+          </div>
+          <div v-if="reviewTasks.length === 0" class="mt-1 text-[11px] text-amber-400/80">
+            この期間の完了タスクがありません（ヘッダーの表示期間の外は集計できません）
+          </div>
         </div>
         <div>
           <label class="block text-[11px] text-slate-500 mb-1.5">文字数</label>
           <select
-            v-model="praiseChars"
+            v-model="reviewChars"
             class="w-full bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-slate-200 cursor-pointer focus:outline-none focus:border-violet-400/50"
           >
-            <option v-for="c in praiseCharsOptions" :key="c" :value="c" class="bg-[#1e293b] text-slate-200">{{ c }}文字</option>
+            <option v-for="c in reviewCharsOptions" :key="c" :value="c" class="bg-[#1e293b] text-slate-200">{{ c }}文字</option>
           </select>
-        </div>
-        <div>
-          <label class="block text-[11px] text-slate-500 mb-1.5">トーン</label>
-          <div class="flex gap-1.5">
-            <button
-              v-for="opt in praiseModeOptions"
-              :key="opt.value"
-              type="button"
-              :class="[
-                'flex-1 px-3 py-2 rounded-lg text-[13px] font-medium cursor-pointer border transition-colors',
-                praiseMode === opt.value
-                  ? 'bg-violet-500/20 border-violet-400/50 text-violet-300'
-                  : 'bg-white/[0.06] border-white/10 text-slate-400 hover:bg-white/[0.1]',
-              ]"
-              @click="praiseMode = opt.value"
-            >{{ opt.label }}</button>
-          </div>
         </div>
       </div>
       <div class="flex justify-end gap-2">
-        <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-slate-400 text-[12px] cursor-pointer hover:bg-white/[0.08]" @click="praiseDialog = false">キャンセル</button>
-        <button class="px-4 py-1.5 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[12px] font-semibold cursor-pointer hover:opacity-90" @click="generatePraise">生成</button>
+        <button class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-slate-400 text-[12px] cursor-pointer hover:bg-white/[0.08]" @click="reviewDialog = false">キャンセル</button>
+        <button class="px-4 py-1.5 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[12px] font-semibold cursor-pointer hover:opacity-90" @click="generateReview">生成</button>
       </div>
     </div>
   </div>
 
-  <!-- 称賛結果ポップアップ -->
-  <div v-if="showPraiseResult" class="fixed inset-0 z-[200] flex items-center justify-center">
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showPraiseResult = false" />
+  <!-- 振り返り結果ポップアップ -->
+  <div v-if="showReviewResult" class="fixed inset-0 z-[200] flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showReviewResult = false" />
     <div class="relative bg-[#1e293b] border border-white/[0.12] rounded-2xl shadow-2xl w-[560px] max-w-[calc(100vw-2rem)] max-h-[80vh] flex flex-col" @click.stop>
       <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.08] flex-shrink-0">
-        <h3 class="text-[14px] font-semibold text-slate-200 m-0">AIからの称賛</h3>
-        <button class="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-300 text-xs cursor-pointer rounded hover:bg-white/[0.08]" @click="showPraiseResult = false">✕</button>
+        <h3 class="text-[14px] font-semibold text-slate-200 m-0">振り返り <span class="text-[11px] font-normal text-slate-500 ml-1">{{ reviewStart }}〜{{ reviewEnd }}</span></h3>
+        <button class="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-300 text-xs cursor-pointer rounded hover:bg-white/[0.08]" @click="showReviewResult = false">✕</button>
       </div>
       <div class="overflow-y-auto flex-1 px-5 py-4">
-        <div v-if="praiseLoading" class="flex flex-col gap-3">
+        <div v-if="reviewLoading" class="flex flex-col gap-3">
           <div class="h-4 rounded bg-white/[0.06] animate-pulse w-full" />
           <div class="h-4 rounded bg-white/[0.06] animate-pulse w-4/5" />
           <div class="h-4 rounded bg-white/[0.06] animate-pulse w-full" />
@@ -467,34 +457,32 @@ watch(isLoggedIn, async (v) => {
           <div class="h-4 rounded bg-white/[0.06] animate-pulse w-full" />
           <div class="h-4 rounded bg-white/[0.06] animate-pulse w-3/5" />
         </div>
-        <div v-else-if="praiseError" class="px-3.5 py-2.5 bg-red-500/12 border border-red-500/30 rounded-lg text-red-300 text-[13px]">⚠ {{ praiseError }}</div>
-        <div v-else-if="praiseFeedback" class="flex flex-col gap-1.5">
-          <p v-for="(s, i) in praiseSentences" :key="i" class="m-0 text-[15px] leading-relaxed text-slate-200">{{ s }}</p>
-        </div>
+        <div v-else-if="reviewError" class="px-3.5 py-2.5 bg-red-500/12 border border-red-500/30 rounded-lg text-red-300 text-[13px]">⚠ {{ reviewError }}</div>
+        <p v-else-if="reviewFeedback" class="m-0 text-[14px] leading-relaxed text-slate-200 whitespace-pre-wrap">{{ reviewFeedback }}</p>
       </div>
     </div>
   </div>
 
-  <!-- 称賛履歴モーダル -->
-  <div v-if="showPraiseHistory" class="fixed inset-0 z-[200] flex items-center justify-center">
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showPraiseHistory = false; selectedPraiseItem = null" />
+  <!-- 振り返り履歴モーダル -->
+  <div v-if="showReviewHistory" class="fixed inset-0 z-[200] flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showReviewHistory = false; selectedReviewItem = null" />
     <div class="relative bg-[#1e293b] border border-white/[0.12] rounded-2xl shadow-2xl w-[480px] max-w-[calc(100vw-2rem)] max-h-[80vh] flex flex-col" @click.stop>
       <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.08] flex-shrink-0">
         <div class="flex items-center gap-2">
-          <button v-if="selectedPraiseItem" class="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-200 text-base cursor-pointer hover:bg-white/[0.08]" @click="selectedPraiseItem = null">‹</button>
-          <h3 class="text-[14px] font-semibold text-slate-200 m-0">{{ selectedPraiseItem ? selectedPraiseItem.title : '称賛履歴' }}</h3>
+          <button v-if="selectedReviewItem" class="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-200 text-base cursor-pointer hover:bg-white/[0.08]" @click="selectedReviewItem = null">‹</button>
+          <h3 class="text-[14px] font-semibold text-slate-200 m-0">{{ selectedReviewItem ? selectedReviewItem.title : '振り返り履歴' }}</h3>
         </div>
-        <button class="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-300 text-xs cursor-pointer rounded hover:bg-white/[0.08]" @click="showPraiseHistory = false; selectedPraiseItem = null">✕</button>
+        <button class="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-300 text-xs cursor-pointer rounded hover:bg-white/[0.08]" @click="showReviewHistory = false; selectedReviewItem = null">✕</button>
       </div>
       <div class="overflow-y-auto flex-1 p-4">
-        <template v-if="!selectedPraiseItem">
-          <div v-if="praiseHistory.length === 0" class="text-center py-10 text-slate-600 text-[13px]">履歴がありません</div>
+        <template v-if="!selectedReviewItem">
+          <div v-if="reviewHistory.length === 0" class="text-center py-10 text-slate-600 text-[13px]">履歴がありません</div>
           <ul v-else class="list-none m-0 p-0 flex flex-col gap-2">
             <li
-              v-for="item in praiseHistory"
+              v-for="item in reviewHistory"
               :key="item.id"
               class="rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3 cursor-pointer hover:bg-white/[0.07] transition-colors"
-              @click="selectedPraiseItem = item"
+              @click="selectedReviewItem = item"
             >
               <div class="flex items-center justify-between mb-1.5">
                 <span class="text-[13px] font-semibold text-slate-200">{{ item.title }}</span>
@@ -505,10 +493,8 @@ watch(isLoggedIn, async (v) => {
           </ul>
         </template>
         <template v-else>
-          <div class="text-[11px] text-slate-600 mb-3">{{ selectedPraiseItem.timestamp.slice(0, 16).replace('T', ' ') }}</div>
-          <div class="px-4 py-3.5 bg-violet-500/[0.08] border border-violet-400/25 rounded-xl text-[14px] leading-relaxed text-slate-200 flex flex-col gap-1">
-            <p v-for="(s, i) in selectedPraiseSentences" :key="i" class="m-0">{{ s }}</p>
-          </div>
+          <div class="text-[11px] text-slate-600 mb-3">{{ selectedReviewItem.timestamp.slice(0, 16).replace('T', ' ') }}</div>
+          <p class="m-0 px-4 py-3.5 bg-violet-500/[0.08] border border-violet-400/25 rounded-xl text-[14px] leading-relaxed text-slate-200 whitespace-pre-wrap">{{ selectedReviewItem.text }}</p>
         </template>
       </div>
     </div>
@@ -530,7 +516,7 @@ watch(isLoggedIn, async (v) => {
       </div>
 
       <div class="flex flex-col gap-1">
-        <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">概要 <span class="text-slate-600 normal-case">（AIによる称賛に反映されます）</span></label>
+        <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">概要 <span class="text-slate-600 normal-case">（AIによる振り返りに反映されます）</span></label>
         <textarea
           v-model="boardEditForm.description"
           rows="3"
@@ -579,13 +565,13 @@ watch(isLoggedIn, async (v) => {
         <div v-if="hasCredentials" class="hidden md:flex items-center gap-2 ml-auto">
           <button
             class="px-3 py-1.5 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[12px] font-semibold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:opacity-90 hover:enabled:-translate-y-px"
-            :disabled="praiseLoading"
-            @click="praiseDialog = true"
-          >{{ praiseLoading ? '生成中…' : '称賛してもらう' }}</button>
+            :disabled="reviewLoading"
+            @click="reviewDialog = true"
+          >{{ reviewLoading ? '生成中…' : '振り返る' }}</button>
           <button
             class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-[12px] font-medium cursor-pointer hover:bg-white/[0.12] hover:text-slate-200 transition-colors"
-            @click="showPraiseHistory = true"
-          >称賛履歴</button>
+            @click="showReviewHistory = true"
+          >振り返り履歴</button>
           <div class="w-px h-4 bg-white/[0.1]" />
           <div class="flex items-center gap-1 mr-1">
             <button
@@ -670,16 +656,16 @@ watch(isLoggedIn, async (v) => {
             @click="load"
           >{{ loading ? '…' : '更新' }}</button>
         </div>
-        <!-- モバイル: 称賛・履歴ボタン（タイトル行右側） -->
+        <!-- モバイル: 振り返り・履歴ボタン（タイトル行右側） -->
         <div v-if="hasCredentials" class="md:hidden flex items-center gap-1.5 ml-auto">
           <button
             class="px-2.5 py-1 rounded-lg border-none bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-[11px] font-semibold cursor-pointer disabled:opacity-50"
-            :disabled="praiseLoading"
-            @click="praiseDialog = true"
-          >{{ praiseLoading ? '…' : '称賛' }}</button>
+            :disabled="reviewLoading"
+            @click="reviewDialog = true"
+          >{{ reviewLoading ? '…' : '振り返り' }}</button>
           <button
             class="px-2.5 py-1 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-[11px] cursor-pointer"
-            @click="showPraiseHistory = true"
+            @click="showReviewHistory = true"
           >履歴</button>
         </div>
         <!-- 歯車（常に1つ） -->
@@ -692,9 +678,6 @@ watch(isLoggedIn, async (v) => {
           <div v-if="showSettingsMenu" class="absolute right-0 top-full mt-1 bg-[#1e293b] border border-white/10 rounded-xl shadow-xl z-[200] min-w-[160px] py-1 overflow-hidden">
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openSettings(); closeSettingsMenu()">
               <span>🔑</span> アカウント設定
-            </button>
-            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="showAlertModal = true; closeSettingsMenu()">
-              <span>📧</span> メール設定
             </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="downloadDone">
               <span>⬇</span> ダウンロード
@@ -791,7 +774,6 @@ watch(isLoggedIn, async (v) => {
       :active-profile-id="activeProfileId"
       @save="handleSettingsSave"
     />
-    <TaskAlertModal v-model:show="showAlertModal" />
     <TaskModal
       v-model:show="showTaskModal"
       :boards="boards"

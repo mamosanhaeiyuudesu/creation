@@ -106,12 +106,12 @@
 .hr-nav-right {
   display: flex;
   align-items: center;
-  gap: 26px;
+  gap: 18px;
 }
 
 .hr-nav-links {
   display: flex;
-  gap: 22px;
+  gap: 16px;
 }
 
 .hr-nav-links a {
@@ -1088,51 +1088,6 @@
    ========================================== */
 
 @media (max-width: 860px) {
-  .about-inner {
-    grid-template-columns: 1fr;
-    gap: 32px;
-  }
-
-  .about-photo {
-    max-width: 340px;
-    margin: 0 auto;
-  }
-
-  .feature-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .profile-card {
-    grid-template-columns: 1fr;
-    gap: 28px;
-    padding: 32px 26px;
-    text-align: center;
-  }
-
-  .profile-photo {
-    max-width: 200px;
-    margin: 0 auto;
-  }
-
-  .profile-licenses {
-    justify-content: center;
-  }
-
-  .profile-body {
-    text-align: left;
-  }
-
-  .access-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 720px) {
-  .hr-page {
-    --section-gap: 64px;
-    font-size: 15.5px;
-  }
-
   .hr-nav-links {
     display: none;
   }
@@ -1197,6 +1152,51 @@
     background: var(--c-brown-dim);
     cursor: default;
     pointer-events: none;
+  }
+
+  .about-inner {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .about-photo {
+    max-width: 340px;
+    margin: 0 auto;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-card {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 32px 26px;
+    text-align: center;
+  }
+
+  .profile-photo {
+    max-width: 200px;
+    margin: 0 auto;
+  }
+
+  .profile-licenses {
+    justify-content: center;
+  }
+
+  .profile-body {
+    text-align: left;
+  }
+
+  .access-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .hr-page {
+    --section-gap: 64px;
+    font-size: 15.5px;
   }
 
   .hero-inner {

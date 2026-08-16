@@ -10,14 +10,6 @@ compatibility_date = "2025-12-31"
 #   wrangler secret put NUXT_GEMINI_API_KEY  ← whisper文字起こしでGeminiを選んだ場合に使用
 #   wrangler secret put NUXT_MIYAKO_VECTOR_STORE_ID
 #   wrangler secret put NUXT_ENCRYPTION_KEY  ← marriage コメント暗号化キー（32文字以上推奨）
-# task アラート（重要タスクのメール通知）用。秘密情報ではないのでここに書く。
-# Cron の scheduled task は runtimeConfig ではなく Worker の env から読むため .env ではなくここ。
-# 送信は Resend（Cloudflare の Email Sending は Workers Paid 必須のため不採用）。
-# APIキーは秘密情報なので secret 側:  wrangler secret put NUXT_RESEND_API_KEY
-#   NUXT_ALERT_MAIL_FROM = 送信元アドレス（Resend で認証済みのドメインのもの）
-#   NUXT_APP_URL         = メール本文に載せるアプリのURL（任意。未設定ならリンクを出さない）
-NUXT_ALERT_MAIL_FROM = "task@insightlens.jp"
-NUXT_APP_URL = "https://prototype.insightlens.jp"
 
 [[d1_databases]]
 binding = "WHISPER_DB"
