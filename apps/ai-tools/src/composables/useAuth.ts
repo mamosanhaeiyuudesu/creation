@@ -29,10 +29,16 @@ export function useAuth() {
     return me
   }
 
-  const register = async (username: string, password: string): Promise<AuthUser> => {
-    const me = await $fetch<AuthUser>('/api/auth/register', {
+  // アカウントの新規作成はアプリから行えない（DBを直接操作して発行する）。
+  // 代わりに、現在のパスワードを知っていれば本人がパスワードを変更できる。
+  const changePassword = async (
+    username: string,
+    currentPassword: string,
+    newPassword: string
+  ): Promise<AuthUser> => {
+    const me = await $fetch<AuthUser>('/api/auth/password', {
       method: 'POST',
-      body: { username, password },
+      body: { username, currentPassword, newPassword },
     })
     user.value = me
     checked.value = true
@@ -44,5 +50,5 @@ export function useAuth() {
     user.value = null
   }
 
-  return { user, isLoggedIn, checked, checkAuth, login, register, logout }
+  return { user, isLoggedIn, checked, checkAuth, login, changePassword, logout }
 }

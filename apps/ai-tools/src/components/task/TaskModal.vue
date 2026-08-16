@@ -49,20 +49,22 @@ function incrementEffort() {
 function pad2(n: number) { return String(n).padStart(2, '0') }
 
 // 今週（月曜始まり）の日曜 23:59 を TaskDatePicker と同じ "YYYY-MM-DDTHH:MM" 形式で返す
-function sundayOfThisWeekDue(): string {
+// weeksAhead=1 なら来週の日曜
+function sundayDue(weeksAhead = 0): string {
   const t = nowJST()
   const dow = t.getUTCDay() // 0=日〜6=土
   const daysUntilSunday = (7 - dow) % 7
   const d = new Date(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate())
-  d.setDate(d.getDate() + daysUntilSunday)
+  d.setDate(d.getDate() + daysUntilSunday + weeksAhead * 7)
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T23:59`
 }
 
-const isUntilSunday = computed(() => !!form.value.due && form.value.due === sundayOfThisWeekDue())
+const isUntilSunday = computed(() => !!form.value.due && form.value.due === sundayDue(0))
+const isUntilNextSunday = computed(() => !!form.value.due && form.value.due === sundayDue(1))
 
-// 週末までは即座に確定させたい操作のため、チェックを入れた瞬間に保存してポップアップを閉じる
-function setUntilSunday() {
-  form.value.due = sundayOfThisWeekDue()
+// 週末まで／来週末までは即座に確定させたい操作のため、チェックを入れた瞬間に保存してポップアップを閉じる
+function setUntilSunday(weeksAhead = 0) {
+  form.value.due = sundayDue(weeksAhead)
   emit('save', form.value)
 }
 </script>
@@ -98,20 +100,36 @@ function setUntilSunday() {
         <div class="flex flex-col gap-1">
           <div class="flex items-center justify-between">
             <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">期限</label>
-            <label class="flex items-center gap-1.5 cursor-pointer select-none group">
-              <div
-                :class="[
-                  'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all flex-shrink-0',
-                  isUntilSunday
-                    ? 'bg-sky-500/20 border-sky-400/70'
-                    : 'bg-white/[0.04] border-white/20 group-hover:border-white/40',
-                ]"
-                @click="setUntilSunday"
-              >
-                <svg v-if="isUntilSunday" xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-              <span :class="['text-[11px] font-medium transition-colors', isUntilSunday ? 'text-sky-400' : 'text-slate-500 group-hover:text-slate-300']">週末まで</span>
-            </label>
+            <div class="flex items-center gap-3">
+              <label class="flex items-center gap-1.5 cursor-pointer select-none group">
+                <div
+                  :class="[
+                    'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all flex-shrink-0',
+                    isUntilSunday
+                      ? 'bg-sky-500/20 border-sky-400/70'
+                      : 'bg-white/[0.04] border-white/20 group-hover:border-white/40',
+                  ]"
+                  @click="setUntilSunday(0)"
+                >
+                  <svg v-if="isUntilSunday" xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <span :class="['text-[11px] font-medium transition-colors', isUntilSunday ? 'text-sky-400' : 'text-slate-500 group-hover:text-slate-300']">週末まで</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer select-none group">
+                <div
+                  :class="[
+                    'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all flex-shrink-0',
+                    isUntilNextSunday
+                      ? 'bg-sky-500/20 border-sky-400/70'
+                      : 'bg-white/[0.04] border-white/20 group-hover:border-white/40',
+                  ]"
+                  @click="setUntilSunday(1)"
+                >
+                  <svg v-if="isUntilNextSunday" xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <span :class="['text-[11px] font-medium transition-colors', isUntilNextSunday ? 'text-sky-400' : 'text-slate-500 group-hover:text-slate-300']">来週末まで</span>
+              </label>
+            </div>
           </div>
           <TaskDatePicker v-model="form.due" />
         </div>
