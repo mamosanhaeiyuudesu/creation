@@ -18,7 +18,7 @@ useHead({
 })
 import { useTaskProfiles } from '~/composables/task/useTaskProfiles'
 import { useTaskBoards, parseTaskName } from '~/composables/task/useTaskBoards'
-import type { Board } from '~/composables/task/useTaskBoards'
+import type { Board, Card } from '~/composables/task/useTaskBoards'
 import { useDragDrop } from '~/composables/task/useDragDrop'
 import { useDatePicker } from '~/composables/task/useDatePicker'
 import { useHistory } from '~/composables/useHistory'
@@ -191,16 +191,23 @@ const doneChartData = computed(() => {
   }
 })
 
+// 期限がその日のTODO/DOINGカード（未完了ぶん）。進捗の分母と日別一覧の両方でこれを使う
+function pendingCardsForDate(date: string) {
+  const rows: { board: Board; card: Card; status: 'doing' | 'todo' }[] = []
+  for (const board of boards.value) {
+    for (const status of ['doing', 'todo'] as const) {
+      for (const card of board[status]) {
+        if (!card.due) continue
+        if (toJSTDate(card.due).toISOString().slice(0, 10) === date) rows.push({ board, card, status })
+      }
+    }
+  }
+  return rows
+}
+
 // 指定日付群のうち、期限がその日付群に入っているTODO/DOINGカードの工数合計
 function pendingHoursForDates(dates: string[]) {
-  return boards.value.reduce((sum, board) => {
-    const cards = [...board.todo, ...board.doing]
-    return sum + cards.reduce((s, c) => {
-      if (!c.due) return s
-      const dueDate = toJSTDate(c.due).toISOString().slice(0, 10)
-      return dates.includes(dueDate) ? s + c.effort : s
-    }, 0)
-  }, 0)
+  return dates.reduce((sum, date) => sum + pendingCardsForDate(date).reduce((s, r) => s + r.card.effort, 0), 0)
 }
 
 // 今週（月曜始まり）の進捗（ヘッダー表示用）: 分母=期限が今週のタスク工数、分子=そのうち完了済み
@@ -253,6 +260,31 @@ const thisWeekDailyBars = computed(() => {
     first3Pct: Math.round((firstThreeBoardsEffort([date]) / max) * 100),
   }))
 })
+
+// --- DONE推移グラフ（週ごと／累積の切替・クリックで拡大） ---
+const doneChartCumulative = ref(false)
+const showChartModal = ref(false)
+const chartModalHeight = ref(420)
+
+function openChartModal() {
+  chartModalHeight.value = Math.max(260, Math.min(560, Math.round(window.innerHeight * 0.6)))
+  showChartModal.value = true
+}
+
+// --- スマホ版: 今日／明日をタップしてその日の一覧（DOING / DONE）を見る ---
+const dayDetail = ref<'today' | 'tomorrow' | null>(null)
+const dayDetailDate = computed(() => (dayDetail.value === 'tomorrow' ? tomorrowDateKey.value : todayDateKey.value))
+const dayDetailPending = computed(() => pendingCardsForDate(dayDetailDate.value))
+const dayDetailDone = computed(() =>
+  boards.value.flatMap(board => (board.done[dayDetailDate.value] ?? []).map(item => ({ board, item })))
+)
+const dayDetailDoneHours = computed(() => (dayDetail.value === 'tomorrow' ? tomorrowDoneHours.value : todayDoneHours.value))
+const dayDetailPlannedHours = computed(() => (dayDetail.value === 'tomorrow' ? tomorrowPlannedHours.value : todayPlannedHours.value))
+const dayDetailPercent = computed(() => (dayDetail.value === 'tomorrow' ? tomorrowPercent.value : todayPercent.value))
+
+function openDayTask(row: { board: Board; card: Card; status: 'doing' | 'todo' }) {
+  openEditTask(row.card, row.board.id, row.status)
+}
 
 // --- 振り返り（期間内のDONEタスクから「どのボードに時間を使ったか」をAIがフィードバック） ---
 // 既定は今日が含まれる週（月〜日）。カレンダーで任意の期間に変えられる。
@@ -496,6 +528,112 @@ watch(isLoggedIn, async (v) => {
           <div class="text-[11px] text-slate-600 mb-3">{{ selectedReviewItem.timestamp.slice(0, 16).replace('T', ' ') }}</div>
           <p class="m-0 px-4 py-3.5 bg-violet-500/[0.08] border border-violet-400/25 rounded-xl text-[14px] leading-relaxed text-slate-200 whitespace-pre-wrap">{{ selectedReviewItem.text }}</p>
         </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- DONE推移グラフ 拡大ポップアップ -->
+  <div v-if="showChartModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="showChartModal = false" />
+    <div class="relative bg-[#1e293b] border border-white/[0.12] rounded-2xl shadow-2xl w-[min(1100px,calc(100vw-2rem))] max-h-[calc(100vh-2rem)] flex flex-col" @click.stop>
+      <div class="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-white/[0.08] flex-shrink-0">
+        <h3 class="text-[14px] font-semibold text-slate-200 m-0">{{ doneChartCumulative ? '完了工数の累積推移' : '週ごとの完了工数' }}</h3>
+        <div class="flex items-center gap-3">
+          <label class="flex items-center gap-1.5 text-[12px] text-slate-400 cursor-pointer select-none">
+            <input v-model="doneChartCumulative" type="checkbox" class="w-3.5 h-3.5 accent-emerald-400 cursor-pointer" />
+            累積推移
+          </label>
+          <button class="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-300 text-xs cursor-pointer rounded hover:bg-white/[0.08]" @click="showChartModal = false">✕</button>
+        </div>
+      </div>
+      <div class="p-4 overflow-y-auto">
+        <TaskDoneWeeklyChart
+          v-if="doneChartData.weekLabels.length"
+          :data="doneChartData"
+          :cumulative="doneChartCumulative"
+          :height="chartModalHeight"
+        />
+        <div v-else class="py-12 text-center text-slate-600 text-[13px]">表示できるデータがありません</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 今日／明日の一覧ポップアップ（スマホ版のカードから開く） -->
+  <div v-if="dayDetail" class="fixed inset-0 z-[200] flex items-end md:items-center justify-center">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="dayDetail = null" />
+    <div class="relative w-full md:w-[520px] bg-[#1e293b] border border-white/[0.12] rounded-t-2xl md:rounded-2xl shadow-2xl max-h-[86vh] flex flex-col" @click.stop>
+      <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-white/[0.08] flex-shrink-0">
+        <div class="flex items-baseline gap-2 min-w-0">
+          <h3 class="text-[14px] font-semibold text-slate-200 m-0 flex-shrink-0">{{ dayDetail === 'tomorrow' ? '明日' : '今日' }}</h3>
+          <span class="text-[11px] text-slate-500 truncate">{{ mdWeekday(dayDetailDate) }}</span>
+          <span class="text-[11px] text-slate-500 flex-shrink-0">{{ dayDetailDoneHours }}h / {{ dayDetailPlannedHours }}h（{{ dayDetailPercent }}%）</span>
+        </div>
+        <button class="w-6 h-6 flex-shrink-0 flex items-center justify-center text-slate-500 hover:text-slate-300 text-xs cursor-pointer rounded hover:bg-white/[0.08]" @click="dayDetail = null">✕</button>
+      </div>
+      <div class="overflow-y-auto flex-1 px-4 py-3 flex flex-col gap-4">
+        <!-- DOING（期限がその日の未完了） -->
+        <div>
+          <div class="flex items-baseline gap-2 mb-1.5">
+            <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-[800] tracking-[0.1em] bg-sky-400/15 text-white border border-sky-400/30">DOING</span>
+            <span class="text-[12px] font-bold text-slate-400">{{ dayDetailPlannedHours - dayDetailDoneHours }}h</span>
+            <span class="text-[11px] text-slate-600">{{ dayDetailPending.length }}件</span>
+          </div>
+          <div v-if="dayDetailPending.length === 0" class="text-[12px] text-slate-600 py-3 text-center">未完了のタスクなし</div>
+          <ul v-else class="list-none m-0 p-0 flex flex-col gap-1.5">
+            <li
+              v-for="row in dayDetailPending"
+              :key="row.card.id"
+              class="bg-white/[0.04] border border-white/[0.07] rounded-lg px-2.5 py-2 flex items-start gap-2 cursor-pointer active:bg-white/[0.08]"
+              @click="openDayTask(row)"
+            >
+              <button
+                class="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-white/20 bg-white/[0.04] transition-all cursor-pointer"
+                title="DONEにする"
+                @click.stop="markDone(row.card, row.board)"
+              />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-baseline gap-1.5 flex-wrap">
+                  <span class="text-[14px] leading-snug text-white break-words">{{ row.card.displayName }}</span>
+                  <span class="inline-block px-1 rounded text-[10px] font-bold flex-shrink-0" :class="row.status === 'doing' ? 'bg-sky-400/15 text-sky-400' : 'bg-amber-500/15 text-amber-400'">{{ row.card.effort }}h</span>
+                </div>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span class="text-[10px] font-bold" :style="{ color: boardColor(row.board) }">{{ row.board.name }}</span>
+                  <span class="text-[10px] text-slate-600">{{ row.status === 'doing' ? 'DOING' : 'TODO' }}</span>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <!-- DONE（その日に完了） -->
+        <div>
+          <div class="flex items-baseline gap-2 mb-1.5">
+            <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-[800] tracking-[0.1em] bg-emerald-500/15 text-white border border-emerald-500/30">DONE</span>
+            <span class="text-[12px] font-bold text-slate-400">{{ dayDetailDoneHours }}h</span>
+            <span class="text-[11px] text-slate-600">{{ dayDetailDone.length }}件</span>
+          </div>
+          <div v-if="dayDetailDone.length === 0" class="text-[12px] text-slate-600 py-3 text-center">完了タスクなし</div>
+          <ul v-else class="list-none m-0 p-0 flex flex-col gap-1.5">
+            <li
+              v-for="row in dayDetailDone"
+              :key="row.item.id"
+              class="bg-white/[0.04] border border-white/[0.07] rounded-lg px-2.5 py-2 flex items-start gap-2 cursor-pointer active:bg-white/[0.08]"
+              @click="openEditDoneTask(row.item, dayDetailDate, row.board)"
+            >
+              <button
+                class="mt-0.5 flex-shrink-0 w-4 h-4 rounded border border-emerald-400/60 bg-emerald-400/10 text-emerald-400 flex items-center justify-center text-[10px] cursor-pointer"
+                title="DOINGに戻す"
+                @click.stop="unmarkDone(row.item, dayDetailDate, row.board)"
+              >✓</button>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-baseline gap-1.5 flex-wrap">
+                  <span class="text-[14px] leading-snug text-white break-words">{{ parseTaskName(row.item.name).displayName }}</span>
+                  <span class="inline-block px-1 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 flex-shrink-0">{{ parseTaskName(row.item.name).effort }}h</span>
+                </div>
+                <span class="text-[10px] font-bold block mt-0.5" :style="{ color: boardColor(row.board) }">{{ row.board.name }}</span>
+              </div>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>
@@ -856,20 +994,30 @@ watch(isLoggedIn, async (v) => {
                 <span class="text-slate-500">{{ tomorrowPlannedHours }}h</span>
                 <span class="text-slate-500">（{{ tomorrowPercent }}%）</span>
               </div>
-              <span class="w-[200px] h-[50px] flex items-end gap-[3px] flex-shrink-0">
+              <span class="w-[210px] flex items-end gap-[3px] flex-shrink-0">
                 <span
                   v-for="bar in thisWeekDailyBars"
                   :key="bar.date"
-                  class="relative flex-1 h-full flex items-end"
+                  class="flex-1 flex flex-col items-center gap-[3px]"
                   :title="`${mdWeekday(bar.date)} ${bar.hours}h`"
                 >
-                  <span class="w-full rounded-sm bg-emerald-400/70" :style="{ height: `${Math.max(bar.heightPct, 2)}%` }" />
+                  <span class="relative w-full h-[44px] flex items-end">
+                    <span
+                      class="w-full rounded-sm"
+                      :class="bar.date === todayDateKey ? 'bg-emerald-400' : 'bg-emerald-400/70'"
+                      :style="{ height: `${Math.max(bar.heightPct, 2)}%` }"
+                    />
+                    <span
+                      v-if="bar.hours > 0"
+                      class="absolute left-0 right-0 h-[1.5px] bg-white/80"
+                      :style="{ bottom: `${bar.first3Pct}%` }"
+                      title="先頭3ボードの合計値"
+                    />
+                  </span>
                   <span
-                    v-if="bar.hours > 0"
-                    class="absolute left-0 right-0 h-[1.5px] bg-white/80"
-                    :style="{ bottom: `${bar.first3Pct}%` }"
-                    title="先頭3ボードの合計値"
-                  />
+                    class="text-[9px] leading-none"
+                    :class="bar.date === todayDateKey ? 'text-emerald-400 font-bold' : 'text-slate-500'"
+                  >{{ bar.hours > 0 ? `${bar.hours}h` : '-' }}</span>
                 </span>
               </span>
               <span class="text-slate-500" title="今週の月曜日から今日までの1日あたり平均完了工数">平均{{ thisWeekDailyAvgHours }}h/日</span>
@@ -1019,7 +1167,18 @@ watch(isLoggedIn, async (v) => {
                 @click="openAddTask(board.id, 'done')"
               >＋ {{ board.name }}</button>
             </div>
-            <TaskDoneWeeklyChart v-if="doneChartData.weekLabels.length" :data="doneChartData" class="flex-1 min-w-0" />
+            <div v-if="doneChartData.weekLabels.length" class="flex-1 min-w-0">
+              <div class="flex items-center justify-end gap-3 mb-0.5">
+                <label class="flex items-center gap-1.5 text-[11px] text-slate-400 cursor-pointer select-none" @click.stop>
+                  <input v-model="doneChartCumulative" type="checkbox" class="w-3.5 h-3.5 accent-emerald-400 cursor-pointer" />
+                  累積推移
+                </label>
+                <button class="text-[11px] text-slate-500 hover:text-slate-300 cursor-pointer" @click="openChartModal">⤢ 拡大</button>
+              </div>
+              <div class="cursor-zoom-in" title="クリックで拡大" @click="openChartModal">
+                <TaskDoneWeeklyChart :data="doneChartData" :cumulative="doneChartCumulative" />
+              </div>
+            </div>
           </div>
           <div v-if="allDates.length === 0" class="px-4 py-4 text-slate-600 text-[13px]">期間内の完了タスクなし</div>
           <template v-else>
@@ -1075,8 +1234,12 @@ watch(isLoggedIn, async (v) => {
         <div class="md:hidden px-2 pt-3 pb-8">
           <!-- ヘッダー: 今日・明日の進捗 -->
           <div class="mb-3 grid grid-cols-2 gap-2">
-            <div class="rounded-xl p-2.5 border border-white/10 bg-white/[0.04] flex flex-col gap-1.5">
-              <span class="text-[11px] text-slate-500 font-semibold">今日</span>
+            <button
+              type="button"
+              class="text-left rounded-xl p-2.5 border border-white/10 bg-white/[0.04] flex flex-col gap-1.5 cursor-pointer active:bg-white/[0.08]"
+              @click="dayDetail = 'today'"
+            >
+              <span class="text-[11px] text-slate-500 font-semibold flex items-center justify-between">今日<span class="text-slate-600">一覧 ›</span></span>
               <div class="flex items-baseline gap-1">
                 <span class="text-[16px] font-bold text-slate-200">{{ todayDoneHours }}h</span>
                 <span class="text-slate-600 text-[12px]">/</span>
@@ -1086,9 +1249,13 @@ watch(isLoggedIn, async (v) => {
               <span class="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
                 <span class="block h-full rounded-full bg-emerald-400 transition-all" :style="{ width: `${todayPercent}%` }" />
               </span>
-            </div>
-            <div class="rounded-xl p-2.5 border border-white/10 bg-white/[0.04] flex flex-col gap-1.5">
-              <span class="text-[11px] text-slate-500 font-semibold">明日</span>
+            </button>
+            <button
+              type="button"
+              class="text-left rounded-xl p-2.5 border border-white/10 bg-white/[0.04] flex flex-col gap-1.5 cursor-pointer active:bg-white/[0.08]"
+              @click="dayDetail = 'tomorrow'"
+            >
+              <span class="text-[11px] text-slate-500 font-semibold flex items-center justify-between">明日<span class="text-slate-600">一覧 ›</span></span>
               <div class="flex items-baseline gap-1">
                 <span class="text-[16px] font-bold text-slate-200">{{ tomorrowDoneHours }}h</span>
                 <span class="text-slate-600 text-[12px]">/</span>
@@ -1098,14 +1265,22 @@ watch(isLoggedIn, async (v) => {
               <span class="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
                 <span class="block h-full rounded-full bg-emerald-400 transition-all" :style="{ width: `${tomorrowPercent}%` }" />
               </span>
-            </div>
+            </button>
           </div>
 
           <!-- 日次工数推移（今週・月〜日） -->
           <div class="mb-3 rounded-xl p-2.5 border border-white/10 bg-white/[0.04]">
             <div class="flex items-center justify-between mb-2">
               <span class="text-[11px] text-slate-500 font-semibold">今週の完了工数（日別）</span>
-              <span class="text-[11px] text-slate-500">平均{{ thisWeekDailyAvgHours }}h/日</span>
+              <div class="flex items-center gap-2.5">
+                <span class="text-[11px] text-slate-500">平均{{ thisWeekDailyAvgHours }}h/日</span>
+                <button
+                  v-if="doneChartData.weekLabels.length"
+                  type="button"
+                  class="text-[11px] text-slate-500 active:text-slate-300 cursor-pointer"
+                  @click="openChartModal"
+                >⤢ 週推移</button>
+              </div>
             </div>
             <div class="flex items-end gap-1.5">
               <div v-for="bar in thisWeekDailyBars" :key="bar.date" class="flex-1 flex flex-col items-center gap-1">

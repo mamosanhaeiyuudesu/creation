@@ -415,6 +415,16 @@
   color: var(--c-sky-ink);
 }
 
+/* バッジ（白枠）の外に置く補足。同じ幅感で読めるよう中央寄せ */
+.hero-note {
+  max-width: 30em;
+  margin: 14px auto 0;
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--c-brown-mid);
+  letter-spacing: 0.02em;
+}
+
 .hero-wave {
   display: block;
   width: 100%;

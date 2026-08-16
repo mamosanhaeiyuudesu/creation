@@ -81,10 +81,12 @@
           </span>
           <span class="hero-badge">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            横浜市旭区若葉台3-5-1<br />（ショッピングタウンわかば『wakkaわっか』）<br />
-             その他、不定期で東急田園都市線青葉台駅周辺のレンタルサロンでも施術を行っています。
+            横浜市旭区若葉台3-5-1<br />（ショッピングタウンわかば『wakkaわっか』）
           </span>
         </div>
+        <p class="hero-note">
+          その他、不定期で東急田園都市線青葉台駅周辺のレンタルサロンでも施術を行っています。
+        </p>
       </div>
       <svg class="hero-wave" viewBox="0 0 1440 48" preserveAspectRatio="none" aria-hidden="true">
         <path d="M0,24 C240,52 480,0 720,12 C960,24 1200,52 1440,28 L1440,48 L0,48 Z" fill="currentColor" />
