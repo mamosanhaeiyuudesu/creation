@@ -378,26 +378,28 @@
   position: relative;
   z-index: 0;
   padding: 26px 0;
+  /* 文字は左、透かしは右 */
+  text-align: left;
 }
 
-/* キャッチコピーの背後に施術風景を透かしで敷く。
+/* キャッチコピーの右側に施術風景を透かしで敷く。
    周囲をマスクでぼかし、ヒーローのピンクに溶け込ませる */
 .hero-catch::before {
   content: '';
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: min(1080px, 124vw);
-  transform: translateX(-50%);
+  top: -10%;
+  bottom: -10%;
+  right: -14%;
+  width: min(560px, 74%);
   z-index: -1;
   background-image: url('/images/hero-treatment.jpg');
-  background-size: cover;
-  background-position: center 42%;
-  opacity: 0.24;
-  filter: saturate(0.55);
-  -webkit-mask-image: radial-gradient(ellipse at center, #000 38%, transparent 76%);
-  mask-image: radial-gradient(ellipse at center, #000 38%, transparent 76%);
+  /* 少し寄って上を見せることで、手前の頭が写り込む割合を減らす */
+  background-size: 165%;
+  background-position: 60% 26%;
+  opacity: 0.16;
+  filter: saturate(0.5);
+  -webkit-mask-image: radial-gradient(ellipse at 58% 50%, #000 36%, transparent 74%);
+  mask-image: radial-gradient(ellipse at 58% 50%, #000 36%, transparent 74%);
   pointer-events: none;
 }
 
