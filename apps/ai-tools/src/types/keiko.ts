@@ -31,7 +31,7 @@ export interface KeikoItem {
 
 /**
  * その日の記録1件。行が存在する＝やった。
- * - kind='reps'   : rate（10〜100の10刻み％）を使う。100 なら花丸、獲得ポイントは round(満点 * rate / 100)
+ * - kind='reps'   : rate（10〜100の10刻み％）を使う。獲得ポイントは round(満点 * rate / 100)
  * - kind='direct' : points に入力されたポイントをそのまま使う（rate は未使用）
  */
 export interface KeikoRecord {

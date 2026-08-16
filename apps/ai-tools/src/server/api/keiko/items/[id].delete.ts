@@ -1,6 +1,6 @@
 import { requireKeikoUser, requireKeikoDb, ensureKeikoTables } from '~/server/utils/keiko'
 
-// 練習項目の削除。花丸記録も合わせて削除する。
+// 練習項目の削除。記録も合わせて削除する。
 export default defineEventHandler(async (event): Promise<{ ok: true }> => {
   const user = await requireKeikoUser(event)
   const db = requireKeikoDb(event)

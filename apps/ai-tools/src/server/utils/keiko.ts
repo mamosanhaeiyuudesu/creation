@@ -92,7 +92,7 @@ export async function seedDefaultItemsForMember(db: any, userId: string, memberI
 
 /**
  * 項目がメンバー共通だった頃（member_id 無し）のデータをメンバーごとの項目へ移し替える。
- * 各メンバーへ同じ内容の項目を複製し、花丸記録の item_id をそのメンバーの複製に付け替えてから旧項目を消す。
+ * 各メンバーへ同じ内容の項目を複製し、記録の item_id をそのメンバーの複製に付け替えてから旧項目を消す。
  */
 export async function migrateSharedItemsToMembers(db: any, userId: string): Promise<void> {
   const legacy = await db

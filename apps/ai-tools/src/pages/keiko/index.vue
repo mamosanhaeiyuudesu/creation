@@ -5,7 +5,7 @@
         <span class="text-3xl" style="font-family:'Apple Color Emoji','Segoe UI Emoji',sans-serif">🥋</span>
         <div>
           <h1 class="keiko-display text-[22px] sm:text-[26px] font-bold leading-none">けいこ記録</h1>
-          <p class="text-[12px] text-[var(--keiko-ink-soft)] mt-1">できた分を記録しよう。ぜんぶできたら花丸</p>
+          <p class="text-[12px] text-[var(--keiko-ink-soft)] mt-1">できた分を記録して、ポイントをためよう</p>
         </div>
       </div>
       <div class="flex items-center gap-1.5">
@@ -41,7 +41,7 @@
         設定（⚙）からメンバーを追加してください
       </p>
 
-      <!-- ── 週表示：メンバーごとに項目×曜日の花丸表 ── -->
+      <!-- ── 週表示：メンバーごとに項目×曜日のポイント表 ── -->
       <template v-else-if="mode === 'week'">
         <div v-for="(member, mi) in members" :key="member.id" class="mb-5 rounded-2xl border border-[var(--keiko-line)] bg-[var(--keiko-card)] overflow-hidden">
           <div class="flex items-center justify-between gap-2 px-4 pt-3 pb-2">
@@ -156,7 +156,7 @@
             </div>
           </div>
         </div>
-        <p class="text-[11.5px] text-[var(--keiko-ink-soft)] mt-2 text-center">日ごとの獲得ポイント（花丸のついた項目の合計）</p>
+        <p class="text-[11.5px] text-[var(--keiko-ink-soft)] mt-2 text-center">日ごとの獲得ポイント（その日にできた項目の合計）</p>
       </template>
 
       <!-- ── 年表示：メンバーごとの月別ポイント一覧 ── -->
@@ -212,8 +212,8 @@
             :class="{ 'keiko-rate-btn--on': picker.currentRate === r }"
             @click="applyRate(r)"
           >
-            <span v-if="r === 100" class="text-[18px] leading-none">💮</span>
-            <span v-else>{{ r }}%</span>
+            <span>{{ r }}%</span>
+            <span class="keiko-rate-btn-pt">{{ Math.round((picker.fullPoints * r) / 100) }}pt</span>
           </button>
         </div>
 
@@ -578,13 +578,11 @@ function recordOf(memberId: string, itemId: string, date: string): KeikoRecord |
   return recordMap.value.get(`${memberId}|${itemId}|${date}`)
 }
 
-/** セル1つの見た目（花丸／％／ポイント／未記録）。 */
+/** セル1つの見た目。記録があればその日の獲得ポイント、無ければ空の丸。 */
 function cellView(item: KeikoItem, memberId: string, date: string): { kind: string; cls: string; text: string } {
   const r = recordOf(memberId, item.id, date)
   if (!r) return { kind: 'none', cls: 'keiko-cell-empty', text: '' }
-  if (item.kind === 'direct') return { kind: 'point', cls: 'keiko-pop keiko-point', text: String(r.points ?? 0) }
-  if (r.rate === 100) return { kind: 'full', cls: 'keiko-pop text-[22px] leading-none', text: '💮' }
-  return { kind: 'rate', cls: 'keiko-pop keiko-rate', text: `${r.rate}%` }
+  return { kind: 'point', cls: 'keiko-pop keiko-point', text: String(earnedPoints(item, r)) }
 }
 
 /** 週表示の1行分のセル（見た目を1回だけ組み立てる）。 */
@@ -604,6 +602,7 @@ const picker = ref<{
   itemId: string
   itemName: string
   kind: KeikoItemKind
+  fullPoints: number
   date: string
   dateLabel: string
   currentRate: number
@@ -620,6 +619,7 @@ function openPicker(member: KeikoMember, item: KeikoItem, day: { date: string; m
     itemId: item.id,
     itemName: item.name,
     kind: item.kind,
+    fullPoints: itemPoints(item),
     date: day.date,
     dateLabel: `${day.month}/${day.day}(${day.weekdayLabel})`,
     currentRate: r?.rate ?? 0,
@@ -895,23 +895,7 @@ onMounted(async () => {
   border-radius: 50%;
   border: 1.5px dashed var(--keiko-line);
 }
-/* 100%未満の評価。花丸の代わりに％を出す */
-.keiko-rate {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 30px;
-  height: 23px;
-  padding: 0 3px;
-  border-radius: 8px;
-  background: var(--keiko-hanamaru-soft);
-  color: #a8352f;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-/* 達成時にポイントを直接入れる項目のセル */
+/* 記録があるセル。その日の獲得ポイントを出す */
 .keiko-point {
   display: inline-flex;
   align-items: center;
@@ -929,10 +913,12 @@ onMounted(async () => {
 
 /* 評価えらび */
 .keiko-rate-btn {
-  height: 44px;
+  height: 48px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 1px;
   border-radius: 12px;
   border: 1px solid var(--keiko-line);
   background: var(--keiko-card);
@@ -947,6 +933,12 @@ onMounted(async () => {
 .keiko-rate-btn--on {
   border-color: var(--keiko-gold);
   background: rgba(201, 162, 39, 0.14);
+}
+.keiko-rate-btn-pt {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--keiko-ink-soft);
+  line-height: 1;
 }
 
 /* 月表示のカレンダー */
