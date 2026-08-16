@@ -20,11 +20,16 @@ export interface KeikoItem {
   active: boolean
 }
 
-/** 花丸1件。存在する＝できた。 */
+/**
+ * その日の評価1件。行が存在する＝やった。
+ * rate は 10〜100 の10刻み（％）。100 なら花丸、それ以外はその％だけできた扱いで、
+ * 獲得ポイントは round(repCount * pointPerRep * rate / 100)。
+ */
 export interface KeikoRecord {
   memberId: string
   itemId: string
   date: string // YYYY-MM-DD
+  rate: number
 }
 
 export interface KeikoState {

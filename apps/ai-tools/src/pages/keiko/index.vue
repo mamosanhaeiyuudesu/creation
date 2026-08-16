@@ -5,7 +5,7 @@
         <span class="text-3xl" style="font-family:'Apple Color Emoji','Segoe UI Emoji',sans-serif">🥋</span>
         <div>
           <h1 class="keiko-display text-[22px] sm:text-[26px] font-bold leading-none">けいこ記録</h1>
-          <p class="text-[12px] text-[var(--keiko-ink-soft)] mt-1">素振り・練習の記録に花丸をつけよう</p>
+          <p class="text-[12px] text-[var(--keiko-ink-soft)] mt-1">できた分を記録しよう。ぜんぶできたら花丸</p>
         </div>
       </div>
       <div class="flex items-center gap-1.5">
@@ -85,11 +85,14 @@
                   <td v-for="day in weekDays" :key="day.date" class="text-center py-1.5" :class="{ 'keiko-td--today': day.date === todayStr }">
                     <button
                       class="keiko-cell"
-                      :aria-label="`${member.name} ${item.name} ${day.month}/${day.day}`"
-                      @click="toggleCell(member.id, item.id, day.date)"
+                      :aria-label="`${member.name} ${item.name} ${day.month}/${day.day} の評価`"
+                      @click="openPicker(member, item, day)"
                     >
-                      <span v-if="isDone(member.id, item.id, day.date)" key="on" class="keiko-pop text-[22px] leading-none">💮</span>
-                      <span v-else key="off" class="keiko-cell-empty" />
+                      <span v-if="rateOf(member.id, item.id, day.date) === 100" key="full" class="keiko-pop text-[22px] leading-none">💮</span>
+                      <span v-else-if="rateOf(member.id, item.id, day.date) > 0" key="part" class="keiko-pop keiko-rate">
+                        {{ rateOf(member.id, item.id, day.date) }}%
+                      </span>
+                      <span v-else key="none" class="keiko-cell-empty" />
                     </button>
                   </td>
                 </tr>
@@ -201,6 +204,32 @@
       </template>
     </template>
 
+    <!-- 評価えらび（セルをタップしたとき） -->
+    <div v-if="picker" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 z-[210]" @click.self="picker = null">
+      <div class="w-full max-w-[320px] bg-[var(--keiko-card)] rounded-2xl p-5">
+        <p class="text-[11.5px] text-[var(--keiko-ink-soft)]">{{ picker.memberName }}・{{ picker.dateLabel }}</p>
+        <h2 class="keiko-display font-bold text-[16px] mt-0.5 mb-3">{{ picker.itemName }}</h2>
+
+        <div class="grid grid-cols-3 gap-1.5">
+          <button
+            v-for="r in RATE_OPTIONS"
+            :key="r"
+            class="keiko-rate-btn"
+            :class="{ 'keiko-rate-btn--on': picker.current === r }"
+            @click="applyRate(r)"
+          >
+            <span v-if="r === 100" class="text-[18px] leading-none">💮</span>
+            <span v-else>{{ r }}%</span>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-1.5 mt-3">
+          <button class="keiko-btn-ghost flex-1 !h-9" :disabled="!picker.current" @click="applyRate(0)">記録を消す</button>
+          <button class="keiko-btn-ghost flex-1 !h-9" @click="picker = null">やめる</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 設定モーダル -->
     <div v-if="settingsOpen" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 z-[200]" @click.self="closeSettings">
       <div class="w-full max-w-[520px] max-h-[86vh] overflow-y-auto bg-[var(--keiko-card)] rounded-2xl p-5">
@@ -210,7 +239,7 @@
         <section v-for="(m, mi) in members" :key="m.id" class="mb-4 rounded-xl border border-[var(--keiko-line)] p-3">
           <div class="flex items-center gap-1.5 mb-2.5">
             <span class="inline-block w-1.5 h-5 rounded-full shrink-0" :style="{ background: memberColor(mi) }" />
-            <input v-model="m.name" class="keiko-input !py-1.5 text-[13px] font-bold" @blur="saveMemberName(m)" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+            <input v-model="m.name" class="keiko-input !py-1.5 text-[13px] font-bold" @blur="saveMemberName(m)" @keydown.enter="blurOnEnter" />
             <button class="text-[13px] text-[var(--keiko-ink-soft)] hover:text-red-500 px-1.5 shrink-0" title="メンバーを削除" @click="deleteMember(m)">✕</button>
           </div>
 
@@ -226,12 +255,14 @@
                   class="keiko-input !py-1.5 text-[13px]"
                   :class="{ 'opacity-40': !it.active }"
                   @blur="saveItemName(it)"
-                  @keydown.enter="($event.target as HTMLInputElement).blur()"
+                  @keydown.enter="blurOnEnter"
                 />
                 <button class="text-[13px] text-[var(--keiko-ink-soft)] hover:text-red-500 px-1.5 shrink-0" title="削除" @click="deleteItem(it)">✕</button>
               </div>
               <div class="flex items-center gap-1 mt-1.5 pl-[22px] text-[12px] text-[var(--keiko-ink-soft)]">
-                <input v-model.number="it.repCount" type="number" min="1" class="keiko-num" @change="saveItemNumbers(it)" />
+                <select v-model.number="it.repCount" class="keiko-select" @change="saveItemNumbers(it)">
+                  <option v-for="n in repOptions(it.repCount)" :key="n" :value="n">{{ n }}</option>
+                </select>
                 <span>本</span>
                 <span class="px-0.5">×</span>
                 <input v-model.number="it.pointPerRep" type="number" min="1" class="keiko-num" @change="saveItemNumbers(it)" />
@@ -242,9 +273,16 @@
           </div>
 
           <div v-if="drafts[m.id]" class="mt-2 rounded-lg border border-dashed border-[var(--keiko-line)] p-2">
-            <input v-model="drafts[m.id].name" placeholder="＋ やること（例: はや素振り）" class="keiko-input !py-1.5 text-[13px]" @keydown.enter="addItem(m.id)" />
+            <input
+              v-model="drafts[m.id].name"
+              placeholder="＋ やること（例: はや素振り）"
+              class="keiko-input !py-1.5 text-[13px]"
+              @keydown.enter="runOnEnter($event, () => addItem(m.id))"
+            />
             <div class="flex items-center gap-1 mt-1.5 text-[12px] text-[var(--keiko-ink-soft)]">
-              <input v-model.number="drafts[m.id].repCount" type="number" min="1" class="keiko-num" />
+              <select v-model.number="drafts[m.id].repCount" class="keiko-select">
+                <option v-for="n in REP_OPTIONS" :key="n" :value="n">{{ n }}</option>
+              </select>
               <span>本</span>
               <span class="px-0.5">×</span>
               <input v-model.number="drafts[m.id].pointPerRep" type="number" min="1" class="keiko-num" />
@@ -255,7 +293,7 @@
         </section>
 
         <div class="flex items-center gap-1.5">
-          <input v-model="newMemberName" placeholder="＋ メンバーを追加" class="keiko-input !py-1.5 text-[13px]" @keydown.enter="addMember" />
+          <input v-model="newMemberName" placeholder="＋ メンバーを追加" class="keiko-input !py-1.5 text-[13px]" @keydown.enter="runOnEnter($event, addMember)" />
           <button class="keiko-btn-ghost !h-8 !px-3 !text-[12px] shrink-0" @click="addMember">追加</button>
         </div>
 
@@ -451,13 +489,18 @@ function allItemsOf(memberId: string): KeikoItem[] {
   return items.value.filter((it) => it.memberId === memberId)
 }
 
-/** 週表示のその日のポイント（読み込み済みの花丸から計算）。 */
+/** 評価％を掛けた獲得ポイント。サーバー側の集計SQLと丸め方を揃えている。 */
+function earnedPoints(it: KeikoItem, rate: number): number {
+  return Math.round((itemPoints(it) * rate) / 100)
+}
+
+/** 週表示のその日のポイント（読み込み済みの記録から計算）。 */
 function memberDayPoints(memberId: string, date: string): number {
   let sum = 0
   for (const r of records.value) {
     if (r.memberId !== memberId || r.date !== date) continue
     const it = itemMap.value.get(r.itemId)
-    if (it) sum += itemPoints(it)
+    if (it) sum += earnedPoints(it, r.rate)
   }
   return sum
 }
@@ -489,32 +532,80 @@ function barWidth(points: number): string {
   return `${Math.round((points / yearMax.value) * 100)}%`
 }
 
-// ── 花丸トグル ──
-const doneSet = computed(() => new Set(records.value.map((r) => `${r.memberId}|${r.itemId}|${r.date}`)))
-function isDone(memberId: string, itemId: string, date: string): boolean {
-  return doneSet.value.has(`${memberId}|${itemId}|${date}`)
+// ── その日の評価（10%刻み。100%＝花丸、0＝記録なし）──
+const RATE_OPTIONS = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
+
+const rateMap = computed(() => {
+  const map = new Map<string, number>()
+  for (const r of records.value) map.set(`${r.memberId}|${r.itemId}|${r.date}`, r.rate)
+  return map
+})
+function rateOf(memberId: string, itemId: string, date: string): number {
+  return rateMap.value.get(`${memberId}|${itemId}|${date}`) ?? 0
 }
 
-async function toggleCell(memberId: string, itemId: string, date: string) {
-  const idx = records.value.findIndex((r) => r.memberId === memberId && r.itemId === itemId && r.date === date)
-  const wasDone = idx !== -1
-  if (wasDone) records.value.splice(idx, 1)
-  else records.value.push({ memberId, itemId, date })
+const picker = ref<{
+  memberId: string
+  memberName: string
+  itemId: string
+  itemName: string
+  date: string
+  dateLabel: string
+  current: number
+} | null>(null)
+
+function openPicker(member: KeikoMember, item: KeikoItem, day: { date: string; month: number; day: number; weekdayLabel: string }) {
+  picker.value = {
+    memberId: member.id,
+    memberName: member.name,
+    itemId: item.id,
+    itemName: item.name,
+    date: day.date,
+    dateLabel: `${day.month}/${day.day}(${day.weekdayLabel})`,
+    current: rateOf(member.id, item.id, day.date),
+  }
+}
+
+async function applyRate(rate: number) {
+  const p = picker.value
+  if (!p) return
+  picker.value = null
+
+  const { memberId, itemId, date } = p
+  const find = () => records.value.findIndex((r) => r.memberId === memberId && r.itemId === itemId && r.date === date)
+  const idx = find()
+  const before = idx === -1 ? null : { ...records.value[idx] }
+
+  // 楽観更新
+  if (rate === 0) {
+    if (idx !== -1) records.value.splice(idx, 1)
+  } else if (idx !== -1) {
+    records.value[idx] = { ...records.value[idx], rate }
+  } else {
+    records.value.push({ memberId, itemId, date, rate })
+  }
 
   try {
-    await $fetch<{ done: boolean }>('/api/keiko/records/toggle', { method: 'POST', body: { memberId, itemId, date } })
+    await $fetch<{ rate: number }>('/api/keiko/records/set', { method: 'POST', body: { memberId, itemId, date, rate } })
   } catch {
     // 失敗時はロールバック
-    if (wasDone) records.value.push({ memberId, itemId, date })
-    else {
-      const revertIdx = records.value.findIndex((r) => r.memberId === memberId && r.itemId === itemId && r.date === date)
-      if (revertIdx !== -1) records.value.splice(revertIdx, 1)
-    }
+    const cur = find()
+    if (cur !== -1) records.value.splice(cur, 1)
+    if (before) records.value.push(before)
     alert('保存に失敗しました')
   }
 }
 
 // ── 設定 ──
+/** 本数の選択肢。素振りの本数として現実的な刻みだけ出す。 */
+const REP_OPTIONS = [5, 10, 20, 30, 40, 50, 100, 150, 200, 300]
+/** 既存の値が選択肢に無ければ（旧データ・既定シードの1本など）その値も混ぜて出す。 */
+function repOptions(current: number): number[] {
+  const n = Number(current)
+  if (!Number.isFinite(n) || REP_OPTIONS.includes(n)) return REP_OPTIONS
+  return [...REP_OPTIONS, n].sort((a, b) => a - b)
+}
+
 const settingsOpen = ref(false)
 const newMemberName = ref('')
 const drafts = reactive<Record<string, { name: string; repCount: number; pointPerRep: number }>>({})
@@ -621,6 +712,21 @@ async function deleteItem(it: KeikoItem) {
   }
 }
 
+// ── IME 対策 ──
+// 日本語入力の「変換確定」も keydown.enter を発火させる（isComposing / keyCode 229）。
+// そのまま blur() や 追加 を走らせると、確定した文字がもう一度挿入されて二重入力になる。
+function isImeEnter(e: KeyboardEvent): boolean {
+  return e.isComposing || e.keyCode === 229
+}
+function blurOnEnter(e: KeyboardEvent) {
+  if (isImeEnter(e)) return
+  ;(e.target as HTMLInputElement).blur()
+}
+function runOnEnter(e: KeyboardEvent, fn: () => void) {
+  if (isImeEnter(e)) return
+  fn()
+}
+
 /** 1以上の整数へ丸める（空欄・0・マイナス対策）。 */
 function normalize(v: unknown, fallback: number): number {
   const n = Math.floor(Number(v))
@@ -703,6 +809,43 @@ onMounted(async () => {
   border-radius: 50%;
   border: 1.5px dashed var(--keiko-line);
 }
+/* 100%未満の評価。花丸の代わりに％を出す */
+.keiko-rate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 23px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: var(--keiko-hanamaru-soft);
+  color: #a8352f;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* 評価えらび */
+.keiko-rate-btn {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1px solid var(--keiko-line);
+  background: var(--keiko-card);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--keiko-ink);
+  transition: border-color 0.12s, background 0.12s;
+}
+.keiko-rate-btn:hover {
+  border-color: var(--keiko-gold-soft);
+}
+.keiko-rate-btn--on {
+  border-color: var(--keiko-gold);
+  background: rgba(201, 162, 39, 0.14);
+}
 
 /* 月表示のカレンダー */
 .keiko-daycell {
@@ -757,6 +900,23 @@ onMounted(async () => {
   text-align: center;
 }
 .keiko-num:focus {
+  outline: none;
+  border-color: var(--keiko-gold);
+}
+.keiko-select {
+  width: 72px;
+  padding: 0.25rem 0.2rem 0.25rem 0.4rem;
+  border: 1px solid var(--keiko-line);
+  border-radius: 8px;
+  background: var(--keiko-card);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--keiko-ink);
+  text-align: center;
+  text-align-last: center;
+  cursor: pointer;
+}
+.keiko-select:focus {
   outline: none;
   border-color: var(--keiko-gold);
 }

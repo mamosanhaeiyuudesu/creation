@@ -25,13 +25,14 @@ export async function ensureKeikoTables(db: any): Promise<void> {
     .catch(() => {})
   await db
     .exec(
-      `CREATE TABLE IF NOT EXISTS keiko_records (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, member_id TEXT NOT NULL, item_id TEXT NOT NULL, date TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))`
+      `CREATE TABLE IF NOT EXISTS keiko_records (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, member_id TEXT NOT NULL, item_id TEXT NOT NULL, date TEXT NOT NULL, rate INTEGER NOT NULL DEFAULT 100, created_at TEXT NOT NULL DEFAULT (datetime('now')))`
     )
     .catch(() => {})
   // 既存テーブルへの列追加（適用済みなら duplicate column name で落ちるので握りつぶす）
   await db.exec(`ALTER TABLE keiko_items ADD COLUMN member_id TEXT NOT NULL DEFAULT ''`).catch(() => {})
   await db.exec(`ALTER TABLE keiko_items ADD COLUMN rep_count INTEGER NOT NULL DEFAULT 1`).catch(() => {})
   await db.exec(`ALTER TABLE keiko_items ADD COLUMN point_per_rep INTEGER NOT NULL DEFAULT 1`).catch(() => {})
+  await db.exec(`ALTER TABLE keiko_records ADD COLUMN rate INTEGER NOT NULL DEFAULT 100`).catch(() => {})
 }
 
 /** ログイン必須。未ログインなら 401 を throw。 */
@@ -148,6 +149,7 @@ interface RecordRow {
   member_id: string
   item_id: string
   date: string
+  rate: number
 }
 
 export function shapeKeikoMember(row: MemberRow): KeikoMember {
@@ -167,7 +169,7 @@ export function shapeKeikoItem(row: ItemRow): KeikoItem {
 }
 
 export function shapeKeikoRecord(row: RecordRow): KeikoRecord {
-  return { memberId: row.member_id, itemId: row.item_id, date: row.date }
+  return { memberId: row.member_id, itemId: row.item_id, date: row.date, rate: row.rate ?? 100 }
 }
 
 /** 指定ユーザーのメンバー一覧（sort_order 昇順）。 */
@@ -185,10 +187,10 @@ export async function loadItems(db: any, userId: string): Promise<KeikoItem[]> {
   return (rows?.results ?? []).map(shapeKeikoItem)
 }
 
-/** 指定ユーザー・指定期間 [from, to] の花丸記録。 */
+/** 指定ユーザー・指定期間 [from, to] の評価記録。 */
 export async function loadRecords(db: any, userId: string, from: string, to: string): Promise<KeikoRecord[]> {
   const rows = await db
-    .prepare('SELECT member_id, item_id, date FROM keiko_records WHERE user_id = ? AND date >= ? AND date <= ?')
+    .prepare('SELECT member_id, item_id, date, rate FROM keiko_records WHERE user_id = ? AND date >= ? AND date <= ?')
     .bind(userId, from, to)
     .all<RecordRow>()
   return (rows?.results ?? []).map(shapeKeikoRecord)
@@ -196,13 +198,15 @@ export async function loadRecords(db: any, userId: string, from: string, to: str
 
 /**
  * 期間 [from, to] のポイントをメンバー×日（unit='day'）またはメンバー×月（unit='month'）で集計する。
- * ポイントは項目の現在の設定（本数 × 1本あたりのポイント）から都度計算する。
+ * ポイントは項目の現在の設定（本数 × 1本あたりのポイント）に、その日の評価（rate％）を掛けて都度計算する。
+ * `/ 100.0` と書かないと SQLite の整数除算で rate<100 が全部 0 になるので注意。
+ * 1件ずつ ROUND してから SUM する（クライアント側の週集計と丸め方を揃えるため）。
  */
 export async function loadPointBuckets(db: any, userId: string, from: string, to: string, unit: 'day' | 'month'): Promise<KeikoPointBucket[]> {
   const keyExpr = unit === 'month' ? 'substr(r.date, 1, 7)' : 'r.date'
   const rows = await db
     .prepare(
-      `SELECT r.member_id AS member_id, ${keyExpr} AS key, SUM(i.rep_count * i.point_per_rep) AS points ` +
+      `SELECT r.member_id AS member_id, ${keyExpr} AS key, SUM(ROUND(i.rep_count * i.point_per_rep * r.rate / 100.0)) AS points ` +
         'FROM keiko_records r JOIN keiko_items i ON i.id = r.item_id ' +
         'WHERE r.user_id = ? AND r.date >= ? AND r.date <= ? ' +
         `GROUP BY r.member_id, ${keyExpr}`
@@ -216,6 +220,13 @@ export async function loadPointBuckets(db: any, userId: string, from: string, to
 /** YYYY-MM-DD 形式かどうか。 */
 export function isValidDate(s: unknown): s is string {
   return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
+}
+
+/** 評価％の正規化。0 なら記録を消す意味、それ以外は 10〜100 の10刻みへ丸める。 */
+export function normalizeRate(v: unknown): number {
+  const n = Math.round(Number(v) / 10) * 10
+  if (!Number.isFinite(n) || n <= 0) return 0
+  return Math.min(n, 100)
 }
 
 /** 本数・ポイントの正規化（1以上の整数、上限は事故防止のゆるい値）。 */
