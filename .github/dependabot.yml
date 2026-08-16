@@ -4,3 +4,5 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # 一旦停止中。0 にすると PR を作らなくなる（再開したいときは削除するか 5 などに戻す）
+    open-pull-requests-limit: 0
