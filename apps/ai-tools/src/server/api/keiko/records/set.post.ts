@@ -1,26 +1,28 @@
-import { requireKeikoUser, requireKeikoDb, ensureKeikoTables, isValidDate, normalizeRate } from '~/server/utils/keiko'
+import { requireKeikoUser, requireKeikoDb, ensureKeikoTables, isValidDate, normalizeRate, normalizePoints } from '~/server/utils/keiko'
 
-// その日の評価（％）を設定する。rate=0 なら記録そのものを消す（＝やっていない）。
-export default defineEventHandler(async (event): Promise<{ rate: number }> => {
+// その日の記録を設定する。
+// - kind='reps'   : rate（％）を保存。rate=0 なら記録を消す
+// - kind='direct' : 入力されたポイントをそのまま保存（0点で参加もあり得るので 0 は消す扱いにしない）
+// - remove=true   : 種類に関わらず記録を消す
+export default defineEventHandler(async (event): Promise<{ rate: number; points: number | null }> => {
   const user = await requireKeikoUser(event)
   const db = requireKeikoDb(event)
   await ensureKeikoTables(db)
 
-  const body = await readBody<{ memberId?: string; itemId?: string; date?: string; rate?: number }>(event)
+  const body = await readBody<{ memberId?: string; itemId?: string; date?: string; rate?: number; points?: number; remove?: boolean }>(event)
   const memberId = body?.memberId
   const itemId = body?.itemId
   const date = body?.date
   if (!memberId || !itemId || !isValidDate(date)) {
     throw createError({ statusCode: 400, message: 'memberId・itemId・date (YYYY-MM-DD) が必要です' })
   }
-  const rate = normalizeRate(body?.rate)
 
   const member = await db.prepare('SELECT id FROM keiko_members WHERE id = ? AND user_id = ?').bind(memberId, user.id).first<{ id: string }>()
   if (!member) throw createError({ statusCode: 404, message: 'メンバーが見つかりません' })
   const item = await db
-    .prepare('SELECT id FROM keiko_items WHERE id = ? AND user_id = ? AND member_id = ?')
+    .prepare('SELECT id, kind FROM keiko_items WHERE id = ? AND user_id = ? AND member_id = ?')
     .bind(itemId, user.id, memberId)
-    .first<{ id: string }>()
+    .first<{ id: string; kind: string }>()
   if (!item) throw createError({ statusCode: 404, message: '項目が見つかりません' })
 
   const existing = await db
@@ -28,18 +30,23 @@ export default defineEventHandler(async (event): Promise<{ rate: number }> => {
     .bind(memberId, itemId, date)
     .first<{ id: string }>()
 
-  if (rate === 0) {
+  const isDirect = item.kind === 'direct'
+  const rate = isDirect ? 100 : normalizeRate(body?.rate)
+  const points = isDirect ? normalizePoints(body?.points) : null
+  const remove = body?.remove === true || (!isDirect && rate === 0)
+
+  if (remove) {
     if (existing) await db.prepare('DELETE FROM keiko_records WHERE id = ?').bind(existing.id).run()
-    return { rate: 0 }
+    return { rate: 0, points: null }
   }
 
   if (existing) {
-    await db.prepare('UPDATE keiko_records SET rate = ? WHERE id = ?').bind(rate, existing.id).run()
+    await db.prepare('UPDATE keiko_records SET rate = ?, points = ? WHERE id = ?').bind(rate, points, existing.id).run()
   } else {
     await db
-      .prepare('INSERT INTO keiko_records (id, user_id, member_id, item_id, date, rate) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind(crypto.randomUUID(), user.id, memberId, itemId, date, rate)
+      .prepare('INSERT INTO keiko_records (id, user_id, member_id, item_id, date, rate, points) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .bind(crypto.randomUUID(), user.id, memberId, itemId, date, rate, points)
       .run()
   }
-  return { rate }
+  return { rate, points }
 })

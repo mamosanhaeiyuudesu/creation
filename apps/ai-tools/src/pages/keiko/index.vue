@@ -79,20 +79,13 @@
                   <td class="pl-3 py-2">
                     <div class="text-[13px] font-medium leading-tight">{{ item.name }}</div>
                     <div class="text-[10.5px] text-[var(--keiko-ink-soft)] leading-tight mt-0.5">
-                      {{ item.repCount }}本 × {{ item.pointPerRep }}pt = <strong>{{ itemPoints(item) }}pt</strong>
+                      <template v-if="item.kind === 'direct'">できた日にポイントを入力</template>
+                      <template v-else>{{ item.repCount }}本 × {{ item.pointPerRep }}pt = <strong>{{ itemPoints(item) }}pt</strong></template>
                     </div>
                   </td>
-                  <td v-for="day in weekDays" :key="day.date" class="text-center py-1.5" :class="{ 'keiko-td--today': day.date === todayStr }">
-                    <button
-                      class="keiko-cell"
-                      :aria-label="`${member.name} ${item.name} ${day.month}/${day.day} の評価`"
-                      @click="openPicker(member, item, day)"
-                    >
-                      <span v-if="rateOf(member.id, item.id, day.date) === 100" key="full" class="keiko-pop text-[22px] leading-none">💮</span>
-                      <span v-else-if="rateOf(member.id, item.id, day.date) > 0" key="part" class="keiko-pop keiko-rate">
-                        {{ rateOf(member.id, item.id, day.date) }}%
-                      </span>
-                      <span v-else key="none" class="keiko-cell-empty" />
+                  <td v-for="cell in rowCells(member.id, item)" :key="cell.date" class="text-center py-1.5" :class="{ 'keiko-td--today': cell.isToday }">
+                    <button class="keiko-cell" :aria-label="`${member.name} ${item.name} ${cell.label} の記録`" @click="openPicker(member, item, cell.day)">
+                      <span :key="cell.view.kind" :class="cell.view.cls">{{ cell.view.text }}</span>
                     </button>
                   </td>
                 </tr>
@@ -210,12 +203,13 @@
         <p class="text-[11.5px] text-[var(--keiko-ink-soft)]">{{ picker.memberName }}・{{ picker.dateLabel }}</p>
         <h2 class="keiko-display font-bold text-[16px] mt-0.5 mb-3">{{ picker.itemName }}</h2>
 
-        <div class="grid grid-cols-3 gap-1.5">
+        <!-- 本数×ポイントの項目：10%刻みの評価から選ぶ -->
+        <div v-if="picker.kind === 'reps'" class="grid grid-cols-3 gap-1.5">
           <button
             v-for="r in RATE_OPTIONS"
             :key="r"
             class="keiko-rate-btn"
-            :class="{ 'keiko-rate-btn--on': picker.current === r }"
+            :class="{ 'keiko-rate-btn--on': picker.currentRate === r }"
             @click="applyRate(r)"
           >
             <span v-if="r === 100" class="text-[18px] leading-none">💮</span>
@@ -223,8 +217,28 @@
           </button>
         </div>
 
+        <!-- 直接ポイントの項目：獲得ポイントを入力する -->
+        <div v-else>
+          <label class="text-[12px] font-bold text-[var(--keiko-ink-soft)]">獲得ポイント</label>
+          <div class="flex items-center gap-1.5 mt-1">
+            <input
+              v-model.number="directInput"
+              type="number"
+              min="0"
+              inputmode="numeric"
+              class="keiko-num !w-full !h-11 !text-[17px]"
+              @keydown.enter="runOnEnter($event, saveDirect)"
+            />
+            <span class="text-[13px] font-bold shrink-0">pt</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5 mt-2">
+            <button v-for="p in DIRECT_PRESETS" :key="p" class="keiko-preset" @click="directInput = p">{{ p }}</button>
+          </div>
+          <button class="keiko-btn w-full mt-3" @click="saveDirect">記録する</button>
+        </div>
+
         <div class="flex items-center gap-1.5 mt-3">
-          <button class="keiko-btn-ghost flex-1 !h-9" :disabled="!picker.current" @click="applyRate(0)">記録を消す</button>
+          <button class="keiko-btn-ghost flex-1 !h-9" :disabled="!picker.hasRecord" @click="clearRecord">記録を消す</button>
           <button class="keiko-btn-ghost flex-1 !h-9" @click="picker = null">やめる</button>
         </div>
       </div>
@@ -259,7 +273,13 @@
                 />
                 <button class="text-[13px] text-[var(--keiko-ink-soft)] hover:text-red-500 px-1.5 shrink-0" title="削除" @click="deleteItem(it)">✕</button>
               </div>
-              <div class="flex items-center gap-1 mt-1.5 pl-[22px] text-[12px] text-[var(--keiko-ink-soft)]">
+              <div class="mt-1.5 pl-[22px]">
+                <select v-model="it.kind" class="keiko-kind-select" @change="saveItemKind(it)">
+                  <option value="reps">本数×ポイントで数える</option>
+                  <option value="direct">達成時にポイントを入れる</option>
+                </select>
+              </div>
+              <div v-if="it.kind === 'reps'" class="flex items-center gap-1 mt-1.5 pl-[22px] text-[12px] text-[var(--keiko-ink-soft)]">
                 <select v-model.number="it.repCount" class="keiko-select" @change="saveItemNumbers(it)">
                   <option v-for="n in repOptions(it.repCount)" :key="n" :value="n">{{ n }}</option>
                 </select>
@@ -269,6 +289,9 @@
                 <span>pt/本</span>
                 <span class="ml-auto text-[12px] font-bold" :style="{ color: memberColor(mi) }">= {{ itemPoints(it) }}pt</span>
               </div>
+              <p v-else class="mt-1.5 pl-[22px] text-[11px] text-[var(--keiko-ink-soft)] leading-snug">
+                稽古・大会など。本数も達成割合も使わず、できた日にポイントを直接入力します
+              </p>
             </div>
           </div>
 
@@ -279,15 +302,24 @@
               class="keiko-input !py-1.5 text-[13px]"
               @keydown.enter="runOnEnter($event, () => addItem(m.id))"
             />
-            <div class="flex items-center gap-1 mt-1.5 text-[12px] text-[var(--keiko-ink-soft)]">
-              <select v-model.number="drafts[m.id].repCount" class="keiko-select">
-                <option v-for="n in REP_OPTIONS" :key="n" :value="n">{{ n }}</option>
+            <div class="mt-1.5">
+              <select v-model="drafts[m.id].kind" class="keiko-kind-select">
+                <option value="reps">本数×ポイントで数える</option>
+                <option value="direct">達成時にポイントを入れる</option>
               </select>
-              <span>本</span>
-              <span class="px-0.5">×</span>
-              <input v-model.number="drafts[m.id].pointPerRep" type="number" min="1" class="keiko-num" />
-              <span>pt/本</span>
-              <button class="keiko-btn-ghost !h-8 !px-3 !text-[12px] ml-auto" @click="addItem(m.id)">追加</button>
+            </div>
+            <div class="flex items-center gap-1 mt-1.5 text-[12px] text-[var(--keiko-ink-soft)]">
+              <template v-if="drafts[m.id].kind === 'reps'">
+                <select v-model.number="drafts[m.id].repCount" class="keiko-select">
+                  <option v-for="n in REP_OPTIONS" :key="n" :value="n">{{ n }}</option>
+                </select>
+                <span>本</span>
+                <span class="px-0.5">×</span>
+                <input v-model.number="drafts[m.id].pointPerRep" type="number" min="1" class="keiko-num" />
+                <span>pt/本</span>
+              </template>
+              <span v-else class="text-[11px]">できた日にポイントを直接入力</span>
+              <button class="keiko-btn-ghost !h-8 !px-3 !text-[12px] ml-auto shrink-0" @click="addItem(m.id)">追加</button>
             </div>
           </div>
         </section>
@@ -309,7 +341,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
-import type { KeikoItem, KeikoMember, KeikoPoints, KeikoPointBucket, KeikoRecord, KeikoState } from '~/types/keiko'
+import type { KeikoItem, KeikoItemKind, KeikoMember, KeikoPoints, KeikoPointBucket, KeikoRecord, KeikoState } from '~/types/keiko'
 
 definePageMeta({ layout: 'keiko' })
 useHead({ title: 'けいこ記録' })
@@ -489,9 +521,10 @@ function allItemsOf(memberId: string): KeikoItem[] {
   return items.value.filter((it) => it.memberId === memberId)
 }
 
-/** 評価％を掛けた獲得ポイント。サーバー側の集計SQLと丸め方を揃えている。 */
-function earnedPoints(it: KeikoItem, rate: number): number {
-  return Math.round((itemPoints(it) * rate) / 100)
+/** 記録1件の獲得ポイント。サーバー側の集計SQL（POINT_EXPR）と計算・丸め方を揃えている。 */
+function earnedPoints(it: KeikoItem, r: KeikoRecord): number {
+  if (it.kind === 'direct') return r.points ?? 0
+  return Math.round((itemPoints(it) * r.rate) / 100)
 }
 
 /** 週表示のその日のポイント（読み込み済みの記録から計算）。 */
@@ -500,7 +533,7 @@ function memberDayPoints(memberId: string, date: string): number {
   for (const r of records.value) {
     if (r.memberId !== memberId || r.date !== date) continue
     const it = itemMap.value.get(r.itemId)
-    if (it) sum += earnedPoints(it, r.rate)
+    if (it) sum += earnedPoints(it, r)
   }
   return sum
 }
@@ -532,16 +565,37 @@ function barWidth(points: number): string {
   return `${Math.round((points / yearMax.value) * 100)}%`
 }
 
-// ── その日の評価（10%刻み。100%＝花丸、0＝記録なし）──
+// ── その日の記録（reps は10%刻みの評価、direct は入力したポイント）──
 const RATE_OPTIONS = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
+const DIRECT_PRESETS = [5, 10, 20, 30, 50, 100]
 
-const rateMap = computed(() => {
-  const map = new Map<string, number>()
-  for (const r of records.value) map.set(`${r.memberId}|${r.itemId}|${r.date}`, r.rate)
+const recordMap = computed(() => {
+  const map = new Map<string, KeikoRecord>()
+  for (const r of records.value) map.set(`${r.memberId}|${r.itemId}|${r.date}`, r)
   return map
 })
-function rateOf(memberId: string, itemId: string, date: string): number {
-  return rateMap.value.get(`${memberId}|${itemId}|${date}`) ?? 0
+function recordOf(memberId: string, itemId: string, date: string): KeikoRecord | undefined {
+  return recordMap.value.get(`${memberId}|${itemId}|${date}`)
+}
+
+/** セル1つの見た目（花丸／％／ポイント／未記録）。 */
+function cellView(item: KeikoItem, memberId: string, date: string): { kind: string; cls: string; text: string } {
+  const r = recordOf(memberId, item.id, date)
+  if (!r) return { kind: 'none', cls: 'keiko-cell-empty', text: '' }
+  if (item.kind === 'direct') return { kind: 'point', cls: 'keiko-pop keiko-point', text: String(r.points ?? 0) }
+  if (r.rate === 100) return { kind: 'full', cls: 'keiko-pop text-[22px] leading-none', text: '💮' }
+  return { kind: 'rate', cls: 'keiko-pop keiko-rate', text: `${r.rate}%` }
+}
+
+/** 週表示の1行分のセル（見た目を1回だけ組み立てる）。 */
+function rowCells(memberId: string, item: KeikoItem) {
+  return weekDays.value.map((day) => ({
+    date: day.date,
+    day,
+    label: `${day.month}/${day.day}`,
+    isToday: day.date === todayStr,
+    view: cellView(item, memberId, day.date),
+  }))
 }
 
 const picker = ref<{
@@ -549,24 +603,46 @@ const picker = ref<{
   memberName: string
   itemId: string
   itemName: string
+  kind: KeikoItemKind
   date: string
   dateLabel: string
-  current: number
+  currentRate: number
+  hasRecord: boolean
 } | null>(null)
+const directInput = ref<number | string>(10)
 
 function openPicker(member: KeikoMember, item: KeikoItem, day: { date: string; month: number; day: number; weekdayLabel: string }) {
+  const r = recordOf(member.id, item.id, day.date)
+  directInput.value = r?.points ?? 10
   picker.value = {
     memberId: member.id,
     memberName: member.name,
     itemId: item.id,
     itemName: item.name,
+    kind: item.kind,
     date: day.date,
     dateLabel: `${day.month}/${day.day}(${day.weekdayLabel})`,
-    current: rateOf(member.id, item.id, day.date),
+    currentRate: r?.rate ?? 0,
+    hasRecord: !!r,
   }
 }
 
-async function applyRate(rate: number) {
+/** 評価％を選んだとき（reps の項目）。rate=0 は記録を消す。 */
+function applyRate(rate: number) {
+  saveRecord({ rate, remove: rate === 0 }, rate === 0 ? null : { rate, points: null })
+}
+/** ポイントを直接入れたとき（direct の項目）。 */
+function saveDirect() {
+  const points = Math.max(0, Math.floor(Number(directInput.value) || 0))
+  saveRecord({ points }, { rate: 100, points })
+}
+/** 記録を消す。 */
+function clearRecord() {
+  saveRecord({ remove: true }, null)
+}
+
+/** 楽観更新してから保存。next が null なら記録を消す。 */
+async function saveRecord(payload: Record<string, unknown>, next: { rate: number; points: number | null } | null) {
   const p = picker.value
   if (!p) return
   picker.value = null
@@ -576,17 +652,16 @@ async function applyRate(rate: number) {
   const idx = find()
   const before = idx === -1 ? null : { ...records.value[idx] }
 
-  // 楽観更新
-  if (rate === 0) {
+  if (!next) {
     if (idx !== -1) records.value.splice(idx, 1)
   } else if (idx !== -1) {
-    records.value[idx] = { ...records.value[idx], rate }
+    records.value[idx] = { memberId, itemId, date, ...next }
   } else {
-    records.value.push({ memberId, itemId, date, rate })
+    records.value.push({ memberId, itemId, date, ...next })
   }
 
   try {
-    await $fetch<{ rate: number }>('/api/keiko/records/set', { method: 'POST', body: { memberId, itemId, date, rate } })
+    await $fetch('/api/keiko/records/set', { method: 'POST', body: { memberId, itemId, date, ...payload } })
   } catch {
     // 失敗時はロールバック
     const cur = find()
@@ -608,10 +683,10 @@ function repOptions(current: number): number[] {
 
 const settingsOpen = ref(false)
 const newMemberName = ref('')
-const drafts = reactive<Record<string, { name: string; repCount: number; pointPerRep: number }>>({})
+const drafts = reactive<Record<string, { name: string; kind: KeikoItemKind; repCount: number; pointPerRep: number }>>({})
 
 function syncDrafts() {
-  for (const m of members.value) if (!drafts[m.id]) drafts[m.id] = { name: '', repCount: 10, pointPerRep: 1 }
+  for (const m of members.value) if (!drafts[m.id]) drafts[m.id] = { name: '', kind: 'reps', repCount: 10, pointPerRep: 1 }
 }
 watch(() => members.value.map((m) => m.id).join('|'), syncDrafts, { immediate: true })
 
@@ -664,12 +739,13 @@ async function addItem(memberId: string) {
   const draft = drafts[memberId]
   const name = draft?.name.trim()
   if (!name) return
+  const kind = draft.kind
   const repCount = normalize(draft.repCount, 1)
   const pointPerRep = normalize(draft.pointPerRep, 1)
   try {
-    const created = await $fetch<KeikoItem>('/api/keiko/items', { method: 'POST', body: { memberId, name, repCount, pointPerRep } })
+    const created = await $fetch<KeikoItem>('/api/keiko/items', { method: 'POST', body: { memberId, name, kind, repCount, pointPerRep } })
     items.value.push(created)
-    drafts[memberId] = { name: '', repCount, pointPerRep }
+    drafts[memberId] = { name: '', kind, repCount, pointPerRep }
   } catch {
     alert('追加に失敗しました')
   }
@@ -681,6 +757,16 @@ async function saveItemName(it: KeikoItem) {
     await $fetch(`/api/keiko/items/${it.id}`, { method: 'PATCH', body: { name } })
   } catch {
     alert('保存に失敗しました')
+  }
+}
+async function saveItemKind(it: KeikoItem) {
+  try {
+    await $fetch(`/api/keiko/items/${it.id}`, { method: 'PATCH', body: { kind: it.kind } })
+    // 「本数×ポイント」→「直接ポイント」でサーバーが過去の記録に points を焼き付けるので読み直す
+    await loadState()
+  } catch {
+    alert('更新に失敗しました')
+    await loadState()
   }
 }
 async function saveItemNumbers(it: KeikoItem) {
@@ -825,6 +911,22 @@ onMounted(async () => {
   line-height: 1;
 }
 
+/* 達成時にポイントを直接入れる項目のセル */
+.keiko-point {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 23px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: rgba(201, 162, 39, 0.2);
+  color: #8a6d12;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 /* 評価えらび */
 .keiko-rate-btn {
   height: 44px;
@@ -919,5 +1021,37 @@ onMounted(async () => {
 .keiko-select:focus {
   outline: none;
   border-color: var(--keiko-gold);
+}
+/* 項目の種類（本数×ポイント / 直接ポイント） */
+.keiko-kind-select {
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--keiko-line);
+  border-radius: 8px;
+  background: var(--keiko-card);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--keiko-ink);
+  cursor: pointer;
+}
+.keiko-kind-select:focus {
+  outline: none;
+  border-color: var(--keiko-gold);
+}
+/* 直接ポイント入力のよく使う値 */
+.keiko-preset {
+  min-width: 44px;
+  height: 30px;
+  padding: 0 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--keiko-line);
+  background: var(--keiko-card);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--keiko-ink-soft);
+}
+.keiko-preset:hover {
+  border-color: var(--keiko-gold-soft);
+  color: var(--keiko-ink);
 }
 </style>
