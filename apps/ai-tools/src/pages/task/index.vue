@@ -272,16 +272,27 @@ function openChartModal() {
   showChartModal.value = true
 }
 
-// --- スマホ版: 今日／明日をタップしてその日の一覧（DOING / DONE）を見る ---
-const dayDetail = ref<'today' | 'tomorrow' | null>(null)
-const dayDetailDate = computed(() => (dayDetail.value === 'tomorrow' ? tomorrowDateKey.value : todayDateKey.value))
+// --- ある1日の一覧（DOING / DONE）ポップアップ ---
+// スマホ版の今日／明日カードと、今週の日別棒グラフ（PC・スマホ）から開く。
+// 日付を入れると開く（'YYYY-MM-DD'）。null で閉じる。
+const dayDetail = ref<string | null>(null)
+const dayDetailDate = computed(() => dayDetail.value ?? todayDateKey.value)
 const dayDetailPending = computed(() => pendingCardsForDate(dayDetailDate.value))
 const dayDetailDone = computed(() =>
   boards.value.flatMap(board => (board.done[dayDetailDate.value] ?? []).map(item => ({ board, item })))
 )
-const dayDetailDoneHours = computed(() => (dayDetail.value === 'tomorrow' ? tomorrowDoneHours.value : todayDoneHours.value))
-const dayDetailPlannedHours = computed(() => (dayDetail.value === 'tomorrow' ? tomorrowPlannedHours.value : todayPlannedHours.value))
-const dayDetailPercent = computed(() => (dayDetail.value === 'tomorrow' ? tomorrowPercent.value : todayPercent.value))
+const dayDetailDoneHours = computed(() => weekTotalEffort([dayDetailDate.value]))
+const dayDetailPlannedHours = computed(() => dayDetailDoneHours.value + pendingHoursForDates([dayDetailDate.value]))
+const dayDetailPercent = computed(() => {
+  if (dayDetailPlannedHours.value <= 0) return 0
+  return Math.round((dayDetailDoneHours.value / dayDetailPlannedHours.value) * 100)
+})
+// 今日・明日は日付より呼び名のほうが分かりやすいので、そのときだけ見出しに使う
+const dayDetailLabel = computed(() => {
+  if (dayDetailDate.value === todayDateKey.value) return '今日'
+  if (dayDetailDate.value === tomorrowDateKey.value) return '明日'
+  return null
+})
 
 function openDayTask(row: { board: Board; card: Card; status: 'doing' | 'todo' }) {
   openEditTask(row.card, row.board.id, row.status)
@@ -562,14 +573,14 @@ watch(isLoggedIn, async (v) => {
     </div>
   </div>
 
-  <!-- 今日／明日の一覧ポップアップ（スマホ版のカードから開く） -->
+  <!-- ある1日の一覧ポップアップ（スマホ版の今日／明日カード・今週の日別棒グラフから開く） -->
   <div v-if="dayDetail" class="fixed inset-0 z-[200] flex items-end md:items-center justify-center">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="dayDetail = null" />
     <div class="relative w-full md:w-[520px] bg-[#1e293b] border border-white/[0.12] rounded-t-2xl md:rounded-2xl shadow-2xl max-h-[86vh] flex flex-col" @click.stop>
       <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-white/[0.08] flex-shrink-0">
         <div class="flex items-baseline gap-2 min-w-0">
-          <h3 class="text-[14px] font-semibold text-slate-200 m-0 flex-shrink-0">{{ dayDetail === 'tomorrow' ? '明日' : '今日' }}</h3>
-          <span class="text-[11px] text-slate-500 truncate">{{ mdWeekday(dayDetailDate) }}</span>
+          <h3 class="text-[14px] font-semibold text-slate-200 m-0 flex-shrink-0">{{ dayDetailLabel ?? mdWeekday(dayDetailDate) }}</h3>
+          <span v-if="dayDetailLabel" class="text-[11px] text-slate-500 truncate">{{ mdWeekday(dayDetailDate) }}</span>
           <span class="text-[11px] text-slate-500 flex-shrink-0">{{ dayDetailDoneHours }}h / {{ dayDetailPlannedHours }}h（{{ dayDetailPercent }}%）</span>
         </div>
         <button class="w-6 h-6 flex-shrink-0 flex items-center justify-center text-slate-500 hover:text-slate-300 text-xs cursor-pointer rounded hover:bg-white/[0.08]" @click="dayDetail = null">✕</button>
@@ -1002,15 +1013,17 @@ watch(isLoggedIn, async (v) => {
                 <span class="text-slate-500">（{{ tomorrowPercent }}%）</span>
               </div>
               <span class="w-[210px] flex items-end gap-[3px] flex-shrink-0">
-                <span
+                <button
                   v-for="bar in thisWeekDailyBars"
                   :key="bar.date"
-                  class="flex-1 flex flex-col items-center gap-[3px]"
-                  :title="`${mdWeekday(bar.date)} ${bar.hours}h`"
+                  type="button"
+                  class="flex-1 flex flex-col items-center gap-[3px] bg-transparent border-none p-0 font-[inherit] cursor-pointer group"
+                  :title="`${mdWeekday(bar.date)} ${bar.hours}h（クリックでその日の一覧）`"
+                  @click="dayDetail = bar.date"
                 >
                   <span class="relative w-full h-[44px] flex items-end">
                     <span
-                      class="w-full rounded-sm"
+                      class="w-full rounded-sm transition-all group-hover:brightness-125"
                       :class="bar.date === todayDateKey ? 'bg-emerald-400' : 'bg-emerald-400/70'"
                       :style="{ height: `${Math.max(bar.heightPct, 2)}%` }"
                     />
@@ -1022,10 +1035,10 @@ watch(isLoggedIn, async (v) => {
                     />
                   </span>
                   <span
-                    class="text-[9px] leading-none"
+                    class="text-[9px] leading-none group-hover:text-slate-300"
                     :class="bar.date === todayDateKey ? 'text-emerald-400 font-bold' : 'text-slate-500'"
                   >{{ bar.hours > 0 ? `${bar.hours}h` : '-' }}</span>
-                </span>
+                </button>
               </span>
               <span class="text-slate-500" title="今週の月曜日から今日までの1日あたり平均完了工数">平均{{ thisWeekDailyAvgHours }}h/日</span>
             </div>
@@ -1244,7 +1257,7 @@ watch(isLoggedIn, async (v) => {
             <button
               type="button"
               class="text-left rounded-xl p-2.5 border border-white/10 bg-white/[0.04] flex flex-col gap-1.5 cursor-pointer active:bg-white/[0.08]"
-              @click="dayDetail = 'today'"
+              @click="dayDetail = todayDateKey"
             >
               <span class="text-[11px] text-slate-500 font-semibold flex items-center justify-between">今日<span class="text-slate-600">一覧 ›</span></span>
               <div class="flex items-baseline gap-1">
@@ -1260,7 +1273,7 @@ watch(isLoggedIn, async (v) => {
             <button
               type="button"
               class="text-left rounded-xl p-2.5 border border-white/10 bg-white/[0.04] flex flex-col gap-1.5 cursor-pointer active:bg-white/[0.08]"
-              @click="dayDetail = 'tomorrow'"
+              @click="dayDetail = tomorrowDateKey"
             >
               <span class="text-[11px] text-slate-500 font-semibold flex items-center justify-between">明日<span class="text-slate-600">一覧 ›</span></span>
               <div class="flex items-baseline gap-1">
@@ -1290,17 +1303,23 @@ watch(isLoggedIn, async (v) => {
               </div>
             </div>
             <div class="flex items-end gap-1.5">
-              <div v-for="bar in thisWeekDailyBars" :key="bar.date" class="flex-1 flex flex-col items-center gap-1">
+              <button
+                v-for="bar in thisWeekDailyBars"
+                :key="bar.date"
+                type="button"
+                class="flex-1 flex flex-col items-center gap-1 bg-transparent border-none p-0 font-[inherit] cursor-pointer active:opacity-60"
+                @click="dayDetail = bar.date"
+              >
                 <span class="text-[9px] text-slate-500 h-3 leading-3">{{ bar.hours > 0 ? `${bar.hours}h` : '' }}</span>
-                <div class="w-full h-[46px] flex items-end">
+                <span class="w-full h-[46px] flex items-end">
                   <span
                     class="w-full rounded-sm transition-all"
                     :class="bar.date === todayDateKey ? 'bg-emerald-400' : 'bg-emerald-400/50'"
                     :style="{ height: `${Math.max(bar.heightPct, 4)}%` }"
                   />
-                </div>
+                </span>
                 <span class="text-[10px]" :class="bar.date === todayDateKey ? 'text-emerald-400 font-bold' : 'text-slate-500'">{{ weekdayJa(bar.date) }}</span>
-              </div>
+              </button>
             </div>
           </div>
 
