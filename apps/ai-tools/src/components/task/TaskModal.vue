@@ -67,12 +67,19 @@ function sundayDue(weeksAhead = 0): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T23:59`
 }
 
+// 今日（JST）の 23:59
+function todayDue(): string {
+  const t = nowJST()
+  return `${t.getUTCFullYear()}-${pad2(t.getUTCMonth() + 1)}-${pad2(t.getUTCDate())}T23:59`
+}
+
+const isUntilToday = computed(() => !!form.value.due && form.value.due === todayDue())
 const isUntilSunday = computed(() => !!form.value.due && form.value.due === sundayDue(0))
 const isUntilNextSunday = computed(() => !!form.value.due && form.value.due === sundayDue(1))
 
-// 週末まで／来週末までは即座に確定させたい操作のため、チェックを入れた瞬間に保存してポップアップを閉じる
-function setUntilSunday(weeksAhead = 0) {
-  form.value.due = sundayDue(weeksAhead)
+// 今日まで／週末まで／来週末までは即座に確定させたい操作のため、チェックを入れた瞬間に保存してポップアップを閉じる
+function commitDue(due: string) {
+  form.value.due = due
   emit('save', form.value)
 }
 </script>
@@ -113,11 +120,25 @@ function setUntilSunday(weeksAhead = 0) {
                 <div
                   :class="[
                     'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all flex-shrink-0',
+                    isUntilToday
+                      ? 'bg-sky-500/20 border-sky-400/70'
+                      : 'bg-white/[0.04] border-white/20 group-hover:border-white/40',
+                  ]"
+                  @click="commitDue(todayDue())"
+                >
+                  <svg v-if="isUntilToday" xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <span :class="['text-[11px] font-medium transition-colors', isUntilToday ? 'text-sky-400' : 'text-slate-500 group-hover:text-slate-300']">今日まで</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer select-none group">
+                <div
+                  :class="[
+                    'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all flex-shrink-0',
                     isUntilSunday
                       ? 'bg-sky-500/20 border-sky-400/70'
                       : 'bg-white/[0.04] border-white/20 group-hover:border-white/40',
                   ]"
-                  @click="setUntilSunday(0)"
+                  @click="commitDue(sundayDue(0))"
                 >
                   <svg v-if="isUntilSunday" xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
@@ -131,7 +152,7 @@ function setUntilSunday(weeksAhead = 0) {
                       ? 'bg-sky-500/20 border-sky-400/70'
                       : 'bg-white/[0.04] border-white/20 group-hover:border-white/40',
                   ]"
-                  @click="setUntilSunday(1)"
+                  @click="commitDue(sundayDue(1))"
                 >
                   <svg v-if="isUntilNextSunday" xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
