@@ -38,7 +38,13 @@
     </div>
 
     <template v-else>
-      <p v-if="members.length === 0" class="text-center text-[var(--keiko-ink-soft)] py-16 text-[14px]">
+      <div v-if="loadError" class="text-center py-16">
+        <p class="text-[14px] text-[var(--keiko-ink-soft)]">記録を読み込めませんでした</p>
+        <p class="text-[11.5px] text-[var(--keiko-ink-soft)] mt-1">記録はサーバーに保存されています。通信を確かめて、もう一度お試しください</p>
+        <button class="keiko-btn !h-9 !px-4 mt-3" @click="load">読み込み直す</button>
+      </div>
+
+      <p v-else-if="members.length === 0" class="text-center text-[var(--keiko-ink-soft)] py-16 text-[14px]">
         設定（⚙）からメンバーを追加してください
       </p>
 
@@ -245,94 +251,130 @@
       </div>
     </div>
 
-    <!-- 設定モーダル -->
+    <!-- 設定モーダル。ここでの編集は下書きで、「保存する」を押したときにまとめてDBへ書き込む -->
     <div v-if="settingsOpen" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 z-[200]" @click.self="closeSettings">
-      <div class="w-full max-w-[520px] max-h-[86vh] overflow-y-auto bg-[var(--keiko-card)] rounded-2xl p-5">
-        <h2 class="keiko-display font-bold text-[17px] mb-1">設定</h2>
-        <p class="text-[11.5px] text-[var(--keiko-ink-soft)] mb-4">やることと本数、1本あたりのポイントをメンバーごとに決められます</p>
+      <div class="w-full max-w-[520px] max-h-[86vh] bg-[var(--keiko-card)] rounded-2xl flex flex-col overflow-hidden">
+        <div class="shrink-0 px-5 pt-5 pb-3">
+          <h2 class="keiko-display font-bold text-[17px] mb-1">設定</h2>
+          <p class="text-[11.5px] text-[var(--keiko-ink-soft)] leading-snug">
+            やることと本数、1本あたりのポイントをメンバーごとに決められます。変更は下の「保存する」でまとめて保存します
+          </p>
+          <p class="text-[11px] text-[var(--keiko-ink-soft)] leading-snug mt-1">
+            やることの名前は、一度入れたものを <strong>Tab キー</strong>で呼び出せます（何度も押すと次の候補へ）。本数は選ぶことも直接入力することもできます
+          </p>
+        </div>
 
-        <section v-for="(m, mi) in members" :key="m.id" class="mb-4 rounded-xl border border-[var(--keiko-line)] p-3">
-          <div class="flex items-center gap-1.5 mb-2.5">
-            <span class="inline-block w-1.5 h-5 rounded-full shrink-0" :style="{ background: memberColor(mi) }" />
-            <input v-model="m.name" class="keiko-input !py-1.5 text-[13px] font-bold" @blur="saveMemberName(m)" @keydown.enter="blurOnEnter" />
-            <button class="text-[13px] text-[var(--keiko-ink-soft)] hover:text-red-500 px-1.5 shrink-0" title="メンバーを削除" @click="deleteMember(m)">✕</button>
-          </div>
+        <!-- 入力候補。やることの名前はこの端末に覚えたもの＋今ここに並んでいるもの -->
+        <datalist id="keiko-item-names">
+          <option v-for="n in nameSuggestions" :key="n" :value="n" />
+        </datalist>
+        <datalist id="keiko-rep-options">
+          <option v-for="n in REP_OPTIONS" :key="n" :value="n" />
+        </datalist>
 
-          <div class="flex flex-col gap-2">
-            <div v-for="it in allItemsOf(m.id)" :key="it.id" class="rounded-lg bg-black/[0.02] p-2">
-              <div class="flex items-center gap-1.5">
-                <label class="flex items-center shrink-0" title="表示/非表示">
-                  <input type="checkbox" :checked="it.active" @change="toggleItemActive(it)" />
-                </label>
-                <input
-                  v-model="it.name"
-                  placeholder="やること"
-                  class="keiko-input !py-1.5 text-[13px]"
-                  :class="{ 'opacity-40': !it.active }"
-                  @blur="saveItemName(it)"
-                  @keydown.enter="blurOnEnter"
-                />
-                <button class="text-[13px] text-[var(--keiko-ink-soft)] hover:text-red-500 px-1.5 shrink-0" title="削除" @click="deleteItem(it)">✕</button>
+        <div class="flex-1 overflow-y-auto px-5">
+          <p v-if="pendingRemovals.length" class="mb-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-[11.5px] text-red-600 leading-snug">
+            保存すると次を削除します（これまでの記録も一緒に消えます）:<br />
+            <strong>{{ pendingRemovals.map((x) => x.name).join('・') }}</strong>
+          </p>
+
+          <section v-for="(m, mi) in draft" :key="m.id" class="mb-4 rounded-xl border border-[var(--keiko-line)] p-3">
+            <div class="flex items-center gap-1.5 mb-2.5">
+              <span class="inline-block w-1.5 h-5 rounded-full shrink-0" :style="{ background: memberColor(mi) }" />
+              <input v-model="m.name" placeholder="なまえ" class="keiko-input !py-1.5 text-[13px] font-bold" @keydown.enter="blurOnEnter" />
+              <button class="text-[13px] text-[var(--keiko-ink-soft)] hover:text-red-500 px-1.5 shrink-0" title="メンバーを削除" @click="removeDraftMember(m)">✕</button>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <div v-for="it in m.items" :key="it.id" class="rounded-lg bg-black/[0.02] p-2">
+                <div class="flex items-center gap-1.5">
+                  <label class="flex items-center shrink-0" title="表示/非表示">
+                    <input v-model="it.active" type="checkbox" />
+                  </label>
+                  <input
+                    v-model="it.name"
+                    placeholder="やること"
+                    list="keiko-item-names"
+                    class="keiko-input !py-1.5 text-[13px]"
+                    :class="{ 'opacity-40': !it.active }"
+                    @keydown.enter="blurOnEnter"
+                    @keydown.tab="completeOnTab($event, it.name, (v) => (it.name = v))"
+                  />
+                  <button class="text-[13px] text-[var(--keiko-ink-soft)] hover:text-red-500 px-1.5 shrink-0" title="削除" @click="removeDraftItem(m, it)">✕</button>
+                </div>
+                <div class="mt-1.5 pl-[22px]">
+                  <select v-model="it.kind" class="keiko-kind-select">
+                    <option value="reps">本数×ポイントで数える</option>
+                    <option value="direct">達成時にポイントを入れる</option>
+                  </select>
+                </div>
+                <div v-if="it.kind === 'reps'" class="flex items-center gap-1 mt-1.5 pl-[22px] text-[12px] text-[var(--keiko-ink-soft)]">
+                  <input v-model.number="it.repCount" type="number" min="1" inputmode="numeric" list="keiko-rep-options" class="keiko-num !w-[68px]" />
+                  <span>本</span>
+                  <span class="px-0.5">×</span>
+                  <input v-model.number="it.pointPerRep" type="number" min="1" class="keiko-num" />
+                  <span>pt/本</span>
+                  <span class="ml-auto text-[12px] font-bold" :style="{ color: memberColor(mi) }">= {{ itemPoints(it) }}pt</span>
+                </div>
+                <p v-else class="mt-1.5 pl-[22px] text-[11px] text-[var(--keiko-ink-soft)] leading-snug">
+                  稽古・大会など。本数も達成割合も使わず、できた日にポイントを直接入力します
+                </p>
               </div>
-              <div class="mt-1.5 pl-[22px]">
-                <select v-model="it.kind" class="keiko-kind-select" @change="saveItemKind(it)">
+            </div>
+
+            <p v-if="m.items.length === 0 && isNewRow(m.id)" class="mt-1 text-[11px] text-[var(--keiko-ink-soft)] leading-snug">
+              保存すると、はじめのやること（素振り・稽古など）が入ります
+            </p>
+
+            <div v-if="itemDrafts[m.id]" class="mt-2 rounded-lg border border-dashed border-[var(--keiko-line)] p-2">
+              <input
+                v-model="itemDrafts[m.id].name"
+                placeholder="＋ やること（例: はや素振り）"
+                list="keiko-item-names"
+                class="keiko-input !py-1.5 text-[13px]"
+                @keydown.enter="runOnEnter($event, () => addDraftItem(m))"
+                @keydown.tab="completeOnTab($event, itemDrafts[m.id].name, (v) => setItemDraftName(m.id, v))"
+              />
+              <div class="mt-1.5">
+                <select v-model="itemDrafts[m.id].kind" class="keiko-kind-select">
                   <option value="reps">本数×ポイントで数える</option>
                   <option value="direct">達成時にポイントを入れる</option>
                 </select>
               </div>
-              <div v-if="it.kind === 'reps'" class="flex items-center gap-1 mt-1.5 pl-[22px] text-[12px] text-[var(--keiko-ink-soft)]">
-                <select v-model.number="it.repCount" class="keiko-select" @change="saveItemNumbers(it)">
-                  <option v-for="n in repOptions(it.repCount)" :key="n" :value="n">{{ n }}</option>
-                </select>
-                <span>本</span>
-                <span class="px-0.5">×</span>
-                <input v-model.number="it.pointPerRep" type="number" min="1" class="keiko-num" @change="saveItemNumbers(it)" />
-                <span>pt/本</span>
-                <span class="ml-auto text-[12px] font-bold" :style="{ color: memberColor(mi) }">= {{ itemPoints(it) }}pt</span>
+              <div class="flex items-center gap-1 mt-1.5 text-[12px] text-[var(--keiko-ink-soft)]">
+                <template v-if="itemDrafts[m.id].kind === 'reps'">
+                  <input v-model.number="itemDrafts[m.id].repCount" type="number" min="1" inputmode="numeric" list="keiko-rep-options" class="keiko-num !w-[68px]" />
+                  <span>本</span>
+                  <span class="px-0.5">×</span>
+                  <input v-model.number="itemDrafts[m.id].pointPerRep" type="number" min="1" class="keiko-num" />
+                  <span>pt/本</span>
+                </template>
+                <span v-else class="text-[11px]">できた日にポイントを直接入力</span>
+                <button class="keiko-btn-ghost !h-8 !px-3 !text-[12px] ml-auto shrink-0" @click="addDraftItem(m)">追加</button>
               </div>
-              <p v-else class="mt-1.5 pl-[22px] text-[11px] text-[var(--keiko-ink-soft)] leading-snug">
-                稽古・大会など。本数も達成割合も使わず、できた日にポイントを直接入力します
-              </p>
             </div>
-          </div>
+          </section>
 
-          <div v-if="drafts[m.id]" class="mt-2 rounded-lg border border-dashed border-[var(--keiko-line)] p-2">
-            <input
-              v-model="drafts[m.id].name"
-              placeholder="＋ やること（例: はや素振り）"
-              class="keiko-input !py-1.5 text-[13px]"
-              @keydown.enter="runOnEnter($event, () => addItem(m.id))"
-            />
-            <div class="mt-1.5">
-              <select v-model="drafts[m.id].kind" class="keiko-kind-select">
-                <option value="reps">本数×ポイントで数える</option>
-                <option value="direct">達成時にポイントを入れる</option>
-              </select>
-            </div>
-            <div class="flex items-center gap-1 mt-1.5 text-[12px] text-[var(--keiko-ink-soft)]">
-              <template v-if="drafts[m.id].kind === 'reps'">
-                <select v-model.number="drafts[m.id].repCount" class="keiko-select">
-                  <option v-for="n in REP_OPTIONS" :key="n" :value="n">{{ n }}</option>
-                </select>
-                <span>本</span>
-                <span class="px-0.5">×</span>
-                <input v-model.number="drafts[m.id].pointPerRep" type="number" min="1" class="keiko-num" />
-                <span>pt/本</span>
-              </template>
-              <span v-else class="text-[11px]">できた日にポイントを直接入力</span>
-              <button class="keiko-btn-ghost !h-8 !px-3 !text-[12px] ml-auto shrink-0" @click="addItem(m.id)">追加</button>
-            </div>
+          <div class="flex items-center gap-1.5 pb-4">
+            <input v-model="newMemberName" placeholder="＋ メンバーを追加" class="keiko-input !py-1.5 text-[13px]" @keydown.enter="runOnEnter($event, addDraftMember)" />
+            <button class="keiko-btn-ghost !h-8 !px-3 !text-[12px] shrink-0" @click="addDraftMember">追加</button>
           </div>
-        </section>
-
-        <div class="flex items-center gap-1.5">
-          <input v-model="newMemberName" placeholder="＋ メンバーを追加" class="keiko-input !py-1.5 text-[13px]" @keydown.enter="runOnEnter($event, addMember)" />
-          <button class="keiko-btn-ghost !h-8 !px-3 !text-[12px] shrink-0" @click="addMember">追加</button>
         </div>
 
-        <button class="keiko-btn w-full mt-5" @click="closeSettings">閉じる</button>
+        <div class="shrink-0 flex items-center gap-1.5 px-5 py-3 border-t border-[var(--keiko-line)]">
+          <span class="text-[11.5px] leading-tight" :class="settingsDirty ? 'text-[var(--keiko-gold)] font-bold' : 'text-[var(--keiko-ink-soft)]'">
+            {{ settingsDirty ? '未保存の変更があります' : 'すべて保存済みです' }}
+          </span>
+          <button class="keiko-btn-ghost !h-9 !px-3.5 ml-auto shrink-0" @click="closeSettings">とじる</button>
+          <button class="keiko-btn !h-9 !px-4 shrink-0" :disabled="!settingsDirty || saving" @click="saveSettings">
+            {{ saving ? '保存中…' : '保存する' }}
+          </button>
+        </div>
       </div>
     </div>
+
+    <!-- 保存できたことを短く知らせる -->
+    <div v-if="toastText" class="keiko-toast">{{ toastText }}</div>
 
     <AuthModal v-if="showAuthModal" accent="sky" />
     <PasswordModal v-model:show="showPasswordModal" accent="sky" />
@@ -365,6 +407,8 @@ const items = ref<KeikoItem[]>([])
 const records = ref<KeikoRecord[]>([])
 const buckets = ref<KeikoPointBucket[]>([])
 const loading = ref(true)
+/** 読み込みに失敗したかどうか。空っぽの画面を「記録がまだ無い」と誤解させないために持つ。 */
+const loadError = ref(false)
 
 // メンバーの色（表・カレンダー・年表で共通に使う）
 const MEMBER_COLORS = ['#1c2540', '#c9a227', '#3b82c4', '#e0524b', '#4f9d69', '#8a63b8']
@@ -481,9 +525,11 @@ async function loadState() {
     items.value = data.items
     records.value = data.records
   } catch {
+    // 読めなかったときは空にするが、「まだ何も無い」と区別できるよう loadError を立てる
     members.value = []
     items.value = []
     records.value = []
+    loadError.value = true
   }
 }
 
@@ -495,11 +541,13 @@ async function loadPoints() {
     buckets.value = data.buckets
   } catch {
     buckets.value = []
+    loadError.value = true
   }
 }
 
 async function load() {
   loading.value = true
+  loadError.value = false
   try {
     if (mode.value === 'week') await loadState()
     else await Promise.all([loadState(), loadPoints()])
@@ -644,6 +692,21 @@ function clearRecord() {
   saveRecord({ remove: true }, null)
 }
 
+// ── 保存できたことの小さな知らせ ──
+const toastText = ref('')
+let toastTimer: ReturnType<typeof setTimeout> | null = null
+function toast(text: string) {
+  toastText.value = text
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => (toastText.value = ''), 1800)
+}
+
+/** サーバーが返したメッセージ（createError の message）を取り出す。 */
+function errorMessage(e: unknown): string {
+  const message = (e as { data?: { message?: string } })?.data?.message
+  return typeof message === 'string' ? message : ''
+}
+
 /** 楽観更新してから保存。next が null なら記録を消す。 */
 async function saveRecord(payload: Record<string, unknown>, next: { rate: number; points: number | null } | null) {
   const p = picker.value
@@ -665,6 +728,7 @@ async function saveRecord(payload: Record<string, unknown>, next: { rate: number
 
   try {
     await $fetch('/api/keiko/records/set', { method: 'POST', body: { memberId, itemId, date, ...payload } })
+    toast(next ? '記録を保存しました' : '記録を消しました')
   } catch {
     // 失敗時はロールバック
     const cur = find()
@@ -675,144 +739,226 @@ async function saveRecord(payload: Record<string, unknown>, next: { rate: number
 }
 
 // ── 設定 ──
-/** 本数の選択肢。素振りの本数として現実的な刻みだけ出す。 */
+/** 本数の候補（datalist に出す目安）。ここに無い数も直接入力できる。 */
 const REP_OPTIONS = [5, 10, 20, 30, 40, 50, 100, 150, 200, 300]
-/** 既存の値が選択肢に無ければ（旧データ・既定シードの1本など）その値も混ぜて出す。 */
-function repOptions(current: number): number[] {
-  const n = Number(current)
-  if (!Number.isFinite(n) || REP_OPTIONS.includes(n)) return REP_OPTIONS
-  return [...REP_OPTIONS, n].sort((a, b) => a - b)
+
+
+// 設定は「下書きを編集 →「保存する」でまとめてDBへ書き込む」方式。
+// 画面の members/items は保存が成功するまで触らないので、とじる（キャンセル）は下書きを捨てるだけで済む。
+interface DraftItem {
+  id: string // 既存はDBのID、追加したばかりの行は 'new:1' のような仮ID
+  name: string
+  kind: KeikoItemKind
+  repCount: number
+  pointPerRep: number
+  active: boolean
+}
+interface DraftMember {
+  id: string
+  name: string
+  items: DraftItem[]
 }
 
 const settingsOpen = ref(false)
+const saving = ref(false)
 const newMemberName = ref('')
-const drafts = reactive<Record<string, { name: string; kind: KeikoItemKind; repCount: number; pointPerRep: number }>>({})
+const draft = ref<DraftMember[]>([])
+/** 保存したら消すもの（画面から消えても、保存するまではDBに残っている）。 */
+const removedMembers = ref<{ id: string; name: string }[]>([])
+const removedItems = ref<{ id: string; name: string }[]>([])
+/** メンバーごとの「＋やること」入力欄。下書き本体とは別に持つ（打ちかけを未保存扱いにしないため）。 */
+const itemDrafts = reactive<Record<string, { name: string; kind: KeikoItemKind; repCount: number; pointPerRep: number }>>({})
+/** 開いたとき（＝保存済み）の下書きの中身。今の中身と比べて未保存かどうかを判定する。 */
+const savedSnapshot = ref('')
 
-function syncDrafts() {
-  for (const m of members.value) if (!drafts[m.id]) drafts[m.id] = { name: '', kind: 'reps', repCount: 10, pointPerRep: 1 }
+let tempSeq = 0
+function nextTempId(): string {
+  return `new:${++tempSeq}`
 }
-watch(() => members.value.map((m) => m.id).join('|'), syncDrafts, { immediate: true })
+function isNewRow(id: string): boolean {
+  return id.startsWith('new:')
+}
+
+const pendingRemovals = computed(() => [...removedMembers.value, ...removedItems.value])
+const settingsDirty = computed(() => JSON.stringify(draft.value) !== savedSnapshot.value || pendingRemovals.value.length > 0)
+
+function syncItemDrafts() {
+  for (const m of draft.value) if (!itemDrafts[m.id]) itemDrafts[m.id] = { name: '', kind: 'reps', repCount: 10, pointPerRep: 1 }
+}
+function setItemDraftName(memberId: string, value: string) {
+  const d = itemDrafts[memberId]
+  if (d) d.name = value
+}
+
+// ── やることの名前の入力候補 ──
+// 護と匡で同じ「はや素振り」を入れる、といった打ち直しを減らすための入力補助。
+// 記録そのものではなく端末ごとの入力履歴なので、D1ではなく localStorage に置く。
+const NAME_HISTORY_KEY = 'keiko-item-names'
+const NAME_HISTORY_MAX = 60
+const nameHistory = ref<string[]>([])
+
+function loadNameHistory() {
+  try {
+    const raw = localStorage.getItem(NAME_HISTORY_KEY)
+    const list: unknown = raw ? JSON.parse(raw) : []
+    nameHistory.value = Array.isArray(list) ? list.filter((n): n is string => typeof n === 'string') : []
+  } catch {
+    nameHistory.value = []
+  }
+}
+/** 使った名前を新しい順に覚え直す。 */
+function rememberNames(names: string[]) {
+  const used = names.map((n) => n.trim()).filter(Boolean)
+  if (used.length === 0) return
+  nameHistory.value = [...new Set([...used, ...nameHistory.value])].slice(0, NAME_HISTORY_MAX)
+  try {
+    localStorage.setItem(NAME_HISTORY_KEY, JSON.stringify(nameHistory.value))
+  } catch {
+    // 覚えられなくても入力候補が出ないだけなので、そのまま続ける
+  }
+}
+
+/** 入力候補。今この画面に並んでいる名前も混ぜるので、別のメンバーに入れた名前をすぐ呼び出せる。 */
+const nameSuggestions = computed(() => {
+  const inDraft = draft.value.flatMap((m) => m.items.map((it) => it.name.trim())).filter(Boolean)
+  return [...new Set([...inDraft, ...nameHistory.value])]
+})
+
+/**
+ * Tab で入力候補を当てはめる（シェルの補完と同じ感覚）。
+ * 続けて押すと同じ書き出しの次の候補へ回る。候補が無いときは何もしない＝Tab 本来の移動のまま。
+ */
+const tabState = { prefix: '', last: '' }
+function completeOnTab(e: KeyboardEvent, current: string, apply: (value: string) => void) {
+  if (isImeKey(e)) return
+  // 直前に Tab で入れた候補のままなら、そのときの書き出しで次の候補を探す
+  const prefix = current === tabState.last && tabState.prefix ? tabState.prefix : current.trim()
+  if (!prefix) return
+  const hits = nameSuggestions.value.filter((n) => n.startsWith(prefix))
+  const next = hits[(hits.indexOf(current) + 1) % hits.length]
+  if (!next) return
+  e.preventDefault()
+  tabState.prefix = prefix
+  tabState.last = next
+  apply(next)
+}
 
 function openSettings() {
-  syncDrafts()
+  draft.value = members.value.map((m) => ({
+    id: m.id,
+    name: m.name,
+    items: allItemsOf(m.id).map((it) => ({
+      id: it.id,
+      name: it.name,
+      kind: it.kind,
+      repCount: it.repCount,
+      pointPerRep: it.pointPerRep,
+      active: it.active,
+    })),
+  }))
+  removedMembers.value = []
+  removedItems.value = []
+  savedSnapshot.value = JSON.stringify(draft.value)
+  syncItemDrafts()
   settingsOpen.value = true
 }
+
 function closeSettings() {
+  if (settingsDirty.value && !confirm('保存していない変更があります。破棄してとじますか？')) return
   settingsOpen.value = false
-  // 本数・ポイントを変えると集計が変わるので、月/年表示は取り直す
-  if (mode.value !== 'week') loadPoints()
 }
 
-async function addMember() {
+function addDraftMember() {
   const name = newMemberName.value.trim()
   if (!name) return
-  try {
-    const created = await $fetch<{ member: KeikoMember; items: KeikoItem[] }>('/api/keiko/members', { method: 'POST', body: { name } })
-    members.value.push(created.member)
-    items.value.push(...created.items)
-    newMemberName.value = ''
-    syncDrafts()
-  } catch {
-    alert('追加に失敗しました')
-  }
+  draft.value.push({ id: nextTempId(), name, items: [] })
+  newMemberName.value = ''
+  syncItemDrafts()
 }
-async function saveMemberName(m: KeikoMember) {
-  const name = m.name.trim()
-  if (!name) return
-  try {
-    await $fetch(`/api/keiko/members/${m.id}`, { method: 'PATCH', body: { name } })
-  } catch {
-    alert('保存に失敗しました')
-  }
-}
-async function deleteMember(m: KeikoMember) {
-  if (!confirm(`「${m.name}」を削除しますか？練習項目と記録も削除されます`)) return
-  try {
-    await $fetch(`/api/keiko/members/${m.id}`, { method: 'DELETE' })
-    members.value = members.value.filter((x) => x.id !== m.id)
-    items.value = items.value.filter((it) => it.memberId !== m.id)
-    records.value = records.value.filter((r) => r.memberId !== m.id)
-    buckets.value = buckets.value.filter((b) => b.memberId !== m.id)
-  } catch {
-    alert('削除に失敗しました')
-  }
+function removeDraftMember(m: DraftMember) {
+  if (!isNewRow(m.id)) removedMembers.value.push({ id: m.id, name: m.name.trim() || 'メンバー' })
+  draft.value = draft.value.filter((x) => x.id !== m.id)
+  delete itemDrafts[m.id]
 }
 
-async function addItem(memberId: string) {
-  const draft = drafts[memberId]
-  const name = draft?.name.trim()
+function addDraftItem(m: DraftMember) {
+  const d = itemDrafts[m.id]
+  if (!d) return
+  const name = d.name.trim()
   if (!name) return
-  const kind = draft.kind
-  const repCount = normalize(draft.repCount, 1)
-  const pointPerRep = normalize(draft.pointPerRep, 1)
-  try {
-    const created = await $fetch<KeikoItem>('/api/keiko/items', { method: 'POST', body: { memberId, name, kind, repCount, pointPerRep } })
-    items.value.push(created)
-    drafts[memberId] = { name: '', kind, repCount, pointPerRep }
-  } catch {
-    alert('追加に失敗しました')
-  }
+  m.items.push({ id: nextTempId(), name, kind: d.kind, repCount: normalize(d.repCount, 1), pointPerRep: normalize(d.pointPerRep, 1), active: true })
+  itemDrafts[m.id] = { name: '', kind: d.kind, repCount: d.repCount, pointPerRep: d.pointPerRep }
 }
-async function saveItemName(it: KeikoItem) {
-  const name = it.name.trim()
-  if (!name) return
-  try {
-    await $fetch(`/api/keiko/items/${it.id}`, { method: 'PATCH', body: { name } })
-  } catch {
-    alert('保存に失敗しました')
-  }
+function removeDraftItem(m: DraftMember, it: DraftItem) {
+  if (!isNewRow(it.id)) removedItems.value.push({ id: it.id, name: `${m.name}の${it.name.trim() || 'やること'}` })
+  m.items = m.items.filter((x) => x.id !== it.id)
 }
-async function saveItemKind(it: KeikoItem) {
-  try {
-    await $fetch(`/api/keiko/items/${it.id}`, { method: 'PATCH', body: { kind: it.kind } })
-    // 「本数×ポイント」→「直接ポイント」でサーバーが過去の記録に points を焼き付けるので読み直す
-    await loadState()
-  } catch {
-    alert('更新に失敗しました')
-    await loadState()
+
+/** 下書きの内容をまとめてDBへ保存する。 */
+async function saveSettings() {
+  for (const m of draft.value) {
+    if (!m.name.trim()) {
+      alert('なまえが空のメンバーがあります')
+      return
+    }
+    for (const it of m.items) {
+      if (!it.name.trim()) {
+        alert(`「${m.name}」に、やることが空の項目があります`)
+        return
+      }
+    }
   }
-}
-async function saveItemNumbers(it: KeikoItem) {
-  it.repCount = normalize(it.repCount, 1)
-  it.pointPerRep = normalize(it.pointPerRep, 1)
-  try {
-    await $fetch(`/api/keiko/items/${it.id}`, { method: 'PATCH', body: { repCount: it.repCount, pointPerRep: it.pointPerRep } })
-  } catch {
-    alert('保存に失敗しました')
+  if (pendingRemovals.value.length) {
+    const names = pendingRemovals.value.map((x) => x.name).join('・')
+    if (!confirm(`${names} を削除します。これまでの記録も消えます。よろしいですか？`)) return
   }
-}
-async function toggleItemActive(it: KeikoItem) {
-  it.active = !it.active
+
+  saving.value = true
   try {
-    await $fetch(`/api/keiko/items/${it.id}`, { method: 'PATCH', body: { active: it.active } })
-  } catch {
-    it.active = !it.active
-    alert('更新に失敗しました')
-  }
-}
-async function deleteItem(it: KeikoItem) {
-  if (!confirm(`「${it.name}」を削除しますか？記録も削除されます`)) return
-  try {
-    await $fetch(`/api/keiko/items/${it.id}`, { method: 'DELETE' })
-    items.value = items.value.filter((x) => x.id !== it.id)
-    records.value = records.value.filter((r) => r.itemId !== it.id)
-  } catch {
-    alert('削除に失敗しました')
+    await $fetch('/api/keiko/settings', {
+      method: 'POST',
+      body: {
+        members: draft.value.map((m) => ({ id: m.id, name: m.name.trim() })),
+        items: draft.value.flatMap((m) =>
+          m.items.map((it) => ({
+            id: it.id,
+            memberId: m.id,
+            name: it.name.trim(),
+            kind: it.kind,
+            repCount: normalize(it.repCount, 1),
+            pointPerRep: normalize(it.pointPerRep, 1),
+            active: it.active,
+          }))
+        ),
+        removedMemberIds: removedMembers.value.map((x) => x.id),
+        removedItemIds: removedItems.value.map((x) => x.id),
+      },
+    })
+    // 次に別のメンバーへ同じやることを入れるときのために、使った名前をこの端末に覚えておく
+    rememberNames(draft.value.flatMap((m) => m.items.map((it) => it.name)))
+    settingsOpen.value = false
+    // 本数・ポイント・項目の増減で集計が変わるので、記録も含めて読み直す
+    await load()
+    toast('設定を保存しました')
+  } catch (e) {
+    alert(errorMessage(e) || '保存に失敗しました')
+  } finally {
+    saving.value = false
   }
 }
 
 // ── IME 対策 ──
-// 日本語入力の「変換確定」も keydown.enter を発火させる（isComposing / keyCode 229）。
-// そのまま blur() や 追加 を走らせると、確定した文字がもう一度挿入されて二重入力になる。
-function isImeEnter(e: KeyboardEvent): boolean {
+// 日本語入力の「変換確定」も keydown を発火させる（isComposing / keyCode 229）。
+// そのまま blur() や 追加・Tab補完 を走らせると、確定した文字がもう一度挿入されて二重入力になる。
+function isImeKey(e: KeyboardEvent): boolean {
   return e.isComposing || e.keyCode === 229
 }
 function blurOnEnter(e: KeyboardEvent) {
-  if (isImeEnter(e)) return
+  if (isImeKey(e)) return
   ;(e.target as HTMLInputElement).blur()
 }
 function runOnEnter(e: KeyboardEvent, fn: () => void) {
-  if (isImeEnter(e)) return
+  if (isImeKey(e)) return
   fn()
 }
 
@@ -827,10 +973,24 @@ async function doLogout() {
   window.location.reload()
 }
 
-onMounted(async () => {
-  await checkAuth()
+// 記録はサーバー（D1）にユーザー単位で保存しているので、同じアカウントならどの端末からでも同じものが見える。
+// ただし読み込みはログインが済んでからでないと 401 になり、空の画面のまま止まってしまう。
+// （別の端末で初めて開くと、まず未ログインで開いてからログインする＝この順番になる）
+let started = false
+async function startIfLoggedIn() {
+  if (started || !isLoggedIn.value) return
+  started = true
   await load()
+}
+
+onMounted(async () => {
+  loadNameHistory()
+  await checkAuth()
+  if (!isLoggedIn.value) loading.value = false
+  await startIfLoggedIn()
 })
+// ログインが済んだら読み込む（ログイン後に画面は作り直されないので、ここで読み直す必要がある）
+watch(isLoggedIn, () => startIfLoggedIn())
 </script>
 
 <style scoped>
@@ -1000,23 +1160,6 @@ onMounted(async () => {
   outline: none;
   border-color: var(--keiko-gold);
 }
-.keiko-select {
-  width: 72px;
-  padding: 0.25rem 0.2rem 0.25rem 0.4rem;
-  border: 1px solid var(--keiko-line);
-  border-radius: 8px;
-  background: var(--keiko-card);
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--keiko-ink);
-  text-align: center;
-  text-align-last: center;
-  cursor: pointer;
-}
-.keiko-select:focus {
-  outline: none;
-  border-color: var(--keiko-gold);
-}
 /* 項目の種類（本数×ポイント / 直接ポイント） */
 .keiko-kind-select {
   width: 100%;
@@ -1033,6 +1176,33 @@ onMounted(async () => {
   outline: none;
   border-color: var(--keiko-gold);
 }
+/* 保存できたことの知らせ（サーバーに書き込めた合図） */
+.keiko-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 300;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: rgba(28, 37, 64, 0.92);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(28, 37, 64, 0.25);
+  animation: keiko-toast-in 0.16s ease-out;
+}
+@keyframes keiko-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 /* 直接ポイント入力のよく使う値 */
 .keiko-preset {
   min-width: 44px;
