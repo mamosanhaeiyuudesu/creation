@@ -2,9 +2,9 @@
   <div class="max-w-[980px] mx-auto px-4 sm:px-6 pt-6 pb-24">
     <div class="flex items-center justify-between gap-2 mb-4">
       <div class="flex items-center gap-2.5">
-        <span class="text-3xl" style="font-family:'Apple Color Emoji','Segoe UI Emoji',sans-serif">🥋</span>
+        <KeikoArt name="kid" :size="54" class="keiko-bob" />
         <div>
-          <h1 class="keiko-display text-[22px] sm:text-[26px] font-bold leading-none">けいこ記録</h1>
+          <h1 class="keiko-display text-[22px] sm:text-[26px] leading-none">けいこ記録</h1>
           <p class="text-[12px] text-[var(--keiko-ink-soft)] mt-1">できた分を記録して、ポイントをためよう</p>
         </div>
       </div>
@@ -33,26 +33,34 @@
     </div>
 
     <!-- ローディング -->
-    <div v-if="loading" class="space-y-3">
-      <div v-for="i in 3" :key="i" class="h-28 rounded-2xl bg-white/70 animate-pulse" />
+    <div v-if="loading">
+      <div class="flex justify-center pb-3">
+        <KeikoArt name="swing" :size="64" class="keiko-swing" />
+      </div>
+      <div class="space-y-3">
+        <div v-for="i in 3" :key="i" class="h-28 rounded-2xl bg-white/70 animate-pulse" />
+      </div>
     </div>
 
     <template v-else>
       <div v-if="loadError" class="text-center py-16">
-        <p class="text-[14px] text-[var(--keiko-ink-soft)]">記録を読み込めませんでした</p>
+        <KeikoArt name="men" :size="72" class="mx-auto opacity-60" />
+        <p class="text-[14px] text-[var(--keiko-ink-soft)] mt-3">記録を読み込めませんでした</p>
         <p class="text-[11.5px] text-[var(--keiko-ink-soft)] mt-1">記録はサーバーに保存されています。通信を確かめて、もう一度お試しください</p>
         <button class="keiko-btn !h-9 !px-4 mt-3" @click="load">読み込み直す</button>
       </div>
 
-      <p v-else-if="members.length === 0" class="text-center text-[var(--keiko-ink-soft)] py-16 text-[14px]">
-        設定（⚙）からメンバーを追加してください
-      </p>
+      <div v-else-if="members.length === 0" class="text-center py-16">
+        <KeikoArt name="kid" :size="96" class="mx-auto keiko-bob" />
+        <p class="text-[14px] text-[var(--keiko-ink-soft)] mt-3">設定（⚙）からメンバーを追加してください</p>
+      </div>
 
       <!-- ── 週表示：メンバーごとに項目×曜日のポイント表 ── -->
       <template v-else-if="mode === 'week'">
         <div v-for="(member, mi) in members" :key="member.id" class="mb-5 rounded-2xl border border-[var(--keiko-line)] bg-[var(--keiko-card)] overflow-hidden">
           <div class="flex items-center justify-between gap-2 px-4 pt-3 pb-2">
-            <h2 class="keiko-display text-[16px] font-bold flex items-center gap-1.5">
+            <h2 class="keiko-display text-[16px] flex items-center gap-1.5">
+              <KeikoArt :name="memberArt(mi)" :size="30" />
               <span class="inline-block w-1.5 h-4 rounded-full" :style="{ background: memberColor(mi) }" />
               {{ member.name }}
             </h2>
@@ -84,10 +92,15 @@
               <tbody>
                 <tr v-for="item in itemsOf(member.id)" :key="item.id" class="border-t border-[var(--keiko-line)]">
                   <td class="pl-3 py-2">
-                    <div class="text-[13px] font-medium leading-tight">{{ item.name }}</div>
-                    <div class="text-[10.5px] text-[var(--keiko-ink-soft)] leading-tight mt-0.5">
-                      <template v-if="item.kind === 'direct'">できた日にポイントを入力</template>
-                      <template v-else>{{ item.repCount }}本 × {{ item.pointPerRep }}pt = <strong>{{ itemPoints(item) }}pt</strong></template>
+                    <div class="flex items-center gap-1.5">
+                      <KeikoArt :name="item.kind === 'direct' ? 'flag' : 'shinai'" :size="24" />
+                      <div>
+                        <div class="text-[13px] font-medium leading-tight">{{ item.name }}</div>
+                        <div class="text-[10.5px] text-[var(--keiko-ink-soft)] leading-tight mt-0.5">
+                          <template v-if="item.kind === 'direct'">できた日にポイントを入力</template>
+                          <template v-else>{{ item.repCount }}本 × {{ item.pointPerRep }}pt = <strong>{{ itemPoints(item) }}pt</strong></template>
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td v-for="cell in rowCells(member.id, item)" :key="cell.date" class="text-center py-1.5" :class="{ 'keiko-td--today': cell.isToday }">
@@ -97,7 +110,12 @@
                   </td>
                 </tr>
                 <tr class="border-t border-[var(--keiko-line)] bg-black/[0.015]">
-                  <td class="pl-3 py-1.5 text-[11.5px] font-bold text-[var(--keiko-ink-soft)]">ポイント</td>
+                  <td class="pl-3 py-1.5 text-[11.5px] font-bold text-[var(--keiko-ink-soft)]">
+                    <span class="inline-flex items-center gap-1">
+                      <KeikoArt name="ashiato" :size="18" />
+                      ポイント
+                    </span>
+                  </td>
                   <td
                     v-for="day in weekDays"
                     :key="day.date"
@@ -163,7 +181,10 @@
             </div>
           </div>
         </div>
-        <p class="text-[11.5px] text-[var(--keiko-ink-soft)] mt-2 text-center">日ごとの獲得ポイント（その日にできた項目の合計）</p>
+        <p class="flex items-center justify-center gap-1.5 text-[11.5px] text-[var(--keiko-ink-soft)] mt-2">
+          <KeikoArt name="ashiato" :size="18" />
+          日ごとの獲得ポイント（その日にできた項目の合計）
+        </p>
       </template>
 
       <!-- ── 年表示：メンバーごとの月別ポイント一覧 ── -->
@@ -192,7 +213,12 @@
                 </td>
               </tr>
               <tr class="bg-black/[0.02]">
-                <td class="pl-4 py-3 text-[12px] font-bold text-[var(--keiko-ink-soft)]">年合計</td>
+                <td class="pl-4 py-3 text-[12px] font-bold text-[var(--keiko-ink-soft)]">
+                  <span class="inline-flex items-center gap-1">
+                    <KeikoArt name="flag" :size="20" />
+                    年合計
+                  </span>
+                </td>
                 <td v-for="(member, mi) in members" :key="member.id" class="text-center py-3">
                   <span class="text-[15px] font-bold" :style="{ color: memberColor(mi) }">{{ memberRangePoints(member.id) }}</span>
                   <span class="text-[10.5px] text-[var(--keiko-ink-soft)] ml-0.5">pt</span>
@@ -207,8 +233,13 @@
     <!-- 評価えらび（セルをタップしたとき） -->
     <div v-if="picker" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 z-[210]" @click.self="picker = null">
       <div class="w-full max-w-[320px] bg-[var(--keiko-card)] rounded-2xl p-5">
-        <p class="text-[11.5px] text-[var(--keiko-ink-soft)]">{{ picker.memberName }}・{{ picker.dateLabel }}</p>
-        <h2 class="keiko-display font-bold text-[16px] mt-0.5 mb-3">{{ picker.itemName }}</h2>
+        <div class="flex items-center gap-2.5 mb-3">
+          <KeikoArt :name="picker.kind === 'direct' ? 'flag' : 'swing'" :size="46" />
+          <div>
+            <p class="text-[11.5px] text-[var(--keiko-ink-soft)]">{{ picker.memberName }}・{{ picker.dateLabel }}</p>
+            <h2 class="keiko-display text-[16px] mt-0.5 leading-tight">{{ picker.itemName }}</h2>
+          </div>
+        </div>
 
         <!-- 本数×ポイントの項目：10%刻みの評価から選ぶ -->
         <div v-if="picker.kind === 'reps'" class="grid grid-cols-3 gap-1.5">
@@ -255,7 +286,10 @@
     <div v-if="settingsOpen" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 z-[200]" @click.self="closeSettings">
       <div class="w-full max-w-[520px] max-h-[86vh] bg-[var(--keiko-card)] rounded-2xl flex flex-col overflow-hidden">
         <div class="shrink-0 px-5 pt-5 pb-3">
-          <h2 class="keiko-display font-bold text-[17px] mb-1">設定</h2>
+          <h2 class="keiko-display text-[17px] mb-1 flex items-center gap-2">
+            <KeikoArt name="do" :size="32" />
+            設定
+          </h2>
           <p class="text-[11.5px] text-[var(--keiko-ink-soft)] leading-snug">
             やることと本数、1本あたりのポイントをメンバーごとに決められます。変更は下の「保存する」でまとめて保存します
           </p>
@@ -280,6 +314,7 @@
 
           <section v-for="(m, mi) in draft" :key="m.id" class="mb-4 rounded-xl border border-[var(--keiko-line)] p-3">
             <div class="flex items-center gap-1.5 mb-2.5">
+              <KeikoArt :name="memberArt(mi)" :size="28" />
               <span class="inline-block w-1.5 h-5 rounded-full shrink-0" :style="{ background: memberColor(mi) }" />
               <input v-model="m.name" placeholder="なまえ" class="keiko-input !py-1.5 text-[13px] font-bold" @keydown.enter="blurOnEnter" />
               <button class="text-[13px] text-[var(--keiko-ink-soft)] hover:text-red-500 px-1.5 shrink-0" title="メンバーを削除" @click="removeDraftMember(m)">✕</button>
@@ -302,7 +337,8 @@
                   />
                   <button class="text-[13px] text-[var(--keiko-ink-soft)] hover:text-red-500 px-1.5 shrink-0" title="削除" @click="removeDraftItem(m, it)">✕</button>
                 </div>
-                <div class="mt-1.5 pl-[22px]">
+                <div class="mt-1.5 pl-[22px] flex items-center gap-1.5">
+                  <KeikoArt :name="it.kind === 'direct' ? 'flag' : 'shinai'" :size="24" />
                   <select v-model="it.kind" class="keiko-kind-select">
                     <option value="reps">本数×ポイントで数える</option>
                     <option value="direct">達成時にポイントを入れる</option>
@@ -385,6 +421,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
+import KeikoArt from '~/components/keiko/KeikoArt.vue'
 import type { KeikoItem, KeikoItemKind, KeikoMember, KeikoPoints, KeikoPointBucket, KeikoRecord, KeikoState } from '~/types/keiko'
 
 definePageMeta({ layout: 'keiko' })
@@ -414,6 +451,11 @@ const loadError = ref(false)
 const MEMBER_COLORS = ['#1c2540', '#c9a227', '#3b82c4', '#e0524b', '#4f9d69', '#8a63b8']
 function memberColor(index: number): string {
   return MEMBER_COLORS[index % MEMBER_COLORS.length]
+}
+/** メンバーごとのイラスト。並び順で順ぐりに変えて、誰の欄かひと目で分かるようにする。 */
+const MEMBER_ARTS = ['kid', 'swing', 'cheer', 'men'] as const
+function memberArt(index: number): (typeof MEMBER_ARTS)[number] {
+  return MEMBER_ARTS[index % MEMBER_ARTS.length]!
 }
 
 // ── 日付（JST基準。週は月曜始まり）──
@@ -618,7 +660,7 @@ function barWidth(points: number): string {
 
 // ── その日の記録（reps は10%刻みの評価、direct は入力したポイント）──
 const RATE_OPTIONS = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
-const DIRECT_PRESETS = [5, 10, 20, 30, 50, 100]
+const DIRECT_PRESETS = [5, 10, 20, 30, 50, 100, 200, 300, 500, 1000]
 
 const recordMap = computed(() => {
   const map = new Map<string, KeikoRecord>()
@@ -1064,14 +1106,48 @@ watch(isLoggedIn, () => startIfLoggedIn())
   align-items: center;
   justify-content: center;
   min-width: 30px;
-  height: 23px;
-  padding: 0 4px;
-  border-radius: 8px;
-  background: rgba(201, 162, 39, 0.2);
+  height: 24px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(201, 162, 39, 0.22);
+  border: 1.5px solid rgba(201, 162, 39, 0.45);
   color: #8a6d12;
+  font-family: 'Mochiy Pop One', 'Zen Maru Gothic', sans-serif;
   font-size: 11.5px;
-  font-weight: 700;
   line-height: 1;
+}
+
+/* イラストのちいさな動き。子どもが開いたときに画面が生きて見えるように */
+@keyframes keiko-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(2deg);
+  }
+}
+.keiko-bob {
+  animation: keiko-bob 2.8s ease-in-out infinite;
+}
+@keyframes keiko-swing {
+  0%,
+  100% {
+    transform: rotate(-9deg);
+  }
+  50% {
+    transform: rotate(9deg);
+  }
+}
+.keiko-swing {
+  transform-origin: 50% 85%;
+  animation: keiko-swing 1.1s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .keiko-bob,
+  .keiko-swing {
+    animation: none;
+  }
 }
 
 /* 評価えらび */
@@ -1155,6 +1231,14 @@ watch(isLoggedIn, () => startIfLoggedIn())
   font-weight: 700;
   color: var(--keiko-ink);
   text-align: center;
+  /* 1ずつ増減する矢印は使わない（数を直接打つか、下の候補から選ぶ） */
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.keiko-num::-webkit-outer-spin-button,
+.keiko-num::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 .keiko-num:focus {
   outline: none;
