@@ -24,7 +24,7 @@
         </div>
       </div>
       <div ref="wrap" class="relative" :style="{ height: `${H}px` }">
-        <!-- touch-pan-y: タップで値を出しつつ、縦ドラッグはモーダルのスクロールに使えるようにする -->
+        <!-- touch-pan-y: タップで値を出しつつ、縦ドラッグはページのスクロールに使えるようにする -->
         <svg :viewBox="`0 0 ${W} ${H}`" preserveAspectRatio="none" class="w-full h-full block touch-pan-y" @pointermove="onMove" @pointerdown="onDown" @pointerleave="onLeave" @pointercancel="onCancel">
           <!-- 時刻グリッド -->
           <g v-for="(g, i) in gridLines" :key="`g${i}`">

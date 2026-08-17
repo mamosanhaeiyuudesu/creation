@@ -76,7 +76,7 @@ const route = useRoute()
 const isMobileMenuOpen = ref(false)
 
 const tools = [
-  // { path: '/', name: 'ホーム', icon: '🏠' },
+  { path: '/', name: 'ホーム', icon: '🏠' },
   // { path: '/snapreader', name: 'SnapReader', icon: '📸' },
   // { path: '/whisper', name: 'whisper', icon: '🎙️' },
   { path: '/hagemashi', name: '記録', icon: '💪' },

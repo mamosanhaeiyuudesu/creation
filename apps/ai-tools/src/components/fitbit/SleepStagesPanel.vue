@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4 cursor-pointer hover:bg-white/[0.06] transition-colors"
-    @click="$emit('open')"
-  >
+  <div class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4">
     <div v-if="loading" class="h-[120px] flex items-center justify-center text-slate-500 text-xs animate-pulse">読み込み中…</div>
     <div v-else-if="error" class="h-[120px] flex items-center justify-center text-rose-400 text-xs">{{ error }}</div>
     <div v-else-if="!data || data.totalMinutes <= 0" class="h-[120px] flex items-center justify-center text-slate-600 text-xs">睡眠データがありません</div>
@@ -86,7 +83,6 @@ import type { SleepDetail, SleepStage } from '~/types/fitbit'
 import { SLEEP_STAGE_GOAL_MIN, SLEEP_STAGE_LEVELS, sleepStageColor, sleepStageJp } from '~/utils/sleepStage'
 
 const props = defineProps<{ date: string }>()
-defineEmits<{ open: [] }>()
 
 const data = ref<SleepDetail | null>(null)
 const loading = ref(true)

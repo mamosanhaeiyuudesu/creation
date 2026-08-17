@@ -74,7 +74,16 @@
 
         <template v-else-if="data">
           <!-- 睡眠 -->
-          <SleepStagesPanel :date="date" @open="sleepOpen = true" />
+          <SleepStagesPanel :date="date" />
+
+          <!-- 就寝・起床の比較（他の日と横並び） -->
+          <div class="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-4">
+            <div class="text-xs font-semibold text-slate-400 mb-2">🛌 就寝・起床の比較</div>
+            <SleepScheduleChart :date="date" />
+          </div>
+
+          <!-- 睡眠時間の推移（合計／ステージ別を切り替え） -->
+          <SleepTrendCard :date="date" />
 
           <!-- 消費カロリー・心拍数の時間別 -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -135,9 +144,6 @@
       </template>
     </div>
 
-    <!-- 睡眠詳細モーダル -->
-    <SleepModal v-if="sleepOpen && data" :date="date" @close="sleepOpen = false" />
-
     <!-- アクティビティ詳細モーダル -->
     <ActivityModal v-if="activityOpen && data" :date="date" @close="activityOpen = false" />
 
@@ -167,7 +173,8 @@ import type { DashboardData, TimePoint } from '~/types/fitbit'
 import Sparkline from '~/components/fitbit/Sparkline.vue'
 import IntradayPanel from '~/components/fitbit/IntradayPanel.vue'
 import SleepStagesPanel from '~/components/fitbit/SleepStagesPanel.vue'
-import SleepModal from '~/components/fitbit/SleepModal.vue'
+import SleepScheduleChart from '~/components/fitbit/SleepScheduleChart.vue'
+import SleepTrendCard from '~/components/fitbit/SleepTrendCard.vue'
 import TrendModal from '~/components/fitbit/TrendModal.vue'
 import ActivityModal from '~/components/fitbit/ActivityModal.vue'
 import AuthModal from '~/components/AuthModal.vue'
@@ -205,7 +212,6 @@ const loading = ref(true)
 const refreshing = ref(false)
 const error = ref('')
 const notConnected = ref(false)
-const sleepOpen = ref(false)
 const activityOpen = ref(false)
 const trendModal = ref<any>(null)
 
