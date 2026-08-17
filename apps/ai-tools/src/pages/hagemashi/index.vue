@@ -1253,23 +1253,44 @@
     </div>
 
     <!-- はげまし結果モーダル -->
-    <div v-if="encourageOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="encourageOpen = false">
+    <div v-if="encourageOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="closeEncourage">
       <div class="w-full max-w-[600px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
           <h2 class="m-0 text-lg text-slate-50 font-semibold">💪 はげまし</h2>
-          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="encourageOpen = false">✕</button>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="closeEncourage">✕</button>
         </div>
         <div class="px-6 py-5 overflow-y-auto flex flex-col gap-3 flex-1">
           <div v-if="isEncouraging" class="flex items-center justify-center gap-2.5 py-8 text-slate-400 text-sm">
             <span class="w-5 h-5 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
             はげましを考えています...
           </div>
-          <div v-else class="text-[#e2e8f0] text-sm leading-relaxed [&_h1]:text-slate-50 [&_h2]:text-slate-50 [&_h3]:text-slate-50 [&_h2]:text-[15px] [&_h2]:my-4 [&_p]:m-0 [&_p]:mb-2.5 [&_ul]:m-0 [&_ul]:mb-2.5 [&_ul]:pl-5 [&_li]:mb-1 [&_strong]:text-slate-50 [&_strong]:font-semibold [&_hr]:border-none [&_hr]:border-t [&_hr]:border-white/[0.08] [&_hr]:my-3" v-html="parsedResult" />
+          <template v-else>
+            <!-- 読み上げ（OpenAI TTS）。文章の上に置く -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <button
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/15 bg-transparent text-slate-300 text-xs cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all disabled:opacity-50 disabled:cursor-default"
+                :disabled="isSpeechLoading || !encourageResult"
+                @click="toggleSpeech"
+              >
+                <span v-if="isSpeechLoading" class="w-3 h-3 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
+                <span v-else>{{ isSpeaking ? '⏸' : '🔊' }}</span>
+                {{ isSpeechLoading ? '音声を準備中...' : isSpeaking ? '一時停止' : '読み上げ' }}
+              </button>
+              <button
+                v-if="!isSpeechLoading && (isSpeaking || speechUrl)"
+                class="px-3 py-1.5 rounded-lg border border-white/15 bg-transparent text-slate-400 text-xs cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all"
+                @click="stopSpeech"
+              >⏹ 停止</button>
+              <span v-if="speechError" class="text-xs text-red-400">{{ speechError }}</span>
+            </div>
+            <div class="text-[#e2e8f0] text-sm leading-relaxed [&_h1]:text-slate-50 [&_h2]:text-slate-50 [&_h3]:text-slate-50 [&_h2]:text-[15px] [&_h2]:my-4 [&_p]:m-0 [&_p]:mb-2.5 [&_ul]:m-0 [&_ul]:mb-2.5 [&_ul]:pl-5 [&_li]:mb-1 [&_strong]:text-slate-50 [&_strong]:font-semibold [&_hr]:border-none [&_hr]:border-t [&_hr]:border-white/[0.08] [&_hr]:my-3" v-html="parsedResult" />
+          </template>
         </div>
         <div class="flex justify-end gap-2 px-6 py-4 pb-5 border-t border-white/[0.08]">
           <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="copyResult">{{ resultCopied ? 'コピーしました' : 'コピー' }}</button>
-          <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="encourageOpen = false">閉じる</button>
+          <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="closeEncourage">閉じる</button>
         </div>
+        <audio ref="speechAudioEl" class="hidden" preload="none" @ended="isSpeaking = false" @pause="isSpeaking = false" @play="isSpeaking = true" />
       </div>
     </div>
   </div>
@@ -2014,6 +2035,103 @@ if (!$dev) {
 
 const parsedResult = computed(() => marked.parse(encourageResult.value || '') as string)
 
+// --- はげまし文の読み上げ（OpenAI TTS） ---
+// iOS Safari は fetch を挟むと play() がジェスチャー外とみなされてブロックされるため、
+// クリック直後にこの無音を鳴らして <audio> を解錠しておき、音声が届いたら src を差し替える。
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
+
+const speechAudioEl = ref<HTMLAudioElement | null>(null)
+const speechUrl = ref('')        // 生成済み音声の Blob URL
+const speechTextCache = ref('')  // その音声を作ったときの本文（同じ文章なら作り直さない）
+const isSpeechLoading = ref(false)
+const isSpeaking = ref(false)
+const speechError = ref('')
+
+const releaseSpeech = () => {
+  const el = speechAudioEl.value
+  if (el) {
+    el.pause()
+    el.removeAttribute('src')
+    el.load()
+  }
+  if (speechUrl.value) URL.revokeObjectURL(speechUrl.value)
+  speechUrl.value = ''
+  speechTextCache.value = ''
+  isSpeaking.value = false
+  isSpeechLoading.value = false
+  speechError.value = ''
+}
+
+const stopSpeech = () => {
+  const el = speechAudioEl.value
+  if (!el) return
+  el.pause()
+  el.currentTime = 0
+  isSpeaking.value = false
+}
+
+const toggleSpeech = async () => {
+  const el = speechAudioEl.value
+  const text = encourageResult.value
+  if (!el || !text || isSpeechLoading.value) return
+  speechError.value = ''
+
+  if (isSpeaking.value) {
+    el.pause()
+    return
+  }
+
+  // 生成済み（同じ本文）ならそのまま再生
+  if (speechUrl.value && speechTextCache.value === text) {
+    await el.play().catch(() => { speechError.value = '再生できませんでした' })
+    return
+  }
+
+  // ジェスチャーが生きているうちに解錠しておく
+  el.src = SILENT_WAV
+  el.play().catch(() => {})
+
+  isSpeechLoading.value = true
+  try {
+    const blob = await $fetch<Blob>('/api/hagemashi/speech', {
+      method: 'POST',
+      body: { text },
+      responseType: 'blob',
+    })
+    if (speechUrl.value) URL.revokeObjectURL(speechUrl.value)
+    speechUrl.value = URL.createObjectURL(blob)
+    speechTextCache.value = text
+    el.src = speechUrl.value
+    await el.play()
+  } catch (err) {
+    console.error(err)
+    speechError.value = await speechErrorMessage(err)
+  } finally {
+    isSpeechLoading.value = false
+  }
+}
+
+// responseType: 'blob' で投げているためエラー本文も Blob で返る。中身の statusMessage を取り出す
+const speechErrorMessage = async (err: unknown): Promise<string> => {
+  const data = (err as { data?: unknown })?.data
+  if (data instanceof Blob) {
+    try {
+      const json = JSON.parse(await data.text())
+      if (json?.statusMessage || json?.message) return json.statusMessage || json.message
+    } catch { /* JSON でなければ既定メッセージ */ }
+  }
+  return '読み上げに失敗しました'
+}
+
+const closeEncourage = () => {
+  releaseSpeech()
+  encourageOpen.value = false
+}
+
+onBeforeUnmount(() => {
+  if (speechUrl.value) URL.revokeObjectURL(speechUrl.value)
+})
+
 // --- エクスポート ---
 const formatExportDate = (iso: string): string => {
   const d = toJSTDate(iso)
@@ -2118,6 +2236,7 @@ const runEncourage = async () => {
   const target = history.value.find(item => item.id === encourageTargetId.value) ?? history.value[0]
   if (!target) return
   const texts = [getNotesText(target)]
+  releaseSpeech()
   encourageResult.value = ''
   encourageOpen.value = true
   isEncouraging.value = true
