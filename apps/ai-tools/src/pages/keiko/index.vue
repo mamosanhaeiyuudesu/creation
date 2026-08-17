@@ -24,10 +24,11 @@
 
     <!-- 期間ナビ -->
     <div class="flex items-center justify-between gap-2 mb-5">
-      <button class="keiko-btn-ghost !h-9 !px-3" @click="shiftRange(-1)">‹ {{ prevLabel }}</button>
+      <button class="keiko-btn-ghost !h-9 !px-3" :disabled="!canGoPrev" @click="shiftRange(-1)">‹ {{ prevLabel }}</button>
       <div class="flex flex-col items-center">
         <span class="text-[14px] font-bold">{{ rangeLabel }}</span>
         <button v-if="!isCurrentRange" class="text-[11px] text-[var(--keiko-gold)] font-semibold mt-0.5" @click="goCurrent">{{ backLabel }}</button>
+        <span v-else-if="!canGoPrev" class="text-[11px] text-[var(--keiko-ink-soft)] mt-0.5">ここから記録がはじまります</span>
       </div>
       <button class="keiko-btn-ghost !h-9 !px-3" @click="shiftRange(1)">{{ nextLabel }} ›</button>
     </div>
@@ -82,7 +83,12 @@
                     v-for="day in weekDays"
                     :key="day.date"
                     class="keiko-th text-center w-[11%]"
-                    :class="{ 'keiko-th--today': day.date === todayStr, 'keiko-th--sun': day.weekdayIndex === 6, 'keiko-th--sat': day.weekdayIndex === 5 }"
+                    :class="{
+                      'keiko-th--today': day.date === todayStr,
+                      'keiko-th--sun': day.weekdayIndex === 6,
+                      'keiko-th--sat': day.weekdayIndex === 5,
+                      'keiko-th--off': day.beforeStart,
+                    }"
                   >
                     <div class="leading-tight">{{ day.month }}/{{ day.day }}</div>
                     <div class="text-[10px] font-normal leading-tight">({{ day.weekdayLabel }})</div>
@@ -103,8 +109,19 @@
                       </div>
                     </div>
                   </td>
-                  <td v-for="cell in rowCells(member.id, item)" :key="cell.date" class="text-center py-1.5" :class="{ 'keiko-td--today': cell.isToday }">
-                    <button class="keiko-cell" :aria-label="`${member.name} ${item.name} ${cell.label} の記録`" @click="openPicker(member, item, cell.day)">
+                  <!-- 記録のはじまりより前の日は、めくれる週の中に入っていても記録できない -->
+                  <td
+                    v-for="cell in rowCells(member.id, item)"
+                    :key="cell.date"
+                    class="text-center py-1.5"
+                    :class="{ 'keiko-td--today': cell.isToday, 'keiko-td--off': cell.beforeStart }"
+                  >
+                    <button
+                      v-if="!cell.beforeStart"
+                      class="keiko-cell"
+                      :aria-label="`${member.name} ${item.name} ${cell.label} の記録`"
+                      @click="openPicker(member, item, cell.day)"
+                    >
                       <span :key="cell.view.kind" :class="cell.view.cls">{{ cell.view.text }}</span>
                     </button>
                   </td>
@@ -120,7 +137,7 @@
                     v-for="day in weekDays"
                     :key="day.date"
                     class="text-center py-1.5 text-[12px] font-bold"
-                    :class="{ 'keiko-td--today': day.date === todayStr }"
+                    :class="{ 'keiko-td--today': day.date === todayStr, 'keiko-td--off': day.beforeStart }"
                     :style="{ color: memberDayPoints(member.id, day.date) ? memberColor(mi) : 'var(--keiko-line)' }"
                   >
                     {{ memberDayPoints(member.id, day.date) || '·' }}
@@ -241,18 +258,32 @@
           </div>
         </div>
 
-        <!-- 本数×ポイントの項目：10%刻みの評価から選ぶ -->
-        <div v-if="picker.kind === 'reps'" class="grid grid-cols-3 gap-1.5">
+        <!-- 本数×ポイントの項目：全部/半分/少しと、多くやった日の150〜300%から選ぶ -->
+        <div v-if="picker.kind === 'reps'">
+          <!-- 全部できた日がいちばん多いので、100% はまん中に大きく -->
           <button
-            v-for="r in RATE_OPTIONS"
-            :key="r"
-            class="keiko-rate-btn"
-            :class="{ 'keiko-rate-btn--on': picker.currentRate === r }"
-            @click="applyRate(r)"
+            class="keiko-rate-hero"
+            :class="{ 'keiko-rate-hero--on': picker.currentRate === RATE_FULL }"
+            @click="applyRate(RATE_FULL)"
           >
-            <span>{{ r }}%</span>
-            <span class="keiko-rate-btn-pt">{{ Math.round((picker.fullPoints * r) / 100) }}pt</span>
+            <span class="keiko-rate-hero-num">{{ RATE_FULL }}%</span>
+            <span class="keiko-rate-hero-label">{{ RATE_LABELS[RATE_FULL] }}</span>
+            <span class="keiko-rate-hero-pt">{{ ratePoints(RATE_FULL) }}pt</span>
           </button>
+          <div class="grid grid-cols-3 gap-1.5 mt-2">
+            <button
+              v-for="r in RATE_OPTIONS"
+              :key="r"
+              class="keiko-rate-btn"
+              :class="{ 'keiko-rate-btn--on': picker.currentRate === r }"
+              @click="applyRate(r)"
+            >
+              <span class="keiko-rate-btn-num">{{ r }}%</span>
+              <span class="keiko-rate-btn-pt">
+                <template v-if="RATE_LABELS[r]">{{ RATE_LABELS[r] }}・</template>{{ ratePoints(r) }}pt
+              </span>
+            </button>
+          </div>
         </div>
 
         <!-- 直接ポイントの項目：獲得ポイントを入力する -->
@@ -485,20 +516,28 @@ function shiftMonthKey(ym: string, delta: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
+// 記録のはじまり。ここより前の週・月・年へは戻れない（空の期間をめくり続けないため）
+const START_MONTH_KEY = '2026-08'
+const START_DATE = `${START_MONTH_KEY}-01`
+const START_WEEK_START = startOfWeek(START_DATE) // 8/1 を含む週の月曜（＝2026-07-27）まで見られる
+const START_YEAR = Number(START_MONTH_KEY.slice(0, 4))
+
 const todayStr = todayJst()
 const thisWeekStart = startOfWeek(todayStr)
 const currentMonthKey = todayStr.slice(0, 7)
 const currentYear = Number(todayStr.slice(0, 4))
 
-const weekStart = ref(thisWeekStart)
-const monthKey = ref(currentMonthKey)
-const year = ref(currentYear)
+// 開始前に開かれたときも、はじまりの期間を出す
+const weekStart = ref(thisWeekStart < START_WEEK_START ? START_WEEK_START : thisWeekStart)
+const monthKey = ref(currentMonthKey < START_MONTH_KEY ? START_MONTH_KEY : currentMonthKey)
+const year = ref(Math.max(currentYear, START_YEAR))
 
 const weekDays = computed(() =>
   Array.from({ length: 7 }, (_, i) => {
     const date = addDays(weekStart.value, i)
     const d = new Date(date + 'T00:00:00')
-    return { date, month: d.getMonth() + 1, day: d.getDate(), weekdayIndex: i, weekdayLabel: WD[i] }
+    // はじまりの週は前月にまたがるので、開始日より前の曜日は記録できない日として印を付ける
+    return { date, month: d.getMonth() + 1, day: d.getDate(), weekdayIndex: i, weekdayLabel: WD[i], beforeStart: date < START_DATE }
   })
 )
 
@@ -528,11 +567,24 @@ const isCurrentRange = computed(() => {
   if (mode.value === 'month') return monthKey.value === currentMonthKey
   return year.value === currentYear
 })
+/** はじまりの期間まで戻っているか（＝これ以上「前へ」できない）。 */
+const canGoPrev = computed(() => {
+  if (mode.value === 'week') return weekStart.value > START_WEEK_START
+  if (mode.value === 'month') return monthKey.value > START_MONTH_KEY
+  return year.value > START_YEAR
+})
 
 function shiftRange(delta: number) {
-  if (mode.value === 'week') weekStart.value = addDays(weekStart.value, delta * 7)
-  else if (mode.value === 'month') monthKey.value = shiftMonthKey(monthKey.value, delta)
-  else year.value += delta
+  if (delta < 0 && !canGoPrev.value) return
+  if (mode.value === 'week') {
+    const next = addDays(weekStart.value, delta * 7)
+    weekStart.value = next < START_WEEK_START ? START_WEEK_START : next
+  } else if (mode.value === 'month') {
+    const next = shiftMonthKey(monthKey.value, delta)
+    monthKey.value = next < START_MONTH_KEY ? START_MONTH_KEY : next
+  } else {
+    year.value = Math.max(year.value + delta, START_YEAR)
+  }
 }
 function goCurrent() {
   if (mode.value === 'week') weekStart.value = thisWeekStart
@@ -552,8 +604,11 @@ const monthGrid = computed(() => {
   return cells
 })
 
+// はじまりの年は、はじまりの月から並べる（記録のしようがない月を空欄で並べない）
 const yearRows = computed(() =>
-  Array.from({ length: 12 }, (_, i) => ({ month: i + 1, key: `${year.value}-${String(i + 1).padStart(2, '0')}` }))
+  Array.from({ length: 12 }, (_, i) => ({ month: i + 1, key: `${year.value}-${String(i + 1).padStart(2, '0')}` })).filter(
+    (row) => row.key >= START_MONTH_KEY
+  )
 )
 
 // ── データ読み込み ──
@@ -658,8 +713,12 @@ function barWidth(points: number): string {
   return `${Math.round((points / yearMax.value) * 100)}%`
 }
 
-// ── その日の記録（reps は10%刻みの評価、direct は入力したポイント）──
-const RATE_OPTIONS = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10]
+// ── その日の記録（reps は評価％、direct は入力したポイント）──
+// 100%（全部できた）がいちばん押される選択肢なので、まん中に大きく出して残りを下に並べる。
+// 100 を超える値は「決めた本数より多くやった日」で、満点を超えるポイントがそのまま入る。
+const RATE_FULL = 100
+const RATE_OPTIONS = [50, 20, 10, 150, 200, 300]
+const RATE_LABELS: Record<number, string> = { 100: '全部‼️', 50: '半分' }
 const DIRECT_PRESETS = [5, 10, 20, 30, 50, 100, 200, 300, 500, 1000]
 
 const recordMap = computed(() => {
@@ -685,6 +744,7 @@ function rowCells(memberId: string, item: KeikoItem) {
     day,
     label: `${day.month}/${day.day}`,
     isToday: day.date === todayStr,
+    beforeStart: day.beforeStart,
     view: cellView(item, memberId, day.date),
   }))
 }
@@ -720,6 +780,10 @@ function openPicker(member: KeikoMember, item: KeikoItem, day: { date: string; m
   }
 }
 
+/** その評価％だと何ポイントになるか（ボタンに併記する）。 */
+function ratePoints(rate: number): number {
+  return Math.round(((picker.value?.fullPoints ?? 0) * rate) / 100)
+}
 /** 評価％を選んだとき（reps の項目）。rate=0 は記録を消す。 */
 function applyRate(rate: number) {
   saveRecord({ rate, remove: rate === 0 }, rate === 0 ? null : { rate, points: null })
@@ -1073,8 +1137,16 @@ watch(isLoggedIn, () => startIfLoggedIn())
 .keiko-th--sat {
   color: #3b82c4;
 }
+/* 記録のはじまりより前の日（はじまりの週だけ、前月にまたがる分に付く） */
+.keiko-th--off {
+  color: var(--keiko-line);
+}
 .keiko-td--today {
   background: rgba(201, 162, 39, 0.08);
+}
+.keiko-td--off {
+  background: rgba(28, 37, 64, 0.03);
+  color: var(--keiko-line);
 }
 .keiko-total {
   font-size: 12px;
@@ -1150,19 +1222,57 @@ watch(isLoggedIn, () => startIfLoggedIn())
   }
 }
 
-/* 評価えらび */
+/* 評価えらび：100% を大きく、残り（半分・20%・10%）を下に横並び */
+.keiko-rate-hero {
+  width: 100%;
+  padding: 16px 12px 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border-radius: 16px;
+  border: 2px solid var(--keiko-line);
+  background: var(--keiko-card);
+  color: var(--keiko-ink);
+  transition: border-color 0.12s, background 0.12s, transform 0.12s;
+}
+.keiko-rate-hero:hover {
+  border-color: var(--keiko-gold-soft);
+}
+.keiko-rate-hero:active {
+  transform: scale(0.98);
+}
+.keiko-rate-hero--on {
+  border-color: var(--keiko-gold);
+  background: rgba(201, 162, 39, 0.16);
+}
+.keiko-rate-hero-num {
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.keiko-rate-hero-label {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.keiko-rate-hero-pt {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--keiko-ink-soft);
+  line-height: 1;
+}
 .keiko-rate-btn {
-  height: 48px;
+  height: 54px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 3px;
   border-radius: 12px;
   border: 1px solid var(--keiko-line);
   background: var(--keiko-card);
-  font-size: 13.5px;
-  font-weight: 700;
   color: var(--keiko-ink);
   transition: border-color 0.12s, background 0.12s;
 }
@@ -1172,6 +1282,11 @@ watch(isLoggedIn, () => startIfLoggedIn())
 .keiko-rate-btn--on {
   border-color: var(--keiko-gold);
   background: rgba(201, 162, 39, 0.14);
+}
+.keiko-rate-btn-num {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
 }
 .keiko-rate-btn-pt {
   font-size: 10.5px;

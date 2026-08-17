@@ -88,6 +88,8 @@ useHead({
   background: var(--keiko-card);
 }
 .keiko-btn-ghost:hover { border-color: var(--keiko-gold-soft); color: var(--keiko-ink); }
+.keiko-btn-ghost:disabled { opacity: 0.35; }
+.keiko-btn-ghost:disabled:hover { border-color: var(--keiko-line); color: var(--keiko-ink-soft); }
 
 .keiko-input {
   background: var(--keiko-card);

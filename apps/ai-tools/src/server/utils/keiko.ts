@@ -233,11 +233,14 @@ export function isValidDate(s: unknown): s is string {
   return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
 }
 
-/** 評価％の正規化。0 なら記録を消す意味、それ以外は 10〜100 の10刻みへ丸める。 */
+/**
+ * 評価％の正規化。0 なら記録を消す意味、それ以外は 10〜300 の10刻みへ丸める。
+ * 100 超（150/200/300）は「決めた本数より多くやった日」なので、満点超えをそのまま認める。
+ */
 export function normalizeRate(v: unknown): number {
   const n = Math.round(Number(v) / 10) * 10
   if (!Number.isFinite(n) || n <= 0) return 0
-  return Math.min(n, 100)
+  return Math.min(n, 300)
 }
 
 /** 直接入力ポイントの正規化（0以上の整数。0点で参加、もあり得るので0を許す）。 */

@@ -31,7 +31,9 @@ export interface KeikoItem {
 
 /**
  * その日の記録1件。行が存在する＝やった。
- * - kind='reps'   : rate（10〜100の10刻み％）を使う。獲得ポイントは round(満点 * rate / 100)
+ * - kind='reps'   : rate（％）を使う。獲得ポイントは round(満点 * rate / 100)
+ *   画面から選べるのは 100（全部）/50（半分）/20/10 と、多くやった日の 150/200/300。
+ *   100 超は満点を超えるポイントがそのまま入る。過去の記録は10刻みの他の値も持つ
  * - kind='direct' : points に入力されたポイントをそのまま使う（rate は未使用）
  */
 export interface KeikoRecord {
