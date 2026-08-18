@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// できごと1件の行。表示と編集をこの中で完結させ、できごと一覧とカレンダーの
+// 出来事1件の行。表示と編集をこの中で完結させ、出来事一覧とカレンダーの
 // 日別詳細の両方から同じ見た目・同じ操作で使えるようにしている。
 type MomentKind = '達成' | '感謝' | '喜び' | 'しんどさ' | '不安'
 interface MomentLike { id: string; kind: MomentKind; text: string; impact: number; who?: string }
@@ -36,7 +36,7 @@ const save = () => {
   editing.value = false
 }
 
-// 抽出をやり直して中身が入れ替わったときに、編集中の下書きが別のできごとへ
+// 抽出をやり直して中身が入れ替わったときに、編集中の下書きが別の出来事へ
 // 紛れ込まないよう畳む
 watch(() => props.moment.id, () => { editing.value = false })
 </script>

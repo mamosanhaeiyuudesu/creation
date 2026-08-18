@@ -113,7 +113,7 @@
         </div>
         <div
           class="flex items-center gap-2 mb-1"
-          :class="activeTab === 'summary' || activeTab === 'words' || activeTab === 'analysis' || isProfileTab || activeTab === 'transcription' || activeTab === 'moments' || activeTab === 'kokoro'
+          :class="activeTab === 'summary' || activeTab === 'words' || activeTab === 'calendar' || isProfileTab || activeTab === 'transcription' || activeTab === 'moments' || activeTab === 'kokoro'
             ? 'min-h-8'
             : 'min-h-0'"
         >
@@ -133,7 +133,7 @@
               >はげまし</button>
             </div>
           </template>
-          <template v-if="activeTab === 'moments' || activeTab === 'analysis'">
+          <template v-if="activeTab === 'moments' || activeTab === 'calendar'">
             <div class="flex-1" />
             <span v-if="unprocessedSourceItems.length > 0 && !isGeneratingMoments" class="text-[11px] text-slate-600">未抽出 {{ unprocessedSourceItems.length }}件</span>
             <button
@@ -217,10 +217,10 @@
           @delete="deleteEncourageHistory"
           @updateTitle="updateEncourageHistoryTitle"
         />
-        <!-- 分析タブ（できごとのカレンダー） -->
-        <div v-else-if="activeTab === 'analysis'" class="py-2 flex flex-col gap-3">
+        <!-- カレンダータブ -->
+        <div v-else-if="activeTab === 'calendar'" class="py-2 flex flex-col gap-3">
           <div v-if="momentBaseRows.length === 0" class="text-center text-slate-500 text-sm py-10">
-            できごとを抽出すると、日ごとのカレンダーになります
+            出来事を抽出すると、日ごとのカレンダーになります
           </div>
           <template v-else>
             <!-- 月の移動と件数 -->
@@ -273,61 +273,6 @@
               :selected="selectedDay"
               @select="drillIntoDay"
             />
-
-            <!-- 選んだ日の中身 -->
-            <div v-if="selectedDay" class="bg-white/[0.03] border border-white/[0.07] rounded-xl px-3 py-2.5 flex flex-col gap-1">
-              <div class="flex items-center gap-2">
-                <span class="text-sm text-slate-100 font-semibold">{{ selectedDayLabel }}</span>
-                <button
-                  class="ml-auto bg-transparent border-none text-slate-600 text-sm cursor-pointer px-1 rounded hover:text-slate-300 transition-colors"
-                  @click="selectedDay = null"
-                >✕</button>
-              </div>
-
-              <HagemashiMomentRow
-                v-for="m in selectedDayMoments.pos"
-                :key="m.id"
-                :moment="m"
-                :date="momentDate(m)"
-                :kinds="MOMENT_KINDS"
-                :meta="MOMENT_META"
-                @save="applyMomentEdit(m.id, $event)"
-                @delete="deletingMomentId = m.id"
-              />
-              <p v-if="selectedDayMoments.pos.length === 0" class="m-0 py-2 text-xs text-slate-600 text-center">
-                この日のポジティブなできごとはありません
-              </p>
-
-              <!-- ネガは畳んでおく -->
-              <template v-if="selectedDayMoments.neg.length > 0">
-                <button
-                  class="flex items-center gap-1.5 bg-transparent border-none text-[11px] text-slate-500 cursor-pointer py-1 hover:text-slate-300 transition-colors self-start"
-                  @click="showNegativeDetail = !showNegativeDetail"
-                >
-                  <span class="text-[9px] transition-transform duration-200" :style="showNegativeDetail ? 'transform: rotate(90deg)' : ''">▶</span>
-                  ネガ {{ selectedDayMoments.neg.length }}件
-                </button>
-                <template v-if="showNegativeDetail">
-                  <HagemashiMomentRow
-                    v-for="m in selectedDayMoments.neg"
-                    :key="m.id"
-                    :moment="m"
-                    :date="momentDate(m)"
-                    :kinds="MOMENT_KINDS"
-                    :meta="MOMENT_META"
-                    @save="applyMomentEdit(m.id, $event)"
-                    @delete="deletingMomentId = m.id"
-                  />
-                </template>
-              </template>
-
-              <div v-if="selectedDaySources.length" class="text-[10px] text-slate-600 pt-1.5 mt-0.5 border-t border-white/[0.05]">
-                元の記録: {{ selectedDaySources.join(' / ') }}
-              </div>
-            </div>
-            <p v-else-if="calendarView === 'month'" class="m-0 text-center text-[11px] text-slate-600 py-1">
-              日付をタップすると、その日のできごとが出ます
-            </p>
 
             <!-- その期間のハイライト -->
             <div v-if="periodHighlights.length" class="flex flex-col gap-1.5 pt-1">
@@ -419,7 +364,7 @@
           </div>
         </div>
 
-        <!-- できごとタブ -->
+        <!-- 出来事一覧タブ -->
         <div v-else-if="activeTab === 'moments'" class="py-2 flex flex-col gap-2.5">
           <!-- タグ絞り込み -->
           <div v-if="momentBaseRows.length > 0" class="flex flex-wrap items-center gap-1.5">
@@ -438,8 +383,8 @@
           </div>
 
           <div v-if="momentRows.length === 0" class="text-center text-slate-500 text-sm py-10">
-            <template v-if="momentBaseRows.length === 0">更新ボタンを押すと、記録からできごとを抜き出します</template>
-            <template v-else>この絞り込みに合うできごとはありません</template>
+            <template v-if="momentBaseRows.length === 0">更新ボタンを押すと、記録から出来事を抜き出します</template>
+            <template v-else>この絞り込みに合う出来事はありません</template>
           </div>
           <div v-else class="flex flex-col gap-0">
             <HagemashiMomentRow
@@ -1005,12 +950,12 @@
       </div>
     </div>
 
-    <!-- できごと抽出 選択モーダル -->
+    <!-- 出来事の抽出 選択モーダル -->
     <div v-if="momentSelectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="momentSelectOpen = false">
       <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
           <div>
-            <h2 class="m-0 text-lg text-slate-50 font-semibold">できごとを抽出</h2>
+            <h2 class="m-0 text-lg text-slate-50 font-semibold">出来事を抽出</h2>
             <p class="m-0 mt-0.5 text-xs text-slate-500">未抽出の記録を選んであります。作り直すときは全て選択してください</p>
           </div>
           <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="momentSelectOpen = false">✕</button>
@@ -1059,10 +1004,70 @@
       </div>
     </div>
 
-    <!-- できごと削除確認 -->
+    <!-- 選んだ日の出来事（カレンダーの日をタップしたとき） -->
+    <div v-if="selectedDay" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="selectedDay = null">
+      <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[85vh]">
+        <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.08]">
+          <div class="flex items-baseline gap-2.5">
+            <h2 class="m-0 text-base text-slate-50 font-semibold">{{ selectedDayLabel }}</h2>
+            <span class="text-[11px] text-slate-500 tabular-nums">
+              <span class="text-amber-300 font-semibold">{{ selectedDayMoments.pos.length }}</span>
+              <span class="mx-0.5 text-slate-700">/</span>
+              <span class="text-slate-400 font-semibold">{{ selectedDayMoments.neg.length }}</span>
+            </span>
+          </div>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="selectedDay = null">✕</button>
+        </div>
+
+        <div class="px-4 py-2 overflow-y-auto flex-1 flex flex-col [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
+          <HagemashiMomentRow
+            v-for="m in selectedDayMoments.pos"
+            :key="m.id"
+            :moment="m"
+            :date="momentDate(m)"
+            :kinds="MOMENT_KINDS"
+            :meta="MOMENT_META"
+            @save="applyMomentEdit(m.id, $event)"
+            @delete="deletingMomentId = m.id"
+          />
+          <p v-if="selectedDayMoments.pos.length === 0" class="m-0 py-3 text-xs text-slate-600 text-center">
+            この日のポジティブな出来事はありません
+          </p>
+
+          <!-- ネガは畳んでおく -->
+          <template v-if="selectedDayMoments.neg.length > 0">
+            <button
+              class="flex items-center gap-1.5 bg-transparent border-none text-[11px] text-slate-500 cursor-pointer py-1.5 hover:text-slate-300 transition-colors self-start"
+              @click="showNegativeDetail = !showNegativeDetail"
+            >
+              <span class="text-[9px] transition-transform duration-200" :style="showNegativeDetail ? 'transform: rotate(90deg)' : ''">▶</span>
+              ネガ {{ selectedDayMoments.neg.length }}件
+            </button>
+            <template v-if="showNegativeDetail">
+              <HagemashiMomentRow
+                v-for="m in selectedDayMoments.neg"
+                :key="m.id"
+                :moment="m"
+                :date="momentDate(m)"
+                :kinds="MOMENT_KINDS"
+                :meta="MOMENT_META"
+                @save="applyMomentEdit(m.id, $event)"
+                @delete="deletingMomentId = m.id"
+              />
+            </template>
+          </template>
+        </div>
+
+        <div v-if="selectedDaySources.length" class="px-5 py-2.5 border-t border-white/[0.08] text-[10px] text-slate-600">
+          元の記録: {{ selectedDaySources.join(' / ') }}
+        </div>
+      </div>
+    </div>
+
+    <!-- 出来事の削除確認 -->
     <div v-if="deletingMomentId" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="deletingMomentId = null">
       <div class="w-full max-w-[300px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-5">
-        <p class="m-0 text-slate-200 text-sm text-center">このできごとを削除しますか？</p>
+        <p class="m-0 text-slate-200 text-sm text-center">この出来事を削除しますか？</p>
         <div class="flex justify-center gap-2">
           <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="deletingMomentId = null">キャンセル</button>
           <button class="px-5 py-2 rounded-lg border-none bg-red-500/80 text-slate-50 text-sm font-medium cursor-pointer hover:bg-red-500 transition-colors" @click="confirmDeleteMoment">削除</button>
@@ -1287,13 +1292,13 @@ const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-type RecordingTab = 'transcription' | 'analysis' | 'words' | 'summary' | 'moments' | 'kokoro' | 'strengths' | 'advice'
+type RecordingTab = 'transcription' | 'calendar' | 'words' | 'summary' | 'moments' | 'kokoro' | 'strengths' | 'advice'
 type TabKey = 'consult' | 'mood' | RecordingTab
 // ?tab= で指定を受け付けるタブ。ここに無いキーは無視され「記録」に落ちる。
 // 非表示中のタブを残すと ?tab=kokoro でタブバーの無い画面に入り込めてしまうため、
 // primaryTabs / secondaryTabs のコメントアウトと歩調を合わせている。
 // （consult / mood はタブバーではなくボタンから開くので残す）
-const TAB_KEYS: TabKey[] = ['transcription', 'analysis', 'moments', 'consult', 'mood']
+const TAB_KEYS: TabKey[] = ['transcription', 'calendar', 'moments', 'consult', 'mood']
 // 非表示中: 'words', 'summary', 'kokoro', 'strengths', 'advice'
 
 // 記録タブ内の表示切り替え（記録 / はげまし）
@@ -1317,12 +1322,12 @@ watch(() => route.query.tab, () => {
 })
 
 // 常に表示する主タブ
-// 現在は「記録」「分析」「できごと」を運用中。他はコメントアウトしている（表示のみ停止・実装は残置）。
+// 現在は「記録」「カレンダー」「出来事一覧」を運用中。他はコメントアウトしている（表示のみ停止・実装は残置）。
 // 戻すときはこの配列と下の TAB_KEYS の両方を戻すこと。
 const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'transcription', label: '記録', short: '記録' },
-  { key: 'analysis', label: '分析', short: '分析' },
-  { key: 'moments', label: 'できごと', short: 'できごと' },
+  { key: 'calendar', label: 'カレンダー', short: 'カレンダー' },
+  { key: 'moments', label: '出来事一覧', short: '一覧' },
   // { key: 'kokoro', label: '心', short: '心' },
   // { key: 'strengths', label: '強み', short: '強み' },
   // { key: 'advice', label: '助言', short: '助言' },
@@ -1391,7 +1396,7 @@ const consultMessages = ref<ConsultMessage[]>([])
 const LS_DICTIONARY = 'hagemashi-dictionary'
 const LS_WORD_RANKING = 'hagemashi-word-ranking'
 const LS_PROFILE = 'hagemashi-profile'
-// 旧「達成リスト」。できごとへの移行元として読むだけで、もう書き込まない
+// 旧「達成リスト」。出来事への移行元として読むだけで、もう書き込まない
 const LS_ACHIEVEMENTS = 'hagemashi-achievements'
 const LS_MOMENTS = 'hagemashi-moments'
 const LS_KOKORO = 'hagemashi-kokoro'
@@ -1610,11 +1615,11 @@ const generateKokoro = async () => {
   }
 }
 
-// 旧「達成リスト」。いまは読み込み専用で、できごと（Moment）への移行元としてのみ使う
+// 旧「達成リスト」。いまは読み込み専用で、出来事（Moment）への移行元としてのみ使う
 interface Achievement { id: string; sourceId: string; date: string; text: string; level: number }
 const achievements = ref<Achievement[]>([])
 
-// --- できごと（Moment）の型と state ---
+// --- 出来事（Moment）の型と state ---
 // 記録の中間データから「その日にあったこと」を1件ずつ抜き出し、タグと大きさ（impact）を付けて貯める。
 // 旧・達成リストの一般化で、達成以外のタグもネガも同じ形で扱う。
 // state をここに置いているのは、下の isLoggedIn の immediate watch から参照されるため。
@@ -1643,10 +1648,10 @@ interface Moment {
   updatedAt: string
 }
 const moments = ref<Moment[]>([])
-// 一度でも抽出を実行した記録のid（できごとが0件だった記録も含む）。差分実行の基準
+// 一度でも抽出を実行した記録のid（出来事が0件だった記録も含む）。差分実行の基準
 const momentProcessedIds = ref<string[]>([])
 const momentsMigrated = ref(false)
-// できごとの読み込みが済んだか。旧・達成リストの移行を history 到着まで待たせるために使う
+// 出来事の読み込みが済んだか。旧・達成リストの移行を history 到着まで待たせるために使う
 const momentsLoaded = ref(false)
 const expandedProfileIndices = ref(new Set<number>())
 const toggleProfileHistory = (i: number) => {
@@ -2377,7 +2382,7 @@ const fetchSummary = async (text: string): Promise<string> => {
   }
 }
 
-// --- できごと（Moment） ---
+// --- 出来事（Moment） ---
 const isGeneratingMoments = ref(false)
 const momentStatus = ref('')
 const momentSelectOpen = ref(false)
@@ -2397,7 +2402,7 @@ const momentDate = (m: Moment): string => {
   return `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`
 }
 
-// 履歴順（新しい順）に並べた全できごと。元の記録が消えているものはここで落ちるので、
+// 履歴順（新しい順）に並べた全出来事。元の記録が消えているものはここで落ちるので、
 // 絞り込みチップの件数もこれを基準にする（moments をそのまま数えると表示と数が食い違う）
 const momentBaseRows = computed(() => {
   const bySource = new Map<string, Moment[]>()
@@ -2449,7 +2454,7 @@ function saveMoments() {
   }
 }
 
-// 旧「達成リスト」を1度だけできごとへ取り込む。
+// 旧「達成リスト」を1度だけ出来事へ取り込む。
 // 取り込んだ分は edited を立てない＝その記録に抽出をかけると、より細かいタグ付きの結果に置き換わる。
 // 元記録を processedIds には入れないので、感謝・喜び・ネガは後から拾い直せる。
 function migrateAchievementsToMoments() {
@@ -2490,7 +2495,7 @@ watch(
   { immediate: true },
 )
 
-// 履歴（文字起こし）削除時、紐づくできごとも一緒に削除する
+// 履歴（文字起こし）削除時、紐づく出来事も一緒に削除する
 function deleteHistoryAndMoments(id: string) {
   deleteHistory(id)
   const hadMoments = moments.value.some(m => m.sourceId === id)
@@ -2530,7 +2535,7 @@ const getMomentSourceText = (item: { text: string; notes?: string }): string => 
   return `[${parsed.sentiment}] ${parsed.text}`
 }
 
-// 1つの記録からできごとを抽出して返す（保存・state更新はしない）
+// 1つの記録から出来事を抽出して返す（保存・state更新はしない）
 const fetchMomentsForSource = async (sourceId: string, timestamp: string, notesText: string): Promise<Moment[]> => {
   const res = await $fetch<{ moments: { kind: MomentKind; text: string; impact: number; who?: string }[] }>('/api/hagemashi/moments-generate', {
     method: 'POST',
@@ -2563,7 +2568,7 @@ const runMomentGenerate = async () => {
   for (const item of targets) {
     try {
       const items = await fetchMomentsForSource(item.id, item.timestamp, getMomentSourceText(item))
-      // 成功時のみ差し替える。手で直したできごとは残し、AI出力で上書きしない
+      // 成功時のみ差し替える。手で直した出来事は残し、AI出力で上書きしない
       const kept = next.filter(m => m.sourceId === item.id && isEditedMoment(m))
       next = next.filter(m => m.sourceId !== item.id)
       next.push(...kept, ...items)
@@ -2600,7 +2605,7 @@ const applyMomentEdit = (id: string, patch: { text: string; impact: number; kind
   saveMoments()
 }
 
-// --- 分析タブ: できごとのカレンダー ---
+// --- カレンダータブ ---
 const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土']
 const monthKeyOf = (iso: string): string => toJSTDate(iso).toISOString().slice(0, 7)
 const dayKeyOf = (iso: string): string => toJSTDate(iso).toISOString().slice(0, 10)
@@ -2637,7 +2642,7 @@ const calendarMonthLabel = computed(() => {
   return calendarView.value === 'year' ? `${y}年` : `${y}年${Number(m)}月`
 })
 
-// いま見ている期間（月 or 年）に入るできごと
+// いま見ている期間（月 or 年）に入る出来事
 const periodMoments = computed(() => {
   const prefix = calendarView.value === 'year' ? calendarYear.value : calendarMonth.value
   return momentBaseRows.value.filter(m => monthKeyOf(m.ts).startsWith(prefix))
@@ -2677,8 +2682,8 @@ const drillIntoDay = (dayKey: string) => {
   showNegativeDetail.value = false
 }
 
-// 今月にできごとが無いまま開くと空のカレンダーしか出ないので、
-// 初回だけいちばん新しいできごとの月へ寄せる（momentBaseRows は新しい順）
+// 今月に出来事が無いまま開くと空のカレンダーしか出ないので、
+// 初回だけいちばん新しい出来事の月へ寄せる（momentBaseRows は新しい順）
 const calendarPositioned = ref(false)
 watch(momentBaseRows, (rows) => {
   if (calendarPositioned.value || rows.length === 0) return
@@ -2705,7 +2710,7 @@ const selectedDayLabel = computed(() => {
   return `${d.getUTCMonth() + 1}月${d.getUTCDate()}日（${WEEKDAY_LABELS[d.getUTCDay()]}）`
 })
 
-// その日のできごとが、どの記録から抜き出されたものか
+// その日の出来事が、どの記録から抜き出されたものか
 const selectedDaySources = computed(() => {
   if (!selectedDay.value) return []
   const ids = new Set([...selectedDayMoments.value.pos, ...selectedDayMoments.value.neg].map(m => m.sourceId))
@@ -2725,7 +2730,7 @@ const handleTranscribed = async (text: string) => {
   const [title, notes] = await Promise.all([fetchTitle(replaced), fetchSummary(replaced)])
   const newId = addHistory(replaced, title, notes || undefined)
   reTokenize()
-  // 中間データがあればできごとも自動抽出（バックグラウンドで実行し、UIはブロックしない）
+  // 中間データがあれば出来事も自動抽出（バックグラウンドで実行し、UIはブロックしない）
   if (notes) {
     const item = history.value.find(h => h.id === newId)
     if (item) {

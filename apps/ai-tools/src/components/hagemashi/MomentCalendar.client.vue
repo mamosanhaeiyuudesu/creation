@@ -1,7 +1,7 @@
 <script setup lang="ts">
-// できごとの月カレンダー。セルの濃さ＝その日のポジのインパクト合計、
-// 中のドット＝タグの色、右上の▲＝ネガがあった印。
-// クライアント限定にしているのは、できごとがログイン後に非同期で届くため
+// 出来事の月カレンダー。各日には「ポジ数 / ネガ数」を大きく出す（例: 5 / 4）。
+// 濃さもポジのインパクト合計で付けているので、数を読まなくても多い日が分かる。
+// クライアント限定にしているのは、出来事がログイン後に非同期で届くため
 // SSR では必ず空カレンダーになり、hydration で作り直しになるのを避けるため。
 type MomentKind = '達成' | '感謝' | '喜び' | 'しんどさ' | '不安'
 interface MomentLike { id: string; ts: string; kind: MomentKind; impact: number }
@@ -27,29 +27,29 @@ interface DayCell {
   key: string
   date: number
   inMonth: boolean
-  pos: MomentLike[]
-  neg: MomentLike[]
+  pos: number
+  neg: number
   posImpact: number
 }
 
 // 日ごとに仕分けしておく（月をまたいで使い回せるよう月で絞らない）
 const byDay = computed(() => {
-  const map = new Map<string, { pos: MomentLike[]; neg: MomentLike[]; posImpact: number }>()
+  const map = new Map<string, { pos: number; neg: number; posImpact: number }>()
   for (const m of props.moments) {
     const k = dayKeyOf(m.ts)
-    if (!map.has(k)) map.set(k, { pos: [], neg: [], posImpact: 0 })
+    if (!map.has(k)) map.set(k, { pos: 0, neg: 0, posImpact: 0 })
     const bucket = map.get(k)!
     if (props.meta[m.kind]?.polarity === 'neg') {
-      bucket.neg.push(m)
+      bucket.neg++
     } else {
-      bucket.pos.push(m)
+      bucket.pos++
       bucket.posImpact += m.impact
     }
   }
   return map
 })
 
-// 月曜始まりではなく日曜始まり（日本のカレンダーの既定）
+// 日曜始まり（日本のカレンダーの既定）
 const cells = computed<DayCell[]>(() => {
   const first = new Date(`${props.month}-01T00:00:00Z`)
   if (Number.isNaN(first.getTime())) return []
@@ -66,12 +66,12 @@ const cells = computed<DayCell[]>(() => {
       key,
       date: d.getUTCDate(),
       inMonth: key.slice(0, 7) === props.month,
-      pos: bucket?.pos ?? [],
-      neg: bucket?.neg ?? [],
+      pos: bucket?.pos ?? 0,
+      neg: bucket?.neg ?? 0,
       posImpact: bucket?.posImpact ?? 0,
     })
   }
-  // 最終週がまるごと翌月なら落とす（6行固定だと下が1行空くことがある）
+  // 最終週がまるごと翌月なら落とす（常に6行だと下が1行空くことがある）
   return out.slice(0, out.slice(35).some(c => c.inMonth) ? 42 : 35)
 })
 
@@ -87,14 +87,11 @@ const fillFor = (cell: DayCell): string => {
   return `rgba(251, 146, 60, ${(0.1 + ratio * 0.42).toFixed(3)})`
 }
 
-// ドットは最大4つ。大きいできごとから並べる
-const dotsFor = (cell: DayCell) =>
-  [...cell.pos].sort((a, b) => b.impact - a.impact).slice(0, 4)
+const hasAny = (cell: DayCell) => cell.pos > 0 || cell.neg > 0
 
 const onSelect = (cell: DayCell) => {
-  if (!cell.inMonth) return
-  if (cell.pos.length === 0 && cell.neg.length === 0) return
-  emit('select', props.selected === cell.key ? null : cell.key)
+  if (!cell.inMonth || !hasAny(cell)) return
+  emit('select', cell.key)
 }
 </script>
 
@@ -104,7 +101,7 @@ const onSelect = (cell: DayCell) => {
       <div
         v-for="(w, i) in WEEKDAYS"
         :key="w"
-        class="text-center text-[10px] font-semibold py-0.5"
+        class="text-center text-[10px] font-semibold"
         :class="i === 0 ? 'text-rose-400/70' : i === 6 ? 'text-sky-400/70' : 'text-slate-500'"
       >{{ w }}</div>
     </div>
@@ -113,11 +110,11 @@ const onSelect = (cell: DayCell) => {
         v-for="cell in cells"
         :key="cell.key"
         type="button"
-        class="relative aspect-square rounded-lg border flex flex-col items-center justify-start pt-1 gap-1 transition-all"
+        class="h-10 sm:h-11 rounded-lg border flex flex-col items-center justify-center gap-0 transition-all overflow-hidden"
         :class="[
           !cell.inMonth
             ? 'border-transparent opacity-25 cursor-default'
-            : cell.pos.length || cell.neg.length
+            : hasAny(cell)
               ? 'cursor-pointer hover:border-orange-400/50'
               : 'cursor-default',
           selected === cell.key
@@ -130,17 +127,13 @@ const onSelect = (cell: DayCell) => {
         @click="onSelect(cell)"
       >
         <span
-          class="text-[10px] tabular-nums leading-none"
-          :class="cell.inMonth ? (cell.posImpact > 0 ? 'text-slate-200 font-semibold' : 'text-slate-500') : 'text-slate-600'"
+          class="text-[9px] leading-none tabular-nums"
+          :class="cell.inMonth ? 'text-slate-500' : 'text-slate-600'"
         >{{ cell.date }}</span>
-        <span v-if="cell.neg.length" class="absolute top-[2px] right-[3px] text-[8px] leading-none text-slate-400/70">▲</span>
-        <span class="flex flex-wrap items-center justify-center gap-[2px] px-1">
-          <span
-            v-for="m in dotsFor(cell)"
-            :key="m.id"
-            class="w-[5px] h-[5px] rounded-full"
-            :class="meta[m.kind].dot"
-          />
+        <span v-if="cell.inMonth && hasAny(cell)" class="flex items-baseline leading-none mt-[3px] tabular-nums">
+          <span class="text-[13px] font-bold text-amber-300">{{ cell.pos }}</span>
+          <span class="text-[10px] text-slate-600 mx-[2px]">/</span>
+          <span class="text-[12px] font-semibold" :class="cell.neg > 0 ? 'text-slate-400' : 'text-slate-700'">{{ cell.neg }}</span>
         </span>
       </button>
     </div>
