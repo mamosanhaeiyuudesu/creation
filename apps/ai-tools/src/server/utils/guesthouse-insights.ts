@@ -9,8 +9,11 @@
 //     別タグになり、時系列で見ているものがゲストの変化ではなく語彙のブレになるため。
 //   - 語彙を変えたら VOCAB_VERSION を上げる。キャッシュが全件作り直される。
 
+import { ROUTE_SELF } from '~/utils/guesthouse-route'
+
 /** 固定語彙のバージョン。下の語彙・抽出方針を変えたら必ず +1 する（既存の抽出結果が作り直される）。 */
-export const VOCAB_VERSION = 1
+// 2: 旅程の順番（route / routeIndex）と、宿と宿坊の分離（aspects.subject / shukuboStays）を追加。
+export const VOCAB_VERSION = 2
 
 /**
  * 滞在の型。「この地域の数日の中で宿がどんな位置を占めたか」を質的に捉える軸。
@@ -41,6 +44,23 @@ export const SATISFACTION_ASPECTS = [
   '宿での体験',
   '価格',
 ] as const
+
+/**
+ * 感想の主語（固定語彙）。一人のお客様の日記には、この宿の感想と、お客様が自分で手配した
+ * 高野山の宿坊の感想が混ざる。混ぜたまま数えると「宿そのものの評価」が読めなくなるので、
+ * 抽出の時点で分けておき、集計・表示も既定では inn（この宿）だけを見る。
+ */
+export const ASPECT_SUBJECTS = {
+  inn: 'この宿',
+  shukubo: '宿坊・ほかの宿',
+  other: 'エリア・その他',
+} as const
+export type AspectSubjectKey = keyof typeof ASPECT_SUBJECTS
+
+/** 主語の判定基準（プロンプトに埋め込む）。ここを変えたら VOCAB_VERSION を上げる。 */
+const ASPECT_SUBJECT_CRITERIA = `- "inn": 阪中さんの**この宿**についての感想（この宿の食事・部屋・接客・宿からの眺め・宿の体験など）。
+- "shukubo": お客様が**ご自身で手配した別の宿泊先**についての感想（高野山の宿坊、旅館、ホテル。精進料理・朝勤行・写経など宿坊で受けたものを含む）。
+- "other": 宿ではなく、エリア側についての感想（観光地、外の食事処、交通、天候など）。`
 
 /** 関心の対象（固定語彙）。「何に心を動かされているか」の分類。 */
 export const INTEREST_TOPICS = [
@@ -74,9 +94,12 @@ export function buildProfileExtractSystem(): string {
   "originCountry": "国籍・出身（例: フランス / 日本。分からなければ空文字）",
   "prevStop": "この宿の前にいた場所（例: 大阪。分からなければ空文字）",
   "nextStop": "この宿の次に向かう場所（例: 京都。分からなければ空文字）",
+  "route": ["旅程全体の経由地を通った順に並べた配列（下の「旅程の順番」に従う）。読み取れなければ空配列"],
+  "routeIndex": route の中でこの宿が何番目か（1始まりの整数。route が空なら 0）,
+  "shukuboStays": ["お客様がご自身で手配した、この宿以外の宿泊先の名前（例: 恵光院, 高野山の宿坊）。無ければ空配列"],
   "areaSpots": ["エリア内で訪れた場所（例: 奥之院, 壇上伽藍, 町石道）"],
-  "innExperiences": ["宿が提供した体験で参加したもの（例: 川遊び案内, 農園の桃）。無ければ空配列"],
-  "aspects": [{ "aspect": "側面", "sentiment": "positive | negative", "quote": "根拠になった原文の一部" }],
+  "innExperiences": ["**この宿**が提供した体験で参加したもの（例: 川遊び案内, 農園の桃）。無ければ空配列"],
+  "aspects": [{ "subject": "inn | shukubo | other", "aspect": "側面", "sentiment": "positive | negative", "quote": "根拠になった原文の一部" }],
   "topics": ["関心の対象"],
   "beforeExpectation": "到着前に期待していたこと（分かる範囲。無ければ空文字）",
   "afterImpression": "滞在後の印象（分かる範囲。無ければ空文字）"
@@ -84,6 +107,24 @@ export function buildProfileExtractSystem(): string {
 
 # 滞在の型（stayType）の判定
 ${STAY_TYPE_CRITERIA}
+
+# 感想の主語（aspects の subject）— この宿と、お客様が自分で取った宿坊を必ず分ける
+お客様は高野山の宿坊など、**ご自身で手配した別の宿**にも泊まっていることが多い。
+その感想をこの宿の感想と混ぜると、宿そのものの評価が読めなくなるので、必ず主語で分ける。
+${ASPECT_SUBJECT_CRITERIA}
+主語がはっきりしない感想を、都合よく "inn" にしない。どちらの宿の話か本文から判断できないものは、その項目ごと出さない。
+
+# 旅程の順番（route / routeIndex）
+この宿の前後だけでなく、**旅全体のうち何番目にこの宿へ来たか**を見たいので、
+日記・メモから読み取れる範囲で経由地を通った順に並べる。
+- この宿での滞在も1地点として並びに入れる。その要素だけは地名ではなく、必ず 「${ROUTE_SELF}」 という文字列にする。
+  例：東京から入り、高山・大阪を回ってこの宿に泊まり、そのあと高野山へ行って関西空港から帰る旅なら
+  route は 東京 / 高山 / 大阪 / ${ROUTE_SELF} / 高野山 / 関西空港 の6地点、routeIndex は 4。
+- 日付が書かれていなくてよい。「〜のあと」「次に」「最終日は」などの手がかりから順序を組み立てる。
+- 同じ場所へ戻る往復は、実際に通った順にそのまま重複して並べる（大阪 / ${ROUTE_SELF} / 大阪 のように）。
+- この宿以外の宿泊先（宿坊など）も1地点として地名で入れてよい。
+- 地名は prevStop / nextStop と同じく短い固有名詞に正規化する。
+- 順番が読み取れないときは route を空配列・routeIndex を 0 にする（**並び順を想像で作らない**）。
 
 # 固定語彙（必ずこの中の語だけを使う。当てはまるものが無ければ、その項目は出さない）
 - aspect: ${aspects}
@@ -97,5 +138,7 @@ ${STAY_TYPE_CRITERIA}
 - prevStop / nextStop は集計してつなげるので、**短い地名だけ**を書く（「大阪から入り帰りも大阪へ」なら prevStop も nextStop も "大阪"）。
   国内の地名は日本語表記に統一する。行き先が空港なら "関西空港" のように書く。
 - areaSpots も同様に、短い固有名詞に正規化する（「奥之院の杉並木を散策」→ "奥之院"）。
+  宿泊先（宿坊・旅館・ホテル）は立ち寄り先ではないので areaSpots に入れず、shukuboStays に入れる。
+- innExperiences は**この宿**が用意したものだけ。宿坊で受けた朝勤行・写経・精進料理はここに入れない。
 - 日本語で書く。`
 }

@@ -271,8 +271,18 @@ export interface TrendsRefreshResult extends Trends {
 /** 滞在の型。base=拠点／destination=目的地／transit=通過／unknown=判断材料なし。 */
 export type StayType = 'base' | 'destination' | 'transit' | 'unknown'
 
+/**
+ * 感想が「何について」のものか。inn=阪中さんのこの宿／shukubo=お客様がご自身で手配した別の宿泊先
+ * （高野山の宿坊・旅館など）／other=宿ではなくエリアの観光・食事・交通など。
+ *
+ * 一人のお客様の日記には、この宿の感想と自分で取った宿坊の感想が混ざる。分けずに数えると
+ * 「宿そのものの評価」が読めなくなるため、抽出の時点で主語を分けて持つ。
+ */
+export type AspectSubject = 'inn' | 'shukubo' | 'other'
+
 /** 満足度の1件。自由記述から点数は作らず、「どの側面がどちら向きに語られたか」＋原文の引用だけを持つ。 */
 export interface AspectMention {
+  subject: AspectSubject // 何についての感想か（宿／宿坊・ほかの宿／エリア）
   aspect: string // SATISFACTION_ASPECTS の固定語彙
   sentiment: 'positive' | 'negative'
   quote: string // 根拠になった日記・メモの原文（言い換えなし）
@@ -285,6 +295,16 @@ export interface GuestProfileData {
   originCountry: string
   prevStop: string
   nextStop: string
+  /**
+   * 旅程全体の経由地を時系列順に並べたもの。この宿での滞在も1地点として含み、
+   * その要素だけは予約語 ROUTE_SELF（'この宿'）で入る（表示時に宿名へ差し替える）。
+   * 読み取れなければ空配列。
+   */
+  route: string[]
+  /** route の中でこの宿が何番目か（1始まり。読み取れなければ 0）。「全10地点中8番目」の 8。 */
+  routeIndex: number
+  /** お客様がご自身で手配した、この宿以外の宿泊先（高野山の宿坊など）。宿の感想と混ぜないための分離用。 */
+  shukuboStays: string[]
   areaSpots: string[]
   innExperiences: string[]
   aspects: AspectMention[]

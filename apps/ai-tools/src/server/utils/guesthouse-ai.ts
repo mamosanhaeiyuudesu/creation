@@ -4,7 +4,8 @@ import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
 import { buildKnowledgeBase } from '~/server/utils/guesthouse'
 import { buildTriageSystem, buildAnswerSystem, buildEmergencyReplySystem, buildInfoGapReplySystem, WEB_SEARCH } from '~/server/utils/guesthouse-policy'
 import { buildProfileExtractSystem, INTEREST_TOPICS, SATISFACTION_ASPECTS } from '~/server/utils/guesthouse-insights'
-import type { AspectMention, ChatMessage, Diary, DiaryContent, ExtractResult, ExtractedFact, ExtractedTip, FarewellDraft, GuestProfileData, House, StayType, ThreadMessage, Tip, TipExtractResult, TrendItem } from '~/types/guesthouse'
+import { ROUTE_SELF } from '~/utils/guesthouse-route'
+import type { AspectMention, AspectSubject, ChatMessage, Diary, DiaryContent, ExtractResult, ExtractedFact, ExtractedTip, FarewellDraft, GuestProfileData, House, StayType, ThreadMessage, Tip, TipExtractResult, TrendItem } from '~/types/guesthouse'
 
 /** 会話を読みやすいテキスト起こしにする（プロンプト用）。 */
 export function threadTranscript(messages: ThreadMessage[]): string {
@@ -188,12 +189,18 @@ export async function generateDiary(
 1. 何泊したか
 2. **エリア内でどこへ行き、どう時間を使ったか**（例：丸一日で奥之院・壇上伽藍、早朝に散策、半日だけ観光して午後は宿で休息）
 3. どこから来て、次にどこへ向かうか（例：大阪から入り京都へ抜ける／関空へ直行）
-4. 移動手段（例：ケーブルカー、レンタカー、路線バス）
-5. 宿が提供した体験に参加したか（例：川遊び案内、農園の果物、食事）
+4. **旅全体の道のりを、通った順に**（例：東京→高山→大阪→この宿→高野山→関西空港）。
+   この宿が旅のどのあたり（前半／中盤／後半）に来たかを後から数えられるよう、分かる経由地は順番どおりに並べて書く。
+5. 移動手段（例：ケーブルカー、レンタカー、路線バス）
+6. 宿が提供した体験に参加したか（例：川遊び案内、農園の果物、食事）
+7. **この宿以外に泊まった宿**（高野山の宿坊など、お客様がご自身で手配された宿泊先）があれば、その名前
 
 # 方針
 - 会話・聞き取りメモに書かれていないことは想像で埋めない。分からない欄は空文字にする。
-  上の1〜5も、書かれていない項目は無理に埋めず、分かるものだけ書く。
+  上の1〜7も、書かれていない項目は無理に埋めず、分かるものだけ書く。
+- **この宿の話か、お客様がご自身で手配された宿坊・ほかの宿の話かが分かるように書く**
+  （例：「宿坊の朝勤行がよかったとのこと」「当宿の朝食を喜ばれていた」）。
+  主語が曖昧なままだと、後の分析で宿坊の感想が宿の評価に混ざってしまう。
 - 個人が特定される連絡先などは書かない（旅の傾向や好みなど、運営に活きる情報に絞る）。
 - 日本語で書く。${existingBlock}`
 
@@ -489,6 +496,8 @@ export async function computeTrends(apiKey: string, diaries: Diary[]): Promise<T
 
 # 方針
 - 複数の日記に共通して見える傾向を優先する（例: 高野山に来る人は熊野・京都にもよく行く／精進料理・ベジ対応の需要が高い／早朝の奥之院の満足度が高い）。
+- 旅程は**通った順**にも注目する（例: 旅の後半に高野山エリアへ来る人が多い／大阪から入って京都へ抜ける流れが多い）。経路が違っても、旅のどのあたりで来られるかは傾向として言える。
+- **この宿の話と、お客様がご自身で手配された宿坊・ほかの宿の話を混ぜない**。宿坊での体験は「宿坊で〜」と分けて書き、この宿の評価として書かない。
 - 3〜6件。数が少なく傾向が弱い場合は無理に出さず、言える範囲だけにする。
 - 日本語で書く。断定しすぎず、根拠に基づく。`
 
@@ -522,7 +531,8 @@ export async function extractGuestProfile(
 
   const out = await callClaudeText(apiKey, {
     system: buildProfileExtractSystem(),
-    maxTokens: 1200,
+    // route（旅程全体の経由地）と subject が増えたぶん、出力が途中で切れないよう少し多めに取る。
+    maxTokens: 1600,
     messages: [
       {
         role: 'user',
@@ -543,17 +553,35 @@ export async function extractGuestProfile(
     ? p.stayType
     : 'unknown'
 
+  // 旅程の順番。AI が書いた routeIndex より、route の中の "この宿" の位置を優先する
+  // （両方あるとズレることがあり、番号だけズレると「何番目か」が静かに嘘になるため）。
+  const route = strList(p?.route)
+  const selfIndex = route.indexOf(ROUTE_SELF) + 1
+  const claimedIndex = Math.trunc(Number(p?.routeIndex))
+  const routeIndex =
+    selfIndex > 0
+      ? selfIndex
+      : Number.isFinite(claimedIndex) && claimedIndex >= 1 && claimedIndex <= route.length
+        ? claimedIndex
+        : 0
+
   return {
     stayType,
     nights: Number.isFinite(Number(p?.nights)) ? Math.max(0, Math.trunc(Number(p.nights))) : 0,
     originCountry: str(p?.originCountry),
     prevStop: str(p?.prevStop),
     nextStop: str(p?.nextStop),
+    route,
+    routeIndex,
+    shukuboStays: strList(p?.shukuboStays),
     areaSpots: strList(p?.areaSpots),
     innExperiences: strList(p?.innExperiences),
     topics: strList(p?.topics, INTEREST_TOPICS),
     aspects: (Array.isArray(p?.aspects) ? p.aspects : [])
       .map((a: any) => ({
+        // 主語が無い／知らない値のときは "other" に寄せる。ここで "inn" に丸めると、
+        // 宿坊の感想が宿の評価に混ざるという、この分離でいちばん避けたいことが起きる。
+        subject: (['inn', 'shukubo', 'other'] as const).includes(a?.subject) ? (a.subject as AspectSubject) : 'other',
         aspect: str(a?.aspect),
         sentiment: a?.sentiment === 'negative' ? ('negative' as const) : ('positive' as const),
         quote: str(a?.quote),

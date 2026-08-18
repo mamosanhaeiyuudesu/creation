@@ -1093,6 +1093,12 @@ export async function buildInsights(event: H3Event, db: any, userId: string, voc
     if (!hit || hit.diaryId !== d.id || hit.vocabVersion !== vocabVersion) continue
     profiles.push({
       ...hit.data,
+      // 語彙が上がる前に保存された行は上で弾いているが、JSON を直接いじった等で欠けていても
+      // 画面が落ちないように、後から足したフィールドは既定値で埋めておく。
+      route: hit.data.route ?? [],
+      routeIndex: hit.data.routeIndex ?? 0,
+      shukuboStays: hit.data.shukuboStays ?? [],
+      aspects: (hit.data.aspects ?? []).map((a) => ({ ...a, subject: a.subject ?? 'other' })),
       sessionId: d.sessionId,
       houseId: d.houseId,
       houseName: houseNames.get(d.houseId) ?? '',
