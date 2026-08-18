@@ -112,25 +112,19 @@
       <div class="hr-wrap">
         <p class="section-label">About</p>
         <h2 class="section-title">晴レルヤ鍼灸院について</h2>
-        <div class="about-inner">
-          <div class="about-body">
-            <p>
-              晴レルヤ鍼灸院は、横浜市旭区若葉台の商店街のレンタルスペースや、青葉台駅周辺のレンタルサロンなどで施術を行っています。
-            </p>
-            <p>
-              リラクゼーションを目的としたお店ではなく、<strong>お困りの症状を改善すること</strong>を目的として、内臓鍼灸とソフトカイロ矯正を組み合わせた施術を行っています。
-            </p>
-            <p>
-              院長は鍼灸師と助産師、両方の国家資格を持っています。月経・妊娠・出産・産後といった女性のからだのサイクルを現場で見てきた立場から、西洋医学と東洋医学の両方の視点から、おひとりずつの状態に合わせた施術とご相談をお受けしています。
-            </p>
-            <p>
-              鍼がはじめての方も少なくありません。どんなことをするのか、どのくらいの刺激なのか、気になることは施術前に何でもお尋ねください。
-            </p>
-          </div>
-          <figure class="about-photo">
-            <img src="/images/action.jpg" alt="施術の様子" width="900" height="1601" loading="lazy" />
-            <figcaption>施術の様子</figcaption>
-          </figure>
+        <div class="about-body">
+          <p>
+            晴レルヤ鍼灸院は、横浜市旭区若葉台の商店街のレンタルスペースや、青葉台駅周辺のレンタルサロンなどで施術を行っています。
+          </p>
+          <p>
+            リラクゼーションを目的としたお店ではなく、<strong>お困りの症状を改善すること</strong>を目的として、内臓鍼灸とソフトカイロ矯正を組み合わせた施術を行っています。
+          </p>
+          <p>
+            院長は鍼灸師と助産師、両方の国家資格を持っています。月経・妊娠・出産・産後といった女性のからだのサイクルを現場で見てきた立場から、西洋医学と東洋医学の両方の視点から、おひとりずつの状態に合わせた施術とご相談をお受けしています。
+          </p>
+          <p>
+            鍼がはじめての方も少なくありません。どんなことをするのか、どのくらいの刺激なのか、気になることは施術前に何でもお尋ねください。
+          </p>
         </div>
       </div>
     </section>
@@ -145,7 +139,7 @@
           <div class="feature-card">
             <span class="feature-num">01</span>
             <div class="feature-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg>
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg>
             </div>
             <h3 class="feature-title">内臓鍼灸</h3>
             <p class="feature-body">
@@ -155,8 +149,8 @@
 
           <div class="feature-card">
             <span class="feature-num">02</span>
-            <div class="feature-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M9 6h6M8.5 10h7M8.5 14h7M9 18h6"/></svg>
+            <div class="feature-icon is-photo">
+              <img src="/images/action.jpg" alt="ソフトカイロ矯正の施術の様子" width="900" height="1601" loading="lazy" />
             </div>
             <h3 class="feature-title">ソフトカイロ矯正</h3>
             <p class="feature-body">
@@ -167,7 +161,7 @@
           <div class="feature-card">
             <span class="feature-num">03</span>
             <div class="feature-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a4.6 4.6 0 0 0-6.5 0L12 7.9l-2.3-2.3a4.6 4.6 0 1 0-6.5 6.5l8.8 8.8 8.8-8.8a4.6 4.6 0 0 0 0-6.4z"/></svg>
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a4.6 4.6 0 0 0-6.5 0L12 7.9l-2.3-2.3a4.6 4.6 0 1 0-6.5 6.5l8.8 8.8 8.8-8.8a4.6 4.6 0 0 0 0-6.4z"/></svg>
             </div>
             <h3 class="feature-title">助産師 × 鍼灸師</h3>
             <p class="feature-body">
