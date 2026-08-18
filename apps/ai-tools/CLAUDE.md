@@ -104,6 +104,9 @@ Sheets APIで直接読み書きする（`life-google.ts`）。D1が持つのは�
     変更時に既存セッションを全削除して発行し直す＝他端末のログインは切れる）。入り口は2つ:
     ログイン前はログイン画面 `AuthModal.vue` の「パスワードを変更する」、ログイン中は各ページの
     ログアウトの隣／設定メニューの「パスワード変更」（`components/PasswordModal.vue`。ユーザー名はセッションから）
+- `WHISPER_DB` 相乗り（hagemashi）: hagemashi_profiles / hagemashi_consult_messages / hagemashi_achievements / hagemashi_kokoro / hagemashi_moods / hagemashi_topic_cache / hagemashi_achieved / hagemashi_gratitude / **hagemashi_moments**（できごと＝記録から抜き出した出来事1件ずつ。タグ5種（達成/感謝/喜び＝ポジ、しんどさ/不安＝ネガ）・`impact` 1〜5・`who`・手編集の印 `edited` を持ち、ユーザーごと1行に JSON をまとめて暗号化保存。`processedIds` に抽出済みの記録idを持たせて差分実行の基準にする）。すべて既存 users/sessions 認証に相乗りし `user_id` でスコープ。**hagemashi_achievements（旧・達成リスト）は読み込み専用**で、hagemashi_moments への移行元としてのみ残している。
+  - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/047_hagemashi_moments.sql`
+  - ※ マイグレーションの採番は 028・031・042 が重複しているので、新規追加時は `ls src/server/db/` で最大値を確認してから付ける
 - `WHISPER_DB` 相乗り（kaki）: kaki_trees / kaki_observations / kaki_comments / kaki_health_events。既存 `users` に `role`（admin/foster）列を追加して認証に相乗り。写真はR2を使わず base64 data URL を D1 に保存（アップロード時にクライアント側で縮小・圧縮）。
   - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/031_kaki.sql`
   - 農家（阪中さん）を管理者にする: `wrangler d1 execute whisper-db --remote --command "UPDATE users SET role='admin' WHERE username='<農家のユーザー名>'"`

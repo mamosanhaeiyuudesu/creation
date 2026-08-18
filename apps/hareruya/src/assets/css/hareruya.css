@@ -374,40 +374,49 @@
   line-height: 1.85;
   letter-spacing: 0.06em;
   color: var(--c-brown);
-  margin-top: 4px;
+  margin-top: 20px;
   position: relative;
   z-index: 0;
-  /* 行同士は中央で揃えたまま、右に余白を作って文字のかたまり全体を左へ寄せる
-     （透かしが右にあるので、その手前に文字が収まる）。左寄せ量はこの右パディングで調整する */
-  padding: 26px 28% 26px 0;
+  /* 上下の余白がそのまま写真の帯の見える量になる */
+  padding: 54px 24px;
   text-align: center;
 }
 
-/* キャッチコピーの右側に施術風景を透かしで敷く。
-   周囲をマスクでぼかし、ヒーローのピンクに溶け込ませる */
+/* キャッチコピーの背後に施術風景を画面幅いっぱいの帯として敷く。
+   白のベールを重ねて文字の地はほぼ白にし、写真は気配だけ残す。
+   .hr-hero が overflow: hidden なので 100vw がはみ出しても横スクロールは出ない */
 .hero-catch::before {
   content: '';
   position: absolute;
-  top: -10%;
-  bottom: -10%;
-  right: -14%;
-  width: min(560px, 74%);
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
   z-index: -1;
-  background-image: url('/images/hero-treatment.jpg');
-  /* 少し寄って上を見せることで、手前の頭が写り込む割合を減らす */
-  background-size: 165%;
-  background-position: 60% 26%;
-  opacity: 0.16;
-  filter: saturate(0.5);
-  -webkit-mask-image: radial-gradient(ellipse at 58% 50%, #000 36%, transparent 74%);
-  mask-image: radial-gradient(ellipse at 58% 50%, #000 36%, transparent 74%);
+  /* 中央（＝文字が乗るところ）ほど白を濃くし、地を白く抜く。
+     端に向かって薄め、施術風景が気配として残るようにする */
+  background-image:
+    radial-gradient(
+      ellipse 68% 96% at 50% 48%,
+      rgba(255, 255, 255, 0.78) 30%,
+      rgba(255, 255, 255, 0.52) 100%
+    ),
+    url('/images/hero-treatment.jpg');
+  /* 写真を右に 100px ずらす。cover のままだと横のあそびが無く動かないので、
+     帯より 200px 広く敷いて、その半分ぶんを右に送る（文字の位置は変えない） */
+  background-size: calc(100% + 200px) auto;
+  background-position: calc(50% + 100px) 34%;
+  background-repeat: no-repeat;
+  filter: saturate(0.55);
   pointer-events: none;
 }
 
+/* 地が白くなったので、白マーカーは見えない。ピンクの下線で強調する */
 .hero-catch em {
   font-style: normal;
   white-space: nowrap;
-  background: linear-gradient(transparent 66%, rgba(255, 255, 255, 0.66) 66%);
+  background: linear-gradient(transparent 66%, rgba(254, 191, 202, 0.8) 66%);
 }
 
 .hero-sub {
@@ -1335,9 +1344,15 @@
     padding: 20px 20px 52px;
   }
 
-  /* スマホは横幅が足りず、右パディングを残すとキャッチコピーが折り返してしまう */
+  /* 帯が縦に伸びすぎないよう、上下の余白を詰める */
   .hero-catch {
-    padding-right: 0;
+    padding: 34px 16px;
+  }
+
+  /* 画面が狭いと 100px のずれが効きすぎて施術者が文字に重なるので、ずれを半分強に抑える */
+  .hero-catch::before {
+    background-size: calc(100% + 130px) auto;
+    background-position: calc(50% + 60px) 34%;
   }
 
   .sp-only {

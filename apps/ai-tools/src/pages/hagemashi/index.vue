@@ -113,7 +113,7 @@
         </div>
         <div
           class="flex items-center gap-2 mb-1"
-          :class="activeTab === 'summary' || activeTab === 'words' || activeTab === 'analysis' || isProfileTab || activeTab === 'transcription' || activeTab === 'achievement' || activeTab === 'achieved' || activeTab === 'gratitude' || activeTab === 'kokoro'
+          :class="activeTab === 'summary' || activeTab === 'words' || activeTab === 'analysis' || isProfileTab || activeTab === 'transcription' || activeTab === 'moments' || activeTab === 'achieved' || activeTab === 'gratitude' || activeTab === 'kokoro'
             ? 'min-h-8'
             : 'min-h-0'"
         >
@@ -133,15 +133,16 @@
               >はげまし</button>
             </div>
           </template>
-          <template v-if="activeTab === 'achievement'">
+          <template v-if="activeTab === 'moments' || activeTab === 'analysis'">
             <div class="flex-1" />
+            <span v-if="unprocessedSourceItems.length > 0 && !isGeneratingMoments" class="text-[11px] text-slate-600">未抽出 {{ unprocessedSourceItems.length }}件</span>
             <button
               class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-              :disabled="isGeneratingAchievements || achievementSourceItems.length === 0"
-              @click="openAchievementSelect"
+              :disabled="isGeneratingMoments || momentSourceItems.length === 0"
+              @click="openMomentSelect"
             >
-              <span v-if="isGeneratingAchievements" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
-              {{ achievementStatus || '再生成' }}
+              <span v-if="isGeneratingMoments" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
+              {{ momentStatus || '更新' }}
             </button>
           </template>
           <template v-if="activeTab === 'summary'">
@@ -155,7 +156,7 @@
               {{ migrateStatus || '再生成' }}
             </button>
           </template>
-          <template v-if="activeTab === 'words' || activeTab === 'analysis'">
+          <template v-if="activeTab === 'words'">
             <label class="ml-auto flex items-center gap-1.5 text-[11px] text-slate-500">
               <span>出現回数</span>
               <select
@@ -169,24 +170,6 @@
               class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all"
               @click="stoplistOpen = true"
             >除外単語</button>
-          </template>
-          <!-- 分析タブ: 集計は自動、配置の組み直しはこのボタンでだけ行う -->
-          <template v-if="activeTab === 'analysis'">
-            <span v-if="networkBuiltAt" class="text-[11px] text-slate-600 hidden sm:inline">
-              最終更新: {{ formatBuiltAt(networkBuiltAt) }}
-            </span>
-            <button
-              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-              :disabled="isBuildingNetwork || summaryRows.length === 0"
-              @click="refreshNetwork"
-            >
-              <span v-if="isBuildingNetwork" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
-              更新
-              <span
-                v-if="pendingRowCount > 0"
-                class="px-1.5 rounded-full bg-orange-500 text-slate-900 text-[10px] font-bold tabular-nums"
-              >{{ pendingRowCount }}</span>
-            </button>
           </template>
           <template v-if="activeTab === 'kokoro'">
             <div class="flex-1" />
@@ -244,7 +227,7 @@
           :hideHeader="true"
           :mobileMinimal="true"
           @copy="copyHistory"
-          @delete="deleteHistoryAndAchievements"
+          @delete="deleteHistoryAndMoments"
           @updateTitle="updateHistoryTitle"
         />
         <HistoryTable
@@ -258,53 +241,98 @@
           @delete="deleteEncourageHistory"
           @updateTitle="updateEncourageHistoryTitle"
         />
-        <!-- 分析タブ（単語の共起ネットワーク） -->
-        <div v-else-if="activeTab === 'analysis'" class="py-2">
-          <div v-if="summaryRows.length === 0" class="text-center text-slate-500 text-sm py-10">
-            要約が生成されると、言葉のつながりを可視化します
+        <!-- 分析タブ（できごとのカレンダー） -->
+        <div v-else-if="activeTab === 'analysis'" class="py-2 flex flex-col gap-3">
+          <div v-if="momentBaseRows.length === 0" class="text-center text-slate-500 text-sm py-10">
+            できごとを抽出すると、日ごとのカレンダーになります
           </div>
-          <div v-else-if="networkGraph.nodes.length === 0" class="text-center text-slate-500 text-sm py-10">
-            <template v-if="isBuildingNetwork">集計中...</template>
-            <template v-else>
-              つながりを描けるだけの記録がまだありません。<br />
-              記録が増えるか、「出現回数」を下げると表示されます。
-            </template>
-          </div>
-          <div v-else class="flex flex-col gap-2.5">
-            <!-- <p class="m-0 text-[11px] text-slate-500 leading-relaxed">
-              同じ要約に一緒に出てくる言葉どうしを線で結んでいます。色はポジ/ネガ、線の太さは結びつきの強さ。<br class="hidden sm:block" />
-              単語をタップすると、組み合わせ（例:「仕事 × 締切」）→ AI分析 の順で掘り下げられます。
-            </p> -->
+          <template v-else>
+            <!-- 月の移動と件数 -->
+            <div class="flex items-center gap-1.5">
+              <button
+                class="w-7 h-7 flex items-center justify-center rounded-lg border border-white/10 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.08] hover:text-slate-100 transition-colors"
+                @click="shiftCalendarMonth(-1)"
+              >‹</button>
+              <span class="text-sm text-slate-100 font-semibold tabular-nums min-w-[92px] text-center">{{ calendarMonthLabel }}</span>
+              <button
+                class="w-7 h-7 flex items-center justify-center rounded-lg border border-white/10 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.08] hover:text-slate-100 transition-colors"
+                @click="shiftCalendarMonth(1)"
+              >›</button>
+              <button
+                v-if="calendarMonth !== currentMonthKey"
+                class="px-2 py-1 rounded-lg border border-white/10 bg-transparent text-slate-500 text-[11px] cursor-pointer hover:bg-white/[0.08] hover:text-slate-300 transition-colors"
+                @click="calendarMonth = currentMonthKey; selectedDay = null"
+              >今月</button>
+              <span class="ml-auto text-[11px] text-slate-500 tabular-nums">
+                ポジ <span class="text-emerald-300 font-semibold">{{ monthSummary.pos }}</span>
+                <span class="mx-1 text-slate-700">/</span>
+                ネガ <span class="text-slate-400 font-semibold">{{ monthSummary.neg }}</span>
+              </span>
+            </div>
 
-            <HagemashiWordNetwork
-              ref="networkRef"
-              :graph="networkGraph"
-              :signature="networkSignature"
-              :height="networkHeight"
-              @node-click="activePairWord = $event"
+            <HagemashiMomentCalendar
+              :moments="momentBaseRows"
+              :meta="MOMENT_META"
+              :month="calendarMonth"
+              :selected="selectedDay"
+              @select="selectedDay = $event; showNegativeDetail = false"
             />
 
-            <!-- 凡例 -->
-            <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[10px] text-slate-500">
-              <span class="flex items-center gap-1.5">
-                <span class="text-orange-400 font-semibold">ネガ</span>
-                <span class="h-1.5 w-20 rounded-full" :style="{ background: 'linear-gradient(90deg, rgb(251,146,60), rgb(148,163,184), rgb(52,211,153))' }" />
-                <span class="text-emerald-400 font-semibold">ポジ</span>
-              </span>
-              <span class="flex items-center gap-1.5">
-                <span class="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block" />
-                <span class="w-2.5 h-2.5 rounded-full bg-slate-400 inline-block" />
-                <span class="w-3.5 h-3.5 rounded-full bg-slate-400 inline-block" />
-                出現の多さ
-              </span>
-              <span class="flex items-center gap-1.5">
-                <span class="w-6 h-px bg-slate-400 inline-block" />
-                <span class="w-6 h-[3px] bg-slate-400 inline-block" />
-                結びつきの強さ
-              </span>
-              <span class="text-slate-600 tabular-nums">{{ networkGraph.nodes.length }} 語 ・ {{ networkGraph.edges.length }} 接続</span>
+            <!-- 選んだ日の中身 -->
+            <div v-if="selectedDay" class="bg-white/[0.03] border border-white/[0.07] rounded-xl px-3 py-2.5 flex flex-col gap-1">
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-slate-100 font-semibold">{{ selectedDayLabel }}</span>
+                <button
+                  class="ml-auto bg-transparent border-none text-slate-600 text-sm cursor-pointer px-1 rounded hover:text-slate-300 transition-colors"
+                  @click="selectedDay = null"
+                >✕</button>
+              </div>
+
+              <HagemashiMomentRow
+                v-for="m in selectedDayMoments.pos"
+                :key="m.id"
+                :moment="m"
+                :date="momentDate(m)"
+                :kinds="MOMENT_KINDS"
+                :meta="MOMENT_META"
+                @save="applyMomentEdit(m.id, $event)"
+                @delete="deletingMomentId = m.id"
+              />
+              <p v-if="selectedDayMoments.pos.length === 0" class="m-0 py-2 text-xs text-slate-600 text-center">
+                この日のポジティブなできごとはありません
+              </p>
+
+              <!-- ネガは畳んでおく -->
+              <template v-if="selectedDayMoments.neg.length > 0">
+                <button
+                  class="flex items-center gap-1.5 bg-transparent border-none text-[11px] text-slate-500 cursor-pointer py-1 hover:text-slate-300 transition-colors self-start"
+                  @click="showNegativeDetail = !showNegativeDetail"
+                >
+                  <span class="text-[9px] transition-transform duration-200" :style="showNegativeDetail ? 'transform: rotate(90deg)' : ''">▶</span>
+                  ネガ {{ selectedDayMoments.neg.length }}件
+                </button>
+                <template v-if="showNegativeDetail">
+                  <HagemashiMomentRow
+                    v-for="m in selectedDayMoments.neg"
+                    :key="m.id"
+                    :moment="m"
+                    :date="momentDate(m)"
+                    :kinds="MOMENT_KINDS"
+                    :meta="MOMENT_META"
+                    @save="applyMomentEdit(m.id, $event)"
+                    @delete="deletingMomentId = m.id"
+                  />
+                </template>
+              </template>
+
+              <div v-if="selectedDaySources.length" class="text-[10px] text-slate-600 pt-1.5 mt-0.5 border-t border-white/[0.05]">
+                元の記録: {{ selectedDaySources.join(' / ') }}
+              </div>
             </div>
-          </div>
+            <p v-else class="m-0 text-center text-[11px] text-slate-600 py-1">
+              日付をタップすると、その日のできごとが出ます
+            </p>
+          </template>
         </div>
 
         <!-- 要約タブ -->
@@ -368,61 +396,43 @@
           </div>
         </div>
 
-        <!-- 達成リストタブ -->
-        <div v-else-if="activeTab === 'achievement'" class="py-2">
-          <div v-if="achievementRows.length === 0" class="text-center text-slate-500 text-sm py-10">
-            再生成ボタンを押すと要約から達成リストを生成します
+        <!-- できごとタブ -->
+        <div v-else-if="activeTab === 'moments'" class="py-2 flex flex-col gap-2.5">
+          <!-- タグ絞り込み -->
+          <div v-if="momentBaseRows.length > 0" class="flex flex-wrap items-center gap-1.5">
+            <button
+              class="px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer"
+              :class="momentKindFilter === null ? 'border-orange-500/60 bg-orange-500/15 text-orange-300' : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
+              @click="momentKindFilter = null"
+            >すべて {{ momentBaseRows.length }}</button>
+            <button
+              v-for="k in MOMENT_KINDS"
+              :key="k"
+              class="px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer"
+              :class="momentKindFilter === k ? MOMENT_META[k].chip : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
+              @click="momentKindFilter = momentKindFilter === k ? null : k"
+            >{{ k }} {{ momentCounts[k] }}</button>
+            <label class="ml-auto flex items-center gap-1.5 text-[11px] text-slate-500 cursor-pointer select-none">
+              <input v-model="showNegativeMoments" type="checkbox" class="w-3.5 h-3.5 shrink-0 accent-orange-500 cursor-pointer" />
+              ネガも表示
+            </label>
+          </div>
+
+          <div v-if="momentRows.length === 0" class="text-center text-slate-500 text-sm py-10">
+            <template v-if="momentBaseRows.length === 0">更新ボタンを押すと、記録からできごとを抜き出します</template>
+            <template v-else>この絞り込みに合うできごとはありません</template>
           </div>
           <div v-else class="flex flex-col gap-0">
-            <div
-              v-for="row in achievementRows"
+            <HagemashiMomentRow
+              v-for="row in momentRows"
               :key="row.id"
-              class="flex flex-col gap-2 px-1 py-2 border-b border-white/[0.05] last:border-b-0"
-            >
-              <!-- 表示モード -->
-              <template v-if="editingAchievementId !== row.id">
-                <div class="flex items-start gap-2.5 group">
-                  <span class="text-[11px] text-slate-500 shrink-0 w-[38px] pt-[2px] tabular-nums">{{ row.date }}</span>
-                  <span class="text-[11px] shrink-0 text-amber-400 mt-[1px] tracking-tight" :title="`大きさ ${row.level}/5`">{{ '★'.repeat(row.level) }}<span class="text-slate-700">{{ '★'.repeat(5 - row.level) }}</span></span>
-                  <span class="text-sm text-slate-200 leading-relaxed flex-1">{{ row.text }}</span>
-                  <div class="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
-                    <button
-                      class="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer border-none bg-transparent"
-                      @click="startEditAchievement(row)"
-                    >✏️</button>
-                    <button
-                      class="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border-none bg-transparent"
-                      @click="deletingAchievementId = row.id"
-                    >✕</button>
-                  </div>
-                </div>
-              </template>
-              <!-- 編集モード -->
-              <template v-else>
-                <div class="flex items-center gap-2 px-0.5">
-                  <span class="text-[11px] text-slate-500 shrink-0 w-[38px] tabular-nums">{{ row.date }}</span>
-                  <span class="text-[11px] text-slate-500 shrink-0">大きさ</span>
-                  <div class="flex gap-1">
-                    <button
-                      v-for="n in 5"
-                      :key="n"
-                      class="w-6 h-6 rounded-md text-sm transition-colors cursor-pointer border-none"
-                      :class="editingAchievementLevel >= n ? 'text-amber-400 bg-amber-400/10' : 'text-slate-600 bg-slate-700/40 hover:text-slate-400'"
-                      @click="editingAchievementLevel = n"
-                    >★</button>
-                  </div>
-                </div>
-                <textarea
-                  v-model="editingAchievementText"
-                  class="w-full bg-white/[0.05] border border-orange-500/40 rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-none leading-relaxed"
-                  rows="3"
-                />
-                <div class="flex justify-end gap-1.5">
-                  <button class="px-3 py-1 rounded-lg border border-white/10 bg-transparent text-slate-400 text-xs cursor-pointer hover:bg-white/[0.08] transition-colors" @click="cancelAchievement">キャンセル</button>
-                  <button class="px-3 py-1 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-xs font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="saveAchievement(row.id)">保存</button>
-                </div>
-              </template>
-            </div>
+              :moment="row"
+              :date="momentDate(row)"
+              :kinds="MOMENT_KINDS"
+              :meta="MOMENT_META"
+              @save="applyMomentEdit(row.id, $event)"
+              @delete="deletingMomentId = row.id"
+            />
           </div>
         </div>
 
@@ -694,7 +704,7 @@
             :kokoro="kokoroHistory[0] ?? null"
             :vision="vision"
             :summary-items="recentSummaryItems"
-            :achievements="achievements"
+            :achievements="consultAchievements"
             @usage="consultDates = $event"
             @messages="consultMessages = $event"
           />
@@ -1068,18 +1078,18 @@
       </div>
     </div>
 
-    <!-- 達成リスト再生成 選択モーダル -->
-    <div v-if="achievementSelectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="achievementSelectOpen = false">
+    <!-- できごと抽出 選択モーダル -->
+    <div v-if="momentSelectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="momentSelectOpen = false">
       <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
           <div>
-            <h2 class="m-0 text-lg text-slate-50 font-semibold">達成リストを再生成</h2>
-            <p class="m-0 mt-0.5 text-xs text-slate-500">対象の要約を選択してください</p>
+            <h2 class="m-0 text-lg text-slate-50 font-semibold">できごとを抽出</h2>
+            <p class="m-0 mt-0.5 text-xs text-slate-500">未抽出の記録を選んであります。作り直すときは全て選択してください</p>
           </div>
-          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="achievementSelectOpen = false">✕</button>
+          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="momentSelectOpen = false">✕</button>
         </div>
         <div class="px-4 py-3 overflow-y-auto flex flex-col gap-1 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
-          <div v-if="achievementSourceItems.length === 0" class="text-center text-slate-600 text-sm py-6">
+          <div v-if="momentSourceItems.length === 0" class="text-center text-slate-600 text-sm py-6">
             要約がありません
           </div>
           <template v-else>
@@ -1087,47 +1097,48 @@
               <input
                 type="checkbox"
                 class="w-4 h-4 shrink-0 accent-orange-500 cursor-pointer"
-                :checked="achievementAllSelected"
-                :indeterminate="achievementSomeSelected"
-                @change="toggleAchievementAll"
+                :checked="momentAllSelected"
+                :indeterminate="momentSomeSelected"
+                @change="toggleMomentAll"
               />
               <span class="text-xs text-slate-400 font-medium">全て選択</span>
             </label>
             <label
-              v-for="item in achievementSourceItems"
+              v-for="item in momentSourceItems"
               :key="item.id"
               class="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors"
-              :class="achievementSelectedIds.includes(item.id) ? 'bg-orange-500/15' : 'hover:bg-white/[0.05]'"
+              :class="momentSelectedIds.includes(item.id) ? 'bg-orange-500/15' : 'hover:bg-white/[0.05]'"
             >
               <input
                 type="checkbox"
                 class="w-4 h-4 shrink-0 accent-orange-500 cursor-pointer"
-                :checked="achievementSelectedIds.includes(item.id)"
-                @change="toggleAchievementSelect(item.id)"
+                :checked="momentSelectedIds.includes(item.id)"
+                @change="toggleMomentSelect(item.id)"
               />
               <span class="text-xs text-slate-400 whitespace-nowrap">{{ formatSelectDate(item.timestamp) }}</span>
-              <span class="text-sm text-slate-200 truncate">{{ item.title || item.text.slice(0, 40) }}</span>
+              <span class="text-sm text-slate-200 truncate flex-1">{{ item.title || item.text.slice(0, 40) }}</span>
+              <span v-if="!momentProcessedIds.includes(item.id)" class="text-[10px] text-orange-400/80 shrink-0">未</span>
             </label>
           </template>
         </div>
         <div class="flex justify-end gap-2 px-6 py-4 border-t border-white/[0.08]">
-          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="achievementSelectOpen = false">キャンセル</button>
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="momentSelectOpen = false">キャンセル</button>
           <button
             class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-            :disabled="achievementSelectedIds.length === 0"
-            @click="runAchievementGenerate"
-          >再生成</button>
+            :disabled="momentSelectedIds.length === 0"
+            @click="runMomentGenerate"
+          >抽出（{{ momentSelectedIds.length }}件）</button>
         </div>
       </div>
     </div>
 
-    <!-- 達成リスト削除確認 -->
-    <div v-if="deletingAchievementId" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="deletingAchievementId = null">
+    <!-- できごと削除確認 -->
+    <div v-if="deletingMomentId" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="deletingMomentId = null">
       <div class="w-full max-w-[300px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-5">
-        <p class="m-0 text-slate-200 text-sm text-center">この達成を削除しますか？</p>
+        <p class="m-0 text-slate-200 text-sm text-center">このできごとを削除しますか？</p>
         <div class="flex justify-center gap-2">
-          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="deletingAchievementId = null">キャンセル</button>
-          <button class="px-5 py-2 rounded-lg border-none bg-red-500/80 text-slate-50 text-sm font-medium cursor-pointer hover:bg-red-500 transition-colors" @click="confirmDeleteAchievement">削除</button>
+          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="deletingMomentId = null">キャンセル</button>
+          <button class="px-5 py-2 rounded-lg border-none bg-red-500/80 text-slate-50 text-sm font-medium cursor-pointer hover:bg-red-500 transition-colors" @click="confirmDeleteMoment">削除</button>
         </div>
       </div>
     </div>
@@ -1144,21 +1155,6 @@
       show-exclude
       @close="activeWordPopup = null"
       @exclude="confirmingStopword = activeWordPopup!.name; activeWordPopup = null"
-    />
-
-    <!-- 分析タブ 単語クリック時のドリルダウン（組み合わせ一覧 → AI分析） -->
-    <HagemashiPairListModal
-      v-if="activePairWord"
-      :key="`pair-${activePairWord.word}`"
-      :word="activePairWord.word"
-      :pos="activePairWord.pos"
-      :neg="activePairWord.neg"
-      :df="activePairWord.df"
-      :graph="networkGraph"
-      :rows="networkRows"
-      @close="closePairModal"
-      @focus="focusPairWord"
-      @exclude="confirmingStopword = activePairWord!.word; closePairModal()"
     />
 
     <!-- 心の要素クリック時のAI分析ポップアップ -->
@@ -1298,7 +1294,7 @@
 
 <script setup lang="ts">
 definePageMeta({ alias: ['/hagemashi', '/hagemashi/'] })
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { marked } from 'marked'
 
 useHead({
@@ -1320,7 +1316,6 @@ import { useAuth } from '~/composables/useAuth'
 import { useAudioRecorder, fetchTitle } from '~/composables/useAudioRecorder'
 import { useTranscriptionModel } from '~/composables/useTranscriptionModel'
 import { tokenize } from '~/utils/hagemashi/tokenize'
-import { buildNetwork, graphSignature, type NetGraph } from '~/utils/hagemashi/cooccurrence'
 
 const $dev = import.meta.dev
 
@@ -1365,14 +1360,14 @@ const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-type RecordingTab = 'transcription' | 'analysis' | 'words' | 'summary' | 'achievement' | 'kokoro' | 'strengths' | 'achieved' | 'gratitude' | 'advice'
+type RecordingTab = 'transcription' | 'analysis' | 'words' | 'summary' | 'moments' | 'kokoro' | 'strengths' | 'achieved' | 'gratitude' | 'advice'
 type TabKey = 'consult' | 'mood' | RecordingTab
 // ?tab= で指定を受け付けるタブ。ここに無いキーは無視され「記録」に落ちる。
 // 非表示中のタブを残すと ?tab=kokoro でタブバーの無い画面に入り込めてしまうため、
 // primaryTabs / secondaryTabs のコメントアウトと歩調を合わせている。
 // （consult / mood はタブバーではなくボタンから開くので残す）
-const TAB_KEYS: TabKey[] = ['transcription', 'analysis', 'consult', 'mood']
-// 非表示中: 'words', 'summary', 'achievement', 'kokoro', 'strengths', 'achieved', 'gratitude', 'advice'
+const TAB_KEYS: TabKey[] = ['transcription', 'analysis', 'moments', 'consult', 'mood']
+// 非表示中: 'words', 'summary', 'kokoro', 'strengths', 'achieved', 'gratitude', 'advice'
 
 // 記録タブ内の表示切り替え（記録 / はげまし）
 const recordView = ref<'record' | 'encourage'>('record')
@@ -1395,11 +1390,12 @@ watch(() => route.query.tab, () => {
 })
 
 // 常に表示する主タブ
-// 現在は「記録」「分析」のみ運用中。他はコメントアウトしている（表示のみ停止・実装は残置）。
+// 現在は「記録」「分析」「できごと」を運用中。他はコメントアウトしている（表示のみ停止・実装は残置）。
 // 戻すときはこの配列と下の TAB_KEYS の両方を戻すこと。
 const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'transcription', label: '記録', short: '記録' },
   { key: 'analysis', label: '分析', short: '分析' },
+  { key: 'moments', label: 'できごと', short: 'できごと' },
   // { key: 'kokoro', label: '心', short: '心' },
   // { key: 'strengths', label: '強み', short: '強み' },
   // { key: 'achieved', label: '達成', short: '達成' },
@@ -1410,7 +1406,6 @@ const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
 const secondaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   // { key: 'words', label: '単語', short: '単語' },
   // { key: 'summary', label: '要約', short: '要約' },
-  // { key: 'achievement', label: '達成リスト', short: '達成' }, // 「達成」ツリーマップタブに統合したためコメントアウト
 ]
 const recordingTabs: { key: RecordingTab; label: string; short: string }[] = [...primaryTabs, ...secondaryTabs]
 const isRecordingTab = computed(() => recordingTabs.some(t => t.key === activeTab.value))
@@ -1472,6 +1467,9 @@ const LS_DICTIONARY = 'hagemashi-dictionary'
 const LS_WORD_RANKING = 'hagemashi-word-ranking'
 const LS_PROFILE = 'hagemashi-profile'
 const LS_ACHIEVED = 'hagemashi-achieved'
+// 旧「達成リスト」。できごとへの移行元として読むだけで、もう書き込まない
+const LS_ACHIEVEMENTS = 'hagemashi-achievements'
+const LS_MOMENTS = 'hagemashi-moments'
 const LS_GRATITUDE = 'hagemashi-gratitude'
 const LS_KOKORO = 'hagemashi-kokoro'
 const LS_MOOD = 'hagemashi-mood'
@@ -1689,8 +1687,44 @@ const generateKokoro = async () => {
   }
 }
 
+// 旧「達成リスト」。いまは読み込み専用で、できごと（Moment）への移行元としてのみ使う
 interface Achievement { id: string; sourceId: string; date: string; text: string; level: number }
 const achievements = ref<Achievement[]>([])
+
+// --- できごと（Moment）の型と state ---
+// 記録の中間データから「その日にあったこと」を1件ずつ抜き出し、タグと大きさ（impact）を付けて貯める。
+// 旧・達成リストの一般化で、達成以外のタグもネガも同じ形で扱う。
+// state をここに置いているのは、下の isLoggedIn の immediate watch から参照されるため。
+type MomentKind = '達成' | '感謝' | '喜び' | 'しんどさ' | '不安'
+const MOMENT_KINDS: MomentKind[] = ['達成', '感謝', '喜び', 'しんどさ', '不安']
+// polarity は kind から一意に決まるので保存はせず、ここから引く
+const MOMENT_META: Record<MomentKind, { polarity: 'pos' | 'neg'; chip: string; star: string; dot: string }> = {
+  '達成': { polarity: 'pos', chip: 'border-amber-400/30 bg-amber-400/15 text-amber-300', star: 'text-amber-400', dot: 'bg-amber-400' },
+  '感謝': { polarity: 'pos', chip: 'border-pink-400/30 bg-pink-400/15 text-pink-300', star: 'text-pink-400', dot: 'bg-pink-400' },
+  '喜び': { polarity: 'pos', chip: 'border-emerald-400/30 bg-emerald-400/15 text-emerald-300', star: 'text-emerald-400', dot: 'bg-emerald-400' },
+  'しんどさ': { polarity: 'neg', chip: 'border-slate-400/25 bg-slate-400/10 text-slate-300', star: 'text-slate-400', dot: 'bg-slate-500' },
+  '不安': { polarity: 'neg', chip: 'border-slate-400/25 bg-slate-400/10 text-slate-300', star: 'text-slate-400', dot: 'bg-slate-500' },
+}
+interface Moment {
+  id: string
+  sourceId: string
+  sourceType: 'record'
+  ts: string
+  kind: MomentKind
+  text: string
+  impact: number
+  who?: string
+  // 手で直した項目。再生成時にAI出力で上書きしないための印
+  edited?: { text?: boolean; impact?: boolean; kind?: boolean }
+  createdAt: string
+  updatedAt: string
+}
+const moments = ref<Moment[]>([])
+// 一度でも抽出を実行した記録のid（できごとが0件だった記録も含む）。差分実行の基準
+const momentProcessedIds = ref<string[]>([])
+const momentsMigrated = ref(false)
+// できごとの読み込みが済んだか。旧・達成リストの移行を history 到着まで待たせるために使う
+const momentsLoaded = ref(false)
 const expandedProfileIndices = ref(new Set<number>())
 const toggleProfileHistory = (i: number) => {
   if (expandedProfileIndices.value.has(i)) expandedProfileIndices.value.delete(i)
@@ -1956,6 +1990,18 @@ onMounted(() => {
     }
   }
   if ($dev) {
+    const cachedMoments = localStorage.getItem(LS_MOMENTS)
+    if (cachedMoments) {
+      try {
+        const raw = JSON.parse(cachedMoments)
+        moments.value = Array.isArray(raw.items) ? raw.items : []
+        momentProcessedIds.value = Array.isArray(raw.processedIds) ? raw.processedIds : []
+        momentsMigrated.value = !!raw.migratedAchievements
+      } catch {}
+    }
+    momentsLoaded.value = true
+  }
+  if ($dev) {
     const cachedAchieved = localStorage.getItem(LS_ACHIEVED)
     if (cachedAchieved) {
       try {
@@ -2004,13 +2050,14 @@ if (!$dev) {
   watch(
     isLoggedIn,
     async (loggedIn) => {
-      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; achievements.value = []; kokoroHistory.value = []; achievedHistory.value = []; gratitudeHistory.value = []; moodEntries.value = []; stoplist.value = [...DEFAULT_STOPLIST]; vision.value = ''; return }
-      const [ranking, dict, profile, sl, ach, kokoro, achieved, gratitude, mood, vis] = await Promise.allSettled([
+      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; achievements.value = []; moments.value = []; momentProcessedIds.value = []; momentsMigrated.value = false; kokoroHistory.value = []; achievedHistory.value = []; gratitudeHistory.value = []; moodEntries.value = []; stoplist.value = [...DEFAULT_STOPLIST]; vision.value = ''; return }
+      const [ranking, dict, profile, sl, ach, mom, kokoro, achieved, gratitude, mood, vis] = await Promise.allSettled([
         $fetch<WordEntry[]>('/api/hagemashi/word-ranking'),
         $fetch<DictionaryEntry[]>('/api/hagemashi/dictionary'),
         $fetch<{ profiles: ProfileData[] }>('/api/hagemashi/profile'),
         $fetch<string[]>('/api/hagemashi/stoplist'),
         $fetch<Achievement[]>('/api/hagemashi/achievements'),
+        $fetch<{ items: Moment[]; processedIds: string[]; migratedAchievements: boolean }>('/api/hagemashi/moments'),
         $fetch<{ entries: KokoroData[] }>('/api/hagemashi/kokoro'),
         $fetch<{ entries: AchievedData[] }>('/api/hagemashi/achieved'),
         $fetch<{ entries: GratitudeData[] }>('/api/hagemashi/gratitude'),
@@ -2022,6 +2069,10 @@ if (!$dev) {
       profileHistory.value = profile.status === 'fulfilled' ? (profile.value?.profiles ?? []) : []
       stoplist.value = (sl.status === 'fulfilled' && sl.value.length > 0) ? sl.value : [...DEFAULT_STOPLIST]
       achievements.value = ach.status === 'fulfilled' && Array.isArray(ach.value) ? ach.value : []
+      moments.value = mom.status === 'fulfilled' ? (mom.value?.items ?? []) : []
+      momentProcessedIds.value = mom.status === 'fulfilled' ? (mom.value?.processedIds ?? []) : []
+      momentsMigrated.value = mom.status === 'fulfilled' ? !!mom.value?.migratedAchievements : false
+      momentsLoaded.value = mom.status === 'fulfilled'
       kokoroHistory.value = kokoro.status === 'fulfilled' ? (kokoro.value?.entries ?? []) : []
       achievedHistory.value = achieved.status === 'fulfilled' ? (achieved.value?.entries ?? []) : []
       gratitudeHistory.value = gratitude.status === 'fulfilled' ? (gratitude.value?.entries ?? []) : []
@@ -2437,121 +2488,6 @@ const activeWordPopup = ref<ActiveWordPopup | null>(null)
 const activeKokoroPopup = ref<ActiveKokoroPopup | null>(null)
 const activeProfilePopup = ref<ActiveProfilePopup | null>(null)
 
-// --- 分析タブ: 単語の共起ネットワーク ---
-//
-// 集計元は要約行。感情（sentiment）が行単位で付いているのはここだけで、
-// ノードだけでなく「その組み合わせが出た行」の感情も色にできる。
-//
-// あえて computed にしていない。computed にすると summaryRows や stoplist が
-// 変わった瞬間に再計算が走り、「更新ボタンで図の組み直しを制御する」が成立しなくなる。
-// 単語ランキング（wordRanking）が ref なのと同じ理由。
-const networkGraph = ref<NetGraph>({ nodes: [], edges: [], rowCount: 0 })
-const networkBuiltAt = ref<number | null>(null)
-// 集計に使った要約行数。今の行数との差が「更新ボタンのバッジ」になる
-const networkBuiltRows = ref(0)
-const isBuildingNetwork = ref(false)
-const networkRef = ref<{ relayout: () => void; clearSelection: () => void } | null>(null)
-
-const networkSignature = computed(() => graphSignature(networkGraph.value))
-
-// 未反映の記録数。0 なら図は最新
-const pendingRowCount = computed(() =>
-  networkBuiltAt.value === null ? 0 : Math.max(0, summaryRows.value.length - networkBuiltRows.value)
-)
-
-// ビューポートを追従して持つ。PC では図の高さを画面に合わせて広げるため、
-// また画面幅でノード数の上限を切り替えるために使う（SSR 時は PC 想定の初期値）
-const viewportWidth = ref(1024)
-const viewportHeight = ref(800)
-function syncViewport() {
-  viewportWidth.value = window.innerWidth
-  viewportHeight.value = window.innerHeight
-}
-onMounted(() => {
-  syncViewport()
-  window.addEventListener('resize', syncViewport)
-})
-onBeforeUnmount(() => {
-  if (typeof window !== 'undefined') window.removeEventListener('resize', syncViewport)
-})
-
-const isMobile = () => viewportWidth.value < 640
-
-// カード内の他の要素（タブ・説明文・凡例）を除いた分を図に回す
-const networkHeight = computed(() =>
-  isMobile() ? 340 : Math.max(420, Math.min(780, Math.round(viewportHeight.value - 290))),
-)
-
-// 集計だけを行う（配置は動かさない）。tokenize + 共起計算で、記録2000行でも数百ms程度
-function buildNetworkGraph() {
-  networkGraph.value = buildNetwork(
-    summaryRows.value.map(r => ({ text: r.text, sentiment: r.sentiment })),
-    {
-      minWordCount: minWordCount.value,
-      stoplist: stoplistSet.value,
-      maxNodes: isMobile() ? 40 : 80,
-      maxEdgesPerNode: isMobile() ? 4 : 5,
-    },
-  )
-  networkBuiltAt.value = Date.now()
-  networkBuiltRows.value = summaryRows.value.length
-}
-
-// 更新ボタン。集計し直し、さらに配置も組み直す（絵が変わるのはここだけ）
-async function refreshNetwork() {
-  if (isBuildingNetwork.value) return
-  isBuildingNetwork.value = true
-  activePairWord.value = null
-  await new Promise(r => setTimeout(r, 0))
-  try {
-    buildNetworkGraph()
-    await nextTick()
-    networkRef.value?.relayout()
-  } finally {
-    isBuildingNetwork.value = false
-  }
-}
-
-// 分析タブを初めて開いたときに一度だけ集計する（開かない人に計算を払わせない）。
-// 記録の読み込みは非同期なので、タブが analysis のまま後から行が届く場合も拾えるよう
-// 行数の変化も見る。2回目以降は networkBuiltAt が入っているので走らない
-watch([activeTab, () => summaryRows.value.length], ([tab, rows]) => {
-  if (tab === 'analysis' && networkBuiltAt.value === null && (rows as number) > 0) {
-    buildNetworkGraph()
-  }
-}, { immediate: true })
-
-// 除外単語・出現回数の変更は即反映する。「除外したのに消えない」は明確なバグ感があるため。
-// 集計はし直すが配置は組み直さない（保存済み座標が使われ、消えた語の分だけ図から抜ける）
-watch([stoplist, minWordCount], () => {
-  if (networkBuiltAt.value !== null) buildNetworkGraph()
-}, { deep: true })
-
-// ネットワーク図で単語をタップしたときのドリルダウン対象
-interface ActivePairWord { word: string; pos: number; neg: number; df: number }
-const activePairWord = ref<ActivePairWord | null>(null)
-
-// PairListModal が「2語を含む記録」を自分で絞り込めるよう、要約行をそのまま渡す
-const networkRows = computed(() =>
-  summaryRows.value.map(r => ({ fullDate: r.fullDate, text: r.text })),
-)
-
-function closePairModal() {
-  activePairWord.value = null
-  networkRef.value?.clearSelection()
-}
-
-// AI分析から「相手の語を起点に見る」を押したとき、その語のドリルダウンへ移る
-function focusPairWord(word: string) {
-  const node = networkGraph.value.nodes.find(n => n.word === word)
-  if (node) activePairWord.value = { word: node.word, pos: node.pos, neg: node.neg, df: node.df }
-}
-
-const formatBuiltAt = (ts: number) => {
-  const d = new Date(ts)
-  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-}
-
 // summaryRows は新しい順のため、AIには古い→新しいの時系列順で渡す
 // （新しい順のまま渡すと直近の内容が先頭に来て過度に強調されやすいため）
 const activeWordMatches = computed(() => {
@@ -2609,28 +2545,36 @@ const fetchSummary = async (text: string): Promise<string> => {
   }
 }
 
-// --- 達成リスト ---
-const LS_ACHIEVEMENTS = 'hagemashi-achievements'
-const isGeneratingAchievements = ref(false)
-const achievementStatus = ref('')
-const achievementSelectOpen = ref(false)
-const achievementSelectedIds = ref<string[]>([])
-const editingAchievementId = ref<string | null>(null)
-const editingAchievementText = ref('')
-const editingAchievementLevel = ref(1)
-const deletingAchievementId = ref<string | null>(null)
+// --- できごと（Moment） ---
+const isGeneratingMoments = ref(false)
+const momentStatus = ref('')
+const momentSelectOpen = ref(false)
+const momentSelectedIds = ref<string[]>([])
+const deletingMomentId = ref<string | null>(null)
+const momentKindFilter = ref<MomentKind | null>(null)
+const showNegativeMoments = ref(false)
 
-// 中間データを持つ履歴のみ達成リストの生成対象
-const achievementSourceItems = computed(() => history.value.filter(i => parseSummaryNote(i.notes)))
+// 中間データを持つ履歴のみ抽出の対象
+const momentSourceItems = computed(() => history.value.filter(i => parseSummaryNote(i.notes)))
+// まだ一度も抽出していない記録。「更新」はここだけを既定の対象にする（差分実行）
+const unprocessedSourceItems = computed(() =>
+  momentSourceItems.value.filter(i => !momentProcessedIds.value.includes(i.id)),
+)
 
-// 履歴順（新しい順）に沿って達成項目を並べる
-const achievementRows = computed(() => {
-  const bySource = new Map<string, Achievement[]>()
-  for (const a of achievements.value) {
-    if (!bySource.has(a.sourceId)) bySource.set(a.sourceId, [])
-    bySource.get(a.sourceId)!.push(a)
+const momentDate = (m: Moment): string => {
+  const d = toJSTDate(m.ts)
+  return `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`
+}
+
+// 履歴順（新しい順）に並べた全できごと。元の記録が消えているものはここで落ちるので、
+// 絞り込みチップの件数もこれを基準にする（moments をそのまま数えると表示と数が食い違う）
+const momentBaseRows = computed(() => {
+  const bySource = new Map<string, Moment[]>()
+  for (const m of moments.value) {
+    if (!bySource.has(m.sourceId)) bySource.set(m.sourceId, [])
+    bySource.get(m.sourceId)!.push(m)
   }
-  const rows: Achievement[] = []
+  const rows: Moment[] = []
   for (const item of history.value) {
     const list = bySource.get(item.id)
     if (list) rows.push(...list)
@@ -2638,112 +2582,267 @@ const achievementRows = computed(() => {
   return rows
 })
 
-function saveAchievements() {
+const momentCounts = computed(() => {
+  const counts = Object.fromEntries(MOMENT_KINDS.map(k => [k, 0])) as Record<MomentKind, number>
+  for (const m of momentBaseRows.value) if (counts[m.kind] !== undefined) counts[m.kind]++
+  return counts
+})
+
+// ネガは既定で畳む（見比べたいだけで、圧されたいわけではないため）が、
+// タグを直接選んだときはその指定を優先する
+const momentRows = computed(() => {
+  const rows = momentBaseRows.value
+  if (momentKindFilter.value) return rows.filter(m => m.kind === momentKindFilter.value)
+  if (showNegativeMoments.value) return rows
+  return rows.filter(m => MOMENT_META[m.kind].polarity === 'pos')
+})
+
+// 相談（ConsultChat）へ渡す達成の文脈。プロンプト側の形（text/level/date）に合わせて変換する
+const consultAchievements = computed(() =>
+  momentBaseRows.value
+    .filter(m => m.kind === '達成')
+    .map(m => ({ text: m.text, level: m.impact, date: momentDate(m) })),
+)
+
+const isEditedMoment = (m: Moment): boolean => !!(m.edited?.text || m.edited?.impact || m.edited?.kind)
+
+function saveMoments() {
+  const payload = {
+    items: moments.value,
+    processedIds: momentProcessedIds.value,
+    migratedAchievements: momentsMigrated.value,
+  }
   if ($dev) {
-    localStorage.setItem(LS_ACHIEVEMENTS, JSON.stringify(achievements.value))
+    localStorage.setItem(LS_MOMENTS, JSON.stringify(payload))
   } else {
-    $fetch('/api/hagemashi/achievements', { method: 'POST', body: { items: achievements.value } }).catch(console.error)
+    $fetch('/api/hagemashi/moments', { method: 'POST', body: payload }).catch(console.error)
   }
 }
 
-// 履歴（文字起こし）削除時、紐づく達成リストも一緒に削除する
-function deleteHistoryAndAchievements(id: string) {
+// 旧「達成リスト」を1度だけできごとへ取り込む。
+// 取り込んだ分は edited を立てない＝その記録に抽出をかけると、より細かいタグ付きの結果に置き換わる。
+// 元記録を processedIds には入れないので、感謝・喜び・ネガは後から拾い直せる。
+function migrateAchievementsToMoments() {
+  if (momentsMigrated.value || achievements.value.length === 0) return
+  const existing = new Set(moments.value.map(m => `${m.sourceId}:${m.text}`))
+  const now = new Date().toISOString()
+  const added: Moment[] = []
+  for (const a of achievements.value) {
+    if (existing.has(`${a.sourceId}:${a.text}`)) continue
+    const item = history.value.find(h => h.id === a.sourceId)
+    added.push({
+      id: `${a.sourceId}-mig-${Math.random().toString(36).slice(2, 8)}`,
+      sourceId: a.sourceId,
+      sourceType: 'record',
+      ts: item?.timestamp ?? now,
+      kind: '達成',
+      text: a.text,
+      impact: Math.min(5, Math.max(1, a.level || 1)),
+      createdAt: now,
+      updatedAt: now,
+    })
+  }
+  moments.value = [...moments.value, ...added]
+  momentsMigrated.value = true
+  saveMoments()
+}
+
+// 移行は history が揃ってから走らせる。履歴は useHistory 側の別 watch で非同期に読まれるため、
+// 読み込み順に依存すると、元記録を引けずに移行分の日時が全部「今日」になってしまう。
+// 履歴が空のまま（元記録が消えている）なら日付を復元できないので移行しない。
+watch(
+  [momentsLoaded, () => history.value.length],
+  () => {
+    if (!momentsLoaded.value || momentsMigrated.value) return
+    if (achievements.value.length > 0 && history.value.length === 0) return
+    migrateAchievementsToMoments()
+  },
+  { immediate: true },
+)
+
+// 履歴（文字起こし）削除時、紐づくできごとも一緒に削除する
+function deleteHistoryAndMoments(id: string) {
   deleteHistory(id)
-  if (achievements.value.some(a => a.sourceId === id)) {
-    achievements.value = achievements.value.filter(a => a.sourceId !== id)
-    saveAchievements()
-  }
+  const hadMoments = moments.value.some(m => m.sourceId === id)
+  const wasProcessed = momentProcessedIds.value.includes(id)
+  if (!hadMoments && !wasProcessed) return
+  moments.value = moments.value.filter(m => m.sourceId !== id)
+  momentProcessedIds.value = momentProcessedIds.value.filter(p => p !== id)
+  saveMoments()
 }
 
-const achievementAllSelected = computed(() => achievementSourceItems.value.length > 0 && achievementSelectedIds.value.length === achievementSourceItems.value.length)
-const achievementSomeSelected = computed(() => achievementSelectedIds.value.length > 0 && achievementSelectedIds.value.length < achievementSourceItems.value.length)
+const momentAllSelected = computed(() => momentSourceItems.value.length > 0 && momentSelectedIds.value.length === momentSourceItems.value.length)
+const momentSomeSelected = computed(() => momentSelectedIds.value.length > 0 && momentSelectedIds.value.length < momentSourceItems.value.length)
 
-const toggleAchievementAll = () => {
-  if (achievementAllSelected.value) achievementSelectedIds.value = []
-  else achievementSelectedIds.value = achievementSourceItems.value.map(i => i.id)
+const toggleMomentAll = () => {
+  if (momentAllSelected.value) momentSelectedIds.value = []
+  else momentSelectedIds.value = momentSourceItems.value.map(i => i.id)
 }
 
-const toggleAchievementSelect = (id: string) => {
-  const idx = achievementSelectedIds.value.indexOf(id)
-  if (idx === -1) achievementSelectedIds.value.push(id)
-  else achievementSelectedIds.value.splice(idx, 1)
+const toggleMomentSelect = (id: string) => {
+  const idx = momentSelectedIds.value.indexOf(id)
+  if (idx === -1) momentSelectedIds.value.push(id)
+  else momentSelectedIds.value.splice(idx, 1)
 }
 
-const openAchievementSelect = () => {
-  achievementSelectedIds.value = achievementSourceItems.value.map(i => i.id)
-  achievementSelectOpen.value = true
+// 既定は未処理のみ（全件を毎回投げると重い）。未処理が無いときだけ全件を選んでおく
+const openMomentSelect = () => {
+  const unprocessed = unprocessedSourceItems.value.map(i => i.id)
+  momentSelectedIds.value = unprocessed.length ? unprocessed : momentSourceItems.value.map(i => i.id)
+  momentSelectOpen.value = true
 }
 
-// 1つの中間データ（ソース）から達成項目を生成して返す（保存・state更新はしない）
-const fetchAchievementsForSource = async (sourceId: string, timestamp: string, notesText: string): Promise<Achievement[]> => {
-  const res = await $fetch<{ achievements: { text: string; level: number }[] }>('/api/hagemashi/achievements-generate', {
+// 抽出には [ポジ]/[ネガ] 付きの中間データを渡す。感情の向きがタグ判定の手がかりになる
+const getMomentSourceText = (item: { text: string; notes?: string }): string => {
+  const parsed = parseSummaryNote(item.notes)
+  if (!parsed) return item.text
+  if ('items' in parsed) return parsed.items.map(n => `[${n.sentiment}] ${n.text}`).join('\n')
+  return `[${parsed.sentiment}] ${parsed.text}`
+}
+
+// 1つの記録からできごとを抽出して返す（保存・state更新はしない）
+const fetchMomentsForSource = async (sourceId: string, timestamp: string, notesText: string): Promise<Moment[]> => {
+  const res = await $fetch<{ moments: { kind: MomentKind; text: string; impact: number; who?: string }[] }>('/api/hagemashi/moments-generate', {
     method: 'POST',
     body: { text: notesText },
   })
-  const d = toJSTDate(timestamp)
-  const date = `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`
-  return (res.achievements ?? []).map(a => ({
+  const now = new Date().toISOString()
+  return (res.moments ?? []).map(m => ({
     id: `${sourceId}-${Math.random().toString(36).slice(2, 8)}`,
     sourceId,
-    date,
-    text: a.text,
-    level: a.level,
+    sourceType: 'record' as const,
+    ts: timestamp,
+    kind: m.kind,
+    text: m.text,
+    impact: m.impact,
+    who: m.who,
+    createdAt: now,
+    updatedAt: now,
   }))
 }
 
-const runAchievementGenerate = async () => {
-  achievementSelectOpen.value = false
-  const targets = history.value.filter(i => achievementSelectedIds.value.includes(i.id))
-  if (!targets.length || isGeneratingAchievements.value) return
-  isGeneratingAchievements.value = true
+const runMomentGenerate = async () => {
+  momentSelectOpen.value = false
+  const targets = history.value.filter(i => momentSelectedIds.value.includes(i.id))
+  if (!targets.length || isGeneratingMoments.value) return
+  isGeneratingMoments.value = true
   let done = 0
-  achievementStatus.value = `0/${targets.length}件...`
-  let next = [...achievements.value]
+  momentStatus.value = `0/${targets.length}件...`
+  let next = [...moments.value]
+  const processed = new Set(momentProcessedIds.value)
   for (const item of targets) {
     try {
-      const items = await fetchAchievementsForSource(item.id, item.timestamp, getNotesText(item))
-      // 成功時のみ、このソースの既存達成を置き換える
-      next = next.filter(a => a.sourceId !== item.id)
-      next.push(...items)
+      const items = await fetchMomentsForSource(item.id, item.timestamp, getMomentSourceText(item))
+      // 成功時のみ差し替える。手で直したできごとは残し、AI出力で上書きしない
+      const kept = next.filter(m => m.sourceId === item.id && isEditedMoment(m))
+      next = next.filter(m => m.sourceId !== item.id)
+      next.push(...kept, ...items)
+      // 0件でも「実行済み」にする（そうしないと毎回この記録を投げ直してしまう）
+      processed.add(item.id)
     } catch (e) {
       console.error(e)
     }
     done++
-    achievementStatus.value = `${done}/${targets.length}件...`
+    momentStatus.value = `${done}/${targets.length}件...`
   }
-  achievements.value = next
-  saveAchievements()
-  achievementStatus.value = `完了 ${done}/${targets.length}件`
-  setTimeout(() => { achievementStatus.value = '' }, 4000)
-  isGeneratingAchievements.value = false
+  moments.value = next
+  momentProcessedIds.value = [...processed]
+  saveMoments()
+  momentStatus.value = `完了 ${done}/${targets.length}件`
+  setTimeout(() => { momentStatus.value = '' }, 4000)
+  isGeneratingMoments.value = false
 }
 
-const startEditAchievement = (row: Achievement) => {
-  editingAchievementId.value = row.id
-  editingAchievementText.value = row.text
-  editingAchievementLevel.value = row.level
+// 変えた項目にだけ印を付ける。再生成でそこが戻らないようにするため
+const applyMomentEdit = (id: string, patch: { text: string; impact: number; kind: MomentKind }) => {
+  const m = moments.value.find(x => x.id === id)
+  if (!m) return
+  const edited = { ...(m.edited ?? {}) }
+  if (m.text !== patch.text) edited.text = true
+  if (m.impact !== patch.impact) edited.impact = true
+  if (m.kind !== patch.kind) edited.kind = true
+  m.text = patch.text
+  m.impact = patch.impact
+  m.kind = patch.kind
+  m.edited = edited
+  m.updatedAt = new Date().toISOString()
+  moments.value = [...moments.value]
+  saveMoments()
 }
 
-const cancelAchievement = () => {
-  editingAchievementId.value = null
+// --- 分析タブ: できごとのカレンダー ---
+const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土']
+const monthKeyOf = (iso: string): string => toJSTDate(iso).toISOString().slice(0, 7)
+const dayKeyOf = (iso: string): string => toJSTDate(iso).toISOString().slice(0, 10)
+
+const currentMonthKey = computed(() => monthKeyOf(new Date().toISOString()))
+const calendarMonth = ref(monthKeyOf(new Date().toISOString()))
+const selectedDay = ref<string | null>(null)
+const showNegativeDetail = ref(false)
+
+const shiftCalendarMonth = (delta: number) => {
+  const d = new Date(`${calendarMonth.value}-01T00:00:00Z`)
+  d.setUTCMonth(d.getUTCMonth() + delta)
+  calendarMonth.value = d.toISOString().slice(0, 7)
+  selectedDay.value = null
 }
 
-const saveAchievement = (id: string) => {
-  const a = achievements.value.find(x => x.id === id)
-  if (a) {
-    a.text = editingAchievementText.value
-    a.level = editingAchievementLevel.value
-    achievements.value = [...achievements.value]
-    saveAchievements()
+const calendarMonthLabel = computed(() => {
+  const [y, m] = calendarMonth.value.split('-')
+  return `${y}年${Number(m)}月`
+})
+
+const monthSummary = computed(() => {
+  let pos = 0
+  let neg = 0
+  for (const m of momentBaseRows.value) {
+    if (monthKeyOf(m.ts) !== calendarMonth.value) continue
+    if (MOMENT_META[m.kind].polarity === 'neg') neg++
+    else pos++
   }
-  editingAchievementId.value = null
-}
+  return { pos, neg }
+})
 
-const confirmDeleteAchievement = () => {
-  if (!deletingAchievementId.value) return
-  achievements.value = achievements.value.filter(a => a.id !== deletingAchievementId.value)
-  saveAchievements()
-  deletingAchievementId.value = null
+// 今月にできごとが無いまま開くと空のカレンダーしか出ないので、
+// 初回だけいちばん新しいできごとの月へ寄せる（momentBaseRows は新しい順）
+const calendarPositioned = ref(false)
+watch(momentBaseRows, (rows) => {
+  if (calendarPositioned.value || rows.length === 0) return
+  calendarPositioned.value = true
+  if (!rows.some(m => monthKeyOf(m.ts) === calendarMonth.value)) {
+    calendarMonth.value = monthKeyOf(rows[0].ts)
+  }
+})
+
+const selectedDayMoments = computed(() => {
+  const empty = { pos: [] as Moment[], neg: [] as Moment[] }
+  if (!selectedDay.value) return empty
+  const byImpact = (a: Moment, b: Moment) => b.impact - a.impact
+  const day = momentBaseRows.value.filter(m => dayKeyOf(m.ts) === selectedDay.value)
+  return {
+    pos: day.filter(m => MOMENT_META[m.kind].polarity === 'pos').sort(byImpact),
+    neg: day.filter(m => MOMENT_META[m.kind].polarity === 'neg').sort(byImpact),
+  }
+})
+
+const selectedDayLabel = computed(() => {
+  if (!selectedDay.value) return ''
+  const d = new Date(`${selectedDay.value}T00:00:00Z`)
+  return `${d.getUTCMonth() + 1}月${d.getUTCDate()}日（${WEEKDAY_LABELS[d.getUTCDay()]}）`
+})
+
+// その日のできごとが、どの記録から抜き出されたものか
+const selectedDaySources = computed(() => {
+  if (!selectedDay.value) return []
+  const ids = new Set([...selectedDayMoments.value.pos, ...selectedDayMoments.value.neg].map(m => m.sourceId))
+  return history.value.filter(h => ids.has(h.id)).map(h => h.title || h.text.slice(0, 30))
+})
+
+const confirmDeleteMoment = () => {
+  if (!deletingMomentId.value) return
+  moments.value = moments.value.filter(m => m.id !== deletingMomentId.value)
+  saveMoments()
+  deletingMomentId.value = null
 }
 
 // --- 文字起こし後処理 ---
@@ -2752,14 +2851,15 @@ const handleTranscribed = async (text: string) => {
   const [title, notes] = await Promise.all([fetchTitle(replaced), fetchSummary(replaced)])
   const newId = addHistory(replaced, title, notes || undefined)
   reTokenize()
-  // 中間データがあれば達成リストも自動生成（バックグラウンドで実行し、UIはブロックしない）
+  // 中間データがあればできごとも自動抽出（バックグラウンドで実行し、UIはブロックしない）
   if (notes) {
     const item = history.value.find(h => h.id === newId)
     if (item) {
-      fetchAchievementsForSource(newId, item.timestamp, getNotesText(item))
+      fetchMomentsForSource(newId, item.timestamp, getMomentSourceText(item))
         .then((items) => {
-          achievements.value = [...achievements.value.filter(a => a.sourceId !== newId), ...items]
-          saveAchievements()
+          moments.value = [...moments.value.filter(m => m.sourceId !== newId), ...items]
+          momentProcessedIds.value = [...new Set([...momentProcessedIds.value, newId])]
+          saveMoments()
         })
         .catch(console.error)
     }
