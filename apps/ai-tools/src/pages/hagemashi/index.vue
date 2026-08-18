@@ -113,7 +113,7 @@
         </div>
         <div
           class="flex items-center gap-2 mb-1"
-          :class="activeTab === 'summary' || activeTab === 'words' || activeTab === 'analysis' || isProfileTab || activeTab === 'transcription' || activeTab === 'moments' || activeTab === 'achieved' || activeTab === 'gratitude' || activeTab === 'kokoro'
+          :class="activeTab === 'summary' || activeTab === 'words' || activeTab === 'analysis' || isProfileTab || activeTab === 'transcription' || activeTab === 'moments' || activeTab === 'kokoro'
             ? 'min-h-8'
             : 'min-h-0'"
         >
@@ -195,30 +195,6 @@
               {{ isProfileLoading ? '生成中...' : '更新' }}
             </button>
           </template>
-          <template v-if="activeTab === 'achieved'">
-            <div class="flex-1" />
-            <span v-if="achievedHistory.length > 0" class="text-[11px] text-slate-600">最終更新: {{ formatProfileDate(achievedHistory[0].generatedAt) }}</span>
-            <button
-              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-              :disabled="isAchievedLoading"
-              @click="generateAchieved"
-            >
-              <span v-if="isAchievedLoading" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
-              {{ isAchievedLoading ? '生成中...' : '更新' }}
-            </button>
-          </template>
-          <template v-if="activeTab === 'gratitude'">
-            <div class="flex-1" />
-            <span v-if="gratitudeHistory.length > 0" class="text-[11px] text-slate-600">最終更新: {{ formatProfileDate(gratitudeHistory[0].generatedAt) }}</span>
-            <button
-              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-              :disabled="isGratitudeLoading"
-              @click="generateGratitude"
-            >
-              <span v-if="isGratitudeLoading" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
-              {{ isGratitudeLoading ? '生成中...' : '更新' }}
-            </button>
-          </template>
         </div>
         <HistoryTable
           v-if="activeTab === 'transcription' && recordView === 'record'"
@@ -259,10 +235,21 @@
                 @click="shiftCalendarMonth(1)"
               >›</button>
               <button
-                v-if="calendarMonth !== currentMonthKey"
+                v-if="!isCurrentPeriod"
                 class="px-2 py-1 rounded-lg border border-white/10 bg-transparent text-slate-500 text-[11px] cursor-pointer hover:bg-white/[0.08] hover:text-slate-300 transition-colors"
-                @click="calendarMonth = currentMonthKey; selectedDay = null"
-              >今月</button>
+                @click="backToNow"
+              >{{ calendarView === 'year' ? '今年' : '今月' }}</button>
+              <div class="ml-auto flex items-center gap-0.5 rounded-lg border border-white/10 p-0.5">
+                <button
+                  v-for="v in (['month', 'year'] as const)"
+                  :key="v"
+                  class="px-2 py-0.5 rounded-md text-[11px] font-semibold border-none cursor-pointer transition-colors"
+                  :class="calendarView === v ? 'bg-orange-500/20 text-orange-300' : 'bg-transparent text-slate-500 hover:text-slate-300'"
+                  @click="calendarView = v; selectedDay = null"
+                >{{ v === 'month' ? '月' : '年' }}</button>
+              </div>
+            </div>
+            <div class="flex items-center">
               <span class="ml-auto text-[11px] text-slate-500 tabular-nums">
                 ポジ <span class="text-emerald-300 font-semibold">{{ monthSummary.pos }}</span>
                 <span class="mx-1 text-slate-700">/</span>
@@ -271,11 +258,20 @@
             </div>
 
             <HagemashiMomentCalendar
+              v-if="calendarView === 'month'"
               :moments="momentBaseRows"
               :meta="MOMENT_META"
               :month="calendarMonth"
               :selected="selectedDay"
               @select="selectedDay = $event; showNegativeDetail = false"
+            />
+            <HagemashiMomentYearHeatmap
+              v-else
+              :moments="momentBaseRows"
+              :meta="MOMENT_META"
+              :year="calendarYear"
+              :selected="selectedDay"
+              @select="drillIntoDay"
             />
 
             <!-- 選んだ日の中身 -->
@@ -329,9 +325,36 @@
                 元の記録: {{ selectedDaySources.join(' / ') }}
               </div>
             </div>
-            <p v-else class="m-0 text-center text-[11px] text-slate-600 py-1">
+            <p v-else-if="calendarView === 'month'" class="m-0 text-center text-[11px] text-slate-600 py-1">
               日付をタップすると、その日のできごとが出ます
             </p>
+
+            <!-- その期間のハイライト -->
+            <div v-if="periodHighlights.length" class="flex flex-col gap-1.5 pt-1">
+              <div class="text-[11px] text-slate-500 font-semibold">
+                {{ calendarView === 'year' ? 'この年' : 'この月' }}のハイライト
+              </div>
+              <div
+                v-for="m in periodHighlights"
+                :key="m.id"
+                class="flex items-start gap-2 px-2.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] cursor-pointer hover:border-orange-400/40 transition-colors"
+                @click="drillIntoDay(dayKeyOf(m.ts))"
+              >
+                <span class="shrink-0 px-1.5 py-[1px] mt-[1px] rounded-md text-[10px] font-semibold border" :class="MOMENT_META[m.kind].chip">{{ m.kind }}</span>
+                <span class="text-[11px] shrink-0 mt-[2px] tracking-tight" :class="MOMENT_META[m.kind].star">{{ '★'.repeat(m.impact) }}</span>
+                <span class="text-sm text-slate-200 leading-relaxed flex-1">{{ m.text }}</span>
+                <span class="text-[10px] text-slate-600 shrink-0 mt-[3px] tabular-nums">{{ momentDate(m) }}</span>
+              </div>
+            </div>
+
+            <!-- 通算 -->
+            <div v-if="lifetimeTotals.length" class="flex flex-wrap items-center gap-x-3 gap-y-1 pt-2 mt-1 border-t border-white/[0.06] text-[11px] text-slate-500">
+              <span class="text-slate-600">通算</span>
+              <span v-for="t in lifetimeTotals" :key="t.kind" class="flex items-baseline gap-1">
+                <span :class="MOMENT_META[t.kind].star">{{ t.kind }}</span>
+                <span class="text-slate-200 font-semibold tabular-nums text-sm">{{ t.count }}</span>
+              </span>
+            </div>
           </template>
         </div>
 
@@ -412,10 +435,6 @@
               :class="momentKindFilter === k ? MOMENT_META[k].chip : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
               @click="momentKindFilter = momentKindFilter === k ? null : k"
             >{{ k }} {{ momentCounts[k] }}</button>
-            <label class="ml-auto flex items-center gap-1.5 text-[11px] text-slate-500 cursor-pointer select-none">
-              <input v-model="showNegativeMoments" type="checkbox" class="w-3.5 h-3.5 shrink-0 accent-orange-500 cursor-pointer" />
-              ネガも表示
-            </label>
           </div>
 
           <div v-if="momentRows.length === 0" class="text-center text-slate-500 text-sm py-10">
@@ -506,98 +525,6 @@
                     @leaf-click="activeProfilePopup = $event"
                   />
                   <p v-else class="m-0 py-4 text-xs text-slate-500 text-center">{{ profileTabLabel }}のデータがありません</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 達成タブ -->
-        <div v-else-if="activeTab === 'achieved'" class="py-2">
-          <div v-if="isAchievedLoading" class="flex items-center justify-center gap-2 py-10 text-slate-400 text-sm">
-            <span class="w-4 h-4 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
-            分析中...
-          </div>
-          <div v-else-if="achievedHistory.length === 0" class="text-center text-slate-500 text-sm py-10">
-            更新ボタンを押すと要約から達成を分析します
-          </div>
-          <div v-else-if="achievedHistory[0].items.length === 0" class="text-center text-slate-500 text-sm py-10">
-            達成のデータがありません。更新ボタンで再分析してください
-          </div>
-          <div v-else class="flex flex-col gap-3">
-            <HagemashiProfileTreemap :items="achievedHistory[0].items" color="#f472b6" :height="360" @leaf-click="activeProfilePopup = $event" />
-            <!-- AI分析コメント -->
-            <div v-if="achievedHistory[0].summary" class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
-              <div class="text-xs font-semibold text-orange-400 mb-1.5">🏆 AI分析</div>
-              <p class="m-0 text-sm text-slate-300 leading-relaxed">{{ achievedHistory[0].summary }}</p>
-            </div>
-            <!-- 過去の達成履歴 -->
-            <div v-if="achievedHistory.length > 1" class="flex flex-col gap-1.5">
-              <div class="text-[11px] text-slate-600 border-t border-white/[0.06] pt-3">過去の達成</div>
-              <div v-for="(a, ai) in achievedHistory.slice(1)" :key="ai" class="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden">
-                <button
-                  class="w-full flex items-center justify-between px-3 py-2.5 cursor-pointer bg-transparent border-none transition-colors hover:bg-white/[0.04]"
-                  @click="toggleAchievedHistory(ai)"
-                >
-                  <div class="text-[11px] text-slate-500">{{ formatProfileDate(a.generatedAt) }}</div>
-                  <div class="text-slate-600 text-[10px] transition-transform duration-200" :style="expandedAchievedIndices.has(ai) ? 'transform: rotate(180deg)' : ''">▼</div>
-                </button>
-                <div v-if="expandedAchievedIndices.has(ai)" class="px-3 pb-3 flex flex-col gap-2 border-t border-white/[0.05]">
-                  <HagemashiProfileTreemap
-                    v-if="a.items.length"
-                    :items="a.items"
-                    color="#f472b6"
-                    :height="280"
-                    @leaf-click="activeProfilePopup = $event"
-                  />
-                  <p v-else class="m-0 py-4 text-xs text-slate-500 text-center">達成のデータがありません</p>
-                  <p v-if="a.summary" class="m-0 text-xs text-slate-400 leading-relaxed">{{ a.summary }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 感謝タブ -->
-        <div v-else-if="activeTab === 'gratitude'" class="py-2">
-          <div v-if="isGratitudeLoading" class="flex items-center justify-center gap-2 py-10 text-slate-400 text-sm">
-            <span class="w-4 h-4 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
-            分析中...
-          </div>
-          <div v-else-if="gratitudeHistory.length === 0" class="text-center text-slate-500 text-sm py-10">
-            更新ボタンを押すと要約から感謝を分析します
-          </div>
-          <div v-else-if="gratitudeHistory[0].items.length === 0" class="text-center text-slate-500 text-sm py-10">
-            感謝のデータがありません。更新ボタンで再分析してください
-          </div>
-          <div v-else class="flex flex-col gap-3">
-            <HagemashiProfileTreemap :items="gratitudeHistory[0].items" color="#34d399" :height="360" @leaf-click="activeProfilePopup = $event" />
-            <!-- AI分析コメント -->
-            <div v-if="gratitudeHistory[0].summary" class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
-              <div class="text-xs font-semibold text-orange-400 mb-1.5">🙏 AI分析</div>
-              <p class="m-0 text-sm text-slate-300 leading-relaxed">{{ gratitudeHistory[0].summary }}</p>
-            </div>
-            <!-- 過去の感謝履歴 -->
-            <div v-if="gratitudeHistory.length > 1" class="flex flex-col gap-1.5">
-              <div class="text-[11px] text-slate-600 border-t border-white/[0.06] pt-3">過去の感謝</div>
-              <div v-for="(g, gi) in gratitudeHistory.slice(1)" :key="gi" class="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden">
-                <button
-                  class="w-full flex items-center justify-between px-3 py-2.5 cursor-pointer bg-transparent border-none transition-colors hover:bg-white/[0.04]"
-                  @click="toggleGratitudeHistory(gi)"
-                >
-                  <div class="text-[11px] text-slate-500">{{ formatProfileDate(g.generatedAt) }}</div>
-                  <div class="text-slate-600 text-[10px] transition-transform duration-200" :style="expandedGratitudeIndices.has(gi) ? 'transform: rotate(180deg)' : ''">▼</div>
-                </button>
-                <div v-if="expandedGratitudeIndices.has(gi)" class="px-3 pb-3 flex flex-col gap-2 border-t border-white/[0.05]">
-                  <HagemashiProfileTreemap
-                    v-if="g.items.length"
-                    :items="g.items"
-                    color="#34d399"
-                    :height="280"
-                    @leaf-click="activeProfilePopup = $event"
-                  />
-                  <p v-else class="m-0 py-4 text-xs text-slate-500 text-center">感謝のデータがありません</p>
-                  <p v-if="g.summary" class="m-0 text-xs text-slate-400 leading-relaxed">{{ g.summary }}</p>
                 </div>
               </div>
             </div>
@@ -1360,14 +1287,14 @@ const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-type RecordingTab = 'transcription' | 'analysis' | 'words' | 'summary' | 'moments' | 'kokoro' | 'strengths' | 'achieved' | 'gratitude' | 'advice'
+type RecordingTab = 'transcription' | 'analysis' | 'words' | 'summary' | 'moments' | 'kokoro' | 'strengths' | 'advice'
 type TabKey = 'consult' | 'mood' | RecordingTab
 // ?tab= で指定を受け付けるタブ。ここに無いキーは無視され「記録」に落ちる。
 // 非表示中のタブを残すと ?tab=kokoro でタブバーの無い画面に入り込めてしまうため、
 // primaryTabs / secondaryTabs のコメントアウトと歩調を合わせている。
 // （consult / mood はタブバーではなくボタンから開くので残す）
 const TAB_KEYS: TabKey[] = ['transcription', 'analysis', 'moments', 'consult', 'mood']
-// 非表示中: 'words', 'summary', 'kokoro', 'strengths', 'achieved', 'gratitude', 'advice'
+// 非表示中: 'words', 'summary', 'kokoro', 'strengths', 'advice'
 
 // 記録タブ内の表示切り替え（記録 / はげまし）
 const recordView = ref<'record' | 'encourage'>('record')
@@ -1398,8 +1325,6 @@ const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'moments', label: 'できごと', short: 'できごと' },
   // { key: 'kokoro', label: '心', short: '心' },
   // { key: 'strengths', label: '強み', short: '強み' },
-  // { key: 'achieved', label: '達成', short: '達成' },
-  // { key: 'gratitude', label: '感謝', short: '感謝' },
   // { key: 'advice', label: '助言', short: '助言' },
 ]
 // 展開アイコンを開くと表示する副タブ（現在はすべてコメントアウト＝展開アイコン自体も非表示）
@@ -1466,11 +1391,9 @@ const consultMessages = ref<ConsultMessage[]>([])
 const LS_DICTIONARY = 'hagemashi-dictionary'
 const LS_WORD_RANKING = 'hagemashi-word-ranking'
 const LS_PROFILE = 'hagemashi-profile'
-const LS_ACHIEVED = 'hagemashi-achieved'
 // 旧「達成リスト」。できごとへの移行元として読むだけで、もう書き込まない
 const LS_ACHIEVEMENTS = 'hagemashi-achievements'
 const LS_MOMENTS = 'hagemashi-moments'
-const LS_GRATITUDE = 'hagemashi-gratitude'
 const LS_KOKORO = 'hagemashi-kokoro'
 const LS_MOOD = 'hagemashi-mood'
 
@@ -1773,75 +1696,6 @@ const generateProfile = async () => {
   }
 }
 
-// --- 達成（達成した内容の treemap） ---
-interface AchievedItem { title: string; content: string; weight?: number }
-interface AchievedData { items: AchievedItem[]; summary: string; generatedAt: string }
-const achievedHistory = ref<AchievedData[]>([])
-const isAchievedLoading = ref(false)
-const expandedAchievedIndices = ref(new Set<number>())
-const toggleAchievedHistory = (i: number) => {
-  if (expandedAchievedIndices.value.has(i)) expandedAchievedIndices.value.delete(i)
-  else expandedAchievedIndices.value.add(i)
-  expandedAchievedIndices.value = new Set(expandedAchievedIndices.value)
-}
-const generateAchieved = async () => {
-  if (isAchievedLoading.value) return
-  isAchievedLoading.value = true
-  try {
-    // combinedSummaryRows（記録＋相談の発言＋気分のテキスト）は新しい順のため、古い→新しいの時系列順にしてサーバーに渡す
-    // （サーバー側で初期・中期・直近に3等分し、期間全体から均等に分析する）
-    const res = await $fetch<AchievedData>('/api/hagemashi/achieved', {
-      method: 'POST',
-      body: {
-        summaryItems: [...combinedSummaryRows.value].reverse().map(r => ({ sentiment: r.sentiment, text: r.text, date: r.fullDate })),
-        wordRanking: wordRanking.value.slice(0, 50),
-      },
-    })
-    achievedHistory.value = [res, ...achievedHistory.value]
-    if ($dev) {
-      localStorage.setItem(LS_ACHIEVED, JSON.stringify(achievedHistory.value))
-    }
-  } catch (e) {
-    console.error(e)
-  } finally {
-    isAchievedLoading.value = false
-  }
-}
-
-// --- 感謝（感謝している内容の treemap） ---
-interface GratitudeItem { title: string; content: string; weight?: number }
-interface GratitudeData { items: GratitudeItem[]; summary: string; generatedAt: string }
-const gratitudeHistory = ref<GratitudeData[]>([])
-const isGratitudeLoading = ref(false)
-const expandedGratitudeIndices = ref(new Set<number>())
-const toggleGratitudeHistory = (i: number) => {
-  if (expandedGratitudeIndices.value.has(i)) expandedGratitudeIndices.value.delete(i)
-  else expandedGratitudeIndices.value.add(i)
-  expandedGratitudeIndices.value = new Set(expandedGratitudeIndices.value)
-}
-const generateGratitude = async () => {
-  if (isGratitudeLoading.value) return
-  isGratitudeLoading.value = true
-  try {
-    // 達成と同様、combinedSummaryRows を古い→新しいの時系列順にしてサーバーに渡す
-    const res = await $fetch<GratitudeData>('/api/hagemashi/gratitude', {
-      method: 'POST',
-      body: {
-        summaryItems: [...combinedSummaryRows.value].reverse().map(r => ({ sentiment: r.sentiment, text: r.text, date: r.fullDate })),
-        wordRanking: wordRanking.value.slice(0, 50),
-      },
-    })
-    gratitudeHistory.value = [res, ...gratitudeHistory.value]
-    if ($dev) {
-      localStorage.setItem(LS_GRATITUDE, JSON.stringify(gratitudeHistory.value))
-    }
-  } catch (e) {
-    console.error(e)
-  } finally {
-    isGratitudeLoading.value = false
-  }
-}
-
 interface WordEntry { word: string; count: number }
 const wordRanking = ref<WordEntry[]>([])
 
@@ -2002,24 +1856,6 @@ onMounted(() => {
     momentsLoaded.value = true
   }
   if ($dev) {
-    const cachedAchieved = localStorage.getItem(LS_ACHIEVED)
-    if (cachedAchieved) {
-      try {
-        const raw = JSON.parse(cachedAchieved)
-        achievedHistory.value = Array.isArray(raw) ? raw : [raw]
-      } catch {}
-    }
-  }
-  if ($dev) {
-    const cachedGratitude = localStorage.getItem(LS_GRATITUDE)
-    if (cachedGratitude) {
-      try {
-        const raw = JSON.parse(cachedGratitude)
-        gratitudeHistory.value = Array.isArray(raw) ? raw : [raw]
-      } catch {}
-    }
-  }
-  if ($dev) {
     const cachedKokoro = localStorage.getItem(LS_KOKORO)
     if (cachedKokoro) {
       try {
@@ -2050,8 +1886,8 @@ if (!$dev) {
   watch(
     isLoggedIn,
     async (loggedIn) => {
-      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; achievements.value = []; moments.value = []; momentProcessedIds.value = []; momentsMigrated.value = false; kokoroHistory.value = []; achievedHistory.value = []; gratitudeHistory.value = []; moodEntries.value = []; stoplist.value = [...DEFAULT_STOPLIST]; vision.value = ''; return }
-      const [ranking, dict, profile, sl, ach, mom, kokoro, achieved, gratitude, mood, vis] = await Promise.allSettled([
+      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; achievements.value = []; moments.value = []; momentProcessedIds.value = []; momentsMigrated.value = false; kokoroHistory.value = []; moodEntries.value = []; stoplist.value = [...DEFAULT_STOPLIST]; vision.value = ''; return }
+      const [ranking, dict, profile, sl, ach, mom, kokoro, mood, vis] = await Promise.allSettled([
         $fetch<WordEntry[]>('/api/hagemashi/word-ranking'),
         $fetch<DictionaryEntry[]>('/api/hagemashi/dictionary'),
         $fetch<{ profiles: ProfileData[] }>('/api/hagemashi/profile'),
@@ -2059,8 +1895,6 @@ if (!$dev) {
         $fetch<Achievement[]>('/api/hagemashi/achievements'),
         $fetch<{ items: Moment[]; processedIds: string[]; migratedAchievements: boolean }>('/api/hagemashi/moments'),
         $fetch<{ entries: KokoroData[] }>('/api/hagemashi/kokoro'),
-        $fetch<{ entries: AchievedData[] }>('/api/hagemashi/achieved'),
-        $fetch<{ entries: GratitudeData[] }>('/api/hagemashi/gratitude'),
         $fetch<{ entries: MoodEntry[] }>('/api/hagemashi/mood'),
         $fetch<string>('/api/hagemashi/vision'),
       ])
@@ -2074,8 +1908,6 @@ if (!$dev) {
       momentsMigrated.value = mom.status === 'fulfilled' ? !!mom.value?.migratedAchievements : false
       momentsLoaded.value = mom.status === 'fulfilled'
       kokoroHistory.value = kokoro.status === 'fulfilled' ? (kokoro.value?.entries ?? []) : []
-      achievedHistory.value = achieved.status === 'fulfilled' ? (achieved.value?.entries ?? []) : []
-      gratitudeHistory.value = gratitude.status === 'fulfilled' ? (gratitude.value?.entries ?? []) : []
       moodEntries.value = mood.status === 'fulfilled' ? (mood.value?.entries ?? []) : []
       vision.value = vis.status === 'fulfilled' ? (vis.value || '') : ''
       maybeAutoPromptVision()
@@ -2552,7 +2384,6 @@ const momentSelectOpen = ref(false)
 const momentSelectedIds = ref<string[]>([])
 const deletingMomentId = ref<string | null>(null)
 const momentKindFilter = ref<MomentKind | null>(null)
-const showNegativeMoments = ref(false)
 
 // 中間データを持つ履歴のみ抽出の対象
 const momentSourceItems = computed(() => history.value.filter(i => parseSummaryNote(i.notes)))
@@ -2588,13 +2419,12 @@ const momentCounts = computed(() => {
   return counts
 })
 
-// ネガは既定で畳む（見比べたいだけで、圧されたいわけではないため）が、
-// タグを直接選んだときはその指定を優先する
+// 「すべて」はネガも含めた全件（チップの件数と実際に並ぶ行数を必ず一致させる）。
+// ネガは MomentRow 側で薄く描かれるので、混ざっても圧迫感は出ない
 const momentRows = computed(() => {
   const rows = momentBaseRows.value
   if (momentKindFilter.value) return rows.filter(m => m.kind === momentKindFilter.value)
-  if (showNegativeMoments.value) return rows
-  return rows.filter(m => MOMENT_META[m.kind].polarity === 'pos')
+  return rows
 })
 
 // 相談（ConsultChat）へ渡す達成の文脈。プロンプト側の形（text/level/date）に合わせて変換する
@@ -2779,29 +2609,73 @@ const currentMonthKey = computed(() => monthKeyOf(new Date().toISOString()))
 const calendarMonth = ref(monthKeyOf(new Date().toISOString()))
 const selectedDay = ref<string | null>(null)
 const showNegativeDetail = ref(false)
+// 月＝日ごとの粒度で見る／年＝12ヶ月を並べて積み上がりを見る
+const calendarView = ref<'month' | 'year'>('month')
+const calendarYear = computed(() => calendarMonth.value.slice(0, 4))
 
+// 年ビューでは12ヶ月ぶん動かす
 const shiftCalendarMonth = (delta: number) => {
   const d = new Date(`${calendarMonth.value}-01T00:00:00Z`)
-  d.setUTCMonth(d.getUTCMonth() + delta)
+  d.setUTCMonth(d.getUTCMonth() + (calendarView.value === 'year' ? delta * 12 : delta))
   calendarMonth.value = d.toISOString().slice(0, 7)
   selectedDay.value = null
 }
 
+const backToNow = () => {
+  calendarMonth.value = currentMonthKey.value
+  selectedDay.value = null
+}
+
+const isCurrentPeriod = computed(() =>
+  calendarView.value === 'year'
+    ? calendarYear.value === currentMonthKey.value.slice(0, 4)
+    : calendarMonth.value === currentMonthKey.value,
+)
+
 const calendarMonthLabel = computed(() => {
   const [y, m] = calendarMonth.value.split('-')
-  return `${y}年${Number(m)}月`
+  return calendarView.value === 'year' ? `${y}年` : `${y}年${Number(m)}月`
+})
+
+// いま見ている期間（月 or 年）に入るできごと
+const periodMoments = computed(() => {
+  const prefix = calendarView.value === 'year' ? calendarYear.value : calendarMonth.value
+  return momentBaseRows.value.filter(m => monthKeyOf(m.ts).startsWith(prefix))
 })
 
 const monthSummary = computed(() => {
   let pos = 0
   let neg = 0
-  for (const m of momentBaseRows.value) {
-    if (monthKeyOf(m.ts) !== calendarMonth.value) continue
+  for (const m of periodMoments.value) {
     if (MOMENT_META[m.kind].polarity === 'neg') neg++
     else pos++
   }
   return { pos, neg }
 })
+
+// その期間のポジをインパクト順に3つ。開いた瞬間に良かったことが目に入るようにする
+const periodHighlights = computed(() =>
+  periodMoments.value
+    .filter(m => MOMENT_META[m.kind].polarity === 'pos')
+    .sort((a, b) => b.impact - a.impact || b.ts.localeCompare(a.ts))
+    .slice(0, 3),
+)
+
+// 通算。件数は減らないので、開くたびに増えていくのが見える
+const lifetimeTotals = computed(() =>
+  MOMENT_KINDS
+    .filter(k => MOMENT_META[k].polarity === 'pos')
+    .map(k => ({ kind: k, count: momentCounts.value[k] }))
+    .filter(t => t.count > 0),
+)
+
+// 年ビューのセルを押したら、その月の日別表示へ降りる
+const drillIntoDay = (dayKey: string) => {
+  calendarMonth.value = dayKey.slice(0, 7)
+  calendarView.value = 'month'
+  selectedDay.value = dayKey
+  showNegativeDetail.value = false
+}
 
 // 今月にできごとが無いまま開くと空のカレンダーしか出ないので、
 // 初回だけいちばん新しいできごとの月へ寄せる（momentBaseRows は新しい順）
