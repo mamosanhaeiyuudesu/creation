@@ -1419,7 +1419,7 @@ watch(isLoggedIn, async (v) => {
             @click="showSnsModal = true"
           >
             <span class="text-[11px] text-slate-500 font-semibold flex items-center justify-between">投稿カウンター（累計）<span class="text-slate-600">入力 ›</span></span>
-            <span class="flex items-center gap-5">
+            <span class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
               <span v-for="p in SNS_PLATFORMS" :key="p.key" class="flex items-baseline gap-1.5">
                 <TaskSnsIcon :platform="p.key" :size="15" class="self-center" :style="{ color: p.color }" />
                 <span class="text-[11px] text-slate-500">{{ p.label }}</span>

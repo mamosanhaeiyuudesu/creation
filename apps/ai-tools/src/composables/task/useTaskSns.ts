@@ -9,6 +9,7 @@ import { ref, computed } from 'vue'
 export const SNS_PLATFORMS = [
   { key: 'instagram', label: 'インスタ', color: '#e1306c' },
   { key: 'note', label: 'note', color: '#41c9b4' },
+  { key: 'facebook', label: 'Facebook', color: '#4f9cf5' },
 ] as const
 
 export type SnsPlatformKey = (typeof SNS_PLATFORMS)[number]['key']
@@ -17,7 +18,7 @@ export type SnsDayCounts = Record<SnsPlatformKey, number>
 const LS_DEV = 'task_sns_counts_dev'
 
 export function emptyDayCounts(): SnsDayCounts {
-  return { instagram: 0, note: 0 }
+  return { instagram: 0, note: 0, facebook: 0 }
 }
 
 export function useTaskSns() {
@@ -38,7 +39,7 @@ export function useTaskSns() {
   const totalAll = computed(() => SNS_PLATFORMS.reduce((s, p) => s + totals.value[p.key], 0))
 
   function dayCounts(date: string): SnsDayCounts {
-    return counts.value[date] ?? emptyDayCounts()
+    return { ...emptyDayCounts(), ...counts.value[date] }
   }
 
   /** 月（'YYYY-MM'）の合計 */

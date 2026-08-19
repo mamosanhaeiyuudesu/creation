@@ -3,7 +3,7 @@ import type { SnsPlatformKey } from '~/composables/task/useTaskSns'
 
 /**
  * 投稿カウンターのプラットフォーム記号。
- * ブランドロゴをそのまま使わず、線画（インスタ＝カメラ、note＝角丸の「n」）で揃えている。
+ * ブランドロゴをそのまま使わず、線画（インスタ＝カメラ、note＝角丸の「n」、Facebook＝角丸の「f」）で揃えている。
  * 色は currentColor なので、置く側で :style="{ color: p.color }" を指定する。
  */
 withDefaults(defineProps<{ platform: SnsPlatformKey; size?: number }>(), { size: 14 })
@@ -35,6 +35,6 @@ withDefaults(defineProps<{ platform: SnsPlatformKey; size?: number }>(), { size:
     aria-hidden="true"
   >
     <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="currentColor" stroke-width="2" />
-    <text x="12" y="16.8" text-anchor="middle" font-size="12.5" font-weight="700" fill="currentColor">n</text>
+    <text x="12" y="16.8" text-anchor="middle" font-size="12.5" font-weight="700" fill="currentColor">{{ platform === 'facebook' ? 'f' : 'n' }}</text>
   </svg>
 </template>

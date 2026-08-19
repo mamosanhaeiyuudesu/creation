@@ -57,7 +57,8 @@ const weeks = computed(() => {
 })
 
 function dayCounts(date: string): SnsDayCounts {
-  return props.counts[date] ?? emptyDayCounts()
+  // プラットフォームが増える前に保存した日には新しいキーが無いので既定値とマージする
+  return { ...emptyDayCounts(), ...props.counts[date] }
 }
 
 function dayTotal(date: string): number {
@@ -157,7 +158,7 @@ function onInputChange(key: SnsPlatformKey, e: Event) {
               class="text-[11px] leading-none"
               :class="cell.date === today ? 'text-sky-300 font-bold' : cell.outside ? 'text-slate-700' : 'text-slate-300'"
             >{{ cell.day }}</span>
-            <span class="flex items-center gap-1 h-[11px]">
+            <span class="flex items-center gap-[3px] h-[11px]">
               <span
                 v-for="p in SNS_PLATFORMS"
                 :key="p.key"

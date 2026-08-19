@@ -1,7 +1,7 @@
 // /task の投稿カウンター（Instagram / note）の共通処理。
 import { getSessionUser, getAppDb } from '~/server/utils/auth'
 
-export const SNS_PLATFORM_KEYS = ['instagram', 'note'] as const
+export const SNS_PLATFORM_KEYS = ['instagram', 'note', 'facebook'] as const
 export type SnsPlatformKey = (typeof SNS_PLATFORM_KEYS)[number]
 
 export interface SnsRow {
