@@ -78,7 +78,8 @@ gtag('config', 'G-JRBVTJYCEH');`,
       tasks: true,
     },
     scheduledTasks: {
-      '0 * * * *': ['mlb-sync'],
+      // wrangler.toml の [triggers] crons と同じ式にすること（1日1回・UTC 7:00＝JST 16:00）
+      '0 7 * * *': ['mlb-sync'],
     },
     devServer: {
       // @ts-ignore — Nitro の型定義に maxBodySize がないが、h3 dev server では有効

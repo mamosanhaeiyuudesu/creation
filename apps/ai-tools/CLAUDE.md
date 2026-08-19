@@ -128,7 +128,10 @@ Sheets APIで直接読み書きする（`life-google.ts`）。D1が持つのは�
   - 項目を `reps` → `direct` に変えると過去の記録は `rate` しか持たず0点になるため、`items/[id].patch.ts` が切り替え時にそのときの設定で計算した値を `points` へ焼き付ける
   - 項目がメンバー共通だった頃の行（`member_id` が空）は、初回アクセス時に `migrateSharedItemsToMembers()` がメンバーごとへ複製し、記録の `item_id` を付け替えてから旧行を消す
 - `MLB_DB`（`mlb-db`）: MLB選手・試合データ  
-  `src/server/tasks/mlb-sync.ts` の Cron（1時間ごと）で同期
+  `src/server/tasks/mlb-sync.ts` の Cron（**1日1回・UTC 7:00＝JST 16:00**）で同期。
+  毎回シーズン全体を INSERT OR REPLACE する作りなので、1回の実行でおよそ6,800行書く。
+  毎時にすると D1 無料枠の書き込み（10万行/日）をほぼ使い切るため1日1回にしている。
+  周期を変えるときは `wrangler.toml` の `[triggers] crons` と `nuxt.config.ts` の `nitro.scheduledTasks` の**両方**を揃える
 - **ローカルdev**: macOSの制約でD1が使えないため `mlb-dev.ts` が静的JSONにフォールバック
 
 ## サーバーユーティリティ

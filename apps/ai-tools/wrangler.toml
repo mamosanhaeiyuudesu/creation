@@ -36,9 +36,13 @@ database_id = "7698b7b5-b0c8-4289-b19e-a99c669ca75f"
 #   wrangler d1 create mlb-db
 #   wrangler d1 execute mlb-db --file src/server/db/mlb-schema.sql
 
-# Cron Trigger（1時間ごと）
+# Cron Trigger（1日1回・UTC 7:00＝JST 16:00）
+# 毎時だと mlb-sync が D1 の1日あたり書き込み行数（無料枠10万行/日）をほぼ使い切るため1日1回にした。
+# mlb-sync は差分ではなく毎回シーズン全体を INSERT OR REPLACE するので、回数がそのまま書き込み量になる。
+# 米国の試合は西海岸ぶんも UTC 6:00 頃までに終わるので、その後の 7:00 に前日ぶんをまとめて取り込む。
+# nuxt.config.ts の nitro.scheduledTasks の式と必ず揃えること（片方だけ変えると動かない）。
 [triggers]
-crons = ["0 * * * *"]
+crons = ["0 7 * * *"]
 
 [build]
 command = "npm run build"
