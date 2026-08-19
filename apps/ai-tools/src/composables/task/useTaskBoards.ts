@@ -17,8 +17,6 @@ export interface Card {
   pos: number
   isOverdue: boolean
   isUrgent: boolean
-  isDueToday: boolean
-  isDueTomorrow: boolean
   display: string
 }
 
@@ -156,37 +154,19 @@ export function useTaskBoards(
   }
 
   // --- Utilities ---
-  /** 期限のJST暦日が今日と一致するか（時刻に関わらず「その日のうちに」を判定） */
-  function isDueTodayJST(dueStr: string): boolean {
-    const d = toJSTDate(dueStr)
-    const now = nowJST()
-    return d.getUTCFullYear() === now.getUTCFullYear() && d.getUTCMonth() === now.getUTCMonth() && d.getUTCDate() === now.getUTCDate()
-  }
-
-  /** 期限のJST暦日が明日と一致するか */
-  function isDueTomorrowJST(dueStr: string): boolean {
-    const d = toJSTDate(dueStr)
-    const now = nowJST()
-    const tomorrow = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    return d.getUTCFullYear() === tomorrow.getFullYear() && d.getUTCMonth() === tomorrow.getMonth() && d.getUTCDate() === tomorrow.getDate()
-  }
-
-  function timeRemaining(dueStr: string): Pick<Card, 'isOverdue' | 'isUrgent' | 'isDueToday' | 'isDueTomorrow' | 'display'> {
+  function timeRemaining(dueStr: string): Pick<Card, 'isOverdue' | 'isUrgent' | 'display'> {
     const diffH = (new Date(dueStr).getTime() - Date.now()) / 3_600_000
-    const isDueToday = isDueTodayJST(dueStr)
-    const isDueTomorrow = isDueTomorrowJST(dueStr)
     if (diffH < 0) {
       const d = Math.floor(-diffH / 24)
-      return { isOverdue: true, isUrgent: false, isDueToday, isDueTomorrow, display: d > 0 ? `${d}日超過` : `${Math.floor(-diffH)}h超過` }
+      return { isOverdue: true, isUrgent: false, display: d > 0 ? `${d}日超過` : `${Math.floor(-diffH)}h超過` }
     }
-    if (diffH < 24) return { isOverdue: false, isUrgent: true, isDueToday, isDueTomorrow, display: `残り${Math.floor(diffH)}h` }
-    return { isOverdue: false, isUrgent: false, isDueToday, isDueTomorrow, display: `残り${Math.floor(diffH / 24)}日` }
+    if (diffH < 24) return { isOverdue: false, isUrgent: true, display: `残り${Math.floor(diffH)}h` }
+    return { isOverdue: false, isUrgent: false, display: `残り${Math.floor(diffH / 24)}日` }
   }
 
   function buildCard(raw: any): Card {
     const { displayName, effort } = parseTaskName(raw.name)
-    const c: Card = { id: raw.id, name: raw.name, displayName, effort, desc: raw.desc || '', due: raw.due || null, pos: raw.pos ?? 0, isOverdue: false, isUrgent: false, isDueToday: false, isDueTomorrow: false, display: '' }
+    const c: Card = { id: raw.id, name: raw.name, displayName, effort, desc: raw.desc || '', due: raw.due || null, pos: raw.pos ?? 0, isOverdue: false, isUrgent: false, display: '' }
     if (raw.due) Object.assign(c, timeRemaining(raw.due))
     return c
   }
@@ -401,9 +381,10 @@ export function useTaskBoards(
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
   }
 
-  function openAddTask(boardId: string, status: 'todo' | 'doing' | 'done') {
+  /** due は datetime-local 形式（'YYYY-MM-DDTHH:mm'）。DOINGの「今日やること」欄などから初期値を渡す */
+  function openAddTask(boardId: string, status: 'todo' | 'doing' | 'done', due = '') {
     editTarget.value = null
-    taskForm.value = { name: '', desc: '', due: '', boardId, status, effort: 1 }
+    taskForm.value = { name: '', desc: '', due, boardId, status, effort: 1 }
     showTaskModal.value = true
   }
 
@@ -417,7 +398,7 @@ export function useTaskBoards(
     const { displayName, effort } = parseTaskName(item.name)
     const dueForInput = dateKey + 'T12:00'
     const dueIso = new Date(dueForInput).toISOString()
-    const card: Card = { id: item.id, name: item.name, displayName, effort, desc: item.desc, due: dueIso, pos: 0, isOverdue: false, isUrgent: false, isDueToday: false, isDueTomorrow: false, display: '' }
+    const card: Card = { id: item.id, name: item.name, displayName, effort, desc: item.desc, due: dueIso, pos: 0, isOverdue: false, isUrgent: false, display: '' }
     editTarget.value = { card, boardId: board.id, status: 'done', dateKey }
     taskForm.value = { name: displayName, desc: item.desc, due: dueForInput, boardId: board.id, status: 'done', effort }
     showTaskModal.value = true

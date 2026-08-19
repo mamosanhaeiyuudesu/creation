@@ -1,5 +1,13 @@
 // 剣道 けいこ記録アプリ (keiko) の型定義。
 
+/**
+ * 記録のはじまり。これより前の日には記録できない（空の期間をめくり続けないため）。
+ * 画面（前の週/月/年ボタンの無効化・セルを押せなくする）とサーバー（保存の拒否）で
+ * 同じ値を使いたいので、型と一緒にここへ置く。
+ */
+export const KEIKO_START_MONTH_KEY = '2026-08'
+export const KEIKO_START_DATE = `${KEIKO_START_MONTH_KEY}-01`
+
 export interface KeikoMember {
   id: string
   name: string

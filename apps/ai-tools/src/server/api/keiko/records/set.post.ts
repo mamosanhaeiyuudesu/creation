@@ -1,4 +1,4 @@
-import { requireKeikoUser, requireKeikoDb, ensureKeikoTables, isValidDate, normalizeRate, normalizePoints } from '~/server/utils/keiko'
+import { requireKeikoUser, requireKeikoDb, ensureKeikoTables, isValidDate, isBeforeKeikoStart, normalizeRate, normalizePoints } from '~/server/utils/keiko'
 
 // その日の記録を設定する。
 // - kind='reps'   : rate（％）を保存。rate=0 なら記録を消す
@@ -15,6 +15,11 @@ export default defineEventHandler(async (event): Promise<{ rate: number; points:
   const date = body?.date
   if (!memberId || !itemId || !isValidDate(date)) {
     throw createError({ statusCode: 400, message: 'memberId・itemId・date (YYYY-MM-DD) が必要です' })
+  }
+  // 記録のはじまり（2026年8月）より前の日は記録させない。画面でも押せないが、
+  // 古い画面が開きっぱなしでも書き込めないようにここでも止める（消すのは許す）。
+  if (isBeforeKeikoStart(date) && body?.remove !== true) {
+    throw createError({ statusCode: 400, message: '記録のはじまり（2026年8月）より前の日は記録できません' })
   }
 
   const member = await db.prepare('SELECT id FROM keiko_members WHERE id = ? AND user_id = ?').bind(memberId, user.id).first<{ id: string }>()

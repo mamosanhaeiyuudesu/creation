@@ -453,6 +453,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
 import KeikoArt from '~/components/keiko/KeikoArt.vue'
+import { KEIKO_START_DATE, KEIKO_START_MONTH_KEY } from '~/types/keiko'
 import type { KeikoItem, KeikoItemKind, KeikoMember, KeikoPoints, KeikoPointBucket, KeikoRecord, KeikoState } from '~/types/keiko'
 
 definePageMeta({ layout: 'keiko' })
@@ -516,9 +517,10 @@ function shiftMonthKey(ym: string, delta: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-// 記録のはじまり。ここより前の週・月・年へは戻れない（空の期間をめくり続けないため）
-const START_MONTH_KEY = '2026-08'
-const START_DATE = `${START_MONTH_KEY}-01`
+// 記録のはじまり。ここより前の週・月・年へは戻れない（空の期間をめくり続けないため）。
+// 値はサーバーと共有（~/types/keiko）。サーバー側でも、この日より前の保存は弾いている
+const START_MONTH_KEY = KEIKO_START_MONTH_KEY
+const START_DATE = KEIKO_START_DATE
 const START_WEEK_START = startOfWeek(START_DATE) // 8/1 を含む週の月曜（＝2026-07-27）まで見られる
 const START_YEAR = Number(START_MONTH_KEY.slice(0, 4))
 
@@ -764,6 +766,8 @@ const picker = ref<{
 const directInput = ref<number | string>(10)
 
 function openPicker(member: KeikoMember, item: KeikoItem, day: { date: string; month: number; day: number; weekdayLabel: string }) {
+  // 記録のはじまりより前の日（はじまりの週にまたがる7月末）は、そもそもダイアログを開かない
+  if (day.date < START_DATE) return
   const r = recordOf(member.id, item.id, day.date)
   directInput.value = r?.points ?? 10
   picker.value = {
@@ -835,12 +839,12 @@ async function saveRecord(payload: Record<string, unknown>, next: { rate: number
   try {
     await $fetch('/api/keiko/records/set', { method: 'POST', body: { memberId, itemId, date, ...payload } })
     toast(next ? '記録を保存しました' : '記録を消しました')
-  } catch {
-    // 失敗時はロールバック
+  } catch (e: any) {
+    // 失敗時はロールバック。サーバーが理由を返していれば（はじまりより前の日など）それを出す
     const cur = find()
     if (cur !== -1) records.value.splice(cur, 1)
     if (before) records.value.push(before)
-    alert('保存に失敗しました')
+    alert(e?.data?.message || '保存に失敗しました')
   }
 }
 

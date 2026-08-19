@@ -1,6 +1,7 @@
 // 剣道 けいこ記録アプリ (keiko) のサーバー共通処理。
 // 認証は既存の WHISPER_DB / users / sessions に相乗りし、記録は user_id でスコープする。
 import { getSessionUser, getAppDb } from '~/server/utils/auth'
+import { KEIKO_START_DATE } from '~/types/keiko'
 import type { KeikoItem, KeikoItemKind, KeikoMember, KeikoPointBucket, KeikoRecord } from '~/types/keiko'
 
 export interface KeikoUser {
@@ -231,6 +232,14 @@ export async function loadPointBuckets(db: any, userId: string, from: string, to
 /** YYYY-MM-DD 形式かどうか。 */
 export function isValidDate(s: unknown): s is string {
   return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
+}
+
+/**
+ * 記録のはじまり（KEIKO_START_DATE）より前の日かどうか。
+ * 画面でも押せないようにしているが、古い画面が残っていても書き込めないようサーバーでも見る。
+ */
+export function isBeforeKeikoStart(date: string): boolean {
+  return date < KEIKO_START_DATE
 }
 
 /**
