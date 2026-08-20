@@ -556,16 +556,21 @@
 
 .feature-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
+  grid-template-columns: 1fr;
+  gap: 20px;
 }
 
+/* 1枚ずつを横長にして、アイコン（写真）と本文を左右に並べる */
 .feature-card {
   background: var(--c-white);
   border: 1px solid var(--c-pink-line);
   border-radius: var(--radius-lg);
-  padding: 32px 24px 28px;
-  text-align: center;
+  padding: 30px 34px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  overflow: hidden;
   transition: transform 0.25s, box-shadow 0.25s;
 }
 
@@ -574,19 +579,24 @@
   box-shadow: 0 12px 28px rgba(253, 162, 178, 0.2);
 }
 
+.feature-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .feature-num {
   font-family: var(--f-en);
   font-size: 12px;
   letter-spacing: 0.2em;
   color: var(--c-pink-deep);
   display: block;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .feature-icon {
+  flex: 0 0 auto;
   width: 88px;
   height: 88px;
-  margin: 0 auto 18px;
   border-radius: 50%;
   background: var(--c-pink-soft);
   display: flex;
@@ -601,7 +611,7 @@
   box-shadow: 0 0 0 3px var(--c-white), 0 0 0 4px var(--c-pink-line);
 }
 
-/* width/height 属性（presentational hint）を打ち消して円いっぱいに敷く */
+/* width/height 属性（presentational hint）を打ち消して枠いっぱいに敷く */
 .feature-icon.is-photo img {
   display: block;
   width: 100%;
@@ -610,9 +620,53 @@
   object-position: 50% 66%;
 }
 
+/* 施術写真のカードは、写真をカードの半分いっぱいまで大きく見せる */
+.feature-card.is-photo-card {
+  padding: 0;
+  gap: 34px;
+  align-items: stretch;
+}
+
+/* 写真を右側に置くバリエーション */
+.feature-card.is-photo-card.is-photo-right {
+  flex-direction: row-reverse;
+}
+
+.feature-card.is-photo-card .feature-icon.is-photo {
+  position: relative;
+  flex: 0 0 50%;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  min-height: 320px;
+  border-radius: 0;
+  box-shadow: none;
+  background: none;
+}
+
+/* 写真の縦横比ではなくカードの高さで枠を決めたいので、img は枠いっぱいに敷く */
+.feature-card.is-photo-card .feature-icon.is-photo img {
+  position: absolute;
+  inset: 0;
+  object-position: 50% 58%;
+}
+
+.feature-card.is-photo-card.is-photo-right .feature-icon.is-photo img {
+  object-position: 50% 42%;
+}
+
+.feature-card.is-photo-card .feature-text {
+  align-self: center;
+  padding: 30px 34px 30px 0;
+}
+
+.feature-card.is-photo-card.is-photo-right .feature-text {
+  padding: 30px 0 30px 34px;
+}
+
 .feature-title {
   font-family: var(--f-serif);
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 600;
   letter-spacing: 0.04em;
   line-height: 1.6;
@@ -630,6 +684,7 @@
    施術者プロフィール
    ========================================== */
 
+/* 写真は左上に置き、名前と資格バッジはその右へ。本文は下に全幅で回り込ませる */
 .profile-card {
   background: var(--c-white);
   border-radius: var(--radius-lg);
@@ -637,19 +692,24 @@
   box-shadow: 0 14px 40px rgba(103, 72, 62, 0.08);
   display: grid;
   grid-template-columns: 220px 1fr;
-  gap: 40px;
+  grid-template-areas:
+    "photo head"
+    "body  body";
+  column-gap: 40px;
+  row-gap: 30px;
   align-items: start;
 }
 
-.profile-card.is-solo {
-  grid-template-columns: 1fr;
-  max-width: 720px;
-  margin: 0 auto;
-}
-
 .profile-photo {
+  grid-area: photo;
   border-radius: var(--radius);
   overflow: hidden;
+}
+
+/* 名前まわりは写真の高さの中で天地中央に置く */
+.profile-head {
+  grid-area: head;
+  align-self: center;
 }
 
 .profile-photo img {
@@ -657,7 +717,8 @@
   height: auto;
   aspect-ratio: 1 / 1;
   object-fit: cover;
-  object-position: center 26%;
+  /* 頭の上に余白が少ない写真なので、上を残して下を切る */
+  object-position: center 12%;
 }
 
 .profile-name {
@@ -682,7 +743,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 18px 0 20px;
+  margin-top: 18px;
 }
 
 .license-badge {
@@ -696,6 +757,7 @@
 }
 
 .profile-body {
+  grid-area: body;
   font-size: 15px;
   line-height: 2;
   color: var(--c-brown-mid);
@@ -786,6 +848,77 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   vertical-align: middle;
+}
+
+/* 料金のすぐ下に続く「施術の価値」。独立したセクションに見えないよう、
+   区切り線と小見出しだけでメニューから地続きに見せる */
+.menu-value {
+  margin-top: 48px;
+  padding-top: 40px;
+  border-top: 1px solid var(--c-pink-line);
+}
+
+.menu-value-title {
+  font-family: var(--f-serif);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.menu-value-lead {
+  margin-top: 10px;
+  margin-bottom: 24px;
+  font-size: 14.5px;
+  line-height: 1.9;
+  color: var(--c-brown-mid);
+}
+
+.value-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.value-card {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  column-gap: 12px;
+  align-items: start;
+  /* 隣のカードと高さが揃うぶんの余白は下に寄せ、見出しの位置を左右で揃える */
+  align-content: start;
+  background: var(--c-white);
+  border: 1px solid var(--c-brown-line);
+  border-radius: var(--radius);
+  padding: 22px 24px 20px;
+}
+
+.value-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--c-sky-soft);
+  color: var(--c-sky-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.value-title {
+  font-family: var(--f-serif);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1.65;
+  align-self: center;
+}
+
+/* 本文はマークの列を空けて、見出しの頭に揃える */
+.value-body {
+  grid-column: 2;
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--c-brown-mid);
 }
 
 /* ==========================================
@@ -1279,13 +1412,40 @@
 }
 
 @media (max-width: 860px) {
-  .feature-grid {
-    grid-template-columns: 1fr;
+  .feature-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+    padding: 26px 24px;
+  }
+
+  .feature-card.is-photo-card,
+  .feature-card.is-photo-card.is-photo-right {
+    flex-direction: column;
+    padding: 0;
+    gap: 0;
+  }
+
+  .feature-card.is-photo-card .feature-icon.is-photo {
+    flex: 0 0 auto;
+    align-self: auto;
+    width: 100%;
+    min-height: 0;
+    aspect-ratio: 4 / 3;
+  }
+
+  .feature-card.is-photo-card .feature-text,
+  .feature-card.is-photo-card.is-photo-right .feature-text {
+    padding: 24px;
   }
 
   .profile-card {
     grid-template-columns: 1fr;
-    gap: 28px;
+    grid-template-areas:
+      "photo"
+      "head"
+      "body";
+    gap: 24px;
     padding: 32px 26px;
     text-align: center;
   }
@@ -1301,6 +1461,10 @@
 
   .profile-body {
     text-align: left;
+  }
+
+  .value-grid {
+    grid-template-columns: 1fr;
   }
 
   .access-grid {

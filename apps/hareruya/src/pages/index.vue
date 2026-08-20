@@ -136,76 +136,51 @@
         <h2 class="section-title">晴レルヤ鍼灸院の3つの特徴</h2>
         <div class="feature-grid">
 
-          <div class="feature-card">
-            <span class="feature-num">01</span>
-            <div class="feature-icon">
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg>
+          <div class="feature-card is-photo-card is-photo-right">
+            <div class="feature-icon is-photo">
+              <img src="/images/naizo-shinkyu.jpg" alt="内臓鍼灸でおなかの反応を確認している様子" width="558" height="581" loading="lazy" />
             </div>
-            <h3 class="feature-title">内臓鍼灸</h3>
-            <p class="feature-body">
-              表面に出ている症状だけを追うのではなく、内臓のはたらきに着目してアプローチする鍼灸です。おなかの状態をていねいに確認しながら、からだ全体のバランスを見ていきます。
-            </p>
+            <div class="feature-text">
+              <span class="feature-num">01</span>
+              <h3 class="feature-title">内臓鍼灸</h3>
+              <p class="feature-body">
+                多くの内臓疾患はお腹に特有の反応が出ます。お腹の反応の場所によって、東洋医学でのどの五臓六腑を治療すべきかを確認します。鍼はごく細く、手、足、首、頭部などの皮膚表面を浅く刺します。一通り施術後、お腹の反応がどう変化しているか確認します。内臓鍼灸はこのお腹の反応がなくなったり、軽くなるのを目標にします。
+              </p>
+            </div>
           </div>
 
-          <div class="feature-card">
-            <span class="feature-num">02</span>
+          <div class="feature-card is-photo-card">
             <div class="feature-icon is-photo">
               <img src="/images/action.jpg" alt="ソフトカイロ矯正の施術の様子" width="900" height="1601" loading="lazy" />
             </div>
-            <h3 class="feature-title">ソフトカイロ矯正</h3>
-            <p class="feature-body">
-              強い力でボキボキと鳴らす矯正ではありません。やさしい力でからだの土台となる骨格を整えていく方法なので、痛みが苦手な方にも受けていただけます。
-            </p>
+            <div class="feature-text">
+              <span class="feature-num">02</span>
+              <h3 class="feature-title">ソフトカイロ矯正</h3>
+              <p class="feature-body">
+                関節の痛みや動きの制限など症状に合わせて、関節の動きと骨の位置を調整します。やさしい力でからだの土台となる骨格を整えていく方法なので、痛みが苦手な方にも受けていただけます。
+              </p>
+            </div>
           </div>
 
           <div class="feature-card">
-            <span class="feature-num">03</span>
             <div class="feature-icon">
               <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a4.6 4.6 0 0 0-6.5 0L12 7.9l-2.3-2.3a4.6 4.6 0 1 0-6.5 6.5l8.8 8.8 8.8-8.8a4.6 4.6 0 0 0 0-6.4z"/></svg>
             </div>
-            <h3 class="feature-title">助産師 × 鍼灸師</h3>
-            <p class="feature-body">
-              ふたつの国家資格を持つ施術者が担当します。女性のからだのサイクルを理解したうえでの施術と、日常のセルフケアのご提案。産前産後のご相談にも対応しています。
-            </p>
+            <div class="feature-text">
+              <span class="feature-num">03</span>
+              <h3 class="feature-title">按腹（おなかのマッサージ）によるセルフケア</h3>
+              <p class="feature-body">
+                体の状態はお腹の皮膚表面にもあらわれます。お腹の状態に合わせて按腹（おなかのマッサージ）を行っていただくことで、より良い状態をキープすることができます。
+              </p>
+            </div>
           </div>
 
         </div>
       </div>
     </section>
 
-    <!-- 施術者紹介 -->
-    <section id="profile" class="hr-tint-sky">
-      <div class="hr-wrap">
-        <p class="section-label">Profile</p>
-        <h2 class="section-title">施術者のご紹介</h2>
-        <div class="profile-card is-solo">
-          <div>
-            <p class="profile-name">
-              臼渕 祥子
-              <small>USUBUCHI SHOKO ／ うすぶち しょうこ</small>
-            </p>
-            <div class="profile-licenses">
-              <span class="license-badge">鍼灸師（国家資格）</span>
-              <span class="license-badge">助産師（国家資格）</span>
-            </div>
-            <div class="profile-body">
-              <p>
-                助産師として多くの女性のからだと向き合うなかで、「病院に行くほどではないけれど、なんとなくつらい」という声をたくさん聞いてきました。検査の数値には表れにくい不調こそ、からだ全体を見ながらていねいに向き合う必要があると考えています。
-              </p>
-              <p>
-                施術では、お話をうかがう時間を大切にしています。気になっていること、これまでの経過、日々の生活のこと。ご自身では関係ないと思っていることが、からだの状態を読み解くヒントになることも少なくありません。どうぞ遠慮なくお聞かせください。
-              </p>
-              <p>
-                Instagram（<a :href="site.instagramUrl" target="_blank" rel="noopener noreferrer">@{{ site.instagramId }}</a>）では、施術の様子や営業日の詳細を発信しています。
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- メニュー・料金 -->
-    <section id="menu">
+    <!-- メニュー・料金（施術の価値もこの中で紹介する） -->
+    <section id="menu" class="hr-tint-pink">
       <div class="hr-wrap">
         <p class="section-label">Menu</p>
         <h2 class="section-title">メニュー・料金</h2>
@@ -223,14 +198,51 @@
             </div>
             <p class="menu-desc">{{ menu.desc }}</p>
           </div>
+
+          <div class="value-grid">
+            <div v-for="value in values" :key="value.title" class="value-card">
+              <span class="value-mark" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg>
+              </span>
+              <h4 class="value-title">{{ value.title }}</h4>
+              <p class="value-body">{{ value.body }}</p>
+            </div>
+          </div>
         </div>
-        <p class="menu-note">
-          <template v-if="isPricePending">
-            ※ 料金はLINEにてご案内しています。お気軽にお問い合わせください。<br />
-          </template>
-          ※ 初回はカウンセリングのお時間を含みます。お時間に余裕をもってお越しください。<br />
-          ※ 施術内容は、その日のからだの状態にあわせてご相談のうえ決めていきます。
-        </p>
+      </div>
+    </section>
+
+    <!-- 施術者紹介 -->
+    <section id="profile" class="hr-tint-sky">
+      <div class="hr-wrap">
+        <p class="section-label">Profile</p>
+        <h2 class="section-title">施術者のご紹介</h2>
+        <div class="profile-card">
+          <div class="profile-photo">
+            <img src="/images/profile-usubuchi.jpg" alt="施術者 臼渕祥子" width="469" height="519" loading="lazy" />
+          </div>
+          <div class="profile-head">
+            <p class="profile-name">
+              臼渕 祥子
+              <small>USUBUCHI SHOKO ／ うすぶち しょうこ</small>
+            </p>
+            <div class="profile-licenses">
+              <span class="license-badge">鍼灸師（国家資格）</span>
+              <span class="license-badge">助産師（国家資格）</span>
+            </div>
+          </div>
+          <div class="profile-body">
+            <p>
+              助産師として多くの女性のからだと向き合うなかで、「病院に行くほどではないけれど、なんとなくつらい」という声をたくさん聞いてきました。検査の数値には表れにくい不調こそ、からだ全体を見ながらていねいに向き合う必要があると考えています。
+            </p>
+            <p>
+              施術では、お話をうかがう時間を大切にしています。気になっていること、これまでの経過、日々の生活のこと。ご自身では関係ないと思っていることが、からだの状態を読み解くヒントになることも少なくありません。どうぞ遠慮なくお聞かせください。
+            </p>
+            <p>
+              Instagram（<a :href="site.instagramUrl" target="_blank" rel="noopener noreferrer">@{{ site.instagramId }}</a>）では、施術の様子や営業日の詳細を発信しています。
+            </p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -381,6 +393,33 @@ const worries = [
   '産後の腰痛、骨盤矯正、産前のからだづくり',
   'からだの緊張がとれない',
   '呼吸が浅い'
+]
+
+const values = [
+  {
+    title: '体の内側と外側、両方からアプローチ',
+    body: 'はりによる体の内側へのアプローチに加え、骨格や関節など体の外側をソフトカイロ矯正で整えることで、効果が持続しやすくなります。'
+  },
+  {
+    title: '自費施術だからこその自由な組み合わせ',
+    body: '保険診療では制約を受ける施術も、自費だからこそ自由に組み合わせることができ、効果を出しやすくなります。'
+  },
+  {
+    title: 'お腹を診る腹診を中心に',
+    body: 'お腹の状態を見る腹診を中心に施術を行うため、ご自身の体にどんな変化があったのかが分かりやすくなっています。'
+  },
+  {
+    title: '骨格へのアプローチで筋肉にも変化を',
+    body: '筋肉の土台となる骨格にアプローチすることで、筋肉そのものにも変化を出すことができます。'
+  },
+  {
+    title: '西洋医学と併用しながら通院可能',
+    body: '病院への通院と並行しながら、西洋医学と合わせてお困りの症状にアプローチしていくことができます。'
+  },
+  {
+    title: '患部に直接触れない遠隔アプローチも',
+    body: 'はりには遠隔でも痛みを軽減できる方法があるため、炎症のある部位や患部に直接触れずにアプローチすることも可能です。'
+  }
 ]
 
 const flow = [

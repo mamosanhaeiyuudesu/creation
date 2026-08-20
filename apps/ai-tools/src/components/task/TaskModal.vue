@@ -116,7 +116,7 @@ function commitDue(due: string) {
           <div class="flex items-center justify-between">
             <label class="text-xs font-semibold text-slate-500 uppercase tracking-[0.05em]">期限</label>
             <div class="flex items-center gap-3">
-              <label class="flex items-center gap-1.5 cursor-pointer select-none group">
+              <label class="flex items-center gap-1.5 cursor-pointer select-none group" @click="commitDue(todayDue())">
                 <div
                   :class="[
                     'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all flex-shrink-0',
@@ -124,13 +124,12 @@ function commitDue(due: string) {
                       ? 'bg-sky-500/20 border-sky-400/70'
                       : 'bg-white/[0.04] border-white/20 group-hover:border-white/40',
                   ]"
-                  @click="commitDue(todayDue())"
                 >
                   <svg v-if="isUntilToday" xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
                 <span :class="['text-[11px] font-medium transition-colors', isUntilToday ? 'text-sky-400' : 'text-slate-500 group-hover:text-slate-300']">今日まで</span>
               </label>
-              <label class="flex items-center gap-1.5 cursor-pointer select-none group">
+              <label class="flex items-center gap-1.5 cursor-pointer select-none group" @click="commitDue(sundayDue(0))">
                 <div
                   :class="[
                     'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all flex-shrink-0',
@@ -138,13 +137,12 @@ function commitDue(due: string) {
                       ? 'bg-sky-500/20 border-sky-400/70'
                       : 'bg-white/[0.04] border-white/20 group-hover:border-white/40',
                   ]"
-                  @click="commitDue(sundayDue(0))"
                 >
                   <svg v-if="isUntilSunday" xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
                 <span :class="['text-[11px] font-medium transition-colors', isUntilSunday ? 'text-sky-400' : 'text-slate-500 group-hover:text-slate-300']">週末まで</span>
               </label>
-              <label class="flex items-center gap-1.5 cursor-pointer select-none group">
+              <label class="flex items-center gap-1.5 cursor-pointer select-none group" @click="commitDue(sundayDue(1))">
                 <div
                   :class="[
                     'w-3.5 h-3.5 rounded border flex items-center justify-center transition-all flex-shrink-0',
@@ -152,7 +150,6 @@ function commitDue(due: string) {
                       ? 'bg-sky-500/20 border-sky-400/70'
                       : 'bg-white/[0.04] border-white/20 group-hover:border-white/40',
                   ]"
-                  @click="commitDue(sundayDue(1))"
                 >
                   <svg v-if="isUntilNextSunday" xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
