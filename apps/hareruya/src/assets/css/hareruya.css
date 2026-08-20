@@ -303,6 +303,18 @@
   margin-bottom: 24px;
 }
 
+/* 見出しのすぐ下に添える米印の注記 */
+.section-title:has(+ .section-note) {
+  margin-bottom: 10px;
+}
+
+.section-note {
+  margin-bottom: 30px;
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--c-brown-dim);
+}
+
 .section-lead {
   font-size: 15.5px;
   color: var(--c-brown-mid);
@@ -991,12 +1003,40 @@
    アクセス
    ========================================== */
 
+/* 施術場所は複数あるので、1件ぶんをまとめて区切り線で分ける */
+.access-place + .access-place {
+  margin-top: 52px;
+  padding-top: 46px;
+  border-top: 1px solid var(--c-brown-line);
+}
+
+.access-place-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-family: var(--f-serif);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+.access-place-num {
+  font-family: var(--f-en);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  color: var(--c-sky-ink);
+  flex-shrink: 0;
+}
+
 .access-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 36px;
   align-items: start;
 }
+
 
 .access-table {
   display: grid;
@@ -1029,6 +1069,18 @@
   font-size: 12.5px;
   color: var(--c-brown-dim);
   margin-top: 4px;
+}
+
+.access-row dd a {
+  color: var(--c-sky-ink);
+  border-bottom: 1px solid var(--c-sky);
+  padding-bottom: 1px;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.access-row dd a:hover {
+  opacity: 0.72;
 }
 
 .access-map {

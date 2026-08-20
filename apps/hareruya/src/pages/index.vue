@@ -268,43 +268,62 @@
       <div class="hr-wrap">
         <p class="section-label">Access</p>
         <h2 class="section-title">アクセス</h2>
-        <div class="access-grid">
-          <dl class="access-table">
-            <div class="access-row">
-              <dt>所在地</dt>
-              <dd>
-                {{ site.address }}
-                <small>{{ site.addressNote }}</small>
-              </dd>
+        <p class="section-note">※ 曜日により施術場所が異なります</p>
+        <div v-for="(place, i) in site.places" :key="place.name" class="access-place">
+          <h3 class="access-place-title">
+            <span class="access-place-num">{{ String(i + 1).padStart(2, '0') }}</span>
+            {{ place.name }}
+          </h3>
+          <div class="access-grid">
+            <dl class="access-table">
+              <div class="access-row">
+                <dt>所在地</dt>
+                <dd>
+                  {{ place.address }}
+                  <small v-if="place.addressNote">{{ place.addressNote }}</small>
+                </dd>
+              </div>
+              <div v-if="place.days" class="access-row">
+                <dt>施術日</dt>
+                <dd>
+                  {{ place.days }}
+                  <small v-if="place.daysNote">
+                    {{ place.daysNote }}
+                    <a
+                      v-if="place.daysNoteLinkUrl"
+                      :href="place.daysNoteLinkUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      >{{ place.daysNoteLinkLabel }}</a
+                    >
+                  </small>
+                </dd>
+              </div>
+              <div v-if="place.hours" class="access-row">
+                <dt>施術時間</dt>
+                <dd>{{ place.hours }}</dd>
+              </div>
+              <div v-if="place.parking" class="access-row">
+                <dt>駐車場</dt>
+                <dd>
+                  {{ place.parking }}
+                  <small v-if="place.parkingNote">{{ place.parkingNote }}</small>
+                </dd>
+              </div>
+            </dl>
+            <div v-if="place.mapEmbedUrl" class="access-map">
+              <iframe
+                :src="place.mapEmbedUrl"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                :title="`${place.name}の地図`"
+                allowfullscreen
+              ></iframe>
             </div>
-            <div class="access-row">
-              <dt>施術日</dt>
-              <dd>{{ site.openDays }}</dd>
+            <div v-else class="access-map-note">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span>{{ place.name }}<br />場所の詳細はLINEにてご案内しています。</span>
             </div>
-            <div class="access-row">
-              <dt>施術時間</dt>
-              <dd>{{ site.openHours }}</dd>
-            </div>
-            <div class="access-row">
-              <dt>ご予約</dt>
-              <dd>
-                LINE公式アカウントより受付
-                <small>お電話でのご予約は承っておりません</small>
-              </dd>
-            </div>
-          </dl>
-          <div v-if="site.mapEmbedUrl" class="access-map">
-            <iframe
-              :src="site.mapEmbedUrl"
-              loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"
-              title="晴レルヤ鍼灸院の地図"
-              allowfullscreen
-            ></iframe>
-          </div>
-          <div v-else class="access-map-note">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span>ショッピングタウン若葉台内「Wakka（わっか）」<br />場所の詳細はLINEにてご案内しています。</span>
           </div>
         </div>
       </div>
@@ -426,12 +445,12 @@ const flow = [
   {
     num: '01',
     title: 'ご予約',
-    body: 'LINE公式アカウントから、ご希望の日時をお送りください。施術日は月曜日・木曜日です。',
+    body: 'LINE公式アカウントから、お名前、ご希望の日時、お困りの症状を入力し、お送りください。月・木曜日以外は、施術場所確保の都合がありますので、予約フォームのお問い合わせ可能日より、まずはお問い合わせください。',
   },
   {
     num: '02',
     title: '問診・カウンセリング',
-    body: '気になっている症状、これまでの経過、日々の生活の様子などをうかがいます。初回はこのお時間をたっぷりとります。',
+    body: '気になっている症状、これまでの経過、日々の生活の様子などをうかがいます。',
   },
   {
     num: '03',
@@ -441,7 +460,7 @@ const flow = [
   {
     num: '04',
     title: '施術後のご説明',
-    body: 'その日のからだの状態と、ご自宅でできるセルフケアをお伝えします。次回のご予約もこの場で承ります。',
+    body: 'その日のからだの状態と、ご自宅でできるセルフケアをお伝えします。からだの状態によって、次回のご予約についてご提案することがございます。',
   },
 ]
 
