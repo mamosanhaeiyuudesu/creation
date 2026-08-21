@@ -67,7 +67,7 @@ const {
   onMobileTouchStart,
   draggingDone, dragOverDoneBoardId,
   onDragStartDone, onDragEndDone, onDragOverDoneBoard, onDropDoneBoard,
-} = useDragDrop(boards, trelloPut)
+} = useDragDrop(boards, trelloPut, doingDueForGroup)
 
 const {
   pickerOpen, showMobilePeriod,
@@ -279,6 +279,22 @@ function isDoingToday(card: Card): boolean {
   return !!card.due && toJSTDate(card.due).toISOString().slice(0, 10) <= todayDateKey.value
 }
 
+// 欄をまたいでドラッグされたときに必要な期限（変更不要なら null）。
+// 見た目の位置に合わせて期限のほうを書き換えることで、落とした欄にそのまま残るようにする。
+function doingDueForGroup(card: Card, key: 'today' | 'week'): string | null {
+  const isToday = isDoingToday(card)
+  if (key === 'today') return isToday ? null : jstDueEndOfDay(todayDateKey.value)
+  if (!isToday) return null
+  // 「今週中」は今日より後。日曜に操作したときは今週の残りがないので明日にずらす
+  const sunday = addDays(mondayOf(todayJST()), 6)
+  return jstDueEndOfDay(sunday > todayDateKey.value ? sunday : addDays(todayDateKey.value, 1))
+}
+
+/** 'YYYY-MM-DD' → その日のJST 23:59 を表すISO文字列（期限の振り分けはJSTの日付で行うため） */
+function jstDueEndOfDay(date: string): string {
+  return new Date(`${date}T23:59:00+09:00`).toISOString()
+}
+
 function boardDoingCards(board: Board, key: 'today' | 'week'): Card[] {
   return board.doing.filter(c => (key === 'today' ? isDoingToday(c) : !isDoingToday(c)))
 }
@@ -311,6 +327,38 @@ const doingGroups = computed(() => doingGroupDefs.map((def) => {
   }
 }))
 
+// --- スマホ版: ボードごとの横スクロール（TODO / DOING×2 / DONE）を全ボードで揃える ---
+// 1つのボードをずらしてDONEを出したら、他のボードも同じ列が見えている状態にする。
+// 追従側は snap が効いていると途中の位置で勝手に吸着してガタつくので、同期中だけ snap を切る。
+const mobileBoardsRoot = ref<HTMLElement | null>(null)
+let stripSyncSource: HTMLElement | null = null
+let stripSyncTimer: ReturnType<typeof setTimeout> | null = null
+
+function onStripScroll(e: Event) {
+  const source = e.currentTarget as HTMLElement
+  // 追従側の scrollLeft 代入で発火した scroll は無視する（同期の往復を防ぐ）
+  if (stripSyncSource && stripSyncSource !== source) return
+
+  const all = mobileBoardsRoot.value?.querySelectorAll<HTMLElement>('[data-board-strip]')
+  const others = all ? [...all].filter(el => el !== source) : []
+  if (stripSyncSource !== source) {
+    stripSyncSource = source
+    for (const el of others) el.style.scrollSnapType = 'none'
+  }
+  for (const el of others) el.scrollLeft = source.scrollLeft
+
+  // 指を離してソースが吸着し終わってから、その位置で確定させて snap を戻す
+  if (stripSyncTimer) clearTimeout(stripSyncTimer)
+  stripSyncTimer = setTimeout(() => {
+    stripSyncTimer = null
+    for (const el of others) {
+      el.scrollLeft = source.scrollLeft
+      el.style.scrollSnapType = ''
+    }
+    requestAnimationFrame(() => { stripSyncSource = null })
+  }, 160)
+}
+
 // --- DONE推移グラフ（週ごと／累積の切替・クリックで拡大） ---
 const doneChartCumulative = ref(false)
 const showChartModal = ref(false)
@@ -341,6 +389,24 @@ const dayDetailLabel = computed(() => {
   if (dayDetailDate.value === todayDateKey.value) return '今日'
   if (dayDetailDate.value === tomorrowDateKey.value) return '明日'
   return null
+})
+
+// 矢印で1日ずつ前後に動かす。DONEは表示期間ぶんしか読み込んでいないので期間の外へは出さない
+// （出られると「完了タスクなし」が本当に無いのか未読み込みなのか分からなくなるため）。
+const dayDetailMin = computed(() => periodStart.value)
+const dayDetailMax = computed(() => {
+  // 終了日未指定は「今週いっぱい」（useTaskBoards の periodRange と同じ扱い）。
+  // 「明日」はヘッダーから直接開けるので、期間が今日までのときも矢印で行けるようにしておく
+  const periodMax = periodEnd.value || addDays(mondayOf(todayJST()), 6)
+  return periodMax > tomorrowDateKey.value ? periodMax : tomorrowDateKey.value
+})
+const dayDetailPrev = computed(() => {
+  const prev = addDays(dayDetailDate.value, -1)
+  return prev >= dayDetailMin.value ? prev : null
+})
+const dayDetailNext = computed(() => {
+  const next = addDays(dayDetailDate.value, 1)
+  return next <= dayDetailMax.value ? next : null
 })
 
 function openDayTask(row: { board: Board; card: Card; status: 'doing' | 'todo' }) {
@@ -638,13 +704,26 @@ watch(isLoggedIn, async (v) => {
   <!-- ある1日の一覧ポップアップ（スマホ版の今日／明日カード・今週の日別棒グラフから開く） -->
   <div v-if="dayDetail" class="fixed inset-0 z-[200] flex items-end md:items-center justify-center">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="dayDetail = null" />
-    <div class="relative w-full md:w-[520px] bg-[#1e293b] border border-white/[0.12] rounded-t-2xl md:rounded-2xl shadow-2xl max-h-[86vh] flex flex-col" @click.stop>
-      <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-white/[0.08] flex-shrink-0">
-        <div class="flex items-baseline gap-2 min-w-0">
+    <!-- 高さは中身に関わらず固定。可変にすると日を送るたびにパネルの上端＝矢印の位置が動いて連打できない -->
+    <div class="relative w-full md:w-[520px] bg-[#1e293b] border border-white/[0.12] rounded-t-2xl md:rounded-2xl shadow-2xl h-[86vh] flex flex-col" @click.stop>
+      <div class="flex items-center gap-2 px-4 py-3 border-b border-white/[0.08] flex-shrink-0">
+        <button
+          class="w-7 h-7 -my-0.5 flex-shrink-0 flex items-center justify-center text-slate-400 text-[15px] rounded transition-colors enabled:hover:text-slate-200 enabled:hover:bg-white/[0.08] enabled:cursor-pointer disabled:opacity-25 disabled:cursor-default"
+          :disabled="!dayDetailPrev"
+          :title="dayDetailPrev ? `前の日（${mdWeekday(dayDetailPrev)}）` : '表示期間の先頭です'"
+          @click="dayDetail = dayDetailPrev"
+        >‹</button>
+        <div class="flex items-baseline gap-2 min-w-0 flex-1">
           <h3 class="text-[14px] font-semibold text-slate-200 m-0 flex-shrink-0">{{ dayDetailLabel ?? mdWeekday(dayDetailDate) }}</h3>
           <span v-if="dayDetailLabel" class="text-[11px] text-slate-500 truncate">{{ mdWeekday(dayDetailDate) }}</span>
           <span class="text-[11px] text-slate-500 flex-shrink-0">{{ dayDetailDoneHours }}h / {{ dayDetailPlannedHours }}h（{{ dayDetailPercent }}%）</span>
         </div>
+        <button
+          class="w-7 h-7 -my-0.5 flex-shrink-0 flex items-center justify-center text-slate-400 text-[15px] rounded transition-colors enabled:hover:text-slate-200 enabled:hover:bg-white/[0.08] enabled:cursor-pointer disabled:opacity-25 disabled:cursor-default"
+          :disabled="!dayDetailNext"
+          :title="dayDetailNext ? `次の日（${mdWeekday(dayDetailNext)}）` : '表示期間の末尾です'"
+          @click="dayDetail = dayDetailNext"
+        >›</button>
         <button class="w-6 h-6 flex-shrink-0 flex items-center justify-center text-slate-500 hover:text-slate-300 text-xs cursor-pointer rounded hover:bg-white/[0.08]" @click="dayDetail = null">✕</button>
       </div>
       <div class="overflow-y-auto flex-1 px-4 py-3 flex flex-col gap-4">
@@ -1165,7 +1244,7 @@ watch(isLoggedIn, async (v) => {
                     @dragstart="onDragStart($event, card, col.board.id, 'doing')"
                     @dragend="onDragEnd"
                     @dragover="onDragOverCard($event, card.id)"
-                    @drop.prevent="onDropCard(card.id, col.board.id, 'doing')"
+                    @drop.prevent="onDropCard(card.id, col.board.id, 'doing', group.key)"
                     @click="openEditTask(card, col.board.id, 'doing')"
                   >
                     <div class="flex items-start gap-2">
@@ -1185,12 +1264,20 @@ watch(isLoggedIn, async (v) => {
                     <span v-if="card.display" :class="['text-[11px] ml-6', card.isOverdue ? 'text-red-500 font-semibold' : card.isUrgent ? 'text-amber-500 font-semibold' : 'text-slate-500']">{{ card.display }}</span>
                   </li>
                 </ul>
+                <!-- 空の欄はカードが1枚も無く狙う先がないので、ドラッグ中だけ受け皿を出す -->
+                <div
+                  v-if="dragging && !col.cards.length"
+                  :data-drop-end="`${col.board.id}:doing:${group.key}`"
+                  :class="['rounded-lg border border-dashed text-[11px] text-center py-3 transition-colors', dragOverEndKey === `${col.board.id}:doing:${group.key}` ? 'border-sky-400 text-sky-400 bg-sky-400/10' : 'border-white/15 text-slate-600']"
+                  @dragover="onDragOverEnd($event, `${col.board.id}:doing:${group.key}`)"
+                  @drop.prevent="onDropEnd(col.board.id, 'doing', group.key)"
+                >ここに移す</div>
                 <button
                   :class="['mt-2 w-full py-1.5 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all', dragOverEndKey === `${col.board.id}:doing:${group.key}` ? 'opacity-100 border-t-2 border-t-sky-400' : 'opacity-40 hover:opacity-80']"
                   :style="{ borderColor: dragOverEndKey === `${col.board.id}:doing:${group.key}` ? undefined : boardColor(col.board), color: boardColor(col.board) }"
                   @click="openAddTask(col.board.id, 'doing', group.newDue)"
                   @dragover="onDragOverEnd($event, `${col.board.id}:doing:${group.key}`)"
-                  @drop.prevent="onDropEnd(col.board.id, 'doing')"
+                  @drop.prevent="onDropEnd(col.board.id, 'doing', group.key)"
                 >＋</button>
               </div>
             </div>
@@ -1340,7 +1427,7 @@ watch(isLoggedIn, async (v) => {
         </section>
 
         <!-- スマホ版レイアウト (md未満のみ表示) -->
-        <div class="md:hidden px-2 pt-3 pb-8">
+        <div ref="mobileBoardsRoot" class="md:hidden px-2 pt-3 pb-8">
           <!-- ヘッダー: 今日・明日の進捗 -->
           <div class="mb-3 grid grid-cols-2 gap-2">
             <button
@@ -1439,7 +1526,11 @@ watch(isLoggedIn, async (v) => {
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="11" height="11" fill="currentColor"><path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Z"/></svg>
               </button>
             </div>
-            <div class="flex gap-1.5 overflow-x-auto snap-x snap-mandatory [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
+            <div
+              data-board-strip
+              class="flex gap-1.5 overflow-x-auto snap-x snap-mandatory [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]"
+              @scroll.passive="onStripScroll"
+            >
               <!-- TODO (左) -->
               <div class="snap-start shrink-0 w-[44%] rounded-xl p-2 border flex flex-col" :style="boardBorderStyle(board)">
                 <div class="text-[11px] font-bold mb-1 text-white/80">TODO<span v-if="boardTodoEffort(board)" class="ml-1">({{ boardTodoEffort(board) }}h)</span></div>
@@ -1500,6 +1591,7 @@ watch(isLoggedIn, async (v) => {
                     :data-card-id="card.id"
                     :data-board-id="board.id"
                     data-status="doing"
+                    :data-group="group.key"
                     :class="[
                       'bg-white/[0.04] border border-white/[0.07] rounded-lg px-2 py-1.5 flex items-start gap-1.5 cursor-grab active:bg-white/[0.07] select-none',
                       dragging?.cardId === card.id ? 'opacity-40' : '',
@@ -1509,7 +1601,7 @@ watch(isLoggedIn, async (v) => {
                     @dragstart="onDragStart($event, card, board.id, 'doing')"
                     @dragend="onDragEnd"
                     @dragover="onDragOverCard($event, card.id)"
-                    @drop.prevent="onDropCard(card.id, board.id, 'doing')"
+                    @drop.prevent="onDropCard(card.id, board.id, 'doing', group.key)"
                     @touchstart="onMobileTouchStart($event, card, board.id, 'doing')"
                     @click="openEditTask(card, board.id, 'doing')"
                   >
@@ -1526,13 +1618,21 @@ watch(isLoggedIn, async (v) => {
                     </div>
                   </li>
                 </ul>
+                <!-- 空の欄はカードが1枚も無く狙う先がないので、ドラッグ中だけ受け皿を出す -->
+                <div
+                  v-if="dragging && !boardDoingCards(board, group.key).length"
+                  :data-drop-end="`${board.id}:doing:${group.key}`"
+                  :class="['rounded-lg border border-dashed text-[11px] text-center py-3 transition-colors', dragOverEndKey === `${board.id}:doing:${group.key}` ? 'border-sky-400 text-sky-400 bg-sky-400/10' : 'border-white/15 text-slate-600']"
+                  @dragover="onDragOverEnd($event, `${board.id}:doing:${group.key}`)"
+                  @drop.prevent="onDropEnd(board.id, 'doing', group.key)"
+                >ここに移す</div>
                 <button
                   :data-drop-end="`${board.id}:doing:${group.key}`"
                   :class="['mt-1.5 w-full py-1 rounded-lg border border-dashed text-[13px] cursor-pointer transition-all', dragOverEndKey === `${board.id}:doing:${group.key}` ? 'opacity-100 border-t-2 border-t-sky-400' : 'opacity-40 hover:opacity-80']"
                   :style="{ borderColor: dragOverEndKey === `${board.id}:doing:${group.key}` ? undefined : boardColor(board), color: boardColor(board) }"
                   @click="openAddTask(board.id, 'doing', group.newDue)"
                   @dragover="onDragOverEnd($event, `${board.id}:doing:${group.key}`)"
-                  @drop.prevent="onDropEnd(board.id, 'doing')"
+                  @drop.prevent="onDropEnd(board.id, 'doing', group.key)"
                 >＋</button>
               </div>
               <!-- DONE (いちばん右・今週分) -->

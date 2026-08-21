@@ -7,6 +7,22 @@ export function parseTaskName(name: string): { displayName: string; effort: numb
   return { displayName: name, effort: 1 }
 }
 
+function timeRemaining(dueStr: string): Pick<Card, 'isOverdue' | 'isUrgent' | 'display'> {
+  const diffH = (new Date(dueStr).getTime() - Date.now()) / 3_600_000
+  if (diffH < 0) {
+    const d = Math.floor(-diffH / 24)
+    return { isOverdue: true, isUrgent: false, display: d > 0 ? `${d}日超過` : `${Math.floor(-diffH)}h超過` }
+  }
+  if (diffH < 24) return { isOverdue: false, isUrgent: true, display: `残り${Math.floor(diffH)}h` }
+  return { isOverdue: false, isUrgent: false, display: `残り${Math.floor(diffH / 24)}日` }
+}
+
+/** 期限を書き換え、残り時間の表示（「残りXh」「X日超過」）も付け替える */
+export function applyDue(card: Card, dueIso: string) {
+  card.due = dueIso
+  Object.assign(card, timeRemaining(dueIso))
+}
+
 export interface Card {
   id: string
   name: string
@@ -154,16 +170,6 @@ export function useTaskBoards(
   }
 
   // --- Utilities ---
-  function timeRemaining(dueStr: string): Pick<Card, 'isOverdue' | 'isUrgent' | 'display'> {
-    const diffH = (new Date(dueStr).getTime() - Date.now()) / 3_600_000
-    if (diffH < 0) {
-      const d = Math.floor(-diffH / 24)
-      return { isOverdue: true, isUrgent: false, display: d > 0 ? `${d}日超過` : `${Math.floor(-diffH)}h超過` }
-    }
-    if (diffH < 24) return { isOverdue: false, isUrgent: true, display: `残り${Math.floor(diffH)}h` }
-    return { isOverdue: false, isUrgent: false, display: `残り${Math.floor(diffH / 24)}日` }
-  }
-
   function buildCard(raw: any): Card {
     const { displayName, effort } = parseTaskName(raw.name)
     const c: Card = { id: raw.id, name: raw.name, displayName, effort, desc: raw.desc || '', due: raw.due || null, pos: raw.pos ?? 0, isOverdue: false, isUrgent: false, display: '' }
