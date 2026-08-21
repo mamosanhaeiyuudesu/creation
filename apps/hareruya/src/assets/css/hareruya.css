@@ -438,10 +438,11 @@
   color: var(--c-brown);
 }
 
+/* 施術日と施術時間はPCで2つ横並び。スマホ（720px以下）では縦に積む */
 .hero-badges {
   margin-top: 26px;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
   gap: 10px;
 }
@@ -457,6 +458,9 @@
   font-weight: 500;
   color: var(--c-brown);
   letter-spacing: 0.03em;
+  /* 横並びを保つため、バッジの中では折り返さない */
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .hero-badge svg {
@@ -464,12 +468,26 @@
   color: var(--c-sky-ink);
 }
 
-/* バッジ（白枠）の外に置く補足。同じ幅感で読めるよう中央寄せ */
-.hero-note {
+/* 所在地のバッジは単体で中央に置く（日時の2つの下の段） */
+.hero-place {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+}
+
+/* バッジ（白枠）の外に置く米印の補足。同じ幅感で読めるよう中央寄せ */
+.hero-notes {
   max-width: 30em;
   margin: 14px auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+}
+
+.hero-note {
   font-size: 12.5px;
-  line-height: 1.85;
+  line-height: 1.8;
   color: var(--c-brown-mid);
   letter-spacing: 0.02em;
 }
@@ -1570,6 +1588,12 @@
     margin-left: 0;
     display: block;
     margin-top: 4px;
+  }
+
+  /* 施術日と施術時間はPCでは横並び、スマホでは縦に積む */
+  .hero-badges {
+    flex-direction: column;
+    align-items: center;
   }
 
   .hr-mobile-bar {
