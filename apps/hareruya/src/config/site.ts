@@ -24,6 +24,8 @@ type Place = {
   parkingNote: string
   /** 電車・バスでの行き方。空配列ならその行を出さない */
   transit: readonly { from: string; route: string }[]
+  /** 降車後の道順写真。空配列なら道順の案内を出さない */
+  routeSteps: readonly { image: string; caption: string }[]
   /**
    * GoogleマップのiframeのsrcURL。空文字の場合は地図の代わりにテキスト案内を表示する。
    * 差し替えるときは Googleマップ → 共有 → 地図を埋め込む の iframe src を貼るか、
@@ -61,9 +63,23 @@ const wakaba: Place = {
         '駅北口からでて、陸橋を渡った先にあるバスロータリー①番のりば 116系統「若葉台中央」ゆきの終点「若葉台中央」で下車',
     },
   ],
-  /** https://maps.app.goo.gl/VYHFL8SJW6PLoVaY9 が指す「ショッピングタウンわかば」 */
+  routeSteps: [
+    { image: '/images/route/wakka-route-1.jpg', caption: '降車後左に進んでください。' },
+    { image: '/images/route/wakka-route-2.jpg', caption: '右側にエレベータがあるので進んでください。' },
+    { image: '/images/route/wakka-route-3.jpg', caption: 'エレベーターで一階に降りてください。' },
+    {
+      image: '/images/route/wakka-route-4.jpg',
+      caption: 'エレベーターから降りたらそのまま真っすぐ進んでください。◯印が施術場所です。',
+    },
+    { image: '/images/route/wakka-route-5.jpg', caption: '中に入って左奥で施術を行っています。' },
+  ],
+  /**
+   * 隣の「BOOK STAND 若葉台」の座標にピンを立てる。
+   * Googleマップの place ページ（.../place/BOOK+STAND+若葉台/@35.5059382,139.4987655,17z/...）の
+   * 緯度経度をそのまま使い、括弧内をピンのラベルにしている。
+   */
   mapEmbedUrl:
-    'https://maps.google.com/maps?q=%E3%80%92241-0801+%E7%A5%9E%E5%A5%88%E5%B7%9D%E7%9C%8C%E6%A8%AA%E6%B5%9C%E5%B8%82%E6%97%AD%E5%8C%BA%E8%8B%A5%E8%91%89%E5%8F%B0%EF%BC%93%E4%B8%81%E7%9B%AE%EF%BC%95%E2%88%92%EF%BC%92+%E3%82%B7%E3%83%A7%E3%83%83%E3%83%94%E3%83%B3%E3%82%B0%E3%82%BF%E3%82%A6%E3%83%B3%E3%82%8F%E3%81%8B%E3%81%B0&z=17&output=embed',
+    'https://maps.google.com/maps?q=35.5059382,139.4987655(BOOK%20STAND%20%E8%8B%A5%E8%91%89%E5%8F%B0)&z=17&output=embed',
 }
 
 /** 青葉台駅のレンタルサロン */
@@ -82,6 +98,8 @@ const aobadai: Place = {
   parkingNote: '',
   /** 行き方が決まったら記入。空配列の間は電車・バスの行を出さない */
   transit: [],
+  /** 道順の写真が用意できたら記入 */
+  routeSteps: [],
   /**
    * https://maps.app.goo.gl/tQAwunu71XjH1TBP7 が指す「しらとり台1−27」。
    * z=15 は青葉台駅が地図の上部に入るよう引いた倍率（z=16以上だと駅が画面外に出る）。
@@ -119,7 +137,7 @@ export const site = {
       name: '通常施術（内蔵鍼灸×ソフトカイロ矯正）',
       desc: '内臓鍼灸とソフトカイロ矯正を組み合わせ、その日のからだの状態に合わせて調整します。',
       duration: '約60分',
-      price: '¥0,000',
+      price: '6,000円',
     },
   ],
 
@@ -132,6 +150,3 @@ export const site = {
     },
   ],
 } as const
-
-/** 料金が仮の値（¥0,000）のままかどうか */
-export const isPricePending = site.menus.some((m) => m.price.includes('0,000'))

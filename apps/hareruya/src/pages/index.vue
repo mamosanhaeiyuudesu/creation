@@ -196,12 +196,7 @@
               <span class="menu-name">{{ menu.name }}</span>
               <span class="menu-duration">{{ menu.duration }}</span>
             </div>
-            <div class="menu-price">
-              <template v-if="isPricePending">
-                <span class="price-ask">6,000円</span>
-              </template>
-              <template v-else>{{ menu.price }}</template>
-            </div>
+            <div class="menu-price">{{ menu.price }}</div>
             <p class="menu-desc">{{ menu.desc }}</p>
           </div>
 
@@ -334,18 +329,42 @@
                 </dd>
               </div>
             </dl>
-            <div v-if="place.mapEmbedUrl" class="access-map">
-              <iframe
-                :src="place.mapEmbedUrl"
-                loading="lazy"
-                referrerpolicy="no-referrer-when-downgrade"
-                :title="`${place.name}の地図`"
-                allowfullscreen
-              ></iframe>
-            </div>
-            <div v-else class="access-map-note">
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              <span>{{ place.name }}<br />場所の詳細はLINEにてご案内しています。</span>
+            <div class="access-side">
+              <div v-if="place.mapEmbedUrl" class="access-map">
+                <iframe
+                  :src="place.mapEmbedUrl"
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  :title="`${place.name}の地図`"
+                  allowfullscreen
+                ></iframe>
+              </div>
+              <div v-else class="access-map-note">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>{{ place.name }}<br />場所の詳細はLINEにてご案内しています。</span>
+              </div>
+              <!-- 降車後の道順。写真をクリックすると説明つきで拡大する -->
+              <div v-if="place.routeSteps.length" class="access-route">
+                <p class="access-route-title">バス停「若葉台中央」からの道順</p>
+                <ol class="route-steps">
+                  <li v-for="(step, n) in place.routeSteps" :key="step.image" class="route-step">
+                    <button
+                      type="button"
+                      class="route-thumb"
+                      :aria-label="`道順${n + 1}／${place.routeSteps.length}：${step.caption}（拡大する）`"
+                      @click="openRoute(place.routeSteps, n)"
+                    >
+                      <img :src="step.image" alt="" width="640" height="480" loading="lazy" />
+                      <span class="route-num">{{ n + 1 }}</span>
+                    </button>
+                    <p class="route-caption">{{ step.caption }}</p>
+                    <span v-if="n < place.routeSteps.length - 1" class="route-arrow" aria-hidden="true">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v13M5 12l7 7 7-7"/></svg>
+                    </span>
+                  </li>
+                </ol>
+                <p class="access-route-note">写真をクリックすると拡大します。</p>
+              </div>
             </div>
           </div>
         </div>
@@ -379,15 +398,10 @@
             そのくらいの段階で大丈夫です。<br />
             LINE公式アカウントより、お気軽にメッセージをお送りください。
           </p>
-          <div class="cta-buttons">
+          <!-- <div class="cta-buttons">
             <LineButton class="btn-line" />
             <InstagramButton class="btn-insta" />
-          </div>
-          <p class="cta-note">
-            施術日は{{ site.openDays }}です。<br />
-            ご希望の日時をいくつかお知らせいただけると、やりとりがスムーズです。<br />
-            Instagram（@{{ site.instagramId }}）では、施術の様子や営業日の詳細を発信しています。
-          </p>
+          </div> -->
         </div>
       </div>
     </section>
@@ -396,12 +410,40 @@
     <footer class="hr-footer">
       <p class="hr-footer-logo">晴レルヤ鍼灸院</p>
       <p class="hr-footer-en">HARERUYA ACUPANCUTURE</p>
-      <p class="hr-footer-meta">
+      <!-- <p class="hr-footer-meta">
         {{ site.address }}<br />
         {{ site.openDays }}／{{ site.openHours }}
-      </p>
+      </p> -->
       <p class="hr-footer-copy">&copy; {{ new Date().getFullYear() }} HARERUYA ACUPANCUTURE</p>
     </footer>
+
+    <!-- 道順写真の拡大表示 -->
+    <div
+      v-if="activeStep"
+      class="route-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="道順の写真"
+      @click.self="closeRoute"
+    >
+      <div class="route-modal-inner">
+        <button type="button" class="route-modal-close" aria-label="閉じる" @click="closeRoute">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <img :src="activeStep.image" :alt="activeStep.caption" width="640" height="480" />
+        <p class="route-modal-caption">
+          <span class="route-modal-num">{{ routeIndex + 1 }}</span>
+          {{ activeStep.caption }}
+        </p>
+        <div class="route-modal-nav">
+          <button type="button" :disabled="routeIndex === 0" @click="prevRoute">前の写真</button>
+          <span>{{ routeIndex + 1 }} / {{ routeSteps.length }}</span>
+          <button type="button" :disabled="routeIndex === routeSteps.length - 1" @click="nextRoute">
+            次の写真
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- モバイル固定予約バー -->
     <div class="hr-mobile-bar">
@@ -413,11 +455,50 @@
 </template>
 
 <script setup lang="ts">
-import { site, isPricePending } from '~/config/site'
+import { site } from '~/config/site'
 
 definePageMeta({ layout: 'hareruya' })
 
 const isMenuOpen = ref(false)
+
+/** 道順写真の拡大表示。開いている間だけ routeSteps に写真が入る */
+type RouteStep = { image: string; caption: string }
+
+const routeSteps = ref<readonly RouteStep[]>([])
+const routeIndex = ref(0)
+const activeStep = computed(() => routeSteps.value[routeIndex.value] ?? null)
+
+function openRoute(steps: readonly RouteStep[], index: number) {
+  routeSteps.value = steps
+  routeIndex.value = index
+}
+
+function closeRoute() {
+  routeSteps.value = []
+}
+
+function prevRoute() {
+  if (routeIndex.value > 0) routeIndex.value -= 1
+}
+
+function nextRoute() {
+  if (routeIndex.value < routeSteps.value.length - 1) routeIndex.value += 1
+}
+
+function onRouteKeydown(event: KeyboardEvent) {
+  if (!activeStep.value) return
+  if (event.key === 'Escape') closeRoute()
+  if (event.key === 'ArrowLeft') prevRoute()
+  if (event.key === 'ArrowRight') nextRoute()
+}
+
+onMounted(() => window.addEventListener('keydown', onRouteKeydown))
+onBeforeUnmount(() => window.removeEventListener('keydown', onRouteKeydown))
+
+/* 拡大中は背面のページが動かないようにする */
+watch(activeStep, (step) => {
+  if (import.meta.client) document.body.style.overflow = step ? 'hidden' : ''
+})
 
 const navLinks = [
   { href: '#about', label: '当院について' },
