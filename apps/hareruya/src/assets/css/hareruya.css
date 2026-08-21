@@ -1089,6 +1089,23 @@
   margin-top: 4px;
 }
 
+/* 経路は文が長いので、見出しを上に出して本文を段いっぱいに使う */
+.access-row.is-stack {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+/* 電車・バスの経路。1件ずつ「駅からの所要時間」＋のりばの詳細で組む */
+.access-transit {
+  display: grid;
+  gap: 12px;
+}
+
+.access-transit li + li {
+  padding-top: 12px;
+  border-top: 1px dashed var(--c-brown-line);
+}
+
 .access-row dd a {
   color: var(--c-sky-ink);
   border-bottom: 1px solid var(--c-sky);

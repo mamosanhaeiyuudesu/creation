@@ -88,7 +88,7 @@
           </span>
         </div>
         <div class="hero-notes">
-          <p class="hero-note">※{{ site.places[0].name }}</p>
+          <p class="hero-note">※{{ site.placeName }}</p>
           <p class="hero-note">
             ※その他、不定期で東急田園都市線青葉台駅周辺のレンタルサロンでも施術を行っています。
           </p>
@@ -198,7 +198,7 @@
             </div>
             <div class="menu-price">
               <template v-if="isPricePending">
-                <span class="price-ask">LINEにてご案内</span>
+                <span class="price-ask">6,000円</span>
               </template>
               <template v-else>{{ menu.price }}</template>
             </div>
@@ -316,10 +316,21 @@
                 <dd>{{ place.hours }}</dd>
               </div>
               <div v-if="place.parking" class="access-row">
-                <dt>駐車場</dt>
+                <dt>お車の場合</dt>
                 <dd>
                   {{ place.parking }}
                   <small v-if="place.parkingNote">{{ place.parkingNote }}</small>
+                </dd>
+              </div>
+              <div v-if="place.transit.length" class="access-row is-stack">
+                <dt>電車・バスの場合</dt>
+                <dd>
+                  <ul class="access-transit">
+                    <li v-for="route in place.transit" :key="route.from">
+                      {{ route.from }}
+                      <small>{{ route.route }}</small>
+                    </li>
+                  </ul>
                 </dd>
               </div>
             </dl>

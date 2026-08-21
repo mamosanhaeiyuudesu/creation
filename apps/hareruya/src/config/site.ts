@@ -22,6 +22,8 @@ type Place = {
   hours: string
   parking: string
   parkingNote: string
+  /** 電車・バスでの行き方。空配列ならその行を出さない */
+  transit: readonly { from: string; route: string }[]
   /**
    * GoogleマップのiframeのsrcURL。空文字の場合は地図の代わりにテキスト案内を表示する。
    * 差し替えるときは Googleマップ → 共有 → 地図を埋め込む の iframe src を貼るか、
@@ -44,6 +46,21 @@ const wakaba: Place = {
   parking: '近くにコインパーキングがあります',
   parkingNote:
     '最初の1時間無料、商店街でお買い物するとさらに1時間無料。当方の鍼灸治療はお買い物の対象外となっております。ご了承ください。',
+  transit: [
+    {
+      from: 'JR横浜線「十日市場」駅よりバスで15分',
+      route: '駅南口のバスロータリー①番のりば 23系統「若葉台中央」ゆきの終点「若葉台中央」で下車',
+    },
+    {
+      from: '東急田園都市線「青葉台」駅よりバスで25分',
+      route: '駅北口のバスロータリー⑧番のりば 23系統「若葉台中央」ゆきの終点「若葉台中央」で下車',
+    },
+    {
+      from: '相鉄線「三ツ境」駅よりバスで25分',
+      route:
+        '駅北口からでて、陸橋を渡った先にあるバスロータリー①番のりば 116系統「若葉台中央」ゆきの終点「若葉台中央」で下車',
+    },
+  ],
   /** https://maps.app.goo.gl/VYHFL8SJW6PLoVaY9 が指す「ショッピングタウンわかば」 */
   mapEmbedUrl:
     'https://maps.google.com/maps?q=%E3%80%92241-0801+%E7%A5%9E%E5%A5%88%E5%B7%9D%E7%9C%8C%E6%A8%AA%E6%B5%9C%E5%B8%82%E6%97%AD%E5%8C%BA%E8%8B%A5%E8%91%89%E5%8F%B0%EF%BC%93%E4%B8%81%E7%9B%AE%EF%BC%95%E2%88%92%EF%BC%92+%E3%82%B7%E3%83%A7%E3%83%83%E3%83%94%E3%83%B3%E3%82%B0%E3%82%BF%E3%82%A6%E3%83%B3%E3%82%8F%E3%81%8B%E3%81%B0&z=17&output=embed',
@@ -63,6 +80,8 @@ const aobadai: Place = {
   /** 駐車場の情報が分かったら記入 */
   parking: '',
   parkingNote: '',
+  /** 行き方が決まったら記入。空配列の間は電車・バスの行を出さない */
+  transit: [],
   /**
    * https://maps.app.goo.gl/tQAwunu71XjH1TBP7 が指す「しらとり台1−27」。
    * z=15 は青葉台駅が地図の上部に入るよう引いた倍率（z=16以上だと駅が画面外に出る）。
@@ -87,7 +106,8 @@ export const site = {
 
   places,
 
-  /** 以下4つは代表の場所の値。ヒーロー・フッター・お問い合わせで使う */
+  /** 以下5つは代表の場所の値。ヒーロー・フッター・お問い合わせで使う */
+  placeName: wakaba.name,
   address: wakaba.address,
   addressNote: wakaba.addressNote,
   openDays: wakaba.days,
