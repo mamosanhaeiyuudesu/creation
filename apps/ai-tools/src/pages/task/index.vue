@@ -1222,7 +1222,7 @@ watch(isLoggedIn, async (v) => {
               <div
                 v-for="col in group.columns"
                 :key="col.board.id"
-                class="group w-[220px] flex-shrink-0 rounded-xl p-3 border flex flex-col"
+                class="group flex-1 min-w-[150px] max-w-[280px] rounded-xl p-3 border flex flex-col"
                 :style="boardBorderStyle(col.board)"
               >
                 <div class="flex items-center gap-1 mb-2.5">
@@ -1294,7 +1294,7 @@ watch(isLoggedIn, async (v) => {
             <div
               v-for="board in boards"
               :key="board.id"
-              class="group w-[220px] flex-shrink-0 rounded-xl p-3 border flex flex-col"
+              class="group flex-1 min-w-[150px] max-w-[280px] rounded-xl p-3 border flex flex-col"
               :style="boardBorderStyle(board)"
             >
               <div class="flex items-center gap-1 mb-2.5">
@@ -1389,7 +1389,7 @@ watch(isLoggedIn, async (v) => {
                 <div
                   v-for="board in boards"
                   :key="board.id"
-                  class="group w-[220px] flex-shrink-0 rounded-xl p-3 border flex flex-col transition-colors"
+                  class="group flex-1 min-w-[150px] max-w-[280px] rounded-xl p-3 border flex flex-col transition-colors"
                   :style="dragOverDoneBoardId === board.id ? { borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.08)' } : boardBorderStyle(board)"
                   @dragover="onDragOverDoneBoard($event, board.id)"
                   @drop.prevent="onDropDoneBoard(board.id)"
