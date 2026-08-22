@@ -120,7 +120,7 @@
                       v-if="!cell.beforeStart"
                       class="keiko-cell"
                       :aria-label="`${member.name} ${item.name} ${cell.label} の記録`"
-                      @click="openPicker(member, item, cell.day)"
+                      @click="openPicker(member, item, cell.date)"
                     >
                       <span :key="cell.view.kind" :class="cell.view.cls">{{ cell.view.text }}</span>
                     </button>
@@ -175,18 +175,22 @@
             </div>
           </div>
           <div class="grid grid-cols-7">
-            <div
-              v-for="cell in monthGrid"
+            <!-- 日を押すと、その日の記録をまとめて入力できる（前後の月にはみ出す日と、記録のはじまりより前の日は押せない） -->
+            <button
+              v-for="cell in monthCells"
               :key="cell.date"
               class="keiko-daycell"
               :class="{ 'keiko-daycell--out': !cell.inMonth, 'keiko-daycell--today': cell.date === todayStr }"
+              :disabled="!cell.canRecord"
+              :aria-label="cell.canRecord ? `${cell.month}月${cell.day}日の記録` : undefined"
+              @click="openDaySheet(cell.date)"
             >
               <div class="text-[11.5px] font-bold mb-1" :class="{ 'keiko-th--sun': cell.weekdayIndex === 6, 'keiko-th--sat': cell.weekdayIndex === 5 }">
                 {{ cell.day }}
               </div>
               <div v-if="cell.inMonth" class="flex flex-col gap-[3px]">
                 <div
-                  v-for="member in membersWithPointsOn(cell.date)"
+                  v-for="member in cell.points"
                   :key="member.id"
                   class="keiko-daypoint"
                   :style="{ color: memberColor(member.index), background: memberColor(member.index) + '14' }"
@@ -194,13 +198,15 @@
                   <span class="truncate">{{ member.name }}</span>
                   <strong>{{ member.points }}</strong>
                 </div>
+                <!-- まだ記録が無い日にも、押せば入れられることが分かるように -->
+                <span v-if="cell.canRecord && cell.points.length === 0" class="keiko-dayadd">＋</span>
               </div>
-            </div>
+            </button>
           </div>
         </div>
         <p class="flex items-center justify-center gap-1.5 text-[11.5px] text-[var(--keiko-ink-soft)] mt-2">
           <KeikoArt name="ashiato" :size="18" />
-          日ごとの獲得ポイント（その日にできた項目の合計）
+          日ごとの獲得ポイント。日を押すと、その日の記録を入力できます
         </p>
       </template>
 
@@ -246,6 +252,59 @@
         </div>
       </template>
     </template>
+
+    <!-- 月カレンダーで日をタップしたとき：その日ぶんの記録をまとめて入力する -->
+    <div v-if="daySheet" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 z-[205]" @click.self="daySheet = null">
+      <div class="w-full max-w-[420px] max-h-[86vh] bg-[var(--keiko-card)] rounded-2xl flex flex-col overflow-hidden">
+        <div class="shrink-0 flex items-center gap-2.5 px-5 pt-5 pb-3">
+          <KeikoArt name="kid" :size="44" class="keiko-bob" />
+          <div>
+            <h2 class="keiko-display text-[17px] leading-tight">{{ daySheet.label }}</h2>
+            <p class="text-[11.5px] text-[var(--keiko-ink-soft)] mt-0.5">やることを押して、できた分を記録しましょう</p>
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-5 pb-1">
+          <section v-for="(member, mi) in members" :key="member.id" class="mb-3 rounded-xl border border-[var(--keiko-line)] overflow-hidden">
+            <div class="flex items-center justify-between gap-2 px-3 py-2 bg-black/[0.02]">
+              <span class="keiko-display text-[14px] flex items-center gap-1.5">
+                <KeikoArt :name="memberArt(mi)" :size="26" />
+                <span class="inline-block w-1.5 h-4 rounded-full" :style="{ background: memberColor(mi) }" />
+                {{ member.name }}
+              </span>
+              <span class="keiko-total" :style="{ color: memberColor(mi) }">
+                <strong class="text-[15px]">{{ memberDayPoints(member.id, daySheet.date) }}</strong> pt
+              </span>
+            </div>
+
+            <p v-if="itemsOf(member.id).length === 0" class="px-3 py-2.5 text-[12px] text-[var(--keiko-ink-soft)]">
+              設定（⚙）から {{ member.name }} の練習項目を追加してください
+            </p>
+            <button
+              v-for="row in dayRows(member.id, daySheet.date)"
+              :key="row.item.id"
+              class="keiko-dayrow"
+              :aria-label="`${member.name} ${row.item.name} の記録`"
+              @click="openPicker(member, row.item, daySheet.date)"
+            >
+              <KeikoArt :name="row.item.kind === 'direct' ? 'flag' : 'shinai'" :size="24" />
+              <span class="flex-1 text-left">
+                <span class="block text-[13px] font-medium leading-tight">{{ row.item.name }}</span>
+                <span class="block text-[10.5px] text-[var(--keiko-ink-soft)] leading-tight mt-0.5">
+                  <template v-if="row.item.kind === 'direct'">できた日にポイントを入力</template>
+                  <template v-else>{{ row.item.repCount }}本 × {{ row.item.pointPerRep }}pt = <strong>{{ itemPoints(row.item) }}pt</strong></template>
+                </span>
+              </span>
+              <span class="shrink-0" :class="row.view.cls">{{ row.view.text }}</span>
+            </button>
+          </section>
+        </div>
+
+        <div class="shrink-0 px-5 py-3 border-t border-[var(--keiko-line)]">
+          <button class="keiko-btn-ghost w-full !h-9" @click="daySheet = null">とじる</button>
+        </div>
+      </div>
+    </div>
 
     <!-- 評価えらび（セルをタップしたとき） -->
     <div v-if="picker" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 z-[210]" @click.self="picker = null">
@@ -516,6 +575,16 @@ function shiftMonthKey(ym: string, delta: number): string {
   const d = new Date(y, m - 1 + delta, 1)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
+/** 8/22(土)。評価えらびの見出しに使う。 */
+function shortDateLabel(date: string): string {
+  const d = new Date(date + 'T00:00:00')
+  return `${d.getMonth() + 1}/${d.getDate()}(${WD[(d.getDay() + 6) % 7]})`
+}
+/** 8月22日(土)。日の記録シートの見出しに使う。 */
+function longDateLabel(date: string): string {
+  const d = new Date(date + 'T00:00:00')
+  return `${d.getMonth() + 1}月${d.getDate()}日(${WD[(d.getDay() + 6) % 7]})`
+}
 
 // 記録のはじまり。ここより前の週・月・年へは戻れない（空の期間をめくり続けないため）。
 // 値はサーバーと共有（~/types/keiko）。サーバー側でも、この日より前の保存は弾いている
@@ -606,6 +675,20 @@ const monthGrid = computed(() => {
   return cells
 })
 
+/**
+ * 月カレンダーに出すマス。押せるかどうか（前後の月・はじまりより前は押せない）と、
+ * その日のポイントをここで組み立てる。ポイントは records から数えるので、
+ * 記録を入れた瞬間にカレンダーの数字も変わる。
+ */
+const monthCells = computed(() =>
+  monthGrid.value.map((cell) => ({
+    ...cell,
+    month: Number(cell.date.slice(5, 7)),
+    canRecord: cell.inMonth && cell.date >= START_DATE,
+    points: cell.inMonth ? membersWithPointsOn(cell.date) : [],
+  }))
+)
+
 // はじまりの年は、はじまりの月から並べる（記録のしようがない月を空欄で並べない）
 const yearRows = computed(() =>
   Array.from({ length: 12 }, (_, i) => ({ month: i + 1, key: `${year.value}-${String(i + 1).padStart(2, '0')}` })).filter(
@@ -615,10 +698,12 @@ const yearRows = computed(() =>
 
 // ── データ読み込み ──
 // メンバーと練習項目は設定画面でも使うので、モードに関わらず state から取る。
+// 記録そのものは週・月で読む（どちらも日ごとの入力ができ、入れた瞬間に画面へ反映したいため）。
+// 年は月別の集計だけで足りるので、1年分の記録は読まない。
 async function loadState() {
   try {
     const data = await $fetch<KeikoState>('/api/keiko/state', {
-      query: { from: weekStart.value, to: addDays(weekStart.value, 6) },
+      query: mode.value === 'year' ? { ...range.value, records: 0 } : range.value,
     })
     members.value = data.members
     items.value = data.items
@@ -632,10 +717,10 @@ async function loadState() {
   }
 }
 
+/** 年表示の月別ポイント。1年分の記録を持たずに済むよう、サーバー側で集計してもらう。 */
 async function loadPoints() {
-  const unit = mode.value === 'year' ? 'month' : 'day'
   try {
-    const data = await $fetch<KeikoPoints>('/api/keiko/points', { query: { ...range.value, unit } })
+    const data = await $fetch<KeikoPoints>('/api/keiko/points', { query: { ...range.value, unit: 'month' } })
     members.value = data.members
     buckets.value = data.buckets
   } catch {
@@ -648,14 +733,18 @@ async function load() {
   loading.value = true
   loadError.value = false
   try {
-    if (mode.value === 'week') await loadState()
-    else await Promise.all([loadState(), loadPoints()])
+    if (mode.value === 'year') await Promise.all([loadState(), loadPoints()])
+    else await loadState()
   } finally {
     loading.value = false
   }
 }
 
-watch([mode, weekStart, monthKey, year], load)
+watch([mode, weekStart, monthKey, year], () => {
+  // 期間や表示を変えたら、開いたままの日シートは前の期間のものなので閉じる
+  daySheet.value = null
+  load()
+})
 
 // ── ポイント計算 ──
 const itemMap = computed(() => new Map(items.value.map((it) => [it.id, it])))
@@ -697,16 +786,20 @@ function pointsFor(memberId: string, key: string): number {
   return bucketMap.value.get(`${memberId}|${key}`) ?? 0
 }
 
-/** 表示中の期間のメンバー合計ポイント。 */
+/** 表示中の期間のメンバー合計ポイント。週・月は読み込んだ記録から、年は月別の集計から数える。 */
 function memberRangePoints(memberId: string): number {
-  if (mode.value === 'week') return weekDays.value.reduce((sum, d) => sum + memberDayPoints(memberId, d.date), 0)
-  return buckets.value.reduce((sum, b) => (b.memberId === memberId ? sum + b.points : sum), 0)
+  if (mode.value === 'year') return buckets.value.reduce((sum, b) => (b.memberId === memberId ? sum + b.points : sum), 0)
+  return records.value.reduce((sum, r) => {
+    if (r.memberId !== memberId) return sum
+    const it = itemMap.value.get(r.itemId)
+    return it ? sum + earnedPoints(it, r) : sum
+  }, 0)
 }
 
 /** 月カレンダーのその日に出すメンバー（ポイントが入った人だけ）。 */
 function membersWithPointsOn(date: string) {
   return members.value
-    .map((m, index) => ({ id: m.id, name: m.name, index, points: pointsFor(m.id, date) }))
+    .map((m, index) => ({ id: m.id, name: m.name, index, points: memberDayPoints(m.id, date) }))
     .filter((m) => m.points > 0)
 }
 
@@ -743,12 +836,26 @@ function cellView(item: KeikoItem, memberId: string, date: string): { kind: stri
 function rowCells(memberId: string, item: KeikoItem) {
   return weekDays.value.map((day) => ({
     date: day.date,
-    day,
     label: `${day.month}/${day.day}`,
     isToday: day.date === todayStr,
     beforeStart: day.beforeStart,
     view: cellView(item, memberId, day.date),
   }))
+}
+
+// ── 月カレンダーから1日ぶんの入力 ──
+// 週の表と同じことを月表示でもできるように、日を押したらその日のメンバー×やることを並べて出す。
+// ここから評価えらびを開くが、シートは開いたままにして、続けて何件も入れられるようにする。
+const daySheet = ref<{ date: string; label: string } | null>(null)
+
+function openDaySheet(date: string) {
+  if (date < START_DATE) return
+  daySheet.value = { date, label: longDateLabel(date) }
+}
+
+/** 日の記録シートの1行分（見た目を1回だけ組み立てる）。 */
+function dayRows(memberId: string, date: string) {
+  return itemsOf(memberId).map((item) => ({ item, view: cellView(item, memberId, date) }))
 }
 
 const picker = ref<{
@@ -765,10 +872,10 @@ const picker = ref<{
 } | null>(null)
 const directInput = ref<number | string>(10)
 
-function openPicker(member: KeikoMember, item: KeikoItem, day: { date: string; month: number; day: number; weekdayLabel: string }) {
+function openPicker(member: KeikoMember, item: KeikoItem, date: string) {
   // 記録のはじまりより前の日（はじまりの週にまたがる7月末）は、そもそもダイアログを開かない
-  if (day.date < START_DATE) return
-  const r = recordOf(member.id, item.id, day.date)
+  if (date < START_DATE) return
+  const r = recordOf(member.id, item.id, date)
   directInput.value = r?.points ?? 10
   picker.value = {
     memberId: member.id,
@@ -777,8 +884,8 @@ function openPicker(member: KeikoMember, item: KeikoItem, day: { date: string; m
     itemName: item.name,
     kind: item.kind,
     fullPoints: itemPoints(item),
-    date: day.date,
-    dateLabel: `${day.month}/${day.day}(${day.weekdayLabel})`,
+    date,
+    dateLabel: shortDateLabel(date),
     currentRate: r?.rate ?? 0,
     hasRecord: !!r,
   }
@@ -1299,15 +1406,28 @@ watch(isLoggedIn, () => startIfLoggedIn())
   line-height: 1;
 }
 
-/* 月表示のカレンダー */
+/* 月表示のカレンダー。マスそのものが「その日の記録」を開くボタン */
 .keiko-daycell {
+  width: 100%;
   min-height: 84px;
   padding: 6px 5px;
+  /* ボタンは中身を上下中央に寄せるので、日付が上に来るよう縦並びにする */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: left;
   border-top: 1px solid var(--keiko-line);
   border-right: 1px solid var(--keiko-line);
+  transition: background 0.12s;
 }
 .keiko-daycell:nth-child(7n) {
   border-right: none;
+}
+.keiko-daycell:not(:disabled) {
+  cursor: pointer;
+}
+.keiko-daycell:not(:disabled):hover {
+  background: rgba(201, 162, 39, 0.14);
 }
 .keiko-daycell--out {
   background: rgba(28, 37, 64, 0.025);
@@ -1326,6 +1446,35 @@ watch(isLoggedIn, () => startIfLoggedIn())
   font-size: 10.5px;
   font-weight: 700;
   line-height: 1.5;
+}
+/* まだ記録が無い日の目印。押せば入れられることを控えめに伝える */
+.keiko-dayadd {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--keiko-line);
+}
+.keiko-daycell:hover .keiko-dayadd {
+  color: var(--keiko-gold);
+}
+
+/* 日の記録シートの1行（メンバーのやること1つ。押すと評価えらびが開く） */
+.keiko-dayrow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--keiko-line);
+  background: var(--keiko-card);
+  color: var(--keiko-ink);
+  transition: background 0.12s;
+}
+.keiko-dayrow:hover {
+  background: rgba(28, 37, 64, 0.04);
+}
+.keiko-dayrow:active {
+  background: rgba(28, 37, 64, 0.07);
 }
 
 /* 年表示 */
