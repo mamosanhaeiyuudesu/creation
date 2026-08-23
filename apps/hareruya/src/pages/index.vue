@@ -345,19 +345,19 @@
               </div>
               <!-- 降車後の道順。写真をクリックすると説明つきで拡大する -->
               <div v-if="place.routeSteps.length" class="access-route">
-                <p class="access-route-title">バス停「若葉台中央」からの道順</p>
+                <p class="access-route-title">{{ place.routeTitle }}</p>
                 <ol class="route-steps">
                   <li v-for="(step, n) in place.routeSteps" :key="step.image" class="route-step">
                     <button
                       type="button"
                       class="route-thumb"
-                      :aria-label="`道順${n + 1}／${place.routeSteps.length}：${step.caption}（拡大する）`"
+                      :aria-label="`道順${n + 1}／${place.routeSteps.length}${step.caption ? `：${step.caption}` : ''}（拡大する）`"
                       @click="openRoute(place.routeSteps, n)"
                     >
-                      <img :src="step.image" alt="" width="640" height="480" loading="lazy" />
+                      <img :src="step.image" alt="" loading="lazy" />
                       <span class="route-num">{{ n + 1 }}</span>
                     </button>
-                    <p class="route-caption">{{ step.caption }}</p>
+                    <p v-if="step.caption" class="route-caption">{{ step.caption }}</p>
                     <span v-if="n < place.routeSteps.length - 1" class="route-arrow" aria-hidden="true">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v13M5 12l7 7 7-7"/></svg>
                     </span>
@@ -430,7 +430,7 @@
         <button type="button" class="route-modal-close" aria-label="閉じる" @click="closeRoute">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
-        <img :src="activeStep.image" :alt="activeStep.caption" width="640" height="480" />
+        <img :src="activeStep.image" :alt="activeStep.caption" />
         <p class="route-modal-caption">
           <span class="route-modal-num">{{ routeIndex + 1 }}</span>
           {{ activeStep.caption }}

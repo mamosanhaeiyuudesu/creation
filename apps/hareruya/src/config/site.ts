@@ -24,7 +24,9 @@ type Place = {
   parkingNote: string
   /** 電車・バスでの行き方。空配列ならその行を出さない */
   transit: readonly { from: string; route: string }[]
-  /** 降車後の道順写真。空配列なら道順の案内を出さない */
+  /** 道順の見出し（どこからの道順か）。routeSteps が空なら使わない */
+  routeTitle: string
+  /** 道順写真。caption が空の写真は説明なしで並ぶ */
   routeSteps: readonly { image: string; caption: string }[]
   /**
    * GoogleマップのiframeのsrcURL。空文字の場合は地図の代わりにテキスト案内を表示する。
@@ -63,6 +65,7 @@ const wakaba: Place = {
         '駅北口からでて、陸橋を渡った先にあるバスロータリー①番のりば 116系統「若葉台中央」ゆきの終点「若葉台中央」で下車',
     },
   ],
+  routeTitle: 'バス停「若葉台中央」からの道順',
   routeSteps: [
     { image: '/images/route/wakka-route-1.jpg', caption: '降車後左に進んでください。' },
     { image: '/images/route/wakka-route-2.jpg', caption: '右側にエレベータがあるので進んでください。' },
@@ -98,8 +101,16 @@ const aobadai: Place = {
   parkingNote: '',
   /** 行き方が決まったら記入。空配列の間は電車・バスの行を出さない */
   transit: [],
-  /** 道順の写真が用意できたら記入 */
-  routeSteps: [],
+  routeTitle: '青葉台駅からの道順',
+  /** 説明文はあとから記入する。caption が空のうちは写真だけ並ぶ */
+  routeSteps: [
+    { image: '/images/route/aobadai-route-1.jpg', caption: '' },
+    { image: '/images/route/aobadai-route-2.jpg', caption: '' },
+    { image: '/images/route/aobadai-route-3.jpg', caption: '' },
+    { image: '/images/route/aobadai-route-4.jpg', caption: '' },
+    { image: '/images/route/aobadai-route-5.jpg', caption: '' },
+    { image: '/images/route/aobadai-route-6.jpg', caption: '' },
+  ],
   /**
    * https://maps.app.goo.gl/tQAwunu71XjH1TBP7 が指す「しらとり台1−27」。
    * z=15 は青葉台駅が地図の上部に入るよう引いた倍率（z=16以上だと駅が画面外に出る）。
