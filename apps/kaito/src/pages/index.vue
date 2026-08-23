@@ -3,28 +3,25 @@
     <TherapistKaitoHeader />
 
     <main>
-      <!-- ヒーロー -->
+      <!-- ヒーロー: ①問いかけ → ②宣言 の2段構成。①の背後に写真を帯として敷く -->
       <section id="top" class="home-hero">
-        <div class="hero-grid">
-          <img class="hero-name-image" src="/images/name.jpg" alt="月ノ瀬 直" />
-          <div class="hero-text">
-            <span class="hero-eyebrow">セラピスト 月ノ瀬 直</span>
+        <div class="hero-inner">
+          <!-- ① 問いかけ -->
+          <div class="hero-question" :style="{ '--hero-image': `url('${site.images.hero}')` }">
             <h1>本来の自分を思い出す場所</h1>
             <p class="hero-lead">
               誰かに合わせすぎて疲れてしまった心。<br />
               言葉にできないまま抱えてきた想い。<br />
               「こんなこと思ってはいけない」と、自分で自分を責めてきた時間。
             </p>
-            <div class="hero-copy">
-              <p>
-                ここでは、それらを正そうともしませんし、否定もしません。<br />
-                あなたの心の声に、ただ寄り添います。
-              </p>
-            </div>
-            <div class="hero-actions">
-              <a class="cta-link" href="#services">セッションの内容を見る</a>
-              <a class="secondary-link" href="#style">セッションのスタイル</a>
-            </div>
+          </div>
+
+          <!-- ② 宣言 -->
+          <div class="hero-statement">
+            <p class="hero-statement-main">
+              ここではあなたの心の声に寄り添います。<br />
+              本当はどんなあなたになりたいですか？
+            </p>
           </div>
         </div>
       </section>
@@ -32,92 +29,88 @@
       <!-- こんな方へ -->
       <section id="for-you" class="home-section">
         <div class="section-inner">
-          <h2>こんな方へ</h2>
+          <h2><TherapistKaitoIcon name="shell" />こんな方へ</h2>
           <p class="section-lead">
             ひとつでも当てはまるものがあれば、一度お話を聞かせてください。
           </p>
 
           <ul class="target-list">
-            <li>職場や家庭の人間関係が、家に帰ってからも頭から離れない</li>
-            <li>誰かに合わせているうちに、自分が何をしたいのか分からなくなった</li>
+            <li>職場や家庭の人間関係が、どこにいても頭から離れない</li>
+            <li>誰かに合わせているうちに、自分の思いを伝えられなくなった</li>
             <li>怒りや悔しさを、何年も抱えたままになっている</li>
             <li>人の言葉に振り回されて、そのたびに落ち込んでしまう</li>
             <li>がんばっているのに、幸せだと感じられない</li>
             <li>変わりたいと思いながら、何から手をつければいいか分からない</li>
           </ul>
 
-          <div class="limits-box">
-            <h3>このセッションでできないこと</h3>
-            <ul>
-              <li>医療行為ではありません。病気の診断や治療の代わりにはなりませんので、通院中の方は主治医にご相談ください。</li>
-              <li>誰か他の人を変える方法はお伝えできません。扱うのは、あなた自身の心だけです。</li>
-              <li>一度で人生が変わる、という約束もしていません。あなたのペースで、少しずつ進みます。</li>
-            </ul>
-          </div>
-
           <div class="callout-box">
-            <h3>心の詰まりを、そのままにしていませんか</h3>
+            <h3>心の詰まりを、そのままにしていませんか？</h3>
             <p>
-              家のトイレが壊れたら、すぐ直しますよね。<br />
-              では、心が壊れたままで、これからも生きていきますか。<br /><br />
-              今なんとかしたいと思っているなら、<strong>その「今」が動く時</strong>です。
+              家のトイレが壊れたら、すぐ直しませんか？<br /><br />
+              でも心はフタをして、みないようにしてしまいがちです。<br />
+              その心の違和感に気がついているなら、<strong>今が動くとき</strong>です。
             </p>
           </div>
         </div>
       </section>
 
-      <!-- セッションのスタイル -->
+      <!-- セラピーのスタイル -->
       <section id="style" class="home-section message">
         <div class="section-inner">
-          <h2>セッションのスタイル</h2>
+          <h2><TherapistKaitoIcon name="wave" />セラピーのスタイル</h2>
           <p class="section-lead">
             どんな距離で向き合っているか、先にお伝えしておきます。
           </p>
 
           <div class="style-list">
-            <article class="style-card">
-              <h3>肩の力を抜いて来てください</h3>
+            <article class="style-card has-photo">
+              <figure class="style-photo">
+                <TherapistKaitoScene name="talk" />
+              </figure>
+              <div class="style-body">
+              <h3>気軽にお話ししましょう</h3>
               <p>
-                「セッション」という言葉は、少し重たく聞こえるかもしれません。<br />
+                「セラピー」という言葉は、少し重たく聞こえるかもしれません。<br />
                 実際はもっと軽やかなもので、「お悩みアドバイザー」くらいの気持ちで来ていただけたらと思っています。
               </p>
               <p>
-                FLSを学んだ講座の先生から「なおさんらしくやったらいい」と言われたのをきっかけに、型どおりのセッションではなく、自然体で向き合うかたちに変えてきました。
+                FLSを学んだ講座の先生から「なおさんらしくやったらいい」と言われたのをきっかけに、型どおりのセラピーではなく、自然体で向き合うかたちに変えてきました。
               </p>
+              </div>
             </article>
 
-            <article class="style-card">
-              <h3>一歩踏み出すのは、あなた自身</h3>
-              <p>
-                私に頼りきりになってほしいとは思っていません。<br />
-                隣で一緒に考えることはできますが、歩き出すのはいつもあなたです。
-              </p>
-              <p>
-                「治る／治らない」という結果にもこだわっていません。それよりも、今この瞬間をより心地よく過ごせるように。終わったあとに「自分で決められた」という感覚が残る関わり方を大切にしています。
-              </p>
-            </article>
-
-            <article class="style-card">
+            <article class="style-card has-photo is-photo-right">
+              <figure class="style-photo">
+                <TherapistKaitoScene name="shine" />
+              </figure>
+              <div class="style-body">
               <h3>可能性のない人なんて、いない</h3>
               <p>
                 ご自身では気づいていない可能性が、必ずどこかにあります。<br />
                 対話のなかでそれに気づいてもらえた瞬間が、私にとっていちばん嬉しい時間です。
               </p>
+              <p>
+                隣で一緒に考えることはできますが、歩き出すのはいつもあなた自身です。
+              </p>
+              <p>
+                今この瞬間を、より心地よく過ごせるように。終わったあとに「自分で決められた」という感覚が残る関わり方を大切にしています。
+              </p>
+              </div>
             </article>
           </div>
         </div>
       </section>
 
-      <!-- セッションの内容 -->
+      <!-- セラピーの内容 -->
       <section id="services" class="home-section glow">
         <div class="section-inner">
-          <h2>セッションの内容</h2>
+          <h2><TherapistKaitoIcon name="hibiscus" />セラピーの内容</h2>
           <p class="section-lead">
             2つのメニューがあります。迷われたら、ご相談いただければご提案します。
           </p>
 
           <div class="service-block">
-            <h3>FLSセッション</h3>
+            <h3>おしゃべりカウンセリング</h3>
 
             <h4>どんなことをするのか</h4>
             <p>
@@ -131,14 +124,14 @@
               そこから、その感情がどこから来ているのかを一緒にたどり、今あなたが本当に望んでいる方向へ焦点を合わせていきます。自分の言葉が、自分に刺さる瞬間があります。
             </p>
             <p class="term-note">
-              FLS は Forcus Light Spirit の略で、潜在意識にはたらきかける手法です。専門的には「メンタルブロックの解除」と呼ばれますが、やっていることは上に書いたとおりです。
+              潜在意識にはたらきかける手法（FLS）をベースにしていますが、難しい言葉は使いません。やっているのは、上に書いたとおりの時間です。
             </p>
 
             <h4>当日の流れ</h4>
             <ul class="flow-list">
               <li>
                 <span class="flow-label">初回 2時間</span>
-                今の状況をお聞きする → セッション → 潜在意識についての説明と、これからの進め方のご相談
+                今の状況をお聞きする → セラピー → 潜在意識についての説明と、これからの進め方のご相談
               </li>
               <li>
                 <span class="flow-label">2回目以降 1時間</span>
@@ -164,9 +157,7 @@
               <tbody>
                 <tr><td>単発</td><td>30,000円/回</td></tr>
                 <tr><td>5回コース（3ヶ月）</td><td>110,000円</td></tr>
-                <tr><td>9回コース（6ヶ月）</td><td>150,000円</td></tr>
                 <tr><td>15回コース（9ヶ月）</td><td>240,000円</td></tr>
-                <tr><td>24回コース（12ヶ月・月2回ペース）</td><td>360,000円</td></tr>
               </tbody>
             </table>
             <p class="note-text">
@@ -174,56 +165,157 @@
             </p>
           </div>
 
-          <div class="service-block">
+          <div class="service-block service-block--compact">
             <h3>レムリアンヒーリング</h3>
-
-            <h4>どんなことをするのか</h4>
-            <p>
+            <p class="compact-lead">
               横になって受けていただきます。こちらから何かを話していただく必要はありません。
             </p>
-            <p>
-              受けている間に、イメージが浮かぶ方、メッセージを受け取る方、前世の記憶のようなものを思い出す方、身体の不調がやわらぐ方がいらっしゃいます。何も感じない方もいます。<br />
-              終わったあと、私が受け取ったメッセージやビジョンをお伝えします。
-            </p>
-            <p>
-              FLSが「話して気づく」時間だとすれば、こちらは「委ねて受け取る」時間です。<br />
-              気づきを得たい方にはFLSを、まず休みたい・ゆるめたいという方にはこちらをおすすめしています。
-            </p>
 
-            <h4>料金</h4>
-            <table class="pricing-table">
-              <thead>
-                <tr>
-                  <th scope="col">メニュー</th>
-                  <th scope="col">料金（税込）</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td>レムリアンヒーリング（1回）</td><td>15,000円</td></tr>
-                <tr><td>レムリアン女神ヒーリングアクティベーション講座（全6回）</td><td>150,000円</td></tr>
-              </tbody>
-            </table>
+            <details class="detail-disclosure">
+              <summary>くわしい内容と料金を見る</summary>
+              <div class="detail-body">
+                <p>
+                  受けている間に、イメージが浮かぶ方、メッセージを受け取る方、前世の記憶のようなものを思い出す方、身体の不調がやわらぐ方がいらっしゃいます。何も感じない方もいます。<br />
+                  終わったあと、私が受け取ったメッセージやビジョンをお伝えします。
+                </p>
+                <p>
+                  おしゃべりカウンセリングが「話して気づく」時間だとすれば、こちらは「委ねて受け取る」時間です。<br />
+                  気づきを得たい方にはおしゃべりカウンセリングを、まず休みたい・ゆるめたいという方にはこちらをおすすめしています。
+                </p>
 
-            <div class="callout-box">
-              <h3>アクティベーション講座について</h3>
-              <p>
-                ご自身でヒーリングができるようになる講座です。<br />
-                お知り合いと一緒に受講する割引もあります。一緒に学ぶと練習し合えます。
-              </p>
-            </div>
+                <h4>料金</h4>
+
+                <table class="pricing-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">メニュー</th>
+                      <th scope="col">料金（税込）</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>レムリアンヒーリング（1回）</td><td>15,000円</td></tr>
+                    <tr><td>レムリアン女神ヒーリングアクティベーション講座（全6回）</td><td>150,000円</td></tr>
+                  </tbody>
+                </table>
+
+                <div class="callout-box">
+                  <h3>アクティベーション講座について</h3>
+                  <p>
+                    ご自身でヒーリングができるようになる講座です。<br />
+                    お知り合いと一緒に受講する割引もあります。一緒に学ぶと練習し合えます。
+                  </p>
+                </div>
+              </div>
+            </details>
           </div>
 
-          <div class="service-block">
+          <div class="service-block service-block--compact">
             <h3>各種割引</h3>
-            <p>知り合い価格・紹介価格・グループ受講割引があります。詳しくはお問い合わせください。</p>
+            <p class="compact-lead">知り合い価格・紹介価格・グループ受講割引があります。詳しくはお問い合わせください。</p>
           </div>
         </div>
       </section>
 
-      <!-- 月ノ瀬 直について -->
-      <section id="about" class="home-section">
+      <!-- お客様の声 -->
+      <section id="testimonials" class="home-section">
         <div class="section-inner">
-          <h2>月ノ瀬 直について</h2>
+          <h2><TherapistKaitoIcon name="starfish" />お客様の声</h2>
+          <p class="section-lead">
+            感じ方は一人ひとり違いますが、変化のヒントとしてご覧ください。
+          </p>
+
+          <div class="testimonial-list">
+            <article class="testimonial-card">
+              <h3 class="testimonial-name">
+                <TherapistKaitoAvatar :variant="1" />
+                <span>おしゃべりカウンセリング・継続中の方</span>
+              </h3>
+              <p>
+                「すごい深い愛を感じました。<br />
+                セラピーを続けられなくなるくらい涙が出てしまって。<br />
+                でも、それが自分に必要な時間だったと思います。」
+              </p>
+            </article>
+
+            <article class="testimonial-card">
+              <h3 class="testimonial-name">
+                <TherapistKaitoAvatar :variant="2" />
+                <span>おしゃべりカウンセリングを受けられた方</span>
+              </h3>
+              <p>
+                「エネルギーが循環しているような感覚があります。<br />
+                自分が何かをするというより、日々気づいていく感覚に近いです。」
+              </p>
+            </article>
+
+            <article class="testimonial-card">
+              <h3 class="testimonial-name">
+                <TherapistKaitoAvatar :variant="3" />
+                <span>おしゃべりカウンセリング・50代女性</span>
+              </h3>
+              <p>
+                「人に振り回されることが多かったのですが、重ねるうちに自分の軸ができてきました。以前なら感情的になっていた場面でも、冷静でいられます。」
+              </p>
+            </article>
+
+            <article class="testimonial-card">
+              <h3 class="testimonial-name">
+                <TherapistKaitoAvatar :variant="4" />
+                <span>レムリアンヒーリング・40代女性</span>
+              </h3>
+              <p>
+                「海の中を泳いでいるようなイメージが浮かびました。終わった後は体全体がポカポカして、とても穏やかな気持ちになりました。」
+              </p>
+            </article>
+          </div>
+
+          <p class="note-text">
+            ※ 感想は個人の体験であり、すべての方に同じ変化を保証するものではありません。
+          </p>
+        </div>
+      </section>
+
+      <!-- よくある質問 -->
+      <section id="faq" class="home-section">
+        <div class="section-inner">
+          <h2><TherapistKaitoIcon name="fish" />よくある質問</h2>
+
+          <div class="faq-list">
+            <div class="faq-item">
+              <h3>Q. どんな服装で行けばいいですか？</h3>
+              <p>
+                リラックスできる服装であれば大丈夫です。ヒーリングの際は横になることもありますので、締め付けの少ない楽な服装がおすすめです。
+              </p>
+            </div>
+
+            <div class="faq-item">
+              <h3>Q. 話した内容は秘密にしてもらえますか？</h3>
+              <p>
+                はい、お話しいただいた内容は厳守します。安心してお話しください。
+              </p>
+            </div>
+
+            <div class="faq-item">
+              <h3>Q. まず1回だけ受けてみることはできますか？</h3>
+              <p>
+                できます。単発でお試しいただき、合いそうだと感じられたらコースをご検討ください。無理におすすめすることはありません。
+              </p>
+            </div>
+
+            <div class="faq-item">
+              <h3>Q. 支払い方法とキャンセルについて教えてください</h3>
+              <p>
+                銀行振込、または各種キャッシュレス決済に対応しています。日程変更・キャンセルはセラピー当日の3日前までにご連絡ください。3日前を過ぎるとキャンセル料が発生する場合があります。
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 月ノ瀬 直について（本文は原文のまま。配置だけページ下部へ、見た目は about-modest で一段控えめに） -->
+      <section id="about" class="home-section about-modest">
+        <div class="section-inner">
+          <h2><TherapistKaitoIcon name="sun" />月ノ瀬 直について</h2>
 
           <div class="about-block">
             <h3>「ママってそんなに笑うんやね」</h3>
@@ -274,100 +366,34 @@
         </div>
       </section>
 
-      <!-- お客様の声 -->
-      <section id="testimonials" class="home-section">
-        <div class="section-inner">
-          <h2>お客様の声</h2>
-          <p class="section-lead">
-            感じ方は一人ひとり違いますが、変化のヒントとしてご覧ください。
-          </p>
-
-          <div class="testimonial-list">
-            <article class="testimonial-card">
-              <h3 class="testimonial-name">FLSセッション・継続中の方</h3>
-              <p>
-                「すごい深い愛を感じました。<br />
-                セッションを続けられなくなるくらい涙が出てしまって。<br />
-                でも、それが自分に必要な時間だったと思います。」
-              </p>
-            </article>
-
-            <article class="testimonial-card">
-              <h3 class="testimonial-name">FLSセッションを受けられた方</h3>
-              <p>
-                「エネルギーが循環しているような感覚があります。<br />
-                自分が何かをするというより、日々気づいていく感覚に近いです。」
-              </p>
-            </article>
-
-            <article class="testimonial-card">
-              <h3 class="testimonial-name">FLSセッション・50代女性</h3>
-              <p>
-                「人に振り回されることが多かったのですが、重ねるうちに自分の軸ができてきました。以前なら感情的になっていた場面でも、冷静でいられます。」
-              </p>
-            </article>
-
-            <article class="testimonial-card">
-              <h3 class="testimonial-name">レムリアンヒーリング・40代女性</h3>
-              <p>
-                「海の中を泳いでいるようなイメージが浮かびました。終わった後は体全体がポカポカして、とても穏やかな気持ちになりました。」
-              </p>
-            </article>
-          </div>
-
-          <p class="note-text">
-            ※ 感想は個人の体験であり、すべての方に同じ変化を保証するものではありません。
-          </p>
-        </div>
-      </section>
-
-      <!-- よくある質問 -->
-      <section id="faq" class="home-section">
-        <div class="section-inner">
-          <h2>よくある質問</h2>
-
-          <div class="faq-list">
-            <div class="faq-item">
-              <h3>Q. どんな服装で行けばいいですか？</h3>
-              <p>
-                リラックスできる服装であれば大丈夫です。ヒーリングの際は横になることもありますので、締め付けの少ない楽な服装がおすすめです。
-              </p>
-            </div>
-
-            <div class="faq-item">
-              <h3>Q. 話した内容は秘密にしてもらえますか？</h3>
-              <p>
-                はい、お話しいただいた内容は厳守します。安心してお話しください。
-              </p>
-            </div>
-
-            <div class="faq-item">
-              <h3>Q. まず1回だけ受けてみることはできますか？</h3>
-              <p>
-                できます。単発でお試しいただき、合いそうだと感じられたらコースをご検討ください。無理におすすめすることはありません。
-              </p>
-            </div>
-
-            <div class="faq-item">
-              <h3>Q. 支払い方法とキャンセルについて教えてください</h3>
-              <p>
-                銀行振込、または各種キャッシュレス決済に対応しています。日程変更・キャンセルはセッション日の3日前までにご連絡ください。3日前を過ぎるとキャンセル料が発生する場合があります。
-              </p>
-            </div>
-          </div>
+      <!-- できないことの明示。断り書きではなく前提の共有なので、ページ下部に控えめに置く -->
+      <section id="limits" class="home-section limits-section">
+        <div class="limits-box">
+          <h3><TherapistKaitoIcon name="ring" />このセラピーでできないこと</h3>
+          <ul>
+            <li>医療行為ではありません。病気の診断や治療の代わりにはなりませんので、通院中の方は主治医にご相談ください。</li>
+            <li>誰か他の人を変える方法はお伝えできません。扱うのは、あなた自身の心だけです。</li>
+            <li>一度で人生が変わる、という約束もしていません。あなたのペースで、少しずつ進みます。</li>
+          </ul>
         </div>
       </section>
 
       <!-- お問い合わせ -->
       <section id="contact" class="home-cta">
         <div class="section-inner">
-          <h2>お問い合わせ</h2>
+          <h2><TherapistKaitoIcon name="palm" />お問い合わせ</h2>
           <p>
             「これって私に合うのかな」という段階で大丈夫です。<br />
             どちらのメニューが良いか迷われている場合も、まずはご相談ください。
           </p>
-          <div class="contact-actions">
-            <a class="cta-link" href="mailto:hello@example.com">メールで問い合わせる</a>
+          <!-- フォームURLが未設定の間はボタンを出さない（リンク切れを作らないため） -->
+          <div v-if="site.contactFormUrl" class="contact-actions">
+            <a
+              class="cta-link"
+              :href="site.contactFormUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >お問い合わせフォームへ</a>
           </div>
         </div>
       </section>
@@ -378,13 +404,15 @@
 </template>
 
 <script setup lang="ts">
+import { site } from '~/config/site'
+
 definePageMeta({ layout: 'therapist' })
 
 useHead({
   bodyAttrs: { class: 'home' },
   title: '月ノ瀬 直 | 本来の自分を思い出す場所',
   meta: [
-    { name: 'description', content: '本来の自分を思い出す場所。FLSセッションとレムリアンヒーリングで、あなたの心の声に寄り添います。セラピスト 月ノ瀬 直。' },
+    { name: 'description', content: '本来の自分を思い出す場所。おしゃべりカウンセリングとレムリアンヒーリングで、あなたの心の声に寄り添います。セラピスト 月ノ瀬 直。' },
     { property: 'og:title', content: '月ノ瀬 直 | 本来の自分を思い出す場所' },
     { property: 'og:description', content: 'フタをしてしまった想いや感情を解放し、本来の自分を思い出すお手伝いをします。' },
   ],

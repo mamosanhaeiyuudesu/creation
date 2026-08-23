@@ -24,19 +24,27 @@
           @click="closeNav"
         >{{ item.label }}</a>
       </nav>
-      <a class="cta-link" href="#contact" @click="closeNav">お問い合わせ</a>
+      <a
+        class="cta-link"
+        :href="site.contactFormUrl || '#contact'"
+        :target="site.contactFormUrl ? '_blank' : undefined"
+        :rel="site.contactFormUrl ? 'noopener noreferrer' : undefined"
+        @click="closeNav"
+      >お問い合わせ</a>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
+import { site } from '~/config/site'
+
 const navItems = [
   { id: 'for-you', label: 'こんな方へ' },
-  { id: 'style', label: 'セッションのスタイル' },
-  { id: 'services', label: 'セッションの内容' },
-  { id: 'about', label: '月ノ瀬 直について' },
+  { id: 'style', label: 'セラピーのスタイル' },
+  { id: 'services', label: 'セラピーの内容' },
   { id: 'testimonials', label: 'お客様の声' },
   { id: 'faq', label: 'よくある質問' },
+  { id: 'about', label: '月ノ瀬 直について' },
 ]
 
 const navOpen = ref(false)

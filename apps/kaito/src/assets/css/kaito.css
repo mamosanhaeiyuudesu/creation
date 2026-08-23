@@ -7,7 +7,7 @@
   --color-muted: #4a5568;
   --color-border: rgba(56, 163, 165, 0.18);
   --color-footer-bg: #f0f9f9;
-  --content-max: 1100px;
+  --content-max: 880px;
   --radius-large: 24px;
   --radius-medium: 16px;
   --radius-pill: 999px;
@@ -20,6 +20,8 @@
   --f-sans: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
   --f-serif: 'Zen Maru Gothic', sans-serif;
   --f-mono: 'IBM Plex Mono', 'Courier New', monospace;
+  /* 行頭マークに使う貝殻。mask で塗るので色は持たせない */
+  --shell-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21.2 3.5 9.6A10.6 10.6 0 0 1 12 5a10.6 10.6 0 0 1 8.5 4.6L12 21.2Z'/%3E%3Cpath d='M11.3 6h1.4v13h-1.4zM7 7l1.3-.4 2.7 12-1.3.4zM15.7 6.6 17 7l-2.7 12-1.3-.4z'/%3E%3C/svg%3E");
 }
 
 /* ===== ベース ===== */
@@ -98,7 +100,7 @@ body.home h6 {
   justify-content: space-between;
   gap: 16px;
   padding: 18px 20px;
-  max-width: var(--content-max);
+  max-width: 1040px;
   margin: 0 auto;
 }
 
@@ -199,93 +201,108 @@ body.home h6 {
   box-shadow: 0 20px 38px rgba(56, 163, 165, 0.3);
 }
 
-.secondary-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 18px;
-  border-radius: var(--radius-pill);
-  border: 1px solid rgba(56, 163, 165, 0.28);
-  color: #2d5858;
-  background: rgba(255, 255, 255, 0.65);
-  font-weight: 600;
-  text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.secondary-link:hover,
-.secondary-link:focus-visible {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 24px rgba(56, 163, 165, 0.12);
-}
-
 /* ===== ヒーロー ===== */
 
+/* 写真を 100vw の帯として敷くので、はみ出しはここで切る */
 .home-hero {
-  padding: 56px 20px 72px;
-  max-width: var(--content-max);
-  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
   scroll-margin-top: var(--anchor-offset);
 }
 
-.hero-grid {
-  display: grid;
-  gap: 48px;
-  align-items: center;
-}
-
-.hero-name-image {
-  width: min(500px, 92%);
+/* PCで横に間延びしないよう、読み幅で止めて中央に置く（hareruya の .hero-inner と同じ） */
+.hero-inner {
+  max-width: 700px;
   margin: 0 auto;
-  display: block;
-  filter: drop-shadow(0 24px 32px rgba(56, 163, 165, 0.22));
+  padding: 0 24px 72px;
+  text-align: center;
 }
 
-.hero-eyebrow {
-  display: inline-flex;
-  padding: 5px 16px;
-  border-radius: 999px;
-  background: rgba(56, 163, 165, 0.12);
-  color: #2d5858;
-  font-size: 0.8rem;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  border: 1px solid rgba(56, 163, 165, 0.2);
+/*
+ * ヒーローは ①問いかけ → ②宣言 の2段構成。
+ * ①の背後に写真を画面幅いっぱいの帯として敷き、白のベールを重ねて気配だけ残す
+ * （hareruya の .hero-catch::before と同じ作り）。写真のパスは site.ts から --hero-image で渡る。
+ */
+.hero-question {
+  position: relative;
+  z-index: 0;
+  padding: 76px 20px 68px;
 }
 
-.hero-text h1 {
-  font-size: clamp(2rem, 4.4vw, 3.1rem);
+.hero-question::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  z-index: -1;
+  /*
+   * 中央（＝文字が乗るところ）だけ白を残して可読性を確保し、
+   * 外側はベールを薄くして海と島をはっきり見せる。
+   * 縦位置の写真なので、帯に海と島が入るよう 52% を中心にする。
+   */
+  background-image:
+    radial-gradient(
+      ellipse 54% 82% at 50% 50%,
+      rgba(255, 255, 255, 0.8) 20%,
+      rgba(255, 255, 255, 0.26) 100%
+    ),
+    var(--hero-image);
+  background-size: auto, cover;
+  background-position: center, center 52%;
+  background-repeat: no-repeat;
+  filter: saturate(1);
+  pointer-events: none;
+}
+
+.hero-question h1,
+.hero-question .hero-lead {
+  text-shadow: 0 1px 10px rgba(255, 255, 255, 0.85);
+}
+
+.hero-question h1 {
+  font-size: clamp(1.7rem, 3.6vw, 2.5rem);
   font-weight: 400;
-  margin: 16px 0 28px;
-  letter-spacing: 0.02em;
-  line-height: 1.55;
+  margin: 0 0 26px;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
 }
 
+/* 中央寄せの帯の中では、左の縦線より行間で見せたほうが収まる */
 .hero-lead {
-  font-size: 1.05rem;
-  line-height: 2;
+  font-size: 1rem;
+  line-height: 2.15;
   color: #3d5252;
-  margin: 0 0 28px;
-  border-left: 3px solid rgba(56, 163, 165, 0.35);
-  padding-left: 16px;
+  margin: 0;
 }
 
-.hero-copy {
-  margin-bottom: 8px;
+.hero-statement {
+  max-width: 560px;
+  margin: 36px auto 0;
+  padding: 28px 26px 26px;
+  border-radius: var(--radius-medium);
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.9), rgba(232, 246, 246, 0.72));
+  border: 1px solid rgba(56, 163, 165, 0.16);
+  box-shadow: var(--shadow-card);
 }
 
-.hero-copy p {
-  margin: 0 0 20px;
-  line-height: 2;
-  color: #3d5252;
-  font-size: 0.97rem;
+.hero-statement-main {
+  font-family: var(--f-serif);
+  font-size: clamp(1.08rem, 2.1vw, 1.26rem);
+  font-weight: 500;
+  line-height: 1.95;
+  letter-spacing: 0.03em;
+  color: #1d4040;
+  margin: 0 0 16px;
 }
 
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-top: 32px;
+.hero-statement-sub {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.95;
+  color: #4a6262;
 }
 
 /* ===== セクション共通 ===== */
@@ -310,12 +327,43 @@ body.home h6 {
 }
 
 .section-inner h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: clamp(1.4rem, 2.8vw, 1.8rem);
   font-weight: 400;
   margin: 0 0 20px;
   letter-spacing: 0.02em;
   padding-bottom: 16px;
   border-bottom: 1px solid rgba(56, 163, 165, 0.15);
+}
+
+/* 海・沖縄モチーフの小さなアイコン。色は置いた場所の color を継ぐ */
+.kaito-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1.15em;
+  height: 1.15em;
+  color: var(--color-primary);
+  vertical-align: -0.18em;
+}
+
+.section-inner h2 .kaito-icon {
+  width: 1.05em;
+  height: 1.05em;
+}
+
+/* 「できないこと」の枠は主張を抑えているので、アイコンも本文と同じ灰色に寄せる */
+.limits-box h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.limits-box h3 .kaito-icon {
+  color: #9aa5a5;
+  width: 1.1em;
+  height: 1.1em;
 }
 
 .section-inner p {
@@ -363,17 +411,19 @@ body.home h6 {
   transition: background 0.2s ease;
 }
 
+/* 行頭は丸ではなく小さな貝殻。SVGはデータURIで埋め込み、外部リクエストを増やさない */
 .target-list li::before {
   content: '';
   position: absolute;
-  left: 18px;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-primary-light);
-  opacity: 0.75;
+  width: 15px;
+  height: 15px;
+  background-color: var(--color-primary-light);
+  -webkit-mask: var(--shell-mark) center / contain no-repeat;
+  mask: var(--shell-mark) center / contain no-repeat;
+  opacity: 0.85;
 }
 
 .target-list li:hover {
@@ -408,6 +458,11 @@ body.home h6 {
   margin-top: 8px;
 }
 
+/* ページ下部に単独で置くときは、セクション側の余白に任せる */
+.limits-section .limits-box {
+  margin-top: 0;
+}
+
 .note-text {
   font-size: 0.92rem !important;
   color: var(--color-primary-dark) !important;
@@ -438,7 +493,7 @@ body.home h6 {
   line-height: 1.9 !important;
 }
 
-/* ===== セッションのスタイル ===== */
+/* ===== セラピーのスタイル ===== */
 
 .style-list {
   display: grid;
@@ -464,7 +519,59 @@ body.home h6 {
   margin-bottom: 0;
 }
 
-/* ===== サービス内容 / 月ノ瀬 直について ===== */
+/* 写真つきのカード。スマホは写真→本文の縦積み、760px以上で横並びにする */
+.style-card.has-photo {
+  display: grid;
+  gap: 20px;
+}
+
+.style-photo {
+  margin: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #dff2f9;
+}
+
+/* .therapist-layout img の height:auto より詳細度を上げないと cover が効かない */
+.therapist-layout .style-photo img,
+.style-photo .style-scene {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+}
+
+.style-body > h3 {
+  margin-top: 0;
+}
+
+@media (min-width: 760px) {
+  .style-card.has-photo {
+    grid-template-columns: 264px 1fr;
+    gap: 28px;
+    align-items: center;
+  }
+
+  /*
+   * 2枚目は写真を右側に置いて、並びに変化をつける。
+   * order だけ変えると自動配置で本文が 264px 側・写真が 1fr 側に入れ替わり、
+   * 写真だけ大きくなってしまうので、列幅そのものを左右反転させる。
+   */
+  .style-card.is-photo-right {
+    grid-template-columns: 1fr 264px;
+  }
+
+  .style-card.is-photo-right .style-photo {
+    order: 2;
+  }
+
+  .therapist-layout .style-photo img,
+  .style-photo .style-scene {
+    height: 260px;
+  }
+}
+
+/* ===== セラピーの内容 / 月ノ瀬 直について ===== */
 
 .service-block,
 .about-block {
@@ -489,7 +596,8 @@ body.home h6 {
 }
 
 .service-block > h4,
-.about-block > h4 {
+.about-block > h4,
+.detail-body > h4 {
   margin: 32px 0 14px;
   font-size: 0.98rem;
   font-weight: 500;
@@ -578,6 +686,92 @@ body.home h6 {
   border-radius: 0 8px 8px 0;
 }
 
+/* 細かいメニューは内容を残したまま、初期表示の面積だけ小さくする */
+.service-block--compact {
+  margin-top: 32px;
+  padding-top: 28px;
+}
+
+.service-block--compact > h3 {
+  margin: 0 0 12px;
+  font-size: 1.12rem;
+}
+
+.compact-lead {
+  margin: 0 !important;
+  font-size: 0.95rem !important;
+  line-height: 1.9 !important;
+}
+
+.detail-disclosure {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(56, 163, 165, 0.22);
+}
+
+.detail-disclosure summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--color-primary-dark);
+}
+
+/* Safari の三角マーカーを消す（display の変更だけでは残る） */
+.detail-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.detail-disclosure summary::before {
+  content: '＋';
+  font-family: var(--f-mono);
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.detail-disclosure[open] summary::before {
+  content: '−';
+}
+
+.detail-disclosure summary:hover,
+.detail-disclosure summary:focus-visible {
+  color: var(--color-primary);
+}
+
+.detail-body {
+  padding-top: 18px;
+}
+
+.detail-body > h4:first-child {
+  margin-top: 0;
+}
+
+.detail-body > :last-child {
+  margin-bottom: 0 !important;
+}
+
+/* プロフィールはページ下部に置き、主張を一段落とす */
+.about-modest .section-inner {
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 14px 32px rgba(56, 163, 165, 0.07);
+}
+
+.about-modest .section-inner p {
+  font-size: 0.94rem;
+  line-height: 1.95;
+}
+
+.about-modest .hero-quote {
+  font-size: 1rem !important;
+  padding: 20px 18px !important;
+  margin: 20px 0 !important;
+}
+
 .hero-quote {
   font-family: var(--f-serif);
   font-size: 1.08rem !important;
@@ -634,11 +828,23 @@ body.home h6 {
 }
 
 .testimonial-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin: 0 0 12px;
   font-size: 0.95rem;
   font-weight: 500;
   letter-spacing: 0.05em;
   color: var(--color-primary-dark) !important;
+}
+
+/* 実在の人物写真ではなくイラストのアイコン。詳細度は .therapist-layout img に合わせる */
+.therapist-layout .testimonial-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(56, 163, 165, 0.2);
 }
 
 .testimonial-card p {
@@ -740,23 +946,6 @@ body.home h6 {
   text-decoration: underline;
 }
 
-.footer-sns {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-}
-
-.footer-sns a {
-  color: #2d5858;
-  text-decoration: none;
-  font-family: var(--f-mono);
-  font-size: 0.82rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-}
-
-/* ===== レスポンシブ ===== */
-
 @media (max-width: 900px) {
   .nav-container {
     position: relative;
@@ -798,9 +987,12 @@ body.home h6 {
 }
 
 @media (max-width: 640px) {
-  .hero-actions .cta-link,
-  .hero-actions .secondary-link {
-    flex: 1 1 100%;
+  .hero-question {
+    padding: 52px 4px 46px;
+  }
+
+  .hero-statement {
+    padding: 22px 20px 20px;
   }
 
   .section-inner {
@@ -849,27 +1041,17 @@ body.home h6 {
 }
 
 @media (min-width: 860px) {
-  .home-hero {
-    padding: 72px 24px 80px;
-  }
-
-  .hero-grid {
-    grid-template-columns: 44% 56%;
-    gap: 64px;
-  }
-
-  .hero-name-image {
-    width: 100%;
-    max-width: none;
-    margin: 0;
+  .hero-inner {
+    padding-bottom: 84px;
   }
 
   .home-section {
     padding: 28px 24px 0;
   }
 
+  /* 本文幅を 880px に絞ったので、左右の余白は 60px → 48px に合わせて詰める */
   .section-inner {
-    padding: 52px 60px;
+    padding: 48px 48px;
   }
 
   .home-cta {
