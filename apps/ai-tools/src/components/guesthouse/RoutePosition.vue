@@ -36,7 +36,7 @@
       日記の旅程に「東京 → 高山 → 宿 → 高野山」のように<b>通った順</b>が書かれていると読み取れます。
     </p>
 
-    <!-- ゲストをクリックすると、そのお客様の場所のフローをポップアップで見せる -->
+    <!-- ゲストをクリックすると、泊まった宿・国籍・経路だけをポップアップで見せる -->
     <div
       v-if="selected"
       class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 sm:p-4 z-[200]"
@@ -48,47 +48,19 @@
           <button class="text-[var(--gh-ink-soft)] hover:text-[var(--gh-ink)] text-[22px] leading-none px-1" aria-label="閉じる" @click="selected = null">×</button>
         </div>
 
-        <div class="flex items-center gap-2 flex-wrap mb-2">
+        <div class="flex items-center gap-2 flex-wrap mb-3">
           <span class="gh-chip !py-0.5 !px-2 !text-[11px]">{{ selected.houseName }}</span>
-          <span class="gh-chip !py-0.5 !px-2 !text-[10.5px]">{{ STAY_TYPE_LABEL[selected.stayType] }}</span>
-          <span v-if="selected.visitReason !== 'unknown'" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-persimmon)]">
-            {{ VISIT_REASON_LABEL[selected.visitReason] }}
-          </span>
           <span v-if="selected.originCountry" class="text-[11.5px] text-[var(--gh-ink-soft)]">{{ selected.originCountry }}</span>
-          <span v-if="selected.nights" class="text-[11.5px] text-[var(--gh-ink-faint)]">{{ selected.nights }}泊</span>
-          <span v-if="selectedPositionLabel" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-forest-deep)]">
-            {{ selectedPositionLabel }}・{{ ROUTE_PHASE_LABEL[routePhase(selected.routeIndex, selected.route.length)] }}
-          </span>
         </div>
 
-        <!-- From / To は旅程が読み取れていてもいなくても必ず出す（どちらか片方だけ消えないように） -->
-        <p class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed">
-          <span class="text-[var(--gh-ink-faint)]">From</span> {{ selectedEdges.prev || '？' }}
-          <span class="text-[var(--gh-ink-faint)] mx-1">›</span>
-          <b class="text-[var(--gh-ink)]">{{ selected.houseName || '宿' }}</b>
-          <span class="text-[var(--gh-ink-faint)] mx-1">›</span>
-          <span class="text-[var(--gh-ink-faint)]">To</span> {{ selectedEdges.next || '？' }}
-        </p>
-
-        <!-- 旅程全体の道のり（通った順の番号つき） -->
-        <p v-if="selected.route.length" class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-          <template v-for="(stop, i) in selected.route" :key="i">
-            <span v-if="i" class="text-[var(--gh-ink-faint)]">›</span>
-            <span class="inline-flex items-baseline gap-0.5">
-              <span class="text-[10px] text-[var(--gh-ink-faint)] tabular-nums">{{ i + 1 }}</span>
-              <span :class="stop === ROUTE_SELF ? 'font-bold text-[var(--gh-ink)]' : ''">{{ routeStopLabel(stop, selected.houseName) }}</span>
-            </span>
+        <!-- 経路：関空 → 和歌山 → 宿 → 奈良 のひと続き。太字がこの宿での滞在。 -->
+        <p v-if="selectedChain.length > 1" class="text-[13px] leading-relaxed flex flex-wrap items-center gap-x-1.5 gap-y-1">
+          <template v-for="(stop, i) in selectedChain" :key="i">
+            <span v-if="i" class="text-[var(--gh-ink-faint)]">→</span>
+            <span :class="stop.self ? 'font-bold text-[var(--gh-ink)]' : 'text-[var(--gh-ink-soft)]'">{{ stop.label }}</span>
           </template>
         </p>
-
-        <p
-          v-if="selected.areaSpots.length || selected.shukuboStays.length || selected.tourExperiences.length"
-          class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed mt-0.5"
-        >
-          <template v-if="selected.areaSpots.length">立ち寄り：{{ selected.areaSpots.join('・') }}<br /></template>
-          <template v-if="selected.tourExperiences.length">ツアーでの体験：{{ selected.tourExperiences.join('・') }}<br /></template>
-          <template v-if="selected.shukuboStays.length">ほかに泊まられた宿：{{ selected.shukuboStays.join('・') }}</template>
-        </p>
+        <p v-else class="text-[12.5px] text-[var(--gh-ink-faint)]">経路は日記から読み取れていません。</p>
 
         <NuxtLink
           :to="`/guesthouse/session/${selected.sessionId}`"
@@ -103,35 +75,10 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import {
-  routeEdges,
-  routePhase,
-  routePositionLabel,
-  routeRatio,
-  routeStopLabel,
-  ROUTE_PHASE_LABEL,
-  ROUTE_SELF,
-} from '~/utils/guesthouse-route'
-import type { GuestProfile, StayType, VisitReason } from '~/types/guesthouse'
+import { routeChain, routePositionLabel, routeRatio } from '~/utils/guesthouse-route'
+import type { GuestProfile } from '~/types/guesthouse'
 
 const props = defineProps<{ profiles: GuestProfile[] }>()
-
-// サーバ側の語彙（guesthouse-insights.ts）と対のラベル。クライアントには持ち込めないのでここでも持つ。
-const STAY_TYPE_LABEL: Record<StayType, string> = {
-  base: '拠点型',
-  destination: '目的地型',
-  transit: '通過型',
-  unknown: '不明',
-}
-const VISIT_REASON_LABEL: Record<VisitReason, string> = {
-  tour: '阪中さんのツアー',
-  koyasan: '高野山・エリア観光',
-  nature: '田舎・自然の暮らし',
-  transit: '移動の都合',
-  people: '人とのつながり',
-  price: '価格・空室の都合',
-  unknown: '読み取れず',
-}
 
 /** 点が重なって読めなくなる距離（帯の幅に対する割合）。これより近い点は次の段へ落とす。 */
 const MIN_GAP = 0.16
@@ -139,10 +86,7 @@ const MIN_GAP = 0.16
 const ROW_H = 32
 
 const selected = ref<GuestProfile | null>(null)
-const selectedEdges = computed(() => (selected.value ? routeEdges(selected.value) : { prev: '', next: '' }))
-const selectedPositionLabel = computed(() =>
-  selected.value ? routePositionLabel(selected.value.routeIndex, selected.value.route.length) : ''
-)
+const selectedChain = computed(() => (selected.value ? routeChain(selected.value) : []))
 
 interface Dot {
   key: string
