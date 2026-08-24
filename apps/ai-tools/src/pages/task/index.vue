@@ -245,6 +245,12 @@ const thisWeekDates = computed(() => {
   return Array.from({ length: 7 }, (_, i) => addDays(monday, i))
 })
 
+// 「今週中にやること」欄へ入れる際に使う既定期限（今週の日曜。日曜操作時は今週の残りが無いので明日にずらす）
+const thisWeekEndDateKey = computed(() => {
+  const sunday = thisWeekDates.value[6]!
+  return sunday > todayDateKey.value ? sunday : addDays(todayDateKey.value, 1)
+})
+
 const thisWeekDoneHours = computed(() => weekTotalEffort(thisWeekDates.value))
 
 const thisWeekPlannedHours = computed(() => thisWeekDoneHours.value + pendingHoursForDates(thisWeekDates.value))
@@ -302,10 +308,10 @@ function isDoingToday(card: Card): boolean {
 function doingDueForGroup(card: Card, key: 'today' | 'week'): string | null {
   const isToday = isDoingToday(card)
   if (key === 'today') return isToday ? null : jstDueEndOfDay(todayDateKey.value)
-  if (!isToday) return null
-  // 「今週中」は今日より後。日曜に操作したときは今週の残りがないので明日にずらす
-  const sunday = addDays(mondayOf(todayJST()), 6)
-  return jstDueEndOfDay(sunday > todayDateKey.value ? sunday : addDays(todayDateKey.value, 1))
+  // 「今週中」欄へ: 期限が今日以前、または期限がそもそも無いカードには今週末を設定する
+  // （期限なしのままだと「週」ヘッダーの分母＝pendingHoursForDates に反映されないため）
+  if (!isToday && card.due) return null
+  return jstDueEndOfDay(thisWeekEndDateKey.value)
 }
 
 /** 'YYYY-MM-DD' → その日のJST 23:59 を表すISO文字列（期限の振り分けはJSTの日付で行うため） */
@@ -340,8 +346,8 @@ const doingGroups = computed(() => doingGroupDefs.map((def) => {
     ...def,
     columns,
     effort: columns.reduce((s, c) => s + c.effort, 0),
-    // 「今日やること」欄の＋で追加したタスクがその欄に出るよう、期限を今日で埋めておく
-    newDue: def.key === 'today' ? `${todayDateKey.value}T23:59` : '',
+    // ＋で追加したタスクがその欄に出るよう、期限を欄に合わせて埋めておく（週は「週」ヘッダーの分母に反映されるよう今週末）
+    newDue: def.key === 'today' ? `${todayDateKey.value}T23:59` : `${thisWeekEndDateKey.value}T23:59`,
   }
 }))
 

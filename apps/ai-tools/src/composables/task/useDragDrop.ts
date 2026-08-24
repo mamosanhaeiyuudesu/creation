@@ -1,10 +1,31 @@
 import { ref } from 'vue'
 import type { Ref } from 'vue'
-import { applyDue } from './useTaskBoards'
+import { applyDue, clearDue } from './useTaskBoards'
 import type { Board, Card } from './useTaskBoards'
 
 /** DOINGの欄（今日やること / 今週中にやること）。振り分けは期限で決まる */
 export type DoingGroup = 'today' | 'week'
+
+/**
+ * 移動先に応じて必要な期限の変更。null＝変更不要、空文字＝期限を消す、それ以外＝その期限にする。
+ * DOING の欄は期限で振り分けが決まるので resolveDoingDue に従い、TODO へ移したときは
+ * 「まだいつやるか決めていない」状態に戻す意味で期限を消す。
+ */
+function dueChangeFor(
+  card: Card,
+  targetStatus: 'doing' | 'todo',
+  targetGroup: DoingGroup | undefined,
+  resolveDoingDue: (card: Card, group: DoingGroup) => string | null,
+): string | null {
+  if (targetStatus === 'doing' && targetGroup) return resolveDoingDue(card, targetGroup)
+  if (targetStatus === 'todo' && card.due) return ''
+  return null
+}
+
+function applyDueChange(card: Card, newDue: string | null) {
+  if (newDue) applyDue(card, newDue)
+  else if (newDue === '') clearDue(card)
+}
 
 export function useDragDrop(
   boards: Ref<Board[]>,
@@ -104,16 +125,16 @@ export function useDragDrop(
     const srcArr = getArr(srcBoardId, srcStatus)
     const srcCard = srcArr?.find(c => c.id === srcCardId)
     if (!srcArr || !srcCard) return
-    const newDue = targetStatus === 'doing' && targetGroup ? resolveDoingDue(srcCard, targetGroup) : null
+    const newDue = dueChangeFor(srcCard, targetStatus, targetGroup, resolveDoingDue)
     // 期限を書き換える必要があるなら、位置が変わらなくても更新する（欄をまたいだドラッグ）
-    if (!newDue && targetArr[targetIdx - 1]?.id === srcCardId) return
+    if (newDue === null && targetArr[targetIdx - 1]?.id === srcCardId) return
 
     const prevPos = targetArr[targetIdx - 1]?.pos ?? 0
     const newPos = (prevPos + targetArr[targetIdx].pos) / 2
 
     try {
       const body: Record<string, any> = { pos: newPos }
-      if (newDue) body.due = newDue
+      if (newDue !== null) body.due = newDue
       if (srcBoardId !== targetBoardId || srcStatus !== targetStatus) {
         body.idList = targetStatus === 'doing' ? targetBoard.doingListId : targetBoard.todoListId
         if (srcBoardId !== targetBoardId) body.idBoard = targetBoardId
@@ -124,7 +145,7 @@ export function useDragDrop(
       if (srcIdx < 0) return
       const [movedCard] = srcArr.splice(srcIdx, 1)
       movedCard.pos = newPos
-      if (newDue) applyDue(srcCard, newDue)
+      applyDueChange(srcCard, newDue)
       const insertIdx = targetArr.findIndex(c => c.id === targetCardId)
       targetArr.splice(insertIdx, 0, movedCard)
     } catch (e: any) {
@@ -145,15 +166,15 @@ export function useDragDrop(
     const srcArr = getArr(srcBoardId, srcStatus)
     const srcCard = srcArr?.find(c => c.id === srcCardId)
     if (!srcArr || !srcCard) return
-    const newDue = targetStatus === 'doing' && targetGroup ? resolveDoingDue(srcCard, targetGroup) : null
-    if (!newDue && targetArr[targetArr.length - 1]?.id === srcCardId) return
+    const newDue = dueChangeFor(srcCard, targetStatus, targetGroup, resolveDoingDue)
+    if (newDue === null && targetArr[targetArr.length - 1]?.id === srcCardId) return
 
     const lastPos = targetArr[targetArr.length - 1]?.pos ?? 0
     const newPos = lastPos + 16384
 
     try {
       const body: Record<string, any> = { pos: newPos }
-      if (newDue) body.due = newDue
+      if (newDue !== null) body.due = newDue
       if (srcBoardId !== targetBoardId || srcStatus !== targetStatus) {
         body.idList = targetStatus === 'doing' ? targetBoard.doingListId : targetBoard.todoListId
         if (srcBoardId !== targetBoardId) body.idBoard = targetBoardId
@@ -164,7 +185,7 @@ export function useDragDrop(
       if (srcIdx < 0) return
       const [movedCard] = srcArr.splice(srcIdx, 1)
       movedCard.pos = newPos
-      if (newDue) applyDue(srcCard, newDue)
+      applyDueChange(srcCard, newDue)
       targetArr.push(movedCard)
     } catch (e: any) {
       console.error(e)

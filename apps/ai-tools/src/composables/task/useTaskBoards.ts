@@ -23,6 +23,14 @@ export function applyDue(card: Card, dueIso: string) {
   Object.assign(card, timeRemaining(dueIso))
 }
 
+/** 期限を消す（TODOへ移したときに使う。timeRemaining は空文字を渡すとNaN表示になるため専用に用意） */
+export function clearDue(card: Card) {
+  card.due = null
+  card.isOverdue = false
+  card.isUrgent = false
+  card.display = ''
+}
+
 export interface Card {
   id: string
   name: string
@@ -68,15 +76,17 @@ export function useTaskBoards(
   function periodRange(): [Date, Date] {
     const [sy, sm, sd] = periodStart.value.split('-').map(Number)
     const rangeStart = new Date(sy, sm - 1, sd)
-    if (!periodEnd.value) {
-      // 終了日未指定は「今週いっぱい」を上限にする（期限が未来でも今週内のDONEは表示したいため）
-      const now = new Date()
-      const diffFromMonday = (now.getDay() + 6) % 7
-      const sunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffFromMonday + 6, 23, 59, 59)
-      return [rangeStart, sunday]
-    }
+    // 「今週いっぱい」は常に上限に含める（期限が未来でも今週内のDONEは表示したいため）。
+    // periodEnd の既定値は「今日」（空文字ではない）なので、!periodEnd.value のときだけ効く
+    // 特別扱いにすると、週の前半（例:月曜）は今週後半に期限があるDONEタスクが軒並み除外され、
+    // ヘッダーの「週の合計」の分母が実際より少なく出てしまう。
+    const now = new Date()
+    const diffFromMonday = (now.getDay() + 6) % 7
+    const thisWeekSunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffFromMonday + 6, 23, 59, 59)
+    if (!periodEnd.value) return [rangeStart, thisWeekSunday]
     const [ey, em, ed] = periodEnd.value.split('-').map(Number)
-    return [rangeStart, new Date(ey, em - 1, ed, 23, 59, 59)]
+    const explicitEnd = new Date(ey, em - 1, ed, 23, 59, 59)
+    return [rangeStart, explicitEnd > thisWeekSunday ? explicitEnd : thisWeekSunday]
   }
 
   const boards = ref<Board[]>([])
