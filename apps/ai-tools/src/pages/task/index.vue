@@ -1085,18 +1085,18 @@ watch(isLoggedIn, async (v) => {
     </header>
 
     <!-- 今週の目標（DB保存・PC/スマホ共通表示） -->
-    <div v-if="isMounted" class="flex items-center gap-2 px-3 md:px-5 py-2 border-b border-white/[0.06] bg-white/[0.02]">
-      <span class="flex-none text-[11px] font-semibold text-slate-500 uppercase tracking-[0.05em]">🎯 今週の目標</span>
+    <div v-if="isMounted" class="flex items-center gap-2.5 px-3 md:px-5 py-2.5 border-b border-amber-400/20 bg-gradient-to-r from-amber-500/20 via-pink-500/10 to-violet-500/20">
+      <span class="flex-none text-[12px] font-bold text-amber-300 uppercase tracking-[0.05em]">🎯 今週の目標</span>
       <input
         v-model="weeklyGoalInput"
         type="text"
         maxlength="200"
         placeholder="今週の目標を入力"
-        class="flex-1 min-w-0 bg-transparent border-none outline-none text-[13px] text-slate-200 placeholder:text-slate-600 py-0.5"
+        class="flex-1 min-w-0 bg-transparent border-none outline-none text-[16px] font-semibold text-amber-100 placeholder:text-amber-200/30 py-0.5"
         @blur="commitWeeklyGoal"
         @keydown.enter="blurOnEnter"
       />
-      <span v-if="goalSaving" class="flex-none text-[11px] text-slate-600">保存中…</span>
+      <span v-if="goalSaving" class="flex-none text-[11px] text-amber-200/60">保存中…</span>
     </div>
 
     <!-- Modals -->
