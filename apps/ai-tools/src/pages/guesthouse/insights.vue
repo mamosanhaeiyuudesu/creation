@@ -51,7 +51,7 @@
             どの宿で見るか
             <HelpTip label="宿の切り替えについて">
               1組のお客様の日記には、<b>この宿の話</b>と、お客様がご自身で手配された<b>宿坊の話</b>が混ざります。宿坊の分は「満足と体験」「不便・不満」のタブで分けています。<br />
-              阪中さんが登録されている<b>宿が2つ以上ある</b>ときは、ここで宿を選ぶと、その宿に泊まられたお客様だけで数え直します（満足度・関心・体験・旅程・お客様ごと、すべてが切り替わります）。<b>すべての宿</b>を選ぶと、全部まとめた通しの数字になります。
+              阪中さんが登録されている<b>宿が2つ以上ある</b>ときは、ここで宿を選ぶと、その宿に泊まられたお客様だけで数え直します（満足度・関心・体験・旅程、すべてが切り替わります）。<b>すべての宿</b>を選ぶと、全部まとめた通しの数字になります。
             </HelpTip>
           </p>
           <div class="flex flex-wrap gap-1.5">
@@ -110,80 +110,6 @@
             </h2>
             <p class="text-[12px] text-[var(--gh-ink-soft)] mb-3">後半が多ければ「旅の締めくくりに選ばれている」、前半が多ければ「旅の入り口になっている」ということです。</p>
             <RoutePosition :profiles="profiles" />
-          </section>
-
-          <!-- 滞在の型 -->
-          <section>
-            <h2 class="gh-display text-[16px] font-bold mb-1 flex items-center gap-2">
-              宿が占めた位置
-              <HelpTip label="宿が占めた位置とは">
-                この地域での数日のなかで、宿がどんな役割だったかの分類です。<b>拠点型</b>＝宿は主に寝る・休む場所で、旅の中心は高野山などエリア側。<b>目的地型</b>＝宿の体験（川遊び・農園・食事など）そのものが旅の目的の一部。<b>通過型</b>＝移動の都合で1泊しただけ。<br />
-                下の表は、その分類の<b>判断材料</b>です。日記から滞在時間は取れないので、泊数・連泊かどうか・旅程のどこに置かれたか、で見ています。
-              </HelpTip>
-            </h2>
-            <p class="text-[12px] text-[var(--gh-ink-soft)] mb-3">目的地型が増えるほど、宿が旅の「目的」になっているということです。</p>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div v-for="s in stayTypeRows" :key="s.key" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] p-3.5">
-                <p class="text-[12px] text-[var(--gh-ink-soft)] mb-0.5">{{ s.label }}</p>
-                <p class="gh-display text-[22px] font-bold leading-none">
-                  {{ s.count }}<span class="text-[12px] font-normal text-[var(--gh-ink-soft)] ml-0.5">組</span>
-                </p>
-                <div class="mt-2 h-1.5 rounded-full bg-[var(--gh-paper-2)] overflow-hidden">
-                  <div class="h-full rounded-full" :style="{ width: pct(s.count) + '%', background: s.color }" />
-                </div>
-              </div>
-            </div>
-
-            <!-- 判定材料：通過型／目的地型を見分けるための、日記から取れる手がかり -->
-            <div class="mt-3 rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] overflow-x-auto">
-              <table class="w-full text-[12.5px] min-w-[420px]">
-                <thead>
-                  <tr class="text-[var(--gh-ink-soft)] text-[11.5px]">
-                    <th class="text-left font-normal px-4 py-2.5">型</th>
-                    <th class="text-right font-normal px-2 py-2.5">組数</th>
-                    <th class="text-right font-normal px-2 py-2.5">平均泊数</th>
-                    <th class="text-right font-normal px-2 py-2.5">連泊</th>
-                    <th class="text-left font-normal px-4 py-2.5">旅程での位置</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="s in stayTypeRows" :key="s.key" class="border-t border-[var(--gh-line)]">
-                    <td class="px-4 py-2.5 font-bold">{{ s.label }}</td>
-                    <td class="px-2 py-2.5 text-right tabular-nums">{{ s.count }}</td>
-                    <td class="px-2 py-2.5 text-right tabular-nums text-[var(--gh-ink-soft)]">
-                      {{ s.avgNights ? s.avgNights.toFixed(1) : '—' }}
-                    </td>
-                    <td class="px-2 py-2.5 text-right tabular-nums text-[var(--gh-ink-soft)]">{{ s.multiNights || '—' }}</td>
-                    <td class="px-4 py-2.5 text-[var(--gh-ink-soft)]">{{ s.phaseLabel }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <p class="text-[11.5px] text-[var(--gh-ink-faint)] mt-1.5">
-              平均泊数は、泊数が読み取れた日記だけの平均です（「連泊」は2泊以上の組数）。
-            </p>
-          </section>
-
-          <!-- なぜこの宿が旅程に入ったのか -->
-          <section>
-            <h2 class="gh-display text-[16px] font-bold mb-1 flex items-center gap-2">
-              この宿が旅程に入った理由
-              <HelpTip label="この一覧について">
-                「旅のどこに置かれたか」と対にして、<b>なぜこの宿が旅程に組み込まれたのか</b>を日記から読み取ったものです。阪中さんのツアー目当てで来られたのか、高野山を回るための場所として選ばれたのか、単に経路上だったのかで、次にお伝えすべきことが変わります。<br />
-                本文に手がかりが無いものは、推測で埋めずに「読み取れず」にしています。
-              </HelpTip>
-            </h2>
-            <p class="text-[12px] text-[var(--gh-ink-soft)] mb-3">「読み取れず」が多いときは、日記に来訪のきっかけを一言書き足すと読めるようになります。</p>
-            <ul v-if="visitReasonStats.length" class="space-y-1.5">
-              <li v-for="r in visitReasonStats" :key="r.key" class="flex items-center gap-2.5 text-[13px]">
-                <span class="w-[8.5rem] shrink-0">{{ r.label }}</span>
-                <span class="flex-1 h-2 rounded-full bg-[var(--gh-paper-2)] overflow-hidden">
-                  <span class="block h-full rounded-full" :style="{ width: (r.count / visitReasonStats[0].count) * 100 + '%', background: r.color }" />
-                </span>
-                <span class="text-[12px] text-[var(--gh-ink-soft)] tabular-nums shrink-0">{{ r.count }}</span>
-              </li>
-            </ul>
-            <p v-else class="text-[12.5px] text-[var(--gh-ink-soft)]">まだ読み取れていません。</p>
           </section>
 
           <!-- 満足と体験（1つの軸にまとめたもの）-->
@@ -396,67 +322,6 @@
               </template>
             </template>
           </section>
-
-          <!-- ゲスト個別（宿ごとに分けて出す） -->
-          <section>
-            <h2 class="gh-display text-[16px] font-bold mb-3 flex items-center gap-2">
-              お客様ごと
-              <HelpTip label="この一覧について">
-                集計の元になった1組ずつの読み取り結果です。名前をタップすると、その会話・日記に戻れます。<br />
-                旅程は<b>通った順</b>に番号を振っています。太字がこの宿です。宿が2つ以上あるときは<b>宿ごとに分けて</b>並べます。
-              </HelpTip>
-            </h2>
-            <div v-for="g in guestGroups" :key="g.houseId" class="mb-5 last:mb-0">
-              <p v-if="guestGroups.length > 1" class="text-[12.5px] font-bold text-[var(--gh-ink-soft)] mb-2">
-                {{ g.houseName || '宿名なし' }}<span class="font-normal ml-1">{{ g.list.length }}組</span>
-              </p>
-              <ul class="space-y-2">
-                <li v-for="p in g.list" :key="p.sessionId" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] px-4 py-3">
-                  <div class="flex items-center gap-2 flex-wrap mb-1.5">
-                    <span class="gh-chip !py-0.5 !px-2 !text-[11px]">{{ p.houseName }}</span>
-                    <NuxtLink :to="`/guesthouse/session/${p.sessionId}`" class="font-bold text-[14px] hover:underline underline-offset-2">
-                      {{ p.guestName || '名前未設定のお客様' }}
-                    </NuxtLink>
-                    <span class="gh-chip !py-0.5 !px-2 !text-[10.5px]">{{ STAY_TYPE_LABEL[p.stayType] }}</span>
-                    <span v-if="p.visitReason !== 'unknown'" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-persimmon)]">
-                      {{ VISIT_REASON_LABEL[p.visitReason] }}
-                    </span>
-                    <span v-if="p.originCountry" class="text-[11.5px] text-[var(--gh-ink-soft)]">{{ p.originCountry }}</span>
-                    <span v-if="p.nights" class="text-[11.5px] text-[var(--gh-ink-faint)]">{{ p.nights }}泊</span>
-                    <span v-if="positionOf(p)" class="gh-chip !py-0.5 !px-2 !text-[10.5px] !text-[var(--gh-forest-deep)]">
-                      {{ positionOf(p) }}・{{ ROUTE_PHASE_LABEL[routePhase(p.routeIndex, p.route.length)] }}
-                    </span>
-                  </div>
-
-                  <!-- From / To は旅程が読み取れていてもいなくても必ず出す（どちらか片方だけ消えないように） -->
-                  <p class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed">
-                    <span class="text-[var(--gh-ink-faint)]">From</span> {{ edgesOf(p).prev || '？' }}
-                    <span class="text-[var(--gh-ink-faint)] mx-1">›</span>
-                    <b class="text-[var(--gh-ink)]">{{ p.houseName || '宿' }}</b>
-                    <span class="text-[var(--gh-ink-faint)] mx-1">›</span>
-                    <span class="text-[var(--gh-ink-faint)]">To</span> {{ edgesOf(p).next || '？' }}
-                  </p>
-
-                  <!-- 旅程全体の道のり（通った順の番号つき） -->
-                  <p v-if="p.route.length" class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                    <template v-for="(stop, i) in p.route" :key="i">
-                      <span v-if="i" class="text-[var(--gh-ink-faint)]">›</span>
-                      <span class="inline-flex items-baseline gap-0.5">
-                        <span class="text-[10px] text-[var(--gh-ink-faint)] tabular-nums">{{ i + 1 }}</span>
-                        <span :class="stop === ROUTE_SELF ? 'font-bold text-[var(--gh-ink)]' : ''">{{ routeStopLabel(stop, p.houseName) }}</span>
-                      </span>
-                    </template>
-                  </p>
-
-                  <p v-if="p.areaSpots.length || p.shukuboStays.length || p.tourExperiences.length" class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed mt-0.5">
-                    <template v-if="p.areaSpots.length">立ち寄り：{{ p.areaSpots.join('・') }}<br /></template>
-                    <template v-if="p.tourExperiences.length">ツアーでの体験：{{ p.tourExperiences.join('・') }}<br /></template>
-                    <template v-if="p.shukuboStays.length">ほかに泊まられた宿：{{ p.shukuboStays.join('・') }}</template>
-                  </p>
-                </li>
-              </ul>
-            </div>
-          </section>
         </template>
       </div>
     </template>
@@ -473,8 +338,7 @@ import HelpTip from '~/components/guesthouse/HelpTip.vue'
 import Breadcrumb from '~/components/guesthouse/Breadcrumb.vue'
 import JourneySankey from '~/components/guesthouse/JourneySankey.client.vue'
 import RoutePosition from '~/components/guesthouse/RoutePosition.vue'
-import { routeEdges, routePhase, routePositionLabel, routeStopLabel, ROUTE_PHASE_LABEL, ROUTE_PHASES, ROUTE_SELF } from '~/utils/guesthouse-route'
-import type { AspectSubject, AxisSuggestResult, GuestProfile, Insights, InsightsRefreshResult, StayType, VisitReason } from '~/types/guesthouse'
+import type { AspectSubject, AxisSuggestResult, GuestProfile, Insights, InsightsRefreshResult } from '~/types/guesthouse'
 
 definePageMeta({ layout: 'guesthouse' })
 useHead({ title: '顧客分析 | ゲストハウス案内' })
@@ -482,36 +346,12 @@ useHead({ title: '顧客分析 | ゲストハウス案内' })
 const { isLoggedIn, checked, checkAuth } = useAuth()
 const showAuthModal = computed(() => checked.value && !isLoggedIn.value)
 
-const STAY_TYPE_LABEL: Record<StayType, string> = {
-  base: '拠点型',
-  destination: '目的地型',
-  transit: '通過型',
-  unknown: '不明',
-}
-const STAY_TYPE_COLOR: Record<StayType, string> = {
-  base: 'var(--gh-forest)',
-  destination: 'var(--gh-persimmon)',
-  transit: 'var(--gh-forest-soft)',
-  unknown: 'var(--gh-ink-faint)',
-}
-
 // 感想の主語のラベル。サーバ側の語彙（guesthouse-insights.ts の ASPECT_SUBJECTS）と対で、
-// 増やすときは両方を直す（サーバ utils はクライアントに持ち込めないので STAY_TYPE_LABEL と同じく持ち直している）。
+// 増やすときは両方を直す（サーバ utils はクライアントに持ち込めないのでここに持ち直している）。
 const ASPECT_SUBJECT_LABEL: Record<AspectSubject, string> = {
   inn: 'この宿',
   shukubo: '宿坊・ほかの宿',
   other: 'エリア・その他',
-}
-
-// 旅程に組み込まれた理由のラベル。こちらも guesthouse-insights.ts の VISIT_REASONS と対。
-const VISIT_REASON_LABEL: Record<VisitReason, string> = {
-  tour: '阪中さんのツアー',
-  koyasan: '高野山・エリア観光',
-  nature: '田舎・自然の暮らし',
-  transit: '移動の都合',
-  people: '人とのつながり',
-  price: '価格・空室の都合',
-  unknown: '読み取れず',
 }
 
 const data = ref<Insights | null>(null)
@@ -554,31 +394,6 @@ function selectHouse(id: string) {
   openAspect.value = '' // 対象が変わるので、開いていた引用は閉じる
   axes.value = null // 提案は読んだ日記の範囲つきなので、宿を変えたら出したままにしない
 }
-
-/**
- * 滞在の型ごとの組数と、その型だと判断した材料（泊数・連泊・旅程での位置）。
- * 0件の型も枠として出す（「まだ目的地型がいない」ことに意味があるため）。
- */
-const stayTypeRows = computed(() =>
-  (Object.keys(STAY_TYPE_LABEL) as StayType[]).map((key) => {
-    const list = profiles.value.filter((p) => p.stayType === key)
-    // 泊数が読み取れなかった日記は 0 で入っているので、平均には入れない。
-    const nights = list.map((p) => p.nights).filter((n) => n > 0)
-    const phases = ROUTE_PHASES.filter((ph) => ph !== 'unknown').map((ph) => ({
-      label: ROUTE_PHASE_LABEL[ph].replace('旅の', ''),
-      n: list.filter((p) => routePhase(p.routeIndex, p.route.length) === ph).length,
-    }))
-    return {
-      key,
-      label: STAY_TYPE_LABEL[key],
-      color: STAY_TYPE_COLOR[key],
-      count: list.length,
-      avgNights: nights.length ? nights.reduce((a, b) => a + b, 0) / nights.length : 0,
-      multiNights: list.filter((p) => p.nights >= 2).length,
-      phaseLabel: phases.some((x) => x.n) ? phases.map((x) => `${x.label} ${x.n}`).join('・') : '—',
-    }
-  })
-)
 
 /** 主語（この宿／宿坊・ほかの宿／エリア）ごとの言及数。タブに件数を出して、分けたことが見えるようにする。 */
 const subjectTabs = computed(() =>
@@ -644,45 +459,6 @@ const shukuboStats = computed(() => countBy((p) => p.shukuboStays))
 const spotStats = computed(() => countBy((p) => p.areaSpots))
 const innExpStats = computed(() => countBy((p) => p.innExperiences))
 const tourExpStats = computed(() => countBy((p) => p.tourExperiences))
-
-/** 旅程に組み込まれた理由ごとの組数（多い順）。読み取れなかったものは最後に置く。 */
-const visitReasonStats = computed(() => {
-  const map = new Map<VisitReason, number>()
-  for (const p of profiles.value) map.set(p.visitReason, (map.get(p.visitReason) ?? 0) + 1)
-  return [...map]
-    .map(([key, count]) => ({
-      key,
-      count,
-      label: VISIT_REASON_LABEL[key],
-      color: key === 'unknown' ? 'var(--gh-ink-faint)' : 'var(--gh-persimmon-soft)',
-    }))
-    .sort((a, b) => (a.key === 'unknown' ? 1 : b.key === 'unknown' ? -1 : b.count - a.count))
-})
-
-/** お客様ごとの一覧を宿で分ける（混在で見ているときも、どの宿の話かが混ざらないように）。 */
-const guestGroups = computed(() => {
-  const map = new Map<string, { houseId: string; houseName: string; list: GuestProfile[] }>()
-  for (const p of profiles.value) {
-    const cur = map.get(p.houseId) ?? { houseId: p.houseId, houseName: p.houseName, list: [] }
-    cur.list.push(p)
-    map.set(p.houseId, cur)
-  }
-  return [...map.values()].sort((a, b) => b.list.length - a.list.length)
-})
-
-/** お客様カードの From / To（旅程が読み取れていれば、その隣の地点で補う）。 */
-function edgesOf(p: GuestProfile): { prev: string; next: string } {
-  return routeEdges(p)
-}
-
-/** お客様カードの「全10地点中8番目」。順番が読み取れていなければ空文字（バッジごと出さない）。 */
-function positionOf(p: GuestProfile): string {
-  return routePositionLabel(p.routeIndex, p.route.length)
-}
-
-function pct(n: number): number {
-  return profiles.value.length ? (n / profiles.value.length) * 100 : 0
-}
 
 function toggleAspect(aspect: string) {
   openAspect.value = openAspect.value === aspect ? '' : aspect
