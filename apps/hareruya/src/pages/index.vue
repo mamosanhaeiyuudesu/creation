@@ -28,25 +28,13 @@
           </button>
         </div>
       </div>
+      <!-- LINE・Instagram は画面下の固定バー（.hr-mobile-bar）に常時出ているのでここには置かない -->
       <div id="hr-nav-mobile-menu" class="hr-nav-mobile" :class="{ 'is-open': isMenuOpen }">
         <ul class="hr-nav-mobile-links">
           <li v-for="link in navLinks" :key="link.href">
             <a :href="link.href" @click="isMenuOpen = false">{{ link.label }}</a>
           </li>
         </ul>
-        <LineButton
-          class="hr-nav-mobile-cta"
-          label="ご予約・お問い合わせ"
-          fallback-href="#contact"
-          brand
-          @click="isMenuOpen = false"
-        />
-        <InstagramButton
-          class="hr-nav-mobile-insta"
-          label="施術の様子"
-          brand
-          @click="isMenuOpen = false"
-        />
       </div>
     </nav>
 

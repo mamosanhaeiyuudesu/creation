@@ -1660,50 +1660,6 @@ a.hero-badge.is-link:hover {
   .hr-nav-mobile-links li:last-child a {
     border-bottom: none;
   }
-
-  .hr-nav-mobile-cta {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    height: 46px;
-    margin-top: 18px;
-    border-radius: 999px;
-    background: var(--c-cta);
-    color: var(--c-brown);
-    font-size: 14px;
-    font-weight: 700;
-  }
-
-  .hr-nav-mobile-cta.is-pending {
-    background: var(--c-brown-dim);
-    cursor: default;
-    pointer-events: none;
-  }
-
-  .hr-nav-mobile-insta {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    height: 46px;
-    margin-top: 10px;
-    border-radius: 999px;
-    background: var(--c-insta);
-    color: var(--c-brown);
-    font-size: 14px;
-    font-weight: 700;
-  }
-
-  .hr-nav-mobile-cta .hr-btn-text,
-  .hr-nav-mobile-insta .hr-btn-text {
-    align-items: center;
-  }
-
-  .hr-nav-mobile-cta .hr-btn-label,
-  .hr-nav-mobile-insta .hr-btn-label {
-    font-size: 14px;
-  }
 }
 
 @media (max-width: 860px) {
