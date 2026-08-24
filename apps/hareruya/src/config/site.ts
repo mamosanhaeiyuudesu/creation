@@ -10,6 +10,8 @@
 /** 施術場所ひとつぶんの情報 */
 type Place = {
   name: string
+  /** アクセス欄でこの場所に飛ぶためのページ内アンカーID（ヒーローの所在地バッジなどから参照する） */
+  anchor: string
   address: string
   /** 所在地の下に添える補足。空文字なら何も表示しない */
   addressNote: string
@@ -39,6 +41,7 @@ type Place = {
 /** 若葉台（代表の場所） */
 const wakaba: Place = {
   name: 'ショッピングタウンわかば内『Wakka（わっか）』',
+  anchor: 'access-wakka',
   address: '神奈川県横浜市旭区若葉台3-5-1 ショッピングタウンわかば内『Wakka（わっか）』 BOOK STAND若葉台の隣',
   addressNote: '',
   /** 名刺記載 */
@@ -88,6 +91,7 @@ const wakaba: Place = {
 /** 青葉台駅のレンタルサロン */
 const aobadai: Place = {
   name: '青葉台駅レンタルサロン',
+  anchor: 'access-aobadai',
   address: '神奈川県横浜市青葉区しらとり台1-27',
   addressNote: '部屋番号は日によって変わりますので、ご予約完了時にお知らせします。',
   days: '不定期',
@@ -127,7 +131,7 @@ const places: readonly Place[] = [wakaba, aobadai]
 
 export const site = {
   /** LINE公式アカウントのURL。空文字の間はボタンが案内文の表示 / #contact へのリンクになる */
-  lineUrl: '',
+  lineUrl: 'https://lin.ee/pdrt8JZ',
 
   /** Instagram（名刺表記: @SHOKO_HARIKYU） */
   instagramId: 'shoko_harikyu',
@@ -135,8 +139,10 @@ export const site = {
 
   places,
 
-  /** 以下5つは代表の場所の値。ヒーロー・フッター・お問い合わせで使う */
+  /** 以下6つは代表の場所の値。ヒーロー・フッター・お問い合わせで使う */
   placeName: wakaba.name,
+  /** ヒーローの所在地バッジから代表の場所のアクセス欄へ飛ばすためのアンカーID */
+  placeAnchor: wakaba.anchor,
   address: wakaba.address,
   addressNote: wakaba.addressNote,
   openDays: wakaba.days,

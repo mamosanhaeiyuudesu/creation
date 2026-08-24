@@ -10,6 +10,35 @@
         </p>
       </header>
 
+      <section v-if="frequentTools.length" class="mb-12 sm:mb-16">
+        <div class="flex items-baseline gap-3 mb-4 pb-3 border-b border-white/[0.08]">
+          <h2 class="m-0 text-lg sm:text-xl font-bold text-violet-300">よく使う</h2>
+          <p class="m-0 text-xs sm:text-sm text-slate-500">この端末で開いた回数の多い順</p>
+          <button
+            type="button"
+            class="ml-auto flex-shrink-0 text-xs text-slate-500 hover:text-slate-300 transition-colors bg-transparent border-0 cursor-pointer p-0"
+            @click="resetUsage"
+          >
+            リセット
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <NuxtLink
+            v-for="{ tool, count } in frequentTools"
+            :key="tool.path"
+            :to="tool.path"
+            class="group no-underline rounded-2xl border border-violet-400/20 bg-violet-400/[0.06] p-4 flex flex-col items-center text-center gap-2 transition-all duration-200 hover:-translate-y-0.5 hover:bg-violet-400/[0.1] hover:border-violet-400/40 hover:shadow-[0_0_24px_rgba(167,139,250,0.14)]"
+          >
+            <div class="text-3xl leading-none emoji">{{ tool.icon }}</div>
+            <h3 class="m-0 text-sm font-bold text-slate-100 group-hover:text-violet-200 transition-colors truncate max-w-full">
+              {{ tool.name }}
+            </h3>
+            <span class="text-[11px] text-violet-300/70 tabular-nums">{{ count }}回</span>
+          </NuxtLink>
+        </div>
+      </section>
+
       <section v-for="section in sections" :key="section.title" class="mb-12 sm:mb-16 last:mb-0">
         <div class="flex items-baseline gap-3 mb-4 pb-3 border-b border-white/[0.08]">
           <h2 :class="['m-0 text-lg sm:text-xl font-bold', accents[section.accent].heading]">
@@ -56,23 +85,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-
-type Accent = 'sky' | 'amber' | 'emerald' | 'slate'
-
-type Tool = {
-  path: string
-  icon: string
-  name: string
-  desc: string
-  tags?: string[]
-}
-
-type Section = {
-  title: string
-  lead: string
-  accent: Accent
-  tools: Tool[]
-}
+import { SECTIONS, type Accent } from '~/utils/tools'
+import { useToolUsage } from '~/composables/useToolUsage'
 
 // Tailwind は動的に組み立てた文字列を検出できないので、クラスは完全な形で持つ
 const accents: Record<Accent, { heading: string; card: string; name: string; tag: string }> = {
@@ -102,56 +116,10 @@ const accents: Record<Accent, { heading: string; card: string; name: string; tag
   },
 }
 
-const sections: Section[] = [
-  {
-    title: '日々の道具',
-    lead: '自分たちで毎日使うもの',
-    accent: 'sky',
-    tools: [
-      { path: '/whisper', icon: '🎙️', name: 'whisper', desc: '録音や音声ファイルから文字起こし・要約・校正。Whisper / Gemini を切替可能。', tags: ['要ログイン'] },
-      { path: '/hagemashi', icon: '💪', name: 'はげまし', desc: 'いまの状況を話すと、AIがはげましの言葉を書いて読み上げる。', tags: ['要ログイン', '読み上げ'] },
-      { path: '/task', icon: '📋', name: 'タスクくん', desc: 'Trello の DOING / TODO / DONE を1画面に。週の使い方をAIが振り返る。', tags: ['要ログイン', 'Trello連携'] },
-      { path: '/fitbit', icon: '⌚️', name: 'Fitbit', desc: '睡眠・歩数・心拍・HRV をまとめたヘルスダッシュボードと相談チャット。', tags: ['要ログイン', 'Google連携'] },
-      { path: '/office', icon: '🏢', name: '勤怠', desc: '出勤・退勤の打刻と日付ごとの記録。', tags: ['要ログイン'] },
-      { path: '/games', icon: '🎮', name: 'ゲーム', desc: 'パネルでポン・賢くなるパズル。息抜き用のレトロゲーム集。' },
-    ],
-  },
-  {
-    title: '誰かのために作ったアプリ',
-    lead: '相談を受けて、その人の仕事や暮らしに合わせて作ったもの',
-    accent: 'amber',
-    tools: [
-      { path: '/kaki', icon: '🌳', name: '柿の木 里親', desc: '自分の柿の木の成長写真・観察日記・応援コメントを見る。農家用の管理画面つき。', tags: ['要ログイン'] },
-      { path: '/momo', icon: '🍑', name: '桃 注文管理', desc: 'SNSの会話を貼るとAIが注文を構造化。選果集計と佐川e飛伝III用CSVまで。', tags: ['要ログイン'] },
-      { path: '/guesthouse', icon: '🏡', name: 'ゲストハウス案内', desc: 'お客様チャットにAIが自ら回答し、緊急時だけホストへ取り次ぐ。日記から顧客分析も。', tags: ['要ログイン', '共有リンク'] },
-      { path: '/ippon', icon: '✏️', name: 'Sketch2View', desc: '紙のスケッチを撮ると、AIが形を読み解いて3Dビューにする。共有リンクで見せられる。', tags: ['要ログイン', '共有リンク'] },
-      { path: '/keiko', icon: '🥋', name: 'けいこ記録', desc: '剣道の稽古をメンバーごとに記録。週・月・年でポイントを集計する。', tags: ['要ログイン'] },
-      { path: '/kiroku', icon: '📝', name: 'kiroku', desc: '感情メモ。開いたらすぐ書ける入力欄ひとつ。AIの分析も採点もしない。', tags: ['端末内に保存'] },
-      { path: '/life', icon: '📖', name: '人生のインタビュー', desc: 'ライフステージごとのテーマをAIと対話で深掘り。答えは本人のスプレッドシートへ。', tags: ['要ログイン', 'Google連携'] },
-      { path: '/life-analyzer', icon: '🌗', name: '人生の影と光', desc: '自分について書かれた文章から、影と光のコアを図にして読み返す。', tags: ['要ログイン'] },
-    ],
-  },
-  {
-    title: 'データを見る',
-    lead: '集めたデータを読めるかたちにしたもの',
-    accent: 'emerald',
-    tools: [
-      { path: '/miyako', icon: '🏝️', name: '宮古島市議会 議事録', desc: 'キーワード×会期のヒートマップとAI解説。キーワード検索・議員別・年別の推移も。' },
-      { path: '/japanese-mlb-player', icon: '⚾', name: '日本人MLB選手', desc: '打者・投手のスタッツを FanGraphs / MLB Stats から取得して一覧。' },
-      { path: '/farm-log', icon: '🌿', name: '農作業ログ', desc: 'スマホのセンサーで記録した農作業の動きを可視化。' },
-    ],
-  },
-  {
-    title: '休止中',
-    lead: 'いまは手を入れていないもの',
-    accent: 'slate',
-    tools: [
-      { path: '/snapreader', icon: '📸', name: 'SnapReader', desc: '画像をアップロードしてOCR・要約・AIチャット。' },
-      { path: '/marriage', icon: '💑', name: 'marriage', desc: 'ふたりの日々をムードとコメントで記録するカレンダー。', tags: ['要ログイン'] },
-      { path: '/setsuyaku', icon: '💰', name: '節約', desc: '節約の記録。', tags: ['要ログイン'] },
-    ],
-  },
-]
+const sections = SECTIONS
+
+// 「よく使う」は端末内の記録なので、SSR では空。onMounted で埋まる。
+const { frequentTools, resetUsage } = useToolUsage()
 
 const toolCount = computed(() => sections.reduce((sum, s) => sum + s.tools.length, 0))
 

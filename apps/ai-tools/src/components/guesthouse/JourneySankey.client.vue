@@ -9,6 +9,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { routeEdges } from '~/utils/guesthouse-route'
 import type { GuestProfile } from '~/types/guesthouse'
 
 const props = defineProps<{ profiles: GuestProfile[] }>()
@@ -37,20 +38,28 @@ const COLOR = {
 interface Graph {
   nodes: { name: string; itemStyle: { color: string } }[]
   links: { source: string; target: string; value: number }[]
+  /** 右の列（次の行き先）に出るいちばん長いラベルの文字数。ラベルを切らない余白の計算に使う。 */
+  maxNextLen: number
 }
 
 const graph = computed<Graph>(() => {
   const nodeColor = new Map<string, string>()
   const linkCounts = new Map<string, number>()
+  let maxNextLen = 0
 
   for (const p of props.profiles) {
-    const prev = PREV + (p.prevStop || UNKNOWN)
+    // prevStop / nextStop が空でも route から補う（片側だけ「（記載なし）」に落ちるのを防ぐ）。
+    const edges = routeEdges(p)
+    const prevName = edges.prev || UNKNOWN
+    const nextName = edges.next || UNKNOWN
+    const prev = PREV + prevName
     const inn = INN + (p.houseName || '宿')
-    const next = NEXT + (p.nextStop || UNKNOWN)
+    const next = NEXT + nextName
 
     nodeColor.set(prev, COLOR.prev)
     nodeColor.set(inn, COLOR.inn)
     nodeColor.set(next, COLOR.next)
+    maxNextLen = Math.max(maxNextLen, nextName.length)
 
     for (const key of [prev + SEP + inn, inn + SEP + next]) {
       linkCounts.set(key, (linkCounts.get(key) ?? 0) + 1)
@@ -63,12 +72,19 @@ const graph = computed<Graph>(() => {
       const [source, target] = key.split(SEP)
       return { source, target, value }
     }),
+    maxNextLen,
   }
 })
 
 const linkCount = computed(() => graph.value.links.length)
 // ノードが増えるほど縦に詰まるので、左右どちらかの最大ノード数で高さを決める。
 const chartHeight = computed(() => Math.max(260, graph.value.nodes.length * 34))
+/**
+ * 右端（次の行き先）のラベルぶんの余白。
+ * sankey のラベルは既定でノードの右側に描かれるため、いちばん右の列だけは
+ * 余白を空けておかないと枠の外にはみ出して**まるごと見えなくなる**（＝「To が表示されない」）。
+ */
+const rightPad = computed(() => Math.min(170, graph.value.maxNextLen * 12 + 18))
 
 function stripPrefix(name: string): string {
   return name.replace(/^(前:|次:|宿:)/, '')
@@ -91,7 +107,7 @@ function render() {
         data: graph.value.nodes,
         links: graph.value.links,
         left: 4,
-        right: 4,
+        right: rightPad.value,
         top: 12,
         bottom: 12,
         nodeWidth: 12,

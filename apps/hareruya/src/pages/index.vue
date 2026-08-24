@@ -81,11 +81,12 @@
           </span>
         </div>
         <!-- 所在地はバッジ単体で中央に。建物名とその他の場所は下に米印の補足として置く -->
+        <!-- クリックでアクセス欄の Wakka（わっか）の項目へ飛ばす -->
         <div class="hero-place">
-          <span class="hero-badge">
+          <a :href="`#${site.placeAnchor}`" class="hero-badge is-link">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
             横浜市旭区若葉台3-5-1
-          </span>
+          </a>
         </div>
         <div class="hero-notes">
           <p class="hero-note">※{{ site.placeName }}</p>
@@ -276,7 +277,7 @@
         <p class="section-label">Access</p>
         <h2 class="section-title">アクセス</h2>
         <p class="section-note">※ 曜日により施術場所が異なります</p>
-        <div v-for="(place, i) in site.places" :key="place.name" class="access-place">
+        <div v-for="(place, i) in site.places" :id="place.anchor" :key="place.name" class="access-place">
           <h3 class="access-place-title">
             <span class="access-place-num">{{ String(i + 1).padStart(2, '0') }}</span>
             {{ place.name }}
@@ -392,7 +393,7 @@
     <section id="contact" class="hr-cta">
       <div class="hr-wrap">
         <div class="cta-inner">
-          <h2 class="cta-title">まずは、お気軽にご相談ください。</h2>
+          <h2 class="cta-title">まずはお気軽にご相談下さい。</h2>
           <p class="cta-desc">
             「これって鍼灸で相談していいのかな？」<br />
             そのくらいの段階で大丈夫です。<br />

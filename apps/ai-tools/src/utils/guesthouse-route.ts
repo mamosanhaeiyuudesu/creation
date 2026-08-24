@@ -59,3 +59,19 @@ export function routePositionLabel(index: number, total: number): string {
 export function routeStopLabel(stop: string, houseName: string): string {
   return stop === ROUTE_SELF ? houseName || '宿' : stop
 }
+
+/**
+ * 旅程の「前の滞在地（From）」「次の行き先（To）」を決める。
+ *
+ * prevStop / nextStop が空でも、route（旅程全体の経由地）が読み取れていれば、その中の
+ * この宿の隣の地点を使う。読み取れなければ空文字。
+ * 図（Sankey）とお客様カードの両方で同じ答えになるよう、ここに1つだけ置く。
+ */
+export function routeEdges(p: { prevStop: string; nextStop: string; route: string[] }): { prev: string; next: string } {
+  const route = p.route ?? []
+  const i = route.indexOf(ROUTE_SELF)
+  return {
+    prev: p.prevStop || (i > 0 ? route[i - 1] : '') || '',
+    next: p.nextStop || (i >= 0 ? (route[i + 1] ?? '') : '') || '',
+  }
+}

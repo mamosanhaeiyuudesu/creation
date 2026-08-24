@@ -3,9 +3,9 @@
 import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
 import { buildKnowledgeBase } from '~/server/utils/guesthouse'
 import { buildTriageSystem, buildAnswerSystem, buildEmergencyReplySystem, buildInfoGapReplySystem, WEB_SEARCH } from '~/server/utils/guesthouse-policy'
-import { buildProfileExtractSystem, INTEREST_TOPICS, SATISFACTION_ASPECTS } from '~/server/utils/guesthouse-insights'
+import { buildAxisSuggestSystem, buildProfileExtractSystem, INTEREST_TOPICS, SATISFACTION_ASPECTS, VISIT_REASONS } from '~/server/utils/guesthouse-insights'
 import { ROUTE_SELF } from '~/utils/guesthouse-route'
-import type { AspectMention, AspectSubject, ChatMessage, Diary, DiaryContent, ExtractResult, ExtractedFact, ExtractedTip, FarewellDraft, GuestProfileData, House, StayType, ThreadMessage, Tip, TipExtractResult, TrendItem } from '~/types/guesthouse'
+import type { AspectMention, AspectSubject, AxisSuggestion, AxisSuggestResult, ChatMessage, Diary, DiaryContent, ExtractResult, ExtractedFact, ExtractedTip, FarewellDraft, GuestProfileData, House, StayType, ThreadMessage, Tip, TipExtractResult, TrendItem, VisitReason } from '~/types/guesthouse'
 
 /** 会話を読みやすいテキスト起こしにする（プロンプト用）。 */
 export function threadTranscript(messages: ThreadMessage[]): string {
@@ -553,6 +553,11 @@ export async function extractGuestProfile(
     ? p.stayType
     : 'unknown'
 
+  // 旅程に組み込まれた理由。固定語彙から外れた値は 'unknown'（推測で埋まるより空の方がよい）。
+  const visitReason: VisitReason = Object.keys(VISIT_REASONS).includes(p?.visitReason)
+    ? (p.visitReason as VisitReason)
+    : 'unknown'
+
   // 旅程の順番。AI が書いた routeIndex より、route の中の "この宿" の位置を優先する
   // （両方あるとズレることがあり、番号だけズレると「何番目か」が静かに嘘になるため）。
   const route = strList(p?.route)
@@ -576,6 +581,8 @@ export async function extractGuestProfile(
     shukuboStays: strList(p?.shukuboStays),
     areaSpots: strList(p?.areaSpots),
     innExperiences: strList(p?.innExperiences),
+    tourExperiences: strList(p?.tourExperiences),
+    visitReason,
     topics: strList(p?.topics, INTEREST_TOPICS),
     aspects: (Array.isArray(p?.aspects) ? p.aspects : [])
       .map((a: any) => ({
@@ -590,5 +597,54 @@ export async function extractGuestProfile(
       .filter((a: AspectMention) => a.quote && SATISFACTION_ASPECTS.includes(a.aspect as any)),
     beforeExpectation: str(p?.beforeExpectation),
     afterImpression: str(p?.afterImpression),
+  }
+}
+
+/** 分析軸の提案でAIに渡す1件あたりの上限文字数。長い日記に引きずられて件数が減らないよう頭で切る。 */
+const AXIS_SOURCE_CHARS = 900
+/** 分析軸の提案で読む日記の上限件数（新しい順）。Workers の実行時間と入力トークンを抑えるため。 */
+const AXIS_SOURCE_DIARIES = 80
+
+/**
+ * 生の日記＋聞き取りメモを読ませて、「他に見るべき分析軸」を提案させる（item 6）。
+ *
+ * 固定語彙の集計（extractGuestProfile）が「決めた軸で数える」のに対し、こちらは
+ * **軸そのものを問い直す**ための機能。結果は保存せず、その場で読んで判断する材料にする。
+ */
+export async function suggestAnalysisAxes(
+  apiKey: string,
+  diaries: Diary[],
+  hearingNotes: Map<string, string[]>
+): Promise<AxisSuggestResult> {
+  const used = diaries.slice(0, AXIS_SOURCE_DIARIES)
+  const corpus = used
+    .map((d, i) => {
+      const c = d.content
+      const notes = (hearingNotes.get(d.sessionId) ?? []).join(' / ')
+      const body = `国籍:${c.nationality} / 旅程:${c.itinerary}\n印象:${c.highlights}\n気づき:${c.notes}${notes ? `\n聞き取り:${notes}` : ''}`
+      return `【${i + 1}】${d.guestName || '匿名'}\n${body.slice(0, AXIS_SOURCE_CHARS)}`
+    })
+    .join('\n\n')
+
+  const out = await callClaudeText(apiKey, {
+    system: buildAxisSuggestSystem(),
+    maxTokens: 1800,
+    messages: [{ role: 'user', content: `お客さん日記・聞き取りメモ（${used.length}件）:\n"""\n${corpus || '（なし）'}\n"""` }],
+  })
+
+  const p = parseJsonLoose<any>(out) ?? {}
+  const items: AxisSuggestion[] = (Array.isArray(p?.items) ? p.items : [])
+    .map((it: any) => ({
+      title: String(it?.title ?? '').trim(),
+      why: String(it?.why ?? '').trim(),
+      values: (Array.isArray(it?.values) ? it.values : []).map((v: any) => String(v ?? '').trim()).filter(Boolean),
+      evidence: String(it?.evidence ?? '').trim(),
+    }))
+    .filter((it: AxisSuggestion) => it.title)
+
+  return {
+    items,
+    redundant: (Array.isArray(p?.redundant) ? p.redundant : []).map((v: any) => String(v ?? '').trim()).filter(Boolean),
+    basedOn: used.length,
   }
 }

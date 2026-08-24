@@ -280,6 +280,14 @@ export type StayType = 'base' | 'destination' | 'transit' | 'unknown'
  */
 export type AspectSubject = 'inn' | 'shukubo' | 'other'
 
+/**
+ * なぜこの宿が旅程に組み込まれたか。tour=阪中さんのツアー目当て／koyasan=高野山・エリア観光の拠点／
+ * nature=田舎・自然・農の暮らしそのもの／transit=移動の都合／people=人とのつながり（紹介・再訪）／
+ * price=価格・空室の都合／unknown=読み取れない。
+ * 「宿が旅程のどこに置かれるか」だけでなく「なぜ置かれるか」を見るための軸。
+ */
+export type VisitReason = 'tour' | 'koyasan' | 'nature' | 'transit' | 'people' | 'price' | 'unknown'
+
 /** 満足度の1件。自由記述から点数は作らず、「どの側面がどちら向きに語られたか」＋原文の引用だけを持つ。 */
 export interface AspectMention {
   subject: AspectSubject // 何についての感想か（宿／宿坊・ほかの宿／エリア）
@@ -306,7 +314,16 @@ export interface GuestProfileData {
   /** お客様がご自身で手配した、この宿以外の宿泊先（高野山の宿坊など）。宿の感想と混ぜないための分離用。 */
   shukuboStays: string[]
   areaSpots: string[]
+  /**
+   * **宿にいるあいだ**に宿が用意した体験（宿の食事・囲炉裏・朝の畑しごとなど）。
+   * ツアーで得た体験（果物の味・川遊びなど）をここに混ぜると「宿単体の感想」が読めなくなるので、
+   * 抽出の時点で tourExperiences と分けている。
+   */
   innExperiences: string[]
+  /** 宿の外へ案内するツアー・アクティビティで得た体験（川遊び・収穫・山歩きなど）。 */
+  tourExperiences: string[]
+  /** なぜこの宿が旅程に組み込まれたのか（固定語彙。読み取れなければ 'unknown'）。 */
+  visitReason: VisitReason
   aspects: AspectMention[]
   topics: string[]
   beforeExpectation: string
@@ -333,4 +350,25 @@ export interface Insights {
 /** 顧客分析の更新（再抽出）結果。extracted=今回 Claude を呼んで作り直した件数。 */
 export interface InsightsRefreshResult extends Insights {
   extracted: number
+}
+
+// ── 分析軸の提案（/guesthouse/insights の「AIに切り口を提案してもらう」）──────────
+// 今の分析軸（満足・体験・関心・不便）は仮説で作ったもの。日記が増えたときに
+// 「本当にこの切り口でいいのか」を、生データを読んだAIに問い直すための機能。
+// 提案は保存しない（そのつどの相談相手であって、確定した設定ではないため）。
+
+/** 提案された分析軸1件。 */
+export interface AxisSuggestion {
+  title: string // 軸の名前（例: 「同行者のかたち」）
+  why: string // なぜこの軸を見ると行動につながるのか
+  values: string[] // 実際に分類するときの値の候補（固定語彙の案）
+  evidence: string // そう考えた根拠（日記に実際に出てきた言葉）
+}
+
+/** 分析軸の提案の結果。 */
+export interface AxisSuggestResult {
+  items: AxisSuggestion[]
+  /** 今の軸のうち、データを見ると重複している／効いていないもの（あれば）。 */
+  redundant: string[]
+  basedOn: number // 読んだ日記の件数
 }
