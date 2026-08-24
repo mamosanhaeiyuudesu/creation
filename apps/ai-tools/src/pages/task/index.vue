@@ -22,6 +22,7 @@ import type { Board, Card } from '~/composables/task/useTaskBoards'
 import { useDragDrop } from '~/composables/task/useDragDrop'
 import { useDatePicker } from '~/composables/task/useDatePicker'
 import { useTaskSns, SNS_PLATFORMS } from '~/composables/task/useTaskSns'
+import { useTaskGoal } from '~/composables/task/useTaskGoal'
 import { useHistory } from '~/composables/useHistory'
 import type { HistoryItem } from '~/types/history'
 
@@ -85,6 +86,23 @@ const {
   load: loadSns, save: saveSns,
 } = useTaskSns()
 const showSnsModal = ref(false)
+
+// --- 今週の目標 ---
+const {
+  goal: weeklyGoal, saving: goalSaving,
+  load: loadGoal, save: saveGoal,
+} = useTaskGoal()
+const weeklyGoalInput = ref('')
+watch(weeklyGoal, v => { weeklyGoalInput.value = v }, { immediate: true })
+function commitWeeklyGoal() {
+  if (weeklyGoalInput.value === weeklyGoal.value) return
+  saveGoal(weeklyGoalInput.value)
+}
+// IME変換確定のEnterでもblurが走ると確定文字が二重入力されるため、変換中は無視する
+function blurOnEnter(e: KeyboardEvent) {
+  if (e.isComposing || e.keyCode === 229) return
+  ;(e.target as HTMLInputElement).blur()
+}
 
 // 全件表示
 const showAll = ref(route.query.showAll !== '0')
@@ -539,6 +557,7 @@ onMounted(async () => {
   await init(route.query.profile as string | undefined)
   isMounted.value = true
   loadSns()
+  loadGoal()
   if (hasCredentials.value) load()
   else openSettings()
 })
@@ -548,6 +567,7 @@ watch(isLoggedIn, async (v) => {
   await init(route.query.profile as string | undefined)
   isMounted.value = true
   loadSns()
+  loadGoal()
   if (hasCredentials.value) load()
   else openSettings()
 })
@@ -1063,6 +1083,21 @@ watch(isLoggedIn, async (v) => {
         >{{ loading ? '…' : '更新' }}</button>
       </div>
     </header>
+
+    <!-- 今週の目標（DB保存・PC/スマホ共通表示） -->
+    <div v-if="isMounted" class="flex items-center gap-2 px-3 md:px-5 py-2 border-b border-white/[0.06] bg-white/[0.02]">
+      <span class="flex-none text-[11px] font-semibold text-slate-500 uppercase tracking-[0.05em]">🎯 今週の目標</span>
+      <input
+        v-model="weeklyGoalInput"
+        type="text"
+        maxlength="200"
+        placeholder="今週の目標を入力"
+        class="flex-1 min-w-0 bg-transparent border-none outline-none text-[13px] text-slate-200 placeholder:text-slate-600 py-0.5"
+        @blur="commitWeeklyGoal"
+        @keydown.enter="blurOnEnter"
+      />
+      <span v-if="goalSaving" class="flex-none text-[11px] text-slate-600">保存中…</span>
+    </div>
 
     <!-- Modals -->
     <TaskSettingsModal

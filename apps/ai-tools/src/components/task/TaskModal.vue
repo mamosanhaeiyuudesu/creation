@@ -156,6 +156,11 @@ function commitDue(due: string) {
                 </div>
                 <span :class="['text-[11px] font-medium transition-colors', isUntilNextSunday ? 'text-sky-400' : 'text-slate-500 group-hover:text-slate-300']">来週末まで</span>
               </label>
+              <button
+                type="button"
+                class="bg-transparent border-none p-0 text-[11px] font-medium text-slate-600 hover:text-red-400 transition-colors cursor-pointer"
+                @click="commitDue('')"
+              >期限を消す</button>
             </div>
           </div>
           <TaskDatePicker v-model="form.due" />
