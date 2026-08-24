@@ -73,9 +73,10 @@ function todayDue(): string {
   return `${t.getUTCFullYear()}-${pad2(t.getUTCMonth() + 1)}-${pad2(t.getUTCDate())}T23:59`
 }
 
+// 日曜日は「今日」と「今週の日曜」が同じ日付になるため、優先順位をつけて同時に複数チェックが付かないようにする
 const isUntilToday = computed(() => !!form.value.due && form.value.due === todayDue())
-const isUntilSunday = computed(() => !!form.value.due && form.value.due === sundayDue(0))
-const isUntilNextSunday = computed(() => !!form.value.due && form.value.due === sundayDue(1))
+const isUntilSunday = computed(() => !!form.value.due && !isUntilToday.value && form.value.due === sundayDue(0))
+const isUntilNextSunday = computed(() => !!form.value.due && !isUntilToday.value && !isUntilSunday.value && form.value.due === sundayDue(1))
 
 // 今日まで／週末まで／来週末までは即座に確定させたい操作のため、チェックを入れた瞬間に保存してポップアップを閉じる
 function commitDue(due: string) {

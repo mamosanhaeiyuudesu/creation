@@ -282,11 +282,12 @@ export type VisitReason = 'tour' | 'koyasan' | 'nature' | 'transit' | 'people' |
 /** 感想の話題。IMPRESSION_CATEGORIES の固定語彙（guesthouse-insights.ts）。 */
 export type ImpressionCategory = '宿' | '観光地' | '食事' | 'アクティビティ'
 
-/** 旅の感想の1件。自由記述から点数は作らず、「何について・どちら向きに語られたか」＋原文の引用だけを持つ。 */
+/** 旅の感想の1件。自由記述から点数は作らず、「何について・どちら向きに語られたか」＋読んで内容が伝わる引用を持つ。 */
 export interface Impression {
   category: ImpressionCategory
   sentiment: 'positive' | 'negative'
-  quote: string // 根拠になった日記・メモの原文（言い換えなし）
+  quote: string // 根拠になった日記・メモの引用（原文をもとに、地名など曖昧な部分は前後の文脈から補って自然な一文にしたもの）
+  keywords: string[] // 感想の中の具体的な対象語（例: 精進料理, 柿の葉寿司）。絞り込みタグに使う
 }
 
 /** AIが日記1件から抽出した内容そのもの（DBに JSON で入る部分）。 */

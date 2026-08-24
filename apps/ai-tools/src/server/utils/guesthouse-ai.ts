@@ -576,6 +576,7 @@ export async function extractGuestProfile(
       category: str(im?.category),
       sentiment: im?.sentiment === 'negative' ? ('negative' as const) : ('positive' as const),
       quote: str(im?.quote),
+      keywords: strList(im?.keywords).slice(0, 3),
     }))
     .filter((im: any): im is Impression => Boolean(im.quote) && (IMPRESSION_CATEGORIES as readonly string[]).includes(im.category))
 

@@ -117,7 +117,7 @@
               満足・不満の声
               <HelpTip label="満足・不満の声の見方">
                 日記のなかの感想を、<b>満足／不満</b>と、<b>宿・観光地・食事・アクティビティ</b>のどれについてかで分けています。<b>点数は付けていません</b>——自由に書かれた文章から点数を作ると、根拠のない精度が出てしまうためです。<br />
-                まず上のタブで満足／不満を選び、次に下のタブで話題を選ぶと、その組み合わせに当てはまる件数とお客様の言葉が一覧できます。
+                まず上のタブで満足／不満を選び、次に下のタブで話題を選ぶと、その組み合わせに当てはまる件数とお客様の言葉が一覧できます。話題タブの下には、その中でよく出てくる具体的な言葉（料理名・場所名など）がタグとして出るので、さらに絞り込めます。既定は「すべて」です。
               </HelpTip>
             </h2>
             <p class="text-[12px] text-[var(--gh-ink-soft)] mb-3">タブを切り替えると、あてはまる感想の件数と言葉が入れ替わります。</p>
@@ -143,6 +143,22 @@
                 @click="selectCategory(c.key)"
               >
                 {{ c.label }} <b class="ml-0.5">{{ c.count }}</b>
+              </button>
+            </div>
+            <!-- よく出てくる具体語のタグ：2件以上のものだけ出す（1件だけでは絞り込みの意味が薄い） -->
+            <div v-if="keywordTabs.length" class="flex flex-wrap gap-1.5 mb-3">
+              <button type="button" class="gh-chip" :class="{ 'gh-chip--on': !keywordFilter }" @click="keywordFilter = ''">
+                すべて
+              </button>
+              <button
+                v-for="k in keywordTabs"
+                :key="k.key"
+                type="button"
+                class="gh-chip"
+                :class="{ 'gh-chip--on': keywordFilter === k.key }"
+                @click="selectKeyword(k.key)"
+              >
+                {{ k.key }} <b class="ml-0.5">{{ k.count }}</b>
               </button>
             </div>
             <p v-if="!impressionMentions.length" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] text-center text-[var(--gh-ink-soft)] py-8 text-[13px]">
@@ -196,6 +212,8 @@ const sentiment = ref<Sentiment>('positive')
 const category = ref<ImpressionCategory>('宿')
 // どの宿で見るか。空文字＝すべての宿をまとめて（混在）見る状態。
 const houseFilter = ref('')
+// よく出てくる具体語での絞り込み。空文字＝すべて。
+const keywordFilter = ref('')
 
 /** まだ読み込んでいない日記の件数（更新中は残り件数として出す）。 */
 const remaining = computed(() => Math.max(0, (data.value?.diaryCount ?? 0) - (data.value?.basedOn ?? 0)))
@@ -223,14 +241,21 @@ const profiles = computed<GuestProfile[]>(() =>
 
 function selectHouse(id: string) {
   houseFilter.value = id
+  keywordFilter.value = ''
 }
 
 function selectSentiment(key: Sentiment) {
   sentiment.value = key
+  keywordFilter.value = ''
 }
 
 function selectCategory(key: ImpressionCategory) {
   category.value = key
+  keywordFilter.value = ''
+}
+
+function selectKeyword(key: string) {
+  keywordFilter.value = keywordFilter.value === key ? '' : key
 }
 
 const sentimentLabel = computed(() => SENTIMENT_LABEL[sentiment.value])
@@ -256,17 +281,35 @@ const categoryTabs = computed(() =>
   }))
 )
 
-/** 選んだ満足／不満 × 話題に当てはまる感想の一覧。 */
-const impressionMentions = computed(() => {
-  const list: { sessionId: string; guestName: string; quote: string }[] = []
+/** 選んだ満足／不満 × 話題に当てはまる感想の一覧（タグ絞り込み前）。 */
+const impressionMentionsAll = computed(() => {
+  const list: { sessionId: string; guestName: string; quote: string; keywords: string[] }[] = []
   for (const p of profiles.value) {
     for (const im of p.impressions) {
       if (im.sentiment !== sentiment.value || im.category !== category.value) continue
-      list.push({ sessionId: p.sessionId, guestName: p.guestName, quote: im.quote })
+      list.push({ sessionId: p.sessionId, guestName: p.guestName, quote: im.quote, keywords: im.keywords ?? [] })
     }
   }
   return list
 })
+
+/** よく出てくる具体語のタグ（多い順・上位12個）。1件しか無いタグは絞り込みの意味が薄いので出さない。 */
+const keywordTabs = computed(() => {
+  const counts = new Map<string, number>()
+  for (const m of impressionMentionsAll.value) {
+    for (const k of m.keywords) counts.set(k, (counts.get(k) ?? 0) + 1)
+  }
+  return [...counts.entries()]
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([key, count]) => ({ key, count }))
+})
+
+/** タグを選んでいれば、それを含む感想だけに絞り込む。 */
+const impressionMentions = computed(() =>
+  keywordFilter.value ? impressionMentionsAll.value.filter((m) => m.keywords.includes(keywordFilter.value)) : impressionMentionsAll.value
+)
 
 function formatDate(s: string): string {
   const m = s?.match(/^(\d{4})-(\d{2})-(\d{2})/)
