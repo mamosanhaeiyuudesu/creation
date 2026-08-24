@@ -1100,7 +1100,7 @@ export async function buildInsights(event: H3Event, db: any, userId: string, voc
       shukuboStays: hit.data.shukuboStays ?? [],
       tourExperiences: hit.data.tourExperiences ?? [],
       visitReason: hit.data.visitReason ?? 'unknown',
-      aspects: (hit.data.aspects ?? []).map((a) => ({ ...a, subject: a.subject ?? 'other' })),
+      impressions: hit.data.impressions ?? [],
       sessionId: d.sessionId,
       houseId: d.houseId,
       houseName: houseNames.get(d.houseId) ?? '',
