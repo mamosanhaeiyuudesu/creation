@@ -272,15 +272,6 @@ export interface TrendsRefreshResult extends Trends {
 export type StayType = 'base' | 'destination' | 'transit' | 'unknown'
 
 /**
- * 感想が「何について」のものか。inn=阪中さんのこの宿／shukubo=お客様がご自身で手配した別の宿泊先
- * （高野山の宿坊・旅館など）／other=宿ではなくエリアの観光・食事・交通など。
- *
- * 一人のお客様の日記には、この宿の感想と自分で取った宿坊の感想が混ざる。分けずに数えると
- * 「宿そのものの評価」が読めなくなるため、抽出の時点で主語を分けて持つ。
- */
-export type AspectSubject = 'inn' | 'shukubo' | 'other'
-
-/**
  * なぜこの宿が旅程に組み込まれたか。tour=阪中さんのツアー目当て／koyasan=高野山・エリア観光の拠点／
  * nature=田舎・自然・農の暮らしそのもの／transit=移動の都合／people=人とのつながり（紹介・再訪）／
  * price=価格・空室の都合／unknown=読み取れない。
@@ -288,10 +279,12 @@ export type AspectSubject = 'inn' | 'shukubo' | 'other'
  */
 export type VisitReason = 'tour' | 'koyasan' | 'nature' | 'transit' | 'people' | 'price' | 'unknown'
 
-/** 満足度の1件。自由記述から点数は作らず、「どの側面がどちら向きに語られたか」＋原文の引用だけを持つ。 */
-export interface AspectMention {
-  subject: AspectSubject // 何についての感想か（宿／宿坊・ほかの宿／エリア）
-  aspect: string // SATISFACTION_ASPECTS の固定語彙
+/** 感想の話題。IMPRESSION_CATEGORIES の固定語彙（guesthouse-insights.ts）。 */
+export type ImpressionCategory = '宿' | '観光地' | '食事' | 'アクティビティ'
+
+/** 旅の感想の1件。自由記述から点数は作らず、「何について・どちら向きに語られたか」＋原文の引用だけを持つ。 */
+export interface Impression {
+  category: ImpressionCategory
   sentiment: 'positive' | 'negative'
   quote: string // 根拠になった日記・メモの原文（言い換えなし）
 }
@@ -324,8 +317,8 @@ export interface GuestProfileData {
   tourExperiences: string[]
   /** なぜこの宿が旅程に組み込まれたのか（固定語彙。読み取れなければ 'unknown'）。 */
   visitReason: VisitReason
-  aspects: AspectMention[]
-  topics: string[]
+  /** 旅の感想（満足／不満 × 宿・観光地・食事・アクティビティ）。1人のゲストの中で重複しない。 */
+  impressions: Impression[]
   beforeExpectation: string
   afterImpression: string
 }
@@ -350,25 +343,4 @@ export interface Insights {
 /** 顧客分析の更新（再抽出）結果。extracted=今回 Claude を呼んで作り直した件数。 */
 export interface InsightsRefreshResult extends Insights {
   extracted: number
-}
-
-// ── 分析軸の提案（/guesthouse/insights の「AIに切り口を提案してもらう」）──────────
-// 今の分析軸（満足・体験・関心・不便）は仮説で作ったもの。日記が増えたときに
-// 「本当にこの切り口でいいのか」を、生データを読んだAIに問い直すための機能。
-// 提案は保存しない（そのつどの相談相手であって、確定した設定ではないため）。
-
-/** 提案された分析軸1件。 */
-export interface AxisSuggestion {
-  title: string // 軸の名前（例: 「同行者のかたち」）
-  why: string // なぜこの軸を見ると行動につながるのか
-  values: string[] // 実際に分類するときの値の候補（固定語彙の案）
-  evidence: string // そう考えた根拠（日記に実際に出てきた言葉）
-}
-
-/** 分析軸の提案の結果。 */
-export interface AxisSuggestResult {
-  items: AxisSuggestion[]
-  /** 今の軸のうち、データを見ると重複している／効いていないもの（あれば）。 */
-  redundant: string[]
-  basedOn: number // 読んだ日記の件数
 }

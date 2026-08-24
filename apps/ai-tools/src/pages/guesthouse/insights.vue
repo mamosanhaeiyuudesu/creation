@@ -50,8 +50,7 @@
           <p class="text-[12.5px] font-bold mb-2 flex items-center gap-2">
             どの宿で見るか
             <HelpTip label="宿の切り替えについて">
-              1組のお客様の日記には、<b>この宿の話</b>と、お客様がご自身で手配された<b>宿坊の話</b>が混ざります。宿坊の分は「満足と体験」「不便・不満」のタブで分けています。<br />
-              阪中さんが登録されている<b>宿が2つ以上ある</b>ときは、ここで宿を選ぶと、その宿に泊まられたお客様だけで数え直します（満足度・関心・体験・旅程、すべてが切り替わります）。<b>すべての宿</b>を選ぶと、全部まとめた通しの数字になります。
+              阪中さんが登録されている<b>宿が2つ以上ある</b>ときは、ここで宿を選ぶと、その宿に泊まられたお客様だけで数え直します（旅程・満足・不満の声、すべてが切り替わります）。<b>すべての宿</b>を選ぶと、全部まとめた通しの数字になります。
             </HelpTip>
           </p>
           <div class="flex flex-wrap gap-1.5">
@@ -112,215 +111,49 @@
             <RoutePosition :profiles="profiles" />
           </section>
 
-          <!-- 満足と体験（1つの軸にまとめたもの）-->
+          <!-- 満足・不満の声：宿/観光地/食事/アクティビティ × 満足/不満 の2軸だけで見せる -->
           <section>
             <h2 class="gh-display text-[16px] font-bold mb-1 flex items-center gap-2">
-              満足と体験
-              <HelpTip label="満足と体験の見方">
-                日記のなかで、どの側面が良い方向・気になる方向で語られたかを数えたものです。<b>点数は付けていません</b>——自由に書かれた文章から点数を作ると、根拠のない精度が出てしまうためです。行を開くと、その根拠になったお客様の言葉がそのまま出ます。<br />
-                「宿が提供した体験」は<b>満足と同じことを別の名前で数えていた</b>ので、この軸にまとめました（体験は側面のひとつとして数えます）。<br />
-                お客様は高野山の宿坊など<b>ご自身で手配された宿</b>にも泊まっておられます。その感想を混ぜると宿そのものの評価が読めなくなるので、<b>この宿／宿坊・ほかの宿／エリア</b>を分けて数えています（既定は「この宿」）。どちらの話か本文から判断できなかった感想は「エリア・その他」に入ります。
+              満足・不満の声
+              <HelpTip label="満足・不満の声の見方">
+                日記のなかの感想を、<b>満足／不満</b>と、<b>宿・観光地・食事・アクティビティ</b>のどれについてかで分けています。<b>点数は付けていません</b>——自由に書かれた文章から点数を作ると、根拠のない精度が出てしまうためです。<br />
+                まず上のタブで満足／不満を選び、次に下のタブで話題を選ぶと、その組み合わせに当てはまる件数とお客様の言葉が一覧できます。
               </HelpTip>
             </h2>
-            <p class="text-[12px] text-[var(--gh-ink-soft)] mb-3">行をタップすると、根拠になった日記の言葉が読めます。</p>
-            <div class="flex flex-wrap gap-1.5 mb-3">
+            <p class="text-[12px] text-[var(--gh-ink-soft)] mb-3">タブを切り替えると、あてはまる感想の件数と言葉が入れ替わります。</p>
+            <div class="flex flex-wrap gap-1.5 mb-2">
               <button
-                v-for="t in subjectTabs"
-                :key="t.key"
+                v-for="s in sentimentTabs"
+                :key="s.key"
                 type="button"
                 class="gh-chip"
-                :class="{ 'gh-chip--on': aspectSubject === t.key }"
-                @click="selectSubject(t.key)"
+                :class="{ 'gh-chip--on': sentiment === s.key }"
+                @click="selectSentiment(s.key)"
               >
-                {{ t.label }} <b class="ml-0.5">{{ t.count }}</b>
+                {{ s.label }} <b class="ml-0.5">{{ s.count }}</b>
               </button>
             </div>
-            <p v-if="!aspectStats.length" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] text-center text-[var(--gh-ink-soft)] py-8 text-[13px]">
-              {{ ASPECT_SUBJECT_LABEL[aspectSubject] }}についての感想は、まだ読み取れていません。
+            <div class="flex flex-wrap gap-1.5 mb-3">
+              <button
+                v-for="c in categoryTabs"
+                :key="c.key"
+                type="button"
+                class="gh-chip"
+                :class="{ 'gh-chip--on': category === c.key }"
+                @click="selectCategory(c.key)"
+              >
+                {{ c.label }} <b class="ml-0.5">{{ c.count }}</b>
+              </button>
+            </div>
+            <p v-if="!impressionMentions.length" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] text-center text-[var(--gh-ink-soft)] py-8 text-[13px]">
+              {{ category }}についての{{ sentimentLabel }}の声は、まだ読み取れていません。
             </p>
-            <ul v-else class="space-y-2">
-              <li v-for="a in aspectStats" :key="a.aspect" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] overflow-hidden">
-                <button type="button" class="w-full text-left px-4 py-3 flex items-center gap-3" @click="toggleAspect(a.aspect)">
-                  <span class="font-bold text-[14px] w-[7.5rem] shrink-0">{{ a.aspect }}</span>
-                  <span class="flex-1 flex h-2.5 rounded-full overflow-hidden bg-[var(--gh-paper-2)]">
-                    <span class="bg-[var(--gh-forest)]" :style="{ width: (a.positive / maxAspect) * 100 + '%' }" />
-                    <span class="bg-[var(--gh-warn)]" :style="{ width: (a.negative / maxAspect) * 100 + '%' }" />
-                  </span>
-                  <span class="text-[12px] text-[var(--gh-ink-soft)] shrink-0 tabular-nums">
-                    <b class="text-[var(--gh-forest-deep)]">{{ a.positive }}</b><template v-if="a.negative"> / <b class="text-[var(--gh-warn)]">{{ a.negative }}</b></template>
-                  </span>
-                  <span class="text-[11px] text-[var(--gh-ink-faint)] shrink-0">{{ openAspect === a.aspect ? '▲' : '▼' }}</span>
-                </button>
-                <ul v-if="openAspect === a.aspect" class="border-t border-[var(--gh-line)] px-4 py-3 space-y-2">
-                  <li v-for="(m, i) in a.mentions" :key="i" class="text-[12.5px] leading-relaxed">
-                    <span class="gh-chip !py-0.5 !px-2 !text-[10.5px] mr-1.5" :class="m.sentiment === 'negative' ? '!text-[var(--gh-warn)]' : '!text-[var(--gh-forest-deep)]'">
-                      {{ m.sentiment === 'negative' ? '気になる' : '良い' }}
-                    </span>
-                    <NuxtLink :to="`/guesthouse/session/${m.sessionId}`" class="text-[var(--gh-forest-deep)] underline underline-offset-2">{{ m.guestName || '名前未設定' }}</NuxtLink>
-                    <span class="text-[var(--gh-ink-soft)]">：「{{ m.quote }}」</span>
-                  </li>
-                </ul>
+            <ul v-else class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] px-4 py-3 space-y-2">
+              <li v-for="(m, i) in impressionMentions" :key="i" class="text-[12.5px] leading-relaxed">
+                <NuxtLink :to="`/guesthouse/session/${m.sessionId}`" class="text-[var(--gh-forest-deep)] underline underline-offset-2">{{ m.guestName || '名前未設定' }}</NuxtLink>
+                <span class="text-[var(--gh-ink-soft)]">：「{{ m.quote }}」</span>
               </li>
             </ul>
-
-            <!-- 体験の内わけ：宿の中でのことと、ツアーで外へ出て得たことを分ける -->
-            <h3 class="text-[13px] font-bold mt-5 mb-1 flex items-center gap-2">
-              体験の内わけ
-              <HelpTip label="体験の内わけについて">
-                お客様が実際に参加された体験を、<b>宿にいるあいだのこと</b>と<b>ツアーで外へ出て得たこと</b>に分けています。<br />
-                果物の味や川遊びのようなツアーの体験が宿の感想に混ざると、<b>宿単体としてどうだったか</b>が読めなくなるため、読み取りの時点で分けています。
-              </HelpTip>
-            </h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-              <div>
-                <p class="text-[12px] text-[var(--gh-ink-soft)] mb-1.5">宿での体験</p>
-                <div v-if="innExpStats.length" class="flex flex-wrap gap-1.5">
-                  <span v-for="e in innExpStats" :key="e.name" class="gh-chip">
-                    {{ e.name }} <b class="text-[var(--gh-forest-deep)] ml-0.5">{{ e.count }}</b>
-                  </span>
-                </div>
-                <p v-else class="text-[12.5px] text-[var(--gh-ink-faint)]">まだ読み取れていません。</p>
-              </div>
-              <div>
-                <p class="text-[12px] text-[var(--gh-ink-soft)] mb-1.5">ツアーでの体験</p>
-                <div v-if="tourExpStats.length" class="flex flex-wrap gap-1.5">
-                  <span v-for="e in tourExpStats" :key="e.name" class="gh-chip !text-[var(--gh-persimmon)] !border-[color-mix(in_srgb,var(--gh-persimmon)_45%,transparent)]">
-                    {{ e.name }} <b class="ml-0.5">{{ e.count }}</b>
-                  </span>
-                </div>
-                <p v-else class="text-[12.5px] text-[var(--gh-ink-faint)]">まだ読み取れていません。</p>
-              </div>
-            </div>
-          </section>
-
-          <!-- 不便・不満（独立した軸として明示的に出す）-->
-          <section>
-            <h2 class="gh-display text-[16px] font-bold mb-1 flex items-center gap-2">
-              不便・不満
-              <HelpTip label="不便・不満の見方">
-                日記のなかで<b>気になる方向で語られたこと</b>だけを集めた一覧です。良かったことは日記に多く書かれますが、宿を良くする材料になるのはこちらなので、独立して出しています。<br />
-                「この宿」「宿坊・ほかの宿」「エリア」の印が付いているので、<b>阪中さんが手を打てるものかどうか</b>が分かります。<br />
-                言葉は日記の原文そのままです（言い換えていません）。
-              </HelpTip>
-            </h2>
-            <p class="text-[12px] text-[var(--gh-ink-soft)] mb-3">名前をタップすると、その会話・日記に戻れます。</p>
-            <p v-if="!issueGroups.length" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] text-center text-[var(--gh-ink-soft)] py-8 text-[13px]">
-              気になる方向で語られたことは、まだ読み取れていません。
-            </p>
-            <ul v-else class="space-y-2">
-              <li v-for="g in issueGroups" :key="g.aspect" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] px-4 py-3">
-                <p class="text-[13px] font-bold mb-1.5">
-                  {{ g.aspect }}
-                  <span class="text-[11.5px] font-normal text-[var(--gh-ink-soft)] ml-1">{{ g.mentions.length }}件</span>
-                </p>
-                <ul class="space-y-1.5">
-                  <li v-for="(m, i) in g.mentions" :key="i" class="text-[12.5px] leading-relaxed">
-                    <span class="gh-chip !py-0.5 !px-2 !text-[10.5px] mr-1.5">{{ ASPECT_SUBJECT_LABEL[m.subject] }}</span>
-                    <NuxtLink :to="`/guesthouse/session/${m.sessionId}`" class="text-[var(--gh-forest-deep)] underline underline-offset-2">{{ m.guestName || '名前未設定' }}</NuxtLink>
-                    <span class="text-[var(--gh-ink-soft)]">：「{{ m.quote }}」</span>
-                  </li>
-                </ul>
-              </li>
-            </ul>
-          </section>
-
-          <!-- 関心の対象 / エリア内の訪問先 -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <section>
-              <h2 class="gh-display text-[16px] font-bold mb-3 flex items-center gap-2">
-                関心の対象
-                <HelpTip label="関心の対象とは">
-                  満足度（何が良かったか）とは別に、そのお客様が<b>何に心を動かされていたか</b>を見る軸です。ご家族や同行者のこと、自然、歴史・宗教…と分かると、次に何をお伝えするとよいかの手がかりになります。
-                </HelpTip>
-              </h2>
-              <ul v-if="topicStats.length" class="space-y-1.5">
-                <li v-for="t in topicStats" :key="t.name" class="flex items-center gap-2.5 text-[13px]">
-                  <span class="w-[6rem] shrink-0">{{ t.name }}</span>
-                  <span class="flex-1 h-2 rounded-full bg-[var(--gh-paper-2)] overflow-hidden">
-                    <span class="block h-full rounded-full bg-[var(--gh-forest-soft)]" :style="{ width: (t.count / topicStats[0].count) * 100 + '%' }" />
-                  </span>
-                  <span class="text-[12px] text-[var(--gh-ink-soft)] tabular-nums shrink-0">{{ t.count }}</span>
-                </li>
-              </ul>
-              <p v-else class="text-[12.5px] text-[var(--gh-ink-soft)]">まだ読み取れていません。</p>
-            </section>
-
-            <section>
-              <h2 class="gh-display text-[16px] font-bold mb-3 flex items-center gap-2">
-                エリア内で回られた場所
-                <HelpTip label="この一覧について">
-                  日記の旅程に出てきた、宿の外の立ち寄り先です。ここに出てこない場所は「まだ案内できていない／書き留められていない」ということでもあります。
-                </HelpTip>
-              </h2>
-              <div v-if="spotStats.length" class="flex flex-wrap gap-1.5">
-                <span v-for="s in spotStats" :key="s.name" class="gh-chip">
-                  {{ s.name }} <b class="text-[var(--gh-forest-deep)] ml-0.5">{{ s.count }}</b>
-                </span>
-              </div>
-              <p v-else class="text-[12.5px] text-[var(--gh-ink-soft)]">まだ読み取れていません。</p>
-            </section>
-          </div>
-
-          <!-- ほかに泊まられた宿（宿坊など） -->
-          <section v-if="shukuboStats.length">
-            <h2 class="gh-display text-[16px] font-bold mb-1 flex items-center gap-2">
-              ほかに泊まられた宿
-              <HelpTip label="この一覧について">
-                お客様がご自身で手配された、この宿以外の宿泊先（高野山の宿坊など）です。<b>この宿の感想と混ざらないように</b>分けて持っています。どの宿坊と組み合わせて泊まられているかが分かると、前後の一泊をどう案内するかの材料になります。
-              </HelpTip>
-            </h2>
-            <p class="text-[12px] text-[var(--gh-ink-soft)] mb-3">この宿とあわせて泊まられている宿です。「満足と体験」の「宿坊・ほかの宿」タブに、その感想が入っています。</p>
-            <div class="flex flex-wrap gap-1.5">
-              <span v-for="s in shukuboStats" :key="s.name" class="gh-chip">
-                {{ s.name }} <b class="text-[var(--gh-forest-deep)] ml-0.5">{{ s.count }}</b>
-              </span>
-            </div>
-          </section>
-
-          <!-- 分析軸そのものをAIに問い直す -->
-          <section>
-            <h2 class="gh-display text-[16px] font-bold mb-1 flex items-center gap-2">
-              AIに切り口を提案してもらう
-              <HelpTip label="この機能について">
-                ここまでの分類（満足・体験・関心・不便…）は、はじめに立てた<b>仮説</b>です。日記がたまってくると、もっと役に立つ切り口が別にあるかもしれません。<br />
-                このボタンは、集計結果ではなく<b>日記の生の文章</b>をAIに読ませて、「他にどんな切り口で分けると、次の一手につながるか」を提案させます。<br />
-                提案は<b>保存しません</b>。読んで良さそうなものがあれば、実際の分類に取り入れます（そのときはアプリ側の設定を書き換えます）。
-              </HelpTip>
-            </h2>
-            <p class="text-[12px] text-[var(--gh-ink-soft)] mb-3">
-              今の分け方でいいのかを、日記そのものを読ませて相談します{{ houseFilter ? `（「${currentHouseName}」の日記だけを読みます）` : '' }}。
-            </p>
-            <div class="flex flex-wrap items-center gap-2 mb-3">
-              <button class="gh-btn !h-9 !px-4 text-[12.5px]" :disabled="axesBusy" @click="suggestAxes">
-                {{ axesBusy ? '考えています…' : axes ? 'もう一度たずねる' : '提案してもらう' }}
-              </button>
-              <button v-if="axes?.items.length" class="gh-btn-ghost !h-9 !px-3.5 text-[12.5px]" @click="copyAxes">
-                {{ copied ? 'コピーしました' : '文章をコピー' }}
-              </button>
-            </div>
-            <p v-if="axesError" class="text-[12.5px] text-[var(--gh-warn)] mb-2">{{ axesError }}</p>
-            <div v-if="axesBusy" class="h-24 rounded-2xl bg-[var(--gh-paper-2)]/70 animate-pulse" />
-            <template v-else-if="axes">
-              <p v-if="!axes.items.length" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] text-center text-[var(--gh-ink-soft)] py-8 text-[13px]">
-                提案できる切り口は見つかりませんでした。日記がたまってから、もう一度たずねてみてください。
-              </p>
-              <template v-else>
-                <ul class="space-y-2">
-                  <li v-for="(a, i) in axes.items" :key="i" class="rounded-2xl border border-[var(--gh-line)] bg-[var(--gh-card)] px-4 py-3">
-                    <p class="text-[14px] font-bold mb-1">{{ a.title }}</p>
-                    <p class="text-[12.5px] text-[var(--gh-ink-soft)] leading-relaxed mb-1.5">{{ a.why }}</p>
-                    <div v-if="a.values.length" class="flex flex-wrap gap-1.5 mb-1.5">
-                      <span v-for="v in a.values" :key="v" class="gh-chip !py-0.5 !px-2 !text-[10.5px]">{{ v }}</span>
-                    </div>
-                    <p v-if="a.evidence" class="text-[12px] text-[var(--gh-ink-faint)] leading-relaxed">根拠：{{ a.evidence }}</p>
-                  </li>
-                </ul>
-                <p v-if="axes.redundant.length" class="text-[12.5px] text-[var(--gh-ink-soft)] mt-2.5 leading-relaxed">
-                  重なっているかもしれない今の軸：{{ axes.redundant.join(' / ') }}
-                </p>
-                <p class="text-[11.5px] text-[var(--gh-ink-faint)] mt-1.5">日記 {{ axes.basedOn }} 件を読んだ提案です。</p>
-              </template>
-            </template>
           </section>
         </template>
       </div>
@@ -338,7 +171,7 @@ import HelpTip from '~/components/guesthouse/HelpTip.vue'
 import Breadcrumb from '~/components/guesthouse/Breadcrumb.vue'
 import JourneySankey from '~/components/guesthouse/JourneySankey.client.vue'
 import RoutePosition from '~/components/guesthouse/RoutePosition.vue'
-import type { AspectSubject, AxisSuggestResult, GuestProfile, Insights, InsightsRefreshResult } from '~/types/guesthouse'
+import type { GuestProfile, ImpressionCategory, Insights, InsightsRefreshResult } from '~/types/guesthouse'
 
 definePageMeta({ layout: 'guesthouse' })
 useHead({ title: '顧客分析 | ゲストハウス案内' })
@@ -346,22 +179,21 @@ useHead({ title: '顧客分析 | ゲストハウス案内' })
 const { isLoggedIn, checked, checkAuth } = useAuth()
 const showAuthModal = computed(() => checked.value && !isLoggedIn.value)
 
-// 感想の主語のラベル。サーバ側の語彙（guesthouse-insights.ts の ASPECT_SUBJECTS）と対で、
+// サーバ側の語彙（guesthouse-insights.ts の IMPRESSION_CATEGORIES）と対。
 // 増やすときは両方を直す（サーバ utils はクライアントに持ち込めないのでここに持ち直している）。
-const ASPECT_SUBJECT_LABEL: Record<AspectSubject, string> = {
-  inn: 'この宿',
-  shukubo: '宿坊・ほかの宿',
-  other: 'エリア・その他',
-}
+const IMPRESSION_CATEGORY_LIST: ImpressionCategory[] = ['宿', '観光地', '食事', 'アクティビティ']
+const SENTIMENT_LABEL = { positive: '満足', negative: '不満' } as const
+type Sentiment = keyof typeof SENTIMENT_LABEL
 
 const data = ref<Insights | null>(null)
 const loading = ref(true)
 const busy = ref(false)
 const error = ref('')
 const notAdmin = ref(false)
-const openAspect = ref('')
-// 満足度をどの主語で見るか。既定は「この宿」＝宿そのものの評価だけを見る状態。
-const aspectSubject = ref<AspectSubject>('inn')
+// 感想をどちら向きで見るか。既定は「満足」。
+const sentiment = ref<Sentiment>('positive')
+// 感想を何について見るか。既定は「宿」。
+const category = ref<ImpressionCategory>('宿')
 // どの宿で見るか。空文字＝すべての宿をまとめて（混在）見る状態。
 const houseFilter = ref('')
 
@@ -391,128 +223,54 @@ const profiles = computed<GuestProfile[]>(() =>
 
 function selectHouse(id: string) {
   houseFilter.value = id
-  openAspect.value = '' // 対象が変わるので、開いていた引用は閉じる
-  axes.value = null // 提案は読んだ日記の範囲つきなので、宿を変えたら出したままにしない
 }
 
-/** 主語（この宿／宿坊・ほかの宿／エリア）ごとの言及数。タブに件数を出して、分けたことが見えるようにする。 */
-const subjectTabs = computed(() =>
-  (Object.keys(ASPECT_SUBJECT_LABEL) as AspectSubject[]).map((key) => ({
+function selectSentiment(key: Sentiment) {
+  sentiment.value = key
+}
+
+function selectCategory(key: ImpressionCategory) {
+  category.value = key
+}
+
+const sentimentLabel = computed(() => SENTIMENT_LABEL[sentiment.value])
+
+/** 満足／不満タブの件数（今選んでいる話題タブとは無関係に、全話題ぶんを数える）。 */
+const sentimentTabs = computed(() =>
+  (Object.keys(SENTIMENT_LABEL) as Sentiment[]).map((key) => ({
     key,
-    label: ASPECT_SUBJECT_LABEL[key],
-    count: profiles.value.reduce((n, p) => n + p.aspects.filter((a) => a.subject === key).length, 0),
+    label: SENTIMENT_LABEL[key],
+    count: profiles.value.reduce((n, p) => n + p.impressions.filter((im) => im.sentiment === key).length, 0),
   }))
 )
 
-function selectSubject(key: AspectSubject) {
-  aspectSubject.value = key
-  openAspect.value = '' // 主語を変えたら開いていた行は閉じる（別の主語の引用が出たままにならないように）
-}
+/** 話題タブの件数（今選んでいる満足／不満のぶんだけを数える）。 */
+const categoryTabs = computed(() =>
+  IMPRESSION_CATEGORY_LIST.map((key) => ({
+    key,
+    label: key,
+    count: profiles.value.reduce(
+      (n, p) => n + p.impressions.filter((im) => im.sentiment === sentiment.value && im.category === key).length,
+      0
+    ),
+  }))
+)
 
-/** 満足と体験：側面ごとの件数と、根拠になった引用。選んだ主語のぶんだけを、言及の多い順に。 */
-const aspectStats = computed(() => {
-  const map = new Map<string, { aspect: string; positive: number; negative: number; mentions: { sessionId: string; guestName: string; sentiment: string; quote: string }[] }>()
+/** 選んだ満足／不満 × 話題に当てはまる感想の一覧。 */
+const impressionMentions = computed(() => {
+  const list: { sessionId: string; guestName: string; quote: string }[] = []
   for (const p of profiles.value) {
-    for (const a of p.aspects) {
-      if (a.subject !== aspectSubject.value) continue
-      const cur = map.get(a.aspect) ?? { aspect: a.aspect, positive: 0, negative: 0, mentions: [] }
-      if (a.sentiment === 'negative') cur.negative++
-      else cur.positive++
-      cur.mentions.push({ sessionId: p.sessionId, guestName: p.guestName, sentiment: a.sentiment, quote: a.quote })
-      map.set(a.aspect, cur)
+    for (const im of p.impressions) {
+      if (im.sentiment !== sentiment.value || im.category !== category.value) continue
+      list.push({ sessionId: p.sessionId, guestName: p.guestName, quote: im.quote })
     }
   }
-  return [...map.values()].sort((x, y) => y.positive + y.negative - (x.positive + x.negative))
+  return list
 })
-
-const maxAspect = computed(() => Math.max(1, ...aspectStats.value.map((a) => a.positive + a.negative)))
-
-/**
- * 不便・不満だけを集めた独立の軸。満足と同じ材料（negative の感想）から作るが、
- * 主語のタブでは絞らない——宿の話も宿坊・エリアの話も、まとめて見えたほうが手を打てるため
- * （どれについての不満かは、行ごとの印で分かるようにする）。
- */
-const issueGroups = computed(() => {
-  const map = new Map<string, { aspect: string; mentions: { subject: AspectSubject; sessionId: string; guestName: string; quote: string }[] }>()
-  for (const p of profiles.value) {
-    for (const a of p.aspects) {
-      if (a.sentiment !== 'negative') continue
-      const cur = map.get(a.aspect) ?? { aspect: a.aspect, mentions: [] }
-      cur.mentions.push({ subject: a.subject, sessionId: p.sessionId, guestName: p.guestName, quote: a.quote })
-      map.set(a.aspect, cur)
-    }
-  }
-  return [...map.values()].sort((x, y) => y.mentions.length - x.mentions.length)
-})
-
-/** 文字列配列の項目を数えて多い順に並べる（関心の対象・立ち寄り先・体験で共用）。 */
-function countBy(pick: (p: GuestProfile) => string[]) {
-  const map = new Map<string, number>()
-  for (const p of profiles.value) {
-    for (const v of pick(p)) map.set(v, (map.get(v) ?? 0) + 1)
-  }
-  return [...map].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count)
-}
-
-const topicStats = computed(() => countBy((p) => p.topics))
-const shukuboStats = computed(() => countBy((p) => p.shukuboStays))
-const spotStats = computed(() => countBy((p) => p.areaSpots))
-const innExpStats = computed(() => countBy((p) => p.innExperiences))
-const tourExpStats = computed(() => countBy((p) => p.tourExperiences))
-
-function toggleAspect(aspect: string) {
-  openAspect.value = openAspect.value === aspect ? '' : aspect
-}
 
 function formatDate(s: string): string {
   const m = s?.match(/^(\d{4})-(\d{2})-(\d{2})/)
   return m ? `${Number(m[2])}/${Number(m[3])}` : s || ''
-}
-
-// ── 分析軸の提案（保存しない。そのつどの相談）──────────────────────
-const axes = ref<AxisSuggestResult | null>(null)
-const axesBusy = ref(false)
-const axesError = ref('')
-const copied = ref(false)
-
-async function suggestAxes() {
-  axesBusy.value = true
-  axesError.value = ''
-  try {
-    axes.value = await $fetch<AxisSuggestResult>('/api/guesthouse/insights/suggest-axes', {
-      method: 'POST',
-      body: { houseId: houseFilter.value },
-    })
-  } catch (e: any) {
-    axesError.value = e?.data?.message || '提案の作成に失敗しました。時間をおいて試してください。'
-  } finally {
-    axesBusy.value = false
-  }
-}
-
-/** LINEなどで共有できるように、提案をそのまま貼れる文章にする。 */
-function axesAsText(): string {
-  const a = axes.value
-  if (!a) return ''
-  const lines = [`【AIからの分析軸の提案】お客さん日記 ${a.basedOn} 件をもとに`]
-  a.items.forEach((it, i) => {
-    lines.push('', `${i + 1}. ${it.title}`)
-    if (it.why) lines.push(`　なぜ見るか：${it.why}`)
-    if (it.values.length) lines.push(`　分け方の候補：${it.values.join(' / ')}`)
-    if (it.evidence) lines.push(`　根拠：${it.evidence}`)
-  })
-  if (a.redundant.length) lines.push('', `重なっているかもしれない今の軸：${a.redundant.join(' / ')}`)
-  return lines.join('\n')
-}
-
-async function copyAxes() {
-  try {
-    await navigator.clipboard.writeText(axesAsText())
-    copied.value = true
-    setTimeout(() => (copied.value = false), 1800)
-  } catch {
-    // クリップボードが使えない環境では何もしない（画面の文字を選んでコピーできる）
-  }
 }
 
 async function load() {

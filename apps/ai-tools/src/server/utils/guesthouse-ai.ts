@@ -3,9 +3,9 @@
 import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
 import { buildKnowledgeBase } from '~/server/utils/guesthouse'
 import { buildTriageSystem, buildAnswerSystem, buildEmergencyReplySystem, buildInfoGapReplySystem, WEB_SEARCH } from '~/server/utils/guesthouse-policy'
-import { buildAxisSuggestSystem, buildProfileExtractSystem, INTEREST_TOPICS, SATISFACTION_ASPECTS, VISIT_REASONS } from '~/server/utils/guesthouse-insights'
+import { buildProfileExtractSystem, IMPRESSION_CATEGORIES, VISIT_REASONS } from '~/server/utils/guesthouse-insights'
 import { ROUTE_SELF } from '~/utils/guesthouse-route'
-import type { AspectMention, AspectSubject, AxisSuggestion, AxisSuggestResult, ChatMessage, Diary, DiaryContent, ExtractResult, ExtractedFact, ExtractedTip, FarewellDraft, GuestProfileData, House, StayType, ThreadMessage, Tip, TipExtractResult, TrendItem, VisitReason } from '~/types/guesthouse'
+import type { ChatMessage, Diary, DiaryContent, ExtractResult, ExtractedFact, ExtractedTip, FarewellDraft, GuestProfileData, House, Impression, StayType, ThreadMessage, Tip, TipExtractResult, TrendItem, VisitReason } from '~/types/guesthouse'
 
 /** 会話を読みやすいテキスト起こしにする（プロンプト用）。 */
 export function threadTranscript(messages: ThreadMessage[]): string {
@@ -531,7 +531,7 @@ export async function extractGuestProfile(
 
   const out = await callClaudeText(apiKey, {
     system: buildProfileExtractSystem(),
-    // route（旅程全体の経由地）と subject が増えたぶん、出力が途中で切れないよう少し多めに取る。
+    // route（旅程全体の経由地）のぶん、出力が途中で切れないよう少し多めに取る。
     maxTokens: 1600,
     messages: [
       {
@@ -570,6 +570,24 @@ export async function extractGuestProfile(
         ? claimedIndex
         : 0
 
+  // 引用が無い／固定語彙から外れたものは捨てる（阪中さんが元の言葉に戻れることが前提）。
+  const impressions: Impression[] = (Array.isArray(p?.impressions) ? p.impressions : [])
+    .map((im: any) => ({
+      category: str(im?.category),
+      sentiment: im?.sentiment === 'negative' ? ('negative' as const) : ('positive' as const),
+      quote: str(im?.quote),
+    }))
+    .filter((im: any): im is Impression => Boolean(im.quote) && (IMPRESSION_CATEGORIES as readonly string[]).includes(im.category))
+
+  // 1人のゲストの中で同じ内容が重複しないように、話題×感情×引用の組み合わせで間引く。
+  const seen = new Set<string>()
+  const dedupedImpressions = impressions.filter((im) => {
+    const key = `${im.category}|${im.sentiment}|${im.quote}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+
   return {
     stayType,
     nights: Number.isFinite(Number(p?.nights)) ? Math.max(0, Math.trunc(Number(p.nights))) : 0,
@@ -583,68 +601,8 @@ export async function extractGuestProfile(
     innExperiences: strList(p?.innExperiences),
     tourExperiences: strList(p?.tourExperiences),
     visitReason,
-    topics: strList(p?.topics, INTEREST_TOPICS),
-    aspects: (Array.isArray(p?.aspects) ? p.aspects : [])
-      .map((a: any) => ({
-        // 主語が無い／知らない値のときは "other" に寄せる。ここで "inn" に丸めると、
-        // 宿坊の感想が宿の評価に混ざるという、この分離でいちばん避けたいことが起きる。
-        subject: (['inn', 'shukubo', 'other'] as const).includes(a?.subject) ? (a.subject as AspectSubject) : 'other',
-        aspect: str(a?.aspect),
-        sentiment: a?.sentiment === 'negative' ? ('negative' as const) : ('positive' as const),
-        quote: str(a?.quote),
-      }))
-      // 引用が無いものは根拠を追えないので捨てる（阪中さんが元の言葉に戻れることが前提）。
-      .filter((a: AspectMention) => a.quote && SATISFACTION_ASPECTS.includes(a.aspect as any)),
+    impressions: dedupedImpressions,
     beforeExpectation: str(p?.beforeExpectation),
     afterImpression: str(p?.afterImpression),
-  }
-}
-
-/** 分析軸の提案でAIに渡す1件あたりの上限文字数。長い日記に引きずられて件数が減らないよう頭で切る。 */
-const AXIS_SOURCE_CHARS = 900
-/** 分析軸の提案で読む日記の上限件数（新しい順）。Workers の実行時間と入力トークンを抑えるため。 */
-const AXIS_SOURCE_DIARIES = 80
-
-/**
- * 生の日記＋聞き取りメモを読ませて、「他に見るべき分析軸」を提案させる（item 6）。
- *
- * 固定語彙の集計（extractGuestProfile）が「決めた軸で数える」のに対し、こちらは
- * **軸そのものを問い直す**ための機能。結果は保存せず、その場で読んで判断する材料にする。
- */
-export async function suggestAnalysisAxes(
-  apiKey: string,
-  diaries: Diary[],
-  hearingNotes: Map<string, string[]>
-): Promise<AxisSuggestResult> {
-  const used = diaries.slice(0, AXIS_SOURCE_DIARIES)
-  const corpus = used
-    .map((d, i) => {
-      const c = d.content
-      const notes = (hearingNotes.get(d.sessionId) ?? []).join(' / ')
-      const body = `国籍:${c.nationality} / 旅程:${c.itinerary}\n印象:${c.highlights}\n気づき:${c.notes}${notes ? `\n聞き取り:${notes}` : ''}`
-      return `【${i + 1}】${d.guestName || '匿名'}\n${body.slice(0, AXIS_SOURCE_CHARS)}`
-    })
-    .join('\n\n')
-
-  const out = await callClaudeText(apiKey, {
-    system: buildAxisSuggestSystem(),
-    maxTokens: 1800,
-    messages: [{ role: 'user', content: `お客さん日記・聞き取りメモ（${used.length}件）:\n"""\n${corpus || '（なし）'}\n"""` }],
-  })
-
-  const p = parseJsonLoose<any>(out) ?? {}
-  const items: AxisSuggestion[] = (Array.isArray(p?.items) ? p.items : [])
-    .map((it: any) => ({
-      title: String(it?.title ?? '').trim(),
-      why: String(it?.why ?? '').trim(),
-      values: (Array.isArray(it?.values) ? it.values : []).map((v: any) => String(v ?? '').trim()).filter(Boolean),
-      evidence: String(it?.evidence ?? '').trim(),
-    }))
-    .filter((it: AxisSuggestion) => it.title)
-
-  return {
-    items,
-    redundant: (Array.isArray(p?.redundant) ? p.redundant : []).map((v: any) => String(v ?? '').trim()).filter(Boolean),
-    basedOn: used.length,
   }
 }
