@@ -42,7 +42,12 @@ life / fitbit とは別に、Google Cloud で新規に OAuth 2.0 クライアン
 3. OAuth 2.0 クライアントID（ウェブアプリケーション）を発行し、リダイレクトURIに
    `https://<host>/api/kikigaki/google/callback`（ローカルは `http://localhost:3000/api/kikigaki/google/callback`）を登録
 4. `.env` に `NUXT_KIKIGAKI_GOOGLE_CLIENT_ID` / `..._SECRET` / `..._REDIRECT_URI` を設定
-   （本番は `wrangler secret put` でシークレットを登録し、`NUXT_KIKIGAKI_GOOGLE_REDIRECT_URI` は `wrangler.toml` の `[vars]`）
+   （本番は3つとも `wrangler secret put` で登録する。REDIRECT_URI は秘密ではないので `[vars]` でもよいが、
+   既存の `NUXT_FITBIT_REDIRECT_URI` が secret で入っているので揃えている）
+
+※ **Google の公開ステータスは「テスト」ではなく「本番環境」にすること**。テストのままだと
+リフレッシュトークンが7日で失効し、週明けに必ず連携が切れる（審査に出す必要はない。
+未審査だと同意画面に「確認されていません」の警告が出るが、自分たちで使うぶんには問題ない）。
 
 ※ 議事録一覧のスプレッドシートは**初回連携時に本人のドライブへ自動作成**する（IDを環境変数で持たない）。
 D1 が持つのはリフレッシュトークン（暗号化）とそのスプレッドシートIDの参照だけ。
