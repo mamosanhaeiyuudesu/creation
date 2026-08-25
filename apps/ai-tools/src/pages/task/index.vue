@@ -1455,8 +1455,8 @@ watch(isLoggedIn, async (v) => {
             <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-[800] tracking-[0.1em] bg-emerald-500/15 text-white border border-emerald-500/30">DONE</span>
             <span class="text-xl font-bold text-slate-600">{{ boards.reduce((s, b) => s + doneEffort(b), 0) }}h</span>
           </div>
-          <div class="flex items-end gap-4 mb-3">
-            <div class="flex gap-2 overflow-x-auto pb-1 max-w-[45%] flex-shrink-0 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.1)_transparent]">
+          <div class="flex items-center gap-4 mb-3">
+            <div class="flex flex-wrap gap-2 max-w-[45%] flex-shrink-0">
               <button
                 v-for="board in boards"
                 :key="board.id"
