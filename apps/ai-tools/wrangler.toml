@@ -10,6 +10,10 @@ compatibility_date = "2025-12-31"
 #   wrangler secret put NUXT_GEMINI_API_KEY  ← whisper文字起こしでGeminiを選んだ場合に使用
 #   wrangler secret put NUXT_MIYAKO_VECTOR_STORE_ID
 #   wrangler secret put NUXT_ENCRYPTION_KEY  ← marriage コメント暗号化キー（32文字以上推奨）
+#   wrangler secret put NUXT_KIKIGAKI_GOOGLE_CLIENT_ID      ← kikigaki のGoogle連携（Docs/Sheets/Tasks/Calendar）
+#   wrangler secret put NUXT_KIKIGAKI_GOOGLE_CLIENT_SECRET
+# NUXT_KIKIGAKI_GOOGLE_REDIRECT_URI は秘密ではないので、この [vars] か Cloudflare ダッシュボードで設定する
+#   例: https://<host>/api/kikigaki/google/callback
 
 [[d1_databases]]
 binding = "WHISPER_DB"

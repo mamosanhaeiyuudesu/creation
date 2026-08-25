@@ -62,6 +62,11 @@ gtag('config', 'G-JRBVTJYCEH');`,
     lifeGoogleClientId: '',
     lifeGoogleClientSecret: '',
     lifeGoogleRedirectUri: '',
+    // kikigaki（会議の録音→議事録）Google連携。Docs/Sheets/Tasks/Calendar への書き込み用
+    // （life とはスコープが違うので使い回さず、別のOAuthクライアントを発行する）
+    kikigakiGoogleClientId: '',
+    kikigakiGoogleClientSecret: '',
+    kikigakiGoogleRedirectUri: '',
     // ippon（Sketch2View）3D生成プロバイダ。鍵が無ければ mock にフォールバック。
     ipponProvider: '', // 'tripo' | 'mock'（既定 mock）
     tripoApiKey: '',

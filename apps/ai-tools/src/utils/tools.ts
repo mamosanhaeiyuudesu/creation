@@ -28,6 +28,7 @@ export const SECTIONS: Section[] = [
       { path: '/hagemashi', icon: '💪', name: 'はげまし', desc: 'いまの状況を話すと、AIがはげましの言葉を書いて読み上げる。', tags: ['要ログイン', '読み上げ'] },
       { path: '/task', icon: '📋', name: 'タスクくん', desc: 'Trello の DOING / TODO / DONE を1画面に。週の使い方をAIが振り返る。', tags: ['要ログイン', 'Trello連携'] },
       { path: '/fitbit', icon: '⌚️', name: 'Fitbit', desc: '睡眠・歩数・心拍・HRV をまとめたヘルスダッシュボードと相談チャット。', tags: ['要ログイン', 'Google連携'] },
+      { path: '/kikigaki', icon: '🗒️', name: 'キキガキ', desc: '会議の録音から議事録をつくり、確認してからGoogleのドキュメント・ToDo・カレンダーへ送る。', tags: ['要ログイン', 'Google連携'] },
       { path: '/office', icon: '🏢', name: '勤怠', desc: '出勤・退勤の打刻と日付ごとの記録。', tags: ['要ログイン'] },
       { path: '/games', icon: '🎮', name: 'ゲーム', desc: 'パネルでポン・賢くなるパズル。息抜き用のレトロゲーム集。' },
     ],

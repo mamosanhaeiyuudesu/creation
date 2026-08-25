@@ -28,7 +28,24 @@ NUXT_FITBIT_REDIRECT_URI=...   # 例: https://<host>/api/fitbit/callback
 NUXT_LIFE_GOOGLE_CLIENT_ID=...      # Google Cloud の OAuth 2.0 クライアントID（life連携用。fitbitとは別クライアント）
 NUXT_LIFE_GOOGLE_CLIENT_SECRET=...  # 同上シークレット
 NUXT_LIFE_GOOGLE_REDIRECT_URI=...   # 例: https://<host>/api/life/google/callback
+NUXT_KIKIGAKI_GOOGLE_CLIENT_ID=...      # Google Cloud の OAuth 2.0 クライアントID（kikigaki連携用。life/fitbitとは別クライアント）
+NUXT_KIKIGAKI_GOOGLE_CLIENT_SECRET=...  # 同上シークレット
+NUXT_KIKIGAKI_GOOGLE_REDIRECT_URI=...   # 例: https://<host>/api/kikigaki/google/callback
 ```
+
+### kikigaki（キキガキ）のGoogle連携セットアップ
+
+life / fitbit とは別に、Google Cloud で新規に OAuth 2.0 クライアントを発行する（**スコープが強いので使い回さない**）。
+
+1. Google Cloud Console で「Google Docs API」「Google Sheets API」「Google Tasks API」「Google Calendar API」を有効化
+2. OAuth同意画面でスコープに `documents` / `spreadsheets` / `tasks` / `calendar` を追加
+3. OAuth 2.0 クライアントID（ウェブアプリケーション）を発行し、リダイレクトURIに
+   `https://<host>/api/kikigaki/google/callback`（ローカルは `http://localhost:3000/api/kikigaki/google/callback`）を登録
+4. `.env` に `NUXT_KIKIGAKI_GOOGLE_CLIENT_ID` / `..._SECRET` / `..._REDIRECT_URI` を設定
+   （本番は `wrangler secret put` でシークレットを登録し、`NUXT_KIKIGAKI_GOOGLE_REDIRECT_URI` は `wrangler.toml` の `[vars]`）
+
+※ 議事録一覧のスプレッドシートは**初回連携時に本人のドライブへ自動作成**する（IDを環境変数で持たない）。
+D1 が持つのはリフレッシュトークン（暗号化）とそのスプレッドシートIDの参照だけ。
 
 ### life（人生のインタビュー）のGoogle連携セットアップ
 
@@ -68,6 +85,7 @@ Sheets APIで直接読み書きする（`life-google.ts`）。D1が持つのは�
 | `/hagemashi` | 状況を入力するとAIがはげましメッセージとテーマを生成。記録の音声文字起こしは`/whisper`と同じく設定メニューでWhisper/Geminiを切替可。はげまし結果は**文章の上の「🔊 読み上げ」ボタンで音声再生**できる（OpenAI TTS。モデル/声/トーンの指示は `api/hagemashi/speech.post.ts` 先頭の定数に集約。mp3をそのまま返し、クライアントは Blob URL を `<audio>` で再生。同じ文章なら作り直さずキャッシュ。**iOS Safari は fetch を挟むと play() がブロックされる**ため、クリック直後に無音WAVを鳴らして `<audio>` を解錠してから src を差し替えている） |
 | `/fitbit` | Fitbitヘルスダッシュボード（エナジー/睡眠スコア・歩数・心拍・HRV・SpO2等を1画面集約、睡眠は詳細分解） |
 | `/task` | Trello連携のタスク管理ビュー（DOING/TODO/DONE）。**DOINGは「今日やること」と「今週中にやること」の2つに分けて表示**する（振り分けは期限だけで決まる＝期限が今日以前〈超過ぶんを含む〉なら今日、それ以外〈明日以降・期限なし〉は今週中。ページ側の `isDoingToday` / `doingGroupDefs` / `doingGroups`。PCは2段、スマホは2列。**グループをまたぐドラッグでは移らない**〈期限を変えると移る〉ので、「今日やること」欄の＋は期限を今日で埋めて追加する。**「今週中にやること」欄へ入れた時点で期限が無い（または今日以前の）カードは、期限を今週の日曜に強制的に書き換える**＝ドラッグ〈`doingDueForGroup`〉でも＋追加の初期値〈`doingGroups` の `newDue`〉でも同じ `thisWeekEndDateKey` を使う。期限なしのまま「今週中」に置けてしまうと、ヘッダーの「週 完了h/予定h」の分母＝`pendingHoursForDates` は `due` が無いカードを数えないため合計から漏れて実態より少なく出てしまう、という不整合を防ぐための仕様）。**逆に TODO へドラッグで戻すと、期限があれば消す**＝「まだいつやるか決めていない」状態に戻す意味（`useDragDrop.ts` の `dueChangeFor`／`clearDue`）。**カードごとの赤枠・ピンク枠などのハイライトは廃止**（期限の近さは並び順とグループ分け、PCの「残りNh／N日超過」の文字色で表す。手動の「重要」フラグも廃止済み）。ヘッダーの**今週の日別棒グラフ**（PC・スマホとも）と、**今日／明日の進捗**（PCのヘッダー行・スマホの2枚のカードとも）は**クリックするとその日の一覧（DOING＝期限がその日の未完了／DONE＝その日に完了）がポップアップ**する（`dayDetail` は日付を入れると開く）。日別棒グラフの右（スマホは日別グラフとは別のパネル）に**投稿カウンター**があり、インスタ・note・Facebook の投稿数の**全期間の累計**を出す（表示期間には連動しない。プラットフォームの一覧は `useTaskSns.ts` の `SNS_PLATFORMS` に集約＝増やすときはここと `server/utils/task-sns.ts` の `SNS_PLATFORM_KEYS` に足す。記号は `TaskSnsIcon.vue` の線画＝ブランドロゴは使わない）。クリックで `TaskSnsModal.vue` のカレンダーが開き、日を選んで＋/−か直接入力で本数を入れる（変更のたび自動保存。状態は `useTaskSns.ts`、保存先は本番が `/api/task/sns`＝`task_sns_posts`、devは localStorage）。ヘッダーの「振り返る」で**その期間にどのボードへ時間を使ったかのAIフィードバック**を生成できる（既定は今日を含む週＝月〜日、`TaskRangeCalendar.vue` で任意の期間も選べる。文字数は1000/2000）。結果は履歴（`app-history` の `task/review`）に残り「振り返り履歴」から読み返せる。プロンプトと**お金に近い/ミッションに近い/投資/運用**という見方は `server/api/task/review.post.ts` に集約。集計対象は画面に読み込み済みのDONEデータなので、ヘッダーの表示期間の外を選ぶと0件になる（ダイアログに件数を出して気づけるようにしている）。ヘッダー直下には**今週の目標**の1行入力欄（PC・スマホとも常時表示）があり、週（月曜始まり・JST）ごとに1件保存する。フォーカスを外すかEnterで自動保存（IME変換確定のEnterでは保存しない）。状態は `useTaskGoal.ts`、保存先は本番が `/api/task/goal`＝`task_weekly_goals`、devは localStorage。**メール通知（定期メール）は廃止済み** |
+| `/kikigaki` | キキガキ。会議・地域活動（消防団・青年部・農業の打ち合わせなど）の録音から議事録をつくる。**音声アップロード → OpenAI `gpt-4o-transcribe` で文字起こし → Claude が構造化（タイトル/日付/概要/決定事項/検討事項/タスク候補/予定候補/不明瞭な点）→ 人間がレビュー画面で編集 → 承認 → Google（Docs/Sheets/Tasks/Calendar）へ書き込み** の一気通貫。**設計上の最重要点＝人間の承認を経ずにGoogleへ書き込まれないこと**。そのために Google への書き込み関数は `kikigaki-google.ts` の `writeApprovedMinutes()` 1つに集約し、**それを呼ぶのは `api/kikigaki/approve.post.ts` ただ1か所**（文字起こし・構造化・保存のどのエンドポイントもGoogleに触れない）。承認済み（`status='approved'`）の記録は再送も編集も 409 で弾く＝二重登録の防止。承認時は**画面に出ている内容をリクエストで送り、保存し直してから送信する**ので「保存し忘れた編集が送られない」。書き込み順は Docs（失敗したら中断＝やり直せる）→ Sheets の議事録一覧へ1行 → Tasks → Calendar で、Docs以降の失敗は `warnings` に溜めて完了画面に出す。**カレンダーに登録するのは開始日時が確定している予定だけ**＝Claude は原文の表現（`datetime`/`due`）と確定日時（`start`/`end`/`due_date`）を別々に出し、確定側が空なら登録しない（曖昧な「来月中に」を勝手に日付にしないための作り。指示書のJSONに対してこの欄だけ足してある）。用語辞書は `src/utils/kikigaki-glossary.ts`（**MVPは手編集して再デプロイ**する運用。辞書追加UIは後回し）で、文字起こしの `prompt` パラメータと Claude のシステムプロンプトの両方に効かせる。構造化の匙加減（創作の禁止・決定/検討の切り分け・日付を確定してよい条件）は `kikigaki-ai.ts` のシステムプロンプトに集約。音声は**25MB上限**（OpenAI側の制限。超えたら分割を促すエラー。長時間録音の自動分割は後回し）。会議の中身（タイトル・文字起こし・構造化JSON）は `encrypt.ts` で暗号化してD1に保存。公民館トーンの専用レイアウト |
 | `/office` | 勤怠管理（日付・打刻記録） |
 | `/games` | ゲーム一覧（リンク集） |
 | `/games/panel-de-pon` | SFC版パネルでポン（5ステージ・進捗保存） |
@@ -128,6 +146,8 @@ Sheets APIで直接読み書きする（`life-google.ts`）。D1が持つのは�
   - 適用: `042_keiko.sql` → `044_keiko_points.sql`（項目のメンバー分け＋本数/ポイント列）→ `045_keiko_rate.sql`（評価％列。既存記録は100%扱い）→ `046_keiko_direct.sql`（項目の種類＋直接ポイント列）を順に `wrangler d1 execute whisper-db --remote --file ...`（044〜046 は ALTER 含むので再実行不可）
   - 項目を `reps` → `direct` に変えると過去の記録は `rate` しか持たず0点になるため、`items/[id].patch.ts` が切り替え時にそのときの設定で計算した値を `points` へ焼き付ける
   - 項目がメンバー共通だった頃の行（`member_id` が空）は、初回アクセス時に `migrateSharedItemsToMembers()` がメンバーごとへ複製し、記録の `item_id` を付け替えてから旧行を消す
+- `WHISPER_DB` 相乗り（kikigaki）: kikigaki_records（議事録1件＝1行。`status` が draft/approved、`title`/`transcript`/`minutes`(構造化JSON) は暗号化。送信後は `doc_url`/`sent_tasks`/`sent_events`/`approved_at` が埋まる）/ kikigaki_oauth_states（life・fitbitと同じ理由でのOAuth一時state）/ kikigaki_google_connections（Google連携＝ユーザーごと1行。`refresh_token` は暗号化、`spreadsheet_id` は初回連携時に本人のドライブへ作った議事録一覧への参照）。既存 users/sessions 認証に相乗りし `user_id` でスコープ。テーブルは `ensureKikigakiTables()` で自動生成もされる（D1の `exec()` の改行罠を避けて `prepare().run()` で作っている）。**ローカルdevはD1が無いので全エンドポイントが503**（Google連携も本番前提）。
+  - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/050_kikigaki.sql`
 - `MLB_DB`（`mlb-db`）: MLB選手・試合データ  
   `src/server/tasks/mlb-sync.ts` の Cron（**1日1回・UTC 7:00＝JST 16:00**）で同期。
   毎回シーズン全体を INSERT OR REPLACE する作りなので、1回の実行でおよそ6,800行書く。
@@ -167,6 +187,9 @@ Sheets APIで直接読み書きする（`life-google.ts`）。D1が持つのは�
 | `guesthouse-insights.ts` | guesthouse **顧客分析の匙加減を集約**（滞在の型の判定基準・旅の感想の話題 `IMPRESSION_CATEGORIES`＝宿/観光地/食事/アクティビティの**固定語彙**〈満足／不満は感想ごとの `sentiment` で持つ。主語による絞り込みは廃止し、旅全体の感想として扱う〉・旅程に入った理由 `VISIT_REASONS`・宿の体験とツアーの体験の分け方・不便を遠慮なく拾わせる指示・**1人のゲストの中で感想を重複させない指示**・旅程の順番の書かせ方・抽出システムプロンプト・`VOCAB_VERSION`）。旅程の位置計算だけは表示側でも使うので `src/utils/guesthouse-route.ts`（純粋関数）に分けてある。AIに自由にタグを振らせると「食事/料理/ごはん」が別タグになり時系列で見ているものが語彙のブレになるため語彙を閉じている。**語彙や方針を変えたら `VOCAB_VERSION` を +1**（全プロファイルが作り直される） |
 | `guesthouse-policy.ts` | guesthouse お客様チャットの**匙加減を集約**（緊急=handoff の線引き `EMERGENCY_CRITERIA`・Web検索の有無/回数 `WEB_SEARCH`・triage/通常応答/緊急返信の各システムプロンプト）。方針変更は基本ここだけ編集 |
 | `guesthouse-import.ts` | Booking.com等のメッセージ履歴のコピペ原文を**AIを使わずプログラムだけで**1件ずつのメッセージ＋日時に分割する（`parseBookingThread`）。時刻(HH:MM)行と、直後に続く日付区切り行（「YYYY年M月D日」/曜日1文字/「今日」「昨日」、無ければ同日）を機械的に読み解き、JSTの日時をDB規約(UTC)の `created_at` 文字列に変換する。発言者の分類はここでは行わない（`guesthouse-ai.ts` の `classifyImportedMessages` がAI担当） |
+| `kikigaki.ts` | kikigaki の認証（user_idスコープ）・テーブル用意・議事録レコードの読み書き（タイトル/文字起こし/構造化JSONは `encrypt.ts` で暗号化）・AIやクライアントから来たJSONの正規化（`normalizeMinutes`＝日付は `YYYY-MM-DD` / 日時は `YYYY-MM-DDTHH:mm` 以外を空に落とす）。**Googleへの書き込みはここには置かない** |
+| `kikigaki-ai.ts` | kikigaki の Claude 呼び出し（文字起こし→議事録の構造化）。**創作の禁止・決定/検討の切り分け・用語補正・日付を確定してよい条件**をシステムプロンプトに集約しているので、精度の調整はここだけ触る |
+| `kikigaki-google.ts` | kikigaki の Google OAuth2（PKCE、スコープ documents/spreadsheets/tasks/calendar）と **Docs/Sheets/Tasks/Calendar への書き込み全部**（`writeApprovedMinutes`）。初回連携時に議事録一覧スプレッドシートを本人のドライブへ作成。**この書き込み関数を呼んでよいのは `api/kikigaki/approve.post.ts` だけ**＝承認なしの書き込みを構造で防いでいるので、新しい書き込みを足すときも承認フローの外から呼ばないこと |
 | `keiko.ts` | keiko の認証（user_idスコープ）・テーブル用意/列追加・メンバー/練習項目/評価記録の読み書き・**ポイント集計**（`POINT_EXPR` と `loadPointBuckets`＝メンバー×日 または メンバー×月で SUM。1件ずつ ROUND してから SUM＝クライアントの週集計と丸め方を揃えるため。計算式を変えるならページ側の `earnedPoints()` も同時に直す）・初回アクセス時の既定メンバー（護/匡/真啓）と既定項目のシード・旧データ（メンバー共通項目）の移行・記録のはじまりの判定（`isBeforeKeikoStart`） |
 
 ## コーディング規則
