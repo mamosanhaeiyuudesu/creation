@@ -77,7 +77,6 @@
           </a>
         </div>
         <div class="hero-notes">
-          <p class="hero-note">※{{ site.placeName }}</p>
           <p class="hero-note">
             ※その他、不定期で東急田園都市線青葉台駅周辺のレンタルサロンでも施術を行っています。
           </p>

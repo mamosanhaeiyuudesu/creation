@@ -9,6 +9,9 @@ const props = defineProps<{
   cumulative?: boolean
 }>()
 
+/** 週の棒（積み上げ区間）をクリックしたとき、weekLabels/axisLabels 上のインデックスを渡す */
+const emit = defineEmits<{ (e: 'week-click', index: number): void }>()
+
 const MARKER_NAME = '先頭3ボード合計'
 
 const chartEl = ref<HTMLDivElement>()
@@ -68,6 +71,9 @@ async function renderChart() {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: cumulative ? 'line' : 'shadow' },
+      // 既定は document.body へ直接追加され z-index が非常に高いため、ポップアップ（z-[200]）より
+      // 手前に居座ってしまう。チャートのコンテナ内に留めて通常のスタッキング順に従わせる
+      appendToBody: false,
       backgroundColor: '#1e293b',
       borderColor: 'rgba(255,255,255,0.1)',
       textStyle: { color: '#e2e8f0', fontSize: 12 },
@@ -150,6 +156,15 @@ async function renderChart() {
           },
     ],
   }, true)
+
+  // 週の棒（マーカー用の透明シリーズは除く）をクリックしたら親に通知する
+  chart.off('click')
+  chart.on('click', (params: any) => {
+    if (params.seriesName === MARKER_NAME || typeof params.dataIndex !== 'number') return
+    // タップ操作だとツールチップが出しっぱなしのままポップアップが開いてしまうため、開く前に閉じる
+    chart?.dispatchAction({ type: 'hideTip' })
+    emit('week-click', params.dataIndex)
+  })
 }
 
 watch(() => [props.data, props.cumulative], () => nextTick(renderChart), { deep: true })
@@ -170,5 +185,5 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="chartEl" class="w-full" :style="{ height: `${height ?? 182}px` }" />
+  <div ref="chartEl" class="w-full relative" :style="{ height: `${height ?? 182}px` }" />
 </template>
