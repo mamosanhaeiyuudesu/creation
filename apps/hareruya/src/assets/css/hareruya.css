@@ -119,7 +119,7 @@
 
 /* ナビはリンク8本＋LINE/Instagramのラベルが並ぶため、本文より大幅に広めに取る */
 .hr-nav-inner {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 24px;
   height: 60px;
@@ -695,6 +695,21 @@ a.hero-badge.is-link:hover {
 
 .feature-card.is-photo-card.is-photo-right .feature-icon.is-photo img {
   object-position: 50% 42%;
+}
+
+/*
+ * 按腹の図は施術写真と違い、トリミングすると図そのものが読めなくなる。
+ * 幅を少し詰めて縦に大きく取り、全体が収まるように contain で敷く
+ */
+.feature-card.is-photo-card.is-diagram .feature-icon.is-photo {
+  flex: 0 0 40%;
+  min-height: 380px;
+  background: var(--c-pink-soft);
+}
+
+.feature-card.is-photo-card.is-diagram .feature-icon.is-photo img {
+  object-fit: contain;
+  object-position: 50% 50%;
 }
 
 .feature-card.is-photo-card .feature-text {
@@ -1415,7 +1430,7 @@ a.hero-badge.is-link:hover {
 
 .cta-title {
   font-family: var(--f-serif);
-  font-size: clamp(22px, 4.4vw, 29px);
+  font-size: clamp(20px, 4.1vw, 27px);
   font-weight: 600;
   letter-spacing: 0.07em;
   line-height: 1.7;
@@ -1609,7 +1624,7 @@ a.hero-badge.is-link:hover {
    ========================================== */
 
 /* ヘッダーが1行に収まらなくなる幅でハンバーガーへ切り替える */
-@media (max-width: 1200px) {
+@media (max-width: 1280px) {
   .hr-nav-links {
     display: none;
   }
@@ -1679,6 +1694,11 @@ a.hero-badge.is-link:hover {
     width: 100%;
     min-height: 0;
     aspect-ratio: 4 / 3;
+  }
+
+  /* 図は縦長なので、余白が出ないよう写真の比率だけ入れ替える */
+  .feature-card.is-photo-card.is-diagram .feature-icon.is-photo {
+    aspect-ratio: 3 / 4;
   }
 
   .feature-card.is-photo-card .feature-text,

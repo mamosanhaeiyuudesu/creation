@@ -16,7 +16,7 @@
             </li>
           </ul>
           <LineButton class="hr-nav-cta" label="ご予約・お問い合わせ" fallback-href="#contact" brand />
-          <InstagramButton class="hr-nav-insta" label="施術の様子" brand />
+          <InstagramButton class="hr-nav-insta" label="施術の様子・営業カレンダー" brand />
           <button
             type="button"
             class="hr-nav-toggle"
@@ -127,10 +127,12 @@
             リラクゼーションを目的としたお店ではなく、<strong>お困りの症状を改善すること</strong>を目的として、内臓鍼灸とソフトカイロ矯正を組み合わせた施術を行っています。
           </p>
           <p>
-            院長は鍼灸師と助産師、両方の国家資格を持っています。月経・妊娠・出産・産後といった女性のからだのサイクルを現場で見てきた立場から、西洋医学と東洋医学の両方の視点をもって、おひとりずつの状態に合わせた施術とご相談をお受けしています。
+            院長は鍼灸師と助産師、両方の国家資格を持っています。<br />
+            月経・妊娠・出産・産後といった女性のからだのサイクルを現場で見てきた立場から、西洋医学と東洋医学の両方の視点をもって、おひとりずつの状態に合わせた施術とご相談をお受けしています。
           </p>
           <p>
-            鍼がはじめての方も少なくありません。どんなことをするのか、どのくらいの刺激なのか、気になることは施術前に何でもお尋ねください。
+            鍼がはじめての方も少なくありません。<br />
+            どんなことをするのか、どのくらいの刺激なのか、気になることは施術前に何でもお尋ねください。
           </p>
         </div>
       </div>
@@ -169,9 +171,9 @@
             </div>
           </div>
 
-          <div class="feature-card">
-            <div class="feature-icon">
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a4.6 4.6 0 0 0-6.5 0L12 7.9l-2.3-2.3a4.6 4.6 0 1 0-6.5 6.5l8.8 8.8 8.8-8.8a4.6 4.6 0 0 0 0-6.4z"/></svg>
+          <div class="feature-card is-photo-card is-photo-right is-diagram">
+            <div class="feature-icon is-photo is-diagram">
+              <img src="/images/ampuku-selfcare.png" alt="お腹のどこがどの臓腑にあたるかを示した按腹の図" width="480" height="640" loading="lazy" />
             </div>
             <div class="feature-text">
               <span class="feature-num">03</span>
@@ -200,6 +202,8 @@
             <div class="menu-price">{{ menu.price }}</div>
             <p class="menu-desc">{{ menu.desc }}</p>
           </div>
+
+          <p v-if="site.paymentNote" class="menu-note">※ {{ site.paymentNote }}</p>
 
           <div class="value-grid">
             <div v-for="value in values" :key="value.title" class="value-card">
@@ -235,19 +239,24 @@
           </div>
           <div class="profile-body">
             <p>
-              私が鍼灸治療の存在を知ったのは、看護大学生の頃でした。原因不明の肝機能異常で、病院で投薬を受けてもなかなか改善しなかった父が、鍼灸院を紹介してもらい通うようになると、血液検査の結果がすっかり良くなり、治療の必要がなくなったのです。この出来事が、鍼灸治療との出会いのきっかけでした。
+              私が鍼灸治療の存在を知ったのは、看護大学生の頃でした。<br />
+              原因不明の肝機能異常で、病院で投薬を受けてもなかなか改善しなかった父が、鍼灸院を紹介してもらい通うようになると、血液検査の結果がすっかり良くなり、治療の必要がなくなったのです。<br />
+              この出来事が、鍼灸治療との出会いのきっかけでした。
             </p>
             <p>
-              就職後、病院で勤務する中で、投薬をしても結果が出ない患者さんを見るたびに、鍼灸治療の可能性が頭をよぎるようになりました。また、投薬に制限のある妊婦さんが痛みを訴えて入院する様子を見るたびに、投薬以外の方法で症状を改善する選択肢として、鍼灸治療を考えている自分がいました。
+              就職後、病院で勤務する中で、投薬をしても結果が出ない患者さんを見るたびに、鍼灸治療の可能性が頭をよぎるようになりました。<br />
+              また、投薬に制限のある妊婦さんが痛みを訴えて入院する様子を見るたびに、投薬以外の方法で症状を改善する選択肢として、鍼灸治療を考えている自分がいました。
             </p>
             <p>
-              そうして、病気や体の不調を西洋医学以外の視点から捉える東洋医学を学ぼうと、鍼灸師の資格を取得しました。鍼灸を実践するたびに体が変化していくのは、今でも本当に不思議で、面白いと感じています。同時に、鍼灸でどこまで対応できるのかを知ることで、西洋医学のすごさも実感しました。
+              そうして、病気や体の不調を西洋医学以外の視点から捉える東洋医学を学ぼうと、鍼灸師の資格を取得しました。<br />
+              鍼灸を実践するたびに体が変化していくのは、今でも本当に不思議で、面白いと感じています。<br />
+              同時に、鍼灸でどこまで対応できるのかを知ることで、西洋医学のすごさも実感しました。
             </p>
             <p>
               東洋医学と西洋医学、それぞれ異なる視点を組み合わせながら、痛みやつらい症状を改善するお手伝いができればと思っています。
             </p>
-            <p>
-              Instagram（<a :href="site.instagramUrl" target="_blank" rel="noopener noreferrer">@{{ site.instagramId }}</a>）では、施術の様子や営業日の詳細を発信しています。
+            <p v-if="site.noteUrl">
+              <a :href="site.noteUrl" target="_blank" rel="noopener noreferrer">note</a>では、自身のこと、東洋医学や病気の考え方、セルフケアなどについて、発信しています。
             </p>
           </div>
         </div>
@@ -393,16 +402,7 @@
     <section id="contact" class="hr-cta">
       <div class="hr-wrap">
         <div class="cta-inner">
-          <h2 class="cta-title">まずはお気軽にご相談下さい。</h2>
-          <p class="cta-desc">
-            「これって鍼灸で相談していいのかな？」<br />
-            そのくらいの段階で大丈夫です。<br />
-            LINE公式アカウントより、お気軽にメッセージをお送りください。
-          </p>
-          <!-- <div class="cta-buttons">
-            <LineButton class="btn-line" />
-            <InstagramButton class="btn-insta" />
-          </div> -->
+          <h2 class="cta-title">お悩みの症状、お気軽にご相談下さい。</h2>
         </div>
       </div>
     </section>
@@ -449,7 +449,7 @@
     <!-- モバイル固定予約バー -->
     <div class="hr-mobile-bar">
       <LineButton class="hr-mobile-bar-line" label="ご予約・お問い合わせ" fallback-href="#contact" brand />
-      <InstagramButton class="hr-mobile-bar-insta" label="施術の様子" brand />
+      <InstagramButton class="hr-mobile-bar-insta" label="施術の様子・営業カレンダー" brand />
     </div>
 
   </div>
@@ -574,7 +574,7 @@ const flow = [
   {
     num: '04',
     title: '施術後のご説明',
-    body: 'その日のからだの状態と、ご自宅でできるセルフケアをお伝えします。からだの状態によって、次回のご予約についてご提案することがございます。',
+    body: 'その日のからだの状態と、ご自宅でできるセルフケアをお伝えします。必要に応じて、次回のご予約についてご提案いたします。',
   },
 ]
 

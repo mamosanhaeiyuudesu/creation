@@ -65,7 +65,7 @@ const wakaba: Place = {
     {
       from: '相鉄線「三ツ境」駅よりバスで25分',
       route:
-        '駅北口からでて、陸橋を渡った先にあるバスロータリー①番のりば 116系統「若葉台中央」ゆきの終点「若葉台中央」で下車',
+        '駅北口からでて、歩道橋を渡った先にあるバスロータリー①番のりば 116系統「若葉台中央」ゆきの終点「若葉台中央」で下車',
     },
   ],
   routeTitle: 'バス停「若葉台中央」からの道順',
@@ -137,7 +137,7 @@ export const site = {
   instagramId: 'shoko_harikyu',
   instagramUrl: 'https://www.instagram.com/shoko_harikyu/',
 
-  /** note（コラム）。空文字の間はナビの「コラム」を出さない */
+  /** note（コラム）。空文字の間はナビの「コラム」と施術者紹介のリンクを出さない */
   noteUrl: 'https://note.com/calm_borage5584',
 
   places,
@@ -154,12 +154,15 @@ export const site = {
   /** メニュー・料金 */
   menus: [
     {
-      name: '通常施術（内蔵鍼灸×ソフトカイロ矯正）',
+      name: '通常施術（内臓鍼灸×ソフトカイロ矯正）',
       desc: '内臓鍼灸とソフトカイロ矯正を組み合わせ、その日のからだの状態に合わせて調整します。',
       duration: '約60分',
       price: '6,000円',
     },
   ],
+
+  /** お支払い方法の注記。空文字なら料金の下に何も出さない */
+  paymentNote: '現金のみとさせていただいております。ご了承ください。',
 
   /** お客様の声の掲載準備ができたら true に */
   showVoices: false,

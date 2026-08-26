@@ -32,7 +32,7 @@
 <script setup lang="ts">
 import { site } from '~/config/site'
 
-const DEFAULT_LABEL = 'Instagramで施術の様子を見る'
+const DEFAULT_LABEL = 'Instagramで施術の様子・営業カレンダーを見る'
 
 const props = withDefaults(
   defineProps<{
