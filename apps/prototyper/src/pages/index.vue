@@ -38,11 +38,13 @@
               </p>
             </div>
             <div class="hero-build">
-              <span class="hero-build-label">つくれるもの</span>
+              <span class="hero-build-label">できること</span>
               <ul class="hero-tags">
                 <li>Webサービス</li>
                 <li>ホームページ制作</li>
                 <li>LINEアプリ（LIFF）</li>
+                <li class="hero-tags-strong">データ分析・可視化</li>
+                <li class="hero-tags-strong">Google・LINE連携</li>
                 <li>ITコンサルティング</li>
                 <li class="hero-tags-more">など</li>
               </ul>
@@ -53,7 +55,7 @@
             </a>
           </div>
           <div class="hero-viz-deco" aria-hidden="true">
-            <svg viewBox="0 0 380 316" fill="none" xmlns="http://www.w3.org/2000/svg" class="hero-flow-svg">
+            <svg viewBox="0 0 380 358" fill="none" xmlns="http://www.w3.org/2000/svg" class="hero-flow-svg">
               <!-- お客さんの声 -->
               <text x="8" y="10" font-family="'IBM Plex Mono',monospace" font-size="8" font-weight="500" fill="rgba(27,95,217,0.42)" letter-spacing="0.14em">YOUR WORDS</text>
               <g class="hero-bubbles">
@@ -76,36 +78,50 @@
                 <text x="122" y="136" font-family="'IBM Plex Mono',monospace" font-size="7.5" font-weight="600" fill="#f5700a" letter-spacing="0.12em">CO-CREATION</text>
               </g>
 
-              <!-- つくれるもの -->
-              <text x="8" y="162" font-family="'IBM Plex Mono',monospace" font-size="8" font-weight="500" fill="rgba(27,95,217,0.42)" letter-spacing="0.14em" class="hero-outputs-label">WHAT WE BUILD TOGETHER</text>
+              <!-- できること -->
+              <text x="8" y="162" font-family="'IBM Plex Mono',monospace" font-size="8" font-weight="500" fill="rgba(27,95,217,0.42)" letter-spacing="0.14em" class="hero-outputs-label">WHAT WE CAN DO</text>
               <g class="hero-outputs">
                 <g class="hero-out">
-                  <rect x="6" y="172" width="178" height="62" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
-                  <rect x="22" y="190" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
-                  <rect x="28" y="197" width="14" height="12" rx="2" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><line x1="28" y1="200.6" x2="42" y2="200.6" stroke="#1b5fd9" stroke-width="1.2" opacity="0.75"/><rect x="30.4" y="204.4" width="2.2" height="3.2" rx="0.6" fill="#1b5fd9" opacity="0.5"/><rect x="33.9" y="202.2" width="2.2" height="5.4" rx="0.6" fill="#1b5fd9" opacity="0.7"/><rect x="37.4" y="203.2" width="2.2" height="4.4" rx="0.6" fill="#f5700a" opacity="0.85"/>
-                  <text x="58" y="202" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">Webサービス</text>
-                  <text x="58" y="217" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">WEB APP</text>
+                  <rect x="6" y="172" width="178" height="54" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
+                  <rect x="20" y="186" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
+                  <rect x="26" y="193" width="14" height="12" rx="2" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><line x1="26" y1="196.4" x2="40" y2="196.4" stroke="#1b5fd9" stroke-width="1.2" opacity="0.75"/><rect x="27.4" y="198" width="3.4" height="5.4" rx="0.8" fill="#1b5fd9" opacity="0.35"/><rect x="32" y="198" width="6" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.5"/><rect x="32" y="200.4" width="6" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.35"/><rect x="32" y="202.5" width="3.6" height="1.8" rx="0.9" fill="#f5700a" opacity="0.8"/>
+                  <text x="56" y="197" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">Webサービス</text>
+                  <text x="56" y="211" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">WEB APP</text>
                 </g>
                 <g class="hero-out">
-                  <rect x="196" y="172" width="178" height="62" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
-                  <rect x="212" y="190" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
-                  <rect x="219" y="196" width="12" height="14" rx="1.8" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><rect x="221.4" y="198.4" width="7.2" height="3.6" rx="0.8" fill="#f5700a" opacity="0.7"/><rect x="221.4" y="203.4" width="7.2" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.5"/><rect x="221.4" y="206.1" width="4.6" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.35"/>
-                  <text x="248" y="202" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">ホームページ</text>
-                  <text x="248" y="217" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">WEBSITE</text>
+                  <rect x="196" y="172" width="178" height="54" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
+                  <rect x="210" y="186" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
+                  <rect x="217" y="192" width="12" height="14" rx="1.8" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><rect x="219.4" y="194.4" width="7.2" height="3.6" rx="0.8" fill="#f5700a" opacity="0.7"/><rect x="219.4" y="199.4" width="7.2" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.5"/><rect x="219.4" y="202.1" width="4.6" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.35"/>
+                  <text x="246" y="197" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">ホームページ</text>
+                  <text x="246" y="211" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">WEBSITE</text>
                 </g>
                 <g class="hero-out">
-                  <rect x="6" y="246" width="178" height="62" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
-                  <rect x="22" y="264" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
-                  <rect x="30" y="270" width="10" height="14" rx="2.2" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><rect x="31.8" y="272.6" width="6.4" height="4.6" rx="1.6" fill="#f5700a" opacity="0.75"/><rect x="31.8" y="278.2" width="4.4" height="1.2" rx="0.6" fill="#1b5fd9" opacity="0.4"/><line x1="33.2" y1="281.8" x2="36.8" y2="281.8" stroke="#1b5fd9" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
-                  <text x="58" y="276" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">LINEアプリ</text>
-                  <text x="58" y="291" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">LIFF</text>
+                  <rect x="6" y="234" width="178" height="54" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
+                  <rect x="20" y="248" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
+                  <rect x="28" y="254" width="10" height="14" rx="2.2" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><rect x="29.8" y="256.6" width="6.4" height="4.6" rx="1.6" fill="#f5700a" opacity="0.75"/><rect x="29.8" y="262.2" width="4.4" height="1.2" rx="0.6" fill="#1b5fd9" opacity="0.4"/><line x1="31.2" y1="265.8" x2="34.8" y2="265.8" stroke="#1b5fd9" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+                  <text x="56" y="259" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">LINEアプリ</text>
+                  <text x="56" y="273" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">LIFF</text>
                 </g>
                 <g class="hero-out">
-                  <rect x="196" y="246" width="178" height="62" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
-                  <rect x="212" y="264" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
-                  <circle cx="225" cy="275.4" r="4.6" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><line x1="225" y1="275.4" x2="225" y2="279.6" stroke="#1b5fd9" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/><rect x="222.9" y="280.2" width="4.2" height="1.5" rx="0.75" fill="#f5700a" opacity="0.85"/><rect x="223.5" y="282.4" width="3" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.45"/>
-                  <text x="248" y="276" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">ITコンサル</text>
-                  <text x="248" y="291" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">CONSULTING</text>
+                  <rect x="196" y="234" width="178" height="54" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
+                  <rect x="210" y="248" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
+                  <line x1="217.5" y1="257.5" x2="223.5" y2="262.5" stroke="#1b5fd9" stroke-width="1" opacity="0.45" stroke-linecap="round"/><line x1="228" y1="256.5" x2="223.5" y2="262.5" stroke="#1b5fd9" stroke-width="1" opacity="0.45" stroke-linecap="round"/><line x1="228.5" y1="266" x2="223.5" y2="262.5" stroke="#1b5fd9" stroke-width="1" opacity="0.45" stroke-linecap="round"/><circle cx="223.5" cy="262.5" r="2.8" fill="#1b5fd9" opacity="0.75"/><circle cx="217.5" cy="257.5" r="2.2" fill="#f5700a" opacity="0.85"/><circle cx="228" cy="256.5" r="1.8" fill="#1b5fd9" opacity="0.55"/><circle cx="228.5" cy="266" r="1.8" fill="#1b5fd9" opacity="0.45"/>
+                  <text x="246" y="259" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">データ分析・可視化</text>
+                  <text x="246" y="273" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">DATA VIZ</text>
+                </g>
+                <g class="hero-out">
+                  <rect x="6" y="296" width="178" height="54" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
+                  <rect x="20" y="310" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
+                  <circle cx="29.8" cy="323" r="4.7" stroke="#1b5fd9" stroke-width="1.2" fill="none" opacity="0.7"/><circle cx="36.2" cy="323" r="4.7" stroke="#f5700a" stroke-width="1.2" fill="none" opacity="0.85"/>
+                  <text x="56" y="321" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">Google・LINE連携</text>
+                  <text x="56" y="335" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">INTEGRATION</text>
+                </g>
+                <g class="hero-out">
+                  <rect x="196" y="296" width="178" height="54" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
+                  <rect x="210" y="310" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
+                  <circle cx="223" cy="321.4" r="4.6" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><line x1="223" y1="321.4" x2="223" y2="325.6" stroke="#1b5fd9" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/><rect x="220.9" y="326.2" width="4.2" height="1.5" rx="0.75" fill="#f5700a" opacity="0.85"/><rect x="221.5" y="328.4" width="3" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.45"/>
+                  <text x="246" y="321" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">ITコンサル</text>
+                  <text x="246" y="335" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">CONSULTING</text>
                 </g>
               </g>
             </svg>
