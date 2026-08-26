@@ -16,7 +16,7 @@
             </li>
           </ul>
           <LineButton class="hr-nav-cta" label="ご予約・お問い合わせ" fallback-href="#contact" brand />
-          <InstagramButton class="hr-nav-insta" label="施術の様子・営業カレンダー" brand />
+          <InstagramButton class="hr-nav-insta" label="施術の様子・カレンダー" brand />
           <button
             type="button"
             class="hr-nav-toggle"
@@ -450,7 +450,7 @@
     <!-- モバイル固定予約バー -->
     <div class="hr-mobile-bar">
       <LineButton class="hr-mobile-bar-line" label="ご予約・お問い合わせ" fallback-href="#contact" brand />
-      <InstagramButton class="hr-mobile-bar-insta" label="施術の様子・営業カレンダー" brand />
+      <InstagramButton class="hr-mobile-bar-insta" label="施術の様子・カレンダー" brand />
     </div>
 
   </div>

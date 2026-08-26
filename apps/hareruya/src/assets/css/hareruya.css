@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Old+Mincho:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Noto+Sans+JP:wght@400;500;600;700&family=Zen+Old+Mincho:wght@500;600&display=swap');
 
 /* ==========================================
    晴レルヤ鍼灸院 — スタイルシート
@@ -38,6 +38,7 @@
   --radius: 12px;
   --radius-lg: 20px;
 
+  /* 明朝はロゴ（晴レルヤ鍼灸院）だけ。ヒーローのキャッチも含め、ほかの見出しも本文も Noto Sans JP、数字と欧文は Jost */
   --f-serif: 'Zen Old Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
   --f-sans: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
   --f-en: 'Jost', 'Noto Sans JP', sans-serif;
@@ -290,7 +291,7 @@
 }
 
 .section-title {
-  font-family: var(--f-serif);
+  font-family: var(--f-sans);
   font-size: clamp(24px, 4.4vw, 31px);
   font-weight: 600;
   line-height: 1.55;
@@ -376,7 +377,7 @@
 }
 
 .hero-catch {
-  font-family: var(--f-serif);
+  font-family: var(--f-sans);
   font-size: clamp(20px, 4.6vw, 28px);
   font-weight: 600;
   line-height: 1.85;
@@ -730,7 +731,7 @@ a.hero-badge.is-link:hover {
 }
 
 .feature-title {
-  font-family: var(--f-serif);
+  font-family: var(--f-sans);
   font-size: 19px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -787,7 +788,7 @@ a.hero-badge.is-link:hover {
 }
 
 .profile-name {
-  font-family: var(--f-serif);
+  font-family: var(--f-sans);
   font-size: 28px;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -864,7 +865,7 @@ a.hero-badge.is-link:hover {
 }
 
 .menu-name {
-  font-family: var(--f-serif);
+  font-family: var(--f-sans);
   font-size: 18px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -880,7 +881,7 @@ a.hero-badge.is-link:hover {
 }
 
 .menu-price {
-  font-family: var(--f-serif);
+  font-family: var(--f-sans);
   font-size: 22px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -911,7 +912,7 @@ a.hero-badge.is-link:hover {
 }
 
 .menu-value-title {
-  font-family: var(--f-serif);
+  font-family: var(--f-sans);
   font-size: 20px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -956,7 +957,7 @@ a.hero-badge.is-link:hover {
 }
 
 .value-title {
-  font-family: var(--f-serif);
+  font-family: var(--f-sans);
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.03em;
@@ -1025,7 +1026,7 @@ a.hero-badge.is-link:hover {
 }
 
 .flow-title {
-  font-family: var(--f-serif);
+  font-family: var(--f-sans);
   font-size: 17px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -1059,7 +1060,7 @@ a.hero-badge.is-link:hover {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  font-family: var(--f-serif);
+  font-family: var(--f-sans);
   font-size: 19px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -1103,7 +1104,7 @@ a.hero-badge.is-link:hover {
 }
 
 .access-row dt {
-  font-family: var(--f-serif);
+  font-family: var(--f-sans);
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--c-brown);
@@ -1157,7 +1158,7 @@ a.hero-badge.is-link:hover {
    ========================================== */
 
 .access-route-title {
-  font-family: var(--f-serif);
+  font-family: var(--f-sans);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -1414,7 +1415,7 @@ a.hero-badge.is-link:hover {
   position: absolute;
   top: 6px;
   left: 20px;
-  font-family: var(--f-serif);
+  font-family: var(--f-sans);
   font-size: 52px;
   line-height: 1;
   color: var(--c-pink-line);
@@ -1448,7 +1449,7 @@ a.hero-badge.is-link:hover {
 }
 
 .cta-title {
-  font-family: var(--f-serif);
+  font-family: var(--f-sans);
   font-size: clamp(20px, 4.1vw, 27px);
   font-weight: 600;
   letter-spacing: 0.07em;

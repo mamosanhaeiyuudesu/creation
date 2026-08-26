@@ -2,6 +2,20 @@ name = "ai-tools"
 main = ".output/server/index.mjs"
 compatibility_date = "2025-12-31"
 
+# routes を書くと workers_dev が既定で false になり、既存の workers.dev のURLが止まる。
+# fitbit の OAuth リダイレクトURI が古いホストを指したままなので、明示的に true で生かしておく。
+# 全部を新ドメインへ寄せ切ったら false にしてよい。
+# （TOML の都合で、テーブル見出し [[routes]] より前に書くこと。後ろだと routes の中身になる）
+workers_dev = true
+
+# カスタムドメイン。ai-tools は「1つの Worker が全ツールを配信する」構成なので、
+# ホストは1つだけ当てて、ツールはパスで分ける（/kikigaki, /task, /fitbit, /momo ...）。
+# ツールごとにサブドメインを切ると、そのホストで無関係なツールまで開けてしまうので分けない。
+# deploy 時に DNS レコードと証明書が自動で用意される（insightlens.jp のゾーンがCloudflareにあること）。
+[[routes]]
+pattern = "prototype.insightlens.jp"
+custom_domain = true
+
 [vars]
 # Add non-secret variables here.
 # Set secrets with:
@@ -58,6 +72,10 @@ directory = ".output/public"
 # 本番と同じDBを参照（プレビュー用に別DBを用意する場合はIDを差し替える）
 [env.preview]
 name = "ai-tools-preview"
+# routes は環境に継承されるキーなので、空配列で明示的に打ち消す。
+# これが無いとプレビュー用 Worker まで prototype.insightlens.jp を要求し、本番と取り合いになる。
+routes = []
+workers_dev = true
 
 [[env.preview.d1_databases]]
 binding = "WHISPER_DB"
