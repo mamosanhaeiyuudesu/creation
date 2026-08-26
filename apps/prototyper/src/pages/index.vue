@@ -37,18 +37,6 @@
                 あなたの言葉のまま、話してください。
               </p>
             </div>
-            <div class="hero-build">
-              <span class="hero-build-label">できること</span>
-              <ul class="hero-tags">
-                <li>Webサービス</li>
-                <li>ホームページ制作</li>
-                <li>LINEアプリ（LIFF）</li>
-                <li class="hero-tags-strong">データ分析・可視化</li>
-                <li class="hero-tags-strong">Google・LINE連携</li>
-                <li>ITコンサルティング</li>
-                <li class="hero-tags-more">など</li>
-              </ul>
-            </div>
             <a href="#contact" class="hero-cta">
               まずは話を聞かせてください
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>

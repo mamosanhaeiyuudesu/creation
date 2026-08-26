@@ -89,8 +89,16 @@
       </p>
 
       <ul v-else class="space-y-2">
-        <li v-for="r in records" :key="r.id">
-          <NuxtLink :to="`/kikigaki/${r.id}`" class="kk-card px-4 py-3 flex items-center gap-3 hover:border-[var(--kk-line-strong)] transition-colors">
+        <!--
+          削除ボタンはリンクの中に入れない（button を a で包むのは不正なHTMLで、
+          クリックの取り合いにもなる）。カード全体を li の枠にして、リンクとボタンを横に並べる。
+        -->
+        <li
+          v-for="r in records"
+          :key="r.id"
+          class="kk-card flex items-center pr-1.5 hover:border-[var(--kk-line-strong)] transition-colors"
+        >
+          <NuxtLink :to="`/kikigaki/${r.id}`" class="flex-1 min-w-0 flex items-center gap-3 px-4 py-3">
             <div class="flex-1 min-w-0">
               <p class="text-[13.5px] font-bold truncate">{{ r.title || '（タイトル未設定）' }}</p>
               <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-0.5 truncate">
@@ -103,6 +111,16 @@
               {{ r.status === 'approved' ? '送信済み' : '確認待ち' }}
             </span>
           </NuxtLink>
+          <!-- 記録は全員で共有するが、消せるのはアップロードした本人だけ -->
+          <button
+            v-if="r.isOwner"
+            class="shrink-0 w-8 h-8 rounded-full text-[13px] text-[var(--kk-ink-faint)] hover:text-[var(--kk-danger)] hover:bg-black/[0.04] transition-colors disabled:opacity-40"
+            :disabled="deletingId === r.id"
+            :title="`「${r.title || '（タイトル未設定）'}」を削除`"
+            @click="removeRecord(r)"
+          >
+            ✕
+          </button>
         </li>
       </ul>
     </section>
@@ -136,6 +154,7 @@ const errorMessage = ref('')
 
 const records = ref<KikigakiRecordSummary[]>([])
 const loadingList = ref(true)
+const deletingId = ref('')
 
 const file = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -173,6 +192,27 @@ async function loadRecords() {
     records.value = []
   }
   loadingList.value = false
+}
+
+// 送信済みの記録を消しても、Google側に作ったドキュメント・タスク・予定は残る。
+// 「消したのにカレンダーから消えていない」と誤解させないよう、確認文で先に伝える。
+async function removeRecord(r: KikigakiRecordSummary) {
+  const name = r.title || '（タイトル未設定）'
+  const message =
+    r.status === 'approved'
+      ? `「${name}」をこの一覧から削除しますか？\n\nGoogleへ送信済みです。作成されたドキュメント・タスク・予定は削除されません。`
+      : `「${name}」を削除しますか？（元に戻せません）`
+  if (!confirm(message)) return
+
+  deletingId.value = r.id
+  errorMessage.value = ''
+  try {
+    await $fetch(`/api/kikigaki/records/${r.id}`, { method: 'DELETE' })
+    records.value = records.value.filter((x) => x.id !== r.id)
+  } catch (e: any) {
+    errorMessage.value = apiMessage(e, '削除に失敗しました')
+  }
+  deletingId.value = ''
 }
 
 async function disconnectGoogle() {

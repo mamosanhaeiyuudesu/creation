@@ -330,8 +330,12 @@ async function approve() {
 
 async function remove() {
   if (!confirm('この記録を削除しますか？（元に戻せません）')) return
-  await $fetch(`/api/kikigaki/records/${id.value}`, { method: 'DELETE' })
-  await router.push('/kikigaki')
+  try {
+    await $fetch(`/api/kikigaki/records/${id.value}`, { method: 'DELETE' })
+    await router.push('/kikigaki')
+  } catch (e: any) {
+    errorMessage.value = apiMessage(e, '削除に失敗しました')
+  }
 }
 
 watch(isLoggedIn, async (v) => {
