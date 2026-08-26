@@ -240,24 +240,28 @@ body.home h6 {
   z-index: -1;
   /*
    * 中央（＝文字が乗るところ）だけ白を残して可読性を確保し、
-   * 外側はベールを薄くして海と島をはっきり見せる。
+   * 外側はベールをほぼ外して海と島をはっきり見せる。
    * 縦位置の写真なので、帯に海と島が入るよう 52% を中心にする。
    */
   background-image:
-    radial-gradient(ellipse 54% 82% at 50% 50%,
-      rgba(255, 255, 255, 0.8) 20%,
-      rgba(255, 255, 255, 0.26) 100%),
+    radial-gradient(ellipse 50% 76% at 50% 50%,
+      rgba(255, 255, 255, 0.62) 16%,
+      rgba(255, 255, 255, 0.06) 100%),
     var(--hero-image);
   background-size: auto, cover;
   background-position: center, center 52%;
   background-repeat: no-repeat;
-  filter: saturate(1);
+  /* 海の青と島の緑を出すため、彩度とコントラストを少し上げる */
+  filter: saturate(1.22) contrast(1.08);
   pointer-events: none;
 }
 
+/* ベールを薄くした分、文字側の白ハローを厚くして可読性を保つ */
 .hero-question h1,
 .hero-question .hero-lead {
-  text-shadow: 0 1px 10px rgba(255, 255, 255, 0.85);
+  text-shadow:
+    0 1px 3px rgba(255, 255, 255, 0.95),
+    0 1px 14px rgba(255, 255, 255, 0.9);
 }
 
 .hero-question h1 {
@@ -266,14 +270,19 @@ body.home h6 {
   margin: 0 0 26px;
   letter-spacing: 0.04em;
   line-height: 1.6;
+  /* 帯の中で左上に寄せる（下のリード文は逆に右へ寄せて対比をつける） */
+  transform: translate(-54px, -30px);
 }
 
 /* 中央寄せの帯の中では、左の縦線より行間で見せたほうが収まる */
 .hero-lead {
-  font-size: 1rem;
-  line-height: 2.15;
+  font-size: 1.625rem;
+  /* 16px + 10px */
+  line-height: 1.85;
   color: #3d5252;
   margin: 0;
+  /* 見出しを左に寄せた分、こちらは右へ */
+  transform: translateX(18px);
 }
 
 .hero-statement {
@@ -431,6 +440,16 @@ body.home h6 {
 /* リストのあとに続く語りかけ。箱で囲わず、地の文のまま少し余白だけ取る */
 .for-you-message {
   margin-top: 32px !important;
+}
+
+/* 枠で囲う代わりに、本文の流れの中で一行だけ立たせる強調 */
+.emphasis-lead {
+  font-family: var(--f-serif);
+  font-size: 1.14rem;
+  font-weight: 600;
+  color: #2d5858;
+  letter-spacing: 0.03em;
+  line-height: 1.9;
 }
 
 /* 「できないこと」を正直に伝える枠。断り書きではなく前提の共有として、主張は控えめに */
@@ -1001,6 +1020,16 @@ body.home h6 {
 @media (max-width: 640px) {
   .hero-question {
     padding: 52px 4px 46px;
+  }
+
+  /* 画面が狭いと端に寄りすぎるので、ずらし幅を詰める */
+  .hero-question h1 {
+    transform: translate(-14px, -16px);
+  }
+
+  .hero-lead {
+    font-size: 1.375rem;
+    transform: translateX(8px);
   }
 
   .hero-statement {

@@ -137,6 +137,9 @@ export const site = {
   instagramId: 'shoko_harikyu',
   instagramUrl: 'https://www.instagram.com/shoko_harikyu/',
 
+  /** note（コラム）。空文字の間はナビの「コラム」を出さない */
+  noteUrl: 'https://note.com/calm_borage5584',
+
   places,
 
   /** 以下6つは代表の場所の値。ヒーロー・フッター・お問い合わせで使う */

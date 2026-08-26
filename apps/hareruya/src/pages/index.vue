@@ -8,7 +8,11 @@
         <div class="hr-nav-right">
           <ul class="hr-nav-links">
             <li v-for="link in navLinks" :key="link.href">
-              <a :href="link.href">{{ link.label }}</a>
+              <a
+                :href="link.href"
+                :target="link.external ? '_blank' : undefined"
+                :rel="link.external ? 'noopener noreferrer' : undefined"
+              >{{ link.label }}</a>
             </li>
           </ul>
           <LineButton class="hr-nav-cta" label="ご予約・お問い合わせ" fallback-href="#contact" brand />
@@ -19,12 +23,9 @@
             :class="{ 'is-active': isMenuOpen }"
             :aria-expanded="isMenuOpen"
             aria-controls="hr-nav-mobile-menu"
-            :aria-label="isMenuOpen ? 'メニューを閉じる' : 'メニューを開く'"
             @click="isMenuOpen = !isMenuOpen"
           >
-            <span></span>
-            <span></span>
-            <span></span>
+            {{ isMenuOpen ? '閉じる' : 'メニュー' }}
           </button>
         </div>
       </div>
@@ -32,7 +33,12 @@
       <div id="hr-nav-mobile-menu" class="hr-nav-mobile" :class="{ 'is-open': isMenuOpen }">
         <ul class="hr-nav-mobile-links">
           <li v-for="link in navLinks" :key="link.href">
-            <a :href="link.href" @click="isMenuOpen = false">{{ link.label }}</a>
+            <a
+              :href="link.href"
+              :target="link.external ? '_blank' : undefined"
+              :rel="link.external ? 'noopener noreferrer' : undefined"
+              @click="isMenuOpen = false"
+            >{{ link.label }}</a>
           </li>
         </ul>
       </div>
@@ -56,7 +62,7 @@
           <em>ソフトカイロ矯正</em>
         </h1>
         <p class="hero-sub">
-          助産師でもある鍼灸師が、<br class="sp-only" />ゆらぎやすい女性のからだを整えます。
+          「仕方がない」と思っていた不調に、<br class="sp-only" />できることがあります。
         </p>
         <div class="hero-badges">
           <span class="hero-badge">
@@ -78,7 +84,7 @@
         </div>
         <div class="hero-notes">
           <p class="hero-note">
-            ※その他、不定期で東急田園都市線青葉台駅周辺のレンタルサロンでも施術を行っています。
+            ※その他、不定期で東急田園都市線青葉台駅周辺のレンタルサロンでも施術を行っています（こちらでは男性はご家族のみ対応しています）。
           </p>
         </div>
       </div>
@@ -91,13 +97,20 @@
     <section id="worry">
       <div class="hr-wrap">
         <p class="section-label">Your concerns</p>
-        <h2 class="section-title">こんなお悩みはありませんか？</h2>
+        <h2 class="section-title">そのつらい症状、お腹に手がかりがあります</h2>
+        <p class="section-lead">
+          お腹を見る内臓鍼灸と、<br class="sp-only" />ソフトカイロ矯正で対応できる症状はこちらです
+        </p>
         <div class="worry-grid">
           <div v-for="worry in worries" :key="worry" class="worry-card">
             <span class="worry-dot" aria-hidden="true"></span>
             <span>{{ worry }}</span>
           </div>
         </div>
+        <p class="worry-note">
+          ※ 当院は疾患の診断・治療を行うものではありません。痛みや症状が強い場合、気になる症状がある場合は、まず医療機関を受診してください。<br />
+          当院では、症状のケアとからだ全体の調整を目的とした施術を行っています。
+        </p>
       </div>
     </section>
 
@@ -114,7 +127,7 @@
             リラクゼーションを目的としたお店ではなく、<strong>お困りの症状を改善すること</strong>を目的として、内臓鍼灸とソフトカイロ矯正を組み合わせた施術を行っています。
           </p>
           <p>
-            院長は鍼灸師と助産師、両方の国家資格を持っています。月経・妊娠・出産・産後といった女性のからだのサイクルを現場で見てきた立場から、西洋医学と東洋医学の両方の視点から、おひとりずつの状態に合わせた施術とご相談をお受けしています。
+            院長は鍼灸師と助産師、両方の国家資格を持っています。月経・妊娠・出産・産後といった女性のからだのサイクルを現場で見てきた立場から、西洋医学と東洋医学の両方の視点をもって、おひとりずつの状態に合わせた施術とご相談をお受けしています。
           </p>
           <p>
             鍼がはじめての方も少なくありません。どんなことをするのか、どのくらいの刺激なのか、気になることは施術前に何でもお尋ねください。
@@ -488,23 +501,31 @@ watch(activeStep, (step) => {
   if (import.meta.client) document.body.style.overflow = step ? 'hidden' : ''
 })
 
-const navLinks = [
-  { href: '#about', label: '当院について' },
-  { href: '#feature', label: '3つの特徴' },
-  { href: '#profile', label: '施術者について' },
-  { href: '#flow', label: '施術の流れ' },
-  { href: '#access', label: 'アクセス' },
-]
+/**
+ * ナビゲーション。お客様の声とコラムは、掲載する中身が揃うまでリンクを出さない
+ * （site.showVoices / site.noteUrl を切り替えれば自動で並ぶ）
+ */
+const navLinks = computed(() => [
+  { href: '#worry', label: '対応できる症状', external: false },
+  ...(site.showVoices ? [{ href: '#voice', label: 'お客様の声', external: false }] : []),
+  { href: '#about', label: '当院について', external: false },
+  { href: '#feature', label: '3つの特徴', external: false },
+  { href: '#profile', label: '施術者について', external: false },
+  { href: '#flow', label: '施術の流れ', external: false },
+  { href: '#access', label: 'アクセス', external: false },
+  ...(site.noteUrl ? [{ href: site.noteUrl, label: 'コラム', external: true }] : []),
+])
 
 const worries = [
   '病院で「異常なし」と言われたけれど、痛みや辛い症状がある',
-  '自律神経の乱れが気になる（不安感・動悸・めまい・不眠など）',
-  '胃腸の調子の症状（便秘・下痢・腹痛・胃痛・逆流性食道炎など）',
+  '自律神経の症状（不安感・動悸・めまい・不眠・呼吸が浅い・緊張が取れないなど）',
+  '胃腸の症状（便秘・下痢・腹痛・胃痛・逆流性食道炎・機能性ディスペプシアなど）',
   '婦人科系の症状（生理不順・生理痛・PMS（月経前症候群）・冷え・むくみなど）',
-  '整形外科系の症状（腰痛・膝痛・動作時の痛みなど）',
+  '整形外科系の症状（腰痛・肩の痛み・膝痛・動作時の痛みなど）',
+  'アレルギーに関連する症状（喘息・咳・副鼻腔炎・アトピー・蕁麻疹など）',
+  '自己免疫疾患に関連する症状（ドライマウス・ドライアイ・全身倦怠感・関節痛・皮膚の乾燥・動悸・頻脈など）',
+  '感染症後の後遺症（倦怠感・疲労感・咳・味覚嗅覚障害・頭痛など）',
   '産後の腰痛、骨盤矯正、産前のからだづくり',
-  'からだの緊張がとれない',
-  '呼吸が浅い'
 ]
 
 const values = [

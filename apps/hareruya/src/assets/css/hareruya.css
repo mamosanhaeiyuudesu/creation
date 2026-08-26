@@ -117,9 +117,9 @@
   border-bottom: 1px solid var(--c-pink-line);
 }
 
-/* ナビはリンク5本＋LINE/Instagramのラベルが並ぶため、本文より広めに取る */
+/* ナビはリンク8本＋LINE/Instagramのラベルが並ぶため、本文より大幅に広めに取る */
 .hr-nav-inner {
-  max-width: 1040px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
   height: 60px;
@@ -146,7 +146,7 @@
 
 .hr-nav-links {
   display: flex;
-  gap: 16px;
+  gap: 14px;
 }
 
 .hr-nav-links a {
@@ -218,40 +218,35 @@
   pointer-events: none;
 }
 
+/* 3本線のアイコンではなく「メニュー」と文字で出す */
 .hr-nav-toggle {
   display: none;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 5px;
-  width: 36px;
   height: 36px;
-  padding: 0;
-  border: none;
-  background: transparent;
+  padding: 0 16px;
+  border: 1px solid var(--c-brown-line);
+  border-radius: 999px;
+  background: var(--c-white);
+  color: var(--c-brown);
+  font-family: var(--f-sans);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
   flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s;
 }
 
-.hr-nav-toggle span {
-  display: block;
-  width: 20px;
-  height: 2px;
-  background: var(--c-brown);
-  border-radius: 2px;
-  transition: transform 0.25s ease, opacity 0.2s ease;
+.hr-nav-toggle:hover {
+  border-color: var(--c-pink-deep);
 }
 
-.hr-nav-toggle.is-active span:nth-child(1) {
-  transform: translateY(7px) rotate(45deg);
-}
-
-.hr-nav-toggle.is-active span:nth-child(2) {
-  opacity: 0;
-}
-
-.hr-nav-toggle.is-active span:nth-child(3) {
-  transform: translateY(-7px) rotate(-45deg);
+.hr-nav-toggle.is-active {
+  background: var(--c-pink-soft);
+  border-color: var(--c-pink-deep);
 }
 
 .hr-nav-mobile {
@@ -303,8 +298,9 @@
   margin-bottom: 24px;
 }
 
-/* 見出しのすぐ下に添える米印の注記 */
-.section-title:has(+ .section-note) {
+/* 見出しのすぐ下に添える注記・リード文 */
+.section-title:has(+ .section-note),
+.section-title:has(+ .section-lead) {
   margin-bottom: 10px;
 }
 
@@ -1613,7 +1609,7 @@ a.hero-badge.is-link:hover {
    ========================================== */
 
 /* ヘッダーが1行に収まらなくなる幅でハンバーガーへ切り替える */
-@media (max-width: 960px) {
+@media (max-width: 1200px) {
   .hr-nav-links {
     display: none;
   }
