@@ -62,14 +62,18 @@ export function glossaryTerms(glossary: Glossary = KIKIGAKI_GLOSSARY): string[] 
 }
 
 /**
- * 文字起こしAPIの prompt パラメータ用のヒント文。
- * このパラメータは長すぎると後ろが切り捨てられる（Whisper系は約224トークン）ので、
- * variants は入れずに「正しい表記」だけを短く並べる。
+ * 文字起こしAPIの prompt パラメータへ渡すヒント。
+ *
+ * **固有名詞を並べるだけにして、文章の形にしないこと。**
+ * gpt-4o-transcribe は prompt を文脈として扱うため、「次の固有名詞が出てきます: 〜」のような
+ * 文にすると、その続きとして prompt 自体を本文へ書き起こしてしまう（実際に会議の
+ * 文字起こしの冒頭へ丸ごと漏れた）。OpenAI が想定しているのも固有名詞の羅列の形。
+ *
+ * また、このパラメータは長すぎると後ろが切り捨てられる（Whisper系は約224トークン）ので、
+ * variants は入れずに「正しい表記」だけを並べる。
  */
 export function glossaryPromptHint(glossary: Glossary = KIKIGAKI_GLOSSARY): string {
-  const terms = glossaryTerms(glossary)
-  if (!terms.length) return ''
-  return `次の固有名詞が出てきます: ${terms.join('、')}。`
+  return glossaryTerms(glossary).join('、')
 }
 
 /** Claude のシステムプロンプトへ埋め込む用の JSON 文字列 */

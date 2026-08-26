@@ -51,6 +51,9 @@
           AIの読み取りには間違いがあります。ここで直してから承認してください。<br>
           <strong>承認するまで、Googleには何も書き込まれません。</strong>
         </p>
+        <p v-if="record.owner" class="text-[11.5px] text-[var(--kk-ink-faint)] mt-2">
+          {{ record.owner }} さんがアップロード<span v-if="!record.isOwner">／この記録は全員で共有しています。直した内容は全員に反映されます</span>
+        </p>
       </header>
 
       <p v-if="errorMessage" class="kk-card px-4 py-3 mb-4 text-[13px]" style="border-color: #f0c2c2; background: #fdf1f1; color: var(--kk-danger)">
@@ -84,7 +87,7 @@
         </div>
         <div class="mt-3">
           <p class="kk-label mb-1">概要</p>
-          <textarea v-model="minutes.summary" rows="3" class="kk-input resize-y" />
+          <AutoTextarea v-model="minutes.summary" placeholder="この会議が何だったかの短いまとめ" />
         </div>
       </section>
 
@@ -95,13 +98,30 @@
           <button class="kk-btn-ghost !h-7 !px-2.5" @click="group.items.push({ content: '', note: '' })">＋ 追加</button>
         </div>
         <p v-if="!group.items.length" class="text-[12px] text-[var(--kk-ink-faint)] py-1">{{ group.empty }}</p>
-        <ul v-else class="space-y-2">
-          <li v-for="(item, i) in group.items" :key="i" class="flex gap-2">
-            <div class="flex-1 space-y-1.5">
-              <input v-model="item.content" class="kk-input" :placeholder="group.placeholder">
-              <input v-model="item.note" class="kk-input !py-1.5 text-[12px]" placeholder="補足（任意）">
+        <ul v-else class="space-y-3">
+          <!--
+            項目と補足は役割が違うので、同じ見た目の入力欄を縦に並べない。
+            番号バッジ＋太字の本文を主、左の縦線で字下げした小さい欄を従として段差をつけている。
+            本文は AutoTextarea＝長い項目でも折り返して全部見える（input だと後ろが見切れる）。
+          -->
+          <li v-for="(item, i) in group.items" :key="i" class="kk-item">
+            <div class="flex items-start gap-2">
+              <span class="kk-num">{{ i + 1 }}</span>
+              <AutoTextarea
+                v-model="item.content"
+                :placeholder="group.placeholder"
+                class="flex-1 !font-semibold !text-[14px]"
+              />
+              <button class="kk-btn-ghost !h-8 !px-2 shrink-0" title="この項目を削除" @click="group.items.splice(i, 1)">✕</button>
             </div>
-            <button class="kk-btn-ghost !h-8 !px-2 self-start" title="削除" @click="group.items.splice(i, 1)">✕</button>
+            <div class="kk-note">
+              <span class="kk-note-label">補足</span>
+              <AutoTextarea
+                v-model="item.note"
+                placeholder="なくても構いません"
+                class="flex-1 !py-1 !text-[12.5px] !bg-transparent !border-transparent hover:!border-[var(--kk-line)] focus:!bg-white"
+              />
+            </div>
           </li>
         </ul>
       </section>
@@ -118,7 +138,7 @@
           <li v-for="(t, i) in minutes.taskCandidates" :key="i" class="flex gap-2">
             <div class="flex-1 grid gap-1.5 sm:grid-cols-[140px_1fr]">
               <input v-model="t.assignee" class="kk-input" placeholder="担当">
-              <input v-model="t.task" class="kk-input" placeholder="やること">
+              <AutoTextarea v-model="t.task" placeholder="やること" />
               <input v-model="t.due" class="kk-input !py-1.5 text-[12px]" placeholder="期限（会議での言い方）">
               <label class="flex items-center gap-2">
                 <span class="text-[11.5px] text-[var(--kk-ink-faint)] whitespace-nowrap">登録する期限</span>
@@ -179,7 +199,8 @@
             {{ saving ? '保存中…' : '下書きを保存' }}
           </button>
           <span v-if="savedAt" class="text-[11.5px] text-[var(--kk-ink-faint)]">保存しました</span>
-          <button class="kk-btn-ghost ml-auto" :disabled="sending" @click="remove">削除</button>
+          <!-- 記録は全員で共有するが、消せるのはアップロードした本人だけ -->
+          <button v-if="record.isOwner" class="kk-btn-ghost ml-auto" :disabled="sending" @click="remove">削除</button>
         </div>
         <p v-if="!minutes.title" class="text-[11.5px] mt-2" style="color: var(--kk-warn)">タイトルを入力すると送信できます。</p>
       </div>
@@ -194,6 +215,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
+import AutoTextarea from '~/components/kikigaki/AutoTextarea.vue'
 import { emptyMinutes } from '~/types/kikigaki'
 import type { KikigakiApproveResult, KikigakiMinutes, KikigakiRecord } from '~/types/kikigaki'
 
@@ -322,3 +344,47 @@ onMounted(async () => {
   else loading.value = false
 })
 </script>
+
+<style scoped>
+/* 項目（主）と補足（従）の段差をつけるための見た目。
+   同じ大きさの入力欄が並ぶと、どれが決定事項の本文でどれが補足なのか読み取れないため。 */
+.kk-item {
+  border: 1px solid var(--kk-line);
+  border-radius: 12px;
+  padding: 0.6rem 0.7rem;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.kk-num {
+  flex-shrink: 0;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin-top: 0.45rem;
+  border-radius: 999px;
+  background: var(--kk-accent-soft);
+  color: var(--kk-accent);
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 補足は本文の下に字下げし、左の縦線で「本文にぶら下がるもの」だと分かるようにする */
+.kk-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0 2.1rem;
+  padding-left: 0.6rem;
+  border-left: 2px solid var(--kk-line);
+}
+
+.kk-note-label {
+  flex-shrink: 0;
+  margin-top: 0.4rem;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--kk-ink-faint);
+}
+</style>

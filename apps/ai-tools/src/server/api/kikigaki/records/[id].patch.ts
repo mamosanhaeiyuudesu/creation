@@ -14,6 +14,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const minutes = normalizeMinutes(body?.minutes)
-  await updateRecordMinutes(event, user.id, id, minutes)
+  await updateRecordMinutes(event, id, minutes)
   return { ok: true, minutes }
 })

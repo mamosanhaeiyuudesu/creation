@@ -8,10 +8,15 @@ interface AudioRecorderOptions {
   getModel?: () => TranscriptionModel
 }
 
-// 20分以上の音声は分割して並列文字起こし
-const CHUNK_DURATION_SECONDS = 20 * 60
-// 8kHz モノラル WAV: 20分 ≈ 19.2MB (whisper API 25MB制限以内)
-const WAV_SAMPLE_RATE = 8000
+// そのまま送れる長さの上限。ここに収まるなら再エンコードせず元の音質のまま送る。
+const DIRECT_MAX_DURATION_SECONDS = 20 * 60
+// 分割するときの1チャンクの長さ。
+// 16kHz モノラル WAV: 10分 ≈ 19.2MB（OpenAI の 25MB 制限以内）
+const CHUNK_DURATION_SECONDS = 10 * 60
+// Whisper系モデルは16kHzで学習されている。8kHz（電話並み）まで落とすと、
+// 会議室のように複数人の声が重なる録音で同じ語を延々と繰り返す幻覚が出やすくなる。
+// 1チャンクを20分→10分に縮めることで、ファイルサイズを変えずに帯域を倍にしている。
+const WAV_SAMPLE_RATE = 16000
 // 分割せずそのまま送れるサイズの上限。OpenAI の上限は25MBだが、20分以内でも
 // 非圧縮WAVなら簡単に超えるので、超えたら分割（＝8kHzモノラル化）の側へ倒す。
 const DIRECT_UPLOAD_MAX_BYTES = 20 * 1024 * 1024
@@ -83,7 +88,7 @@ export async function splitAndTranscribeBlob(
   }
 
   // 短くて軽いものはそのまま送る（余計な再エンコードで音質を落とさない）
-  if (audioBuffer.duration <= CHUNK_DURATION_SECONDS && blob.size <= DIRECT_UPLOAD_MAX_BYTES) {
+  if (audioBuffer.duration <= DIRECT_MAX_DURATION_SECONDS && blob.size <= DIRECT_UPLOAD_MAX_BYTES) {
     return await post(blob, filename)
   }
 

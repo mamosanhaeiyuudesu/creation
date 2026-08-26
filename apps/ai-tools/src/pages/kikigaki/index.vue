@@ -73,9 +73,12 @@
       </template>
     </section>
 
-    <!-- 記録一覧 -->
+    <!-- 記録一覧（全員で共有） -->
     <section>
-      <p class="kk-label mb-2">これまでの記録</p>
+      <div class="flex items-baseline gap-2 mb-2">
+        <p class="kk-label">みんなの記録</p>
+        <p class="text-[11px] text-[var(--kk-ink-faint)]">誰がアップロードしたものも、全員で見て直せます</p>
+      </div>
 
       <div v-if="loadingList" class="space-y-2">
         <div v-for="i in 3" :key="i" class="h-16 rounded-[14px] bg-white/70 animate-pulse" />
@@ -91,7 +94,9 @@
             <div class="flex-1 min-w-0">
               <p class="text-[13.5px] font-bold truncate">{{ r.title || '（タイトル未設定）' }}</p>
               <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-0.5 truncate">
-                {{ r.date || '日付未設定' }}<span v-if="r.audioName"> ・ {{ r.audioName }}</span>
+                {{ r.date || '日付未設定' }}
+                <span v-if="r.owner"> ・ {{ r.owner }}<span v-if="r.isOwner">（自分）</span></span>
+                <span v-if="r.audioName"> ・ {{ r.audioName }}</span>
               </p>
             </div>
             <span class="kk-tag shrink-0" :class="r.status === 'approved' ? 'kk-tag--approved' : 'kk-tag--draft'">

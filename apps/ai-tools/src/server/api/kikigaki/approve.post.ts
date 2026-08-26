@@ -27,10 +27,12 @@ export default defineEventHandler(async (event): Promise<KikigakiApproveResult> 
   const minutes = body?.minutes ? normalizeMinutes(body.minutes) : record.minutes
   if (!minutes.title) throw createError({ statusCode: 400, message: 'タイトルを入力してください' })
 
-  await updateRecordMinutes(event, user.id, id, minutes)
+  await updateRecordMinutes(event, id, minutes)
 
+  // 書き込み先は「承認した人」のGoogleアカウント。記録は共有だが、
+  // ドキュメント・タスク・予定は承認操作をした本人のドライブ／ToDo／カレンダーに入る。
   const result = await writeApprovedMinutes(event, user.id, minutes, record.transcript)
-  await markApproved(event, user.id, id, result.docUrl, result.sentTasks, result.sentEvents)
+  await markApproved(event, id, result.docUrl, result.sentTasks, result.sentEvents)
 
   return result
 })

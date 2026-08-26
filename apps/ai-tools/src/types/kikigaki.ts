@@ -55,6 +55,10 @@ export interface KikigakiRecordSummary {
   audioName: string
   docUrl: string
   createdAt: string
+  /** アップロードした人のユーザー名。記録は全員で共有するので誰が上げたかを出す */
+  owner: string
+  /** 自分がアップロードした記録か（削除できるのは本人だけ） */
+  isOwner: boolean
 }
 
 /** レビュー画面が扱う1件ぶんの全体 */

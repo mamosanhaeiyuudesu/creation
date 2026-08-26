@@ -151,6 +151,8 @@ export function normalizeMinutes(raw: any): KikigakiMinutes {
 
 interface RecordRow {
   id: string
+  user_id: string
+  owner: string | null
   status: string
   title: string
   meeting_date: string
@@ -165,10 +167,14 @@ interface RecordRow {
   updated_at: string
 }
 
-const SUMMARY_COLS = 'id, status, title, meeting_date, audio_name, doc_url, created_at'
-const FULL_COLS = `${SUMMARY_COLS}, transcript, minutes, sent_tasks, sent_events, approved_at, updated_at`
+// 記録は「その会議に出ていた全員で読むもの」なので、user_id で絞り込まず全員に見せる。
+// user_id は所有者（アップロードした人）の記録として残し、表示と削除の可否にだけ使う。
+const SUMMARY_COLS =
+  'r.id, r.user_id, u.username AS owner, r.status, r.title, r.meeting_date, r.audio_name, r.doc_url, r.created_at'
+const FULL_COLS = `${SUMMARY_COLS}, r.transcript, r.minutes, r.sent_tasks, r.sent_events, r.approved_at, r.updated_at`
+const FROM_RECORDS = 'FROM kikigaki_records r LEFT JOIN users u ON u.id = r.user_id'
 
-async function toSummary(event: any, row: RecordRow): Promise<KikigakiRecordSummary> {
+async function toSummary(event: any, row: RecordRow, viewerId: string): Promise<KikigakiRecordSummary> {
   return {
     id: row.id,
     status: (row.status === 'approved' ? 'approved' : 'draft') as KikigakiStatus,
@@ -177,6 +183,8 @@ async function toSummary(event: any, row: RecordRow): Promise<KikigakiRecordSumm
     audioName: row.audio_name ?? '',
     docUrl: row.doc_url ?? '',
     createdAt: row.created_at ?? '',
+    owner: row.owner ?? '',
+    isOwner: row.user_id === viewerId,
   }
 }
 
@@ -209,23 +217,24 @@ export async function createRecord(
   return id
 }
 
-export async function listRecords(event: any, userId: string): Promise<KikigakiRecordSummary[]> {
+/** 全員ぶんの記録を新しい順に返す（共有）。viewerId は「自分のものか」の判定にだけ使う。 */
+export async function listRecords(event: any, viewerId: string): Promise<KikigakiRecordSummary[]> {
   const db = requireKikigakiDb(event)
   await ensureKikigakiTables(db)
   const res = await db
-    .prepare(`SELECT ${SUMMARY_COLS} FROM kikigaki_records WHERE user_id = ? ORDER BY created_at DESC LIMIT 100`)
-    .bind(userId)
+    .prepare(`SELECT ${SUMMARY_COLS} ${FROM_RECORDS} ORDER BY r.created_at DESC LIMIT 200`)
     .all()
   const rows: RecordRow[] = res?.results ?? []
-  return Promise.all(rows.map((r) => toSummary(event, r)))
+  return Promise.all(rows.map((r) => toSummary(event, r, viewerId)))
 }
 
-export async function getRecord(event: any, userId: string, id: string): Promise<KikigakiRecord | null> {
+/** 1件を返す（共有なので所有者でなくても読める）。 */
+export async function getRecord(event: any, viewerId: string, id: string): Promise<KikigakiRecord | null> {
   const db = requireKikigakiDb(event)
   await ensureKikigakiTables(db)
   const row = (await db
-    .prepare(`SELECT ${FULL_COLS} FROM kikigaki_records WHERE id = ? AND user_id = ?`)
-    .bind(id, userId)
+    .prepare(`SELECT ${FULL_COLS} ${FROM_RECORDS} WHERE r.id = ?`)
+    .bind(id)
     .first()) as RecordRow | null
   if (!row) return null
 
@@ -238,7 +247,7 @@ export async function getRecord(event: any, userId: string, id: string): Promise
   }
 
   return {
-    ...(await toSummary(event, row)),
+    ...(await toSummary(event, row, viewerId)),
     transcript: await decryptComment(event, row.transcript ?? ''),
     minutes: normalizeMinutes(parsed),
     sentTasks: row.sent_tasks ?? 0,
@@ -248,21 +257,24 @@ export async function getRecord(event: any, userId: string, id: string): Promise
   }
 }
 
-/** レビュー画面での編集を保存する。承認済みの記録は編集させない（Googleへ送った内容とズレるため）。 */
-export async function updateRecordMinutes(event: any, userId: string, id: string, minutes: KikigakiMinutes): Promise<void> {
+/**
+ * レビュー画面での編集を保存する。記録は共有なので、所有者でなくても直せる
+ * （会議に出ていた誰かが気づいた間違いを直せるほうが実態に合う）。
+ * 承認済みの記録は編集させない（Googleへ送った内容とズレるため）。
+ */
+export async function updateRecordMinutes(event: any, id: string, minutes: KikigakiMinutes): Promise<void> {
   const db = requireKikigakiDb(event)
   await db
     .prepare(
       `UPDATE kikigaki_records
        SET title = ?, meeting_date = ?, minutes = ?, updated_at = datetime('now')
-       WHERE id = ? AND user_id = ? AND status = 'draft'`
+       WHERE id = ? AND status = 'draft'`
     )
     .bind(
       await encryptComment(event, minutes.title),
       minutes.date,
       await encryptComment(event, JSON.stringify(minutes)),
-      id,
-      userId
+      id
     )
     .run()
 }
@@ -270,7 +282,6 @@ export async function updateRecordMinutes(event: any, userId: string, id: string
 /** 承認してGoogleへ送り終えた記録に印をつける。以後この記録は再送も編集もできない。 */
 export async function markApproved(
   event: any,
-  userId: string,
   id: string,
   docUrl: string,
   sentTasks: number,
@@ -282,13 +293,18 @@ export async function markApproved(
       `UPDATE kikigaki_records
        SET status = 'approved', doc_url = ?, sent_tasks = ?, sent_events = ?,
            approved_at = datetime('now'), updated_at = datetime('now')
-       WHERE id = ? AND user_id = ?`
+       WHERE id = ?`
     )
-    .bind(docUrl, sentTasks, sentEvents, id, userId)
+    .bind(docUrl, sentTasks, sentEvents, id)
     .run()
 }
 
-export async function deleteRecord(event: any, userId: string, id: string): Promise<void> {
+/**
+ * 削除だけは所有者（アップロードした人）に限る。
+ * 読み書きは共有でよいが、他人の記録を消せてしまうのは取り返しがつかないため。
+ */
+export async function deleteRecord(event: any, userId: string, id: string): Promise<boolean> {
   const db = requireKikigakiDb(event)
-  await db.prepare('DELETE FROM kikigaki_records WHERE id = ? AND user_id = ?').bind(id, userId).run()
+  const res = await db.prepare('DELETE FROM kikigaki_records WHERE id = ? AND user_id = ?').bind(id, userId).run()
+  return (res?.meta?.changes ?? 0) > 0
 }
