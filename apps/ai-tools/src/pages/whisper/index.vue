@@ -198,7 +198,7 @@ const onFileSelected = async (event: Event) => {
 
   isUploading.value = true
   try {
-    const text = await splitAndTranscribeBlob(file, file.name, undefined, transcriptionModel.value)
+    const text = await splitAndTranscribeBlob(file, file.name, { model: transcriptionModel.value })
     await handleTranscribed(text)
   } catch (err) {
     error.value = err instanceof Error ? err.message : '予期しないエラーが発生しました'

@@ -48,7 +48,7 @@
           @change="onPick"
         >
         <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-2">
-          mp3 / wav / m4a に対応。1ファイル25MBまで（長い会議は分けてアップロードしてください）。
+          mp3 / wav / m4a に対応。長い会議は自動で20分ごとに分割して処理します。
         </p>
         <button class="kk-btn mt-4" :disabled="!file" @click="run">文字起こしをはじめる</button>
       </template>
@@ -64,7 +64,7 @@
           </div>
         </div>
         <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-2 leading-relaxed">
-          長い録音だと数分かかります。このページを閉じずにお待ちください。
+          長い録音だと数分かかります（1時間の会議で3分割ほど）。このページを閉じずにお待ちください。
         </p>
       </template>
     </section>
@@ -109,6 +109,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
 import PasswordModal from '~/components/PasswordModal.vue'
+import { splitAndTranscribeBlob } from '~/composables/useAudioRecorder'
 import type { KikigakiRecordSummary } from '~/types/kikigaki'
 
 definePageMeta({ layout: 'kikigaki' })
@@ -179,9 +180,11 @@ async function run() {
 
   try {
     stage.value = 'transcribing'
-    const form = new FormData()
-    form.append('audio', file.value)
-    const { text } = await $fetch<{ text: string }>('/api/kikigaki/transcribe', { method: 'POST', body: form })
+    // 長い会議は20分ごとに分割して8kHzモノラルへ落としてから並列に投げる（whisper/hagemashi と共通）。
+    // 用語辞書は /api/kikigaki/transcribe がチャンクごとに付けるので、ここから prompt は渡さない。
+    const text = await splitAndTranscribeBlob(file.value, file.value.name, {
+      endpoint: '/api/kikigaki/transcribe',
+    })
 
     stage.value = 'structuring'
     const { id } = await $fetch<{ id: string }>('/api/kikigaki/structure', {

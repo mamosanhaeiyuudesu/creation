@@ -7,7 +7,11 @@ import { requireKikigakiUser } from '~/server/utils/kikigaki'
 import { glossaryPromptHint } from '~/utils/kikigaki-glossary'
 
 const MODEL = 'gpt-4o-transcribe'
-/** OpenAI の音声APIの上限。超える録音の分割対応はMVPでは後回し（まず分かるエラーを出す） */
+/**
+ * OpenAI の音声APIの上限。長い会議はクライアント側の splitAndTranscribeBlob が
+ * 20分ごと・8kHzモノラル（20分で約19MB）に分割してから送ってくるので、通常ここには当たらない。
+ * 分割を経由しない呼び出しへの保険として残している。
+ */
 const MAX_BYTES = 25 * 1024 * 1024
 
 export default defineEventHandler(async (event) => {
@@ -20,6 +24,13 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 413,
       message: `音声ファイルが大きすぎます（${(audio.size / 1024 / 1024).toFixed(1)}MB）。25MB以内に分割してからお試しください。`,
+    })
+  }
+  // 分割された各チャンクは呼び出し側で順番に結合されるため、ここでは1つぶんだけを扱う。
+  if (!audio.size) {
+    throw createError({
+      statusCode: 400,
+      message: '音声ファイルが空です',
     })
   }
 
