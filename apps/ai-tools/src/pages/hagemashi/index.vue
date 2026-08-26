@@ -366,20 +366,47 @@
 
         <!-- 出来事一覧タブ -->
         <div v-else-if="activeTab === 'moments'" class="py-2 flex flex-col gap-2.5">
-          <!-- タグ絞り込み -->
-          <div v-if="momentBaseRows.length > 0" class="flex flex-wrap items-center gap-1.5">
-            <button
-              class="px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer"
-              :class="momentKindFilter === null ? 'border-orange-500/60 bg-orange-500/15 text-orange-300' : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
-              @click="momentKindFilter = null"
-            >すべて {{ momentBaseRows.length }}</button>
-            <button
-              v-for="k in MOMENT_KINDS"
-              :key="k"
-              class="px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer"
-              :class="momentKindFilter === k ? MOMENT_META[k].chip : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
-              @click="momentKindFilter = momentKindFilter === k ? null : k"
-            >{{ k }} {{ momentCounts[k] }}</button>
+          <!-- 絞り込み。①タグ →②その中でよく出てくる単語、の入れ子。
+               番号ラベル・インデント・左の縦線で段の違いを示す（guesthouse/insights と同じ考え方）。
+               ②の縦線とラベルは①で選んだタグの色を引き継ぎ、どの下にぶら下がっているかを色でも示す -->
+          <div v-if="momentBaseRows.length > 0" class="rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2.5 flex flex-col gap-2.5">
+            <div>
+              <p class="text-[10px] font-bold text-slate-500 tracking-wide m-0 mb-1.5">① タグ</p>
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button
+                  class="px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer"
+                  :class="momentKindFilter === null ? 'border-orange-500/60 bg-orange-500/15 text-orange-300' : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
+                  @click="momentKindFilter = null"
+                >すべて {{ momentBaseRows.length }}</button>
+                <button
+                  v-for="k in MOMENT_KINDS"
+                  :key="k"
+                  class="px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer"
+                  :class="momentKindFilter === k ? MOMENT_META[k].chip : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
+                  @click="momentKindFilter = momentKindFilter === k ? null : k"
+                >{{ k }} {{ momentCounts[k] }}</button>
+              </div>
+            </div>
+
+            <div v-if="momentWordChips.length > 0" class="pl-3 border-l-2 transition-colors" :class="momentWordBranchClass">
+              <p class="text-[10px] font-bold tracking-wide m-0 mb-1.5" :class="momentWordLabelClass">
+                ② よく出てくる単語<span class="text-slate-600 font-normal ml-1">{{ momentKindFilter ? `（${momentKindFilter}の中）` : '' }}</span>
+              </p>
+              <div class="flex flex-wrap items-center gap-1">
+                <button
+                  class="px-2 py-[3px] rounded-md text-[10px] border transition-all cursor-pointer"
+                  :class="momentWordFilter === null ? momentWordActiveClass : 'border-white/[0.06] bg-white/[0.02] text-slate-500 hover:text-slate-300 hover:border-white/[0.12]'"
+                  @click="momentWordFilter = null"
+                >すべて</button>
+                <button
+                  v-for="w in momentWordChips"
+                  :key="w.word"
+                  class="px-2 py-[3px] rounded-md text-[10px] border transition-all cursor-pointer"
+                  :class="momentWordFilter === w.word ? momentWordActiveClass : 'border-white/[0.06] bg-white/[0.02] text-slate-500 hover:text-slate-300 hover:border-white/[0.12]'"
+                  @click="momentWordFilter = momentWordFilter === w.word ? null : w.word"
+                >{{ w.word }} <b class="ml-0.5 tabular-nums font-semibold">{{ w.count }}</b></button>
+              </div>
+            </div>
           </div>
 
           <div v-if="momentRows.length === 0" class="text-center text-slate-500 text-sm py-10">
@@ -1247,7 +1274,7 @@ import { useHistory } from '~/composables/useHistory'
 import { useAuth } from '~/composables/useAuth'
 import { useAudioRecorder, fetchTitle } from '~/composables/useAudioRecorder'
 import { useTranscriptionModel } from '~/composables/useTranscriptionModel'
-import { tokenize } from '~/utils/hagemashi/tokenize'
+import { tokenize, tokenizeUnique } from '~/utils/hagemashi/tokenize'
 
 const $dev = import.meta.dev
 
@@ -1626,12 +1653,13 @@ const achievements = ref<Achievement[]>([])
 type MomentKind = '達成' | '感謝' | '喜び' | 'しんどさ' | '不安'
 const MOMENT_KINDS: MomentKind[] = ['達成', '感謝', '喜び', 'しんどさ', '不安']
 // polarity は kind から一意に決まるので保存はせず、ここから引く
-const MOMENT_META: Record<MomentKind, { polarity: 'pos' | 'neg'; chip: string; star: string; dot: string }> = {
-  '達成': { polarity: 'pos', chip: 'border-amber-400/30 bg-amber-400/15 text-amber-300', star: 'text-amber-400', dot: 'bg-amber-400' },
-  '感謝': { polarity: 'pos', chip: 'border-pink-400/30 bg-pink-400/15 text-pink-300', star: 'text-pink-400', dot: 'bg-pink-400' },
-  '喜び': { polarity: 'pos', chip: 'border-emerald-400/30 bg-emerald-400/15 text-emerald-300', star: 'text-emerald-400', dot: 'bg-emerald-400' },
-  'しんどさ': { polarity: 'neg', chip: 'border-slate-400/25 bg-slate-400/10 text-slate-300', star: 'text-slate-400', dot: 'bg-slate-500' },
-  '不安': { polarity: 'neg', chip: 'border-slate-400/25 bg-slate-400/10 text-slate-300', star: 'text-slate-400', dot: 'bg-slate-500' },
+// branch は単語チップ（第2階層）へ伸ばす枝線の色。タグごとの色を引き継いで入れ子を示す
+const MOMENT_META: Record<MomentKind, { polarity: 'pos' | 'neg'; chip: string; star: string; dot: string; branch: string }> = {
+  '達成': { polarity: 'pos', chip: 'border-amber-400/30 bg-amber-400/15 text-amber-300', star: 'text-amber-400', dot: 'bg-amber-400', branch: 'border-amber-400/40' },
+  '感謝': { polarity: 'pos', chip: 'border-pink-400/30 bg-pink-400/15 text-pink-300', star: 'text-pink-400', dot: 'bg-pink-400', branch: 'border-pink-400/40' },
+  '喜び': { polarity: 'pos', chip: 'border-emerald-400/30 bg-emerald-400/15 text-emerald-300', star: 'text-emerald-400', dot: 'bg-emerald-400', branch: 'border-emerald-400/40' },
+  'しんどさ': { polarity: 'neg', chip: 'border-slate-400/25 bg-slate-400/10 text-slate-300', star: 'text-slate-400', dot: 'bg-slate-500', branch: 'border-slate-400/35' },
+  '不安': { polarity: 'neg', chip: 'border-slate-400/25 bg-slate-400/10 text-slate-300', star: 'text-slate-400', dot: 'bg-slate-500', branch: 'border-slate-400/35' },
 }
 interface Moment {
   id: string
@@ -2389,6 +2417,8 @@ const momentSelectOpen = ref(false)
 const momentSelectedIds = ref<string[]>([])
 const deletingMomentId = ref<string | null>(null)
 const momentKindFilter = ref<MomentKind | null>(null)
+// 第2階層の絞り込み。タグ（第1階層）の中でよく出てくる単語
+const momentWordFilter = ref<string | null>(null)
 
 // 中間データを持つ履歴のみ抽出の対象
 const momentSourceItems = computed(() => history.value.filter(i => parseSummaryNote(i.notes)))
@@ -2424,11 +2454,59 @@ const momentCounts = computed(() => {
   return counts
 })
 
+// 出来事1件に含まれる単語。分割結果は保存せず、表示のたびにここで作る。
+// text の純粋な関数なので保存するとキャッシュの二重管理になり、tokenize.ts を直したときに
+// 古い分割が残ってしまう。600件で3.4ms、しかも下の computed がキャッシュするので保存の利が無い
+const momentWordsOf = (m: Moment): string[] => tokenizeUnique(m.text)
+
+// タグで絞った範囲の出来事（単語チップの母集団）。単語で絞ってもチップの顔ぶれが
+// 変わらないよう、単語の絞り込みはここには効かせない
+const momentKindRows = computed(() =>
+  momentKindFilter.value
+    ? momentBaseRows.value.filter(m => m.kind === momentKindFilter.value)
+    : momentBaseRows.value,
+)
+
+// 第2階層の単語チップ（上位10件）。件数は「その単語を含む出来事の数」＝押したときに
+// 並ぶ行数になるよう、同じ出来事の中に同じ語が2回出ても1と数える。
+// 1件しか無い単語はまとまりとして意味を持たないので落とす
+const momentWordChips = computed(() => {
+  const freq = new Map<string, number>()
+  for (const m of momentKindRows.value) {
+    for (const w of momentWordsOf(m)) {
+      if (stoplistSet.value.has(w)) continue
+      freq.set(w, (freq.get(w) ?? 0) + 1)
+    }
+  }
+  return [...freq.entries()]
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 10)
+    .map(([word, count]) => ({ word, count }))
+})
+
+// 単語チップは親のタグの色を引き継ぐ（どのタグの下にいるかを色で示す）
+const momentWordActiveClass = computed(() =>
+  momentKindFilter.value
+    ? MOMENT_META[momentKindFilter.value].chip
+    : 'border-orange-500/60 bg-orange-500/15 text-orange-300',
+)
+const momentWordBranchClass = computed(() =>
+  momentKindFilter.value ? MOMENT_META[momentKindFilter.value].branch : 'border-orange-500/35',
+)
+const momentWordLabelClass = computed(() =>
+  momentKindFilter.value ? MOMENT_META[momentKindFilter.value].star : 'text-orange-400/80',
+)
+
+// タグを変えると単語の顔ぶれも変わる。前の単語で絞ったままだと0件になりやすいので外す
+watch(momentKindFilter, () => { momentWordFilter.value = null })
+
 // 「すべて」はネガも含めた全件（チップの件数と実際に並ぶ行数を必ず一致させる）。
 // ネガは MomentRow 側で薄く描かれるので、混ざっても圧迫感は出ない
 const momentRows = computed(() => {
-  const rows = momentBaseRows.value
-  if (momentKindFilter.value) return rows.filter(m => m.kind === momentKindFilter.value)
+  const rows = momentKindRows.value
+  const word = momentWordFilter.value
+  if (word) return rows.filter(m => momentWordsOf(m).includes(word))
   return rows
 })
 
