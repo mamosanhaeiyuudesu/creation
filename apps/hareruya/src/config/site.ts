@@ -30,6 +30,8 @@ type Place = {
   routeTitle: string
   /** 道順写真。caption が空の写真は説明なしで並ぶ */
   routeSteps: readonly { image: string; caption: string }[]
+  /** 道順の写真の下に添える補足。空文字なら何も表示しない */
+  routeNote: string
   /**
    * GoogleマップのiframeのsrcURL。空文字の場合は地図の代わりにテキスト案内を表示する。
    * 差し替えるときは Googleマップ → 共有 → 地図を埋め込む の iframe src を貼るか、
@@ -79,6 +81,7 @@ const wakaba: Place = {
     },
     { image: '/images/route/wakka-route-5.jpg', caption: '中に入って左奥で施術を行っています。' },
   ],
+  routeNote: '',
   /**
    * 隣の「BOOK STAND 若葉台」の座標にピンを立てる。
    * Googleマップの place ページ（.../place/BOOK+STAND+若葉台/@35.5059382,139.4987655,17z/...）の
@@ -106,15 +109,28 @@ const aobadai: Place = {
   /** 行き方が決まったら記入。空配列の間は電車・バスの行を出さない */
   transit: [],
   routeTitle: '青葉台駅からの道順',
-  /** 説明文はあとから記入する。caption が空のうちは写真だけ並ぶ */
   routeSteps: [
-    { image: '/images/route/aobadai-route-1.jpg', caption: '' },
-    { image: '/images/route/aobadai-route-2.jpg', caption: '' },
-    { image: '/images/route/aobadai-route-3.jpg', caption: '' },
-    { image: '/images/route/aobadai-route-4.jpg', caption: '' },
-    { image: '/images/route/aobadai-route-5.jpg', caption: '' },
-    { image: '/images/route/aobadai-route-6.jpg', caption: '' },
+    {
+      image: '/images/route/aobadai-route-1.jpg',
+      caption:
+        '青葉台駅西口から出て、みずほ銀行前の信号から、東急スクエアSouth側へ信号をわたります。',
+    },
+    {
+      image: '/images/route/aobadai-route-2.jpg',
+      caption: '渡ったら、左方向に進みます。右のスターバックスを通り過ぎます。',
+    },
+    {
+      image: '/images/route/aobadai-route-3.jpg',
+      caption: 'ファミリーマートが見える交差点を渡り、そのまままっすぐ進みます。',
+    },
+    {
+      image: '/images/route/aobadai-route-4.jpg',
+      caption: '高架の手前の横断歩道を渡り、高架をくぐってすぐの曲がり角を右に曲がります。',
+    },
+    { image: '/images/route/aobadai-route-5.jpg', caption: '◯印の緑のパネルのあるビルが施術場所です。' },
+    { image: '/images/route/aobadai-route-6.jpg', caption: '階段を上がって2階のエレベーターで、5階までお越しください。' },
   ],
+  routeNote: '階段を上がる際にお手伝いが必要な場合は、公式LINEよりご連絡いただければ対応いたします。',
   /**
    * https://maps.app.goo.gl/tQAwunu71XjH1TBP7 が指す「しらとり台1−27」。
    * z=15 は青葉台駅が地図の上部に入るよう引いた倍率（z=16以上だと駅が画面外に出る）。

@@ -427,6 +427,14 @@
   background: linear-gradient(transparent 66%, rgba(254, 191, 202, 0.8) 66%);
 }
 
+/* ふりがな。本文と同じ太さだと主張しすぎるので、小さく淡くする */
+.hero-catch rt {
+  font-size: 0.36em;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--c-brown-mid);
+}
+
 .hero-sub {
   margin-top: 22px;
   font-size: 15.5px;
@@ -1225,6 +1233,17 @@ a.hero-badge.is-link:hover {
   display: grid;
   place-items: center;
   color: var(--c-pink-deep);
+}
+
+/* 道順そのものではなく、来院時のお願い。写真一覧と切り離して読ませる */
+.access-route-help {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--c-pink-soft);
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--c-brown-mid);
 }
 
 .access-route-note {

@@ -30,6 +30,9 @@
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="dictionaryOpen = true; showSettingsMenu = false">
               <span>📖</span> 辞書設定
             </button>
+            <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="stoplistOpen = true; showSettingsMenu = false">
+              <span>🚫</span> 除外する単語
+            </button>
             <button class="w-full text-left px-4 py-2 text-[13px] text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer flex items-center gap-2" @click="openVisionModal(); showSettingsMenu = false">
               <span>🎯</span> ビジョン設定
             </button>
@@ -364,7 +367,7 @@
           </div>
         </div>
 
-        <!-- 出来事一覧タブ -->
+        <!-- 分析タブ（出来事の一覧・絞り込み・並び替え）。key は moments のまま（?tab=moments のリンクを生かすため） -->
         <div v-else-if="activeTab === 'moments'" class="py-2 flex flex-col gap-2.5">
           <!-- 絞り込み。①タグ →②その中でよく出てくる単語、の入れ子。
                番号ラベル・インデント・左の縦線で段の違いを示す（guesthouse/insights と同じ考え方）。
@@ -407,6 +410,19 @@
                 >{{ w.word }} <b class="ml-0.5 tabular-nums font-semibold">{{ w.count }}</b></button>
               </div>
             </div>
+          </div>
+
+          <!-- 並び替え。日付と星（大きさ）の2軸で、選択中の軸をもう一度押すと昇順/降順が入れ替わる。
+               いま何順なのかが矢印だけだと伝わらないので、選択中のボタンにだけ向きの言葉を出す -->
+          <div v-if="momentBaseRows.length > 0" class="flex items-center justify-end gap-1.5">
+            <span class="text-[10px] text-slate-600">並び替え</span>
+            <button
+              v-for="s in MOMENT_SORTS"
+              :key="s.key"
+              class="px-2 py-[3px] rounded-md text-[10px] border transition-all cursor-pointer"
+              :class="momentSortKey === s.key ? 'border-white/20 bg-white/[0.08] text-slate-200' : 'border-white/[0.06] bg-white/[0.02] text-slate-500 hover:text-slate-300 hover:border-white/[0.12]'"
+              @click="toggleMomentSort(s.key)"
+            >{{ s.label }}<span v-if="momentSortKey === s.key" class="ml-1 text-slate-400">{{ momentSortDesc ? `↓${s.desc}` : `↑${s.asc}` }}</span></button>
           </div>
 
           <div v-if="momentRows.length === 0" class="text-center text-slate-500 text-sm py-10">
@@ -1167,14 +1183,14 @@
       <div class="w-full max-w-[420px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
           <div>
-            <h2 class="m-0 text-lg text-slate-50 font-semibold">除外単語</h2>
-            <p class="m-0 mt-0.5 text-xs text-slate-500">単語ランキングから除外する単語を管理</p>
+            <h2 class="m-0 text-lg text-slate-50 font-semibold">除外する単語</h2>
+            <p class="m-0 mt-0.5 text-xs text-slate-500">分析の「よく出てくる単語」から外す語を管理</p>
           </div>
           <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="stoplistOpen = false">✕</button>
         </div>
         <div class="px-4 py-4 overflow-y-auto flex flex-col gap-3 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
           <div v-if="editingStoplist.length === 0" class="text-center text-slate-600 text-sm py-4">
-            除外単語がありません
+            除外する単語はまだありません
           </div>
           <div class="flex flex-wrap gap-1.5">
             <div
@@ -1186,13 +1202,26 @@
               <button class="w-4 h-4 flex items-center justify-center text-slate-500 hover:text-red-400 transition-colors cursor-pointer border-none bg-transparent text-[10px] leading-none" @click="editingStoplist.splice(i, 1)">✕</button>
             </div>
           </div>
+          <!-- 手で打たせるより、実際によく出ている語から選べたほうが早い。
+               押した語は上の一覧へ移り、この候補からは消える -->
+          <div v-if="stopwordCandidates.length > 0" class="pt-2 border-t border-white/[0.06]">
+            <p class="m-0 mb-1.5 text-[10px] font-bold text-slate-500 tracking-wide">よく出てくる単語から選ぶ</p>
+            <div class="flex flex-wrap gap-1">
+              <button
+                v-for="w in stopwordCandidates"
+                :key="w.word"
+                class="px-2 py-[3px] rounded-md text-[11px] border border-white/[0.06] bg-white/[0.02] text-slate-400 cursor-pointer hover:text-slate-200 hover:border-white/[0.12] transition-all"
+                @click="editingStoplist.push(w.word)"
+              >{{ w.word }} <b class="ml-0.5 tabular-nums font-semibold text-slate-600">{{ w.count }}</b></button>
+            </div>
+          </div>
           <div class="flex items-center gap-2 pt-1 border-t border-white/[0.06]">
             <input
               v-model="newStopword"
               type="text"
               placeholder="単語を追加..."
               class="flex-1 bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit]"
-              @keydown.enter="addStopwordInput"
+              @keydown.enter.prevent="(e) => { if (!e.isComposing) addStopwordInput() }"
             />
             <button
               class="px-3 py-2 rounded-lg border border-white/10 bg-white/[0.04] text-slate-300 text-sm cursor-pointer hover:bg-white/[0.10] transition-colors shrink-0"
@@ -1349,12 +1378,12 @@ watch(() => route.query.tab, () => {
 })
 
 // 常に表示する主タブ
-// 現在は「記録」「カレンダー」「出来事一覧」を運用中。他はコメントアウトしている（表示のみ停止・実装は残置）。
+// 現在は「記録」「カレンダー」「分析」を運用中。他はコメントアウトしている（表示のみ停止・実装は残置）。
 // 戻すときはこの配列と下の TAB_KEYS の両方を戻すこと。
 const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'transcription', label: '記録', short: '記録' },
   { key: 'calendar', label: 'カレンダー', short: 'カレンダー' },
-  { key: 'moments', label: '出来事一覧', short: '一覧' },
+  { key: 'moments', label: '分析', short: '分析' },
   // { key: 'kokoro', label: '心', short: '心' },
   // { key: 'strengths', label: '強み', short: '強み' },
   // { key: 'advice', label: '助言', short: '助言' },
@@ -1764,6 +1793,9 @@ function saveStoplist() {
 
 function saveStoplistModal() {
   stoplist.value = editingStoplist.value.filter(w => w.trim())
+  // いま絞り込みに使っている単語を除外すると、チップは消えるのに絞り込みだけが
+  // 残って「なぜこの数なのか」が分からなくなるので外す
+  if (momentWordFilter.value && stoplistSet.value.has(momentWordFilter.value)) momentWordFilter.value = null
   saveStoplist()
   stoplistOpen.value = false
   reTokenize()
@@ -2420,6 +2452,21 @@ const momentKindFilter = ref<MomentKind | null>(null)
 // 第2階層の絞り込み。タグ（第1階層）の中でよく出てくる単語
 const momentWordFilter = ref<string | null>(null)
 
+// 一覧の並び替え。日付（ts）と星（impact）の2軸
+type MomentSortKey = 'date' | 'impact'
+const MOMENT_SORTS: { key: MomentSortKey; label: string; desc: string; asc: string }[] = [
+  { key: 'date', label: '日付', desc: '新しい順', asc: '古い順' },
+  { key: 'impact', label: '星', desc: '多い順', asc: '少ない順' },
+]
+const momentSortKey = ref<MomentSortKey>('date')
+const momentSortDesc = ref(true)
+// 軸を変えたときは必ず降順（新しい順・多い順）から始める。前の軸の向きを引き継ぐと
+// 「星」を押した瞬間に星1の行が並ぶことになり、押し間違いに見える
+const toggleMomentSort = (key: MomentSortKey) => {
+  if (momentSortKey.value === key) momentSortDesc.value = !momentSortDesc.value
+  else { momentSortKey.value = key; momentSortDesc.value = true }
+}
+
 // 中間データを持つ履歴のみ抽出の対象
 const momentSourceItems = computed(() => history.value.filter(i => parseSummaryNote(i.notes)))
 // まだ一度も抽出していない記録。「更新」はここだけを既定の対象にする（差分実行）
@@ -2458,6 +2505,21 @@ const momentCounts = computed(() => {
 // text の純粋な関数なので保存するとキャッシュの二重管理になり、tokenize.ts を直したときに
 // 古い分割が残ってしまう。600件で3.4ms、しかも下の computed がキャッシュするので保存の利が無い
 const momentWordsOf = (m: Moment): string[] => tokenizeUnique(m.text)
+
+// 除外する単語モーダルの候補。②の単語チップと同じ数え方（1件の中に同じ語が
+// 2回出ても1）で、まだ除外していない語だけを多い順に出す。
+// 除外の判断材料は「いまどの語がよく出ているか」なので、母集団はタグで絞らない全件
+const stopwordCandidates = computed(() => {
+  const freq = new Map<string, number>()
+  for (const m of momentBaseRows.value) {
+    for (const w of momentWordsOf(m)) freq.set(w, (freq.get(w) ?? 0) + 1)
+  }
+  return [...freq.entries()]
+    .filter(([word, count]) => count >= 2 && !editingStoplist.value.includes(word))
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 24)
+    .map(([word, count]) => ({ word, count }))
+})
 
 // タグで絞った範囲の出来事（単語チップの母集団）。単語で絞ってもチップの顔ぶれが
 // 変わらないよう、単語の絞り込みはここには効かせない
@@ -2503,11 +2565,25 @@ watch(momentKindFilter, () => { momentWordFilter.value = null })
 
 // 「すべて」はネガも含めた全件（チップの件数と実際に並ぶ行数を必ず一致させる）。
 // ネガは MomentRow 側で薄く描かれるので、混ざっても圧迫感は出ない
+// 並び替えは絞り込みの後。sort は破壊的なので必ず複製してから並べる
+// （momentKindRows はタグ未選択のとき momentBaseRows をそのまま返すので、
+//   その場で並べるとカレンダー側が参照している並びまで書き換わってしまう）
 const momentRows = computed(() => {
-  const rows = momentKindRows.value
   const word = momentWordFilter.value
-  if (word) return rows.filter(m => momentWordsOf(m).includes(word))
-  return rows
+  const rows = word
+    ? momentKindRows.value.filter(m => momentWordsOf(m).includes(word))
+    : [...momentKindRows.value]
+  const dir = momentSortDesc.value ? -1 : 1
+  const timeOf = (m: Moment) => toJSTDate(m.ts).getTime()
+  return rows.sort((a, b) => {
+    if (momentSortKey.value === 'impact') {
+      if (a.impact !== b.impact) return (a.impact - b.impact) * dir
+      // 星が同じときは向きに関わらず新しい順。同点の中で古い記録が上に来ると探しにくい
+      return timeOf(b) - timeOf(a)
+    }
+    // 同じ記録から抜いた出来事は ts が同値。sort は安定なので抽出順のまま残る
+    return (timeOf(a) - timeOf(b)) * dir
+  })
 })
 
 // 相談（ConsultChat）へ渡す達成の文脈。プロンプト側の形（text/level/date）に合わせて変換する

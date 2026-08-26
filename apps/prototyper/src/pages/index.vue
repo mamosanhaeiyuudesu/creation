@@ -8,9 +8,9 @@
         <ul class="ac-nav-links">
           <li><a href="#services">できること</a></li>
           <li><a href="#process">進め方</a></li>
-          <li><a href="#portfolio">制作事例</a></li>
-          <li><a href="#about">自己紹介</a></li>
-          <li><a href="#terms">ご依頼について</a></li>
+          <li><a href="#portfolio">実績</a></li>
+          <li><a href="#about">私について</a></li>
+          <li><a href="#terms">ご相談と費用</a></li>
           <li><a href="#contact">お問い合わせ</a></li>
         </ul>
       </div>
@@ -21,85 +21,135 @@
       <div class="ac-wrap">
         <div class="hero-inner">
           <div class="hero-text">
-            <span class="hero-eyebrow">Interview &rarr; Working Prototype</span>
+            <span class="hero-eyebrow">Your Words &rarr; Working Prototype</span>
             <h1 class="hero-catch">
-              動くものを、<br />
-              <span>いちばん早く。</span>
+              答えは、いつも<br />
+              <span>あなたの中にある。</span>
             </h1>
             <div class="hero-sub">
-              <p>「こういうのが欲しいかも」——その、もやっとした段階から話を聞きに行きます。</p>
+              <p>「こういうのが欲しいかも」——まだ形になっていない、その段階のお話を聞かせてください。</p>
               <p>
-                大事にしているのは、表面的な要望の奥にある「本当は何に困っているか」を掴むこと。<br />
-                そこを掴んだら、仕様書ではなく<strong>動くプロトタイプ</strong>にして持っていきます。議論より、触れるもの。
+                ものづくりの主役は、つくる人ではありません。毎日その現場にいる<strong>あなた</strong>です。<br />
+                私の仕事は、あなたの中にすでにある答えを、触れる形にして一緒に育てることです。
               </p>
               <p>
-                実装はAIとのバイブコーディングが軸なので、とにかく速い。<br />
-                だからこそ、既製のアプリでは手の届かない「うちのやり方だとここが違う」という細かいところまで、作り込むことができます。
+                ITのことは分からなくて大丈夫です。専門用語は使いません。<br />
+                あなたの言葉のまま、話してください。
               </p>
             </div>
+            <div class="hero-build">
+              <span class="hero-build-label">つくれるもの</span>
+              <ul class="hero-tags">
+                <li>Webサービス</li>
+                <li>ホームページ制作</li>
+                <li>LINEアプリ（LIFF）</li>
+                <li>ITコンサルティング</li>
+                <li class="hero-tags-more">など</li>
+              </ul>
+            </div>
             <a href="#contact" class="hero-cta">
-              まずは相談する
+              まずは話を聞かせてください
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </a>
           </div>
           <div class="hero-viz-deco" aria-hidden="true">
-            <svg viewBox="0 0 380 272" fill="none" xmlns="http://www.w3.org/2000/svg" class="hero-flow-svg">
-              <!-- ヒアリング（会話） -->
-              <text x="8" y="10" font-family="'IBM Plex Mono',monospace" font-size="8" font-weight="500" fill="rgba(27,95,217,0.42)" letter-spacing="0.14em">HEARING</text>
+            <svg viewBox="0 0 380 316" fill="none" xmlns="http://www.w3.org/2000/svg" class="hero-flow-svg">
+              <!-- お客さんの声 -->
+              <text x="8" y="10" font-family="'IBM Plex Mono',monospace" font-size="8" font-weight="500" fill="rgba(27,95,217,0.42)" letter-spacing="0.14em">YOUR WORDS</text>
               <g class="hero-bubbles">
                 <g class="hero-bubble">
-                  <rect x="6" y="18" width="198" height="54" rx="13" fill="rgba(245,112,10,0.06)" stroke="rgba(245,112,10,0.22)" stroke-width="1"/>
-                  <rect x="22" y="33" width="152" height="6" rx="3" fill="rgba(245,112,10,0.22)"/>
-                  <rect x="22" y="47" width="112" height="6" rx="3" fill="rgba(245,112,10,0.14)"/>
+                  <rect x="6" y="18" width="190" height="46" rx="13" fill="rgba(245,112,10,0.06)" stroke="rgba(245,112,10,0.22)" stroke-width="1"/>
+                  <rect x="22" y="32" width="146" height="6" rx="3" fill="rgba(245,112,10,0.22)"/>
+                  <rect x="22" y="45" width="106" height="6" rx="3" fill="rgba(245,112,10,0.14)"/>
                 </g>
                 <g class="hero-bubble">
-                  <rect x="146" y="82" width="166" height="46" rx="13" fill="rgba(27,95,217,0.07)" stroke="rgba(27,95,217,0.20)" stroke-width="1"/>
-                  <rect x="162" y="96" width="118" height="6" rx="3" fill="rgba(27,95,217,0.20)"/>
-                  <rect x="162" y="110" width="80" height="6" rx="3" fill="rgba(27,95,217,0.13)"/>
+                  <rect x="170" y="72" width="144" height="40" rx="13" fill="rgba(27,95,217,0.07)" stroke="rgba(27,95,217,0.20)" stroke-width="1"/>
+                  <rect x="186" y="85" width="100" height="6" rx="3" fill="rgba(27,95,217,0.20)"/>
+                  <rect x="186" y="97" width="68" height="6" rx="3" fill="rgba(27,95,217,0.13)"/>
                 </g>
               </g>
 
-              <!-- 変換（バイブコーディング） -->
+              <!-- 共創 -->
               <g class="hero-flow-arrow">
-                <line x1="120" y1="134" x2="120" y2="148" stroke="rgba(245,112,10,0.5)" stroke-width="1.2" stroke-dasharray="3 3"/>
-                <path d="M116,148 L124,148 L120,155 Z" fill="rgba(245,112,10,0.6)"/>
-                <text x="132" y="150" font-family="'IBM Plex Mono',monospace" font-size="7.5" font-weight="600" fill="#f5700a" letter-spacing="0.12em">VIBE CODING</text>
+                <line x1="110" y1="120" x2="110" y2="134" stroke="rgba(245,112,10,0.5)" stroke-width="1.2" stroke-dasharray="3 3"/>
+                <path d="M106,134 L114,134 L110,141 Z" fill="rgba(245,112,10,0.6)"/>
+                <text x="122" y="136" font-family="'IBM Plex Mono',monospace" font-size="7.5" font-weight="600" fill="#f5700a" letter-spacing="0.12em">CO-CREATION</text>
               </g>
 
-              <!-- 動くプロトタイプ -->
-              <g class="hero-window">
-                <rect x="28" y="158" width="324" height="102" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
-                <line x1="28" y1="180" x2="352" y2="180" stroke="rgba(27,95,217,0.16)" stroke-width="1"/>
-                <circle cx="42" cy="169" r="3" fill="rgba(245,112,10,0.45)"/>
-                <circle cx="53" cy="169" r="3" fill="rgba(27,95,217,0.28)"/>
-                <circle cx="64" cy="169" r="3" fill="rgba(27,95,217,0.16)"/>
-                <rect x="80" y="163" width="130" height="12" rx="6" fill="rgba(27,95,217,0.06)"/>
-
-                <g class="hero-window-body">
-                  <!-- 可視化パーツ -->
-                  <line x1="42" y1="248" x2="196" y2="248" stroke="rgba(27,95,217,0.15)" stroke-width="1"/>
-                  <g class="hero-mini-bars">
-                    <rect x="46" y="232" width="12" height="16" rx="2" fill="rgba(27,95,217,0.12)"/>
-                    <rect x="66" y="222" width="12" height="26" rx="2" fill="rgba(27,95,217,0.14)"/>
-                    <rect x="86" y="226" width="12" height="22" rx="2" fill="rgba(27,95,217,0.13)"/>
-                    <rect x="106" y="214" width="12" height="34" rx="2" fill="rgba(27,95,217,0.16)"/>
-                    <rect x="126" y="204" width="12" height="44" rx="2" fill="rgba(27,95,217,0.18)"/>
-                    <rect x="146" y="210" width="12" height="38" rx="2" fill="rgba(27,95,217,0.17)"/>
-                    <rect x="166" y="196" width="12" height="52" rx="2" fill="rgba(27,95,217,0.20)"/>
-                  </g>
-                  <polyline points="52,228 72,218 92,222 112,210 132,200 152,206 172,192" fill="none" stroke="#1b5fd9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="hero-mini-line"/>
-                  <circle cx="172" cy="192" r="3.5" fill="#f5700a" class="hero-mini-peak"/>
-
-                  <!-- UIパーツ -->
-                  <rect x="216" y="192" width="120" height="11" rx="3" fill="rgba(27,95,217,0.09)"/>
-                  <rect x="216" y="211" width="120" height="11" rx="3" fill="rgba(27,95,217,0.07)"/>
-                  <rect x="216" y="230" width="72" height="18" rx="9" fill="rgba(245,112,10,0.85)"/>
+              <!-- つくれるもの -->
+              <text x="8" y="162" font-family="'IBM Plex Mono',monospace" font-size="8" font-weight="500" fill="rgba(27,95,217,0.42)" letter-spacing="0.14em" class="hero-outputs-label">WHAT WE BUILD TOGETHER</text>
+              <g class="hero-outputs">
+                <g class="hero-out">
+                  <rect x="6" y="172" width="178" height="62" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
+                  <rect x="22" y="190" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
+                  <rect x="28" y="197" width="14" height="12" rx="2" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><line x1="28" y1="200.6" x2="42" y2="200.6" stroke="#1b5fd9" stroke-width="1.2" opacity="0.75"/><rect x="30.4" y="204.4" width="2.2" height="3.2" rx="0.6" fill="#1b5fd9" opacity="0.5"/><rect x="33.9" y="202.2" width="2.2" height="5.4" rx="0.6" fill="#1b5fd9" opacity="0.7"/><rect x="37.4" y="203.2" width="2.2" height="4.4" rx="0.6" fill="#f5700a" opacity="0.85"/>
+                  <text x="58" y="202" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">Webサービス</text>
+                  <text x="58" y="217" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">WEB APP</text>
+                </g>
+                <g class="hero-out">
+                  <rect x="196" y="172" width="178" height="62" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
+                  <rect x="212" y="190" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
+                  <rect x="219" y="196" width="12" height="14" rx="1.8" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><rect x="221.4" y="198.4" width="7.2" height="3.6" rx="0.8" fill="#f5700a" opacity="0.7"/><rect x="221.4" y="203.4" width="7.2" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.5"/><rect x="221.4" y="206.1" width="4.6" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.35"/>
+                  <text x="248" y="202" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">ホームページ</text>
+                  <text x="248" y="217" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">WEBSITE</text>
+                </g>
+                <g class="hero-out">
+                  <rect x="6" y="246" width="178" height="62" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
+                  <rect x="22" y="264" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
+                  <rect x="30" y="270" width="10" height="14" rx="2.2" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><rect x="31.8" y="272.6" width="6.4" height="4.6" rx="1.6" fill="#f5700a" opacity="0.75"/><rect x="31.8" y="278.2" width="4.4" height="1.2" rx="0.6" fill="#1b5fd9" opacity="0.4"/><line x1="33.2" y1="281.8" x2="36.8" y2="281.8" stroke="#1b5fd9" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+                  <text x="58" y="276" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">LINEアプリ</text>
+                  <text x="58" y="291" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">LIFF</text>
+                </g>
+                <g class="hero-out">
+                  <rect x="196" y="246" width="178" height="62" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
+                  <rect x="212" y="264" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
+                  <circle cx="225" cy="275.4" r="4.6" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><line x1="225" y1="275.4" x2="225" y2="279.6" stroke="#1b5fd9" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/><rect x="222.9" y="280.2" width="4.2" height="1.5" rx="0.75" fill="#f5700a" opacity="0.85"/><rect x="223.5" y="282.4" width="3" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.45"/>
+                  <text x="248" y="276" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">ITコンサル</text>
+                  <text x="248" y="291" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">CONSULTING</text>
                 </g>
               </g>
-              <text x="28" y="270" font-family="'IBM Plex Mono',monospace" font-size="7.5" font-weight="500" fill="rgba(27,95,217,0.38)" letter-spacing="0.14em" class="hero-flow-caption">RUNNING IN DAYS</text>
             </svg>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- こんなお悩み -->
+    <section id="for-you">
+      <div class="ac-wrap">
+        <p class="section-label">For You</p>
+        <h2 class="section-title">こんなお悩みは、ありませんか</h2>
+        <ul class="for-you-list">
+          <li>
+            <span class="check">✓</span>
+            業者に相談したら専門用語ばかりで、話が通じなかった。
+          </li>
+          <li>
+            <span class="check">✓</span>
+            ITは分からないけれど、今のやり方が非効率なのは分かっている。
+          </li>
+          <li>
+            <span class="check">✓</span>
+            規模が小さすぎて、どこも引き受けてくれない気がする。
+          </li>
+          <li>
+            <span class="check">✓</span>
+            記録やデータは溜まっているのに、使えていない。
+          </li>
+          <li>
+            <span class="check">✓</span>
+            既製のサービスだと、うちのやり方には合わない。
+          </li>
+          <li>
+            <span class="check">✓</span>
+            そもそも、何から相談すればいいのか分からない。
+          </li>
+        </ul>
+        <p class="for-you-note">
+          ひとつでも当てはまれば、それで十分です。<br />
+          要件が決まっていなくて大丈夫。むしろその段階から声をかけてください。<br />
+          これまで行政・観光・農業・医療など、業種を問わずご一緒してきました。
+        </p>
       </div>
     </section>
 
@@ -109,73 +159,107 @@
         <p class="section-label">Services</p>
         <h2 class="section-title">できること</h2>
         <p class="section-body">
-          お客さんのニーズを丁寧に伺って、一般のアプリでは手の届かない「かゆいところ」まで届く道具を作ります。
+          あなたが「実現したいこと」をじっくり伺って、触れる形にして、一緒に育てていきます。
         </p>
         <div class="service-grid">
 
           <div class="service-card">
             <div class="service-icon">🎧</div>
-            <h3 class="service-card-title">丁寧なヒアリング</h3>
+            <h3 class="service-card-title">まず、じっくり聞く</h3>
             <div class="service-card-body">
               <p>
-                仕様よりも先に、人に会って話を聞く。表面的な要望の奥にある「本当は何に困っているか」を掴み、そこから逆算して作るものを決めます。
+                何を作るかより先に、会って話を聞きます。大事にしているのは「なぜそれを実現したいのか」。そこが分かると、作るべきものは自然に決まります。
               </p>
               <p>
-                現場ごとの例外処理や、運用のクセ。既製のサービスが拾いきれないのは、たいていそこです。聞き出して、そこを作り込みます。
+                現場ごとの例外や、長年のやり方のクセ。既製のサービスが拾いきれないのは、たいていそこです。専門用語は使いませんので、普段の言葉のままお話しください。
               </p>
             </div>
           </div>
 
           <div class="service-card">
             <div class="service-icon">⚡</div>
-            <h3 class="service-card-title">高速プロトタイピング</h3>
+            <h3 class="service-card-title">数日で、触れるものにする</h3>
             <div class="service-card-body">
               <p>
-                アイデアが浮かんだら、まず動くものを作る。壊される前提で作ることに抵抗がなく、フィードバックを受けて何度でも作り直します。
+                伺った話を、その場で、あるいは1〜2日で「動くもの」にしてお見せします。文章で仕様を確認し合うより、触ってもらったほうが早いからです。
               </p>
               <p>
-                何十時間も結論の出なかった会議に、動くプロトタイプを持ち込んで「これで決まり」となった経験が何度もあります。
+                AIに任せられるところは任せています。そのぶんの時間を、あなたの話を聞くことに使えるからです。
               </p>
             </div>
           </div>
 
           <div class="service-card">
-            <div class="service-icon">🤖</div>
-            <h3 class="service-card-title">AIによる開発の高速化</h3>
+            <div class="service-icon">🤝</div>
+            <h3 class="service-card-title">触りながら、一緒に育てる</h3>
             <div class="service-card-body">
               <p>
-                バイブコーディングが開発の軸です。AIに実装や叩き台の生成を任せ、自分は全体設計・価値判断・軌道修正に集中する。
+                「ここは違う」「これも欲しい」を受けて、何度でも作り直します。壊される前提で作っているので、遠慮はいりません。
               </p>
               <p>
-                AIが出したものの矛盾や粗を見つけ、対話しながら磨いて、また実行させる。優秀なパートナーに指示を出す感覚で進めるので、とにかく速い。
+                一番良いものが生まれるのは、たいていこのやりとりの途中です。私が正解を出すのではなく、あなたの中にある答えが形になっていく時間だと思っています。
               </p>
             </div>
           </div>
 
           <div class="service-card">
             <div class="service-icon">🛠️</div>
-            <h3 class="service-card-title">全体を見渡す設計と実装</h3>
+            <h3 class="service-card-title">見た目から中身まで、ひとりで通せる</h3>
             <div class="service-card-body">
               <p>
-                フロントエンドからバックエンド、API設計、データベース、非同期処理まで一人で通せるので、「どこがボトルネックか」「どこを直せば価値が最大になるか」を自分で判断できます。
+                画面のデザインから、裏側の仕組み、データの保管、外部サービスとの連携まで、ひとりで担当します。窓口がひとつで済むので、話が伝わらないもどかしさがありません。
               </p>
               <p>
-                データの集計・可視化やAI機能の実装も、この中の一部として対応します（形態素解析などの前処理から、ECharts・Highchartsによるインタラクティブな可視化まで）。
+                データの集計・グラフ化や、AIを使った機能も、この中の一部として対応します。
               </p>
             </div>
           </div>
 
         </div>
-        <div class="services-scope">
-          <div class="services-scope-item services-scope-in">
-            <span class="scope-label">担当範囲</span>
-            <span class="scope-text">ヒアリング / アイデアの検証 / プロトタイプ開発</span>
+      </div>
+    </section>
+
+    <!-- 3つの道 -->
+    <section id="scope" class="ac-scope">
+      <div class="ac-wrap">
+        <p class="section-label">Scope</p>
+        <h2 class="section-title">できあがった後の、3つの道</h2>
+        <p class="section-body">
+          規模によって、私がどこまで担当するかは変わります。どれになるかは、お話を伺ってから一緒に決めます。
+        </p>
+
+        <div class="exit-grid">
+
+          <div class="exit-card">
+            <span class="exit-num">01</span>
+            <h3 class="exit-title">小さくつくって、使い続ける</h3>
+            <p class="exit-body">
+              規模が大きくなければ、開発から実際の運用まで、そのまま私が担当します。作って終わりにせず、使いながら直していけるのが一番良い形だと思っています。
+            </p>
           </div>
-          <div class="services-scope-item services-scope-out">
-            <span class="scope-label">対象外</span>
-            <span class="scope-text">本番運用・インフラ管理</span>
+
+          <div class="exit-card">
+            <span class="exit-num">02</span>
+            <h3 class="exit-title">設計図まで描いて、渡す</h3>
+            <p class="exit-body">
+              大きな仕組みが必要なときは、私が企画書・設計書まで作り、専門のエンジニアへスムーズに橋渡しします。何を作るかが固まった状態で渡せるので、その後の話が早く進みます。
+            </p>
           </div>
+
+          <div class="exit-card exit-card-accent">
+            <span class="exit-num">03</span>
+            <h3 class="exit-title">つくらない、という提案</h3>
+            <p class="exit-body">
+              すでにあるサービスの紹介や、その組み合わせで解決するなら、それが一番安く済みます。作らないほうが良いと思ったときは、正直にそう言います。
+            </p>
+          </div>
+
         </div>
+
+        <p class="exit-note">
+          どこまでご一緒するかは、規模とご予算に合わせてその都度決めていきます。<br />
+          「これは頼めるだろうか」という段階のご相談で構いません。
+        </p>
       </div>
     </section>
 
@@ -185,90 +269,91 @@
         <p class="section-label">Process</p>
         <h2 class="section-title">進め方</h2>
         <p class="section-body">
-          企画書を書いてから作るのではなく、聞いた話をそのまま動くものにして、それを叩き台に議論を前へ進めます。
+          企画書を書いてから作るのではなく、伺った話をそのまま動くものにして、それを叩き台に一緒に考えていきます。
         </p>
 
         <ol class="process-list">
           <li class="process-item">
             <span class="process-num">01</span>
             <div class="process-body">
-              <strong>聞く</strong>
-              お困りごと、現場の運用、「本当はこうしたい」を伺います。要件が決まっていなくて大丈夫です。むしろその段階から声をかけてください。
+              <strong>まず、話すだけ<em>30分〜 / オンライン可</em></strong>
+              相談することと、お願いすることは別です。まずは「こんなことできますか」を聞かせてください。この段階で終わっても、まったく構いません。
             </div>
           </li>
           <li class="process-item">
             <span class="process-num">02</span>
             <div class="process-body">
-              <strong>すぐ作る</strong>
-              伺った話を、そのまま動くプロトタイプにします。文章で仕様を確認し合うより、触ってもらったほうが早いからです。
+              <strong>じっくり聞く<em>約2時間</em></strong>
+              お困りごと、現場のやり方、「本当はこうしたい」を伺います。要件が決まっていなくて大丈夫です。むしろその段階から声をかけてください。
             </div>
           </li>
           <li class="process-item">
             <span class="process-num">03</span>
             <div class="process-body">
-              <strong>触って、直す</strong>
-              「ここは違う」「これも欲しい」を受けて作り直します。ここが一番価値の出るところなので、遠慮なく壊してください。
+              <strong>すぐ作る<em>その場〜1〜2日</em></strong>
+              伺った話を、そのまま動くものにします。待たされている間に熱が冷めてしまわないよう、とにかく早くお見せすることを大事にしています。
             </div>
           </li>
           <li class="process-item">
             <span class="process-num">04</span>
             <div class="process-body">
-              <strong>お渡しする</strong>
-              触って動くWebアプリとしてお渡しします。そのまま社内での提案や、次の判断の材料に使えます。
+              <strong>触って、直す<em>何度でも</em></strong>
+              「ここは違う」「これも欲しい」を受けて作り直します。ここが一番価値の出るところなので、遠慮なく壊してください。
+            </div>
+          </li>
+          <li class="process-item">
+            <span class="process-num">05</span>
+            <div class="process-body">
+              <strong>その先を、一緒に決める</strong>
+              形が見えてきたところで、このまま運用まで進めるか、設計図にして専門チームへ渡すか、既存のサービスで足りるかを一緒に判断します。
             </div>
           </li>
         </ol>
       </div>
     </section>
 
-    <!-- ポートフォリオ -->
+    <!-- 実績 -->
     <section id="portfolio" class="ac-portfolio">
       <div class="ac-wrap">
-        <p class="section-label">Portfolio</p>
-        <h2 class="section-title">制作事例</h2>
+        <p class="section-label">Works</p>
+        <h2 class="section-title">実績</h2>
         <p class="section-body" style="margin-bottom: 0;">
-          実際に作ってきたものをご紹介します。
+          「どなたの、どんな困りごとを、どう解決したか」で並べています。
         </p>
-
-        <!-- TODO: スクリーンショットと機能詳細が揃い次第、portfolio-features / portfolio-tech を追加する -->
-        <div class="portfolio-card">
-          <div class="portfolio-card-header">
-            <span class="portfolio-tag portfolio-tag-soft">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              ご依頼いただいた事例
-            </span>
-            <h3 class="portfolio-card-title">鍼灸院向け LINE予約アプリ</h3>
-            <p class="portfolio-card-lead">
-              鍼灸院の先生からのご相談で開発した、LINEから予約が完結するアプリです。<br />
-              既製の予約サービスでは合わなかった、その院ならではの受け付け方・運用に合わせて作りました。
-            </p>
-          </div>
-          <div class="portfolio-card-body">
-            <div class="portfolio-note">
-              スクリーンショットと機能の詳細は準備中です。近日公開します。
-            </div>
-          </div>
-        </div>
 
         <div class="portfolio-card">
           <div class="portfolio-card-header">
             <span class="portfolio-tag">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              公開デモあり
+              公開・稼働中
             </span>
-            <h3 class="portfolio-card-title">宮古島市議会議事録 分析ツール</h3>
-            <p class="portfolio-card-lead">
-              「議事録は公開されているのに、誰も読めていない」という素朴な疑問から作ったツールです。<br />
-              公開されている宮古島市議会の議事録テキストを自然言語処理で分析し、キーワードの出現傾向をインタラクティブに可視化。AIによる議論要約も搭載しています。
-            </p>
+            <h3 class="portfolio-card-title">宮古島市議会 議事録の可視化</h3>
+            <dl class="work-ba">
+              <div>
+                <dt>どなたの</dt>
+                <dd>市政に関心のある市民、そして自治体の方</dd>
+              </div>
+              <div>
+                <dt>困っていたこと</dt>
+                <dd>議事録は公開されているのに、PDFのままで読みにくく、誰も活用できていなかった</dd>
+              </div>
+              <div>
+                <dt>したこと</dt>
+                <dd>文章を単語に分解し、つながりの図とヒートマップにしました。年ごと・議員ごとなど、いくつもの切り口から議論の流れが見えるようになっています</dd>
+              </div>
+              <div>
+                <dt>いま</dt>
+                <dd>公開・稼働中。どなたでも触っていただけます</dd>
+              </div>
+            </dl>
           </div>
           <div class="portfolio-card-body">
             <div class="portfolio-features">
               <div class="portfolio-feature">
                 <span class="feature-dot"></span>
                 <div class="feature-text">
-                  <strong>ネットワーク図で議論の全体像を把握</strong>
-                  キーワードや議員・テーマ間のつながりをネットワーク図で可視化。どのトピックがどう結びついているかを、直感的に読み取ることができます。
+                  <strong>つながりの図で、議論の全体像を見る</strong>
+                  どの言葉とどの言葉が一緒に語られているかを図にしました。何がどう結びついているかを、読まずに掴むことができます。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako/network" class="feature-link" target="_blank">
                     ネットワーク図を見る
@@ -280,8 +365,8 @@
               <div class="portfolio-feature">
                 <span class="feature-dot"></span>
                 <div class="feature-text">
-                  <strong>年ごとの特徴的な話題ヒートマップ</strong>
-                  TF-IDFスコアを使って、各年・各会期にどんなテーマが特徴的だったかをヒートマップで可視化。時代とともに移り変わる議会の関心を一目で読み取れます。
+                  <strong>その年らしい話題が浮かび上がる</strong>
+                  年ごと・会期ごとに、どんなテーマが特徴的だったかを色の濃さで表しました。時代とともに移り変わる関心が一目で分かります。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako/yearly" class="feature-link" target="_blank">
                     年別ヒートマップを見る
@@ -293,8 +378,8 @@
               <div class="portfolio-feature">
                 <span class="feature-dot"></span>
                 <div class="feature-text">
-                  <strong>議員の発言傾向ヒートマップ</strong>
-                  議員ごとに、どんな分野・カテゴリの発言が多いかをヒートマップで一覧表示。各議員の関心領域や特色をひと目で比較できます。
+                  <strong>議員ごとの関心が比べられる</strong>
+                  どの議員が、どんな分野の話を多くしているかを一覧にしました。それぞれの関心領域や特色を並べて見ることができます。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako/member" class="feature-link" target="_blank">
                     議員別ヒートマップを見る
@@ -306,8 +391,8 @@
               <div class="portfolio-feature">
                 <span class="feature-dot"></span>
                 <div class="feature-text">
-                  <strong>キーワードで引くAI時系列分析</strong>
-                  キーワードを検索すると、関連する会議での発言をAIが時系列で要約・分析。議論のトピック・結論・流れを自動生成します。
+                  <strong>気になる言葉から、流れを追える</strong>
+                  言葉をひとつ入れると、それが語られた会議をAIが時系列でまとめます。いつ何が話され、どう決まっていったかを追いかけられます。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako/keyword" class="feature-link" target="_blank">
                     キーワード分析を見る
@@ -319,7 +404,7 @@
             </div>
 
             <div class="portfolio-tech">
-              <span class="tech-badge">Nuxt 3</span>
+              <span class="tech-badge">Nuxt</span>
               <span class="tech-badge">ECharts</span>
               <span class="tech-badge">OpenAI API</span>
               <span class="tech-badge">Vector Store / File Search</span>
@@ -331,7 +416,7 @@
             </div>
 
             <a href="https://prototype.insightlens.jp/miyako" class="portfolio-link" target="_blank">
-              デモを見る
+              実際に触ってみる
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </a>
           </div>
@@ -340,86 +425,124 @@
         <div class="portfolio-card">
           <div class="portfolio-card-header">
             <span class="portfolio-tag portfolio-tag-soft">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>
-              プロトタイプから製品になった事例
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              稼働中
             </span>
-            <h3 class="portfolio-card-title">キーワードマップ（企業向けデータ可視化SaaS）</h3>
-            <p class="portfolio-card-lead">
-              大手インターネット企業で、検索データを可視化する企業向けSaaSの主力機能「キーワードマップ」を、自らのプロトタイピングから考案・実装しました。
-            </p>
-          </div>
-          <div class="portfolio-card-body">
-            <div class="portfolio-metrics">
-              <div class="portfolio-metric">
-                <span class="metric-value">500社+</span>
-                <span class="metric-label">導入企業</span>
+            <h3 class="portfolio-card-title">鍼灸院のホームページと、予約の仕組み</h3>
+            <dl class="work-ba">
+              <div>
+                <dt>どなたの</dt>
+                <dd>新しく開業される鍼灸院の先生</dd>
               </div>
-              <div class="portfolio-metric">
-                <span class="metric-value">8億規模</span>
-                <span class="metric-label">プロダクト売上</span>
+              <div>
+                <dt>困っていたこと</dt>
+                <dd>開業にあたって、ホームページも、患者さんが予約する道筋もなかった</dd>
               </div>
-              <div class="portfolio-metric">
-                <span class="metric-value">15年</span>
-                <span class="metric-label">データ可視化の経験</span>
+              <div>
+                <dt>したこと</dt>
+                <dd>ホームページを制作し、あわせて予約アプリによる予約の仕組みを整えました。院ごとの受け付け方に合わせて調整しています</dd>
               </div>
-            </div>
-            <p class="portfolio-card-note">
-              「これは無理だ」「意味がない」と言われたところから、プロトタイプで可能性を示し、対話しながら実用に育てていったものです。<br />
-              テレビや雑誌などのマスコミ媒体でも繰り返し取り上げられ、後続の新機能を生み出す原動力にもなりました。
-            </p>
-
-            <a href="https://ds.yahoo.co.jp/service/insight/" class="portfolio-link" target="_blank" rel="noopener noreferrer">
-              サービスサイトを見る
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </a>
+              <div>
+                <dt>いま</dt>
+                <dd>稼働中</dd>
+              </div>
+            </dl>
           </div>
         </div>
 
-      </div>
-    </section>
+        <div class="portfolio-card">
+          <div class="portfolio-card-header">
+            <span class="portfolio-tag portfolio-tag-soft">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              稼働中
+            </span>
+            <h3 class="portfolio-card-title">ゲストハウスの、観光インサイトツール</h3>
+            <dl class="work-ba">
+              <div>
+                <dt>どなたの</dt>
+                <dd>ゲストハウスの運営者、そして地域の観光事業者の方</dd>
+              </div>
+              <div>
+                <dt>困っていたこと</dt>
+                <dd>観光客のレビューや対話の記録が溜まる一方で、活かしきれていなかった</dd>
+              </div>
+              <div>
+                <dt>したこと</dt>
+                <dd>溜まったデータを分析し、観光業を盛り上げるための気づきを取り出せる道具をつくりました</dd>
+              </div>
+              <div>
+                <dt>いま</dt>
+                <dd>稼働中（共同制作）</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
 
-    <!-- こんな方へ -->
-    <section id="for-you">
-      <div class="ac-wrap">
-        <p class="section-label">For You</p>
-        <h2 class="section-title">こんな方へ</h2>
-        <ul class="for-you-list">
-          <li>
-            <span class="check">✓</span>
-            「なんとなくこういうものが欲しい」という段階で止まっている人。
-          </li>
-          <li>
-            <span class="check">✓</span>
-            既製のアプリだと、うちのやり方に合わないと感じている人。
-          </li>
-          <li>
-            <span class="check">✓</span>
-            まず動くものを見てから、社内で判断したい人。
-          </li>
-          <li>
-            <span class="check">✓</span>
-            手元に眠っているデータを、何かに活かしたい人。
-          </li>
-          <li>
-            <span class="check">✓</span>
-            こちらの要望をじっくり聞いてもらいながら進めたい人。
-          </li>
-        </ul>
-        <p class="for-you-note">
-          要件が決まっていなくて大丈夫です。<br>
-          むしろその段階から声をかけてください。<br />
-          現場で感じるお客様の声こそが、良いものを作る一番の材料だと思っています。
+        <div class="portfolio-card">
+          <div class="portfolio-card-header">
+            <span class="portfolio-tag portfolio-tag-trial">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6.5L4.5 19a2 2 0 0 0 1.7 3h11.6a2 2 0 0 0 1.7-3L14 9.5V3"/></svg>
+              実証実験中
+            </span>
+            <h3 class="portfolio-card-title">農家のみなさんの、議事録づくりとその後の段取り</h3>
+            <dl class="work-ba">
+              <div>
+                <dt>どなたの</dt>
+                <dd>和歌山県の町で活動する、農家のみなさん</dd>
+              </div>
+              <div>
+                <dt>困っていたこと</dt>
+                <dd>会議の音声が録りっぱなしで、記録として眠るだけになっていた</dd>
+              </div>
+              <div>
+                <dt>したこと</dt>
+                <dd>音声から議事録を自動でつくり、そこから「やるべきこと」と日程を取り出して、普段お使いのGoogleのドキュメント・タスク・カレンダーへ自動で登録されるようにしました</dd>
+              </div>
+              <div>
+                <dt>いま</dt>
+                <dd>実証実験として、無償で進めています</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+
+        <p class="works-other">
+          このほかに、音声の日記から気持ちの動きを見えるようにするツールなども、自分用に作って試しています。
         </p>
       </div>
     </section>
 
-    <!-- 自己紹介 -->
+    <!-- 私について -->
     <section id="about" class="ac-about">
       <div class="ac-wrap">
         <p class="section-label">About</p>
-        <h2 class="section-title">動くものを、先に出すエンジニア</h2>
+        <h2 class="section-title">私について</h2>
+
+        <!-- 原点 -->
+        <div class="origin">
+          <span class="origin-label">原点</span>
+          <p class="origin-lead">このやり方の原点は、たった一言でした。</p>
+
+          <blockquote class="origin-quote">
+            <p>「Excelの表は見にくいから、ネットワーク図にしてはどうか」</p>
+            <cite>会社員時代、社内でツールを使ってくれていた一人の言葉</cite>
+          </blockquote>
+
+          <ol class="origin-steps">
+            <li><span class="origin-step-num">1</span>その一言を、そのままプロトタイプにしてみた</li>
+            <li><span class="origin-step-num">2</span>思いがけず大きな反響があった</li>
+            <li><span class="origin-step-num">3</span>いまは、社外向けサービスの主力ツールになっている</li>
+          </ol>
+
+          <p class="origin-close">
+            思いついたのは、私ではありません。<strong>毎日それを使っている人が、すでに答えを持っていた。</strong><br />
+            それ以来、「なぜそれを実現したいのか」というお客さん自身の声を何より大切に伺い、
+            それを見える形に変えることを、仕事の出発点にしています。
+          </p>
+        </div>
+
         <p class="about-intro">
-          15年以上、検索データやユーザー行動データを「誰かの意思決定を動かす形」に変えることを仕事にしてきました。
+          15年以上、データを「誰かの意思決定を動かす形」に変えることを仕事にしてきました。
         </p>
 
         <div class="about-grid">
@@ -430,7 +553,7 @@
               <h3 class="about-card-title">要件が固まる前の段階に飛び込む</h3>
             </div>
             <div class="about-card-body">
-              <p>得意なのは、要件が曖昧なままの段階に飛び込み、ユーザーや現場の声を丁寧に聞きながら、その場でプロトタイプを作ってしまうことです。</p>
+              <p>得意なのは、まだ何も決まっていない段階に飛び込み、現場の声を丁寧に聞きながら、その場でプロトタイプを作ってしまうことです。</p>
               <p>聞くことと作ることを分けない。話しながら手を動かすので、「言ったことと違うものが出てくる」というズレが起きにくいのが強みです。</p>
             </div>
           </div>
@@ -441,30 +564,30 @@
               <h3 class="about-card-title">プロトタイプが企画書</h3>
             </div>
             <div class="about-card-body">
-              <p>仕様書や企画書を先に作るのではなく、動くものを先に作り、それを叩き台にして議論を前に進めます。</p>
+              <p>仕様書や企画書を先に作るのではなく、動くものを先に作り、それを叩き台にして話を前に進めます。</p>
               <p>何十時間も結論が出なかった会議に、動くプロトタイプを持ち込んで「これで決まり」となった経験が何度もあります。言葉を重ねるより、そのほうが速い。</p>
             </div>
           </div>
 
           <div class="about-card">
             <div class="about-card-header">
-              <span class="about-card-icon">🤖</span>
-              <h3 class="about-card-title">AIと二人三脚のものづくり</h3>
+              <span class="about-card-icon">💬</span>
+              <h3 class="about-card-title">聞くことを、別の仕事にもしている</h3>
             </div>
             <div class="about-card-body">
-              <p>近年は生成AIを使い、このサイクルをさらに高速化しています。AIに大枠の実装や選択肢を出させ、そこにある矛盾や粗を見つけて対話しながら磨き上げ、また実行させる。</p>
-              <p>優秀なパートナーに指示を出すように進めるこのスタイルは、「まず作って直す」という自分のやり方と非常に相性が良いと感じています。</p>
+              <p>心理カウンセラーとしても活動しています。人の話を、遮らずに、判断せずに聞く訓練を積んできました。</p>
+              <p>ITが苦手な方が「こんなことを言ったら笑われるかもしれない」と思わずに済む場をつくること。それが、良いものが生まれるための最初の条件だと思っています。</p>
             </div>
           </div>
 
           <div class="about-card">
             <div class="about-card-header">
               <span class="about-card-icon">📈</span>
-              <h3 class="about-card-title">キャリアと実績</h3>
+              <h3 class="about-card-title">これまでの仕事</h3>
             </div>
             <div class="about-card-body">
-              <p>大手インターネット企業に15年勤務し、大規模トラフィックデータを活用した分析SaaSの企画・開発に従事。性別・年齢・地域といった属性を軸に、ネットワーク図・散布図・ヒートマップなど目的に応じた可視化を設計してきました。</p>
-              <p>自分のプロトタイプから生まれたプロダクトは、一部上場企業を中心に500社以上へ導入されています。</p>
+              <p>大手インターネット企業に15年勤務し、大規模なデータを扱う分析サービスの企画・開発に従事しました。性別・年齢・地域といった切り口に応じて、ネットワーク図・散布図・ヒートマップなど、目的に合った見せ方を設計してきました。</p>
+              <p>自分のプロトタイプから生まれた機能が、そのまま製品の主力に育っていく過程を、何度か経験しています。</p>
             </div>
           </div>
 
@@ -488,66 +611,73 @@
       </div>
     </section>
 
-    <!-- ご依頼について -->
+    <!-- ご相談と費用 -->
     <section id="terms">
       <div class="ac-wrap">
-        <p class="section-label">Terms</p>
-        <h2 class="section-title">ご依頼について</h2>
-        <p class="terms-intro">ご依頼前に知っておいていただきたい事項をまとめています。</p>
+        <p class="section-label">Fees</p>
+        <h2 class="section-title">ご相談と費用</h2>
+        <p class="terms-intro">ご相談の前に、知っておいていただきたいことをまとめています。</p>
         <div class="terms-grid">
 
           <div class="terms-card">
-            <div class="terms-icon">🧪</div>
-            <h3 class="terms-card-title">これはプロトタイプです</h3>
-            <p class="terms-card-body">アイディアの検証に特化した開発です。<br />本番運用・インフラ管理・セキュリティ対策・パフォーマンス最適化は対象外です。</p>
+            <div class="terms-icon">🌱</div>
+            <h3 class="terms-card-title">まず、小さく始めます</h3>
+            <p class="terms-card-body">いきなり大きく作りません。最初は必ず、触れるプロトタイプから。<br />そこから育てるか、設計図にして渡すか、作らずに済ませるかを、一緒に決めます。</p>
           </div>
 
           <div class="terms-card">
             <div class="terms-icon">📦</div>
-            <h3 class="terms-card-title">納品物</h3>
-            <p class="terms-card-body">触れて動かせるWebアプリ（プロトタイプ）をお渡しします。<br />ソースコードのお渡しも可能ですが、プロトタイプとしての品質であり、本番転用・保守を前提とした実装ではない点をご了承ください。</p>
-          </div>
-
-          <div class="terms-card">
-            <div class="terms-icon">🛠️</div>
-            <h3 class="terms-card-title">技術スタック</h3>
-            <p class="terms-card-body">Nuxt 3 / TypeScript / Cloudflare Workers・D1 / ECharts・Highcharts（可視化）/ OpenAI API・Claude API（生成AI）/ LINE連携 を中心に使用。<br />案件の内容に応じて最適な技術を選定します。</p>
+            <h3 class="terms-card-title">お渡しするもの</h3>
+            <p class="terms-card-body">進む道によって変わります。<br />運用まで担当する場合は、実際に使えるWebアプリと、その後の運用。設計図まで担当する場合は、企画書・設計書一式をお渡しします。</p>
           </div>
 
           <div class="terms-card">
             <div class="terms-icon">🔄</div>
-            <h3 class="terms-card-title">修正対応・開発スコープ</h3>
-            <p class="terms-card-body">開発はご依頼時に合意した機能・仕様のみを対象とし、初期合意を大幅に超える仕様変更・追加機能は別途お見積もりになります。<br />プロトタイプの性質上、方向性の調整は歓迎します。</p>
+            <h3 class="terms-card-title">修正対応・開発の範囲</h3>
+            <p class="terms-card-body">開発は、ご相談時に合意した内容を対象とします。合意を大きく超える変更・追加は、別途お見積もりになります。<br />方向性の調整はいつでも歓迎です。それがこのやり方の目的でもあります。</p>
           </div>
 
           <div class="terms-card">
             <div class="terms-icon">🔐</div>
             <h3 class="terms-card-title">著作権</h3>
-            <p class="terms-card-body">納品物の著作権はクライアントに完全に譲渡します。<br />ただし制作者は、制作実績としてデモ画面・URLをポートフォリオに掲載する権利を留保します。<br />掲載を希望されない場合はご相談ください。</p>
+            <p class="terms-card-body">納品物の著作権は、お客様に完全に譲渡します。<br />ただし制作者は、制作実績として画面・URLを掲載する権利を留保します。掲載を希望されない場合は、遠慮なくお申し付けください。</p>
           </div>
 
           <div class="terms-card">
             <div class="terms-icon">💻</div>
             <h3 class="terms-card-title">動作環境</h3>
-            <p class="terms-card-body">Chromeの最新版（PC）を動作保証の対象とします。<br />スマートフォン対応が必要な場合は事前にお申し付けください。</p>
+            <p class="terms-card-body">プロトタイプの段階では、パソコンのChrome最新版を対象とします。<br />そのまま運用まで進む場合は、スマートフォンを含めて対象とする環境をご相談のうえ決めます。</p>
           </div>
 
+          <div class="terms-card">
+            <div class="terms-icon">🛠️</div>
+            <h3 class="terms-card-title">使っている技術</h3>
+            <p class="terms-card-body">Nuxt / TypeScript / Cloudflare Workers・D1 / ECharts・Highcharts（データの可視化）/ OpenAI API・Claude API（AI機能）/ LINE連携 などを中心に使用。<br />案件の内容に応じて最適なものを選びます。</p>
+          </div>
 
         </div>
 
         <div class="terms-payment">
           <div class="terms-payment-header">
             <span class="terms-payment-icon">💳</span>
-            <h3 class="terms-payment-title">開発費用・お支払い</h3>
+            <h3 class="terms-payment-title">費用</h3>
           </div>
           <div class="terms-payment-body">
+            <div class="terms-payment-row">
+              <span class="terms-payment-label">初回のご相談</span>
+              <span class="terms-payment-value">60分 / ¥5,000</span>
+            </div>
             <div class="terms-payment-row">
               <span class="terms-payment-label">ヒアリング</span>
               <span class="terms-payment-value">¥8,000 / 時間（約2時間を想定）</span>
             </div>
             <div class="terms-payment-row">
               <span class="terms-payment-label">開発費用</span>
-              <span class="terms-payment-value">案件の規模・内容によるため、ヒアリング後にお見積もり</span>
+              <span class="terms-payment-value">規模・内容によるため、ヒアリング後にお見積もり</span>
+            </div>
+            <div class="terms-payment-row">
+              <span class="terms-payment-label">運用・保守</span>
+              <span class="terms-payment-value">続けて担当する場合は、月額でご相談</span>
             </div>
             <div class="terms-payment-row">
               <span class="terms-payment-label">着手金</span>
@@ -563,10 +693,10 @@
     <section id="contact" class="ac-cta">
       <div class="ac-wrap">
         <div class="cta-inner">
-          <h2 class="cta-title">まず、話してみませんか。</h2>
+          <h2 class="cta-title">「こういうの、できませんか」から始まります。</h2>
           <p class="cta-desc">
-            「こういうのが欲しいかも」「そんなことできる？」<br />
-            そのくらいの温度感で十分です。一緒に考えます。
+            そのくらいの温度感で十分です。まだ何も決まっていない段階で構いません。<br />
+            ITの言葉が出てこなくても、まったく問題ありません。一緒に考えます。
           </p>
           <div class="cta-price">
             <span class="cta-price-label">初回相談</span>
@@ -586,7 +716,7 @@
     <footer class="ac-footer">
       <div class="ac-footer-inner">
         <span class="ac-footer-copy">&copy; 2026 prototyper</span>
-        <a href="https://prototype.insightlens.jp/miyako" class="ac-footer-link">Portfolio: 宮古島市議事録分析 →</a>
+        <a href="https://prototype.insightlens.jp/miyako" class="ac-footer-link">実績: 宮古島市議会 議事録の可視化 →</a>
       </div>
     </footer>
 
@@ -623,13 +753,13 @@ onMounted(() => {
 })
 
 useHead({
-  title: 'prototyper | 動くものを、いちばん早く。',
+  title: 'prototyper | 答えは、いつもあなたの中にある。',
   meta: [
-    { name: 'description', content: '丁寧なヒアリングと高速プロトタイピングの相談窓口。現場の声を聞き、一般のアプリでは手の届かないところまで届く道具を、AIによるバイブコーディングで素早く形にします。データ可視化・AI機能もその一部として対応。' },
-    { property: 'og:title', content: 'prototyper | 動くものを、いちばん早く。' },
-    { property: 'og:description', content: '丁寧なヒアリングと高速プロトタイピングの相談窓口。議論より、動くプロトタイプ。要件が固まる前の段階からご相談ください。' },
+    { name: 'description', content: 'ものづくりの主役は、つくる人ではなくあなた自身。実現したいことをじっくり伺い、触れるプロトタイプにして一緒に育てます。ITが苦手な方でも大丈夫。規模に応じて、運用まで担当することも、設計図にして専門チームへ渡すこともできます。' },
+    { property: 'og:title', content: 'prototyper | 答えは、いつもあなたの中にある。' },
+    { property: 'og:description', content: 'あなたの中にすでにある答えを、触れる形にして一緒に育てる。ITが苦手な方でも安心して話せる、ヒアリングとプロトタイピングの相談窓口です。' },
   ],
-  link: [{ rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛠️</text></svg>` }],
+  link: [{ rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤝</text></svg>` }],
 })
 </script>
 

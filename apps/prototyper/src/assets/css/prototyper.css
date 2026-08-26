@@ -228,7 +228,52 @@
   font-size: 15px;
   color: var(--c-text-muted);
   line-height: 1.8;
-  margin-bottom: 36px;
+  margin-bottom: 26px;
+}
+
+/* つくれるものの一覧。
+   ヒーローのSVGは aria-hidden なので、読み上げ・検索に乗る実体はこちらに置く。
+   スマホではSVGが縮むため、上部で何が作れるか分かるのもこの行の役目 */
+.hero-build {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-bottom: 32px;
+}
+
+.hero-build-label {
+  flex: none;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--c-text-dim);
+  padding-top: 8px;
+}
+
+.hero-tags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hero-tags li {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--c-primary);
+  background: rgba(27, 95, 217, 0.07);
+  border: 1px solid rgba(27, 95, 217, 0.18);
+  border-radius: 9999px;
+  padding: 6px 14px;
+}
+
+.hero-tags li.hero-tags-more {
+  color: var(--c-text-dim);
+  background: transparent;
+  border-color: transparent;
+  padding-left: 2px;
 }
 
 .hero-sub p {
@@ -294,69 +339,33 @@
   animation: fadeIn 0.35s ease 0.85s forwards;
 }
 
-.hero-window {
+.hero-outputs-label {
+  opacity: 0;
+  animation: fadeIn 0.35s ease 1.05s forwards;
+}
+
+/* つくれるもののタイルが、声のあとに順番に現れる */
+.hero-out {
   transform-box: fill-box;
   transform-origin: center top;
   opacity: 0;
-  animation: windowIn 0.5s cubic-bezier(0.34, 1.3, 0.64, 1) 1.1s forwards;
+  animation: windowIn 0.45s cubic-bezier(0.34, 1.3, 0.64, 1) forwards;
 }
 
-.hero-window-body {
-  opacity: 0;
-  animation: fadeIn 0.4s ease 1.5s forwards;
+.hero-out:nth-child(1) {
+  animation-delay: 1.15s;
 }
 
-.hero-mini-bars rect {
-  transform-box: fill-box;
-  transform-origin: center bottom;
-  opacity: 0;
-  animation: barGrow 0.35s ease forwards;
+.hero-out:nth-child(2) {
+  animation-delay: 1.27s;
 }
 
-.hero-mini-bars rect:nth-child(1) {
-  animation-delay: 1.55s;
+.hero-out:nth-child(3) {
+  animation-delay: 1.39s;
 }
 
-.hero-mini-bars rect:nth-child(2) {
-  animation-delay: 1.63s;
-}
-
-.hero-mini-bars rect:nth-child(3) {
-  animation-delay: 1.71s;
-}
-
-.hero-mini-bars rect:nth-child(4) {
-  animation-delay: 1.79s;
-}
-
-.hero-mini-bars rect:nth-child(5) {
-  animation-delay: 1.87s;
-}
-
-.hero-mini-bars rect:nth-child(6) {
-  animation-delay: 1.95s;
-}
-
-.hero-mini-bars rect:nth-child(7) {
-  animation-delay: 2.03s;
-}
-
-.hero-mini-line {
-  stroke-dasharray: 136;
-  stroke-dashoffset: 136;
-  animation: drawLine 0.9s cubic-bezier(0.4, 0, 0.2, 1) 1.9s forwards;
-}
-
-.hero-mini-peak {
-  transform-box: fill-box;
-  transform-origin: center center;
-  opacity: 0;
-  animation: ptAppear 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) 2.7s forwards;
-}
-
-.hero-flow-caption {
-  opacity: 0;
-  animation: fadeIn 0.4s ease 2.9s forwards;
+.hero-out:nth-child(4) {
+  animation-delay: 1.51s;
 }
 
 @keyframes fadeIn {
@@ -393,52 +402,14 @@
   }
 }
 
-@keyframes barGrow {
-  from {
-    opacity: 0;
-    transform: scaleY(0.1);
-  }
-
-  to {
-    opacity: 1;
-    transform: scaleY(1);
-  }
-}
-
-@keyframes drawLine {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes ptAppear {
-  from {
-    opacity: 0;
-    transform: scale(0.2);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
 
   .hero-bubble,
   .hero-flow-arrow,
-  .hero-window,
-  .hero-window-body,
-  .hero-mini-bars rect,
-  .hero-mini-peak,
-  .hero-flow-caption {
+  .hero-outputs-label,
+  .hero-out {
     animation: none;
     opacity: 1;
-  }
-
-  .hero-mini-line {
-    animation: none;
-    stroke-dashoffset: 0;
   }
 }
 
@@ -452,6 +423,110 @@
   background-size: 28px 28px;
   border-top: 1px solid var(--c-border);
   border-bottom: 1px solid var(--c-border);
+}
+
+/* 原点のエピソード。
+   お客さんが最初に知りたいことではないので、ヒーロー直下ではなく
+   「私について」の冒頭に置いている */
+.origin {
+  margin: 28px 0 36px;
+  padding: 28px 30px;
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-left: 3px solid var(--c-accent);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+
+.origin-label {
+  display: inline-block;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-accent);
+  background: rgba(245, 112, 10, 0.08);
+  border: 1px solid rgba(245, 112, 10, 0.2);
+  border-radius: 4px;
+  padding: 3px 9px;
+  margin-bottom: 14px;
+}
+
+.origin-lead {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--c-text);
+  line-height: 1.8;
+  margin-bottom: 18px;
+}
+
+.origin-quote {
+  padding: 20px 22px;
+  background: rgba(245, 112, 10, 0.05);
+  border-radius: var(--radius);
+}
+
+.origin-quote p {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--c-text);
+  line-height: 1.8;
+  letter-spacing: -0.01em;
+}
+
+.origin-quote cite {
+  display: block;
+  margin-top: 12px;
+  font-style: normal;
+  font-size: 12px;
+  color: var(--c-text-dim);
+  letter-spacing: 0.02em;
+}
+
+.origin-steps {
+  list-style: none;
+  margin: 22px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.origin-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 13.5px;
+  color: var(--c-text-muted);
+  line-height: 1.8;
+}
+
+.origin-step-num {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(27, 95, 217, 0.1);
+  color: var(--c-primary);
+  font-family: var(--f-mono);
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.origin-close {
+  padding-top: 20px;
+  border-top: 1px solid var(--c-border);
+  font-size: 14px;
+  color: var(--c-text-muted);
+  line-height: 1.9;
+}
+
+.origin-close strong {
+  color: var(--c-text);
+  font-weight: 700;
 }
 
 .about-intro {
@@ -637,58 +712,88 @@
   margin-top: 10px;
 }
 
-.services-scope {
-  display: flex;
-  gap: 12px;
-  margin-top: 36px;
-  flex-wrap: wrap;
+/* ==========================================
+   3つの道セクション
+   （旧「担当範囲 / 対象外」の置き換え。
+     規模に応じて運用まで担当することがあるため、
+     「対象外」の宣言はやめ、出口を3つ提示する形にした）
+   ========================================== */
+
+.ac-scope {
+  background-color: var(--c-bg-surface);
+  background-image: radial-gradient(circle, rgba(27, 95, 217, 0.07) 1.2px, transparent 1.2px);
+  background-size: 28px 28px;
+  border-top: 1px solid var(--c-border);
+  border-bottom: 1px solid var(--c-border);
 }
 
-.services-scope-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 18px;
-  border-radius: var(--radius);
-  border: 1px solid;
-  flex: 1;
-  min-width: 220px;
+.exit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 32px;
 }
 
-.services-scope-in {
-  background: rgba(27, 95, 217, 0.05);
-  border-color: rgba(27, 95, 217, 0.18);
+.exit-card {
+  background: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  padding: 26px 24px 24px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.services-scope-out {
-  background: rgba(0, 0, 0, 0.02);
-  border-color: rgba(0, 0, 0, 0.08);
+.exit-card:hover {
+  border-color: rgba(27, 95, 217, 0.3);
+  box-shadow: 0 8px 32px rgba(27, 95, 217, 0.08);
 }
 
-.scope-label {
+/* 「つくらない提案」は売らない姿勢の表明なので、アクセント色で立てる */
+.exit-card-accent {
+  border-color: rgba(245, 112, 10, 0.28);
+  background: linear-gradient(180deg, rgba(245, 112, 10, 0.05), var(--c-bg-card) 60%);
+}
+
+.exit-card-accent:hover {
+  border-color: rgba(245, 112, 10, 0.45);
+  box-shadow: 0 8px 32px rgba(245, 112, 10, 0.1);
+}
+
+.exit-num {
+  display: block;
   font-family: var(--f-mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
-  padding: 2px 8px;
-  border-radius: 4px;
+  letter-spacing: 0.12em;
+  color: var(--c-primary);
+  margin-bottom: 12px;
 }
 
-.services-scope-in .scope-label {
-  background: var(--c-primary);
-  color: #fff;
+.exit-card-accent .exit-num {
+  color: var(--c-accent);
 }
 
-.services-scope-out .scope-label {
-  background: rgba(0, 0, 0, 0.1);
+.exit-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c-text);
+  line-height: 1.6;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.exit-body {
+  font-size: 13.5px;
   color: var(--c-text-muted);
+  line-height: 1.85;
 }
 
-.scope-text {
-  font-size: 13px;
-  font-weight: 500;
+.exit-note {
+  margin-top: 28px;
+  padding-left: 16px;
+  border-left: 2px solid rgba(27, 95, 217, 0.2);
+  font-size: 13.5px;
   color: var(--c-text-muted);
+  line-height: 1.9;
 }
 
 /* ==========================================
@@ -771,16 +876,29 @@
   letter-spacing: -0.01em;
 }
 
+/* 所要時間の目安。速さは自慢ではなく「待たされない安心」として、ここに集約する */
+.process-body strong em {
+  font-family: var(--f-mono);
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--c-primary);
+  background: rgba(27, 95, 217, 0.07);
+  border: 1px solid rgba(27, 95, 217, 0.14);
+  border-radius: 4px;
+  padding: 2px 7px;
+  margin-left: 10px;
+  vertical-align: 2px;
+  white-space: nowrap;
+}
+
 /* ==========================================
    ポートフォリオセクション
    ========================================== */
 
 .ac-portfolio {
-  background-color: var(--c-bg-surface);
-  background-image: radial-gradient(circle, rgba(27, 95, 217, 0.07) 1.2px, transparent 1.2px);
-  background-size: 28px 28px;
   border-top: 1px solid var(--c-border);
-  border-bottom: 1px solid var(--c-border);
 }
 
 .portfolio-card {
@@ -800,6 +918,12 @@
 .portfolio-card-header {
   padding: 28px 32px 24px;
   border-bottom: 1px solid var(--c-border);
+}
+
+/* スクリーンショット等がまだ無い実績は header だけで1枚になるため、
+   区切り線が宙に浮かないよう消す */
+.portfolio-card-header:last-child {
+  border-bottom: 0;
 }
 
 .portfolio-tag {
@@ -826,6 +950,62 @@
   border-color: rgba(27, 95, 217, 0.2);
 }
 
+/* 実証実験など、まだ完了していない取り組み向け */
+.portfolio-tag-trial {
+  color: var(--c-text-muted);
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(27, 95, 217, 0.16);
+}
+
+/* 実績の統一フォーマット
+   「どなたの → 困っていたこと → したこと → いま」
+   素材（スクリーンショット等）が揃っていない実績でも、
+   これだけで1枚のカードとして成立するようにしている */
+.work-ba {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 18px;
+  background: var(--c-border);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.work-ba > div {
+  display: grid;
+  grid-template-columns: 116px 1fr;
+  gap: 0 16px;
+  background: var(--c-bg-card);
+  padding: 12px 16px;
+}
+
+.work-ba dt {
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--c-text-dim);
+  padding-top: 4px;
+}
+
+.work-ba dd {
+  font-size: 13.5px;
+  color: var(--c-text-muted);
+  line-height: 1.8;
+}
+
+/* 事業コンセプトとの整合が弱い自作ツールは、実績として立てず一行だけ触れる */
+.works-other {
+  margin-top: 28px;
+  padding: 16px 20px;
+  border: 1px dashed rgba(27, 95, 217, 0.2);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--c-text-dim);
+  line-height: 1.85;
+}
+
 .portfolio-card-title {
   font-size: 20px;
   font-weight: 700;
@@ -842,53 +1022,6 @@
 
 .portfolio-card-body {
   padding: 28px 32px;
-}
-
-/* 掲載準備中のプレースホルダー */
-.portfolio-note {
-  font-family: var(--f-mono);
-  font-size: 11.5px;
-  color: var(--c-text-dim);
-  letter-spacing: 0.02em;
-  text-align: center;
-  padding: 22px;
-  border: 1px dashed rgba(27, 95, 217, 0.22);
-  border-radius: var(--radius);
-  background: rgba(27, 95, 217, 0.02);
-}
-
-/* 数字で語る実績 */
-.portfolio-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1px;
-  background: var(--c-border);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-.portfolio-metric {
-  background: var(--c-bg-card);
-  padding: 16px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.metric-value {
-  font-family: var(--f-mono);
-  font-size: 19px;
-  font-weight: 600;
-  color: var(--c-primary);
-  letter-spacing: -0.01em;
-  line-height: 1.3;
-}
-
-.metric-label {
-  font-size: 11px;
-  color: var(--c-text-dim);
-  letter-spacing: 0.02em;
 }
 
 .portfolio-card-note {
@@ -1408,9 +1541,12 @@
   }
 
   .hero-viz-deco {
-    max-width: 340px;
+    max-width: 360px;
     margin: 0 auto;
-    opacity: 0.7;
+  }
+
+  .exit-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1448,8 +1584,23 @@
     grid-template-columns: 1fr;
   }
 
-  .portfolio-metrics {
+  .work-ba > div {
     grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .work-ba dt {
+    padding-top: 0;
+  }
+
+  .origin {
+    padding: 22px 20px;
+  }
+
+  .process-body strong em {
+    display: inline-block;
+    margin-left: 0;
+    margin-top: 6px;
   }
 
   .process-item {

@@ -56,7 +56,7 @@
         />
         <h1 class="hero-catch">
           お腹の反応から不調を紐解く<br />
-          <em>内臓鍼灸</em><br />
+          <em>内臓<ruby>鍼灸<rp>（</rp><rt>しんきゅう</rt><rp>）</rp></ruby></em><br />
           ×<br />
           骨格、関節の位置を調節する<br />
           <em>ソフトカイロ矯正</em>
@@ -374,6 +374,7 @@
                   </li>
                 </ol>
                 <p class="access-route-note">写真をクリックすると拡大します。</p>
+                <p v-if="place.routeNote" class="access-route-help">{{ place.routeNote }}</p>
               </div>
             </div>
           </div>
