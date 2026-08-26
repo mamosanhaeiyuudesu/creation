@@ -228,52 +228,7 @@
   font-size: 15px;
   color: var(--c-text-muted);
   line-height: 1.8;
-  margin-bottom: 26px;
-}
-
-/* つくれるものの一覧。
-   ヒーローのSVGは aria-hidden なので、読み上げ・検索に乗る実体はこちらに置く。
-   スマホではSVGが縮むため、上部で何が作れるか分かるのもこの行の役目 */
-.hero-build {
-  display: flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 10px 14px;
-  margin-bottom: 32px;
-}
-
-.hero-build-label {
-  flex: none;
-  font-family: var(--f-mono);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  color: var(--c-text-dim);
-  padding-top: 8px;
-}
-
-.hero-tags {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.hero-tags li {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--c-primary);
-  background: rgba(27, 95, 217, 0.07);
-  border: 1px solid rgba(27, 95, 217, 0.18);
-  border-radius: 9999px;
-  padding: 6px 14px;
-}
-
-.hero-tags li.hero-tags-more {
-  color: var(--c-text-dim);
-  background: transparent;
-  border-color: transparent;
-  padding-left: 2px;
+  margin-bottom: 36px;
 }
 
 .hero-sub p {
@@ -1098,6 +1053,14 @@
 .feature-screenshot:hover {
   transform: scale(1.01);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+}
+
+/* スマホ縦画面のスクリーンショット（晴レルヤ鍼灸院など）は、
+   グリッド幅いっぱいに伸ばすと縦に間延びするため、幅を絞って中央に置く */
+.feature-screenshot-portrait {
+  max-width: 220px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .lightbox-overlay {

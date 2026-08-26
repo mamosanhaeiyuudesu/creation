@@ -181,11 +181,13 @@ export const site = {
   paymentNote: '現金のみとさせていただいております。ご了承ください。',
 
   /** お客様の声の掲載準備ができたら true に */
-  showVoices: false,
+  showVoices: true,
+  /** LINEでいただいた感想のスクリーンショットをそのまま掲載する */
   voices: [
-    {
-      body: '（お客様からいただいた感想がここに入ります）',
-      author: '30代・女性',
-    },
+    { image: '/images/voice/voice-1.png', alt: '冷え性・胃腸の症状、帯状疱疹後遺症についてのご感想' },
+    { image: '/images/voice/voice-2.png', alt: '自律神経の乱れについてのご感想' },
+    { image: '/images/voice/voice-3.png', alt: '坐骨神経痛・ぎっくり腰についてのご感想' },
+    { image: '/images/voice/voice-4.png', alt: '肩の痛みについてのご感想' },
+    { image: '/images/voice/voice-5.png', alt: '副鼻腔炎についてのご感想' },
   ],
 } as const

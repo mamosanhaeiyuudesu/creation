@@ -64,16 +64,26 @@ export function glossaryTerms(glossary: Glossary = KIKIGAKI_GLOSSARY): string[] 
 /**
  * 文字起こしAPIの prompt パラメータへ渡すヒント。
  *
- * **固有名詞を並べるだけにして、文章の形にしないこと。**
- * gpt-4o-transcribe は prompt を文脈として扱うため、「次の固有名詞が出てきます: 〜」のような
- * 文にすると、その続きとして prompt 自体を本文へ書き起こしてしまう（実際に会議の
- * 文字起こしの冒頭へ丸ごと漏れた）。OpenAI が想定しているのも固有名詞の羅列の形。
+ * **文章の形のまま渡すこと。固有名詞を並べるだけにしてはいけない。**
+ * 一度「羅列だけにすればプロンプト漏れが減るだろう」と変更したが、実際にAPIを叩いて比べたところ
+ * 羅列形式では辞書がまったく効かなかった（「阪中さん」が「初中さん」のまま＝promptなしと同じ結果）。
+ * 文章の形にしたときだけ正しく補正された。漏れ対策は prompt をいじるのではなく、
+ * `transcript-clean.ts` の `stripPromptEcho()` で結果から取り除く側で行う。
  *
  * また、このパラメータは長すぎると後ろが切り捨てられる（Whisper系は約224トークン）ので、
  * variants は入れずに「正しい表記」だけを並べる。
  */
 export function glossaryPromptHint(glossary: Glossary = KIKIGAKI_GLOSSARY): string {
-  return glossaryTerms(glossary).join('、')
+  const terms = glossaryTerms(glossary)
+  if (!terms.length) return ''
+  return `次の固有名詞が出てきます: ${terms.join('、')}。`
+}
+
+/** 文字起こし結果から取り除きたい「プロンプトの写し」の候補（文章の形と、語の羅列だけの形） */
+export function glossaryEchoNeedles(glossary: Glossary = KIKIGAKI_GLOSSARY): string[] {
+  const terms = glossaryTerms(glossary)
+  if (!terms.length) return []
+  return [glossaryPromptHint(glossary), terms.join('、')]
 }
 
 /** Claude のシステムプロンプトへ埋め込む用の JSON 文字列 */

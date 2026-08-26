@@ -1398,40 +1398,33 @@ a.hero-badge.is-link:hover {
 
 .voice-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 18px;
 }
 
+/* LINEでいただいた感想のスクリーンショットをそのまま並べる。クリックで拡大 */
 .voice-card {
-  background: var(--c-white);
-  border-radius: var(--radius-lg);
-  padding: 30px 28px 24px;
+  display: block;
+  width: 100%;
+  padding: 0;
   border: 1px solid var(--c-pink-line);
-  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: none;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.voice-card::before {
-  content: '“';
-  position: absolute;
-  top: 6px;
-  left: 20px;
-  font-family: var(--f-sans);
-  font-size: 52px;
-  line-height: 1;
-  color: var(--c-pink-line);
+.voice-card:hover,
+.voice-card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(103, 72, 62, 0.16);
 }
 
-.voice-body {
-  font-size: 15px;
-  line-height: 1.95;
-  position: relative;
-}
-
-.voice-author {
-  margin-top: 14px;
-  font-size: 13px;
-  color: var(--c-brown-dim);
-  text-align: right;
+.voice-card img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 /* ==========================================

@@ -160,9 +160,14 @@ const file = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 type Stage = 'idle' | 'transcribing' | 'structuring'
 const stage = ref<Stage>('idle')
-const stageLabel = computed(() =>
-  stage.value === 'transcribing' ? '文字起こししています…' : 'AIが議事録にまとめています…'
-)
+/** 分割したときの進み具合。長い会議は数分かかるので、止まっていないことが分かるように出す */
+const chunkProgress = ref<{ done: number; total: number } | null>(null)
+const stageLabel = computed(() => {
+  if (stage.value === 'structuring') return 'AIが議事録にまとめています…'
+  const p = chunkProgress.value
+  if (p && p.total > 1) return `文字起こししています… (${p.done}/${p.total})`
+  return '文字起こししています…'
+})
 
 function onPick(e: Event) {
   file.value = (e.target as HTMLInputElement).files?.[0] ?? null
@@ -233,7 +238,11 @@ async function run() {
     // 用語辞書は /api/kikigaki/transcribe がチャンクごとに付けるので、ここから prompt は渡さない。
     const text = await splitAndTranscribeBlob(file.value, file.value.name, {
       endpoint: '/api/kikigaki/transcribe',
+      onProgress: (done, total) => {
+        chunkProgress.value = { done, total }
+      },
     })
+    chunkProgress.value = null
 
     stage.value = 'structuring'
     const { id } = await $fetch<{ id: string }>('/api/kikigaki/structure', {
@@ -245,6 +254,7 @@ async function run() {
   } catch (e: any) {
     errorMessage.value = apiMessage(e, '処理に失敗しました。時間をおいてもう一度お試しください。')
     stage.value = 'idle'
+    chunkProgress.value = null
     file.value = null
     if (fileInput.value) fileInput.value.value = ''
   }

@@ -5,7 +5,7 @@
 import { getOpenAiKey } from '~/server/utils/openai'
 import { requireKikigakiUser } from '~/server/utils/kikigaki'
 import { cleanTranscript } from '~/server/utils/transcript-clean'
-import { glossaryPromptHint } from '~/utils/kikigaki-glossary'
+import { glossaryPromptHint, glossaryEchoNeedles } from '~/utils/kikigaki-glossary'
 
 const MODEL = 'gpt-4o-transcribe'
 /**
@@ -67,5 +67,5 @@ export default defineEventHandler(async (event) => {
 
   // プロンプト漏れと、Whisper系が無音・雑音・声の重なりで起こす繰り返しループを落とす。
   // 会議の録音では「同じ語が100回」「同じ段落が丸ごと8回」が実際に出る。
-  return { text: cleanTranscript(raw, hint) }
+  return { text: cleanTranscript(raw, glossaryEchoNeedles()) }
 })

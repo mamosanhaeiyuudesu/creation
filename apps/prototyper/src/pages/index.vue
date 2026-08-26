@@ -430,27 +430,103 @@
           <div class="portfolio-card-header">
             <span class="portfolio-tag portfolio-tag-soft">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              稼働中
+              公開・稼働中
             </span>
-            <h3 class="portfolio-card-title">鍼灸院のホームページと、予約の仕組み</h3>
+            <h3 class="portfolio-card-title">晴レルヤ鍼灸院 ホームページとLINE予約システム</h3>
             <dl class="work-ba">
               <div>
                 <dt>どなたの</dt>
-                <dd>新しく開業される鍼灸院の先生</dd>
+                <dd>新しく開業された「晴レルヤ鍼灸院」の先生</dd>
               </div>
               <div>
                 <dt>困っていたこと</dt>
-                <dd>開業にあたって、ホームページも、患者さんが予約する道筋もなかった</dd>
+                <dd>開業にあたって、ホームページも、患者さんが自分で予約できる仕組みもなかった</dd>
               </div>
               <div>
                 <dt>したこと</dt>
-                <dd>ホームページを制作し、あわせて予約アプリによる予約の仕組みを整えました。院ごとの受け付け方に合わせて調整しています</dd>
+                <dd>ホームページを制作し、LINEから予約が完結する仕組みも一から構築しました。院の特徴を伝えるホームページと、患者さんがカレンダーから予約でき、管理者は枠の管理から確認・返信までLINE上で完結できる予約システムです</dd>
               </div>
               <div>
                 <dt>いま</dt>
-                <dd>稼働中</dd>
+                <dd>公開・稼働中</dd>
               </div>
             </dl>
+          </div>
+          <div class="portfolio-card-body">
+            <div class="portfolio-features">
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>院の特徴が、開いてすぐ伝わるトップページ</strong>
+                  「内臓鍼灸×ソフトカイロ矯正」という2つの強みを、施術の写真とあわせて最初の画面で伝えます。LINEでの予約・お問い合わせと、Instagramへの導線もここから。
+                  <img src="/images/hareruya-top.png" alt="晴レルヤ鍼灸院トップページのスクリーンショット" class="feature-screenshot feature-screenshot-portrait" @click="openLightbox('/images/hareruya-top.png', '晴レルヤ鍼灸院トップページのスクリーンショット')" />
+                </div>
+              </div>
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>3つの特徴を、施術風景とともに紹介</strong>
+                  「内臓鍼灸」がどんな施術かを、実際の施術風景と文章でひとつずつ説明。初めての方が抱く不安に、先回りして答える構成にしました。
+                  <img src="/images/hareruya-features.png" alt="晴レルヤ鍼灸院の3つの特徴のスクリーンショット" class="feature-screenshot feature-screenshot-portrait" @click="openLightbox('/images/hareruya-features.png', '晴レルヤ鍼灸院の3つの特徴のスクリーンショット')" />
+                </div>
+              </div>
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>写真をめくって辿り着ける、道案内</strong>
+                  ビルの一室にあり地図だけでは分かりにくいため、「エレベーターで一階に降りてください」のように、曲がり角ごとの実写真をめくって進める道案内をつくりました。初めての方の「迷ったらどうしよう」を減らします。
+                  <img src="/images/hareruya-access.png" alt="晴レルヤ鍼灸院のアクセス案内のスクリーンショット" class="feature-screenshot feature-screenshot-portrait" @click="openLightbox('/images/hareruya-access.png', '晴レルヤ鍼灸院のアクセス案内のスクリーンショット')" />
+                </div>
+              </div>
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>患者さん側：カレンダーから、迷わず予約</strong>
+                  LINEのトーク画面からそのままカレンダーが開きます。緑は予約可能な日、茶色は「相談すれば対応できるかもしれない日」。空いている日だけに絞らず、相談の余地も見える形にしています。
+                  <img src="/images/hareruya-booking-calendar.jpg" alt="LINE予約カレンダーのスクリーンショット" class="feature-screenshot feature-screenshot-portrait" @click="openLightbox('/images/hareruya-booking-calendar.jpg', 'LINE予約カレンダーのスクリーンショット')" />
+                </div>
+              </div>
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>予約が入ったら、確認してから返信</strong>
+                  予約が入ると内容が届き、院の先生が内容を確認したうえで返信を送信します。送るメッセージはその場で編集できるので、一言添えることもできます。
+                  <img src="/images/hareruya-booking-confirm.jpg" alt="予約確認・送信画面のスクリーンショット" class="feature-screenshot feature-screenshot-portrait" @click="openLightbox('/images/hareruya-booking-confirm.jpg', '予約確認・送信画面のスクリーンショット')" />
+                </div>
+              </div>
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>管理者側：1日ごと、1時間ごとに枠を調整</strong>
+                  日ごとに「予約可・予約不可・相談のみ」を設定でき、時間帯も1時間単位で選べます。すでに予約が入っている時間は解除できないようになっているので、誤って上書きする心配もありません。
+                  <img src="/images/hareruya-booking-admin-slot.jpg" alt="管理者用の枠設定画面のスクリーンショット" class="feature-screenshot feature-screenshot-portrait" @click="openLightbox('/images/hareruya-booking-admin-slot.jpg', '管理者用の枠設定画面のスクリーンショット')" />
+                </div>
+              </div>
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>曜日を指定して、一括登録</strong>
+                  「月・木の10時から5枠」のように指定するだけで、その曜日の枠をまとめて登録できます。毎週同じ形で開いている日は、この一括登録で数秒で終わります。
+                  <img src="/images/hareruya-booking-bulk.jpg" alt="枠の一括登録画面のスクリーンショット" class="feature-screenshot feature-screenshot-portrait" @click="openLightbox('/images/hareruya-booking-bulk.jpg', '枠の一括登録画面のスクリーンショット')" />
+                </div>
+              </div>
+            </div>
+
+            <div class="portfolio-tech">
+              <span class="tech-badge">Nuxt</span>
+              <span class="tech-badge">Cloudflare Workers</span>
+              <span class="tech-badge">LINE連携</span>
+              <span class="tech-badge">LIFF</span>
+            </div>
+
+            <p class="portfolio-card-note">
+              LINEで予約が完結する仕組みは、既製のサービスだと月額5,000円以上かかることが多いのが実情です。今回は一から作っているので、かかるのは開発費用のみ。使っていない月の維持費はかかりません。枠の出し方や表示のルールも、院の運用に合わせて自由に調整できます。
+            </p>
+
+            <a href="https://hareruya.insightlens.jp/" class="portfolio-link" target="_blank" rel="noopener noreferrer">
+              サイトを見る
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
           </div>
         </div>
 

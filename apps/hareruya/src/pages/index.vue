@@ -188,6 +188,29 @@
       </div>
     </section>
 
+    <!-- お客様の声 -->
+    <section v-if="site.showVoices" id="voice" class="hr-tint-sky">
+      <div class="hr-wrap">
+        <p class="section-label">Voice</p>
+        <h2 class="section-title">お客様の声</h2>
+        <div class="voice-grid">
+          <button
+            v-for="(voice, i) in site.voices"
+            :key="voice.image"
+            type="button"
+            class="voice-card"
+            :aria-label="`${voice.alt}（拡大する）`"
+            @click="openRoute(voiceSteps, i)"
+          >
+            <img :src="voice.image" :alt="voice.alt" loading="lazy" />
+          </button>
+        </div>
+        <p class="menu-note">
+          ※ 掲載しているのは施術を受けられた方個人のご感想です。感じ方には個人差があり、効果を保証するものではありません。
+        </p>
+      </div>
+    </section>
+
     <!-- メニュー・料金（施術の価値もこの中で紹介する） -->
     <section id="menu" class="hr-tint-pink">
       <div class="hr-wrap">
@@ -382,23 +405,6 @@
       </div>
     </section>
 
-    <!-- お客様の声 -->
-    <section v-if="site.showVoices" id="voice" class="hr-tint-sky">
-      <div class="hr-wrap">
-        <p class="section-label">Voice</p>
-        <h2 class="section-title">お客様の声</h2>
-        <div class="voice-grid">
-          <div v-for="(voice, i) in site.voices" :key="i" class="voice-card">
-            <p class="voice-body">{{ voice.body }}</p>
-            <p class="voice-author">{{ voice.author }}</p>
-          </div>
-        </div>
-        <p class="menu-note">
-          ※ 掲載しているのは施術を受けられた方個人のご感想です。感じ方には個人差があり、効果を保証するものではありません。
-        </p>
-      </div>
-    </section>
-
     <!-- ご予約 -->
     <section id="contact" class="hr-cta">
       <div class="hr-wrap">
@@ -419,13 +425,13 @@
       <p class="hr-footer-copy">&copy; {{ new Date().getFullYear() }} HARERUYA ACUPANCUTURE</p>
     </footer>
 
-    <!-- 道順写真の拡大表示 -->
+    <!-- 道順・お客様の声の写真の拡大表示 -->
     <div
       v-if="activeStep"
       class="route-modal"
       role="dialog"
       aria-modal="true"
-      aria-label="道順の写真"
+      aria-label="写真"
       @click.self="closeRoute"
     >
       <div class="route-modal-inner">
@@ -463,8 +469,12 @@ definePageMeta({ layout: 'hareruya' })
 
 const isMenuOpen = ref(false)
 
-/** 道順写真の拡大表示。開いている間だけ routeSteps に写真が入る */
+/** 道順・お客様の声の写真の拡大表示。開いている間だけ routeSteps に写真が入る */
 type RouteStep = { image: string; caption: string }
+
+const voiceSteps = computed<readonly RouteStep[]>(() =>
+  site.voices.map((voice) => ({ image: voice.image, caption: voice.alt }))
+)
 
 const routeSteps = ref<readonly RouteStep[]>([])
 const routeIndex = ref(0)
@@ -508,9 +518,9 @@ watch(activeStep, (step) => {
  */
 const navLinks = computed(() => [
   { href: '#worry', label: '対応できる症状', external: false },
-  ...(site.showVoices ? [{ href: '#voice', label: 'お客様の声', external: false }] : []),
   { href: '#about', label: '当院について', external: false },
   { href: '#feature', label: '3つの特徴', external: false },
+  ...(site.showVoices ? [{ href: '#voice', label: 'お客様の声', external: false }] : []),
   { href: '#profile', label: '施術者について', external: false },
   { href: '#flow', label: '施術の流れ', external: false },
   { href: '#access', label: 'アクセス', external: false },

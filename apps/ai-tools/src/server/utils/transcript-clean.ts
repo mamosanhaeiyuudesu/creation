@@ -8,16 +8,22 @@
 // あわせて、gpt-4o-transcribe は prompt を「文脈」として扱うため、文章の形で渡すと
 // その続きとして本文に書き起こしてしまう（プロンプト漏れ）。それもここで落とす。
 
-/** プロンプトが本文の冒頭へ漏れたぶんを取り除く */
-export function stripPromptEcho(text: string, prompt: string): string {
+/**
+ * プロンプトが本文へ漏れたぶんを取り除く。
+ * echoes には「プロンプトの文章そのもの」と「そこに含まれる語の羅列だけの形」の両方を渡す
+ * （モデルはどちらの形でも書き出してくる）。
+ */
+export function stripPromptEcho(text: string, echoes: string[]): string {
   let out = text
 
   // gpt-4o-transcribe が付ける "context: ### ... ###" のブロックごと落とす
   out = out.replace(/^\s*context:\s*#{2,}[\s\S]*?#{2,}\s*/i, '')
 
-  // プロンプト本文、またはそれに含まれる語の羅列がそのまま行として出ているぶんを落とす。
+  // プロンプトの写しがそのまま行として出ているぶんを落とす。
   // 会話の途中に同じ並びが自然に現れることはまず無いので、行まるごと一致に限って消す。
-  const needles = [prompt.trim(), prompt.replace(/[。.]\s*$/, '').trim()].filter(Boolean)
+  const needles = echoes
+    .flatMap((e) => [e.trim(), e.replace(/[。.]\s*$/, '').trim()])
+    .filter(Boolean)
   out = out
     .split('\n')
     .filter((line) => {
@@ -94,10 +100,10 @@ function toSentences(text: string): string[] {
 
 /**
  * 文字起こし結果を読める形に整える。
- * prompt を渡すと、その漏れも取り除く。
+ * echoes を渡すと、プロンプトが本文へ漏れたぶんも取り除く。
  */
-export function cleanTranscript(text: string, prompt?: string): string {
-  let out = prompt ? stripPromptEcho(text, prompt) : text.trim()
+export function cleanTranscript(text: string, echoes: string[] = []): string {
+  let out = echoes.length ? stripPromptEcho(text, echoes) : text.trim()
   out = out.split('\n').map(collapseInlineRepeats).join('\n')
   out = collapseSequenceRepeats(toSentences(out)).join('\n')
   return out.trim()
