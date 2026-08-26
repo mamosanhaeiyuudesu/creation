@@ -43,6 +43,8 @@ export async function ensureKikigakiTables(db: any): Promise<void> {
       doc_url TEXT NOT NULL DEFAULT '',
       sent_tasks INTEGER NOT NULL DEFAULT 0,
       sent_events INTEGER NOT NULL DEFAULT 0,
+      sheet_appended INTEGER NOT NULL DEFAULT 0,
+      warnings TEXT NOT NULL DEFAULT '',
       approved_at TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -61,6 +63,14 @@ export async function ensureKikigakiTables(db: any): Promise<void> {
     )`,
   ]
   for (const sql of statements) await db.prepare(sql).run().catch(() => {})
+
+  // 既存テーブルへの列追加。CREATE TABLE IF NOT EXISTS では足りないので個別に流す
+  // （すでにある場合は失敗するが、それは握りつぶしてよい）。
+  const columns = [
+    `ALTER TABLE kikigaki_records ADD COLUMN sheet_appended INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE kikigaki_records ADD COLUMN warnings TEXT NOT NULL DEFAULT ''`,
+  ]
+  for (const sql of columns) await db.prepare(sql).run().catch(() => {})
 }
 
 /** ログイン必須。未ログインなら 401 を throw。 */
@@ -162,6 +172,8 @@ interface RecordRow {
   doc_url: string
   sent_tasks: number
   sent_events: number
+  sheet_appended: number
+  warnings: string
   approved_at: string
   created_at: string
   updated_at: string
@@ -171,7 +183,7 @@ interface RecordRow {
 // user_id は所有者（アップロードした人）の記録として残し、表示と削除の可否にだけ使う。
 const SUMMARY_COLS =
   'r.id, r.user_id, u.username AS owner, r.status, r.title, r.meeting_date, r.audio_name, r.doc_url, r.created_at'
-const FULL_COLS = `${SUMMARY_COLS}, r.transcript, r.minutes, r.sent_tasks, r.sent_events, r.approved_at, r.updated_at`
+const FULL_COLS = `${SUMMARY_COLS}, r.transcript, r.minutes, r.sent_tasks, r.sent_events, r.sheet_appended, r.warnings, r.approved_at, r.updated_at`
 const FROM_RECORDS = 'FROM kikigaki_records r LEFT JOIN users u ON u.id = r.user_id'
 
 async function toSummary(event: any, row: RecordRow, viewerId: string): Promise<KikigakiRecordSummary> {
@@ -252,6 +264,8 @@ export async function getRecord(event: any, viewerId: string, id: string): Promi
     minutes: normalizeMinutes(parsed),
     sentTasks: row.sent_tasks ?? 0,
     sentEvents: row.sent_events ?? 0,
+    sheetAppended: !!row.sheet_appended,
+    warnings: parseWarnings(row.warnings),
     approvedAt: row.approved_at ?? '',
     updatedAt: row.updated_at ?? '',
   }
@@ -279,23 +293,54 @@ export async function updateRecordMinutes(event: any, id: string, minutes: Kikig
     .run()
 }
 
-/** 承認してGoogleへ送り終えた記録に印をつける。以後この記録は再送も編集もできない。 */
+function parseWarnings(raw: string | null | undefined): string[] {
+  if (!raw) return []
+  try {
+    const v = JSON.parse(raw)
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * 承認してGoogleへ送り終えた記録に印をつける。以後この記録は再送も編集もできない。
+ * 書き込めなかったぶん（warnings）も保存する＝画面を開き直しても消えないようにするため。
+ * 一時的な失敗で一覧の行が欠けたことに、あとから気づけなくなるのを防ぐ。
+ */
 export async function markApproved(
   event: any,
   id: string,
-  docUrl: string,
-  sentTasks: number,
-  sentEvents: number
+  result: { docUrl: string; sentTasks: number; sentEvents: number; warnings: string[]; sheetAppended: boolean }
 ): Promise<void> {
   const db = requireKikigakiDb(event)
   await db
     .prepare(
       `UPDATE kikigaki_records
        SET status = 'approved', doc_url = ?, sent_tasks = ?, sent_events = ?,
+           sheet_appended = ?, warnings = ?,
            approved_at = datetime('now'), updated_at = datetime('now')
        WHERE id = ?`
     )
-    .bind(docUrl, sentTasks, sentEvents, id)
+    .bind(
+      result.docUrl,
+      result.sentTasks,
+      result.sentEvents,
+      result.sheetAppended ? 1 : 0,
+      JSON.stringify(result.warnings),
+      id
+    )
+    .run()
+}
+
+/** 議事録一覧への追記だけを後からやり直せたときに印をつける（警告も消す）。 */
+export async function markSheetAppended(event: any, id: string): Promise<void> {
+  const db = requireKikigakiDb(event)
+  await db
+    .prepare(
+      `UPDATE kikigaki_records SET sheet_appended = 1, warnings = '', updated_at = datetime('now') WHERE id = ?`
+    )
+    .bind(id)
     .run()
 }
 

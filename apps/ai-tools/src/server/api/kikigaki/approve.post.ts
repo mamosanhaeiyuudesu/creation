@@ -32,7 +32,7 @@ export default defineEventHandler(async (event): Promise<KikigakiApproveResult> 
   // 書き込み先は「承認した人」のGoogleアカウント。記録は共有だが、
   // ドキュメント・タスク・予定は承認操作をした本人のドライブ／ToDo／カレンダーに入る。
   const result = await writeApprovedMinutes(event, user.id, minutes, record.transcript)
-  await markApproved(event, id, result.docUrl, result.sentTasks, result.sentEvents)
+  await markApproved(event, id, result)
 
   return result
 })

@@ -203,6 +203,35 @@ function headers(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
 }
 
+// Google API は混み合うと 503「The service is currently unavailable.」や 429 を返す。
+// 一時的なもので、Google 自身が指数バックオフでの再試行を案内している。
+// キキガキの承認は一度きり（再送は409で弾く）なので、ここで粘らないと
+// 「スプレッドシートの1行だけ永久に欠ける」ことになる。
+const RETRYABLE = new Set([429, 500, 502, 503, 504])
+const MAX_ATTEMPTS = 3
+
+function statusOf(e: any): number {
+  return e?.status ?? e?.statusCode ?? e?.response?.status ?? 0
+}
+
+async function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  let lastErr: any
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await fn()
+    } catch (e: any) {
+      lastErr = e
+      const status = statusOf(e)
+      if (!RETRYABLE.has(status) || attempt === MAX_ATTEMPTS) throw e
+      // 指数バックオフ＋ゆらぎ（同時に承認した人どうしが揃って再試行しないように）
+      const wait = Math.round(400 * 2 ** (attempt - 1) * (1 + Math.random() * 0.3))
+      console.warn(`[kikigaki/google] ${label}: ${status} のため ${wait}ms 後に再試行 (${attempt}/${MAX_ATTEMPTS - 1})`)
+      await new Promise((r) => setTimeout(r, wait))
+    }
+  }
+  throw lastErr
+}
+
 /** 初回連携時に「議事録一覧」スプレッドシートを本人のドライブに作る（以後は使い回す）。 */
 async function createListSpreadsheet(token: string, ownerLabel: string): Promise<{ id: string; url: string }> {
   const res: any = await $fetch(SHEETS_API, {
@@ -320,14 +349,18 @@ function buildDocText(minutes: KikigakiMinutes, transcript: string): string {
 
 async function createMinutesDoc(token: string, minutes: KikigakiMinutes, transcript: string): Promise<{ id: string; url: string }> {
   const title = `${minutes.date || ''} ${minutes.title || '議事録'}`.trim()
-  const created: any = await $fetch(DOCS_API, { method: 'POST', headers: headers(token), body: { title } })
+  const created: any = await withRetry('ドキュメント作成', () =>
+    $fetch<unknown>(DOCS_API, { method: 'POST', headers: headers(token), body: { title } })
+  )
   const id = created.documentId as string
 
-  await $fetch(`${DOCS_API}/${id}:batchUpdate`, {
-    method: 'POST',
-    headers: headers(token),
-    body: { requests: [{ insertText: { location: { index: 1 }, text: buildDocText(minutes, transcript) } }] },
-  })
+  await withRetry('ドキュメント本文の書き込み', () =>
+    $fetch<unknown>(`${DOCS_API}/${id}:batchUpdate`, {
+      method: 'POST',
+      headers: headers(token),
+      body: { requests: [{ insertText: { location: { index: 1 }, text: buildDocText(minutes, transcript) } }] },
+    })
+  )
 
   return { id, url: `https://docs.google.com/document/d/${id}/edit` }
 }
@@ -335,13 +368,37 @@ async function createMinutesDoc(token: string, minutes: KikigakiMinutes, transcr
 async function appendListRow(token: string, spreadsheetId: string, minutes: KikigakiMinutes, docUrl: string): Promise<void> {
   const join = (items: { content: string }[]) => items.map((i) => `・${i.content}`).join('\n')
   const range = encodeURIComponent(`'${LIST_SHEET}'!A:F`)
-  await $fetch(`${SHEETS_API}/${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED`, {
-    method: 'POST',
-    headers: headers(token),
-    body: {
-      values: [[minutes.date, minutes.title, minutes.summary, join(minutes.decisions), join(minutes.discussions), docUrl]],
-    },
-  })
+  await withRetry('議事録一覧への追記', () =>
+    $fetch<unknown>(`${SHEETS_API}/${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED`, {
+      method: 'POST',
+      headers: headers(token),
+      body: {
+        values: [[minutes.date, minutes.title, minutes.summary, join(minutes.decisions), join(minutes.discussions), docUrl]],
+      },
+    })
+  )
+}
+
+/**
+ * 議事録一覧への追記だけをやり直す。
+ * 承認そのものは一度きりだが、Googleの一時障害で一覧の行だけ欠けることがあるため、
+ * その1行を後から足せる口を用意している（ドキュメントは作成済みなので作り直さない）。
+ */
+export async function appendListRowOnly(
+  event: H3Event,
+  userId: string,
+  minutes: KikigakiMinutes,
+  docUrl: string
+): Promise<void> {
+  const { token, spreadsheetId } = await getAuth(event, userId)
+  if (!spreadsheetId) {
+    throw createError({ statusCode: 400, message: '議事録一覧のスプレッドシートが見つかりません。Google連携をやり直すと作成されます。' })
+  }
+  try {
+    await appendListRow(token, spreadsheetId, minutes, docUrl)
+  } catch (e: any) {
+    throw createError({ statusCode: 502, message: `スプレッドシートへの追記に失敗しました: ${errText(e)}` })
+  }
 }
 
 /** 「YYYY-MM-DDTHH:mm」を JST の RFC3339 にする */
@@ -384,9 +441,11 @@ export async function writeApprovedMinutes(
   }
 
   // 2. Sheets（議事録一覧に1行追記）
+  let sheetAppended = false
   if (spreadsheetId) {
     try {
       await appendListRow(token, spreadsheetId, minutes, doc.url)
+      sheetAppended = true
     } catch (e: any) {
       warnings.push(`スプレッドシートへの追記に失敗しました: ${errText(e)}`)
     }
@@ -402,12 +461,14 @@ export async function writeApprovedMinutes(
       .filter(Boolean)
       .join('\n')
     try {
-      await $fetch(`${TASKS_API}/lists/${TASKLIST_ID}/tasks`, {
-        method: 'POST',
-        headers: headers(token),
-        // Google Tasks の due は RFC3339 だが日付部分しか使われない（時刻は無視される）
-        body: { title, notes, ...(t.dueDate ? { due: `${t.dueDate}T00:00:00.000Z` } : {}) },
-      })
+      await withRetry(`タスク登録「${t.task}」`, () =>
+        $fetch<unknown>(`${TASKS_API}/lists/${TASKLIST_ID}/tasks`, {
+          method: 'POST',
+          headers: headers(token),
+          // Google Tasks の due は RFC3339 だが日付部分しか使われない（時刻は無視される）
+          body: { title, notes, ...(t.dueDate ? { due: `${t.dueDate}T00:00:00.000Z` } : {}) },
+        })
+      )
       sentTasks++
     } catch (e: any) {
       warnings.push(`タスク「${t.task}」の登録に失敗しました: ${errText(e)}`)
@@ -419,22 +480,24 @@ export async function writeApprovedMinutes(
   for (const ev of minutes.eventCandidates) {
     if (!ev.start) continue
     try {
-      await $fetch(`${CALENDAR_API}/calendars/${CALENDAR_ID}/events`, {
-        method: 'POST',
-        headers: headers(token),
-        body: {
-          summary: ev.title || '（無題の予定）',
-          location: ev.location || undefined,
-          description: `出典: ${minutes.title || '議事録'}\n${doc.url}`,
-          start: { dateTime: toJstRfc3339(ev.start), timeZone: TIME_ZONE },
-          end: { dateTime: toJstRfc3339(ev.end || defaultEnd(ev.start)), timeZone: TIME_ZONE },
-        },
-      })
+      await withRetry(`予定登録「${ev.title}」`, () =>
+        $fetch<unknown>(`${CALENDAR_API}/calendars/${CALENDAR_ID}/events`, {
+          method: 'POST',
+          headers: headers(token),
+          body: {
+            summary: ev.title || '（無題の予定）',
+            location: ev.location || undefined,
+            description: `出典: ${minutes.title || '議事録'}\n${doc.url}`,
+            start: { dateTime: toJstRfc3339(ev.start), timeZone: TIME_ZONE },
+            end: { dateTime: toJstRfc3339(ev.end || defaultEnd(ev.start)), timeZone: TIME_ZONE },
+          },
+        })
+      )
       sentEvents++
     } catch (e: any) {
       warnings.push(`予定「${ev.title}」の登録に失敗しました: ${errText(e)}`)
     }
   }
 
-  return { docUrl: doc.url, sentTasks, sentEvents, warnings }
+  return { docUrl: doc.url, sentTasks, sentEvents, warnings, sheetAppended }
 }

@@ -69,6 +69,10 @@ export interface KikigakiRecord extends KikigakiRecordSummary {
   sentEvents: number
   approvedAt: string
   updatedAt: string
+  /** 議事録一覧へ行を足せたか。承認済みなのに false なら「追記し直す」を出す */
+  sheetAppended: boolean
+  /** 送信時に書き込めなかったぶんの説明。画面を開き直しても残るよう保存している */
+  warnings: string[]
 }
 
 /** 承認してGoogleへ送信した結果 */
@@ -78,6 +82,8 @@ export interface KikigakiApproveResult {
   sentEvents: number
   /** Docs以外（Sheets/Tasks/Calendar）で失敗したぶんの説明。空なら全て成功 */
   warnings: string[]
+  /** 議事録一覧のスプレッドシートに行を足せたか。false なら後から足し直せる */
+  sheetAppended: boolean
 }
 
 export function emptyMinutes(): KikigakiMinutes {

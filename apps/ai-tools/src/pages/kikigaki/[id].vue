@@ -31,15 +31,29 @@
         <a v-if="record.docUrl" :href="record.docUrl" target="_blank" rel="noopener" class="kk-btn mt-6">議事録ドキュメントを開く</a>
       </div>
 
+      <p v-if="errorMessage" class="kk-card px-4 py-3 mt-4 text-[13px]" style="border-color: #f0c2c2; background: #fdf1f1; color: var(--kk-danger)">
+        {{ errorMessage }}
+      </p>
+
+      <!-- 警告はD1にも保存しているので、画面を開き直しても消えない -->
       <div
-        v-if="result?.warnings?.length"
+        v-if="warnings.length"
         class="kk-card px-5 py-4 mt-4 text-[12.5px] leading-relaxed"
         style="border-color: #eccb96; background: var(--kk-warn-soft); color: var(--kk-warn)"
       >
-        <p class="font-bold mb-1">一部は書き込めませんでした（手動で補ってください）</p>
+        <p class="font-bold mb-1">一部は書き込めませんでした</p>
         <ul class="list-disc pl-5 space-y-0.5">
-          <li v-for="(w, i) in result.warnings" :key="i">{{ w }}</li>
+          <li v-for="(w, i) in warnings" :key="i">{{ w }}</li>
         </ul>
+
+        <!-- 議事録一覧の1行だけなら、ドキュメントを作り直さずに足し直せる -->
+        <div v-if="!record.sheetAppended" class="mt-3 flex flex-wrap items-center gap-2">
+          <button class="kk-btn !h-8 !px-3.5 !text-[12px]" :disabled="resending" @click="resendSheet">
+            {{ resending ? '追記しています…' : '議事録一覧に追記し直す' }}
+          </button>
+          <span class="text-[11.5px]">Googleの一時的な混雑が原因のことが多く、少し待てば通ります。</span>
+        </div>
+        <p v-else class="mt-3 font-bold">議事録一覧への追記は完了しました。</p>
       </div>
     </template>
 
@@ -234,7 +248,24 @@ const errorMessage = ref('')
 const saving = ref(false)
 const sending = ref(false)
 const savedAt = ref(0)
+const resending = ref(false)
 const result = ref<KikigakiApproveResult | null>(null)
+
+/** 送信直後はレスポンスの警告、開き直したあとは保存済みの警告を出す */
+const warnings = computed<string[]>(() => result.value?.warnings ?? record.value?.warnings ?? [])
+
+async function resendSheet() {
+  resending.value = true
+  errorMessage.value = ''
+  try {
+    await $fetch('/api/kikigaki/resend-sheet', { method: 'POST', body: { id: id.value } })
+    result.value = null // 保存済みの状態（追記済み）を出したいのでレスポンス側は捨てる
+    await load()
+  } catch (e: any) {
+    errorMessage.value = apiMessage(e, '追記に失敗しました。少し待ってからもう一度お試しください。')
+  }
+  resending.value = false
+}
 
 /** 画面で編集している議事録。record.minutes のコピーで、承認時はこれをそのまま送る */
 const minutes = reactive<KikigakiMinutes>(emptyMinutes())
