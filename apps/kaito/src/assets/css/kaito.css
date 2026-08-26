@@ -214,7 +214,7 @@ body.home h6 {
 .hero-inner {
   max-width: 700px;
   margin: 0 auto;
-  padding: 0 24px 72px;
+  padding: 0 24px 24px;
   text-align: center;
 }
 
@@ -244,11 +244,9 @@ body.home h6 {
    * 縦位置の写真なので、帯に海と島が入るよう 52% を中心にする。
    */
   background-image:
-    radial-gradient(
-      ellipse 54% 82% at 50% 50%,
+    radial-gradient(ellipse 54% 82% at 50% 50%,
       rgba(255, 255, 255, 0.8) 20%,
-      rgba(255, 255, 255, 0.26) 100%
-    ),
+      rgba(255, 255, 255, 0.26) 100%),
     var(--hero-image);
   background-size: auto, cover;
   background-position: center, center 52%;
@@ -314,7 +312,7 @@ body.home h6 {
   scroll-margin-top: var(--anchor-offset);
 }
 
-.home-section + .home-section {
+.home-section+.home-section {
   padding-top: 28px;
 }
 
@@ -430,6 +428,11 @@ body.home h6 {
   background: rgba(56, 163, 165, 0.1);
 }
 
+/* リストのあとに続く語りかけ。箱で囲わず、地の文のまま少し余白だけ取る */
+.for-you-message {
+  margin-top: 32px !important;
+}
+
 /* 「できないこと」を正直に伝える枠。断り書きではなく前提の共有として、主張は控えめに */
 .limits-box {
   background: rgba(200, 200, 200, 0.1);
@@ -454,7 +457,7 @@ body.home h6 {
   font-size: 0.93rem;
 }
 
-.limits-box li + li {
+.limits-box li+li {
   margin-top: 8px;
 }
 
@@ -541,7 +544,7 @@ body.home h6 {
   display: block;
 }
 
-.style-body > h3 {
+.style-body>h3 {
   margin-top: 0;
 }
 
@@ -587,17 +590,17 @@ body.home h6 {
   border-top: none;
 }
 
-.service-block > h3,
-.about-block > h3 {
+.service-block>h3,
+.about-block>h3 {
   margin: 0 0 24px;
   font-size: 1.3rem;
   font-weight: 500;
   letter-spacing: 0.03em;
 }
 
-.service-block > h4,
-.about-block > h4,
-.detail-body > h4 {
+.service-block>h4,
+.about-block>h4,
+.detail-body>h4 {
   margin: 32px 0 14px;
   font-size: 0.98rem;
   font-weight: 500;
@@ -692,7 +695,7 @@ body.home h6 {
   padding-top: 28px;
 }
 
-.service-block--compact > h3 {
+.service-block--compact>h3 {
   margin: 0 0 12px;
   font-size: 1.12rem;
 }
@@ -747,11 +750,11 @@ body.home h6 {
   padding-top: 18px;
 }
 
-.detail-body > h4:first-child {
+.detail-body>h4:first-child {
   margin-top: 0;
 }
 
-.detail-body > :last-child {
+.detail-body> :last-child {
   margin-bottom: 0 !important;
 }
 
@@ -770,6 +773,15 @@ body.home h6 {
   font-size: 1rem !important;
   padding: 20px 18px !important;
   margin: 20px 0 !important;
+}
+
+/* プロフィールの締めの挨拶。罫線は足さず、余白と書体だけで静かに終わらせる */
+.about-modest .about-closing {
+  margin-top: 32px;
+  font-family: var(--f-serif);
+  letter-spacing: 0.03em;
+  color: #2d5858;
+  text-align: center;
 }
 
 .hero-quote {
@@ -894,7 +906,7 @@ body.home h6 {
   text-align: center;
 }
 
-.home-cta .section-inner > p {
+.home-cta .section-inner>p {
   max-width: 560px;
   margin-left: auto;
   margin-right: auto;
@@ -1042,7 +1054,7 @@ body.home h6 {
 
 @media (min-width: 860px) {
   .hero-inner {
-    padding-bottom: 84px;
+    padding-bottom: 36px;
   }
 
   .home-section {
