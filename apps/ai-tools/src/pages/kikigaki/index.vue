@@ -33,6 +33,10 @@
       <a v-if="googleConnected && spreadsheetUrl" :href="spreadsheetUrl" target="_blank" rel="noopener" class="kk-btn-ghost whitespace-nowrap">議事録一覧を開く</a>
       <a v-if="!googleConnected" href="/api/kikigaki/google/connect" class="kk-btn whitespace-nowrap">連携する</a>
       <button v-else class="kk-btn-ghost whitespace-nowrap" @click="disconnectGoogle">解除</button>
+      <!-- Googleの同意画面と審査から参照されるため、連携ボタンのそばにリンクを置く -->
+      <p class="basis-full m-0 text-[11px] text-[var(--kk-ink-faint)]">
+        <NuxtLink to="/privacy" class="underline underline-offset-2 hover:text-[var(--kk-ink-soft)]">プライバシーポリシー</NuxtLink>
+      </p>
     </section>
 
     <!-- アップロード -->

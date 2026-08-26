@@ -79,6 +79,12 @@
           </NuxtLink>
         </div>
       </section>
+
+      <footer class="mt-14 pt-6 border-t border-white/[0.08]">
+        <NuxtLink to="/privacy" class="text-xs sm:text-sm text-slate-500 hover:text-slate-300 transition-colors">
+          プライバシーポリシー
+        </NuxtLink>
+      </footer>
     </div>
   </div>
 </template>
