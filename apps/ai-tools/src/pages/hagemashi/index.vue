@@ -389,6 +389,13 @@
                   @click="momentKindFilter = momentKindFilter === k ? null : k"
                 >{{ k }} {{ momentCounts[k] }}</button>
               </div>
+              <div class="flex justify-end mt-1.5">
+                <button
+                  class="px-2.5 py-1 rounded-md border border-orange-500/30 bg-orange-500/10 text-orange-300 text-[11px] font-medium cursor-pointer transition-colors hover:bg-orange-500/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-orange-500/10"
+                  :disabled="momentOverviewItems.length === 0"
+                  @click="showMomentOverview = true"
+                >概要</button>
+              </div>
             </div>
 
             <div v-if="momentWordChips.length > 0" class="pl-3 border-l-2 transition-colors" :class="momentWordBranchClass">
@@ -1154,6 +1161,18 @@
       :scope="activeTab"
       :matched-items="activeProfileMatches"
       @close="activeProfilePopup = null"
+    />
+
+    <!-- 「概要」ボタン押下時のAI分析ポップアップ（①タグ・②単語で絞った出来事が対象） -->
+    <HagemashiTopicAnalysisModal
+      v-if="showMomentOverview"
+      :key="momentOverviewTitle"
+      :title="momentOverviewTitle"
+      :meta="`${momentOverviewItems.length}件の出来事`"
+      :keyword="momentOverviewTitle"
+      scope="overview"
+      :matched-items="momentOverviewItems"
+      @close="showMomentOverview = false"
     />
 
     <!-- 除外単語追加確認 -->
@@ -2478,6 +2497,11 @@ const momentDate = (m: Moment): string => {
   const d = toJSTDate(m.ts)
   return `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`
 }
+// AI分析（topic-summary）に渡す用の年月日つきフォーマット。表示用の momentDate とは別に持つ
+const momentFullDate = (m: Moment): string => {
+  const d = toJSTDate(m.ts)
+  return `${d.getUTCFullYear()}/${d.getUTCMonth() + 1}/${d.getUTCDate()}`
+}
 
 // 履歴順（新しい順）に並べた全出来事。元の記録が消えているものはここで落ちるので、
 // 絞り込みチップの件数もこれを基準にする（moments をそのまま数えると表示と数が食い違う）
@@ -2584,6 +2608,23 @@ const momentRows = computed(() => {
     // 同じ記録から抜いた出来事は ts が同値。sort は安定なので抽出順のまま残る
     return (timeOf(a) - timeOf(b)) * dir
   })
+})
+
+// 「概要」ボタン用。①タグ・②単語で絞った出来事を対象に、並び替えの影響を受けず
+// 常に古い→新しい順でAIへ渡す（サーバー側が時系列3区分に分けて読むため）
+const showMomentOverview = ref(false)
+const momentOverviewTitle = computed(() => {
+  const tag = momentKindFilter.value ?? 'すべて'
+  return momentWordFilter.value ? `${tag} × ${momentWordFilter.value}` : tag
+})
+const momentOverviewItems = computed(() => {
+  const word = momentWordFilter.value
+  const rows = word
+    ? momentKindRows.value.filter(m => momentWordsOf(m).includes(word))
+    : momentKindRows.value
+  return [...rows]
+    .sort((a, b) => toJSTDate(a.ts).getTime() - toJSTDate(b.ts).getTime())
+    .map(m => ({ date: momentFullDate(m), text: m.text }))
 })
 
 // 相談（ConsultChat）へ渡す達成の文脈。プロンプト側の形（text/level/date）に合わせて変換する

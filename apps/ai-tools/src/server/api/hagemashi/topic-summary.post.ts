@@ -101,6 +101,9 @@ export default defineEventHandler(async (event) => {
   // ネットワーク図（scope='pair'）は、2語の組み合わせが同時に出た記録だけを読み解く。
   // keyword は「仕事 × 締切」のように語順を正規化した組み合わせ名で渡ってくる
   const isPair = body.scope === 'pair'
+  // 概要ボタン（scope='overview'）は、①タグ・②単語で絞り込んだ出来事全件（＝関連性判定済み）を
+  // 対象に話題を3つだけ短く要約する。他のscopeと違い「関連するものを選び出す」手順は不要
+  const isOverview = body.scope === 'overview'
 
   const summarySystem = `あなたはユーザーの日々の記録（中間データ）を読み解き、要約して伝えるアシスタントです。
 ユーザーが選んだテーマ「${body.keyword}」に関連しそうな記録を、時期ごとに分けて与えます。各見出しは「2025年5〜8月頃」のようにその時期の実際の年月です。文字表記が完全一致しなくても、内容が意味的に関連していれば対象として扱ってください。無関係な記録も混ざっています。
@@ -204,7 +207,28 @@ blocks はちょうど3つ。それぞれ次の観点にしてください（タ
 - 全ブロックの text を合計しておよそ500文字以内に収める
 - JSON以外の文字列は一切出力しない`
 
-  const system = isAdvice ? adviceSystem : isEmotion ? emotionSystem : isPair ? pairSystem : summarySystem
+  const overviewSystem = `あなたはユーザーの日々の記録（中間データ）から、話題の傾向を短くまとめるアシスタントです。
+これから渡す記録は、ユーザーが選んだ絞り込み条件「${body.keyword}」に該当する出来事だけです（あなたが関連性を判定する必要はありません）。時期ごとに分けて与えます。各見出しは「2025年5〜8月頃」のようにその時期の実際の年月です。
+
+手順:
+1. 記録全体を通して繰り返し現れる話題・共通する傾向を読み取る（特定の時期に偏らず、すべての時期を確認する）
+2. その中から特に目立つものを3つ選ぶ（互いに異なる観点になるようにし、同じ内容の言い換えを重複させない）
+3. それぞれに短いタイトルと一言サマリをつける
+
+必ず以下のJSON形式のみで返答してください（マークダウンコードブロックや説明文は一切不要）:
+{"blocks":[{"title":"見出し（10字前後）","text":"サマリ（50字程度）"}]}
+
+サマリ（text）の書き方（最重要）:
+- 50字程度の短い一文にする。記録の文をそのまま引き写したり複数の記録をつなげて羅列したりしない
+- 話題の中身が一目で伝わるよう、あなた自身の言葉で書く
+- 「〜という記録があった」のような報告口調ではなく、内容を端的に語る文にする
+
+出力ルール:
+- blocks は原則ちょうど3個。記録の内容が乏しく3つに分けられない場合のみ1〜2個でよい
+- タイトルは話題を端的に表す10字前後のラベルにする
+- JSON以外の文字列は一切出力しない`
+
+  const system = isAdvice ? adviceSystem : isEmotion ? emotionSystem : isPair ? pairSystem : isOverview ? overviewSystem : summarySystem
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {

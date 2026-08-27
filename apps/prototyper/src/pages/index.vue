@@ -43,7 +43,7 @@
             </a>
           </div>
           <div class="hero-viz-deco" aria-hidden="true">
-            <svg viewBox="0 0 380 358" fill="none" xmlns="http://www.w3.org/2000/svg" class="hero-flow-svg">
+            <svg viewBox="0 0 380 420" fill="none" xmlns="http://www.w3.org/2000/svg" class="hero-flow-svg">
               <!-- お客さんの声 -->
               <text x="8" y="10" font-family="'IBM Plex Mono',monospace" font-size="8" font-weight="500" fill="rgba(27,95,217,0.42)" letter-spacing="0.14em">YOUR WORDS</text>
               <g class="hero-bubbles">
@@ -110,6 +110,13 @@
                   <circle cx="223" cy="321.4" r="4.6" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><line x1="223" y1="321.4" x2="223" y2="325.6" stroke="#1b5fd9" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/><rect x="220.9" y="326.2" width="4.2" height="1.5" rx="0.75" fill="#f5700a" opacity="0.85"/><rect x="221.5" y="328.4" width="3" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.45"/>
                   <text x="246" y="321" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">ITコンサル</text>
                   <text x="246" y="335" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">CONSULTING</text>
+                </g>
+                <g class="hero-out">
+                  <rect x="6" y="358" width="368" height="54" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
+                  <rect x="20" y="372" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
+                  <rect x="27" y="375" width="12" height="20" rx="2.4" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><rect x="29" y="378" width="8" height="12.5" rx="1" fill="#f5700a" opacity="0.7"/><circle cx="33" cy="392.3" r="1.1" fill="#1b5fd9" opacity="0.55"/>
+                  <text x="56" y="383" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">スマホアプリ</text>
+                  <text x="56" y="397" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">iOS / ANDROID</text>
                 </g>
               </g>
             </svg>
@@ -708,7 +715,7 @@
           <div class="terms-card">
             <div class="terms-icon">📦</div>
             <h3 class="terms-card-title">お渡しするもの</h3>
-            <p class="terms-card-body">進む道によって変わります。<br />運用まで担当する場合は、実際に使えるWebアプリと、その後の運用。設計図まで担当する場合は、企画書・設計書一式をお渡しします。</p>
+            <p class="terms-card-body">進む道によって変わります。<br />運用まで担当する場合は、実際に使えるWebアプリ・スマホアプリと、その後の運用。設計図まで担当する場合は、企画書・設計書一式をお渡しします。</p>
           </div>
 
           <div class="terms-card">
