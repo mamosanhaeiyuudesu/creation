@@ -287,33 +287,26 @@
           <li class="process-item">
             <span class="process-num">01</span>
             <div class="process-body">
-              <strong>まず、話すだけ<em>30分〜 / オンライン可</em></strong>
-              相談することと、お願いすることは別です。まずは「こんなことできますか」を聞かせてください。この段階で終わっても、まったく構いません。
+              <strong>お話を聞く<em>30分〜 / オンライン可</em></strong>
+              相談することと、お願いすることは別です。まずは「こんなことできますか」を聞かせてください。そのまま、お困りごとや現場のやり方、「本当はこうしたい」までじっくり伺うこともできます。要件が決まっていなくて大丈夫です。むしろその段階から声をかけてください。この段階で終わっても、まったく構いません。
             </div>
           </li>
           <li class="process-item">
             <span class="process-num">02</span>
-            <div class="process-body">
-              <strong>じっくり聞く<em>約2時間</em></strong>
-              お困りごと、現場のやり方、「本当はこうしたい」を伺います。要件が決まっていなくて大丈夫です。むしろその段階から声をかけてください。
-            </div>
-          </li>
-          <li class="process-item">
-            <span class="process-num">03</span>
             <div class="process-body">
               <strong>すぐ作る<em>その場〜1〜2日</em></strong>
               伺った話を、そのまま動くものにします。待たされている間に熱が冷めてしまわないよう、とにかく早くお見せすることを大事にしています。
             </div>
           </li>
           <li class="process-item">
-            <span class="process-num">04</span>
+            <span class="process-num">03</span>
             <div class="process-body">
               <strong>触って、直す<em>何度でも</em></strong>
               「ここは違う」「これも欲しい」を受けて作り直します。ここが一番価値の出るところなので、遠慮なく壊してください。
             </div>
           </li>
           <li class="process-item">
-            <span class="process-num">05</span>
+            <span class="process-num">04</span>
             <div class="process-body">
               <strong>その先を、一緒に決める</strong>
               形が見えてきたところで、このまま運用まで進めるか、設計図にして専門チームへ渡すか、既存のサービスで足りるかを一緒に判断します。
@@ -439,7 +432,7 @@
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               公開・稼働中
             </span>
-            <h3 class="portfolio-card-title">晴レルヤ鍼灸院 ホームページとLINE予約システム</h3>
+            <h3 class="portfolio-card-title">晴レルヤ鍼灸院 ホームページ制作</h3>
             <dl class="work-ba">
               <div>
                 <dt>どなたの</dt>
@@ -447,11 +440,11 @@
               </div>
               <div>
                 <dt>困っていたこと</dt>
-                <dd>開業にあたって、ホームページも、患者さんが自分で予約できる仕組みもなかった</dd>
+                <dd>開業にあたって、ホームページがなかった</dd>
               </div>
               <div>
                 <dt>したこと</dt>
-                <dd>ホームページを制作し、LINEから予約が完結する仕組みも一から構築しました。院の特徴を伝えるホームページと、患者さんがカレンダーから予約でき、管理者は枠の管理から確認・返信までLINE上で完結できる予約システムです</dd>
+                <dd>院の特徴を伝えるホームページを制作しました</dd>
               </div>
               <div>
                 <dt>いま</dt>
@@ -485,6 +478,48 @@
                   <img src="/images/hareruya-access.png" alt="晴レルヤ鍼灸院のアクセス案内のスクリーンショット" class="feature-screenshot feature-screenshot-portrait" @click="openLightbox('/images/hareruya-access.png', '晴レルヤ鍼灸院のアクセス案内のスクリーンショット')" />
                 </div>
               </div>
+            </div>
+
+            <div class="portfolio-tech">
+              <span class="tech-badge">Nuxt</span>
+              <span class="tech-badge">Cloudflare Workers</span>
+            </div>
+
+            <a href="https://hareruya.insightlens.jp/" class="portfolio-link" target="_blank" rel="noopener noreferrer">
+              サイトを見る
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <div class="portfolio-card">
+          <div class="portfolio-card-header">
+            <span class="portfolio-tag portfolio-tag-soft">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              公開・稼働中
+            </span>
+            <h3 class="portfolio-card-title">晴レルヤ鍼灸院 LINE予約システム</h3>
+            <dl class="work-ba">
+              <div>
+                <dt>どなたの</dt>
+                <dd>同じく「晴レルヤ鍼灸院」の先生</dd>
+              </div>
+              <div>
+                <dt>困っていたこと</dt>
+                <dd>患者さんが自分で予約できる仕組みがなかった</dd>
+              </div>
+              <div>
+                <dt>したこと</dt>
+                <dd>LINEから予約が完結する仕組みを一から構築しました。患者さんはカレンダーから予約でき、管理者は枠の管理から確認・返信までLINE上で完結できます</dd>
+              </div>
+              <div>
+                <dt>いま</dt>
+                <dd>公開・稼働中</dd>
+              </div>
+            </dl>
+          </div>
+          <div class="portfolio-card-body">
+            <div class="portfolio-features">
               <div class="portfolio-feature">
                 <span class="feature-dot"></span>
                 <div class="feature-text">
@@ -529,11 +564,6 @@
             <p class="portfolio-card-note">
               LINEで予約が完結する仕組みは、既製のサービスだと月額5,000円以上かかることが多いのが実情です。今回は一から作っているので、かかるのは開発費用のみ。使っていない月の維持費はかかりません。枠の出し方や表示のルールも、院の運用に合わせて自由に調整できます。
             </p>
-
-            <a href="https://hareruya.insightlens.jp/" class="portfolio-link" target="_blank" rel="noopener noreferrer">
-              サイトを見る
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </a>
           </div>
         </div>
 
@@ -751,12 +781,8 @@
           </div>
           <div class="terms-payment-body">
             <div class="terms-payment-row">
-              <span class="terms-payment-label">初回のご相談</span>
-              <span class="terms-payment-value">60分 / ¥5,000</span>
-            </div>
-            <div class="terms-payment-row">
-              <span class="terms-payment-label">ヒアリング</span>
-              <span class="terms-payment-value">¥8,000 / 時間（約2時間を想定）</span>
+              <span class="terms-payment-label">ご相談</span>
+              <span class="terms-payment-value">¥5,000 / 時間</span>
             </div>
             <div class="terms-payment-row">
               <span class="terms-payment-label">開発費用</span>
