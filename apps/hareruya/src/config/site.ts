@@ -166,6 +166,8 @@ export const site = {
   addressNote: wakaba.addressNote,
   openDays: wakaba.days,
   openHours: wakaba.hours,
+  /** ヒーロー下部の注記から青葉台レンタルサロンのアクセス欄へ飛ばすためのアンカーID */
+  aobadaiAnchor: aobadai.anchor,
 
   /** メニュー・料金 */
   menus: [
