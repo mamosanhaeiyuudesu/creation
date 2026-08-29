@@ -478,6 +478,13 @@
                   <img src="/images/hareruya-access.png" alt="晴レルヤ鍼灸院のアクセス案内のスクリーンショット" class="feature-screenshot feature-screenshot-portrait" @click="openLightbox('/images/hareruya-access.png', '晴レルヤ鍼灸院のアクセス案内のスクリーンショット')" />
                 </div>
               </div>
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>ほかにも、AIによる質問回答なども組み込めます</strong>
+                  本サイトでは導入していませんが、たとえば鍼灸についてのご質問に対して、あらかじめ用意した院の情報をもとにAIが回答する仕組みも組み込めます。このほかにも、ホームページにはさまざまな機能を追加していくことが可能です。
+                </div>
+              </div>
             </div>
 
             <div class="portfolio-tech">

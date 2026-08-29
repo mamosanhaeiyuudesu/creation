@@ -11,7 +11,7 @@
         <div class="text-left">
           <h1 class="m-0 text-[clamp(12px,2vw,16px)] font-bold bg-gradient-to-br from-orange-500 to-pink-500 bg-clip-text text-transparent">記録</h1>
         </div>
-        <div class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-1.5" @click.stop>
+        <div class="absolute right-0 top-1/2 -translate-y-1/2 z-50 flex items-center gap-1.5" @click.stop>
           <button
             class="w-9 h-9 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-lg cursor-pointer flex items-center justify-center transition-all hover:bg-white/[0.12] hover:text-[#e2e8f0]"
             title="ログ"
