@@ -4,19 +4,6 @@ import { encryptComment } from '~/server/utils/encrypt'
 import { wrapApiError } from '~/server/utils/openai'
 import { toJSTDate } from '~/utils/jst'
 
-interface StrengthItem { title: string; content: string }
-interface ProfileData {
-  strengths: StrengthItem[] | string
-  advice: StrengthItem[] | string
-  generatedAt?: string
-}
-interface KokoroLeaf { name: string; note: string }
-interface KokoroData {
-  charge: KokoroLeaf[]
-  stress: KokoroLeaf[]
-  summary?: string
-  generatedAt?: string
-}
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string; date: string }
 interface AchievementItem { text: string; level: number; date?: string }
 interface ChatMessage { role: 'user' | 'assistant'; content: string; timestamp?: string }
@@ -42,31 +29,6 @@ const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS hagemashi_consult_messages (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 )`
 
-// プロフィール（長期傾向）を人物像テキストに整形する
-function profileToText(p?: ProfileData | null): string {
-  if (!p) return ''
-  const fmt = (v: StrengthItem[] | string | undefined) =>
-    Array.isArray(v) ? v.map(i => `・${i.title}: ${i.content}`).join('\n') : (v ?? '')
-  const parts: string[] = []
-  if (p.strengths) parts.push(`【強み】\n${fmt(p.strengths)}`)
-  if (p.advice) parts.push(`【これまでのアドバイス】\n${fmt(p.advice)}`)
-  return parts.join('\n\n')
-}
-
-// 心の状態（最新の charge/stress）を人物像テキストに整形する
-function kokoroToText(k?: KokoroData | null): string {
-  if (!k) return ''
-  const fmt = (v: KokoroLeaf[] | undefined) =>
-    Array.isArray(v) && v.length ? v.map(l => `・${l.name}${l.note ? `（${l.note}）` : ''}`).join('\n') : ''
-  const parts: string[] = []
-  const charge = fmt(k.charge)
-  const stress = fmt(k.stress)
-  if (charge) parts.push(`【心のチャージ源（支え）】\n${charge}`)
-  if (stress) parts.push(`【心のストレス源（負担）】\n${stress}`)
-  if (k.summary) parts.push(`【心の状態の総評】\n${k.summary}`)
-  return parts.join('\n\n')
-}
-
 export default defineEventHandler(async (event) => {
   const db = event.context.cloudflare?.env?.WHISPER_DB
   const user = db ? await getSessionUser(event).catch(() => null) : null
@@ -74,7 +36,7 @@ export default defineEventHandler(async (event) => {
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) throw createError({ statusCode: 500, statusMessage: 'Anthropic API key is not configured.' })
 
-  const body = await readBody<{ messages: ChatMessage[]; profile?: ProfileData | null; kokoro?: KokoroData | null; summaryItems?: SummaryItem[]; achievements?: AchievementItem[]; vision?: string }>(event)
+  const body = await readBody<{ messages: ChatMessage[]; summaryItems?: SummaryItem[]; achievements?: AchievementItem[]; vision?: string }>(event)
   const rawMessages = Array.isArray(body?.messages) ? body.messages : []
   const messages = rawMessages
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
@@ -85,8 +47,7 @@ export default defineEventHandler(async (event) => {
   }
   const latestUser = messages[messages.length - 1]
 
-  // --- ペルソナ層（プロフィール＋心の状態）＋ 直近層（中間データ 最新30件）---
-  const personaText = [profileToText(body.profile), kokoroToText(body.kokoro)].filter(Boolean).join('\n\n')
+  // --- 文脈層（ビジョン・出来事・中間データ 最新30件）---
   const recent = (body.summaryItems ?? []).slice(0, 30)
   const recentText = recent.length
     ? recent.map(r => `[${r.date}][${r.sentiment}] ${r.text}`).join('\n')
@@ -103,17 +64,14 @@ export default defineEventHandler(async (event) => {
 
   const visionText = body.vision?.trim()
 
-  const personaBlock = `# 相談相手の人物像
-${personaText || '（プロフィール未生成）'}
-${visionText ? `\n# 相談者が目指しているビジョン\n${visionText}\n` : ''}
-# これまでの達成（客観的な成果・レベルが高い順）
+  const contextBlock = `${visionText ? `# 相談者が目指しているビジョン\n${visionText}\n\n` : ''}# これまでの達成（客観的な成果・レベルが高い順）
 ${achievementsText}
 
 # 直近の気持ち・状況の記録（中間データ・新しい順）
 ${recentText}`
 
   const nowIso = new Date().toISOString()
-  const systemPrompt = `あなたは相談者に寄り添うカウンセラーです。相談者は日々の出来事を録音して記録しており、別途その人物像と直近の記録が渡されます。
+  const systemPrompt = `あなたは相談者に寄り添うカウンセラーです。相談者は日々の出来事を録音して記録しており、別途その達成と直近の記録が渡されます。
 これらを踏まえ、相談者の状況・性格・傾向に合わせて、共感を示しつつ具体的で実行しやすいアドバイスを日本語で返してください。
 - 決めつけず、相談者の言葉を尊重する
 - 長すぎず、会話のテンポを保つ（必要に応じて問いかけも交える）
@@ -141,7 +99,7 @@ ${visionText ? '- 相談者が目指しているビジョンが渡されてい�
         // 人物像ブロックは毎ターン同じなので prompt caching でトークンを節約する
         system: [
           { type: 'text', text: systemPrompt },
-          { type: 'text', text: personaBlock, cache_control: { type: 'ephemeral' } },
+          { type: 'text', text: contextBlock, cache_control: { type: 'ephemeral' } },
         ],
         // ユーザー発言には送信日時を付与し、AIが日付・時間を考慮できるようにする
         // （最新のユーザー発言はタイムスタンプ未付与のため現在時刻を用いる）

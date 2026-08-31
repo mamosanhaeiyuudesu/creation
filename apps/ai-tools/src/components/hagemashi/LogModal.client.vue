@@ -1,9 +1,8 @@
 <script setup lang="ts">
-// 記録・相談・気分の利用回数ログ（カレンダー / 推移）
+// 記録・相談の利用回数ログ（カレンダー / 推移）
 const props = defineProps<{
   recordDates: string[]
   consultDates: string[]
-  moodDates: string[]
 }>()
 
 const emit = defineEmits<{ (e: 'close'): void }>()
@@ -15,19 +14,18 @@ const PAD = (n: number) => String(n).padStart(2, '0')
 // ISO文字列 → JSTの YYYY-MM-DD
 const dayKeyOf = (iso: string): string => toJSTDate(iso).toISOString().slice(0, 10)
 
-interface DayCount { record: number; consult: number; mood: number }
+interface DayCount { record: number; consult: number }
 
 const counts = computed(() => {
   const map = new Map<string, DayCount>()
   const bump = (iso: string, key: keyof DayCount) => {
     if (!iso) return
     const k = dayKeyOf(iso)
-    if (!map.has(k)) map.set(k, { record: 0, consult: 0, mood: 0 })
+    if (!map.has(k)) map.set(k, { record: 0, consult: 0 })
     map.get(k)![key]++
   }
   for (const d of props.recordDates) bump(d, 'record')
   for (const d of props.consultDates) bump(d, 'consult')
-  for (const d of props.moodDates) bump(d, 'mood')
   return map
 })
 
@@ -77,7 +75,6 @@ const SERIES = [
   { name: '合計', field: 'total', color: '#e2e8f0', width: 2.5 },
   { name: '記録', field: 'record', color: '#f97316', width: 1.5 },
   { name: '相談', field: 'consult', color: '#38bdf8', width: 1.5 },
-  { name: '気分', field: 'mood', color: '#a78bfa', width: 1.5 },
 ] as const
 
 async function renderChart() {
@@ -90,7 +87,7 @@ async function renderChart() {
   const valueOf = (k: string, field: (typeof SERIES)[number]['field']): number => {
     const c = counts.value.get(k)
     if (!c) return 0
-    return field === 'total' ? c.record + c.consult + c.mood : c[field]
+    return field === 'total' ? c.record + c.consult : c[field]
   }
 
   chart.setOption({
@@ -139,7 +136,7 @@ async function renderChart() {
   chart.resize()
 }
 
-watch(() => [props.recordDates, props.consultDates, props.moodDates], () => {
+watch(() => [props.recordDates, props.consultDates], () => {
   if (view.value === 'trend') nextTick(renderChart)
 }, { deep: true })
 
@@ -179,8 +176,8 @@ const calendarCells = computed<(Cell | null)[]>(() => {
   for (let i = 0; i < startWeekday; i++) cells.push(null)
   for (let d = 1; d <= daysInMonth; d++) {
     const key = `${viewYear.value}-${PAD(viewMonth.value + 1)}-${PAD(d)}`
-    const c = counts.value.get(key) ?? { record: 0, consult: 0, mood: 0 }
-    cells.push({ day: d, key, c, total: c.record + c.consult + c.mood })
+    const c = counts.value.get(key) ?? { record: 0, consult: 0 }
+    cells.push({ day: d, key, c, total: c.record + c.consult })
   }
   return cells
 })
@@ -204,8 +201,8 @@ function selectDay(cell: Cell | null) {
 
 const selectedDetail = computed(() => {
   if (!selectedKey.value) return null
-  const c = counts.value.get(selectedKey.value) ?? { record: 0, consult: 0, mood: 0 }
-  return { key: selectedKey.value, ...c, total: c.record + c.consult + c.mood }
+  const c = counts.value.get(selectedKey.value) ?? { record: 0, consult: 0 }
+  return { key: selectedKey.value, ...c, total: c.record + c.consult }
 })
 
 const selectedLabel = computed(() => {
@@ -242,7 +239,7 @@ const selectedLabel = computed(() => {
 
         <!-- 推移ビュー -->
         <div v-show="hasData && view === 'trend'">
-          <p class="m-0 mb-1 text-[11px] text-slate-500">記録・相談・気分の1日あたりの利用回数</p>
+          <p class="m-0 mb-1 text-[11px] text-slate-500">記録・相談の1日あたりの利用回数</p>
           <div ref="chartEl" class="w-full" style="height: 300px" />
         </div>
 
@@ -288,7 +285,7 @@ const selectedLabel = computed(() => {
               <div class="text-sm font-semibold text-slate-200">{{ selectedLabel }}</div>
               <div class="text-[11px] text-slate-500">合計 {{ selectedDetail.total }} 回</div>
             </div>
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-2 gap-2">
               <div class="flex flex-col items-center gap-0.5 rounded-lg bg-white/[0.03] py-2">
                 <span class="text-[11px] text-slate-400">📝 記録</span>
                 <span class="text-lg font-bold" :style="{ color: '#f97316' }">{{ selectedDetail.record }}</span>
@@ -296,10 +293,6 @@ const selectedLabel = computed(() => {
               <div class="flex flex-col items-center gap-0.5 rounded-lg bg-white/[0.03] py-2">
                 <span class="text-[11px] text-slate-400">💬 相談</span>
                 <span class="text-lg font-bold" :style="{ color: '#38bdf8' }">{{ selectedDetail.consult }}</span>
-              </div>
-              <div class="flex flex-col items-center gap-0.5 rounded-lg bg-white/[0.03] py-2">
-                <span class="text-[11px] text-slate-400">📈 気分</span>
-                <span class="text-lg font-bold" :style="{ color: '#a78bfa' }">{{ selectedDetail.mood }}</span>
               </div>
             </div>
           </div>

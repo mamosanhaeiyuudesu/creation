@@ -4,16 +4,13 @@ interface SourceItem { date: string; text: string }
 const props = defineProps<{
   title: string
   meta?: string
-  note?: string
   keyword: string
   scope?: string
   matchedItems: SourceItem[]
-  showExclude?: boolean
 }>()
 
 const emit = defineEmits<{
   close: []
-  exclude: []
 }>()
 
 interface AnalysisBlock { title: string; text: string }
@@ -30,7 +27,7 @@ async function runAnalysis() {
   try {
     const res = await $fetch<{ blocks: AnalysisBlock[] }>('/api/hagemashi/topic-summary', {
       method: 'POST',
-      body: { keyword: props.keyword, note: props.note, scope: props.scope, items: props.matchedItems },
+      body: { keyword: props.keyword, scope: props.scope, items: props.matchedItems },
     })
     blocks.value = res.blocks ?? []
   } catch {
@@ -76,13 +73,6 @@ onMounted(runAnalysis)
               <p class="m-0 text-sm text-slate-200 leading-relaxed whitespace-pre-line">{{ b.text }}</p>
             </div>
           </div>
-        </div>
-
-        <div v-if="showExclude" class="px-5 py-2.5 border-t border-white/[0.08] shrink-0 flex justify-end">
-          <button
-            class="px-2.5 py-1 rounded-md border border-rose-500/30 bg-rose-500/10 text-rose-300 text-[11px] font-medium cursor-pointer hover:bg-rose-500/20 transition-colors"
-            @click="emit('exclude')"
-          >単語を除外</button>
         </div>
       </div>
     </div>

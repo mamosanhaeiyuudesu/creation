@@ -66,15 +66,6 @@
             <span class="text-xl leading-none">💬</span>
             <span class="text-[9px] font-medium">相談</span>
           </button>
-
-          <!-- 気分 button -->
-          <button
-            class="w-[62px] h-[62px] rounded-full border-2 border-orange-500/50 bg-orange-500/[0.08] text-slate-50 cursor-pointer flex flex-col items-center justify-center gap-1 transition-all hover:bg-orange-500/[0.20] hover:border-orange-500/80 hover:scale-105"
-            @click="openMoodInput"
-          >
-            <span class="text-xl leading-none">📈</span>
-            <span class="text-[9px] font-medium">気分</span>
-          </button>
         </div>
       </div>
 
@@ -86,7 +77,7 @@
 
       <!-- History tabs -->
       <div class="mt-1 min-w-0">
-        <!-- 録音 サブタブ（主: 記録・心・強み・達成・感謝・助言 / 副: 単語・要約・達成リスト） -->
+        <!-- 録音 サブタブ（記録・カレンダー・分析） -->
         <div v-if="isRecordingTab" class="flex items-center gap-1.5 mt-2 flex-wrap">
           <button
             v-for="t in primaryTabs"
@@ -95,30 +86,10 @@
             :class="activeTab === t.key ? 'border-orange-500/60 bg-orange-500/15 text-orange-300' : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
             @click="activeTab = t.key"
           ><span class="sm:hidden">{{ t.short }}</span><span class="hidden sm:inline">{{ t.label }}</span></button>
-          <!-- 展開アイコン（副タブが1つも無いときは出さない） -->
-          <button
-            v-if="secondaryTabs.length > 0"
-            class="w-6 h-6 flex items-center justify-center rounded-full text-xs border transition-all cursor-pointer shrink-0"
-            :class="secondaryVisible ? 'border-orange-500/40 text-orange-300 bg-orange-500/10' : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
-            :title="secondaryVisible ? '閉じる' : 'その他のタブ'"
-            @click="toggleMoreTabs"
-          ><span class="inline-block leading-none transition-transform duration-200" :style="secondaryVisible ? 'transform: rotate(180deg)' : ''">⌄</span></button>
-          <!-- 副タブ（展開時のみ表示） -->
-          <template v-if="secondaryVisible">
-            <button
-              v-for="t in secondaryTabs"
-              :key="t.key"
-              class="px-2.5 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer"
-              :class="activeTab === t.key ? 'border-orange-500/60 bg-orange-500/15 text-orange-300' : 'border-white/[0.08] bg-transparent text-slate-500 hover:text-slate-300'"
-              @click="activeTab = t.key"
-            ><span class="sm:hidden">{{ t.short }}</span><span class="hidden sm:inline">{{ t.label }}</span></button>
-          </template>
         </div>
         <div
           class="flex items-center gap-2 mb-1"
-          :class="activeTab === 'summary' || activeTab === 'words' || activeTab === 'calendar' || isProfileTab || activeTab === 'transcription' || activeTab === 'moments' || activeTab === 'kokoro'
-            ? 'min-h-8'
-            : 'min-h-0'"
+          :class="isRecordingTab ? 'min-h-8' : 'min-h-0'"
         >
           <!-- 記録タブ内の 記録 / はげまし 切り替え -->
           <template v-if="activeTab === 'transcription'">
@@ -146,56 +117,6 @@
             >
               <span v-if="isGeneratingMoments" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
               {{ momentStatus || '更新' }}
-            </button>
-          </template>
-          <template v-if="activeTab === 'summary'">
-            <div class="flex-1" />
-            <button
-              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-              :disabled="isMigrating || history.length === 0"
-              @click="openMigrateSelect"
-            >
-              <span v-if="isMigrating" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
-              {{ migrateStatus || '再生成' }}
-            </button>
-          </template>
-          <template v-if="activeTab === 'words'">
-            <label class="ml-auto flex items-center gap-1.5 text-[11px] text-slate-500">
-              <span>出現回数</span>
-              <select
-                v-model.number="minWordCount"
-                class="px-2 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-300 cursor-pointer hover:bg-white/[0.10] transition-all outline-none"
-              >
-                <option v-for="n in 10" :key="n" :value="n" class="bg-slate-900 text-slate-200">{{ n }}以上</option>
-              </select>
-            </label>
-            <button
-              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all"
-              @click="stoplistOpen = true"
-            >除外単語</button>
-          </template>
-          <template v-if="activeTab === 'kokoro'">
-            <div class="flex-1" />
-            <span v-if="kokoroHistory.length > 0" class="text-[11px] text-slate-600">最終更新: {{ formatProfileDate(kokoroHistory[0].generatedAt) }}</span>
-            <button
-              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-              :disabled="isKokoroLoading"
-              @click="generateKokoro"
-            >
-              <span v-if="isKokoroLoading" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
-              {{ isKokoroLoading ? '生成中...' : '更新' }}
-            </button>
-          </template>
-          <template v-if="isProfileTab">
-            <div class="flex-1" />
-            <span v-if="profileHistory.length > 0" class="text-[11px] text-slate-600">最終更新: {{ formatProfileDate(profileHistory[0].generatedAt) }}</span>
-            <button
-              class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-              :disabled="isProfileLoading"
-              @click="generateProfile"
-            >
-              <span v-if="isProfileLoading" class="w-3 h-3 rounded-full border border-orange-500/30 border-t-orange-500 animate-spin block" />
-              {{ isProfileLoading ? '生成中...' : '更新' }}
             </button>
           </template>
         </div>
@@ -306,67 +227,6 @@
           </template>
         </div>
 
-        <!-- 要約タブ -->
-        <div v-else-if="activeTab === 'summary'" class="py-2">
-          <div v-if="summaryRows.length === 0" class="text-center text-slate-500 text-sm py-10">
-            録音を文字起こしすると要約が生成されます
-          </div>
-          <div v-else class="flex flex-col gap-0">
-            <div
-              v-for="(row, rowIndex) in summaryRows"
-              :key="`${row.id}-${rowIndex}`"
-              class="flex flex-col gap-2 px-1 py-2 border-b border-white/[0.05] last:border-b-0"
-            >
-              <!-- 表示モード -->
-              <template v-if="editingSummaryId !== `${row.id}-${rowIndex}`">
-                <div class="flex items-start gap-2.5 group">
-                  <span class="text-[11px] text-slate-500 shrink-0 w-[38px] pt-[2px] tabular-nums">{{ row.date }}</span>
-                  <span
-                    class="text-[10px] font-semibold shrink-0 px-1.5 py-0.5 rounded-md mt-[1px]"
-                    :class="row.sentiment === 'ポジ' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-orange-500/15 text-orange-400'"
-                  >{{ row.sentiment }}</span>
-                  <span class="text-sm text-slate-200 leading-relaxed flex-1">{{ row.text }}</span>
-                  <div class="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
-                    <button
-                      class="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer border-none bg-transparent"
-                      @click="startEditSummary({ id: `${row.id}-${rowIndex}`, sentiment: row.sentiment, text: row.text, itemIndex: row.itemIndex })"
-                    >✏️</button>
-                    <button
-                      class="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border-none bg-transparent"
-                      @click="deletingSummaryTarget = { id: row.id, itemIndex: row.itemIndex }"
-                    >✕</button>
-                  </div>
-                </div>
-              </template>
-              <!-- 編集モード -->
-              <template v-else>
-                <div class="flex items-center gap-2 px-0.5">
-                  <span class="text-[11px] text-slate-500 shrink-0 w-[38px] tabular-nums">{{ row.date }}</span>
-                  <button
-                    class="text-[10px] font-semibold shrink-0 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer border-none"
-                    :class="editingSentiment === 'ポジ' ? 'bg-emerald-500/30 text-emerald-300' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'"
-                    @click="editingSentiment = 'ポジ'"
-                  >ポジ</button>
-                  <button
-                    class="text-[10px] font-semibold shrink-0 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer border-none"
-                    :class="editingSentiment === 'ネガ' ? 'bg-orange-500/30 text-orange-300' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'"
-                    @click="editingSentiment = 'ネガ'"
-                  >ネガ</button>
-                </div>
-                <textarea
-                  v-model="editingText"
-                  class="w-full bg-white/[0.05] border border-orange-500/40 rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-none leading-relaxed"
-                  rows="3"
-                />
-                <div class="flex justify-end gap-1.5">
-                  <button class="px-3 py-1 rounded-lg border border-white/10 bg-transparent text-slate-400 text-xs cursor-pointer hover:bg-white/[0.08] transition-colors" @click="cancelSummary">キャンセル</button>
-                  <button class="px-3 py-1 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-xs font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="saveSummary(row.id)">保存</button>
-                </div>
-              </template>
-            </div>
-          </div>
-        </div>
-
         <!-- 分析タブ（出来事の一覧・絞り込み・並び替え）。key は moments のまま（?tab=moments のリンクを生かすため） -->
         <div v-else-if="activeTab === 'moments'" class="py-2 flex flex-col gap-2.5">
           <!-- 絞り込み。①タグ →②その中でよく出てくる単語、の入れ子。
@@ -450,171 +310,6 @@
           </div>
         </div>
 
-        <!-- こころタブ -->
-        <div v-else-if="activeTab === 'kokoro'" class="py-2">
-          <div v-if="isKokoroLoading" class="flex items-center justify-center gap-2 py-10 text-slate-400 text-sm">
-            <span class="w-4 h-4 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
-            生成中...
-          </div>
-          <div v-else-if="kokoroHistory.length === 0" class="text-center text-slate-500 text-sm py-10">
-            更新ボタンを押すと要約から心の状態を可視化します
-          </div>
-          <div v-else class="flex flex-col gap-3">
-            <HagemashiKokoroTreemap :entry="kokoroHistory[0]" :height="360" @leaf-click="activeKokoroPopup = $event" />
-            <!-- メタ認知コメント -->
-            <div v-if="kokoroHistory[0].summary" class="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
-              <div class="text-xs font-semibold text-orange-400 mb-1.5">🪞 メタ認知コメント</div>
-              <p class="m-0 text-sm text-slate-300 leading-relaxed">{{ kokoroHistory[0].summary }}</p>
-            </div>
-            <!-- 過去のこころ履歴 -->
-            <div v-if="kokoroHistory.length > 1" class="flex flex-col gap-1.5">
-              <div class="text-[11px] text-slate-600 border-t border-white/[0.06] pt-3">過去のこころ</div>
-              <div v-for="(k, ki) in kokoroHistory.slice(1)" :key="ki" class="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden">
-                <button
-                  class="w-full flex items-center justify-between px-3 py-2.5 cursor-pointer bg-transparent border-none transition-colors hover:bg-white/[0.04]"
-                  @click="toggleKokoroHistory(ki)"
-                >
-                  <div class="text-[11px] text-slate-500">{{ formatProfileDate(k.generatedAt) }}</div>
-                  <div class="text-slate-600 text-[10px] transition-transform duration-200" :style="expandedKokoroIndices.has(ki) ? 'transform: rotate(180deg)' : ''">▼</div>
-                </button>
-                <div v-if="expandedKokoroIndices.has(ki)" class="px-3 pb-3 flex flex-col gap-2 border-t border-white/[0.05]">
-                  <HagemashiKokoroTreemap :entry="k" :height="280" @leaf-click="activeKokoroPopup = $event" />
-                  <p v-if="k.summary" class="m-0 text-xs text-slate-400 leading-relaxed">{{ k.summary }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 長期傾向タブ（強み / アドバイス） -->
-        <div v-else-if="isProfileTab" class="py-2">
-          <div v-if="isProfileLoading" class="flex items-center justify-center gap-2 py-10 text-slate-400 text-sm">
-            <span class="w-4 h-4 rounded-full border-2 border-orange-500/30 border-t-orange-500 animate-spin block" />
-            分析中...
-          </div>
-          <div v-else-if="profileHistory.length === 0" class="text-center text-slate-500 text-sm py-10">
-            更新ボタンを押すと記録から長期傾向を分析します
-          </div>
-          <div v-else-if="profileItemsOf(profileHistory[0]).length === 0" class="text-center text-slate-500 text-sm py-10">
-            {{ profileTabLabel }}のデータがありません。更新ボタンで再分析してください
-          </div>
-          <div v-else class="flex flex-col gap-3">
-            <HagemashiProfileTreemap :items="profileItemsOf(profileHistory[0])" :color="profileColor" :height="360" @leaf-click="activeProfilePopup = $event" />
-            <!-- 過去の長期傾向履歴 -->
-            <div v-if="profileHistory.length > 1" class="flex flex-col gap-1.5">
-              <div class="text-[11px] text-slate-600 border-t border-white/[0.06] pt-3">過去の{{ profileTabLabel }}</div>
-              <div v-for="(p, pi) in profileHistory.slice(1)" :key="pi" class="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden">
-                <button
-                  class="w-full flex items-center justify-between px-3 py-2.5 cursor-pointer bg-transparent border-none transition-colors hover:bg-white/[0.04]"
-                  @click="toggleProfileHistory(pi)"
-                >
-                  <div class="text-[11px] text-slate-500">{{ formatProfileDate(p.generatedAt) }}</div>
-                  <div class="text-slate-600 text-[10px] transition-transform duration-200" :style="expandedProfileIndices.has(pi) ? 'transform: rotate(180deg)' : ''">▼</div>
-                </button>
-                <div v-if="expandedProfileIndices.has(pi)" class="px-3 pb-3 border-t border-white/[0.05]">
-                  <HagemashiProfileTreemap
-                    v-if="profileItemsOf(p).length"
-                    :items="profileItemsOf(p)"
-                    :color="profileColor"
-                    :height="280"
-                    @leaf-click="activeProfilePopup = $event"
-                  />
-                  <p v-else class="m-0 py-4 text-xs text-slate-500 text-center">{{ profileTabLabel }}のデータがありません</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-else-if="activeTab === 'words'" class="py-2">
-          <div v-if="filteredWordRanking.length === 0" class="text-center text-slate-500 text-sm py-10">
-            再集計ボタンを押すとワードクラウドを生成します
-          </div>
-          <HagemashiWordCloudChart
-            v-else
-            :words="filteredWordRanking.slice(0, 120)"
-            :height="380"
-            @word-click="activeWordPopup = $event"
-          />
-        </div>
-
-        <!-- 気分タブ -->
-        <div v-else-if="activeTab === 'mood'" class="py-2 flex flex-col gap-4">
-          <!-- 気分の推移グラフ -->
-          <div>
-            <div class="flex items-center justify-between gap-2 mb-1.5">
-              <div class="text-[11px] text-slate-600">気分の推移（ドットをタップで詳細）</div>
-              <button
-                class="px-3 py-1 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.04] text-slate-400 cursor-pointer hover:bg-white/[0.10] hover:text-slate-200 transition-all shrink-0"
-                @click="openMoodInput"
-              >＋ 記録</button>
-            </div>
-            <div v-if="moodEntries.length === 0" class="text-center text-slate-500 text-sm py-10">
-              まだ気分の記録がありません
-            </div>
-            <HagemashiMoodChart
-              v-else
-              :entries="moodEntries"
-              :height="300"
-              @delete="deleteMood"
-            />
-          </div>
-          <!-- 履歴一覧（編集可能） -->
-          <div v-if="moodEntries.length > 0" class="flex flex-col gap-0">
-            <div class="text-[11px] text-slate-600 border-t border-white/[0.06] pt-3 mb-1">履歴</div>
-            <div
-              v-for="row in moodHistoryRows"
-              :key="row.id"
-              class="flex flex-col gap-2 px-1 py-2 border-b border-white/[0.05] last:border-b-0"
-            >
-              <!-- 表示モード -->
-              <template v-if="editingMoodId !== row.id">
-                <div class="flex items-start gap-2.5 group">
-                  <span class="text-[11px] text-slate-500 shrink-0 w-[74px] pt-[2px] tabular-nums">{{ row.date }}</span>
-                  <span class="text-[11px] font-semibold shrink-0 px-1.5 py-0.5 rounded-md mt-[1px] text-slate-900" :style="{ background: moodColor(row.score) }">{{ row.score }}</span>
-                  <span class="text-sm leading-relaxed flex-1" :class="row.note ? 'text-slate-200' : 'text-slate-600 italic'">{{ row.note || 'テキストなし' }}</span>
-                  <div class="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
-                    <button
-                      class="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-slate-300 hover:bg-white/[0.08] transition-colors cursor-pointer border-none bg-transparent"
-                      @click="startEditMood(row)"
-                    >✏️</button>
-                    <button
-                      class="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border-none bg-transparent"
-                      @click="deleteMood(row.id)"
-                    >✕</button>
-                  </div>
-                </div>
-              </template>
-              <!-- 編集モード -->
-              <template v-else>
-                <div class="flex items-center gap-2 px-0.5">
-                  <span class="text-[11px] text-slate-500 shrink-0 w-[74px] tabular-nums">{{ row.date }}</span>
-                  <div class="flex items-center gap-1 flex-1">
-                    <button
-                      v-for="n in 10"
-                      :key="n"
-                      class="flex-1 h-7 rounded-md text-xs font-semibold border transition-all cursor-pointer"
-                      :class="editingMoodScore === n ? 'text-slate-900 border-transparent' : 'border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/[0.08] hover:text-slate-200'"
-                      :style="editingMoodScore === n ? { background: moodColor(n) } : {}"
-                      @click="editingMoodScore = n"
-                    >{{ n }}</button>
-                  </div>
-                </div>
-                <textarea
-                  v-model="editingMoodNote"
-                  class="w-full bg-white/[0.05] border border-orange-500/40 rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-none leading-relaxed"
-                  rows="2"
-                  placeholder="いまの気持ちや状況（任意）"
-                />
-                <div class="flex justify-end gap-1.5">
-                  <button class="px-3 py-1 rounded-lg border border-white/10 bg-transparent text-slate-400 text-xs cursor-pointer hover:bg-white/[0.08] transition-colors" @click="cancelMoodEdit">キャンセル</button>
-                  <button class="px-3 py-1 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-xs font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="saveMoodEdit(row.id)">保存</button>
-                </div>
-              </template>
-            </div>
-          </div>
-        </div>
-
         <!-- 相談チャット（タブ切替で破棄すると履歴が消えるため、常時マウントして v-show で表示切替）
              v-show は .client.vue コンポーネント自体ではなく、この安定したラッパーdivに付ける
              （直接付けるとSSR時に何も描画されない要素にディレクティブを適用することになり、
@@ -622,8 +317,6 @@
         <div v-show="activeTab === 'consult'">
           <HagemashiConsultChat
             :active="activeTab === 'consult'"
-            :profile="profileHistory[0] ?? null"
-            :kokoro="kokoroHistory[0] ?? null"
             :vision="vision"
             :summary-items="recentSummaryItems"
             :achievements="consultAchievements"
@@ -646,7 +339,6 @@
       v-if="logOpen"
       :record-dates="recordDates"
       :consult-dates="consultDates"
-      :mood-dates="moodDates"
       @close="logOpen = false"
     />
 
@@ -689,40 +381,6 @@
           >
             <span v-if="isSubmittingText" class="w-3 h-3 rounded-full border border-white/40 border-t-white animate-spin block" />
             {{ isSubmittingText ? '処理中...' : '完了' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 気分入力モーダル -->
-    <div v-if="moodInputOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="closeMoodInput">
-      <div class="w-full max-w-[420px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-4">
-        <p class="m-0 text-slate-200 text-sm font-semibold">いまの気分（10段階）</p>
-        <div class="flex items-center gap-1">
-          <button
-            v-for="n in 10"
-            :key="n"
-            class="flex-1 h-9 rounded-lg text-sm font-semibold border transition-all cursor-pointer"
-            :class="moodScore === n ? 'text-slate-900 border-transparent' : 'border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/[0.08] hover:text-slate-200'"
-            :style="moodScore === n ? { background: moodColor(n) } : {}"
-            @click="moodScore = n"
-          >{{ n }}</button>
-        </div>
-        <textarea
-          v-model="moodNote"
-          class="w-full min-h-[90px] bg-white/[0.05] border border-white/[0.10] rounded-lg text-slate-200 text-sm px-3 py-2 outline-none focus:border-orange-500 transition-colors font-[inherit] resize-none leading-relaxed"
-          placeholder="いまの気持ちや状況（任意）"
-          :disabled="isSavingMood"
-        />
-        <div class="flex justify-end gap-2">
-          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed" :disabled="isSavingMood" @click="closeMoodInput">キャンセル</button>
-          <button
-            class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-            :disabled="!moodScore || isSavingMood"
-            @click="saveMood"
-          >
-            <span v-if="isSavingMood" class="w-3 h-3 rounded-full border border-white/40 border-t-white animate-spin block" />
-            記録
           </button>
         </div>
       </div>
@@ -952,54 +610,6 @@
       </div>
     </div>
 
-    <!-- 要約再生成 選択モーダル -->
-    <div v-if="migrateSelectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="migrateSelectOpen = false">
-      <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
-        <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.08]">
-          <div>
-            <h2 class="m-0 text-lg text-slate-50 font-semibold">要約を再生成</h2>
-            <p class="m-0 mt-0.5 text-xs text-slate-500">対象の文字起こしを選択してください</p>
-          </div>
-          <button class="bg-transparent border-none text-slate-500 text-lg cursor-pointer px-2 py-1 rounded-md hover:text-slate-50 transition-colors" @click="migrateSelectOpen = false">✕</button>
-        </div>
-        <div class="px-4 py-3 overflow-y-auto flex flex-col gap-1 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(249,115,22,0.3)_transparent]">
-          <label class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer border-b border-white/[0.06] mb-1 hover:bg-white/[0.05] transition-colors">
-            <input
-              type="checkbox"
-              class="w-4 h-4 shrink-0 accent-orange-500 cursor-pointer"
-              :checked="migrateAllSelected"
-              :indeterminate="migrateSomeSelected"
-              @change="toggleMigrateAll"
-            />
-            <span class="text-xs text-slate-400 font-medium">全て選択</span>
-          </label>
-          <label
-            v-for="item in history"
-            :key="item.id"
-            class="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors"
-            :class="migrateSelectedIds.includes(item.id) ? 'bg-orange-500/15' : 'hover:bg-white/[0.05]'"
-          >
-            <input
-              type="checkbox"
-              class="w-4 h-4 shrink-0 accent-orange-500 cursor-pointer"
-              :checked="migrateSelectedIds.includes(item.id)"
-              @change="toggleMigrateSelect(item.id)"
-            />
-            <span class="text-xs text-slate-400 whitespace-nowrap">{{ formatSelectDate(item.timestamp) }}</span>
-            <span class="text-sm text-slate-200 truncate">{{ item.title || item.text.slice(0, 40) }}</span>
-          </label>
-        </div>
-        <div class="flex justify-end gap-2 px-6 py-4 border-t border-white/[0.08]">
-          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="migrateSelectOpen = false">キャンセル</button>
-          <button
-            class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-            :disabled="migrateSelectedIds.length === 0"
-            @click="runMigrateSelected"
-          >再生成</button>
-        </div>
-      </div>
-    </div>
-
     <!-- 出来事の抽出 選択モーダル -->
     <div v-if="momentSelectOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="momentSelectOpen = false">
       <div class="w-full max-w-[480px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
@@ -1125,44 +735,6 @@
       </div>
     </div>
 
-    <!-- 単語クリック時のAI分析ポップアップ -->
-    <HagemashiTopicAnalysisModal
-      v-if="activeWordPopup"
-      :key="`word-${activeWordPopup.name}`"
-      :title="activeWordPopup.name"
-      :meta="`出現回数: ${activeWordPopup.count}回`"
-      :keyword="activeWordPopup.name"
-      scope="word"
-      :matched-items="activeWordMatches"
-      show-exclude
-      @close="activeWordPopup = null"
-      @exclude="confirmingStopword = activeWordPopup!.name; activeWordPopup = null"
-    />
-
-    <!-- 心の要素クリック時のAI分析ポップアップ -->
-    <HagemashiTopicAnalysisModal
-      v-if="activeKokoroPopup"
-      :key="`kokoro-${activeKokoroPopup.name}`"
-      :title="activeKokoroPopup.name"
-      :note="activeKokoroPopup.note"
-      :keyword="activeKokoroPopup.name"
-      scope="kokoro"
-      :matched-items="activeKokoroMatches"
-      @close="activeKokoroPopup = null"
-    />
-
-    <!-- 強み・アドバイスの要素クリック時のAI分析ポップアップ -->
-    <HagemashiTopicAnalysisModal
-      v-if="activeProfilePopup"
-      :key="`profile-${activeProfilePopup.name}`"
-      :title="activeProfilePopup.name"
-      :note="activeProfilePopup.note"
-      :keyword="activeProfilePopup.name"
-      :scope="activeTab"
-      :matched-items="activeProfileMatches"
-      @close="activeProfilePopup = null"
-    />
-
     <!-- 「概要」ボタン押下時のAI分析ポップアップ（①タグ・②単語で絞った出来事が対象） -->
     <HagemashiTopicAnalysisModal
       v-if="showMomentOverview"
@@ -1174,28 +746,6 @@
       :matched-items="momentOverviewItems"
       @close="showMomentOverview = false"
     />
-
-    <!-- 除外単語追加確認 -->
-    <div v-if="confirmingStopword" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="confirmingStopword = null">
-      <div class="w-full max-w-[300px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-5">
-        <p class="m-0 text-slate-200 text-sm text-center">「{{ confirmingStopword }}」を除外単語に追加しますか？</p>
-        <div class="flex justify-center gap-2">
-          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="confirmingStopword = null">キャンセル</button>
-          <button class="px-5 py-2 rounded-lg border-none bg-gradient-to-br from-orange-500 to-pink-500 text-slate-50 text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity" @click="addToStoplist(confirmingStopword!); confirmingStopword = null">追加</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 要約削除確認 -->
-    <div v-if="deletingSummaryTarget" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="deletingSummaryTarget = null">
-      <div class="w-full max-w-[300px] bg-[#1e293b] border border-white/10 rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.5)] p-6 flex flex-col gap-5">
-        <p class="m-0 text-slate-200 text-sm text-center">このデータを削除しますか？</p>
-        <div class="flex justify-center gap-2">
-          <button class="px-5 py-2 rounded-lg border border-white/15 bg-transparent text-slate-400 text-sm cursor-pointer hover:bg-white/[0.06] hover:text-slate-50 transition-all" @click="deletingSummaryTarget = null">キャンセル</button>
-          <button class="px-5 py-2 rounded-lg border-none bg-red-500/80 text-slate-50 text-sm font-medium cursor-pointer hover:bg-red-500 transition-colors" @click="confirmDeleteSummaryRow">削除</button>
-        </div>
-      </div>
-    </div>
 
     <!-- 除外単語モーダル -->
     <div v-if="stoplistOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]" @click.self="stoplistOpen = false">
@@ -1322,7 +872,7 @@ import { useHistory } from '~/composables/useHistory'
 import { useAuth } from '~/composables/useAuth'
 import { useAudioRecorder, fetchTitle } from '~/composables/useAudioRecorder'
 import { useTranscriptionModel } from '~/composables/useTranscriptionModel'
-import { tokenize, tokenizeUnique } from '~/utils/hagemashi/tokenize'
+import { tokenizeUnique } from '~/utils/hagemashi/tokenize'
 
 const $dev = import.meta.dev
 
@@ -1354,10 +904,6 @@ const modelModalOpen = ref(false)
 const textInputValue = ref('')
 const isSubmittingText = ref(false)
 const showSettingsMenu = ref(false)
-const isMigrating = ref(false)
-const migrateStatus = ref('')
-const migrateSelectOpen = ref(false)
-const migrateSelectedIds = ref<string[]>([])
 const selectOpen = ref(false)
 const encourageOpen = ref(false)
 const encourageConfirmOpen = ref(false)
@@ -1367,14 +913,11 @@ const exportOpen = ref(false)
 const exportSelectedDates = ref<string[]>([])
 const resultCopied = ref(false)
 const isEncouraging = ref(false)
-type RecordingTab = 'transcription' | 'calendar' | 'words' | 'summary' | 'moments' | 'kokoro' | 'strengths' | 'advice'
-type TabKey = 'consult' | 'mood' | RecordingTab
+type RecordingTab = 'transcription' | 'calendar' | 'moments'
+type TabKey = 'consult' | RecordingTab
 // ?tab= で指定を受け付けるタブ。ここに無いキーは無視され「記録」に落ちる。
-// 非表示中のタブを残すと ?tab=kokoro でタブバーの無い画面に入り込めてしまうため、
-// primaryTabs / secondaryTabs のコメントアウトと歩調を合わせている。
-// （consult / mood はタブバーではなくボタンから開くので残す）
-const TAB_KEYS: TabKey[] = ['transcription', 'calendar', 'moments', 'consult', 'mood']
-// 非表示中: 'words', 'summary', 'kokoro', 'strengths', 'advice'
+// （consult はタブバーではなくボタンから開くので残す）
+const TAB_KEYS: TabKey[] = ['transcription', 'calendar', 'moments', 'consult']
 
 // 記録タブ内の表示切り替え（記録 / はげまし）
 const recordView = ref<'record' | 'encourage'>('record')
@@ -1396,36 +939,13 @@ watch(() => route.query.tab, () => {
   if (t && t !== activeTab.value) activeTab.value = t
 })
 
-// 常に表示する主タブ
-// 現在は「記録」「カレンダー」「分析」を運用中。他はコメントアウトしている（表示のみ停止・実装は残置）。
-// 戻すときはこの配列と下の TAB_KEYS の両方を戻すこと。
+// タブバーに並べるタブ（TAB_KEYS と歩調を合わせること）
 const primaryTabs: { key: RecordingTab; label: string; short: string }[] = [
   { key: 'transcription', label: '記録', short: '記録' },
   { key: 'calendar', label: 'カレンダー', short: 'カレンダー' },
   { key: 'moments', label: '分析', short: '分析' },
-  // { key: 'kokoro', label: '心', short: '心' },
-  // { key: 'strengths', label: '強み', short: '強み' },
-  // { key: 'advice', label: '助言', short: '助言' },
 ]
-// 展開アイコンを開くと表示する副タブ（現在はすべてコメントアウト＝展開アイコン自体も非表示）
-const secondaryTabs: { key: RecordingTab; label: string; short: string }[] = [
-  // { key: 'words', label: '単語', short: '単語' },
-  // { key: 'summary', label: '要約', short: '要約' },
-]
-const recordingTabs: { key: RecordingTab; label: string; short: string }[] = [...primaryTabs, ...secondaryTabs]
-const isRecordingTab = computed(() => recordingTabs.some(t => t.key === activeTab.value))
-// 副タブの表示状態（明示的に展開したとき、または副タブが選択中のとき表示）
-const showMoreTabs = ref(false)
-const secondaryVisible = computed(() => showMoreTabs.value || secondaryTabs.some(t => t.key === activeTab.value))
-// 閉じるとき、副タブを選択中ならそのタブが消えてしまうため記録タブへ戻す
-const toggleMoreTabs = () => {
-  if (secondaryVisible.value) {
-    showMoreTabs.value = false
-    if (secondaryTabs.some(t => t.key === activeTab.value)) activeTab.value = 'transcription'
-  } else {
-    showMoreTabs.value = true
-  }
-}
+const isRecordingTab = computed(() => primaryTabs.some(t => t.key === activeTab.value))
 function openRecording() {
   if (!isRecordingTab.value) activeTab.value = 'transcription'
 }
@@ -1458,123 +978,19 @@ async function submitTextInput() {
 const charLimit = ref(1000)
 const encourageStyle = ref<'calm' | 'loud'>('loud')
 
-// --- ログ（記録・相談・気分の利用回数） ---
+// --- ログ（記録・相談の利用回数） ---
 const logOpen = ref(false)
 const consultDates = ref<string[]>([])
 const recordDates = computed(() => history.value.map(h => h.timestamp))
-const moodDates = computed(() => moodEntries.value.map(m => m.createdAt))
 
 // 相談チャットの発言（ConsultChat から常時ミラーされる。中間データへの取り込みに使う）
 interface ConsultMessage { role: 'user' | 'assistant'; content: string; timestamp?: string }
 const consultMessages = ref<ConsultMessage[]>([])
 
 const LS_DICTIONARY = 'hagemashi-dictionary'
-const LS_WORD_RANKING = 'hagemashi-word-ranking'
-const LS_PROFILE = 'hagemashi-profile'
 // 旧「達成リスト」。出来事への移行元として読むだけで、もう書き込まない
 const LS_ACHIEVEMENTS = 'hagemashi-achievements'
 const LS_MOMENTS = 'hagemashi-moments'
-const LS_KOKORO = 'hagemashi-kokoro'
-const LS_MOOD = 'hagemashi-mood'
-
-// --- 気分（10段階＋テキスト）---
-interface MoodEntry { id: string; score: number; note: string; createdAt: string }
-const moodEntries = ref<MoodEntry[]>([])
-const moodScore = ref<number | null>(null)
-const moodNote = ref('')
-const isSavingMood = ref(false)
-const moodInputOpen = ref(false)
-
-// 気分スコア(1〜10)を赤→緑のグラデーション色に変換
-const moodColor = (score: number): string => {
-  const hue = ((Math.max(1, Math.min(10, score)) - 1) / 9) * 120
-  return `hsl(${hue}, 70%, 50%)`
-}
-
-// 履歴一覧（新しい順・日時整形済み）
-const formatMoodDate = (iso: string): string => {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mi = String(d.getMinutes()).padStart(2, '0')
-  return `${mm}/${dd} ${hh}:${mi}`
-}
-const moodHistoryRows = computed(() =>
-  [...moodEntries.value]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .map(m => ({ ...m, date: formatMoodDate(m.createdAt) }))
-)
-
-const persistMoods = async () => {
-  if ($dev) {
-    localStorage.setItem(LS_MOOD, JSON.stringify(moodEntries.value))
-    return
-  }
-  try {
-    await $fetch('/api/hagemashi/mood', { method: 'POST', body: { entries: moodEntries.value } })
-  } catch (e: any) {
-    error.value = e?.data?.message || '気分の保存に失敗しました'
-  }
-}
-
-// 気分ボタン → 入力モーダルを開く（気分タブに切り替えてグラフも見せる）
-const openMoodInput = () => {
-  activeTab.value = 'mood'
-  moodScore.value = null
-  moodNote.value = ''
-  moodInputOpen.value = true
-}
-const closeMoodInput = () => {
-  if (isSavingMood.value) return
-  moodInputOpen.value = false
-}
-
-const saveMood = async () => {
-  if (!moodScore.value || isSavingMood.value) return
-  isSavingMood.value = true
-  try {
-    moodEntries.value = [
-      ...moodEntries.value,
-      { id: Date.now().toString(), score: moodScore.value, note: moodNote.value.trim(), createdAt: new Date().toISOString() },
-    ]
-    await persistMoods()
-    moodScore.value = null
-    moodNote.value = ''
-    moodInputOpen.value = false
-  } finally {
-    isSavingMood.value = false
-  }
-}
-
-const deleteMood = async (id: string) => {
-  moodEntries.value = moodEntries.value.filter(m => m.id !== id)
-  if (editingMoodId.value === id) editingMoodId.value = null
-  await persistMoods()
-}
-
-// --- 履歴の編集 ---
-const editingMoodId = ref<string | null>(null)
-const editingMoodScore = ref<number>(0)
-const editingMoodNote = ref('')
-const startEditMood = (row: MoodEntry) => {
-  editingMoodId.value = row.id
-  editingMoodScore.value = row.score
-  editingMoodNote.value = row.note
-}
-const cancelMoodEdit = () => {
-  editingMoodId.value = null
-}
-const saveMoodEdit = async (id: string) => {
-  const target = moodEntries.value.find(m => m.id === id)
-  if (!target || !editingMoodScore.value) return
-  moodEntries.value = moodEntries.value.map(m =>
-    m.id === id ? { ...m, score: editingMoodScore.value, note: editingMoodNote.value.trim() } : m
-  )
-  editingMoodId.value = null
-  await persistMoods()
-}
 
 interface DictionaryEntry { yomi: string; word: string }
 const dictionary = ref<DictionaryEntry[]>([])
@@ -1650,46 +1066,6 @@ function applyDictionary(text: string): string {
   return result
 }
 
-interface StrengthItem { title: string; content: string; weight?: number }
-interface ProfileData { strengths: StrengthItem[] | string; advice: StrengthItem[] | string; generatedAt: string }
-const profileHistory = ref<ProfileData[]>([])
-const isProfileLoading = ref(false)
-
-// --- こころ（心の状態 treemap） ---
-interface KokoroLeaf { name: string; weight: number; note: string }
-interface KokoroData { charge: KokoroLeaf[]; stress: KokoroLeaf[]; summary: string; generatedAt: string }
-const kokoroHistory = ref<KokoroData[]>([])
-const isKokoroLoading = ref(false)
-const expandedKokoroIndices = ref(new Set<number>())
-const toggleKokoroHistory = (i: number) => {
-  if (expandedKokoroIndices.value.has(i)) expandedKokoroIndices.value.delete(i)
-  else expandedKokoroIndices.value.add(i)
-  expandedKokoroIndices.value = new Set(expandedKokoroIndices.value)
-}
-const generateKokoro = async () => {
-  if (isKokoroLoading.value) return
-  isKokoroLoading.value = true
-  try {
-    // combinedSummaryRows（記録＋相談の発言＋気分のテキスト）は新しい順のため、古い→新しいの時系列順にしてサーバーに渡す
-    // （サーバー側で初期・中期・直近に3等分し、期間全体から均等に分析する）
-    const res = await $fetch<KokoroData>('/api/hagemashi/kokoro', {
-      method: 'POST',
-      body: {
-        summaryItems: [...combinedSummaryRows.value].reverse().map(r => ({ sentiment: r.sentiment, text: r.text, date: r.fullDate })),
-        wordRanking: wordRanking.value.slice(0, 50),
-      },
-    })
-    kokoroHistory.value = [res, ...kokoroHistory.value]
-    if ($dev) {
-      localStorage.setItem(LS_KOKORO, JSON.stringify(kokoroHistory.value))
-    }
-  } catch (e) {
-    console.error(e)
-  } finally {
-    isKokoroLoading.value = false
-  }
-}
-
 // 旧「達成リスト」。いまは読み込み専用で、出来事（Moment）への移行元としてのみ使う
 interface Achievement { id: string; sourceId: string; date: string; text: string; level: number }
 const achievements = ref<Achievement[]>([])
@@ -1729,66 +1105,6 @@ const momentProcessedIds = ref<string[]>([])
 const momentsMigrated = ref(false)
 // 出来事の読み込みが済んだか。旧・達成リストの移行を history 到着まで待たせるために使う
 const momentsLoaded = ref(false)
-const expandedProfileIndices = ref(new Set<number>())
-const toggleProfileHistory = (i: number) => {
-  if (expandedProfileIndices.value.has(i)) expandedProfileIndices.value.delete(i)
-  else expandedProfileIndices.value.add(i)
-  expandedProfileIndices.value = new Set(expandedProfileIndices.value)
-}
-
-// 長期傾向タブ（強み / アドバイス）: 表示中タブに応じて色と対象フィールドを切り替える
-const isProfileTab = computed(() => activeTab.value === 'strengths' || activeTab.value === 'advice')
-const profileColor = computed(() => (activeTab.value === 'advice' ? '#fbbf24' : '#34d399'))
-const profileTabLabel = computed(() => (activeTab.value === 'advice' ? 'アドバイス' : '強み'))
-const profileItemsOf = (p: ProfileData | undefined): StrengthItem[] => {
-  if (!p) return []
-  const v = activeTab.value === 'advice' ? p.advice : p.strengths
-  return Array.isArray(v) ? v : []
-}
-
-const formatProfileDate = (iso: string): string => {
-  if (!iso) return ''
-  const d = toJSTDate(iso)
-  return `${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
-}
-
-const generateProfile = async () => {
-  if (isProfileLoading.value) return
-  isProfileLoading.value = true
-  try {
-    // combinedSummaryRows（記録＋相談の発言＋気分のテキスト）は新しい順のため、古い→新しいの時系列順にしてサーバーに渡す
-    // （サーバー側で初期・中期・直近に3等分し、期間全体から均等に分析する）
-    const res = await $fetch<ProfileData>('/api/hagemashi/profile', {
-      method: 'POST',
-      body: {
-        summaryItems: [...combinedSummaryRows.value].reverse().map(r => ({ sentiment: r.sentiment, text: r.text, date: r.fullDate })),
-        wordRanking: wordRanking.value.slice(0, 50),
-        vision: vision.value,
-      },
-    })
-    profileHistory.value = [res, ...profileHistory.value]
-    if ($dev) {
-      localStorage.setItem(LS_PROFILE, JSON.stringify(profileHistory.value))
-    }
-  } catch (e) {
-    console.error(e)
-  } finally {
-    isProfileLoading.value = false
-  }
-}
-
-interface WordEntry { word: string; count: number }
-const wordRanking = ref<WordEntry[]>([])
-
-// ワードクラウドに表示する最小出現回数（1〜10、localStorageに保存）
-const LS_MIN_WORD_COUNT = 'hagemashi-min-word-count'
-const minWordCount = ref(3)
-watch(minWordCount, (v) => {
-  localStorage.setItem(LS_MIN_WORD_COUNT, String(v))
-})
-const filteredWordRanking = computed(() => wordRanking.value.filter(w => w.count >= minWordCount.value))
-const isTokenizing = ref(false)
-
 const LS_STOPLIST = 'hagemashi-stoplist'
 const DEFAULT_STOPLIST = ['今日', '自分', '本当', '非常', '最近', '昨日', '意味', '結構', '頑張', '一緒', '面白', '大事', '普通', '必要', '部分', '話聞', '最後']
 const stoplist = ref<string[]>([...DEFAULT_STOPLIST])
@@ -1796,7 +1112,6 @@ const stoplistSet = computed(() => new Set(stoplist.value))
 const stoplistOpen = ref(false)
 const editingStoplist = ref<string[]>([])
 const newStopword = ref('')
-const confirmingStopword = ref<string | null>(null)
 
 watch(stoplistOpen, (open) => {
   if (open) { editingStoplist.value = [...stoplist.value]; newStopword.value = '' }
@@ -1817,15 +1132,6 @@ function saveStoplistModal() {
   if (momentWordFilter.value && stoplistSet.value.has(momentWordFilter.value)) momentWordFilter.value = null
   saveStoplist()
   stoplistOpen.value = false
-  reTokenize()
-}
-
-function addToStoplist(word: string) {
-  if (!stoplist.value.includes(word)) {
-    stoplist.value.push(word)
-    saveStoplist()
-    reTokenize()
-  }
 }
 
 function addStopwordInput() {
@@ -1833,38 +1139,6 @@ function addStopwordInput() {
   if (w && !editingStoplist.value.includes(w)) {
     editingStoplist.value.push(w)
     newStopword.value = ''
-  }
-}
-
-// 単語分割は utils/hagemashi/tokenize.ts に集約している。
-// Intl.Segmenter による分割で、従来の正規表現より精度が高い（「話聞」のような
-// 語をまたいだ漢字の連結が出ない）。非対応環境では内部で正規表現に落ちる。
-function extractWords(text: string): string[] {
-  return tokenize(text, stoplistSet.value)
-}
-
-async function reTokenize() {
-  if (isTokenizing.value) return
-  isTokenizing.value = true
-  await new Promise(r => setTimeout(r, 0))
-  try {
-    const freq = new Map<string, number>()
-    for (const item of history.value) {
-      for (const w of extractWords(item.text)) {
-        freq.set(w, (freq.get(w) ?? 0) + 1)
-      }
-    }
-    const sorted = [...freq.entries()]
-      .map(([word, count]) => ({ word, count }))
-      .sort((a, b) => b.count - a.count)
-    wordRanking.value = sorted
-    if ($dev) {
-      localStorage.setItem(LS_WORD_RANKING, JSON.stringify(sorted))
-    } else {
-      $fetch('/api/hagemashi/word-ranking', { method: 'POST', body: { words: sorted } }).catch(console.error)
-    }
-  } finally {
-    isTokenizing.value = false
   }
 }
 
@@ -1886,11 +1160,6 @@ const {
 } = useHistory('hagemashi-encourage-history', 'hagemashi-encourage')
 
 onMounted(() => {
-  const storedMinCount = localStorage.getItem(LS_MIN_WORD_COUNT)
-  if (storedMinCount) {
-    const n = parseInt(storedMinCount)
-    if (!isNaN(n) && n >= 1 && n <= 10) minWordCount.value = n
-  }
   if ($dev) {
     const storedStoplist = localStorage.getItem(LS_STOPLIST)
     if (storedStoplist) {
@@ -1901,21 +1170,6 @@ onMounted(() => {
     const storedDict = localStorage.getItem(LS_DICTIONARY)
     if (storedDict) {
       try { dictionary.value = JSON.parse(storedDict) } catch {}
-    }
-  }
-  if ($dev) {
-    const cachedRanking = localStorage.getItem(LS_WORD_RANKING)
-    if (cachedRanking) {
-      try { wordRanking.value = JSON.parse(cachedRanking) } catch {}
-    }
-  }
-  if ($dev) {
-    const cachedProfile = localStorage.getItem(LS_PROFILE)
-    if (cachedProfile) {
-      try {
-        const raw = JSON.parse(cachedProfile)
-        profileHistory.value = Array.isArray(raw) ? raw : [raw]
-      } catch {}
     }
   }
   if ($dev) {
@@ -1940,24 +1194,6 @@ onMounted(() => {
     momentsLoaded.value = true
   }
   if ($dev) {
-    const cachedKokoro = localStorage.getItem(LS_KOKORO)
-    if (cachedKokoro) {
-      try {
-        const raw = JSON.parse(cachedKokoro)
-        kokoroHistory.value = Array.isArray(raw) ? raw : [raw]
-      } catch {}
-    }
-  }
-  if ($dev) {
-    const cachedMood = localStorage.getItem(LS_MOOD)
-    if (cachedMood) {
-      try {
-        const raw = JSON.parse(cachedMood)
-        moodEntries.value = Array.isArray(raw) ? raw : []
-      } catch {}
-    }
-  }
-  if ($dev) {
     const storedVision = localStorage.getItem(LS_VISION)
     if (storedVision) {
       try { vision.value = JSON.parse(storedVision) } catch {}
@@ -1970,29 +1206,21 @@ if (!$dev) {
   watch(
     isLoggedIn,
     async (loggedIn) => {
-      if (!loggedIn) { wordRanking.value = []; dictionary.value = []; profileHistory.value = []; achievements.value = []; moments.value = []; momentProcessedIds.value = []; momentsMigrated.value = false; kokoroHistory.value = []; moodEntries.value = []; stoplist.value = [...DEFAULT_STOPLIST]; vision.value = ''; return }
-      const [ranking, dict, profile, sl, ach, mom, kokoro, mood, vis] = await Promise.allSettled([
-        $fetch<WordEntry[]>('/api/hagemashi/word-ranking'),
+      if (!loggedIn) { dictionary.value = []; achievements.value = []; moments.value = []; momentProcessedIds.value = []; momentsMigrated.value = false; stoplist.value = [...DEFAULT_STOPLIST]; vision.value = ''; return }
+      const [dict, sl, ach, mom, vis] = await Promise.allSettled([
         $fetch<DictionaryEntry[]>('/api/hagemashi/dictionary'),
-        $fetch<{ profiles: ProfileData[] }>('/api/hagemashi/profile'),
         $fetch<string[]>('/api/hagemashi/stoplist'),
         $fetch<Achievement[]>('/api/hagemashi/achievements'),
         $fetch<{ items: Moment[]; processedIds: string[]; migratedAchievements: boolean }>('/api/hagemashi/moments'),
-        $fetch<{ entries: KokoroData[] }>('/api/hagemashi/kokoro'),
-        $fetch<{ entries: MoodEntry[] }>('/api/hagemashi/mood'),
         $fetch<string>('/api/hagemashi/vision'),
       ])
-      wordRanking.value = ranking.status === 'fulfilled' ? ranking.value : []
       dictionary.value = dict.status === 'fulfilled' ? dict.value : []
-      profileHistory.value = profile.status === 'fulfilled' ? (profile.value?.profiles ?? []) : []
       stoplist.value = (sl.status === 'fulfilled' && sl.value.length > 0) ? sl.value : [...DEFAULT_STOPLIST]
       achievements.value = ach.status === 'fulfilled' && Array.isArray(ach.value) ? ach.value : []
       moments.value = mom.status === 'fulfilled' ? (mom.value?.items ?? []) : []
       momentProcessedIds.value = mom.status === 'fulfilled' ? (mom.value?.processedIds ?? []) : []
       momentsMigrated.value = mom.status === 'fulfilled' ? !!mom.value?.migratedAchievements : false
       momentsLoaded.value = mom.status === 'fulfilled'
-      kokoroHistory.value = kokoro.status === 'fulfilled' ? (kokoro.value?.entries ?? []) : []
-      moodEntries.value = mood.status === 'fulfilled' ? (mood.value?.entries ?? []) : []
       vision.value = vis.status === 'fulfilled' ? (vis.value || '') : ''
       maybeAutoPromptVision()
     },
@@ -2227,51 +1455,6 @@ const runEncourage = async () => {
   }
 }
 
-// --- 中間データ再生成 ---
-const migrateAllSelected = computed(() => history.value.length > 0 && migrateSelectedIds.value.length === history.value.length)
-const migrateSomeSelected = computed(() => migrateSelectedIds.value.length > 0 && migrateSelectedIds.value.length < history.value.length)
-
-const toggleMigrateAll = () => {
-  if (migrateAllSelected.value) migrateSelectedIds.value = []
-  else migrateSelectedIds.value = history.value.map(i => i.id)
-}
-
-const toggleMigrateSelect = (id: string) => {
-  const idx = migrateSelectedIds.value.indexOf(id)
-  if (idx === -1) migrateSelectedIds.value.push(id)
-  else migrateSelectedIds.value.splice(idx, 1)
-}
-
-const openMigrateSelect = () => {
-  migrateSelectedIds.value = history.value.map(i => i.id)
-  migrateSelectOpen.value = true
-}
-
-const runMigrateSelected = async () => {
-  migrateSelectOpen.value = false
-  const targets = history.value.filter(i => migrateSelectedIds.value.includes(i.id))
-  if (!targets.length || isMigrating.value) return
-  isMigrating.value = true
-  let done = 0
-  migrateStatus.value = `0/${targets.length}件...`
-  for (const item of targets) {
-    try {
-      const res = await $fetch<{ notes: string }>('/api/hagemashi/summary', {
-        method: 'POST',
-        body: { text: item.text },
-      })
-      if (res.notes) updateHistoryNotes(item.id, res.notes)
-    } catch (e) {
-      console.error(e)
-    }
-    done++
-    migrateStatus.value = `${done}/${targets.length}件...`
-  }
-  migrateStatus.value = `完了 ${done}/${targets.length}件`
-  setTimeout(() => { migrateStatus.value = '' }, 4000)
-  isMigrating.value = false
-}
-
 const copyResult = async () => {
   await navigator.clipboard.writeText(encourageResult.value)
   resultCopied.value = true
@@ -2282,47 +1465,6 @@ const copyResult = async () => {
 interface SummaryNoteItem { sentiment: 'ポジ' | 'ネガ'; text: string }
 interface SummaryNoteNew { items: SummaryNoteItem[] }
 interface SummaryNoteOld { sentiment: 'ポジ' | 'ネガ'; text: string }
-
-const editingSummaryId = ref<string | null>(null)
-const editingSentiment = ref<'ポジ' | 'ネガ'>('ポジ')
-const editingText = ref('')
-const editingItemIndex = ref<number | null>(null)
-const deletingSummaryTarget = ref<{ id: string; itemIndex: number | null } | null>(null)
-
-const startEditSummary = (row: { id: string; sentiment: 'ポジ' | 'ネガ'; text: string; itemIndex: number | null }) => {
-  editingSummaryId.value = row.id
-  editingSentiment.value = row.sentiment
-  editingText.value = row.text
-  editingItemIndex.value = row.itemIndex
-}
-
-const cancelSummary = () => {
-  editingSummaryId.value = null
-  editingItemIndex.value = null
-}
-
-const saveSummary = (id: string) => {
-  if (editingItemIndex.value !== null) {
-    const item = history.value.find(h => h.id === id)
-    if (!item) return
-    const parsed = parseSummaryNote(item.notes)
-    if (!parsed || !('items' in parsed)) return
-    const newItems = parsed.items.map((n, i) =>
-      i === editingItemIndex.value ? { sentiment: editingSentiment.value, text: editingText.value } : n
-    )
-    updateHistoryNotes(id, JSON.stringify({ items: newItems }))
-  } else {
-    updateHistoryNotes(id, JSON.stringify({ sentiment: editingSentiment.value, text: editingText.value }))
-  }
-  editingSummaryId.value = null
-  editingItemIndex.value = null
-}
-
-const confirmDeleteSummaryRow = () => {
-  if (!deletingSummaryTarget.value) return
-  deleteSummaryRow(deletingSummaryTarget.value.id, deletingSummaryTarget.value.itemIndex)
-  deletingSummaryTarget.value = null
-}
 
 const parseSummaryNote = (notes: string | undefined): SummaryNoteNew | SummaryNoteOld | null => {
   if (!notes) return null
@@ -2357,9 +1499,9 @@ const summaryRows = computed(() => {
   return rows
 })
 
-// 相談のユーザー発言・気分の自由記述テキストも中間データに取り込む（AI分析の入力にのみ使う。
+// 相談のユーザー発言も中間データに取り込む（AI分析の入力にのみ使う。
 // 中間データタブの一覧・編集・削除の対象は history 由来の summaryRows のままにする＝
-// consult/mood は元データ側（相談・気分タブ）を編集・削除すれば自動的にここからも消える）
+// consult は元データ側（相談タブ）を編集・削除すれば自動的にここからも消える）
 const combinedSummaryRows = computed(() => {
   const consultRows: SummaryRow[] = consultMessages.value
     .filter(m => m.role === 'user' && m.timestamp && m.content.trim())
@@ -2376,74 +1518,15 @@ const combinedSummaryRows = computed(() => {
       }
     })
 
-  const moodRows: SummaryRow[] = moodEntries.value
-    .filter(e => e.note && e.note.trim())
-    .map(e => {
-      const d = toJSTDate(e.createdAt)
-      return {
-        id: `mood-${e.id}`,
-        ts: d.getTime(),
-        date: `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`,
-        fullDate: `${d.getUTCFullYear()}/${d.getUTCMonth() + 1}/${d.getUTCDate()}`,
-        sentiment: e.score >= 6 ? 'ポジ' as const : 'ネガ' as const,
-        text: e.note.trim(),
-        itemIndex: null,
-      }
-    })
-
   // ts 降順（新しい順）に統一する。summaryRows 単体では history の並び順に依存していたが、
-  // consult/mood を混ぜるとその前提が崩れるため、ここで明示的にソートする
-  return [...summaryRows.value, ...consultRows, ...moodRows].sort((a, b) => b.ts - a.ts)
-})
-
-// --- 単語・心クリック時のAI分析ポップアップ（キャッシュ・保存はしない） ---
-interface ActiveWordPopup { name: string; count: number }
-interface ActiveKokoroPopup { name: string; note: string; group: string; weight: number }
-interface ActiveProfilePopup { name: string; note: string; weight: number }
-const activeWordPopup = ref<ActiveWordPopup | null>(null)
-const activeKokoroPopup = ref<ActiveKokoroPopup | null>(null)
-const activeProfilePopup = ref<ActiveProfilePopup | null>(null)
-
-// summaryRows は新しい順のため、AIには古い→新しいの時系列順で渡す
-// （新しい順のまま渡すと直近の内容が先頭に来て過度に強調されやすいため）
-const activeWordMatches = computed(() => {
-  if (!activeWordPopup.value) return []
-  const keyword = activeWordPopup.value.name
-  return summaryRows.value
-    .filter(r => r.text.includes(keyword))
-    .map(r => ({ date: r.fullDate, text: r.text }))
-    .reverse()
-})
-// 心の要素名はAIが生成した抽象的なラベルのため文字列一致では拾えない。
-// 中間データ全体をそのままAIに渡し、意味的な関連判断はAI自身にやらせる
-// （直近だけに絞ると古い記録が最初から候補に入らず、直近の内容ばかりになる）
-const activeKokoroMatches = computed(() => {
-  if (!activeKokoroPopup.value) return []
-  return combinedSummaryRows.value.map(r => ({ date: r.fullDate, text: r.text })).reverse()
-})
-// 強み・アドバイスの項目も抽象ラベルのため、中間データ全体を渡してAIに意味的関連を判断させる
-const activeProfileMatches = computed(() => {
-  if (!activeProfilePopup.value) return []
-  return combinedSummaryRows.value.map(r => ({ date: r.fullDate, text: r.text })).reverse()
+  // consult を混ぜるとその前提が崩れるため、ここで明示的にソートする
+  return [...summaryRows.value, ...consultRows].sort((a, b) => b.ts - a.ts)
 })
 
 // 相談チャットに渡す直近30件（combinedSummaryRows は新しい順）
 const recentSummaryItems = computed(() =>
   combinedSummaryRows.value.slice(0, 30).map(r => ({ sentiment: r.sentiment, text: r.text, date: r.date }))
 )
-
-const deleteSummaryRow = (id: string, itemIndex: number | null) => {
-  if (itemIndex === null) {
-    updateHistoryNotes(id, '')
-  } else {
-    const item = history.value.find(h => h.id === id)
-    if (!item) return
-    const parsed = parseSummaryNote(item.notes)
-    if (!parsed || !('items' in parsed)) return
-    const newItems = parsed.items.filter((_, i) => i !== itemIndex)
-    updateHistoryNotes(id, JSON.stringify({ items: newItems }))
-  }
-}
 
 const getNotesText = (item: { text: string; notes?: string }): string => {
   const parsed = parseSummaryNote(item.notes)
@@ -2924,7 +2007,6 @@ const handleTranscribed = async (text: string) => {
   const replaced = applyDictionary(text)
   const [title, notes] = await Promise.all([fetchTitle(replaced), fetchSummary(replaced)])
   const newId = addHistory(replaced, title, notes || undefined)
-  reTokenize()
   // 中間データがあれば出来事も自動抽出（バックグラウンドで実行し、UIはブロックしない）
   if (notes) {
     const item = history.value.find(h => h.id === newId)

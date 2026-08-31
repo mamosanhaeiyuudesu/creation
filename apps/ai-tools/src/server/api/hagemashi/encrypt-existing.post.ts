@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   const isPlain = (v: string | null | undefined): v is string => !!v && !v.startsWith('enc:')
 
-  const result = { appHistory: 0, consultMessages: 0, profiles: 0, kokoro: 0, moods: 0, achievements: 0 }
+  const result = { appHistory: 0, consultMessages: 0, achievements: 0 }
 
   const historyRows = await db
     .prepare('SELECT id, text, title, notes FROM app_history WHERE user_id = ?')
@@ -51,10 +51,7 @@ export default defineEventHandler(async (event) => {
     result.consultMessages++
   }
 
-  const jsonTables: { table: string; key: 'profiles' | 'kokoro' | 'moods' | 'achievements' }[] = [
-    { table: 'hagemashi_profiles', key: 'profiles' },
-    { table: 'hagemashi_kokoro', key: 'kokoro' },
-    { table: 'hagemashi_moods', key: 'moods' },
+  const jsonTables: { table: string; key: 'achievements' }[] = [
     { table: 'hagemashi_achievements', key: 'achievements' },
   ]
 

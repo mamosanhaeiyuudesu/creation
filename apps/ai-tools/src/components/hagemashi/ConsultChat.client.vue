@@ -96,26 +96,11 @@ function renderMarkdown(text: string): string {
   return marked.parse(text, { breaks: true, async: false }) as string
 }
 
-interface StrengthItem { title: string; content: string }
-interface ProfileData {
-  strengths: StrengthItem[] | string
-  advice: StrengthItem[] | string
-  generatedAt?: string
-}
-interface KokoroLeaf { name: string; weight: number; note: string }
-interface KokoroData {
-  charge: KokoroLeaf[]
-  stress: KokoroLeaf[]
-  summary?: string
-  generatedAt?: string
-}
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string; date: string }
 interface AchievementItem { text: string; level: number; date?: string }
 interface ChatMessage { role: 'user' | 'assistant'; content: string; timestamp?: string }
 
 const props = defineProps<{
-  profile?: ProfileData | null
-  kokoro?: KokoroData | null
   vision?: string
   summaryItems?: SummaryItem[]
   achievements?: AchievementItem[]
@@ -258,8 +243,6 @@ async function send() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages: outgoing,
-        profile: props.profile ?? null,
-        kokoro: props.kokoro ?? null,
         vision: props.vision ?? '',
         summaryItems: (props.summaryItems ?? []).slice(0, 30),
         achievements: (props.achievements ?? []).map(a => ({ text: a.text, level: a.level, date: a.date })),
