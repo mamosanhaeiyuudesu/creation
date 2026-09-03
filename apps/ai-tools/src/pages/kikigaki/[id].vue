@@ -10,12 +10,22 @@
       記録が見つかりませんでした。
     </p>
 
-    <!-- ── 画面C: 送信完了 ── -->
+    <!-- ── 画面C: 送信済み ──
+         承認後は編集できないが、送った中身は一覧から開いて読み返せるようにする。 -->
     <template v-else-if="record.status === 'approved'">
       <div class="kk-card px-6 py-8 mt-6 text-center">
-        <p class="text-[32px] leading-none mb-3">✓</p>
-        <h1 class="kk-display text-[20px]">Googleへ送信しました</h1>
-        <p class="text-[13px] text-[var(--kk-ink-soft)] mt-2">{{ record.minutes.title || '（タイトル未設定）' }}</p>
+        <p v-if="justSent" class="text-[32px] leading-none mb-3">✓</p>
+        <span v-else class="kk-tag kk-tag--approved mb-3">送信済み</span>
+        <h1 class="kk-display text-[20px]">
+          {{ justSent ? 'Googleへ送信しました' : sentMinutes.title || '（タイトル未設定）' }}
+        </h1>
+        <p class="text-[13px] text-[var(--kk-ink-soft)] mt-2">
+          {{ justSent ? sentMinutes.title || '（タイトル未設定）' : sentMinutes.date || '日付未設定' }}
+        </p>
+        <p v-if="!justSent" class="text-[11.5px] text-[var(--kk-ink-faint)] mt-1.5">
+          <span v-if="approvedAtLabel">{{ approvedAtLabel }} に送信</span>
+          <span v-if="record.owner"> ・ {{ record.owner }} さんがアップロード</span>
+        </p>
 
         <div class="flex justify-center gap-8 mt-6 text-center">
           <div>
@@ -55,6 +65,80 @@
         </div>
         <p v-else class="mt-3 font-bold">議事録一覧への追記は完了しました。</p>
       </div>
+
+      <!-- ここから下は「送った内容」の読み返し。編集はできない（Googleへ送った内容とズレるため） -->
+      <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-7 mb-2 leading-relaxed">
+        送信した内容です。ここでは直せません（直すときはGoogleのドキュメント側で）。
+      </p>
+
+      <section class="kk-card px-5 py-4 mb-3">
+        <p class="kk-label mb-1.5">概要</p>
+        <p class="text-[13.5px] leading-[1.9] whitespace-pre-wrap">{{ sentMinutes.summary || '（記載なし）' }}</p>
+        <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-3">
+          {{ sentMinutes.date || '日付未設定' }}<span v-if="record.audioName"> ・ {{ record.audioName }}</span>
+        </p>
+      </section>
+
+      <section v-for="group in sentPointGroups" :key="group.key" class="kk-card px-5 py-4 mb-3">
+        <p class="kk-label">{{ group.label }}<span class="ml-1.5 font-normal">{{ group.items.length }}件</span></p>
+        <p v-if="!group.items.length" class="text-[12px] text-[var(--kk-ink-faint)] mt-2">{{ group.empty }}</p>
+        <ul v-else class="mt-2.5 space-y-3">
+          <li v-for="(item, i) in group.items" :key="i" class="flex items-start gap-2">
+            <span class="kk-num kk-num--read">{{ i + 1 }}</span>
+            <div class="flex-1 min-w-0">
+              <p class="text-[14px] font-semibold leading-[1.8] whitespace-pre-wrap">{{ item.content }}</p>
+              <p v-if="item.note" class="kk-note-read">{{ item.note }}</p>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <section class="kk-card px-5 py-4 mb-3">
+        <p class="kk-label">タスク<span class="ml-1.5 font-normal">{{ sentMinutes.taskCandidates.length }}件</span></p>
+        <p v-if="!sentMinutes.taskCandidates.length" class="text-[12px] text-[var(--kk-ink-faint)] mt-2">タスクはありませんでした。</p>
+        <ul v-else class="mt-1.5">
+          <li v-for="(t, i) in sentMinutes.taskCandidates" :key="i" class="kk-row">
+            <p class="text-[13.5px] leading-[1.8] whitespace-pre-wrap">{{ t.task }}</p>
+            <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-0.5">
+              担当: {{ t.assignee || '未定' }}
+              <template v-if="t.dueDate"> ・ 期限 {{ t.dueDate }}</template>
+              <template v-else-if="t.due"> ・ 期限 {{ t.due }}（日付は未確定のまま登録）</template>
+            </p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="kk-card px-5 py-4 mb-3">
+        <p class="kk-label">予定<span class="ml-1.5 font-normal">{{ sentMinutes.eventCandidates.length }}件</span></p>
+        <p v-if="!sentMinutes.eventCandidates.length" class="text-[12px] text-[var(--kk-ink-faint)] mt-2">予定はありませんでした。</p>
+        <ul v-else class="mt-1.5">
+          <li v-for="(ev, i) in sentMinutes.eventCandidates" :key="i" class="kk-row">
+            <p class="text-[13.5px] font-semibold leading-[1.8]">{{ ev.title || '（無題の予定）' }}</p>
+            <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-0.5">
+              <!-- 開始日時が空のものはカレンダーへ送っていない。あとから見て取り違えないよう明記する -->
+              <template v-if="ev.start">{{ eventRange(ev) }}</template>
+              <template v-else>{{ ev.datetime || '日時未定' }} ・ カレンダーには登録していません</template>
+              <template v-if="ev.location"> ・ {{ ev.location }}</template>
+            </p>
+          </li>
+        </ul>
+      </section>
+
+      <section
+        v-if="sentMinutes.unclearPoints.length"
+        class="kk-card px-5 py-4 mb-3"
+        style="border-color: #eccb96; background: var(--kk-warn-soft)"
+      >
+        <p class="text-[13px] font-bold" style="color: var(--kk-warn)">⚠ AIが聞き取れなかった・自信がない箇所</p>
+        <ul class="list-disc pl-5 mt-2 space-y-1 text-[12.5px] leading-relaxed" style="color: var(--kk-warn)">
+          <li v-for="(u, i) in sentMinutes.unclearPoints" :key="i">{{ u }}</li>
+        </ul>
+      </section>
+
+      <details class="kk-card px-5 py-4 mb-6">
+        <summary class="kk-label cursor-pointer select-none">文字起こし全文を表示</summary>
+        <p class="mt-3 text-[12.5px] leading-[1.9] whitespace-pre-wrap text-[var(--kk-ink-soft)] max-h-[420px] overflow-y-auto">{{ record.transcript }}</p>
+      </details>
     </template>
 
     <!-- ── 画面B: レビュー・編集 ── -->
@@ -231,7 +315,7 @@ import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
 import AutoTextarea from '~/components/kikigaki/AutoTextarea.vue'
 import { emptyMinutes } from '~/types/kikigaki'
-import type { KikigakiApproveResult, KikigakiMinutes, KikigakiRecord } from '~/types/kikigaki'
+import type { KikigakiApproveResult, KikigakiEventCandidate, KikigakiMinutes, KikigakiRecord } from '~/types/kikigaki'
 
 definePageMeta({ layout: 'kikigaki' })
 useHead({ title: 'キキガキ — 内容の確認' })
@@ -250,6 +334,8 @@ const sending = ref(false)
 const savedAt = ref(0)
 const resending = ref(false)
 const result = ref<KikigakiApproveResult | null>(null)
+/** この画面で承認ボタンを押した直後か（一覧から開き直したときは完了メッセージを出さない） */
+const justSent = ref(false)
 
 /** 送信直後はレスポンスの警告、開き直したあとは保存済みの警告を出す */
 const warnings = computed<string[]>(() => result.value?.warnings ?? record.value?.warnings ?? [])
@@ -286,6 +372,49 @@ const pointGroups = computed(() => [
     items: minutes.discussions,
   },
 ])
+
+/**
+ * 送信済みの記録を読み返すためのもと。編集用の minutes ではなく、
+ * サーバーが返した「送った内容そのもの」を使う（うっかり編集欄と混ざらないように）。
+ */
+const sentMinutes = computed<KikigakiMinutes>(() => record.value?.minutes ?? emptyMinutes())
+
+const sentPointGroups = computed(() => [
+  {
+    key: 'decisions',
+    label: '決定事項',
+    empty: '決定した事項はありませんでした。',
+    items: sentMinutes.value.decisions,
+  },
+  {
+    key: 'discussions',
+    label: '検討事項',
+    empty: '検討中の事項はありませんでした。',
+    items: sentMinutes.value.discussions,
+  },
+])
+
+/** D1 の approved_at は UTC。日本時間に直して出す */
+const approvedAtLabel = computed(() => {
+  const raw = record.value?.approvedAt ?? ''
+  if (!raw) return ''
+  const d = new Date(`${raw.replace(' ', 'T')}Z`)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleString('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+})
+
+/** カレンダーに登録した予定の日時表示（YYYY-MM-DDTHH:mm → 見やすい形） */
+function eventRange(ev: KikigakiEventCandidate): string {
+  const fmt = (v: string) => v.replace('T', ' ')
+  return ev.end ? `${fmt(ev.start)} 〜 ${fmt(ev.end)}` : fmt(ev.start)
+}
 
 /** カレンダーへ実際に送られる件数（開始日時が入っているものだけ） */
 const calendarCount = computed(() => minutes.eventCandidates.filter((e) => e.start).length)
@@ -352,6 +481,7 @@ async function approve() {
       method: 'POST',
       body: { id: id.value, minutes },
     })
+    justSent.value = true
     await load()
   } catch (e: any) {
     errorMessage.value = apiMessage(e, '送信に失敗しました')
@@ -403,6 +533,32 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 読み取り専用では入力欄ぶんの余白が要らないので、番号バッジを本文の高さに合わせる */
+.kk-num--read {
+  margin-top: 0.15rem;
+}
+
+/* 送信済みビューの補足。編集画面の kk-note と同じ「本文にぶら下がる」見え方をテキストで作る */
+.kk-note-read {
+  margin-top: 0.3rem;
+  padding-left: 0.6rem;
+  border-left: 2px solid var(--kk-line);
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--kk-ink-soft);
+  white-space: pre-wrap;
+}
+
+/* タスク・予定の1件。罫線で区切るだけの素の行 */
+.kk-row {
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--kk-line);
+}
+.kk-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 /* 補足は本文の下に字下げし、左の縦線で「本文にぶら下がるもの」だと分かるようにする */

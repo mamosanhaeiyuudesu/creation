@@ -226,6 +226,19 @@
             </div>
           </div>
 
+          <div class="service-card service-card-wide">
+            <div class="service-icon">🔍</div>
+            <h3 class="service-card-title">動作確認は、使う方と一緒に</h3>
+            <div class="service-card-body">
+              <p>
+                できたものは、実際に使う方に、普段の仕事の中で触って確かめていただきます。テスト専任の担当者を立てて机の上で確認するのではなく、現場で使う方ご自身に試していただく進め方です。
+              </p>
+              <p>
+                お手間はおかけしますが、そのぶん人件費がかからないので、費用を抑えられます。それに、触っているうちに「ここは押しにくい」「この順番だと使いづらい」が自然と出てきます。かしこまった報告書は要りません。気づいたときに、そのまま教えてください。すぐ直します。
+              </p>
+            </div>
+          </div>
+
         </div>
       </div>
     </section>
@@ -307,6 +320,13 @@
           </li>
           <li class="process-item">
             <span class="process-num">04</span>
+            <div class="process-body">
+              <strong>現場で試していただく<em>数日〜 / ご協力をお願いします</em></strong>
+              形になってきたら、実際に使う方に、普段の仕事の中で使ってみていただきます。テスト専任の担当者を立てない代わりに、ここだけお手間をいただく形です。そのぶん費用は抑えられますし、実際に使ってみて出てくる「ここを直したい」は、机の上の確認では出てこないものばかりです。気づいたその場で、そのままお知らせください。
+            </div>
+          </li>
+          <li class="process-item">
+            <span class="process-num">05</span>
             <div class="process-body">
               <strong>その先を、一緒に決める</strong>
               形が見えてきたところで、このまま運用まで進めるか、設計図にして専門チームへ渡すか、既存のサービスで足りるかを一緒に判断します。
@@ -794,6 +814,10 @@
             <div class="terms-payment-row">
               <span class="terms-payment-label">開発費用</span>
               <span class="terms-payment-value">規模・内容によるため、ヒアリング後にお見積もり</span>
+            </div>
+            <div class="terms-payment-row">
+              <span class="terms-payment-label">テスト</span>
+              <span class="terms-payment-value">動作確認は、実際に使う方にご協力いただきます。テスト専任者を立てないぶん、その工数は開発費用に含めません</span>
             </div>
             <div class="terms-payment-row">
               <span class="terms-payment-label">運用・保守</span>

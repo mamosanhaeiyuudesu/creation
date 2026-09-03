@@ -77,7 +77,7 @@
     <section>
       <div class="flex items-baseline gap-2 mb-2">
         <p class="kk-label">みんなの記録</p>
-        <p class="text-[11px] text-[var(--kk-ink-faint)]">誰がアップロードしたものも、全員で見て直せます</p>
+        <p class="text-[11px] text-[var(--kk-ink-faint)]">誰がアップロードしたものも、全員で見て直せます。送信済みのものは中身を読み返せます</p>
       </div>
 
       <div v-if="loadingList" class="space-y-2">
