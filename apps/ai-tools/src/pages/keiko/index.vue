@@ -265,7 +265,7 @@
             <KeikoArt name="ashiato" :size="18" />
             累積ポイントの推移
           </h3>
-          <KeikoCumulativeChart :months="yearRows.map((r) => `${r.month}月`)" :series="cumulativeSeries" />
+          <KeikoCumulativeChart :months="startedYearRows.map((r) => `${r.month}月`)" :series="cumulativeSeries" />
         </div>
       </template>
     </template>
@@ -713,6 +713,8 @@ const yearRows = computed(() =>
     (row) => row.key >= START_MONTH_KEY
   )
 )
+/** 累積グラフ用：まだ始まっていない月（来月以降）は「0のまま」と誤解されるので含めない。 */
+const startedYearRows = computed(() => yearRows.value.filter((row) => row.key <= currentMonthKey))
 
 // ── データ読み込み ──
 // メンバーと練習項目は設定画面でも使うので、モードに関わらず state から取る。
@@ -831,7 +833,7 @@ const cumulativeSeries = computed(() =>
   members.value.map((m, mi) => ({
     name: m.name,
     color: memberColor(mi),
-    data: yearRows.value.map((row) => pointsFor(m.id, row.key)),
+    data: startedYearRows.value.map((row) => pointsFor(m.id, row.key)),
   }))
 )
 
