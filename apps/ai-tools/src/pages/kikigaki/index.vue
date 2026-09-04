@@ -61,22 +61,61 @@
       </div>
 
       <template v-if="stage === 'idle'">
-        <input
-          ref="fileInput"
-          type="file"
-          :accept="uploadMode === 'audio' ? 'audio/*,.mp3,.wav,.m4a' : '.txt,text/plain'"
-          class="block w-full text-[13px] text-[var(--kk-ink-soft)] file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[12.5px] file:font-bold file:bg-[var(--kk-accent-soft)] file:text-[var(--kk-accent)] file:cursor-pointer"
-          @change="onPick"
-        >
-        <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-2">
-          <template v-if="uploadMode === 'audio'">
+        <template v-if="uploadMode === 'audio'">
+          <input
+            ref="fileInput"
+            type="file"
+            accept="audio/*,.mp3,.wav,.m4a"
+            class="block w-full text-[13px] text-[var(--kk-ink-soft)] file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[12.5px] file:font-bold file:bg-[var(--kk-accent-soft)] file:text-[var(--kk-accent)] file:cursor-pointer"
+            @change="onPick"
+          >
+          <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-2">
             mp3 / wav / m4a に対応。長い会議は自動で20分ごとに分割して処理します。
-          </template>
-          <template v-else>
-            文字起こし済みのテキストファイル（.txt）をアップロードすると、文字起こしをスキップしてすぐに議事録を作成します。
-          </template>
-        </p>
-        <button class="kk-btn mt-4" :disabled="!file" @click="run">{{ uploadMode === 'audio' ? '文字起こしをはじめる' : '議事録を作成する' }}</button>
+          </p>
+        </template>
+
+        <template v-else>
+          <div class="flex items-center gap-1.5 mb-2.5">
+            <button
+              type="button"
+              class="kk-btn-ghost !h-7 !px-2.5 !text-[11.5px]"
+              :class="{ 'kk-mode-active': transcriptInput === 'file' }"
+              @click="setTranscriptInput('file')"
+            >
+              ファイルをアップロード
+            </button>
+            <button
+              type="button"
+              class="kk-btn-ghost !h-7 !px-2.5 !text-[11.5px]"
+              :class="{ 'kk-mode-active': transcriptInput === 'paste' }"
+              @click="setTranscriptInput('paste')"
+            >
+              テキストを貼り付け
+            </button>
+          </div>
+
+          <input
+            v-if="transcriptInput === 'file'"
+            ref="fileInput"
+            type="file"
+            accept=".txt,text/plain"
+            class="block w-full text-[13px] text-[var(--kk-ink-soft)] file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[12.5px] file:font-bold file:bg-[var(--kk-accent-soft)] file:text-[var(--kk-accent)] file:cursor-pointer"
+            @change="onPick"
+          >
+          <textarea
+            v-else
+            v-model="pastedTranscript"
+            rows="10"
+            placeholder="文字起こし済みのテキストをここに貼り付けてください"
+            class="kk-input resize-y"
+          />
+
+          <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-2">
+            文字起こし済みのテキスト（.txt ファイル、または貼り付け）から議事録を作成します。文字起こしをスキップします。
+          </p>
+        </template>
+
+        <button class="kk-btn mt-4" :disabled="!canRun" @click="run">{{ uploadMode === 'audio' ? '文字起こしをはじめる' : '議事録を作成する' }}</button>
       </template>
 
       <template v-else>
@@ -84,9 +123,7 @@
           <span class="inline-block w-4 h-4 rounded-full border-2 border-[var(--kk-accent)] border-t-transparent animate-spin" />
           <div>
             <p class="text-[13.5px] font-bold">{{ stageLabel }}</p>
-            <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-0.5">
-              {{ file?.name }}<span v-if="file"> ・ {{ (file.size / 1024 / 1024).toFixed(1) }}MB</span>
-            </p>
+            <p v-if="sourceLabel" class="text-[11.5px] text-[var(--kk-ink-faint)] mt-0.5">{{ sourceLabel }}</p>
           </div>
         </div>
         <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-2 leading-relaxed">
@@ -178,6 +215,10 @@ const deletingId = ref('')
 
 type UploadMode = 'audio' | 'transcript'
 const uploadMode = ref<UploadMode>('audio')
+/** 文字起こしモードのときだけ使う。ファイルで渡すか、直接貼り付けるか */
+type TranscriptInput = 'file' | 'paste'
+const transcriptInput = ref<TranscriptInput>('file')
+const pastedTranscript = ref('')
 const file = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 type Stage = 'idle' | 'transcribing' | 'structuring'
@@ -185,9 +226,37 @@ const stage = ref<Stage>('idle')
 
 function setUploadMode(mode: UploadMode) {
   uploadMode.value = mode
+  transcriptInput.value = 'file'
   file.value = null
+  pastedTranscript.value = ''
   if (fileInput.value) fileInput.value.value = ''
 }
+
+function setTranscriptInput(mode: TranscriptInput) {
+  transcriptInput.value = mode
+  if (mode === 'paste') {
+    file.value = null
+    if (fileInput.value) fileInput.value.value = ''
+  } else {
+    pastedTranscript.value = ''
+  }
+}
+
+/** 実行ボタンを押せる状態か（モード・入力方法ごとに必要なものが揃っているか） */
+const canRun = computed(() => {
+  if (uploadMode.value === 'transcript' && transcriptInput.value === 'paste') {
+    return pastedTranscript.value.trim().length > 0
+  }
+  return !!file.value
+})
+
+/** 処理中に出す「何を処理しているか」のラベル。貼り付けはファイル名が無いので専用の文言にする */
+const sourceLabel = computed(() => {
+  if (file.value) return `${file.value.name} ・ ${(file.value.size / 1024 / 1024).toFixed(1)}MB`
+  if (uploadMode.value === 'transcript' && transcriptInput.value === 'paste') return '貼り付けたテキスト'
+  return ''
+})
+
 /** 分割したときの進み具合。長い会議は数分かかるので、止まっていないことが分かるように出す */
 const chunkProgress = ref<{ done: number; total: number } | null>(null)
 const stageLabel = computed(() => {
@@ -249,17 +318,25 @@ async function removeRecord(r: KikigakiRecordSummary) {
 //   spreadsheetUrl.value = ''
 // }
 
-// 音声は 文字起こし → 構造化 の2段階、テキストは構造化のみ。ここでは下書きを作るだけ。
+// 音声は 文字起こし → 構造化 の2段階、テキスト（ファイル/貼り付け）は構造化のみ。ここでは下書きを作るだけ。
 async function run() {
-  if (!file.value) return
+  if (!canRun.value) return
   errorMessage.value = ''
 
   try {
     let text: string
+    let audioName = ''
     if (uploadMode.value === 'transcript') {
       stage.value = 'structuring'
-      text = await file.value.text()
+      if (transcriptInput.value === 'paste') {
+        text = pastedTranscript.value.trim()
+      } else {
+        if (!file.value) return
+        text = await file.value.text()
+        audioName = file.value.name
+      }
     } else {
+      if (!file.value) return
       stage.value = 'transcribing'
       // 長い会議は20分ごとに分割して8kHzモノラルへ落としてから並列に投げる（whisper/hagemashi と共通）。
       // 用語辞書は /api/kikigaki/transcribe がチャンクごとに付けるので、ここから prompt は渡さない。
@@ -271,11 +348,12 @@ async function run() {
       })
       chunkProgress.value = null
       stage.value = 'structuring'
+      audioName = file.value.name
     }
 
     const { id } = await $fetch<{ id: string }>('/api/kikigaki/structure', {
       method: 'POST',
-      body: { transcript: text, audioName: file.value.name },
+      body: { transcript: text, audioName },
     })
 
     await router.push(`/kikigaki/${id}`)
