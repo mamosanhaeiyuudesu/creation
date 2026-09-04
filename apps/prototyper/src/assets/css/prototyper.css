@@ -955,6 +955,15 @@
   line-height: 1.8;
 }
 
+/* 実績の費用は、金額だけ少し立たせて拾い読みできるようにする */
+.fee-amount {
+  font-family: var(--f-mono);
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--c-text);
+  margin-right: 4px;
+}
+
 /* 事業コンセプトとの整合が弱い自作ツールは、実績として立てず一行だけ触れる */
 .works-other {
   margin-top: 28px;
@@ -1328,6 +1337,16 @@
   font-size: 13px;
   color: var(--c-text-muted);
   line-height: 1.65;
+}
+
+.terms-payment-link {
+  color: var(--c-primary);
+  font-weight: 600;
+  border-bottom: 1px solid rgba(27, 95, 217, 0.3);
+}
+
+.terms-payment-link:hover {
+  border-bottom-color: var(--c-primary);
 }
 
 /* ==========================================

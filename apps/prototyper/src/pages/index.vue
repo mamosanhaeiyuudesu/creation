@@ -342,7 +342,8 @@
         <p class="section-label">Works</p>
         <h2 class="section-title">実績</h2>
         <p class="section-body" style="margin-bottom: 0;">
-          「どなたの、どんな困りごとを、どう解決したか」で並べています。
+          「どなたの、どんな困りごとを、どう解決したか」で並べています。<br />
+          費用は、実際にお受けしたときの金額です。内容や規模によって変わりますので、目安としてご覧ください。
         </p>
 
         <div class="portfolio-card">
@@ -364,6 +365,10 @@
               <div>
                 <dt>したこと</dt>
                 <dd>文章を単語に分解し、つながりの図とヒートマップにしました。年ごと・議員ごとなど、いくつもの切り口から議論の流れが見えるようになっています</dd>
+              </div>
+              <div>
+                <dt>費用</dt>
+                <dd><span class="fee-amount">約30万円</span>（開発費用）</dd>
               </div>
               <div>
                 <dt>いま</dt>
@@ -467,6 +472,10 @@
                 <dd>院の特徴を伝えるホームページを制作しました</dd>
               </div>
               <div>
+                <dt>費用</dt>
+                <dd><span class="fee-amount">15万円</span>（制作費用）</dd>
+              </div>
+              <div>
                 <dt>いま</dt>
                 <dd>公開・稼働中</dd>
               </div>
@@ -538,6 +547,10 @@
               <div>
                 <dt>したこと</dt>
                 <dd>LINEから予約が完結する仕組みを一から構築しました。患者さんはカレンダーから予約でき、管理者は枠の管理から確認・返信までLINE上で完結できます</dd>
+              </div>
+              <div>
+                <dt>費用</dt>
+                <dd><span class="fee-amount">20万円</span>（開発費用）</dd>
               </div>
               <div>
                 <dt>いま</dt>
@@ -813,7 +826,7 @@
             </div>
             <div class="terms-payment-row">
               <span class="terms-payment-label">開発費用</span>
-              <span class="terms-payment-value">規模・内容によるため、ヒアリング後にお見積もり</span>
+              <span class="terms-payment-value">規模・内容によるため、ヒアリング後にお見積もり。これまでの金額の例は<a href="#portfolio" class="terms-payment-link">実績</a>に載せています</span>
             </div>
             <div class="terms-payment-row">
               <span class="terms-payment-label">テスト</span>
