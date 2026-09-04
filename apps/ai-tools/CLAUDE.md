@@ -72,6 +72,42 @@ Sheets APIで直接読み書きする（`life-google.ts`）。D1が持つのは�
 ※ `/fitbit` のデータ源は **Google Health API**（旧 Fitbit Web API は2026年9月停止のため後継。サーバー間REST＋Google OAuth2）。認証情報名は `NUXT_FITBIT_*` のままだが中身はGoogle OAuthのもの。
 ※ ローカル dev では実API・OAuthは使わず `fitbit-dev.ts` の決定的スタブで動作。実データのパース検証は dev限定の `GET /api/fitbit/diag?token=<Playgroundのaccess_token>`。
 
+### news（AIニュース朝刊）のセットアップ
+
+毎朝 JST 7:00（cron は UTC 22:00）に走り、集めて要約して D1 に置くところまでをやる。
+**通知はしない**（メールは検討したがコストが見合わずやめた。読むのは `/news` ページ）。
+新規の外部サービスは無く、既存の Cron Trigger / `WHISPER_DB` / `NUXT_ANTHROPIC_API_KEY` に相乗りしている。
+
+初回セットアップはテーブル作成だけ:
+
+```bash
+wrangler d1 execute whisper-db --remote --file src/server/db/052_news.sql
+```
+
+**ソースの追加**は `src/utils/news-sources.ts` の `NEWS_SOURCES` に1件足すだけ（RSS 2.0 / Atom どちらも読める）。
+`id` は D1 に保存される識別子なので、一度入れたら変えない。
+
+**動作確認**: ローカルdevは D1 が使えないので `/news` は動かない。デプロイ後にページの「いま収集する」で確認する。
+ログは `wrangler tail` の `[news]` 接頭辞か、ページ下部の実行ログ（`news_runs`）。
+
+**費用**（実測 2026-09-05）: Claude API だけ。DeepMind の記事は本文8,000字で入力3,109トークン＋出力240で約1.3円、
+OpenAI はRSSの要約だけなので630トークンで約0.55円。記事数は直近30日で OpenAI 2.0件/日・DeepMind 0.37件/日なので、
+**月50〜80円**。安くしたければ `NEWS_MODEL` を Haiku 4.5 にするか `NEWS_MAX_BODY_CHARS` を下げる。
+
+作りの前提（触る前に読むこと）:
+
+- **OpenAI の記事ページは 403 を返す**ので本文は取得できず、RSSの `description`（平均156字）だけで要約している。
+  逆に DeepMind は `description` が空で記事ページからは取れる。**どちらのフォールバックも消さないこと**
+- **OpenAI のフィードは1000件超を返す**。`NEWS_LOOKBACK_DAYS`（5日）と `NEWS_MAX_PER_RUN`（15件）が費用の安全弁で、
+  これを外すと初回実行で全件を要約してしまう。裏を返すと5日以上止めると、その間の記事は取りこぼす（拾い直さない）
+- 記事の重複判定は `news_items.url` の UNIQUE 制約。処理済みURLの一覧ファイルは持たない
+- プレビュー環境は `[env.preview.triggers] crons = []` で cron を止めてある。
+  triggers は継承されるキーなので、これが無いと本番と同じDBに対して二重に走る（mlb-sync も同様）
+- cron の曜日は UTC 基準。平日だけにするなら `0 22 * * 0-4`（UTC 日〜木 ＝ JST 月〜金）
+- **メールをやめた経緯**: Worker から SMTP は張れず、Cloudflare Email Sending は公式ドキュメント上
+  「Workers Paid プランで利用可能」（月$5）。要約代が月50〜80円なのに通知だけで10倍かかるため見送った。
+  再検討するなら Resend の無料枠を HTTP で叩くのが近い（差し替えは送信部分だけで済む作りにしてある）
+
 ## アーキテクチャ
 
 **Nuxt 3（srcDir: `src/`）+ Nitro（preset: `cloudflare_module`）+ Vuetify 3 + Tailwind CSS**
@@ -93,6 +129,7 @@ Sheets APIで直接読み書きする（`life-google.ts`）。D1が持つのは�
 | `/fitbit` | Fitbitヘルスダッシュボード（エナジー/睡眠スコア・歩数・心拍・HRV・SpO2等を1画面集約、睡眠は詳細分解） |
 | `/task` | Trello連携のタスク管理ビュー（DOING/TODO/DONE）。**DOINGは「今日やること」と「今週中にやること」の2つに分けて表示**する（振り分けは期限だけで決まる＝期限が今日以前〈超過ぶんを含む〉なら今日、それ以外〈明日以降・期限なし〉は今週中。ページ側の `isDoingToday` / `doingGroupDefs` / `doingGroups`。PCは2段、スマホは2列。**グループをまたぐドラッグでは移らない**〈期限を変えると移る〉ので、「今日やること」欄の＋は期限を今日で埋めて追加する。**「今週中にやること」欄へ入れた時点で期限が無い（または今日以前の）カードは、期限を今週の日曜に強制的に書き換える**＝ドラッグ〈`doingDueForGroup`〉でも＋追加の初期値〈`doingGroups` の `newDue`〉でも同じ `thisWeekEndDateKey` を使う。期限なしのまま「今週中」に置けてしまうと、ヘッダーの「週 完了h/予定h」の分母＝`pendingHoursForDates` は `due` が無いカードを数えないため合計から漏れて実態より少なく出てしまう、という不整合を防ぐための仕様）。**逆に TODO へドラッグで戻すと、期限があれば消す**＝「まだいつやるか決めていない」状態に戻す意味（`useDragDrop.ts` の `dueChangeFor`／`clearDue`）。**カードごとの赤枠・ピンク枠などのハイライトは廃止**（期限の近さは並び順とグループ分け、PCの「残りNh／N日超過」の文字色で表す。手動の「重要」フラグも廃止済み）。ヘッダーの**今週の日別棒グラフ**（PC・スマホとも）と、**今日／明日の進捗**（PCのヘッダー行・スマホの2枚のカードとも）は**クリックするとその日の一覧（DOING＝期限がその日の未完了／DONE＝その日に完了）がポップアップ**する（`dayDetail` は日付を入れると開く）。日別棒グラフの右（スマホは日別グラフとは別のパネル）に**投稿カウンター**があり、インスタ・note・Facebook の投稿数の**全期間の累計**を出す（表示期間には連動しない。プラットフォームの一覧は `useTaskSns.ts` の `SNS_PLATFORMS` に集約＝増やすときはここと `server/utils/task-sns.ts` の `SNS_PLATFORM_KEYS` に足す。記号は `TaskSnsIcon.vue` の線画＝ブランドロゴは使わない）。クリックで `TaskSnsModal.vue` のカレンダーが開き、日を選んで＋/−か直接入力で本数を入れる（変更のたび自動保存。状態は `useTaskSns.ts`、保存先は本番が `/api/task/sns`＝`task_sns_posts`、devは localStorage）。ヘッダーの「振り返る」で**その期間にどのボードへ時間を使ったかのAIフィードバック**を生成できる（既定は今日を含む週＝月〜日、`TaskRangeCalendar.vue` で任意の期間も選べる。文字数は1000/2000）。結果は履歴（`app-history` の `task/review`）に残り「振り返り履歴」から読み返せる。プロンプトと**お金に近い/ミッションに近い/投資/運用**という見方は `server/api/task/review.post.ts` に集約。集計対象は画面に読み込み済みのDONEデータなので、ヘッダーの表示期間の外を選ぶと0件になる（ダイアログに件数を出して気づけるようにしている）。ヘッダー直下には**今週の目標**の1行入力欄（PC・スマホとも常時表示）があり、週（月曜始まり・JST）ごとに1件保存する。フォーカスを外すかEnterで自動保存（IME変換確定のEnterでは保存しない）。状態は `useTaskGoal.ts`、保存先は本番が `/api/task/goal`＝`task_weekly_goals`、devは localStorage。**メール通知（定期メール）は廃止済み** |
 | `/kikigaki` | キキガキ。会議・地域活動（消防団・青年部・農業の打ち合わせなど）の録音から議事録をつくる。**音声ファイル、または文字起こし済みテキスト（.txt）のアップロード → （音声のときだけ）OpenAI `gpt-4o-transcribe` で文字起こし → Claude が構造化（タイトル/日付/概要/決定事項/検討事項/タスク候補/予定候補/不明瞭な点）→ 人間がレビュー画面で編集 → PDFダウンロード** の一気通貫。**Google（Docs/Sheets/Tasks/Calendar）連携は2026-09-04にUIから外した**（コメントアウトの詳細は上の「Google連携セットアップ」節）。代わりに出力先はPDF一本。**記録は user_id で絞らず、ログインできる全員で共有する**（同じ会議に出ていた人どうしで確認・修正しあうため。`user_id` は所有者として残り、一覧の表示と削除の可否にだけ使う＝**削除だけはアップロード本人のみ**、他人の記録を消せると取り返しがつかないため）。**記録はいつでも編集できる**（Google送信で内容が固定されるという前提がなくなったため、旧仕様にあった「承認済みは編集不可・読み取り専用」は廃止し `updateRecordMinutes` から `status` 縛りを外した。日付が後から分かったときもレビュー画面で直せばよい）。レビュー画面は**PDFの出力レイアウトと同じ2カラム構成**（左＝タイトル・日付・概要・決定事項、右＝検討事項・タスク・予定）で、編集した内容がそのままPDFに出る形を画面上でも見せている。**PDFは `[id].vue` 内に画面外（`position:fixed; left:-99999px`）で常駐させたA4横サイズ（`297mm×210mm`）の読み取り専用テンプレートを `html2canvas`（クリック時に動的import）でキャンバス化し、`jspdf` でA4横1ページに収まるよう縦横比を保ったまま拡大縮小して埋め込む**（画像化しているのは日本語フォントをjsPDFへ埋め込む手間を避けるため。テンプレートの高さがA4比よりはみ出す内容量でも、画像をページ内に収まるよう縮小して配置するので必ず1ページに収まる＝「枠に収まるように」という要件はここで担保している）。PDFボタンを押すと**先に現在の編集内容を保存してから**キャプチャする（保存し忘れた編集がPDFに出ないように）。**カレンダー登録という概念が無くなった今も**、Claude は日時の原文表現（`datetime`/`due`）と確定日時（`start`/`end`/`due_date`）を分けて出す仕様はそのまま残している（構造化データの形を変えていないだけで、PDF上は確定日時があればそちらを優先表示する）。用語辞書は `src/utils/kikigaki-glossary.ts`（**手編集して再デプロイ**する運用）で、文字起こしの `prompt` パラメータと Claude のシステムプロンプトの両方に効かせる。**この辞書だけ user_id スコープではなく全ユーザー共通なのは意図的**＝使うのが同じ地域の身内（同じ消防団・青年部）で「阪中さん」「葛城町」等は全員に効いてほしい語彙だから。ユーザーごとに分けると各自が同じ語彙を登録し直すことになり、新しく入った人ほど精度が出ない。**他ツールと揃っていないからと user_id スコープへ作り替えないこと**（分けるとしたら地域の違う人が使い始めたときで、共通のベース＋各自の追加分をマージする形になる）。構造化の匙加減（創作の禁止・決定/検討の切り分け・日付を確定してよい条件）は `kikigaki-ai.ts` のシステムプロンプトに集約。**長い会議は自動で分割する**＝whisper/hagemashi と共通の `composables/useAudioRecorder.ts` の `splitAndTranscribeBlob()` を使い、20分ごと・8kHzモノラルWAV（20分で約19MB＝OpenAIの25MB制限内）に落として並列送信し、**元の順番どおりに**結合する（順番が入れ替わると議事録が崩れる）。同関数は `endpoint` オプションで送信先を切り替えられる（既定 `/api/whisper`、kikigaki は `/api/kikigaki/transcribe`）。用語辞書はサーバー側でチャンクごとに付くのでクライアントから prompt は渡さない。同時実行は3本まで（1〜2時間の会議で全チャンクを同時展開するとタブのメモリを使い切るため）。**分割時は16kHzモノラル・10分ごと**（8kHz・20分だと同じファイルサイズだが、Whisper系の学習は16kHzなので、複数人の声が重なる会議室の録音で幻覚ループが出やすくなる。サイズを変えずに帯域を倍にしている）。分割の要である `downmixToMono()` は**純粋関数として export してある**（`OfflineAudioContext` にサンプルレートの違う AudioBuffer を食わせる形はブラウザ依存が大きく、実際に「1時間の会議が2行」になる事故を出したので自前計算に置き換えた。出力1サンプルぶんを平均する＝箱型ローパスなので折り返し雑音も乗らない。**closure に戻さないこと**＝数値で検証できなくなる）。チャンクごとに無音判定を入れ、さらに**音の長さに対して文字数が極端に少なければエラーにする**（20字/分未満。黙って空を返すと原因に気づけない）。**文字起こしの結果は `transcript-clean.ts` の `cleanTranscript()` を必ず通す**＝①gpt-4o-transcribe は `prompt` を本文へ書き写すことがある（**ただし `glossaryPromptHint()` は文章の形のままにすること**＝実際にAPIで比較したところ、語の羅列だけにすると辞書がまったく効かず「阪中さん」が「初中さん」のままになった。漏れ対策は prompt をいじらず `stripPromptEcho()` 側で行う）②Whisper系は無音・雑音・声の重なりで同じ語/同じ段落を延々と繰り返す（実録音で「飛行機が」×100、同じ段落×8が発生）。単文の繰り返しは3回以上、2文以上の塊は2回以上でループとみなして畳む（相づちの2回続きは自然な会話なので残す）。会議の中身（タイトル・文字起こし・構造化JSON）は `encrypt.ts` で暗号化してD1に保存。公民館トーンの専用レイアウト |
+| `/news` | AIニュース朝刊。OpenAI / Google DeepMind のRSSを毎朝7時(JST)に集め、Claudeが日本語3〜5行の要約と重要度1〜5・その理由を付けて並べる。**メールも通知も無い**（コストが見合わずやめた。経緯は上のセットアップ節）。日付ごとにまとめ、ソース／重要度／キーワードで絞り込める。既定は重要度3以上の表示で、2以下も保存してあり切り替えれば読める。ヘッダの「いま収集する」で cron を待たずに手動実行。下部の `<details>` に実行ログ（`news_runs`） |
 | `/office` | 勤怠管理（日付・打刻記録） |
 | `/games` | ゲーム一覧（リンク集） |
 | `/games/panel-de-pon` | SFC版パネルでポン（5ステージ・進捗保存） |
@@ -160,6 +197,11 @@ Sheets APIで直接読み書きする（`life-google.ts`）。D1が持つのは�
   - 項目がメンバー共通だった頃の行（`member_id` が空）は、初回アクセス時に `migrateSharedItemsToMembers()` がメンバーごとへ複製し、記録の `item_id` を付け替えてから旧行を消す
 - `WHISPER_DB` 相乗り（kikigaki）: kikigaki_records（議事録1件＝1行。`title`/`transcript`/`minutes`(構造化JSON) は暗号化。`status`/`doc_url`/`sent_tasks`/`sent_events`/`approved_at`/`sheet_appended`/`warnings` はGoogle連携時代の列で、UIから外した今は書き込まれず未使用のまま残っている＝**記録は `status` に関係なく常に編集できる**）/ kikigaki_oauth_states・kikigaki_google_connections（Google連携用。同上の理由で今は未使用）。既存 users/sessions 認証に相乗りし `user_id` でスコープ。テーブルは `ensureKikigakiTables()` で自動生成もされる（D1の `exec()` の改行罠を避けて `prepare().run()` で作っている）。**ローカルdevはD1が無いので全エンドポイントが503**。
   - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/050_kikigaki.sql`
+- `WHISPER_DB` 相乗り（news）: news_items（記事1件＝1行。`url` が UNIQUE ＝これが「処理済みURL一覧」の役割を果たすので、
+  差分判定のための別ファイルは持たない。`importance` 1〜5 / `body_source` は article か feed /
+  `digest_date` は収集した日(JST)）/ news_runs（実行ログ。cron が黙って失敗していないかをページから見るため）。
+  記事は1人用のダイジェストなので **user_id ではスコープしない**（誰がログインしても同じ朝刊を見る）
+  - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/052_news.sql`
 - `MLB_DB`（`mlb-db`）: MLB選手・試合データ  
   `src/server/tasks/mlb-sync.ts` の Cron（**1日1回・UTC 7:00＝JST 16:00**）で同期。
   毎回シーズン全体を INSERT OR REPLACE する作りなので、1回の実行でおよそ6,800行書く。
@@ -174,6 +216,9 @@ Sheets APIで直接読み書きする（`life-google.ts`）。D1が持つのは�
 | `openai.ts` | `callOpenAi()` / `fetchOpenAi()` / `extractText()` 等、OpenAI API呼び出し共通処理 |
 | `gemini.ts` | `getGeminiKey()`。whisper文字起こしでGeminiモデルを選んだ場合のAPI鍵取得のみ（呼び出し自体は `api/whisper/index.post.ts` に直書き、他プロバイダと同様の粒度） |
 | `auth.ts` | WHISPER_DB経由の認証・セッション管理 |
+| `news.ts` | news のRSS/Atom解析・記事本文の抽出・D1アクセス。**DOMParser も HTMLRewriter も使わず正規表現**（HTMLRewriter は Worker にしか無く、dev では動かないため） |
+| `news-ai.ts` | news の要約＋重要度判定（`callClaudeText` を使う）。JSONで返させて `extractJson()` で取り出す |
+| `news-run.ts` | news の本処理（収集→本文取得→要約→保存）。cronタスクと手動実行APIの**両方がここを呼ぶ**（mlb のように二重実装しない） |
 | `mlbstats.ts` | MLB Stats API呼び出し |
 | `fangraphs.ts` | FanGraphs API呼び出し |
 | `mlb-dev.ts` | MLBローカル開発用スタブ |

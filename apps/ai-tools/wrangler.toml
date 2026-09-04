@@ -54,13 +54,16 @@ database_id = "7698b7b5-b0c8-4289-b19e-a99c669ca75f"
 #   wrangler d1 create mlb-db
 #   wrangler d1 execute mlb-db --file src/server/db/mlb-schema.sql
 
-# Cron Trigger（1日1回・UTC 7:00＝JST 16:00）
-# 毎時だと mlb-sync が D1 の1日あたり書き込み行数（無料枠10万行/日）をほぼ使い切るため1日1回にした。
-# mlb-sync は差分ではなく毎回シーズン全体を INSERT OR REPLACE するので、回数がそのまま書き込み量になる。
-# 米国の試合は西海岸ぶんも UTC 6:00 頃までに終わるので、その後の 7:00 に前日ぶんをまとめて取り込む。
+# Cron Trigger
+#   "0 7 * * *"  = UTC 7:00 ＝ JST 16:00 → mlb-sync
+#   "0 22 * * *" = UTC 22:00 ＝ JST 翌朝 7:00 → news-digest（朝起きたら /news が最新になっている）
+# mlb-sync が毎時ではなく1日1回なのは、差分ではなく毎回シーズン全体を INSERT OR REPLACE するため、
+# 回数がそのまま D1 の書き込み行数（無料枠10万行/日）になるから。米国の試合は西海岸ぶんも
+# UTC 6:00 頃までに終わるので、その後の 7:00 に前日ぶんをまとめて取り込む。
+# 曜日を絞るときは UTC 基準になる点に注意（JST 平日の朝 = "0 22 * * 0-4"）。
 # nuxt.config.ts の nitro.scheduledTasks の式と必ず揃えること（片方だけ変えると動かない）。
 [triggers]
-crons = ["0 7 * * *"]
+crons = ["0 7 * * *", "0 22 * * *"]
 
 [build]
 command = "npm run build"
@@ -76,6 +79,12 @@ name = "ai-tools-preview"
 # これが無いとプレビュー用 Worker まで prototype.insightlens.jp を要求し、本番と取り合いになる。
 routes = []
 workers_dev = true
+
+# triggers も継承されるキーなので、空配列で打ち消す。
+# これが無いとプレビュー用 Worker まで同じ cron で起きてしまい、本番と同じDBに対して
+# mlb-sync も news も二重に走る（news は URL の UNIQUE で保存は防げるが、要約のAPI代を二重に払う）。
+[env.preview.triggers]
+crons = []
 
 [[env.preview.d1_databases]]
 binding = "WHISPER_DB"

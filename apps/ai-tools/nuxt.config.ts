@@ -83,8 +83,9 @@ gtag('config', 'G-JRBVTJYCEH');`,
       tasks: true,
     },
     scheduledTasks: {
-      // wrangler.toml の [triggers] crons と同じ式にすること（1日1回・UTC 7:00＝JST 16:00）
-      '0 7 * * *': ['mlb-sync'],
+      // wrangler.toml の [triggers] crons と同じ式にすること（片方だけ変えると動かない）
+      '0 7 * * *': ['mlb-sync'], // UTC 7:00 ＝ JST 16:00
+      '0 22 * * *': ['news-digest'], // UTC 22:00 ＝ JST 翌朝 7:00
     },
     devServer: {
       // @ts-ignore — Nitro の型定義に maxBodySize がないが、h3 dev server では有効
