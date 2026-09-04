@@ -210,22 +210,38 @@
         </p>
       </template>
 
-      <!-- ── 年表示：メンバーごとの月別ポイント一覧 ── -->
+      <!-- ── 年表示：メンバーごとの月別ポイント一覧（横＝月、縦＝メンバー） ── -->
       <template v-else>
         <div class="rounded-2xl border border-[var(--keiko-line)] bg-[var(--keiko-card)] overflow-x-auto">
-          <table class="w-full border-collapse min-w-[320px]">
+          <table class="w-full border-collapse min-w-[480px]">
             <thead>
               <tr class="border-b border-[var(--keiko-line)]">
-                <th class="keiko-th text-left pl-4 py-2.5 w-[72px]">月</th>
-                <th v-for="(member, mi) in members" :key="member.id" class="keiko-th text-center py-2.5" :style="{ color: memberColor(mi) }">
-                  {{ member.name }}
+                <th class="keiko-th text-left pl-4 py-2.5 w-[88px]">メンバー</th>
+                <th
+                  v-for="row in yearRows"
+                  :key="row.key"
+                  class="keiko-th text-center py-2.5"
+                  :class="{ 'keiko-row--now': row.key === currentMonthKey }"
+                >
+                  {{ row.month }}月
+                </th>
+                <th class="keiko-th text-center py-2.5 pr-4">
+                  <span class="inline-flex items-center gap-1">
+                    <KeikoArt name="flag" :size="18" />
+                    年合計
+                  </span>
                 </th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in yearRows" :key="row.key" class="border-b border-[var(--keiko-line)]" :class="{ 'keiko-row--now': row.key === currentMonthKey }">
-                <td class="pl-4 py-2.5 text-[13px] font-bold whitespace-nowrap">{{ row.month }}月</td>
-                <td v-for="(member, mi) in members" :key="member.id" class="text-center py-2.5 relative">
+              <tr v-for="(member, mi) in members" :key="member.id" class="border-b border-[var(--keiko-line)]">
+                <td class="pl-4 py-2.5 text-[13px] font-bold whitespace-nowrap" :style="{ color: memberColor(mi) }">{{ member.name }}</td>
+                <td
+                  v-for="row in yearRows"
+                  :key="row.key"
+                  class="text-center py-2.5 relative"
+                  :class="{ 'keiko-row--now': row.key === currentMonthKey }"
+                >
                   <span
                     class="keiko-yearbar"
                     :style="{ width: barWidth(pointsFor(member.id, row.key)), background: memberColor(mi) + '1f' }"
@@ -234,21 +250,22 @@
                     {{ pointsFor(member.id, row.key) || '·' }}
                   </span>
                 </td>
-              </tr>
-              <tr class="bg-black/[0.02]">
-                <td class="pl-4 py-3 text-[12px] font-bold text-[var(--keiko-ink-soft)]">
-                  <span class="inline-flex items-center gap-1">
-                    <KeikoArt name="flag" :size="20" />
-                    年合計
-                  </span>
-                </td>
-                <td v-for="(member, mi) in members" :key="member.id" class="text-center py-3">
+                <td class="text-center py-2.5 pr-4">
                   <span class="text-[15px] font-bold" :style="{ color: memberColor(mi) }">{{ memberRangePoints(member.id) }}</span>
                   <span class="text-[10.5px] text-[var(--keiko-ink-soft)] ml-0.5">pt</span>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- 累積ポイントの推移 -->
+        <div class="mt-4 rounded-2xl border border-[var(--keiko-line)] bg-[var(--keiko-card)] p-4">
+          <h3 class="text-[13px] font-bold text-[var(--keiko-ink-soft)] mb-2 flex items-center gap-1.5">
+            <KeikoArt name="ashiato" :size="18" />
+            累積ポイントの推移
+          </h3>
+          <KeikoCumulativeChart :months="yearRows.map((r) => `${r.month}月`)" :series="cumulativeSeries" />
         </div>
       </template>
     </template>
@@ -512,6 +529,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
 import KeikoArt from '~/components/keiko/KeikoArt.vue'
+import KeikoCumulativeChart from '~/components/keiko/KeikoCumulativeChart.client.vue'
 import { KEIKO_START_DATE, KEIKO_START_MONTH_KEY } from '~/types/keiko'
 import type { KeikoItem, KeikoItemKind, KeikoMember, KeikoPoints, KeikoPointBucket, KeikoRecord, KeikoState } from '~/types/keiko'
 
@@ -807,6 +825,15 @@ const yearMax = computed(() => Math.max(1, ...buckets.value.map((b) => b.points)
 function barWidth(points: number): string {
   return `${Math.round((points / yearMax.value) * 100)}%`
 }
+
+/** 累積推移グラフ用：メンバーごとの月別ポイント（累積計算はグラフ側で行う）。 */
+const cumulativeSeries = computed(() =>
+  members.value.map((m, mi) => ({
+    name: m.name,
+    color: memberColor(mi),
+    data: yearRows.value.map((row) => pointsFor(m.id, row.key)),
+  }))
+)
 
 // ── その日の記録（reps は評価％、direct は入力したポイント）──
 // 100%（全部できた）がいちばん押される選択肢なので、まん中に大きく出して残りを下に並べる。

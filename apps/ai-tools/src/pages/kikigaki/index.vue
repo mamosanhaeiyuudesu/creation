@@ -4,7 +4,7 @@
       <div>
         <h1 class="kk-display text-[26px] leading-none">キキガキ</h1>
         <p class="text-[12.5px] text-[var(--kk-ink-soft)] mt-2 leading-relaxed">
-          会議の録音から議事録をつくり、確認してからGoogleへ送ります。
+          会議の録音や文字起こしから議事録をつくり、確認してからPDFでダウンロードします。
         </p>
       </div>
       <div class="flex items-center gap-1.5 shrink-0">
