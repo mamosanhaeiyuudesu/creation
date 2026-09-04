@@ -274,7 +274,7 @@ export async function getRecord(event: any, viewerId: string, id: string): Promi
 /**
  * レビュー画面での編集を保存する。記録は共有なので、所有者でなくても直せる
  * （会議に出ていた誰かが気づいた間違いを直せるほうが実態に合う）。
- * 承認済みの記録は編集させない（Googleへ送った内容とズレるため）。
+ * Google連携（承認して送信）は廃止したため、記録はいつでも編集できる。
  */
 export async function updateRecordMinutes(event: any, id: string, minutes: KikigakiMinutes): Promise<void> {
   const db = requireKikigakiDb(event)
@@ -282,7 +282,7 @@ export async function updateRecordMinutes(event: any, id: string, minutes: Kikig
     .prepare(
       `UPDATE kikigaki_records
        SET title = ?, meeting_date = ?, minutes = ?, updated_at = datetime('now')
-       WHERE id = ? AND status = 'draft'`
+       WHERE id = ?`
     )
     .bind(
       await encryptComment(event, minutes.title),

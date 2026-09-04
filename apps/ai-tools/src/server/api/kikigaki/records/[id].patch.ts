@@ -1,4 +1,4 @@
-// レビュー画面での編集を保存する。承認済みの記録は更新されない（Googleへ送った内容とズレるため）。
+// レビュー画面での編集を保存する。Google連携（承認して送信）は廃止したため、記録はいつでも編集できる。
 
 import { requireKikigakiUser, getRecord, updateRecordMinutes, normalizeMinutes } from '~/server/utils/kikigaki'
 
@@ -9,9 +9,6 @@ export default defineEventHandler(async (event) => {
 
   const record = await getRecord(event, user.id, id)
   if (!record) throw createError({ statusCode: 404, message: '記録が見つかりません' })
-  if (record.status === 'approved') {
-    throw createError({ statusCode: 409, message: '送信済みの記録は編集できません' })
-  }
 
   const minutes = normalizeMinutes(body?.minutes)
   await updateRecordMinutes(event, id, minutes)

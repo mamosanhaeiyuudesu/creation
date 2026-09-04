@@ -17,7 +17,7 @@
       {{ errorMessage }}
     </p>
 
-    <!-- Google連携 -->
+    <!-- Google連携（廃止。PDFダウンロードに置き換えたためコメントアウト）
     <section class="kk-card px-5 py-4 mb-5 flex flex-wrap items-center gap-x-4 gap-y-2">
       <div class="flex-1 min-w-[200px]">
         <p class="text-[13.5px] font-bold">Googleとの連携</p>
@@ -33,28 +33,50 @@
       <a v-if="googleConnected && spreadsheetUrl" :href="spreadsheetUrl" target="_blank" rel="noopener" class="kk-btn-ghost whitespace-nowrap">議事録一覧を開く</a>
       <a v-if="!googleConnected" href="/api/kikigaki/google/connect" class="kk-btn whitespace-nowrap">連携する</a>
       <button v-else class="kk-btn-ghost whitespace-nowrap" @click="disconnectGoogle">解除</button>
-      <!-- Googleの同意画面と審査から参照されるため、連携ボタンのそばにリンクを置く -->
       <p class="basis-full m-0 text-[11px] text-[var(--kk-ink-faint)]">
         <NuxtLink to="/privacy" class="underline underline-offset-2 hover:text-[var(--kk-ink-soft)]">プライバシーポリシー</NuxtLink>
       </p>
     </section>
+    -->
 
     <!-- アップロード -->
     <section class="kk-card px-5 py-5 mb-8">
-      <p class="kk-label mb-2">録音ファイル</p>
+      <div class="flex items-center gap-1.5 mb-3">
+        <button
+          type="button"
+          class="kk-btn-ghost"
+          :class="{ 'kk-mode-active': uploadMode === 'audio' }"
+          @click="setUploadMode('audio')"
+        >
+          録音ファイル
+        </button>
+        <button
+          type="button"
+          class="kk-btn-ghost"
+          :class="{ 'kk-mode-active': uploadMode === 'transcript' }"
+          @click="setUploadMode('transcript')"
+        >
+          文字起こしテキスト
+        </button>
+      </div>
 
       <template v-if="stage === 'idle'">
         <input
           ref="fileInput"
           type="file"
-          accept="audio/*,.mp3,.wav,.m4a"
+          :accept="uploadMode === 'audio' ? 'audio/*,.mp3,.wav,.m4a' : '.txt,text/plain'"
           class="block w-full text-[13px] text-[var(--kk-ink-soft)] file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[12.5px] file:font-bold file:bg-[var(--kk-accent-soft)] file:text-[var(--kk-accent)] file:cursor-pointer"
           @change="onPick"
         >
         <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-2">
-          mp3 / wav / m4a に対応。長い会議は自動で20分ごとに分割して処理します。
+          <template v-if="uploadMode === 'audio'">
+            mp3 / wav / m4a に対応。長い会議は自動で20分ごとに分割して処理します。
+          </template>
+          <template v-else>
+            文字起こし済みのテキストファイル（.txt）をアップロードすると、文字起こしをスキップしてすぐに議事録を作成します。
+          </template>
         </p>
-        <button class="kk-btn mt-4" :disabled="!file" @click="run">文字起こしをはじめる</button>
+        <button class="kk-btn mt-4" :disabled="!file" @click="run">{{ uploadMode === 'audio' ? '文字起こしをはじめる' : '議事録を作成する' }}</button>
       </template>
 
       <template v-else>
@@ -77,7 +99,7 @@
     <section>
       <div class="flex items-baseline gap-2 mb-2">
         <p class="kk-label">みんなの記録</p>
-        <p class="text-[11px] text-[var(--kk-ink-faint)]">誰がアップロードしたものも、全員で見て直せます。送信済みのものは中身を読み返せます</p>
+        <p class="text-[11px] text-[var(--kk-ink-faint)]">誰がアップロードしたものも、全員で見て直せます</p>
       </div>
 
       <div v-if="loadingList" class="space-y-2">
@@ -107,9 +129,6 @@
                 <span v-if="r.audioName"> ・ {{ r.audioName }}</span>
               </p>
             </div>
-            <span class="kk-tag shrink-0" :class="r.status === 'approved' ? 'kk-tag--approved' : 'kk-tag--draft'">
-              {{ r.status === 'approved' ? '送信済み' : '確認待ち' }}
-            </span>
           </NuxtLink>
           <!-- 記録は全員で共有するが、消せるのはアップロードした本人だけ -->
           <button
@@ -148,18 +167,27 @@ const { isLoggedIn, checked, checkAuth, logout } = useAuth()
 const showAuthModal = computed(() => checked.value && !isLoggedIn.value)
 const showPasswordModal = ref(false)
 
-const googleConnected = ref(false)
-const spreadsheetUrl = ref('')
+// Google連携（廃止。PDFダウンロードに置き換えたためコメントアウト）
+// const googleConnected = ref(false)
+// const spreadsheetUrl = ref('')
 const errorMessage = ref('')
 
 const records = ref<KikigakiRecordSummary[]>([])
 const loadingList = ref(true)
 const deletingId = ref('')
 
+type UploadMode = 'audio' | 'transcript'
+const uploadMode = ref<UploadMode>('audio')
 const file = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 type Stage = 'idle' | 'transcribing' | 'structuring'
 const stage = ref<Stage>('idle')
+
+function setUploadMode(mode: UploadMode) {
+  uploadMode.value = mode
+  file.value = null
+  if (fileInput.value) fileInput.value.value = ''
+}
 /** 分割したときの進み具合。長い会議は数分かかるので、止まっていないことが分かるように出す */
 const chunkProgress = ref<{ done: number; total: number } | null>(null)
 const stageLabel = computed(() => {
@@ -178,15 +206,15 @@ function apiMessage(e: any, fallback: string): string {
   return e?.data?.message || e?.data?.statusMessage || e?.message || fallback
 }
 
-async function loadGoogleStatus() {
-  try {
-    const status = await $fetch<{ connected: boolean; spreadsheetUrl?: string }>('/api/kikigaki/google/status')
-    googleConnected.value = status.connected
-    spreadsheetUrl.value = status.spreadsheetUrl ?? ''
-  } catch {
-    /* 未ログイン時は未連携のまま */
-  }
-}
+// async function loadGoogleStatus() {
+//   try {
+//     const status = await $fetch<{ connected: boolean; spreadsheetUrl?: string }>('/api/kikigaki/google/status')
+//     googleConnected.value = status.connected
+//     spreadsheetUrl.value = status.spreadsheetUrl ?? ''
+//   } catch {
+//     /* 未ログイン時は未連携のまま */
+//   }
+// }
 
 async function loadRecords() {
   loadingList.value = true
@@ -199,15 +227,9 @@ async function loadRecords() {
   loadingList.value = false
 }
 
-// 送信済みの記録を消しても、Google側に作ったドキュメント・タスク・予定は残る。
-// 「消したのにカレンダーから消えていない」と誤解させないよう、確認文で先に伝える。
 async function removeRecord(r: KikigakiRecordSummary) {
   const name = r.title || '（タイトル未設定）'
-  const message =
-    r.status === 'approved'
-      ? `「${name}」をこの一覧から削除しますか？\n\nGoogleへ送信済みです。作成されたドキュメント・タスク・予定は削除されません。`
-      : `「${name}」を削除しますか？（元に戻せません）`
-  if (!confirm(message)) return
+  if (!confirm(`「${name}」を削除しますか？（元に戻せません）`)) return
 
   deletingId.value = r.id
   errorMessage.value = ''
@@ -220,31 +242,37 @@ async function removeRecord(r: KikigakiRecordSummary) {
   deletingId.value = ''
 }
 
-async function disconnectGoogle() {
-  if (!confirm('Google連携を解除しますか？（作成済みのドキュメントやシートは削除されません）')) return
-  await $fetch('/api/kikigaki/google/disconnect', { method: 'POST' })
-  googleConnected.value = false
-  spreadsheetUrl.value = ''
-}
+// async function disconnectGoogle() {
+//   if (!confirm('Google連携を解除しますか？（作成済みのドキュメントやシートは削除されません）')) return
+//   await $fetch('/api/kikigaki/google/disconnect', { method: 'POST' })
+//   googleConnected.value = false
+//   spreadsheetUrl.value = ''
+// }
 
-// 文字起こし → 構造化 の2段階。ここでは下書きを作るだけで、Googleへは何も送らない。
+// 音声は 文字起こし → 構造化 の2段階、テキストは構造化のみ。ここでは下書きを作るだけ。
 async function run() {
   if (!file.value) return
   errorMessage.value = ''
 
   try {
-    stage.value = 'transcribing'
-    // 長い会議は20分ごとに分割して8kHzモノラルへ落としてから並列に投げる（whisper/hagemashi と共通）。
-    // 用語辞書は /api/kikigaki/transcribe がチャンクごとに付けるので、ここから prompt は渡さない。
-    const text = await splitAndTranscribeBlob(file.value, file.value.name, {
-      endpoint: '/api/kikigaki/transcribe',
-      onProgress: (done, total) => {
-        chunkProgress.value = { done, total }
-      },
-    })
-    chunkProgress.value = null
+    let text: string
+    if (uploadMode.value === 'transcript') {
+      stage.value = 'structuring'
+      text = await file.value.text()
+    } else {
+      stage.value = 'transcribing'
+      // 長い会議は20分ごとに分割して8kHzモノラルへ落としてから並列に投げる（whisper/hagemashi と共通）。
+      // 用語辞書は /api/kikigaki/transcribe がチャンクごとに付けるので、ここから prompt は渡さない。
+      text = await splitAndTranscribeBlob(file.value, file.value.name, {
+        endpoint: '/api/kikigaki/transcribe',
+        onProgress: (done, total) => {
+          chunkProgress.value = { done, total }
+        },
+      })
+      chunkProgress.value = null
+      stage.value = 'structuring'
+    }
 
-    stage.value = 'structuring'
     const { id } = await $fetch<{ id: string }>('/api/kikigaki/structure', {
       method: 'POST',
       body: { transcript: text, audioName: file.value.name },
@@ -263,18 +291,17 @@ async function run() {
 async function doLogout() {
   await logout()
   records.value = []
-  googleConnected.value = false
 }
 
 // ログイン直後に読み込み直す（別端末で見えない＝ローカル保存、と誤解させないため）
 watch(isLoggedIn, async (v) => {
-  if (v) await Promise.all([loadGoogleStatus(), loadRecords()])
+  if (v) await loadRecords()
 })
 
 onMounted(async () => {
   if (route.query.kikigaki_error) errorMessage.value = String(route.query.kikigaki_error)
   await checkAuth()
-  if (isLoggedIn.value) await Promise.all([loadGoogleStatus(), loadRecords()])
+  if (isLoggedIn.value) await loadRecords()
   else loadingList.value = false
 })
 </script>

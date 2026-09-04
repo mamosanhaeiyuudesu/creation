@@ -89,6 +89,12 @@ useHead({
 .kk-btn-ghost:hover:not(:disabled) { border-color: var(--kk-line-strong); color: var(--kk-ink); }
 .kk-btn-ghost:disabled { opacity: 0.4; cursor: default; }
 
+.kk-mode-active {
+  border-color: var(--kk-accent);
+  color: var(--kk-accent);
+  background: var(--kk-accent-soft);
+}
+
 .kk-input {
   background: #fff;
   border: 1px solid var(--kk-line);
