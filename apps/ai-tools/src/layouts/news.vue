@@ -92,6 +92,20 @@ useHead({
 .news-card:hover { box-shadow: 0 2px 10px rgba(29, 31, 34, 0.06); }
 .news-card--top { border-left: 3px solid var(--news-accent); }
 
+/* 潮流カード。トップの「大きな流れ」で、クリックすると下の記事が絞り込まれる */
+.news-current-card {
+  background: var(--news-card);
+  border: 1px solid var(--news-line);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.news-current-card:hover { box-shadow: 0 2px 10px rgba(29, 31, 34, 0.06); border-color: var(--news-accent); }
+.news-current-card--on {
+  border-color: var(--news-accent);
+  background: var(--news-accent-soft);
+}
+
 .news-input {
   height: 1.9rem;
   background: var(--news-card);

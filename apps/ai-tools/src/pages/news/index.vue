@@ -6,7 +6,7 @@
         <div>
           <h1 class="news-display text-[26px] sm:text-[30px] leading-none tracking-[0.12em]">AI ニュース</h1>
           <p class="text-[12px] text-[var(--news-ink-soft)] mt-2">
-            OpenAI と Google DeepMind の新着を毎朝7時に集めています。まずは重要度{{ defaultThreshold }}以上から
+            {{ NEWS_SOURCES.length }}ソースの新着を毎朝7時に集め、5つの潮流に分けています
           </p>
         </div>
         <div class="flex items-center gap-1.5">
@@ -21,7 +21,7 @@
     </header>
 
     <!-- 直近の実行状況 -->
-    <div class="flex items-center justify-between gap-3 flex-wrap text-[12px] text-[var(--news-ink-soft)] mb-5">
+    <div class="flex items-center justify-between gap-3 flex-wrap text-[12px] text-[var(--news-ink-soft)] mb-6">
       <p v-if="lastRun">
         最終更新 {{ fmtDateTime(lastRun.createdAt) }}（{{ lastRun.trigger === 'cron' ? '自動' : '手動' }}）・新着{{ lastRun.newItems }}件
         <span v-if="lastRun.errors" class="text-[var(--news-accent)]">・エラー{{ errorCount(lastRun) }}件</span>
@@ -30,9 +30,36 @@
       <p v-if="message" :class="messageIsError ? 'text-[var(--news-accent)]' : 'text-[var(--news-ink)]'">{{ message }}</p>
     </div>
 
+    <!-- 潮流：まずここで大きな流れをつかみ、クリックすると下の記事が絞り込まれる -->
+    <section v-if="!loading" class="mb-8">
+      <div class="grid gap-3 sm:grid-cols-2">
+        <button
+          v-for="c in NEWS_CURRENTS"
+          :key="c.id"
+          class="news-current-card text-left"
+          :class="{ 'news-current-card--on': currentId === c.id }"
+          @click="toggleCurrent(c.id)"
+        >
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <h2 class="news-display text-[14px]">{{ c.label }}</h2>
+            <span class="text-[11px] text-[var(--news-ink-faint)] whitespace-nowrap">{{ currentState(c.id)?.itemCount30d ?? 0 }}件/30日</span>
+          </div>
+          <p
+            class="text-[12.5px] leading-[1.7] text-[var(--news-ink-soft)] overflow-hidden"
+            style="display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;"
+          >
+            {{ currentState(c.id)?.narrative || 'まだ記事が集まっていません。' }}
+          </p>
+        </button>
+      </div>
+    </section>
+
     <!-- 絞り込み -->
     <div v-if="items.length" class="flex items-center gap-1.5 flex-wrap mb-6">
-      <button class="news-chip" :class="{ 'news-chip--on': sourceId === 'all' }" @click="sourceId = 'all'">すべて</button>
+      <button v-if="currentId" class="news-chip news-chip--on" @click="currentId = ''">
+        {{ currentLabel(currentId) }} ×
+      </button>
+      <button class="news-chip" :class="{ 'news-chip--on': sourceId === 'all' }" @click="sourceId = 'all'">すべてのソース</button>
       <button
         v-for="s in usedSources"
         :key="s.id"
@@ -82,9 +109,12 @@
           class="news-card"
           :class="{ 'news-card--top': item.importance >= 4 }"
         >
-          <div class="flex items-center gap-2 text-[11.5px] text-[var(--news-ink-faint)] mb-1.5">
+          <div class="flex items-center gap-2 text-[11.5px] text-[var(--news-ink-faint)] mb-1.5 flex-wrap">
             <span class="text-[var(--news-accent)] font-bold tracking-[0.08em]">{{ stars(item.importance) }}</span>
-            <span class="font-bold text-[var(--news-ink-soft)]">{{ sourceName(item.sourceId) }}</span>
+            <button class="font-bold text-[var(--news-ink-soft)] hover:text-[var(--news-accent)]" @click="currentId = item.current">
+              {{ currentLabel(item.current) }}
+            </button>
+            <span>{{ sourceName(item.sourceId) }}</span>
             <span v-if="item.publishedAt">{{ fmtDate(item.publishedAt.slice(0, 10)) }}</span>
             <span v-if="item.bodySource === 'feed'" title="記事ページを取得できなかったため、フィードの要約文だけで判定しています">フィード要約から</span>
           </div>
@@ -130,15 +160,17 @@
 /**
  * news — 毎朝のAIニュースを読むページ。
  *
+ * 上段は5潮流の「いまの考察」（直近1ヶ月を踏まえてAIが更新）。クリックすると
+ * 下の記事一覧がその潮流だけに絞り込まれる＝大きな流れから個別記事へのドリルダウン。
  * 通知やメールは無く、cron（毎朝7時）が集めておいたものをここで読む。
- * 重要度2以下も保存してあり、チップを切り替えれば見られる。
  */
 import { computed, onMounted, ref, watch } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
 import { NEWS_MIN_IMPORTANCE, NEWS_SOURCES, sourceName } from '~/utils/news-sources'
+import { NEWS_CURRENTS, currentLabel } from '~/utils/news-currents'
 import { WEEKDAYS_JA, toJSTDate } from '~/utils/jst'
-import type { NewsItem, NewsRun, NewsRunResult, NewsState } from '~/types/news'
+import type { NewsCurrentState, NewsItem, NewsRun, NewsRunResult, NewsState } from '~/types/news'
 
 definePageMeta({ layout: 'news' })
 useHead({ title: 'AIニュース' })
@@ -152,8 +184,7 @@ const message = ref('')
 const messageIsError = ref(false)
 const items = ref<NewsItem[]>([])
 const runs = ref<NewsRun[]>([])
-/** サーバー側の既定しきい値。読み込み後に絞り込みの初期値として一度だけ反映する */
-const defaultThreshold = ref(NEWS_MIN_IMPORTANCE)
+const currents = ref<NewsCurrentState[]>([])
 let thresholdApplied = false
 
 const THRESHOLDS = [
@@ -162,6 +193,8 @@ const THRESHOLDS = [
   { value: 4, label: '重要度4以上' },
 ]
 
+/** 選択中の潮流id。空文字なら絞り込みなし。 */
+const currentId = ref('')
 const sourceId = ref('all')
 const minImportance = ref(NEWS_MIN_IMPORTANCE)
 const keyword = ref('')
@@ -170,6 +203,15 @@ const lastRun = computed<NewsRun | null>(() => runs.value[0] ?? null)
 
 function errorCount(run: NewsRun): number {
   return run.errors.split('\n').filter(Boolean).length
+}
+
+function currentState(id: string): NewsCurrentState | undefined {
+  return currents.value.find((c) => c.id === id)
+}
+
+/** カードを押すたびに選択/解除をトグルする。 */
+function toggleCurrent(id: string) {
+  currentId.value = currentId.value === id ? '' : id
 }
 
 /** 実際に記事があるソースだけをチップに出す（ソースを増やせば勝手に増える） */
@@ -181,6 +223,7 @@ const usedSources = computed(() => {
 const filtered = computed(() => {
   const q = keyword.value.trim().toLowerCase()
   return items.value.filter((i) => {
+    if (currentId.value && i.current !== currentId.value) return false
     if (sourceId.value !== 'all' && i.sourceId !== sourceId.value) return false
     if (i.importance < minImportance.value) return false
     if (q && !`${i.titleJa} ${i.title} ${i.summary}`.toLowerCase().includes(q)) return false
@@ -225,7 +268,7 @@ async function load() {
     const state = await $fetch<NewsState>('/api/news')
     items.value = state.items
     runs.value = state.runs
-    defaultThreshold.value = state.minImportance
+    currents.value = state.currents
     // 初回だけサーバーの既定に合わせる。以降はユーザーが選んだ絞り込みを保つ
     if (!thresholdApplied) {
       minImportance.value = state.minImportance
@@ -264,6 +307,7 @@ async function doLogout() {
   await logout()
   items.value = []
   runs.value = []
+  currents.value = []
 }
 
 onMounted(async () => {

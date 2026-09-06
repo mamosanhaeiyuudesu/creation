@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS news_items (
   summary      TEXT NOT NULL DEFAULT '',          -- 日本語3〜5行
   importance   INTEGER NOT NULL DEFAULT 0,        -- 1..5
   reason       TEXT NOT NULL DEFAULT '',          -- 重要度の理由
+  current      TEXT NOT NULL DEFAULT '',          -- news-currents.ts の5潮流のid（AIが記事ごとに分類）
   body_source  TEXT NOT NULL DEFAULT 'feed',      -- article | feed
   published_at TEXT NOT NULL DEFAULT '',          -- フィードの公開日時（ISO）
   digest_date  TEXT NOT NULL DEFAULT '',          -- 収集した日（JST YYYY-MM-DD）
@@ -21,6 +22,16 @@ CREATE TABLE IF NOT EXISTS news_items (
 
 CREATE INDEX IF NOT EXISTS idx_news_items_digest ON news_items(digest_date DESC);
 CREATE INDEX IF NOT EXISTS idx_news_items_created ON news_items(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_news_items_current ON news_items(current);
+
+-- 潮流ごとの「いまの考察」。直近30日の記事一覧（news_items.current で絞る）を
+-- 材料にAIが書き直す。5潮流ぶん、1行ずつしか持たない（履歴は残さない）。
+CREATE TABLE IF NOT EXISTS news_currents (
+  id             TEXT PRIMARY KEY,               -- news-currents.ts の5潮流のid
+  narrative      TEXT NOT NULL DEFAULT '',        -- 考察本文（日本語4〜6文）
+  item_count_30d INTEGER NOT NULL DEFAULT 0,      -- 直近30日でこの潮流に分類された記事数
+  updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+);
 
 -- 実行ログ。cron が黙って失敗していないかをページから確認するために残す。
 CREATE TABLE IF NOT EXISTS news_runs (

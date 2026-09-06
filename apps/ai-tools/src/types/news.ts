@@ -17,6 +17,8 @@ export interface NewsItem {
   importance: number
   /** その重要度にした理由（1行） */
   reason: string
+  /** NEWS_CURRENTS のid。AIが記事ごとに分類する */
+  current: string
   bodySource: NewsBodySource
   /** フィードの公開日時（ISO、取れなければ空） */
   publishedAt: string
@@ -38,9 +40,19 @@ export interface NewsRun {
   createdAt: string
 }
 
+/** 潮流の「いまの考察」。直近1ヶ月ぶんの記事を踏まえてAIが更新する。 */
+export interface NewsCurrentState {
+  id: string
+  narrative: string
+  /** 直近30日でこの潮流に分類された記事数 */
+  itemCount30d: number
+  updatedAt: string
+}
+
 export interface NewsState {
   items: NewsItem[]
   runs: NewsRun[]
+  currents: NewsCurrentState[]
   /** ページが既定で表示する重要度のしきい値 */
   minImportance: number
 }

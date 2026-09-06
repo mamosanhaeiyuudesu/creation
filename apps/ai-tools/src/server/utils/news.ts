@@ -6,7 +6,7 @@
  * 「完璧なスクレイピングでなくてよい」前提の割り切り。
  */
 import { NEWS_MAX_BODY_CHARS } from '~/utils/news-sources'
-import type { NewsBodySource, NewsItem, NewsRun } from '~/types/news'
+import type { NewsBodySource, NewsCurrentState, NewsItem, NewsRun } from '~/types/news'
 
 // ───────────────────────────────── フィード解析 ─────────────────────────────────
 
@@ -62,7 +62,10 @@ function pickAtomLink(block: string): string {
 
 function toIso(raw: string): string {
   if (!raw) return ''
-  const t = new Date(raw).getTime()
+  // Fierce Healthcare が "Sep 4, 2026 9:44am" のように am/pm の前にスペースを
+  // 置かない形式を返し、そのままだと Date.parse に失敗するための救済。
+  const normalized = raw.replace(/(\d)(am|pm)$/i, '$1 $2')
+  const t = new Date(normalized).getTime()
   return Number.isNaN(t) ? '' : new Date(t).toISOString()
 }
 
@@ -153,7 +156,14 @@ export async function fetchArticleText(url: string): Promise<string> {
 export async function ensureNewsTables(db: any): Promise<void> {
   await db
     .exec(
-      `CREATE TABLE IF NOT EXISTS news_items (id TEXT PRIMARY KEY, url TEXT NOT NULL UNIQUE, source_id TEXT NOT NULL DEFAULT '', title TEXT NOT NULL DEFAULT '', title_ja TEXT NOT NULL DEFAULT '', summary TEXT NOT NULL DEFAULT '', importance INTEGER NOT NULL DEFAULT 0, reason TEXT NOT NULL DEFAULT '', body_source TEXT NOT NULL DEFAULT 'feed', published_at TEXT NOT NULL DEFAULT '', digest_date TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')))`
+      `CREATE TABLE IF NOT EXISTS news_items (id TEXT PRIMARY KEY, url TEXT NOT NULL UNIQUE, source_id TEXT NOT NULL DEFAULT '', title TEXT NOT NULL DEFAULT '', title_ja TEXT NOT NULL DEFAULT '', summary TEXT NOT NULL DEFAULT '', importance INTEGER NOT NULL DEFAULT 0, reason TEXT NOT NULL DEFAULT '', current TEXT NOT NULL DEFAULT '', body_source TEXT NOT NULL DEFAULT 'feed', published_at TEXT NOT NULL DEFAULT '', digest_date TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')))`
+    )
+    .catch(() => {})
+  // 052_news.sql の旧バージョンを先に流した環境向け（current 列が無い場合に追加）。
+  await db.exec(`ALTER TABLE news_items ADD COLUMN current TEXT NOT NULL DEFAULT ''`).catch(() => {})
+  await db
+    .exec(
+      `CREATE TABLE IF NOT EXISTS news_currents (id TEXT PRIMARY KEY, narrative TEXT NOT NULL DEFAULT '', item_count_30d INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL DEFAULT (datetime('now')))`
     )
     .catch(() => {})
   await db
@@ -162,6 +172,7 @@ export async function ensureNewsTables(db: any): Promise<void> {
     )
     .catch(() => {})
   await db.exec(`CREATE INDEX IF NOT EXISTS idx_news_items_digest ON news_items(digest_date DESC)`).catch(() => {})
+  await db.exec(`CREATE INDEX IF NOT EXISTS idx_news_items_current ON news_items(current)`).catch(() => {})
   await db.exec(`CREATE INDEX IF NOT EXISTS idx_news_runs_created ON news_runs(created_at DESC)`).catch(() => {})
 }
 
@@ -189,6 +200,7 @@ export interface NewItemInput {
   summary: string
   importance: number
   reason: string
+  current: string
   bodySource: NewsBodySource
   publishedAt: string
   digestDate: string
@@ -199,7 +211,7 @@ export async function insertItem(db: any, item: NewItemInput): Promise<string> {
   const id = crypto.randomUUID()
   await db
     .prepare(
-      'INSERT OR IGNORE INTO news_items (id, url, source_id, title, title_ja, summary, importance, reason, body_source, published_at, digest_date) VALUES (?,?,?,?,?,?,?,?,?,?,?)'
+      'INSERT OR IGNORE INTO news_items (id, url, source_id, title, title_ja, summary, importance, reason, current, body_source, published_at, digest_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'
     )
     .bind(
       id,
@@ -210,6 +222,7 @@ export async function insertItem(db: any, item: NewItemInput): Promise<string> {
       item.summary,
       item.importance,
       item.reason,
+      item.current,
       item.bodySource,
       item.publishedAt,
       item.digestDate
@@ -229,6 +242,7 @@ function toNewsItem(r: any): NewsItem {
     summary: r.summary ?? '',
     importance: r.importance ?? 0,
     reason: r.reason ?? '',
+    current: r.current ?? '',
     bodySource: (r.body_source === 'article' ? 'article' : 'feed') as NewsBodySource,
     publishedAt: r.published_at ?? '',
     digestDate: r.digest_date ?? '',
@@ -274,5 +288,66 @@ export async function insertRun(
       run.errors.join('\n')
     )
     .run()
+}
+
+// ───────────────────────────────── 潮流の考察 ─────────────────────────────────
+
+export interface RecentCurrentItem {
+  titleJa: string
+  importance: number
+  digestDate: string
+}
+
+export interface CurrentContext {
+  /** 前回書いた考察（無ければ空文字＝初回） */
+  previousNarrative: string
+  /** 直近 NEWS_TREND_LOOKBACK_DAYS 日ぶんの一覧（見出しと重要度のみ、本文は含まない） */
+  recentItems: RecentCurrentItem[]
+}
+
+/** ある潮流の考察を書くための材料（前回の考察＋直近の一覧）をまとめて取得する。 */
+export async function loadCurrentContext(db: any, currentId: string, sinceDate: string): Promise<CurrentContext> {
+  const [narrativeRow, itemsRes] = await Promise.all([
+    db.prepare('SELECT narrative FROM news_currents WHERE id = ?').bind(currentId).first<{ narrative: string }>(),
+    db
+      .prepare(
+        'SELECT title_ja, importance, digest_date FROM news_items WHERE current = ? AND digest_date >= ? ORDER BY digest_date DESC LIMIT 200'
+      )
+      .bind(currentId, sinceDate)
+      .all<any>(),
+  ])
+  return {
+    previousNarrative: narrativeRow?.narrative ?? '',
+    recentItems: (itemsRes?.results ?? []).map((r: any) => ({
+      titleJa: r.title_ja ?? '',
+      importance: r.importance ?? 0,
+      digestDate: r.digest_date ?? '',
+    })),
+  }
+}
+
+/** 潮流の考察を書き直す。5潮流ぶん、履歴は持たず1行を上書きする。 */
+export async function upsertCurrentNarrative(
+  db: any,
+  currentId: string,
+  narrative: string,
+  itemCount30d: number
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT OR REPLACE INTO news_currents (id, narrative, item_count_30d, updated_at) VALUES (?, ?, ?, datetime('now'))`
+    )
+    .bind(currentId, narrative, itemCount30d)
+    .run()
+}
+
+export async function listCurrentStates(db: any): Promise<NewsCurrentState[]> {
+  const res = await db.prepare('SELECT * FROM news_currents').all<any>()
+  return (res?.results ?? []).map((r: any) => ({
+    id: r.id,
+    narrative: r.narrative ?? '',
+    itemCount30d: r.item_count_30d ?? 0,
+    updatedAt: r.updated_at ?? '',
+  }))
 }
 
