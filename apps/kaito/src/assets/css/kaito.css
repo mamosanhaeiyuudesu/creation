@@ -1024,6 +1024,7 @@ body.home h6 {
 
   /* 画面が狭いと端に寄りすぎるので、ずらし幅を詰める */
   .hero-question h1 {
+    font-size: 1.575rem;
     transform: translate(-14px, -16px);
   }
 
