@@ -19,6 +19,11 @@ export interface NewsSource {
   name: string
   url: string
   enabled: boolean
+  /**
+   * 記事ページからの本文取得を最初から試さない（news-run.ts の subrequest 予算の節約）。
+   * OpenAI は UA を変えても常に403を返すことを実測済みなので、毎回1回ぶん無駄打ちしない。
+   */
+  skipArticleFetch?: boolean
 }
 
 export const NEWS_SOURCES: NewsSource[] = [
@@ -28,6 +33,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     name: 'OpenAI',
     url: 'https://openai.com/news/rss.xml',
     enabled: true,
+    skipArticleFetch: true,
   },
   {
     id: 'deepmind',

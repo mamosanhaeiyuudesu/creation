@@ -29,6 +29,19 @@ export interface KikigakiEventCandidate {
   end: string
 }
 
+/** PDFの目安文字数（超えるとAIが文字数内に要約し直す）。記録ごとにレビュー画面で調整できる */
+export interface KikigakiPrintSettings {
+  /** 概要（PDF左側＝概要と検討事項をまとめた欄）の目安文字数 */
+  summaryMaxChars: number
+  /** 決定事項・予定・タスク（PDF右側）を合計した目安文字数 */
+  rightMaxChars: number
+}
+
+export const KIKIGAKI_DEFAULT_SUMMARY_MAX_CHARS = 450
+export const KIKIGAKI_DEFAULT_RIGHT_MAX_CHARS = 450
+export const KIKIGAKI_PRINT_MAX_CHARS_MIN = 100
+export const KIKIGAKI_PRINT_MAX_CHARS_MAX = 2000
+
 /** Claude が文字起こしから組み立てる議事録の構造。人間がレビュー画面で編集する対象そのもの */
 export interface KikigakiMinutes {
   title: string
@@ -41,6 +54,7 @@ export interface KikigakiMinutes {
   eventCandidates: KikigakiEventCandidate[]
   /** Claude が自信を持てなかった箇所の自己申告。レビュー画面の先頭に出す */
   unclearPoints: string[]
+  printSettings: KikigakiPrintSettings
 }
 
 /** draft = まだGoogleへ送っていない / approved = 人間が承認してGoogleへ送信済み */
@@ -96,5 +110,9 @@ export function emptyMinutes(): KikigakiMinutes {
     taskCandidates: [],
     eventCandidates: [],
     unclearPoints: [],
+    printSettings: {
+      summaryMaxChars: KIKIGAKI_DEFAULT_SUMMARY_MAX_CHARS,
+      rightMaxChars: KIKIGAKI_DEFAULT_RIGHT_MAX_CHARS,
+    },
   }
 }

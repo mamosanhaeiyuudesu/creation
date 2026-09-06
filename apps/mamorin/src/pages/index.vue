@@ -6,14 +6,14 @@
       <div class="mm-wrap">
         <div class="mm-hero-inner">
           <div class="mm-hero-text">
-            <p class="mm-hero-eyebrow">感情フォーカス・カウンセリング / オンライン</p>
+            <p class="mm-hero-eyebrow">左脳型カウンセリング / オンライン</p>
             <h1 class="mm-hero-title">
-              親への恨みを手放し、<br>
-              自分の人生を生きる
+              思考から入る、<br>
+              カウンセリング。
             </h1>
             <p class="mm-hero-sub">
-              長年の親との葛藤を乗り越えたカウンセラーが、<br>
-              同じ痛みを抱えるあなたの伴走者になります。
+              理系出身のエンジニアが、AIを駆使しながら思考を構造化・見える化し、自己受容をサポートします。<br>
+              一般的なカウンセリングでは理解してもらえなかった——そんな「思考型」の方のための専門カウンセラーです。
             </p>
             <a
               class="mm-hero-cta"
@@ -49,22 +49,61 @@
     <section id="for-you" class="mm-surface">
       <div class="mm-wrap">
         <p class="mm-section-label">For You</p>
-        <h4 class="mm-section-title">親子関係が影響して、以下の問題を抱えてませんか？</h4>
+        <h4 class="mm-section-title">こんな悩み、ありませんか？</h4>
         <div class="mm-for-you-inner">
-          <ul class="mm-for-you-list">
-            <li>
-              <span class="mm-for-you-dash">—</span>
-              目上の人への反発心が強く、人間関係がうまく作れない。
-            </li>
-            <li>
-              <span class="mm-for-you-dash">—</span>
-              他人の目線を過度に意識して、自分を抑え込んでいる。
-            </li>
-            <li>
-              <span class="mm-for-you-dash">—</span>
-              頑張っても、自分を認められず、達成感を感じられない。
-            </li>
-          </ul>
+          <div class="mm-for-you-col">
+            <div class="mm-for-you-group">
+              <p class="mm-for-you-group-label">対人関係の悩み</p>
+              <ul class="mm-for-you-list">
+                <li>
+                  <span class="mm-for-you-dash">—</span>
+                  人の輪にうまく入れなくて苦しい。
+                </li>
+                <li>
+                  <span class="mm-for-you-dash">—</span>
+                  目上の人への反発心が強く、ぶつかりやすい。
+                </li>
+                <li>
+                  <span class="mm-for-you-dash">—</span>
+                  女性とうまく話せない。
+                </li>
+              </ul>
+            </div>
+            <div class="mm-for-you-group">
+              <p class="mm-for-you-group-label">自己評価の悩み</p>
+              <ul class="mm-for-you-list">
+                <li>
+                  <span class="mm-for-you-dash">—</span>
+                  頑張っているのに、達成感を感じられない。
+                </li>
+                <li>
+                  <span class="mm-for-you-dash">—</span>
+                  他人の目線を過度に意識して、自分を抑え込んでいる。
+                </li>
+                <li>
+                  <span class="mm-for-you-dash">—</span>
+                  「暗い」「引っ込み思案」と言われて落ち込む。
+                </li>
+              </ul>
+            </div>
+            <div class="mm-for-you-group">
+              <p class="mm-for-you-group-label">一歩を踏み出せない悩み</p>
+              <ul class="mm-for-you-list">
+                <li>
+                  <span class="mm-for-you-dash">—</span>
+                  頭でごちゃごちゃ考えすぎて、動けなくなる。
+                </li>
+                <li>
+                  <span class="mm-for-you-dash">—</span>
+                  一歩踏み出すのが怖い。
+                </li>
+                <li>
+                  <span class="mm-for-you-dash">—</span>
+                  親との間で、長年の葛藤を抱えている。
+                </li>
+              </ul>
+            </div>
+          </div>
           <img src="/images/mamorin.png" alt="" class="mm-for-you-photo">
         </div>
       </div>
@@ -80,20 +119,19 @@
             <p class="mm-strength-num">01</p>
             <h3 class="mm-strength-title">当事者であること</h3>
             <p class="mm-strength-body">
-              私自身が、親との長年の葛藤を体験してきました。<br>
-              ふつうの親子関係を持てた人には理解しがたい体験が、言葉にしなくても共有できます。<br>
-              そして、それを乗り越えてきたからこそ、私自身の言動にも信頼性が生まれると考えています。
+              私自身、親との長年の葛藤を体験し、頭ではわかっていても心がついてこない、感情表現が苦手で身近な人からも指摘されてきた——そんな経験を長く抱えてきました。<br>
+              ふつうの親子関係を持てた人には理解しがたい体験も、言葉にしなくても共有できます。<br>
+              同じ痛みを知っているからこそ、それを乗り越えてきた今、私自身の言動にも信頼性が生まれると考えています。
             </p>
           </div>
           <div class="mm-strength-item">
             <p class="mm-strength-num">02</p>
-            <h3 class="mm-strength-title">本当の感情に気づく
+            <h3 class="mm-strength-title">あなたのペースで、知的理解から入るアプローチ
             </h3>
             <p class="mm-strength-body">
-              押し留めてきた感情を感じれるようになることが、変わっていくためにとても大事です。<br>
-              感情に気づき、向き合うことができると癒しが進みます。<br>
-              セッションでは、本当に感じている感情を受容していけるようサポートします。<br>
-              これが自己受容につながっていきます。
+              いきなり感情に触れさせることはしません。対話を文字起こしし、思考や経験を「見える形」に構造化することで、まずは知的に理解するところから始めます。<br>
+              無理なく、自分のペースで、少しずつ感情との接点に近づいていく——それが、押し留めてきた本当の感情に気づき、向き合うための土台になります。<br>
+              気づき、向き合うことができると、そこから自己受容が進んでいきます。
             </p>
           </div>
         </div>
@@ -110,9 +148,14 @@
             <p class="mm-service-type">Service 01</p>
             <h3 class="mm-service-name">カウンセリング</h3>
             <p class="mm-service-desc">
-              話すことから始めます。<br>
-              怒りや悲しみをしっかり感じきることで、長年抱えてきた未消化の感情を解放することを目指します。
+              話すことから始めます。対話を「見える形」に構造化しながら、無理なく自分のペースで、長年抱えてきた未消化の感情に近づいていきます。
             </p>
+            <ol class="mm-loop-list mm-loop-list--steps">
+              <li>対話（普段通りの会話でOK）</li>
+              <li>文字起こし（話した内容をそのまま言葉として残す）</li>
+              <li>構造化（思考や経験のパターンを見える化）</li>
+              <li>共有・対話（気づきをすり合わせながら、少しずつ次に進む）</li>
+            </ol>
             <ul class="mm-service-points">
               <li>傾聴・対話を中心とした60分セッション</li>
               <li>オンライン（ビデオ通話）対応</li>
@@ -366,7 +409,7 @@ definePageMeta({ layout: 'mamorin' })
 useHead({
   title: '自分を許す — カウンセリング & 感情フォーカス・セラピー',
   meta: [
-    { name: 'description', content: '親への恨みを手放し、自分を許せる自分になる。オンラインカウンセリング・感情フォーカス・セラピー。初回30分無料相談あり。' },
+    { name: 'description', content: '理系出身のエンジニアが、AIを駆使しながら思考を構造化・見える化し、自己受容をサポートする「思考型」の方専門のオンラインカウンセリング。初回30分無料相談あり。' },
   ],
   link: [
     { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☯</text></svg>` },
@@ -383,8 +426,15 @@ const faqs = [
   {
     q: 'どんな方が対象ですか？',
     a: [
-      '主に、父親・母親との関係に長年悩んできた方を対象にしています。',
+      '頭ではわかっているのに動けない、感情表現が苦手、人間関係や親との関係で長年しんどさを抱えている——そういった方を対象にしています。',
       'カウンセリングや自己啓発に何度か取り組んだけどなかなか変われない、という方は、ぜひ一度お話しください。',
+    ],
+  },
+  {
+    q: 'カウンセリングと何が違いますか？',
+    a: [
+      '感情にいきなり向き合うのではなく、対話の文字起こしと構造化を通じて、まず知的に理解するところから始める点が特徴です。',
+      '考えすぎてしまうタイプの方でも、無理なく自分のペースで感情との接点に近づいていけます。',
     ],
   },
   // {

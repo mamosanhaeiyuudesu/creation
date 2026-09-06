@@ -8,11 +8,18 @@
 
 import { getSessionUser, getAppDb } from '~/server/utils/auth'
 import { encryptComment, decryptComment } from '~/server/utils/encrypt'
-import { emptyMinutes } from '~/types/kikigaki'
+import {
+  emptyMinutes,
+  KIKIGAKI_DEFAULT_SUMMARY_MAX_CHARS,
+  KIKIGAKI_DEFAULT_RIGHT_MAX_CHARS,
+  KIKIGAKI_PRINT_MAX_CHARS_MIN,
+  KIKIGAKI_PRINT_MAX_CHARS_MAX,
+} from '~/types/kikigaki'
 import type {
   KikigakiEventCandidate,
   KikigakiMinutes,
   KikigakiPoint,
+  KikigakiPrintSettings,
   KikigakiRecord,
   KikigakiRecordSummary,
   KikigakiStatus,
@@ -140,6 +147,21 @@ function normalizeEvents(v: unknown): KikigakiEventCandidate[] {
     .filter((e) => e.title || e.datetime)
 }
 
+/** 100〜2000の整数に丸める。数値でなければ既定値を使う（PDFがAI要約の無限ループ等に陥らないための保険） */
+function clampMaxChars(v: unknown, fallback: number): number {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return fallback
+  return Math.min(KIKIGAKI_PRINT_MAX_CHARS_MAX, Math.max(KIKIGAKI_PRINT_MAX_CHARS_MIN, Math.round(n)))
+}
+
+function normalizePrintSettings(v: unknown): KikigakiPrintSettings {
+  const src = v && typeof v === 'object' ? (v as any) : {}
+  return {
+    summaryMaxChars: clampMaxChars(src.summaryMaxChars, KIKIGAKI_DEFAULT_SUMMARY_MAX_CHARS),
+    rightMaxChars: clampMaxChars(src.rightMaxChars, KIKIGAKI_DEFAULT_RIGHT_MAX_CHARS),
+  }
+}
+
 /** 構造化JSONを画面・DBで扱う形に揃える。欠けたキーは空で埋める（落とさない） */
 export function normalizeMinutes(raw: any): KikigakiMinutes {
   if (!raw || typeof raw !== 'object') return emptyMinutes()
@@ -152,6 +174,7 @@ export function normalizeMinutes(raw: any): KikigakiMinutes {
     taskCandidates: normalizeTasks(raw.taskCandidates ?? raw.task_candidates),
     eventCandidates: normalizeEvents(raw.eventCandidates ?? raw.event_candidates),
     unclearPoints: arr(raw.unclearPoints ?? raw.unclear_points).map(str).filter(Boolean),
+    printSettings: normalizePrintSettings(raw.printSettings ?? raw.print_settings),
   }
 }
 

@@ -26,6 +26,26 @@
         {{ errorMessage }}
       </p>
 
+      <!-- AIで内容を修正（名前の言い間違い直しや軽微な言い回しの修正をAIに任せる） -->
+      <section class="kk-card px-5 py-4 mb-5">
+        <p class="kk-label mb-1.5">AIで内容を修正</p>
+        <p class="text-[12px] text-[var(--kk-ink-faint)] mb-2 leading-relaxed">
+          指示を書いて実行すると、下の内容全体をAIが書き換えます。名前や単語の言い間違い直しなど軽微な修正向けです。
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <input
+            v-model="reviseInstruction"
+            class="kk-input flex-1 min-w-[220px]"
+            placeholder="例: 「阪中さん」を「坂中さん」に直して"
+            :disabled="revising"
+            @keydown.enter.prevent="runRevise"
+          >
+          <button class="kk-btn-ghost shrink-0" :disabled="revising || !reviseInstruction.trim()" @click="runRevise">
+            {{ revising ? '修正中…' : 'AIで修正' }}
+          </button>
+        </div>
+      </section>
+
       <!-- AIの自己申告（最優先で確認してほしいので先頭） -->
       <section
         v-if="minutes.unclearPoints.length"
@@ -162,6 +182,38 @@
         </div>
       </div>
 
+      <!-- PDFの文字数設定（左＝概要＋検討事項、右＝決定事項＋予定＋タスク の目安文字数） -->
+      <details class="kk-card px-5 py-4 mb-4">
+        <summary class="kk-label cursor-pointer select-none">PDFの文字数設定</summary>
+        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+          <label class="flex items-center justify-between gap-2 text-[12.5px]">
+            <span class="text-[var(--kk-ink-soft)]">概要（左側）の目安文字数</span>
+            <input
+              v-model.number="minutes.printSettings.summaryMaxChars"
+              type="number"
+              min="100"
+              max="2000"
+              step="50"
+              class="kk-input !w-24 text-right"
+            >
+          </label>
+          <label class="flex items-center justify-between gap-2 text-[12.5px]">
+            <span class="text-[var(--kk-ink-soft)]">右側（決定事項・予定・タスク）の目安文字数</span>
+            <input
+              v-model.number="minutes.printSettings.rightMaxChars"
+              type="number"
+              min="100"
+              max="2000"
+              step="50"
+              class="kk-input !w-24 text-right"
+            >
+          </label>
+        </div>
+        <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-2 leading-relaxed">
+          PDF化のときに超えていたら、AIが文字数内に収まるよう要約し直します（元の内容はここでは変わりません）。
+        </p>
+      </details>
+
       <!-- 文字起こし全文（照合用） -->
       <details class="kk-card px-5 py-4 mb-6">
         <summary class="kk-label cursor-pointer select-none">文字起こし全文を表示（照合用）</summary>
@@ -193,57 +245,54 @@
             <span>〈{{ minutes.title || '（タイトル未設定）' }}〉</span>
           </div>
 
+          <!-- 概要＝もとの概要と検討事項をまとめた欄。文字数内ならそのまま両方出し、
+               超えていたらAIがひとつながりの文章に要約し直した printSummaryMain だけを出す
+               （そのときは printDiscussionLines が空になり、検討事項の小見出しごと消える）。 -->
           <div class="kk-print-section">
             <p class="kk-print-heading">概要</p>
-            <p class="kk-print-body">{{ minutes.summary || '（記載なし）' }}</p>
-          </div>
-
-          <div class="kk-print-section">
-            <p class="kk-print-heading">決定事項</p>
-            <p v-if="!minutes.decisions.length" class="kk-print-empty">（なし）</p>
-            <ul v-else class="kk-print-list">
-              <li v-for="(d, i) in minutes.decisions" :key="i">
-                {{ i + 1 }}. {{ d.content }}
-                <span v-if="d.note" class="kk-print-item-note">{{ d.note }}</span>
-              </li>
-            </ul>
+            <p class="kk-print-body">{{ printSummaryMain || '（記載なし）' }}</p>
+            <template v-if="printDiscussionLines.length">
+              <p class="kk-print-subheading">検討事項</p>
+              <ul class="kk-print-list">
+                <li v-for="(d, i) in printDiscussionLines" :key="i">
+                  {{ i + 1 }}. {{ d.main }}
+                  <span v-if="d.note" class="kk-print-item-note">{{ d.note }}</span>
+                </li>
+              </ul>
+            </template>
           </div>
         </div>
 
         <div class="kk-print-col kk-print-col--right">
           <div class="kk-print-section">
-            <p class="kk-print-heading">検討事項</p>
-            <p v-if="!minutes.discussions.length" class="kk-print-empty">（なし）</p>
+            <p class="kk-print-heading">決定事項</p>
+            <p v-if="!printDecisionLines.length" class="kk-print-empty">（なし）</p>
             <ul v-else class="kk-print-list">
-              <li v-for="(d, i) in minutes.discussions" :key="i">
-                {{ i + 1 }}. {{ d.content }}
+              <li v-for="(d, i) in printDecisionLines" :key="i">
+                {{ i + 1 }}. {{ d.main }}
                 <span v-if="d.note" class="kk-print-item-note">{{ d.note }}</span>
-              </li>
-            </ul>
-          </div>
-
-          <div class="kk-print-section">
-            <p class="kk-print-heading">タスク</p>
-            <p v-if="!minutes.taskCandidates.length" class="kk-print-empty">（なし）</p>
-            <ul v-else class="kk-print-list">
-              <li v-for="(t, i) in minutes.taskCandidates" :key="i">
-                {{ i + 1 }}. {{ t.task }}
-                <span class="kk-print-item-note">
-                  担当: {{ t.assignee || '未定' }}<template v-if="t.dueDate || t.due"> ・ 期限 {{ t.dueDate || t.due }}</template>
-                </span>
               </li>
             </ul>
           </div>
 
           <div class="kk-print-section">
             <p class="kk-print-heading">予定</p>
-            <p v-if="!minutes.eventCandidates.length" class="kk-print-empty">（なし）</p>
+            <p v-if="!printEventLines.length" class="kk-print-empty">（なし）</p>
             <ul v-else class="kk-print-list">
-              <li v-for="(ev, i) in minutes.eventCandidates" :key="i">
-                {{ i + 1 }}. {{ ev.title || '（無題）' }}
-                <span class="kk-print-item-note">
-                  {{ printEventWhen(ev) }}<template v-if="ev.location"> ・ {{ ev.location }}</template>
-                </span>
+              <li v-for="(ev, i) in printEventLines" :key="i">
+                {{ i + 1 }}. {{ ev.main }}
+                <span v-if="ev.note" class="kk-print-item-note">{{ ev.note }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="kk-print-section">
+            <p class="kk-print-heading">タスク</p>
+            <p v-if="!printTaskLines.length" class="kk-print-empty">（なし）</p>
+            <ul v-else class="kk-print-list">
+              <li v-for="(t, i) in printTaskLines" :key="i">
+                {{ i + 1 }}. {{ t.main }}
+                <span v-if="t.note" class="kk-print-item-note">{{ t.note }}</span>
               </li>
             </ul>
           </div>
@@ -290,6 +339,30 @@ function apiMessage(e: any, fallback: string): string {
 
 function applyMinutes(src: KikigakiMinutes) {
   Object.assign(minutes, JSON.parse(JSON.stringify(src)))
+}
+
+// ── AIで内容を修正 ────────────────────────────────────────
+// 指示欄1つの内容をもとに、議事録全体をAIに書き換えさせる（名前の言い間違い直し等の軽微な修正向け）。
+
+const reviseInstruction = ref('')
+const revising = ref(false)
+
+async function runRevise() {
+  const instruction = reviseInstruction.value.trim()
+  if (!instruction || !record.value) return
+  revising.value = true
+  errorMessage.value = ''
+  try {
+    const res = await $fetch<{ minutes: KikigakiMinutes }>('/api/kikigaki/revise', {
+      method: 'POST',
+      body: { minutes, transcript: record.value.transcript, instruction },
+    })
+    applyMinutes(res.minutes)
+    reviseInstruction.value = ''
+  } catch (e: any) {
+    errorMessage.value = apiMessage(e, 'AIによる修正に失敗しました')
+  }
+  revising.value = false
 }
 
 function addTask() {
@@ -358,11 +431,93 @@ function printEventWhen(ev: KikigakiEventCandidate): string {
   return ev.datetime || '日時未定'
 }
 
+// ── PDF表示内容の組み立て ────────────────────────────────
+// 左＝概要（概要＋検討事項をまとめた欄）／右＝決定事項・予定・タスクの3区分。
+// レビュー画面で設定した目安文字数（minutes.printSettings）以内ならそのまま表示し、
+// 超えているときだけAIに要約し直させる（呼び出しは downloadPdf のたびに文字数を見て判断する）。
+
+interface PrintLine {
+  main: string
+  note?: string
+}
+
+const printSummaryMain = ref('')
+const printDiscussionLines = ref<PrintLine[]>([])
+const printDecisionLines = ref<PrintLine[]>([])
+const printEventLines = ref<PrintLine[]>([])
+const printTaskLines = ref<PrintLine[]>([])
+
+function lineLength(l: PrintLine): number {
+  return l.main.length + (l.note?.length ?? 0)
+}
+
+async function buildPrintContent() {
+  // 左側＝概要＋検討事項
+  const discussionLines: PrintLine[] = minutes.discussions.map((d) => ({ main: d.content, note: d.note }))
+  const leftChars = minutes.summary.length + discussionLines.reduce((sum, l) => sum + lineLength(l), 0)
+  const summaryMax = minutes.printSettings.summaryMaxChars
+
+  if (leftChars <= summaryMax) {
+    printSummaryMain.value = minutes.summary
+    printDiscussionLines.value = discussionLines
+  } else {
+    try {
+      const res = await $fetch<{ text: string }>('/api/kikigaki/print-condense', {
+        method: 'POST',
+        body: { target: 'left', summary: minutes.summary, discussions: minutes.discussions, maxChars: summaryMax },
+      })
+      printSummaryMain.value = res.text
+      printDiscussionLines.value = []
+    } catch {
+      // AI要約に失敗しても元の内容でPDF化は続ける（1ページに収まるよう画像側で縮小されるため）
+      printSummaryMain.value = minutes.summary
+      printDiscussionLines.value = discussionLines
+    }
+  }
+
+  // 右側＝決定事項・予定・タスク（この順で表示）
+  const decisionLines: PrintLine[] = minutes.decisions.map((d) => ({ main: d.content, note: d.note }))
+  const eventLines: PrintLine[] = minutes.eventCandidates.map((ev) => ({
+    main: ev.title || '（無題）',
+    note: ev.location ? `${printEventWhen(ev)} ・ ${ev.location}` : printEventWhen(ev),
+  }))
+  const taskLines: PrintLine[] = minutes.taskCandidates.map((t) => ({
+    main: t.task,
+    note: `担当: ${t.assignee || '未定'}${t.dueDate || t.due ? ` ・ 期限 ${t.dueDate || t.due}` : ''}`,
+  }))
+  const rightChars = [...decisionLines, ...eventLines, ...taskLines].reduce((sum, l) => sum + lineLength(l), 0)
+  const rightMax = minutes.printSettings.rightMaxChars
+
+  if (rightChars <= rightMax) {
+    printDecisionLines.value = decisionLines
+    printEventLines.value = eventLines
+    printTaskLines.value = taskLines
+  } else {
+    try {
+      const res = await $fetch<{ decisions: string[]; events: string[]; tasks: string[] }>(
+        '/api/kikigaki/print-condense',
+        {
+          method: 'POST',
+          body: { target: 'right', decisions: decisionLines, events: eventLines, tasks: taskLines, maxChars: rightMax },
+        }
+      )
+      printDecisionLines.value = res.decisions.map((main) => ({ main }))
+      printEventLines.value = res.events.map((main) => ({ main }))
+      printTaskLines.value = res.tasks.map((main) => ({ main }))
+    } catch {
+      printDecisionLines.value = decisionLines
+      printEventLines.value = eventLines
+      printTaskLines.value = taskLines
+    }
+  }
+}
+
 async function downloadPdf() {
   errorMessage.value = ''
   generatingPdf.value = true
   try {
     await saveDraft()
+    await buildPrintContent()
     await nextTick()
 
     const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')])
@@ -526,6 +681,15 @@ onMounted(async () => {
   line-height: 1.8;
   white-space: pre-wrap;
   margin: 0;
+}
+
+/* 概要欄の中に検討事項を同居させるための小見出し。kk-print-heading より控えめにして
+   「概要のなかの一部」に見えるようにし、区分自体は決定事項などと同格に見えないようにする */
+.kk-print-subheading {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5b6472;
+  margin: 10px 0 4px;
 }
 
 .kk-print-list {

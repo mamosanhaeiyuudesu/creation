@@ -151,42 +151,52 @@ export async function fetchArticleText(url: string): Promise<string> {
 
 /**
  * news 用テーブルを（無ければ）用意する。052_news.sql を流し忘れた環境向けの保険。
- * D1 の exec() は改行を文区切りとして扱うため、各文は1行で書く。
+ *
+ * Cloudflare Workers の subrequest 上限（Freeプランは1回の呼び出しにつき50個。
+ * fetch() の外部通信だけでなく D1 バインディング経由のアクセスも同じ枠でカウントされる）
+ * に当たらないよう、CREATE TABLE/INDEX を db.batch() で1回の呼び出しにまとめて送る
+ * （文ごとに .exec() すると news 単体でここだけで7回分を毎回消費していた）。
+ * batch() は1文でも失敗すると全体がロールバックされるため、失敗しうる文
+ * （列追加のALTERなど）は混ぜない。ここに並ぶのは全部 IF NOT EXISTS で毎回安全に成功する文だけ。
  */
 export async function ensureNewsTables(db: any): Promise<void> {
-  await db
-    .exec(
-      `CREATE TABLE IF NOT EXISTS news_items (id TEXT PRIMARY KEY, url TEXT NOT NULL UNIQUE, source_id TEXT NOT NULL DEFAULT '', title TEXT NOT NULL DEFAULT '', title_ja TEXT NOT NULL DEFAULT '', summary TEXT NOT NULL DEFAULT '', importance INTEGER NOT NULL DEFAULT 0, reason TEXT NOT NULL DEFAULT '', current TEXT NOT NULL DEFAULT '', body_source TEXT NOT NULL DEFAULT 'feed', published_at TEXT NOT NULL DEFAULT '', digest_date TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')))`
-    )
-    .catch(() => {})
-  // 052_news.sql の旧バージョンを先に流した環境向け（current 列が無い場合に追加）。
-  await db.exec(`ALTER TABLE news_items ADD COLUMN current TEXT NOT NULL DEFAULT ''`).catch(() => {})
-  await db
-    .exec(
-      `CREATE TABLE IF NOT EXISTS news_currents (id TEXT PRIMARY KEY, narrative TEXT NOT NULL DEFAULT '', item_count_30d INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL DEFAULT (datetime('now')))`
-    )
-    .catch(() => {})
-  await db
-    .exec(
-      `CREATE TABLE IF NOT EXISTS news_runs (id TEXT PRIMARY KEY, digest_date TEXT NOT NULL DEFAULT '', trigger TEXT NOT NULL DEFAULT 'cron', fetched INTEGER NOT NULL DEFAULT 0, new_items INTEGER NOT NULL DEFAULT 0, errors TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')))`
-    )
-    .catch(() => {})
-  await db.exec(`CREATE INDEX IF NOT EXISTS idx_news_items_digest ON news_items(digest_date DESC)`).catch(() => {})
-  await db.exec(`CREATE INDEX IF NOT EXISTS idx_news_items_current ON news_items(current)`).catch(() => {})
-  await db.exec(`CREATE INDEX IF NOT EXISTS idx_news_runs_created ON news_runs(created_at DESC)`).catch(() => {})
+  try {
+    await db.batch([
+      db.prepare(
+        `CREATE TABLE IF NOT EXISTS news_items (id TEXT PRIMARY KEY, url TEXT NOT NULL UNIQUE, source_id TEXT NOT NULL DEFAULT '', title TEXT NOT NULL DEFAULT '', title_ja TEXT NOT NULL DEFAULT '', summary TEXT NOT NULL DEFAULT '', importance INTEGER NOT NULL DEFAULT 0, reason TEXT NOT NULL DEFAULT '', current TEXT NOT NULL DEFAULT '', body_source TEXT NOT NULL DEFAULT 'feed', published_at TEXT NOT NULL DEFAULT '', digest_date TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')))`
+      ),
+      db.prepare(
+        `CREATE TABLE IF NOT EXISTS news_currents (id TEXT PRIMARY KEY, narrative TEXT NOT NULL DEFAULT '', item_count_30d INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL DEFAULT (datetime('now')))`
+      ),
+      db.prepare(
+        `CREATE TABLE IF NOT EXISTS news_runs (id TEXT PRIMARY KEY, digest_date TEXT NOT NULL DEFAULT '', trigger TEXT NOT NULL DEFAULT 'cron', fetched INTEGER NOT NULL DEFAULT 0, new_items INTEGER NOT NULL DEFAULT 0, errors TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')))`
+      ),
+      db.prepare(`CREATE INDEX IF NOT EXISTS idx_news_items_digest ON news_items(digest_date DESC)`),
+      db.prepare(`CREATE INDEX IF NOT EXISTS idx_news_items_current ON news_items(current)`),
+      db.prepare(`CREATE INDEX IF NOT EXISTS idx_news_runs_created ON news_runs(created_at DESC)`),
+    ])
+  } catch {
+    // 初回以降は全部 IF NOT EXISTS なので基本失敗しないが、念のため黙って続行する
+  }
 }
 
-/** 渡した URL のうち、すでに処理済みのものを返す。D1 のバインド上限を避けて50件ずつ問い合わせる。 */
+/**
+ * 渡した URL のうち、すでに処理済みのものを返す。
+ * D1 のバインド上限を避けて50件ずつに分けつつ、複数チャンクでも db.batch() で1回の
+ * subrequest にまとめる（chunkごとに await すると件数に比例して subrequest を消費するため）。
+ */
 export async function loadKnownUrls(db: any, urls: string[]): Promise<Set<string>> {
   const known = new Set<string>()
-  for (let i = 0; i < urls.length; i += 50) {
-    const chunk = urls.slice(i, i + 50)
-    if (!chunk.length) continue
-    const placeholders = chunk.map(() => '?').join(',')
-    const res = await db
-      .prepare(`SELECT url FROM news_items WHERE url IN (${placeholders})`)
-      .bind(...chunk)
-      .all<{ url: string }>()
+  if (!urls.length) return known
+
+  const chunks: string[][] = []
+  for (let i = 0; i < urls.length; i += 50) chunks.push(urls.slice(i, i + 50))
+
+  const statements = chunks.map((chunk) =>
+    db.prepare(`SELECT url FROM news_items WHERE url IN (${chunk.map(() => '?').join(',')})`).bind(...chunk)
+  )
+  const results = await db.batch(statements)
+  for (const res of results ?? []) {
     for (const row of res?.results ?? []) known.add(row.url)
   }
   return known
@@ -206,30 +216,34 @@ export interface NewItemInput {
   digestDate: string
 }
 
-/** 記事を1件保存して id を返す。二重起動しても URL の UNIQUE 制約で弾かれる。 */
-export async function insertItem(db: any, item: NewItemInput): Promise<string> {
-  const id = crypto.randomUUID()
-  await db
-    .prepare(
-      'INSERT OR IGNORE INTO news_items (id, url, source_id, title, title_ja, summary, importance, reason, current, body_source, published_at, digest_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'
+/**
+ * 記事をまとめて保存する（1件ずつ insert すると件数ぶん subrequest を消費するため、
+ * 呼び出し側で数件ずつバッファしてから渡す想定）。二重起動しても URL の UNIQUE 制約で弾かれる。
+ */
+export async function insertItems(db: any, items: NewItemInput[]): Promise<void> {
+  if (!items.length) return
+  await db.batch(
+    items.map((item) =>
+      db
+        .prepare(
+          'INSERT OR IGNORE INTO news_items (id, url, source_id, title, title_ja, summary, importance, reason, current, body_source, published_at, digest_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'
+        )
+        .bind(
+          crypto.randomUUID(),
+          item.url,
+          item.sourceId,
+          item.title,
+          item.titleJa,
+          item.summary,
+          item.importance,
+          item.reason,
+          item.current,
+          item.bodySource,
+          item.publishedAt,
+          item.digestDate
+        )
     )
-    .bind(
-      id,
-      item.url,
-      item.sourceId,
-      item.title,
-      item.titleJa,
-      item.summary,
-      item.importance,
-      item.reason,
-      item.current,
-      item.bodySource,
-      item.publishedAt,
-      item.digestDate
-    )
-    .run()
-  const row = await db.prepare('SELECT id FROM news_items WHERE url = ?').bind(item.url).first<{ id: string }>()
-  return row?.id ?? id
+  )
 }
 
 function toNewsItem(r: any): NewsItem {
@@ -301,27 +315,44 @@ export interface RecentCurrentItem {
 export interface CurrentContext {
   /** 前回書いた考察（無ければ空文字＝初回） */
   previousNarrative: string
-  /** 直近 NEWS_TREND_LOOKBACK_DAYS 日ぶんの一覧（見出しと重要度のみ、本文は含まない） */
+  /** 直近 NEWS_TREND_LOOKBACK_DAYS 日ぶんの一覧（見出しと重要度のみ、本文は含まない。今日ぶんも含む） */
   recentItems: RecentCurrentItem[]
+  /** 今日ぶんだけ、要約つきで詳しく（考察のプロンプトで「今日の新着」として厚めに渡す） */
+  todayItems: { titleJa: string; summary: string; importance: number }[]
 }
 
-/** ある潮流の考察を書くための材料（前回の考察＋直近の一覧）をまとめて取得する。 */
-export async function loadCurrentContext(db: any, currentId: string, sinceDate: string): Promise<CurrentContext> {
-  const [narrativeRow, itemsRes] = await Promise.all([
-    db.prepare('SELECT narrative FROM news_currents WHERE id = ?').bind(currentId).first<{ narrative: string }>(),
+/**
+ * ある潮流の考察を書くための材料（前回の考察＋直近の一覧＋今日ぶんの詳細）をまとめて取得する。
+ * 3つ別々に投げると subrequest を3つ消費するため、db.batch() で1回にまとめる。
+ */
+export async function loadCurrentContext(
+  db: any,
+  currentId: string,
+  sinceDate: string,
+  digestDate: string
+): Promise<CurrentContext> {
+  const [narrativeRes, recentRes, todayRes] = await db.batch([
+    db.prepare('SELECT narrative FROM news_currents WHERE id = ?').bind(currentId),
     db
       .prepare(
         'SELECT title_ja, importance, digest_date FROM news_items WHERE current = ? AND digest_date >= ? ORDER BY digest_date DESC LIMIT 200'
       )
-      .bind(currentId, sinceDate)
-      .all<any>(),
+      .bind(currentId, sinceDate),
+    db
+      .prepare('SELECT title_ja, summary, importance FROM news_items WHERE current = ? AND digest_date = ?')
+      .bind(currentId, digestDate),
   ])
   return {
-    previousNarrative: narrativeRow?.narrative ?? '',
-    recentItems: (itemsRes?.results ?? []).map((r: any) => ({
+    previousNarrative: narrativeRes?.results?.[0]?.narrative ?? '',
+    recentItems: (recentRes?.results ?? []).map((r: any) => ({
       titleJa: r.title_ja ?? '',
       importance: r.importance ?? 0,
       digestDate: r.digest_date ?? '',
+    })),
+    todayItems: (todayRes?.results ?? []).map((r: any) => ({
+      titleJa: r.title_ja ?? '',
+      summary: r.summary ?? '',
+      importance: r.importance ?? 0,
     })),
   }
 }
@@ -339,6 +370,19 @@ export async function upsertCurrentNarrative(
     )
     .bind(currentId, narrative, itemCount30d)
     .run()
+}
+
+/**
+ * 今日新着があった潮流のidを返す。trendsタスク（cron/手動とも別の呼び出し＝
+ * 別のsubrequest予算で動く）が「どの潮流を更新すべきか」を、collectタスクの
+ * メモリ上の状態を引き継がずD1から re-derive するために使う。
+ */
+export async function listCurrentsWithNewItems(db: any, digestDate: string): Promise<string[]> {
+  const res = await db
+    .prepare(`SELECT DISTINCT current FROM news_items WHERE digest_date = ? AND current != ''`)
+    .bind(digestDate)
+    .all<{ current: string }>()
+  return (res?.results ?? []).map((r: any) => r.current)
 }
 
 export async function listCurrentStates(db: any): Promise<NewsCurrentState[]> {

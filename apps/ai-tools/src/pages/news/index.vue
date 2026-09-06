@@ -289,11 +289,20 @@ async function collect() {
   message.value = '収集しています…'
   messageIsError.value = false
   try {
+    // 収集と考察更新は別のAPI呼び出し＝別のWorker呼び出しにしている
+    // （Cloudflare の subrequest 上限を1回の呼び出しで使い切らないため。詳しくは news-run.ts 参照）。
+    // ボタンは1つのままなので、ここで順番に呼んでユーザーには一連の処理に見せる。
     const result = await $fetch<NewsRunResult>('/api/news/run', { method: 'POST', body: {} })
     const parts = [`新着${result.newItems}件`]
     if (result.errors.length) parts.push(`エラー${result.errors.length}件`)
+    message.value = `${parts.join('・')}・考察を更新しています…`
+
+    const trends = await $fetch<{ updated: string[]; errors: string[] }>('/api/news/run-trends', { method: 'POST', body: {} })
+    if (trends.updated.length) parts.push(`考察更新${trends.updated.length}潮流`)
+    if (trends.errors.length) parts.push(`考察エラー${trends.errors.length}件`)
+
     message.value = parts.join('・')
-    messageIsError.value = result.errors.length > 0
+    messageIsError.value = result.errors.length > 0 || trends.errors.length > 0
     await load()
   } catch (e: any) {
     message.value = `実行に失敗しました（${e?.data?.message ?? e?.message ?? e}）`

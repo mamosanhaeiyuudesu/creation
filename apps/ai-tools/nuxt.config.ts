@@ -86,6 +86,7 @@ gtag('config', 'G-JRBVTJYCEH');`,
       // wrangler.toml の [triggers] crons と同じ式にすること（片方だけ変えると動かない）
       '0 7 * * *': ['mlb-sync'], // UTC 7:00 ＝ JST 16:00
       '0 22 * * *': ['news-digest'], // UTC 22:00 ＝ JST 翌朝 7:00
+      '15 22 * * *': ['news-trends'], // UTC 22:15 ＝ JST 翌朝 7:15（news-digestの15分後。subrequest予算を分けるため別呼び出しにしている）
     },
     devServer: {
       // @ts-ignore — Nitro の型定義に maxBodySize がないが、h3 dev server では有効
