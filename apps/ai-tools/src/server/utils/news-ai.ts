@@ -40,7 +40,9 @@ ${CURRENT_TAXONOMY}
 出力は次のJSONのみ。前置きやコードフェンスを付けないこと。
 {"current": "上の5つのIDのいずれか", "titleJa": "日本語の見出し（30字程度）", "summary": "日本語の要約", "importance": 3, "reason": "その重要度にした理由（40字程度で1行）"}
 
-summary は3〜5行。1行ずつ改行で区切り、各行は事実を1つずつ短く述べる。箇条書き記号は付けない。`
+summary は3〜5行。1行ずつ改行で区切り、各行は事実を1つずつ短く述べる。箇条書き記号は付けない。
+硬い分析文体（「〜という構造的変化が進行している」等）は避け、ニュースを分かりやすく説明する記者のような
+平易な言葉を選ぶ（例: 「〜という構造的変化が進行している」→「〜という変化が起きている」）。`
 
 /** ```json ... ``` に包まれていても中身を取り出す。 */
 function extractJson(text: string): any {
@@ -111,7 +113,8 @@ ${input.body}`,
 
   return {
     titleJa: stripMarkdown(String(parsed.titleJa ?? '').trim()) || input.title,
-    summary: stripMarkdown(String(parsed.summary ?? '').trim()),
+    // 「1行1事実で改行」も指示だけでは守られないことがある（実測確認済み）ので breakSentences で強制する
+    summary: breakSentences(stripMarkdown(String(parsed.summary ?? '').trim())),
     // 判定が壊れていたら 0 のままにせず、配信されない 2 に寄せる（誤って埋もれるより、ページには残す）
     importance: Number.isFinite(importance) ? Math.min(5, Math.max(1, importance)) : 2,
     reason: stripMarkdown(String(parsed.reason ?? '').trim()),
@@ -168,7 +171,11 @@ export async function synthesizeCurrentNarrative(
 - outlook: これからどうなりそうか、何に注目しておくとよいか（1〜2文）
 
 書き方（重要）:
-- 硬い分析レポート調ではなく、詳しい友人が雑談で教えてくれるような、平易で読みやすい日本語にする
+- 分析レポートのような硬い言い回しは避け、詳しい友人が雑談で教えてくれるような言葉づかいにする
+- 漢語を詰め込んだ抽象的な言い回しより、具体的で普段づかいの言葉を選ぶ。例:
+  硬い「供給側・規制側・需要側が同時に動いている」→ 読みやすい「作る側も、規制する政府も、使う企業側も、同時に動き出している」
+  硬い「〜という構造的な変化が進行している」→ 読みやすい「〜という変化が起き始めている」
+  硬い「〜の様相を呈している」→ 読みやすい「〜という感じになってきた」
 - 一文は短く。1つの文が終わったら必ず改行し、次の文を続けて書かない（3〜4文なら3〜4行になる）
 - 前回の考察がある場合は、全部書き直すのではなく「その後どう変わったか」を踏まえて更新する
 - 断定しすぎず、材料が薄いところは薄いと分かるように書く
