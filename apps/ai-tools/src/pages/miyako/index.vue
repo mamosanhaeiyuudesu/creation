@@ -433,34 +433,22 @@ watch(selectedCategory, () => {
 
             <!-- Topic cards (top=oldest, bottom=newest) -->
             <div class="topics-list">
-              <template v-for="(topic, i) in aiTopics" :key="i">
-                <div class="topic-card">
-                  <div class="card-period-bar">
-                    <span class="font-mono text-[8.5px] tracking-[0.2em] text-[#a5b4fc] uppercase mr-3 shrink-0">Period</span>
-                    <span class="text-[12px] font-semibold tracking-[0.02em]">{{ topic.period || '会期不明' }}</span>
-                  </div>
-                  <div class="card-body">
-                    <div class="card-title">{{ topic.title }}</div>
-                    <div class="card-conclusion">{{ topic.conclusion }}</div>
-                    <div v-if="topic.flow?.length" class="flow-list">
-                      <template v-for="(step, si) in topic.flow" :key="si">
-                        <div class="flow-step">
-                          <span class="step-num">{{ String(si + 1).padStart(2, '0') }}</span>
-                          <span>{{ step }}</span>
-                        </div>
-                        <div v-if="si < topic.flow.length - 1" class="flow-arrow">↓</div>
-                      </template>
+              <div v-for="(topic, i) in aiTopics" :key="i" class="topic-card">
+                <div class="card-period-bar">
+                  <span class="font-mono text-[8.5px] tracking-[0.2em] text-[#a5b4fc] uppercase mr-3 shrink-0">Period</span>
+                  <span class="text-[12px] font-semibold tracking-[0.02em]">{{ topic.period || '会期不明' }}</span>
+                </div>
+                <div class="card-body">
+                  <div class="card-title">{{ topic.title }}</div>
+                  <div class="card-conclusion">{{ topic.conclusion }}</div>
+                  <div v-if="topic.flow?.length" class="flow-list">
+                    <div v-for="(step, si) in topic.flow" :key="si" class="flow-step">
+                      <span class="step-num">{{ String(si + 1).padStart(2, '0') }}</span>
+                      <span>{{ step }}</span>
                     </div>
                   </div>
                 </div>
-
-                <!-- Time arrow between cards -->
-                <div v-if="i < aiTopics.length - 1" class="time-arrow">
-                  <div class="time-arrow-line" />
-                  <span class="time-arrow-icon">↓</span>
-                  <div class="time-arrow-line" />
-                </div>
-              </template>
+              </div>
             </div>
           </template>
 
@@ -659,7 +647,7 @@ watch(selectedCategory, () => {
   display: flex;
   flex-direction: column;
   padding: 12px;
-  gap: 0;
+  gap: 12px;
 }
 
 .topic-card {
@@ -710,6 +698,7 @@ watch(selectedCategory, () => {
 .flow-list {
   display: flex;
   flex-direction: column;
+  gap: 5px;
 }
 
 .flow-step {
@@ -735,32 +724,4 @@ watch(selectedCategory, () => {
   letter-spacing: 0.05em;
 }
 
-.flow-arrow {
-  text-align: center;
-  color: #3d5fc4;
-  font-size: 12px;
-  line-height: 1.2;
-  opacity: 0.4;
-  margin: 1px 0;
-}
-
-.time-arrow {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 6px 0;
-  gap: 0;
-}
-
-.time-arrow-line {
-  width: 1px;
-  height: 10px;
-  background: #c5cad8;
-}
-
-.time-arrow-icon {
-  font-size: 16px;
-  color: #9aa3c0;
-  line-height: 1;
-}
 </style>

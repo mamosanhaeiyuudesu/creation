@@ -38,13 +38,10 @@ defineProps<{
             <div class="topic-title">{{ topic.title }}</div>
             <div class="conclusion">{{ topic.conclusion }}</div>
             <div v-if="topic.flow.length" class="flow-list">
-              <template v-for="(step, si) in topic.flow" :key="si">
-                <div class="flow-step">
-                  <span class="step-num">{{ String(si + 1).padStart(2, '0') }}</span>
-                  <span>{{ step }}</span>
-                </div>
-                <div v-if="si < topic.flow.length - 1" class="flow-arrow">↓</div>
-              </template>
+              <div v-for="(step, si) in topic.flow" :key="si" class="flow-step">
+                <span class="step-num">{{ String(si + 1).padStart(2, '0') }}</span>
+                <span>{{ step }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -119,7 +116,7 @@ defineProps<{
 .flow-list {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 6px;
 }
 
 .flow-step {
@@ -145,12 +142,4 @@ defineProps<{
   letter-spacing: 0.05em;
 }
 
-.flow-arrow {
-  text-align: center;
-  color: #3d5fc4;
-  font-size: 14px;
-  line-height: 1.4;
-  opacity: 0.45;
-  margin: 1px 0;
-}
 </style>

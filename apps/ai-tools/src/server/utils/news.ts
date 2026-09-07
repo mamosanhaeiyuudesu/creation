@@ -6,7 +6,7 @@
  * 「完璧なスクレイピングでなくてよい」前提の割り切り。
  */
 import { NEWS_MAX_BODY_CHARS } from '~/utils/news-sources'
-import type { NewsBodySource, NewsCurrentState, NewsItem, NewsRun } from '~/types/news'
+import type { NewsBodySource, NewsCurrentSection, NewsCurrentState, NewsItem, NewsRun } from '~/types/news'
 
 // ───────────────────────────────── フィード解析 ─────────────────────────────────
 
@@ -313,12 +313,31 @@ export interface RecentCurrentItem {
 }
 
 export interface CurrentContext {
-  /** 前回書いた考察（無ければ空文字＝初回） */
-  previousNarrative: string
+  /** 前回書いた考察の章立て（無ければ空配列＝初回） */
+  previousSections: NewsCurrentSection[]
   /** 直近 NEWS_TREND_LOOKBACK_DAYS 日ぶんの一覧（見出しと重要度のみ、本文は含まない。今日ぶんも含む） */
   recentItems: RecentCurrentItem[]
   /** 今日ぶんだけ、要約つきで詳しく（考察のプロンプトで「今日の新着」として厚めに渡す） */
   todayItems: { titleJa: string; summary: string; importance: number }[]
+}
+
+/**
+ * news_currents.narrative に保存されている文字列を章立て配列にする。
+ * 通常は JSON.stringify(NewsCurrentSection[]) だが、章立て化する前（2026-09-06以前）に
+ * 保存された素のプレーンテキストが残っている可能性があるため、JSON として読めなければ
+ * 見出し無しの1章として扱う（ページを壊さないための保険）。
+ */
+function parseSections(raw: string | null | undefined): NewsCurrentSection[] {
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed) && parsed.every((s) => typeof s?.title === 'string' && typeof s?.body === 'string')) {
+      return parsed
+    }
+  } catch {
+    // 旧形式（プレーンテキスト1本）のフォールバックへ落ちる
+  }
+  return raw.trim() ? [{ title: '', body: raw }] : []
 }
 
 /**
@@ -343,7 +362,7 @@ export async function loadCurrentContext(
       .bind(currentId, digestDate),
   ])
   return {
-    previousNarrative: narrativeRes?.results?.[0]?.narrative ?? '',
+    previousSections: parseSections(narrativeRes?.results?.[0]?.narrative),
     recentItems: (recentRes?.results ?? []).map((r: any) => ({
       titleJa: r.title_ja ?? '',
       importance: r.importance ?? 0,
@@ -357,18 +376,18 @@ export async function loadCurrentContext(
   }
 }
 
-/** 潮流の考察を書き直す。5潮流ぶん、履歴は持たず1行を上書きする。 */
+/** 潮流の考察を書き直す。5潮流ぶん、履歴は持たず1行を上書きする（章立てはJSON文字列として保存）。 */
 export async function upsertCurrentNarrative(
   db: any,
   currentId: string,
-  narrative: string,
+  sections: NewsCurrentSection[],
   itemCount30d: number
 ): Promise<void> {
   await db
     .prepare(
       `INSERT OR REPLACE INTO news_currents (id, narrative, item_count_30d, updated_at) VALUES (?, ?, ?, datetime('now'))`
     )
-    .bind(currentId, narrative, itemCount30d)
+    .bind(currentId, JSON.stringify(sections), itemCount30d)
     .run()
 }
 
@@ -389,7 +408,7 @@ export async function listCurrentStates(db: any): Promise<NewsCurrentState[]> {
   const res = await db.prepare('SELECT * FROM news_currents').all<any>()
   return (res?.results ?? []).map((r: any) => ({
     id: r.id,
-    narrative: r.narrative ?? '',
+    sections: parseSections(r.narrative),
     itemCount30d: r.item_count_30d ?? 0,
     updatedAt: r.updated_at ?? '',
   }))

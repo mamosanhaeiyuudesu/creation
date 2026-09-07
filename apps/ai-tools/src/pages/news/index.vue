@@ -48,7 +48,7 @@
             class="text-[12.5px] leading-[1.7] text-[var(--news-ink-soft)] overflow-hidden"
             style="display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;"
           >
-            {{ currentState(c.id)?.narrative || 'まだ記事が集まっていません。' }}
+            {{ cardPreview(c.id) }}
           </p>
         </button>
       </div>
@@ -64,13 +64,21 @@
         <p class="text-[11.5px] text-[var(--news-ink-faint)] mb-4">
           {{ openCurrentMeta.description }}
         </p>
-        <p class="text-[12px] text-[var(--news-ink-faint)] mb-2">
+        <p class="text-[12px] text-[var(--news-ink-faint)] mb-4">
           直近30日{{ currentState(openCurrentMeta.id)?.itemCount30d ?? 0 }}件
           <template v-if="currentState(openCurrentMeta.id)?.updatedAt">・{{ fmtDateTime(currentState(openCurrentMeta.id)!.updatedAt) }}更新</template>
         </p>
-        <p class="text-[14px] leading-[1.9] text-[var(--news-ink)] whitespace-pre-line">
-          {{ currentState(openCurrentMeta.id)?.narrative || 'まだ記事が集まっていません。' }}
+
+        <p v-if="!currentState(openCurrentMeta.id)?.sections.length" class="text-[13.5px] text-[var(--news-ink-soft)]">
+          まだ記事が集まっていません。
         </p>
+        <div v-else class="flex flex-col gap-4">
+          <div v-for="(section, i) in currentState(openCurrentMeta.id)!.sections" :key="i">
+            <h3 v-if="section.title" class="news-display text-[13px] text-[var(--news-accent)] mb-1">{{ section.title }}</h3>
+            <p class="text-[14px] leading-[1.85] text-[var(--news-ink)] whitespace-pre-line">{{ section.body }}</p>
+          </div>
+        </div>
+
         <div class="mt-5 pt-3 border-t border-[var(--news-line)]">
           <button class="news-btn-ghost" @click="filterByCurrent(openCurrentMeta.id)">この潮流の記事だけ見る ↓</button>
         </div>
@@ -235,6 +243,12 @@ function errorCount(run: NewsRun): number {
 
 function currentState(id: string): NewsCurrentState | undefined {
   return currents.value.find((c) => c.id === id)
+}
+
+/** カード面のプレビュー。1章目（ここまでの流れ）の本文を出す。line-clamp で途中までしか見えない。 */
+function cardPreview(id: string): string {
+  const sections = currentState(id)?.sections
+  return sections?.[0]?.body || 'まだ記事が集まっていません。'
 }
 
 /** ポップアップの「この潮流の記事だけ見る」。絞り込んで閉じ、記事一覧までスクロールする。 */

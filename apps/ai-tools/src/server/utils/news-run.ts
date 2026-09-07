@@ -243,14 +243,14 @@ export async function runNewsTrends(env: NewsEnv): Promise<{ updated: string[]; 
     if (!meta) continue // NEWS_FALLBACK_CURRENT 以外はここに来ないはずだが念のため
     try {
       const context = await loadCurrentContext(db, currentId, since30, digestDate)
-      const narrative = await synthesizeCurrentNarrative(apiKey, {
+      const sections = await synthesizeCurrentNarrative(apiKey, {
         currentLabel: meta.label,
         currentDescription: meta.description,
-        previousNarrative: context.previousNarrative,
+        previousSections: context.previousSections,
         recentItems: context.recentItems,
         todayItems: context.todayItems,
       })
-      await upsertCurrentNarrative(db, currentId, narrative, context.recentItems.length)
+      await upsertCurrentNarrative(db, currentId, sections, context.recentItems.length)
       updated.push(currentId)
       console.log(`[news] 考察を更新: ${meta.label}（直近30日${context.recentItems.length}件）`)
     } catch (e: any) {

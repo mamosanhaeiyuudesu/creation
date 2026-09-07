@@ -40,10 +40,16 @@ export interface NewsRun {
   createdAt: string
 }
 
-/** 潮流の「いまの考察」。直近1ヶ月ぶんの記事を踏まえてAIが更新する。 */
+/** 潮流の考察の1章ぶん（見出し＋本文）。 */
+export interface NewsCurrentSection {
+  title: string
+  body: string
+}
+
+/** 潮流の「いまの考察」。直近1ヶ月ぶんの記事を踏まえてAIが更新する。3章構成（ここまでの流れ／今日の新着／これから）。 */
 export interface NewsCurrentState {
   id: string
-  narrative: string
+  sections: NewsCurrentSection[]
   /** 直近30日でこの潮流に分類された記事数 */
   itemCount30d: number
   updatedAt: string

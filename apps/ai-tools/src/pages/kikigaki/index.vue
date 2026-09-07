@@ -105,14 +105,18 @@
             </button>
           </div>
 
+          <!-- 「ファイルを選択」ボタンでダイアログを直接開くので、この input 自体は表示しない -->
           <input
             v-if="transcriptInput === 'file'"
             ref="fileInput"
             type="file"
             accept=".txt,text/plain"
-            class="block w-full text-[13px] text-[var(--kk-ink-soft)] file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[12.5px] file:font-bold file:bg-[var(--kk-accent-soft)] file:text-[var(--kk-accent)] file:cursor-pointer"
+            class="hidden"
             @change="onPick"
           >
+          <p v-if="transcriptInput === 'file'" class="text-[13px] text-[var(--kk-ink-soft)]">
+            {{ file ? `選択中: ${file.name}` : 'まだファイルが選択されていません' }}
+          </p>
           <textarea
             v-else
             v-model="pastedTranscript"
