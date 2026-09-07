@@ -1,8 +1,14 @@
-// キキガキの Google 連携。Docs / Sheets / Tasks / Calendar への書き込みを全部ここに閉じ込める。
+// キキガキの Google 連携。
 //
-// ★このファイルの書き込み関数を呼んでよいのは api/kikigaki/records/[id]/approve.post.ts だけ。
-//   「人間が承認ボタンを押すまで Google 側には一切書き込まない」を、呼び出し口をひとつに絞ることで守る。
-//   新しく Google へ何かを書きたくなっても、承認フローの外から呼ばないこと。
+// ★現行機能はGoogleドライブへのPDF保存だけ（uploadPdfToDrive）。スコープも drive.file
+//   （アプリが作成したファイルにのみアクセスする最小権限。life-google.ts と同じ考え方）に絞ってある。
+//   PDFダウンロードのたびに、ユーザーが設定したフォルダへ自動でコピーが保存される
+//   （api/kikigaki/google/drive-save.post.ts から呼ばれる。承認という概念はない）。
+//
+// ★旧・Docs/Sheets/Tasks/Calendar書き込み（writeApprovedMinutes 以下）は2026-09-04にUIから外し、
+//   2026-09-07のDrive保存機能追加にあわせてスコープも documents/spreadsheets/tasks/calendar から
+//   drive.file だけに絞ったため、今はスコープ不足で動かない。再度有効化するならスコープを戻し、
+//   ユーザーに再連携してもらう必要がある（削除はしていないが、動作の保証はない）。
 //
 // life-google.ts と同じく googleapis パッケージは使わず REST を直接叩く
 // （Cloudflare Workers 上で動かすため）。OAuth は Authorization Code + PKCE。
@@ -20,13 +26,9 @@ const DOCS_API = 'https://docs.googleapis.com/v1/documents'
 const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets'
 const TASKS_API = 'https://tasks.googleapis.com/tasks/v1'
 const CALENDAR_API = 'https://www.googleapis.com/calendar/v3'
+const DRIVE_UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id'
 
-const SCOPES = [
-  'https://www.googleapis.com/auth/documents',
-  'https://www.googleapis.com/auth/spreadsheets',
-  'https://www.googleapis.com/auth/tasks',
-  'https://www.googleapis.com/auth/calendar',
-]
+const SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
 /** 議事録一覧を書き込むタブ名。連携時に作るスプレッドシートのシート名でもある */
 const LIST_SHEET = '議事録一覧'
@@ -162,6 +164,8 @@ interface ConnRow {
   refresh_token: string
   spreadsheet_id: string
   spreadsheet_url: string
+  drive_folder_id: string
+  drive_folder_input: string
 }
 
 async function getConnection(event: H3Event, userId: string): Promise<ConnRow | null> {
@@ -169,7 +173,9 @@ async function getConnection(event: H3Event, userId: string): Promise<ConnRow | 
   if (!db) return null
   await ensureKikigakiTables(db)
   const row = await db
-    .prepare('SELECT refresh_token, spreadsheet_id, spreadsheet_url FROM kikigaki_google_connections WHERE user_id = ?')
+    .prepare(
+      'SELECT refresh_token, spreadsheet_id, spreadsheet_url, drive_folder_id, drive_folder_input FROM kikigaki_google_connections WHERE user_id = ?'
+    )
     .bind(userId)
     .first()
   return (row as ConnRow) ?? null
@@ -178,10 +184,50 @@ async function getConnection(event: H3Event, userId: string): Promise<ConnRow | 
 export async function getKikigakiGoogleStatus(
   event: H3Event,
   userId: string
-): Promise<{ connected: boolean; spreadsheetUrl?: string }> {
+): Promise<{ connected: boolean; driveFolderId: string; driveFolderInput: string }> {
   const conn = await getConnection(event, userId)
-  if (!conn) return { connected: false }
-  return { connected: true, spreadsheetUrl: conn.spreadsheet_url }
+  if (!conn) return { connected: false, driveFolderId: '', driveFolderInput: '' }
+  return { connected: true, driveFolderId: conn.drive_folder_id || '', driveFolderInput: conn.drive_folder_input || '' }
+}
+
+/**
+ * 貼り付けられたGoogleドライブのフォルダのリンクまたは素のIDから、Drive APIに渡せるフォルダIDを取り出す。
+ * リンクの形式（.../folders/<ID>、?id=<ID>）に一致すればそれを使い、
+ * それ以外は英数字・-・_だけの十分な長さの文字列ならIDそのものとみなす。読み取れなければ空文字。
+ */
+export function extractDriveFolderId(input: string): string {
+  const trimmed = input.trim()
+  const folderPath = trimmed.match(/\/folders\/([a-zA-Z0-9_-]+)/)
+  if (folderPath?.[1]) return folderPath[1]
+  const idParam = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+  if (idParam?.[1]) return idParam[1]
+  if (/^[a-zA-Z0-9_-]{10,}$/.test(trimmed)) return trimmed
+  return ''
+}
+
+/** レビュー画面の「Googleドライブへの保存」設定で、保存先フォルダを登録・変更する。 */
+export async function saveKikigakiDriveFolder(
+  event: H3Event,
+  userId: string,
+  folderInput: string
+): Promise<{ folderId: string; folderInput: string }> {
+  const folderId = extractDriveFolderId(folderInput)
+  if (!folderId) {
+    throw createError({ statusCode: 400, message: 'フォルダのリンクまたはIDを読み取れませんでした。共有リンクを貼り付けてください。' })
+  }
+  const db = getAppDb(event)
+  if (!db) throw createError({ statusCode: 503, message: 'DBが利用できません（ローカルdevではD1が使えません）' })
+  await ensureKikigakiTables(db)
+  const conn = await getConnection(event, userId)
+  if (!conn) throw createError({ statusCode: 400, message: 'Googleドライブと連携されていません' })
+
+  await db
+    .prepare(
+      `UPDATE kikigaki_google_connections SET drive_folder_id = ?, drive_folder_input = ?, updated_at = ? WHERE user_id = ?`
+    )
+    .bind(folderId, folderInput.trim(), Math.floor(Date.now() / 1000), userId)
+    .run()
+  return { folderId, folderInput: folderInput.trim() }
 }
 
 export async function disconnectKikigakiGoogle(event: H3Event, userId: string): Promise<void> {
@@ -197,6 +243,14 @@ async function getAuth(event: H3Event, userId: string): Promise<{ token: string;
   const refresh = await decryptComment(event, conn.refresh_token)
   const token = await refreshAccessToken(event, refresh)
   return { token, spreadsheetId: conn.spreadsheet_id }
+}
+
+/** Drive保存用の軽量版。getAuth と違いスプレッドシートIDを持ち回らない（現行機能では不要なため）。 */
+async function getAccessToken(event: H3Event, userId: string): Promise<string> {
+  const conn = await getConnection(event, userId)
+  if (!conn) throw createError({ statusCode: 400, message: 'Googleドライブと連携されていません' })
+  const refresh = await decryptComment(event, conn.refresh_token)
+  return await refreshAccessToken(event, refresh)
 }
 
 function headers(token: string): Record<string, string> {
@@ -232,51 +286,49 @@ async function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
   throw lastErr
 }
 
-/** 初回連携時に「議事録一覧」スプレッドシートを本人のドライブに作る（以後は使い回す）。 */
-async function createListSpreadsheet(token: string, ownerLabel: string): Promise<{ id: string; url: string }> {
-  const res: any = await $fetch(SHEETS_API, {
-    method: 'POST',
-    headers: headers(token),
-    body: {
-      properties: { title: `キキガキ — ${ownerLabel}さんの議事録一覧` },
-      sheets: [{ properties: { title: LIST_SHEET } }],
-    },
-  })
-  const id = res.spreadsheetId as string
-  await $fetch(`${SHEETS_API}/${id}/values:batchUpdate`, {
-    method: 'POST',
-    headers: headers(token),
-    body: {
-      valueInputOption: 'USER_ENTERED',
-      data: [
-        {
-          range: `'${LIST_SHEET}'!A1`,
-          values: [['日付', 'タイトル', '概要', '決定事項', '検討事項', '議事録ドキュメント']],
-        },
-      ],
-    },
-  })
-  return { id, url: `https://docs.google.com/spreadsheets/d/${id}/edit` }
-}
-
-export async function saveKikigakiGoogleConnection(
+/**
+ * PDFをユーザーが設定したGoogleドライブのフォルダへアップロードする（現行機能の本体）。
+ * multipart/related でメタデータ（ファイル名・親フォルダ）とPDF本体を1リクエストにまとめて送る
+ * （Drive APIのシンプルアップロードだとメタデータを渡せないため）。
+ */
+export async function uploadPdfToDrive(
   event: H3Event,
   userId: string,
-  tok: TokenResponse,
-  ownerLabel: string
-): Promise<void> {
+  folderId: string,
+  fileName: string,
+  pdfBase64: string
+): Promise<{ id: string; url: string }> {
+  const token = await getAccessToken(event, userId)
+  const boundary = `kikigaki-${crypto.randomUUID()}`
+  const metadata = JSON.stringify({ name: fileName, parents: [folderId], mimeType: 'application/pdf' })
+  const body =
+    `--${boundary}\r\n` +
+    `Content-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
+    `--${boundary}\r\n` +
+    `Content-Type: application/pdf\r\n` +
+    `Content-Transfer-Encoding: base64\r\n\r\n${pdfBase64}\r\n` +
+    `--${boundary}--`
+
+  const res: any = await withRetry('PDFのGoogleドライブ保存', () =>
+    $fetch<unknown>(DRIVE_UPLOAD_API, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body,
+    })
+  )
+  const id = res.id as string
+  return { id, url: `https://drive.google.com/file/d/${id}/view` }
+}
+
+/**
+ * Google連携を保存する。現行機能（Driveへの保存）はスプレッドシート等を必要としないので、
+ * ここではリフレッシュトークンを保存するだけ（旧フローにあった自動スプレッドシート作成は行わない）。
+ */
+export async function saveKikigakiGoogleConnection(event: H3Event, userId: string, tok: TokenResponse): Promise<void> {
   const db = getAppDb(event)
   if (!db) return
   await ensureKikigakiTables(db)
   const existing = await getConnection(event, userId)
-
-  let spreadsheetId = existing?.spreadsheet_id
-  let spreadsheetUrl = existing?.spreadsheet_url
-  if (!spreadsheetId) {
-    const created = await createListSpreadsheet(tok.access_token, ownerLabel)
-    spreadsheetId = created.id
-    spreadsheetUrl = created.url
-  }
 
   const refreshToken = tok.refresh_token || (existing ? await decryptComment(event, existing.refresh_token) : '')
   if (!refreshToken) throw new Error('リフレッシュトークンを取得できませんでした')
@@ -284,13 +336,11 @@ export async function saveKikigakiGoogleConnection(
   const now = Math.floor(Date.now() / 1000)
   await db
     .prepare(
-      `INSERT INTO kikigaki_google_connections (user_id, refresh_token, spreadsheet_id, spreadsheet_url, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?)
-       ON CONFLICT(user_id) DO UPDATE SET
-         refresh_token = excluded.refresh_token, spreadsheet_id = excluded.spreadsheet_id,
-         spreadsheet_url = excluded.spreadsheet_url, updated_at = excluded.updated_at`
+      `INSERT INTO kikigaki_google_connections (user_id, refresh_token, created_at, updated_at)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(user_id) DO UPDATE SET refresh_token = excluded.refresh_token, updated_at = excluded.updated_at`
     )
-    .bind(userId, await encryptComment(event, refreshToken), spreadsheetId, spreadsheetUrl ?? '', now, now)
+    .bind(userId, await encryptComment(event, refreshToken), now, now)
     .run()
 }
 

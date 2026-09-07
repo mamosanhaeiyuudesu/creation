@@ -192,7 +192,7 @@
               v-model.number="minutes.printSettings.summaryMaxChars"
               type="number"
               min="100"
-              max="2000"
+              max="3000"
               step="50"
               class="kk-input !w-24 text-right"
             >
@@ -203,7 +203,7 @@
               v-model.number="minutes.printSettings.rightMaxChars"
               type="number"
               min="100"
-              max="2000"
+              max="3000"
               step="50"
               class="kk-input !w-24 text-right"
             >
@@ -230,6 +230,7 @@
             {{ saving ? '保存中…' : '保存' }}
           </button>
           <span v-if="savedAt" class="text-[11.5px] text-[var(--kk-ink-faint)]">保存しました</span>
+          <span v-if="driveSaveMessage" class="text-[11.5px] text-[var(--kk-ink-faint)]">{{ driveSaveMessage }}</span>
           <!-- 記録は全員で共有するが、消せるのはアップロードした本人だけ -->
           <button v-if="record.isOwner" class="kk-btn-ghost ml-auto" :disabled="saving || generatingPdf" @click="remove">削除</button>
         </div>
@@ -329,6 +330,8 @@ const saving = ref(false)
 const savedAt = ref(0)
 const generatingPdf = ref(false)
 const printRoot = ref<HTMLElement | null>(null)
+/** Googleドライブへの保存結果（設定していない場合は空のまま）。設定は /kikigaki の一覧ページで行う */
+const driveSaveMessage = ref('')
 
 /** 画面で編集している議事録。record.minutes のコピー。保存・PDF出力ともこれをもとに行う */
 const minutes = reactive<KikigakiMinutes>(emptyMinutes())
@@ -514,6 +517,7 @@ async function buildPrintContent() {
 
 async function downloadPdf() {
   errorMessage.value = ''
+  driveSaveMessage.value = ''
   generatingPdf.value = true
   try {
     await saveDraft()
@@ -543,6 +547,20 @@ async function downloadPdf() {
     const safeTitle = (minutes.title || 'キキガキ議事録').replace(/[\\/:*?"<>|]/g, '_')
     const fileName = minutes.date ? `${safeTitle}_${minutes.date}.pdf` : `${safeTitle}.pdf`
     pdf.save(fileName)
+
+    // Googleドライブへの保存を設定しているユーザーなら、そのままコピーもアップロードする
+    // （設定していなければ /api/kikigaki/google/drive-save が { saved: false } を返すだけで、
+    //   このPDFダウンロード自体は失敗させない＝あくまで付加機能）。
+    try {
+      const pdfBase64 = pdf.output('datauristring').split(',')[1] ?? ''
+      const res = await $fetch<{ saved: boolean }>('/api/kikigaki/google/drive-save', {
+        method: 'POST',
+        body: { fileName, pdfBase64 },
+      })
+      driveSaveMessage.value = res.saved ? 'Googleドライブにも保存しました' : ''
+    } catch (e: any) {
+      driveSaveMessage.value = apiMessage(e, 'Googleドライブへの保存に失敗しました（PDFのダウンロードは完了しています）')
+    }
   } catch (e: any) {
     errorMessage.value = apiMessage(e, 'PDFの作成に失敗しました')
   }

@@ -17,27 +17,45 @@
       {{ errorMessage }}
     </p>
 
-    <!-- Google連携（廃止。PDFダウンロードに置き換えたためコメントアウト）
-    <section class="kk-card px-5 py-4 mb-5 flex flex-wrap items-center gap-x-4 gap-y-2">
-      <div class="flex-1 min-w-[200px]">
-        <p class="text-[13.5px] font-bold">Googleとの連携</p>
-        <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-1 leading-relaxed">
-          <template v-if="googleConnected">
-            連携済みです。承認した議事録だけが、あなたのドキュメント・スプレッドシート・ToDo・カレンダーに書き込まれます。
-          </template>
-          <template v-else>
-            連携すると、議事録一覧のスプレッドシートがあなたのドライブに作られます。書き込みは承認したときだけ行われます。
-          </template>
+    <!-- Googleドライブへの保存設定（ユーザーごと。連携すると、PDFダウンロードのたびに設定したフォルダへ自動でコピーが保存される） -->
+    <section class="kk-card px-5 py-4 mb-5">
+      <p class="text-[13.5px] font-bold">Googleドライブへの保存</p>
+      <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-1 leading-relaxed">
+        <template v-if="googleConnected">
+          連携済みです。保存先フォルダを設定すると、PDFでダウンロードするたびに自分のGoogleドライブへも自動でコピーが保存されます。
+        </template>
+        <template v-else>
+          連携すると、PDFでダウンロードするたびに指定したフォルダへ自分のGoogleドライブにも自動でコピーを保存できます（連携しなくてもPDFダウンロード自体は今まで通り使えます）。
+        </template>
+      </p>
+
+      <a v-if="!googleConnected" href="/api/kikigaki/google/connect" class="kk-btn whitespace-nowrap mt-3 inline-block">連携する</a>
+
+      <div v-else class="mt-3 space-y-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <input
+            v-model="driveFolderInput"
+            class="kk-input flex-1 min-w-[220px]"
+            placeholder="保存先フォルダの共有リンクまたはIDを貼り付け"
+            :disabled="savingFolder"
+          >
+          <button class="kk-btn-ghost shrink-0" :disabled="savingFolder || !driveFolderInput.trim()" @click="saveDriveFolder">
+            {{ savingFolder ? '保存中…' : 'フォルダを設定' }}
+          </button>
+        </div>
+        <p v-if="driveFolderId" class="text-[11px] text-[var(--kk-ink-faint)]">
+          現在の保存先: <a :href="driveFolderUrl" target="_blank" rel="noopener" class="underline underline-offset-2">フォルダを開く</a>
         </p>
+        <p v-else class="text-[11px] text-[var(--kk-ink-faint)]">
+          まだフォルダが設定されていません。設定するまでPDFはドライブに保存されません。
+        </p>
+        <button class="kk-btn-ghost whitespace-nowrap" @click="disconnectGoogle">連携を解除</button>
       </div>
-      <a v-if="googleConnected && spreadsheetUrl" :href="spreadsheetUrl" target="_blank" rel="noopener" class="kk-btn-ghost whitespace-nowrap">議事録一覧を開く</a>
-      <a v-if="!googleConnected" href="/api/kikigaki/google/connect" class="kk-btn whitespace-nowrap">連携する</a>
-      <button v-else class="kk-btn-ghost whitespace-nowrap" @click="disconnectGoogle">解除</button>
-      <p class="basis-full m-0 text-[11px] text-[var(--kk-ink-faint)]">
+
+      <p class="mt-2 text-[11px] text-[var(--kk-ink-faint)]">
         <NuxtLink to="/privacy" class="underline underline-offset-2 hover:text-[var(--kk-ink-soft)]">プライバシーポリシー</NuxtLink>
       </p>
     </section>
-    -->
 
     <!-- アップロード -->
     <section class="kk-card px-5 py-5 mb-8">
@@ -204,9 +222,12 @@ const { isLoggedIn, checked, checkAuth, logout } = useAuth()
 const showAuthModal = computed(() => checked.value && !isLoggedIn.value)
 const showPasswordModal = ref(false)
 
-// Google連携（廃止。PDFダウンロードに置き換えたためコメントアウト）
-// const googleConnected = ref(false)
-// const spreadsheetUrl = ref('')
+// Googleドライブへの保存設定（ユーザーごと）
+const googleConnected = ref(false)
+const driveFolderId = ref('')
+const driveFolderInput = ref('')
+const driveFolderUrl = computed(() => (driveFolderId.value ? `https://drive.google.com/drive/folders/${driveFolderId.value}` : ''))
+const savingFolder = ref(false)
 const errorMessage = ref('')
 
 const records = ref<KikigakiRecordSummary[]>([])
@@ -275,15 +296,36 @@ function apiMessage(e: any, fallback: string): string {
   return e?.data?.message || e?.data?.statusMessage || e?.message || fallback
 }
 
-// async function loadGoogleStatus() {
-//   try {
-//     const status = await $fetch<{ connected: boolean; spreadsheetUrl?: string }>('/api/kikigaki/google/status')
-//     googleConnected.value = status.connected
-//     spreadsheetUrl.value = status.spreadsheetUrl ?? ''
-//   } catch {
-//     /* 未ログイン時は未連携のまま */
-//   }
-// }
+async function loadGoogleStatus() {
+  try {
+    const status = await $fetch<{ connected: boolean; driveFolderId?: string; driveFolderInput?: string }>(
+      '/api/kikigaki/google/status'
+    )
+    googleConnected.value = status.connected
+    driveFolderId.value = status.driveFolderId ?? ''
+    driveFolderInput.value = status.driveFolderInput ?? ''
+  } catch {
+    /* 未ログイン時は未連携のまま */
+  }
+}
+
+async function saveDriveFolder() {
+  const input = driveFolderInput.value.trim()
+  if (!input) return
+  savingFolder.value = true
+  errorMessage.value = ''
+  try {
+    const res = await $fetch<{ folderId: string; folderInput: string }>('/api/kikigaki/google/folder', {
+      method: 'POST',
+      body: { folderInput: input },
+    })
+    driveFolderId.value = res.folderId
+    driveFolderInput.value = res.folderInput
+  } catch (e: any) {
+    errorMessage.value = apiMessage(e, 'フォルダの設定に失敗しました（リンクの形式を確認してください）')
+  }
+  savingFolder.value = false
+}
 
 async function loadRecords() {
   loadingList.value = true
@@ -311,12 +353,13 @@ async function removeRecord(r: KikigakiRecordSummary) {
   deletingId.value = ''
 }
 
-// async function disconnectGoogle() {
-//   if (!confirm('Google連携を解除しますか？（作成済みのドキュメントやシートは削除されません）')) return
-//   await $fetch('/api/kikigaki/google/disconnect', { method: 'POST' })
-//   googleConnected.value = false
-//   spreadsheetUrl.value = ''
-// }
+async function disconnectGoogle() {
+  if (!confirm('Googleドライブとの連携を解除しますか？（保存済みのPDFは削除されません）')) return
+  await $fetch('/api/kikigaki/google/disconnect', { method: 'POST' })
+  googleConnected.value = false
+  driveFolderId.value = ''
+  driveFolderInput.value = ''
+}
 
 // 音声は 文字起こし → 構造化 の2段階、テキスト（ファイル/貼り付け）は構造化のみ。ここでは下書きを作るだけ。
 async function run() {
@@ -373,13 +416,20 @@ async function doLogout() {
 
 // ログイン直後に読み込み直す（別端末で見えない＝ローカル保存、と誤解させないため）
 watch(isLoggedIn, async (v) => {
-  if (v) await loadRecords()
+  if (v) {
+    await loadRecords()
+    await loadGoogleStatus()
+  }
 })
 
 onMounted(async () => {
   if (route.query.kikigaki_error) errorMessage.value = String(route.query.kikigaki_error)
   await checkAuth()
-  if (isLoggedIn.value) await loadRecords()
-  else loadingList.value = false
+  if (isLoggedIn.value) {
+    await loadRecords()
+    await loadGoogleStatus()
+  } else {
+    loadingList.value = false
+  }
 })
 </script>

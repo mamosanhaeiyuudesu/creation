@@ -1,10 +1,10 @@
-// キキガキ（会議・地域活動の録音 → 文字起こし → AI構造化 → 人間のレビュー → Google書き込み）の
+// キキガキ（会議・打ち合わせなどの録音 → 文字起こし → AI構造化 → 人間のレビュー → PDF出力）の
 // サーバー共通処理。認証は既存の WHISPER_DB / users / sessions に相乗りし、記録は user_id でスコープする。
 //
-// ★このファイルには Google への書き込みを一切置かない。
-//   書き込みは kikigaki-google.ts にまとめてあり、それを呼ぶのは
-//   「承認」エンドポイント（api/kikigaki/records/[id]/approve.post.ts）ただ1か所だけ。
-//   人間が承認ボタンを押す以外の経路で Google に何かが書かれることは無い、という保証をこの分離で作る。
+// ★このファイルには Google への書き込みを一切置かない。書き込みは kikigaki-google.ts にまとめてある。
+//   旧・Docs/Sheets/Tasks/Calendar書き込み（承認フロー）は2026-09-04にUIから外し未使用のまま残っているが、
+//   Googleドライブへの PDF 保存は、ユーザーが設定したフォルダへ PDF ダウンロードのたびに自動で行われる
+//   （承認という概念はなく、ユーザーが自分のドライブへ自分のPDFを置くだけの操作）。
 
 import { getSessionUser, getAppDb } from '~/server/utils/auth'
 import { encryptComment, decryptComment } from '~/server/utils/encrypt'
@@ -76,6 +76,9 @@ export async function ensureKikigakiTables(db: any): Promise<void> {
   const columns = [
     `ALTER TABLE kikigaki_records ADD COLUMN sheet_appended INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE kikigaki_records ADD COLUMN warnings TEXT NOT NULL DEFAULT ''`,
+    // Googleドライブへの PDF 保存先フォルダ（ユーザーごと1つ）。
+    `ALTER TABLE kikigaki_google_connections ADD COLUMN drive_folder_id TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE kikigaki_google_connections ADD COLUMN drive_folder_input TEXT NOT NULL DEFAULT ''`,
   ]
   for (const sql of columns) await db.prepare(sql).run().catch(() => {})
 }
@@ -180,7 +183,7 @@ export function normalizeMinutes(raw: any): KikigakiMinutes {
 
 // ── D1 の読み書き ─────────────────────────────────────────
 // 会議の中身（タイトル・文字起こし・議事録JSON）は encrypt.ts で暗号化して保存する。
-// 地域の会議には個人名や未確定の話が普通に含まれるため、DBを直接覗いても読めない状態にしておく。
+// 会議には個人名や未確定の話が普通に含まれるため、DBを直接覗いても読めない状態にしておく。
 
 interface RecordRow {
   id: string

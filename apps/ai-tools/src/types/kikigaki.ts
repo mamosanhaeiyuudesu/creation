@@ -37,10 +37,11 @@ export interface KikigakiPrintSettings {
   rightMaxChars: number
 }
 
-export const KIKIGAKI_DEFAULT_SUMMARY_MAX_CHARS = 450
-export const KIKIGAKI_DEFAULT_RIGHT_MAX_CHARS = 450
+// 概要（summary）自体をAIが最大1000文字・章立てで書く仕様（kikigaki-ai.ts）に合わせた既定値。
+export const KIKIGAKI_DEFAULT_SUMMARY_MAX_CHARS = 1000
+export const KIKIGAKI_DEFAULT_RIGHT_MAX_CHARS = 1000
 export const KIKIGAKI_PRINT_MAX_CHARS_MIN = 100
-export const KIKIGAKI_PRINT_MAX_CHARS_MAX = 2000
+export const KIKIGAKI_PRINT_MAX_CHARS_MAX = 3000
 
 /** Claude が文字起こしから組み立てる議事録の構造。人間がレビュー画面で編集する対象そのもの */
 export interface KikigakiMinutes {
