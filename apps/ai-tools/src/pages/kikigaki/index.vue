@@ -47,12 +47,11 @@
     </p>
 
     <!-- アップロード -->
+    <div class="flex items-baseline gap-2 mb-2">
+      <p class="kk-label">議事録をつくる</p>
+      <p class="text-[11px] text-[var(--kk-ink-faint)]">録音ファイル、または文字起こし済みのテキストから作成します</p>
+    </div>
     <section class="kk-card px-5 py-5 mb-8">
-      <div class="flex items-baseline gap-2 mb-3">
-        <p class="kk-label">議事録をつくる</p>
-        <p class="text-[11px] text-[var(--kk-ink-faint)]">録音ファイル、または文字起こし済みのテキストから作成します</p>
-      </div>
-
       <div class="flex items-center gap-1.5 mb-3">
         <button
           type="button"
