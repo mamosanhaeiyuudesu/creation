@@ -30,7 +30,7 @@
       <p v-if="message" :class="messageIsError ? 'text-[var(--news-accent)]' : 'text-[var(--news-ink)]'">{{ message }}</p>
     </div>
 
-    <!-- 潮流：まずここで大きな流れをつかみ、クリックすると下の記事が絞り込まれる -->
+    <!-- 潮流：まずここで大きな流れをつかむ。クリックすると全文がポップアップで読める -->
     <section v-if="!loading" class="mb-8">
       <div class="grid gap-3 sm:grid-cols-2">
         <button
@@ -38,7 +38,7 @@
           :key="c.id"
           class="news-current-card text-left"
           :class="{ 'news-current-card--on': currentId === c.id }"
-          @click="toggleCurrent(c.id)"
+          @click="openCurrentId = c.id"
         >
           <div class="flex items-center justify-between gap-2 mb-1.5">
             <h2 class="news-display text-[14px]">{{ c.label }}</h2>
@@ -54,8 +54,31 @@
       </div>
     </section>
 
+    <!-- 潮流の考察：全文ポップアップ -->
+    <div v-if="openCurrentMeta" class="news-modal-backdrop" @click.self="openCurrentId = ''">
+      <div class="news-modal" role="dialog" aria-modal="true">
+        <div class="flex items-start justify-between gap-3 mb-1">
+          <h2 class="news-display text-[18px] leading-snug">{{ openCurrentMeta.label }}</h2>
+          <button class="news-modal-close" aria-label="閉じる" @click="openCurrentId = ''">×</button>
+        </div>
+        <p class="text-[11.5px] text-[var(--news-ink-faint)] mb-4">
+          {{ openCurrentMeta.description }}
+        </p>
+        <p class="text-[12px] text-[var(--news-ink-faint)] mb-2">
+          直近30日{{ currentState(openCurrentMeta.id)?.itemCount30d ?? 0 }}件
+          <template v-if="currentState(openCurrentMeta.id)?.updatedAt">・{{ fmtDateTime(currentState(openCurrentMeta.id)!.updatedAt) }}更新</template>
+        </p>
+        <p class="text-[14px] leading-[1.9] text-[var(--news-ink)] whitespace-pre-line">
+          {{ currentState(openCurrentMeta.id)?.narrative || 'まだ記事が集まっていません。' }}
+        </p>
+        <div class="mt-5 pt-3 border-t border-[var(--news-line)]">
+          <button class="news-btn-ghost" @click="filterByCurrent(openCurrentMeta.id)">この潮流の記事だけ見る ↓</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 絞り込み -->
-    <div v-if="items.length" class="flex items-center gap-1.5 flex-wrap mb-6">
+    <div v-if="items.length" ref="filterBarEl" class="flex items-center gap-1.5 flex-wrap mb-6">
       <button v-if="currentId" class="news-chip news-chip--on" @click="currentId = ''">
         {{ currentLabel(currentId) }} ×
       </button>
@@ -164,7 +187,7 @@
  * 下の記事一覧がその潮流だけに絞り込まれる＝大きな流れから個別記事へのドリルダウン。
  * 通知やメールは無く、cron（毎朝7時）が集めておいたものをここで読む。
  */
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
 import { NEWS_MIN_IMPORTANCE, NEWS_SOURCES, sourceName } from '~/utils/news-sources'
@@ -199,6 +222,11 @@ const sourceId = ref('all')
 const minImportance = ref(NEWS_MIN_IMPORTANCE)
 const keyword = ref('')
 
+/** ポップアップで全文を開いている潮流id。空文字なら閉じている。 */
+const openCurrentId = ref('')
+const openCurrentMeta = computed(() => NEWS_CURRENTS.find((c) => c.id === openCurrentId.value) ?? null)
+const filterBarEl = ref<HTMLElement | null>(null)
+
 const lastRun = computed<NewsRun | null>(() => runs.value[0] ?? null)
 
 function errorCount(run: NewsRun): number {
@@ -209,10 +237,19 @@ function currentState(id: string): NewsCurrentState | undefined {
   return currents.value.find((c) => c.id === id)
 }
 
-/** カードを押すたびに選択/解除をトグルする。 */
-function toggleCurrent(id: string) {
-  currentId.value = currentId.value === id ? '' : id
+/** ポップアップの「この潮流の記事だけ見る」。絞り込んで閉じ、記事一覧までスクロールする。 */
+async function filterByCurrent(id: string) {
+  currentId.value = id
+  openCurrentId.value = ''
+  await nextTick()
+  filterBarEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') openCurrentId.value = ''
+}
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
 /** 実際に記事があるソースだけをチップに出す（ソースを増やせば勝手に増える） */
 const usedSources = computed(() => {

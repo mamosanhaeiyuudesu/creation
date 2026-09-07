@@ -92,7 +92,7 @@ useHead({
 .news-card:hover { box-shadow: 0 2px 10px rgba(29, 31, 34, 0.06); }
 .news-card--top { border-left: 3px solid var(--news-accent); }
 
-/* 潮流カード。トップの「大きな流れ」で、クリックすると下の記事が絞り込まれる */
+/* 潮流カード。トップの「大きな流れ」で、クリックすると全文がポップアップで読める */
 .news-current-card {
   background: var(--news-card);
   border: 1px solid var(--news-line);
@@ -105,6 +105,39 @@ useHead({
   border-color: var(--news-accent);
   background: var(--news-accent-soft);
 }
+
+/* 潮流の考察ポップアップ */
+.news-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(29, 31, 34, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+.news-modal {
+  background: var(--news-card);
+  border-radius: 10px;
+  padding: 1.5rem;
+  max-width: 480px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(29, 31, 34, 0.25);
+}
+.news-modal-close {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--news-ink-faint);
+  transition: background 0.15s, color 0.15s;
+}
+.news-modal-close:hover { background: rgba(29, 31, 34, 0.06); color: var(--news-ink); }
 
 .news-input {
   height: 1.9rem;
