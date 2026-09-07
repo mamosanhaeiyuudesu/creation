@@ -91,9 +91,9 @@
               type="button"
               class="kk-btn-ghost !h-7 !px-2.5 !text-[11.5px]"
               :class="{ 'kk-mode-active': transcriptInput === 'file' }"
-              @click="setTranscriptInput('file')"
+              @click="selectTranscriptFile"
             >
-              ファイルをアップロード
+              ファイルを選択
             </button>
             <button
               type="button"
@@ -199,7 +199,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
@@ -241,6 +241,13 @@ function setUploadMode(mode: UploadMode) {
   file.value = null
   pastedTranscript.value = ''
   if (fileInput.value) fileInput.value.value = ''
+}
+
+/** 「ファイルを選択」ボタン用。モード切り替えだけでなく、そのままOSのファイル選択ダイアログまで開く */
+async function selectTranscriptFile() {
+  setTranscriptInput('file')
+  await nextTick()
+  fileInput.value?.click()
 }
 
 function setTranscriptInput(mode: TranscriptInput) {
