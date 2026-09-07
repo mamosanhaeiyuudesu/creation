@@ -226,14 +226,28 @@
           <button class="kk-btn" :disabled="generatingPdf || saving" @click="downloadPdf">
             {{ generatingPdf ? 'PDFを作成しています…' : 'PDFでダウンロード' }}
           </button>
+          <button v-if="driveReady" class="kk-btn-ghost" :disabled="savingToDrive || saving" @click="saveToDrive">
+            {{ savingToDrive ? 'ドライブに保存中…' : 'Googleドライブに保存' }}
+          </button>
           <button class="kk-btn-ghost" :disabled="saving || generatingPdf" @click="saveDraft">
             {{ saving ? '保存中…' : '保存' }}
           </button>
           <span v-if="savedAt" class="text-[11.5px] text-[var(--kk-ink-faint)]">保存しました</span>
-          <span v-if="driveSaveMessage" class="text-[11.5px] text-[var(--kk-ink-faint)]">{{ driveSaveMessage }}</span>
+          <span
+            v-if="driveSaveMessage"
+            class="text-[11.5px]"
+            :style="driveSaveFailed ? 'color: var(--kk-danger)' : 'color: var(--kk-ink-faint)'"
+          >{{ driveSaveMessage }}</span>
           <!-- 記録は全員で共有するが、消せるのはアップロードした本人だけ -->
           <button v-if="record.isOwner" class="kk-btn-ghost ml-auto" :disabled="saving || generatingPdf" @click="remove">削除</button>
         </div>
+        <p v-if="driveConnected && !driveFolderId" class="text-[11px] text-[var(--kk-ink-faint)] mt-2">
+          Googleと連携済みですが、保存先フォルダが未設定です。
+          <NuxtLink to="/kikigaki" class="underline underline-offset-2">一覧ページで設定</NuxtLink>するとGoogleドライブにも保存できます。
+        </p>
+        <p v-else-if="!driveConnected" class="text-[11px] text-[var(--kk-ink-faint)] mt-2">
+          <NuxtLink to="/kikigaki" class="underline underline-offset-2">Googleドライブと連携</NuxtLink>すると、PDFをそのままドライブにも保存できます。
+        </p>
       </div>
     </template>
 
@@ -330,8 +344,6 @@ const saving = ref(false)
 const savedAt = ref(0)
 const generatingPdf = ref(false)
 const printRoot = ref<HTMLElement | null>(null)
-/** Googleドライブへの保存結果（設定していない場合は空のまま）。設定は /kikigaki の一覧ページで行う */
-const driveSaveMessage = ref('')
 
 /** 画面で編集している議事録。record.minutes のコピー。保存・PDF出力ともこれをもとに行う */
 const minutes = reactive<KikigakiMinutes>(emptyMinutes())
@@ -515,66 +527,110 @@ async function buildPrintContent() {
   }
 }
 
+/** PDFを組み立てる（画面には出さない）。ダウンロードとGoogleドライブ保存の両方から呼ぶ共通処理。 */
+async function renderPdf(): Promise<{ pdf: any; fileName: string }> {
+  await saveDraft()
+  await buildPrintContent()
+  await nextTick()
+
+  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')])
+  const el = printRoot.value
+  if (!el) throw new Error('印刷用の内容を用意できませんでした')
+
+  const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' })
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+  const pageW = 297
+  const pageH = 210
+  let w = pageW
+  let h = (canvas.height / canvas.width) * pageW
+  let x = 0
+  let y = (pageH - h) / 2
+  if (h > pageH) {
+    h = pageH
+    w = (canvas.width / canvas.height) * pageH
+    x = (pageW - w) / 2
+    y = 0
+  }
+  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, w, h)
+
+  const safeTitle = (minutes.title || 'キキガキ議事録').replace(/[\\/:*?"<>|]/g, '_')
+  const fileName = minutes.date ? `${safeTitle}_${minutes.date}.pdf` : `${safeTitle}.pdf`
+  return { pdf, fileName }
+}
+
 async function downloadPdf() {
   errorMessage.value = ''
-  driveSaveMessage.value = ''
   generatingPdf.value = true
   try {
-    await saveDraft()
-    await buildPrintContent()
-    await nextTick()
-
-    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')])
-    const el = printRoot.value
-    if (!el) throw new Error('印刷用の内容を用意できませんでした')
-
-    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' })
-    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-    const pageW = 297
-    const pageH = 210
-    let w = pageW
-    let h = (canvas.height / canvas.width) * pageW
-    let x = 0
-    let y = (pageH - h) / 2
-    if (h > pageH) {
-      h = pageH
-      w = (canvas.width / canvas.height) * pageH
-      x = (pageW - w) / 2
-      y = 0
-    }
-    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, w, h)
-
-    const safeTitle = (minutes.title || 'キキガキ議事録').replace(/[\\/:*?"<>|]/g, '_')
-    const fileName = minutes.date ? `${safeTitle}_${minutes.date}.pdf` : `${safeTitle}.pdf`
+    const { pdf, fileName } = await renderPdf()
     pdf.save(fileName)
-
-    // Googleドライブへの保存を設定しているユーザーなら、そのままコピーもアップロードする
-    // （設定していなければ /api/kikigaki/google/drive-save が { saved: false } を返すだけで、
-    //   このPDFダウンロード自体は失敗させない＝あくまで付加機能）。
-    try {
-      const pdfBase64 = pdf.output('datauristring').split(',')[1] ?? ''
-      const res = await $fetch<{ saved: boolean }>('/api/kikigaki/google/drive-save', {
-        method: 'POST',
-        body: { fileName, pdfBase64 },
-      })
-      driveSaveMessage.value = res.saved ? 'Googleドライブにも保存しました' : ''
-    } catch (e: any) {
-      driveSaveMessage.value = apiMessage(e, 'Googleドライブへの保存に失敗しました（PDFのダウンロードは完了しています）')
-    }
   } catch (e: any) {
     errorMessage.value = apiMessage(e, 'PDFの作成に失敗しました')
   }
   generatingPdf.value = false
 }
 
+// ── Googleドライブへの保存 ────────────────────────────────
+// 連携・保存先フォルダの設定は /kikigaki の一覧ページで行う。ここでは状態を読み取って
+// ボタンの出し分けと、実際のアップロードだけを行う。
+
+const driveConnected = ref(false)
+const driveFolderId = ref('')
+const driveReady = computed(() => driveConnected.value && !!driveFolderId.value)
+const savingToDrive = ref(false)
+const driveSaveMessage = ref('')
+const driveSaveFailed = ref(false)
+
+async function loadGoogleStatus() {
+  try {
+    const status = await $fetch<{ connected: boolean; driveFolderId?: string }>('/api/kikigaki/google/status')
+    driveConnected.value = status.connected
+    driveFolderId.value = status.driveFolderId ?? ''
+  } catch {
+    /* 未ログイン時などは未連携のまま */
+  }
+}
+
+async function saveToDrive() {
+  errorMessage.value = ''
+  driveSaveMessage.value = ''
+  driveSaveFailed.value = false
+  savingToDrive.value = true
+  try {
+    const { pdf, fileName } = await renderPdf()
+    const pdfBase64 = pdf.output('datauristring').split(',')[1] ?? ''
+    const res = await $fetch<{ saved: boolean }>('/api/kikigaki/google/drive-save', {
+      method: 'POST',
+      body: { fileName, pdfBase64 },
+    })
+    if (res.saved) {
+      driveSaveMessage.value = 'Googleドライブに保存しました'
+    } else {
+      driveSaveFailed.value = true
+      driveSaveMessage.value = 'Googleドライブと連携・フォルダ設定がされていません（一覧ページで設定してください）'
+    }
+  } catch (e: any) {
+    driveSaveFailed.value = true
+    driveSaveMessage.value = apiMessage(e, 'Googleドライブへの保存に失敗しました')
+  }
+  savingToDrive.value = false
+}
+
 watch(isLoggedIn, async (v) => {
-  if (v) await load()
+  if (v) {
+    await load()
+    await loadGoogleStatus()
+  }
 })
 
 onMounted(async () => {
   await checkAuth()
-  if (isLoggedIn.value) await load()
-  else loading.value = false
+  if (isLoggedIn.value) {
+    await load()
+    await loadGoogleStatus()
+  } else {
+    loading.value = false
+  }
 })
 </script>
 
