@@ -79,6 +79,10 @@ export async function ensureKikigakiTables(db: any): Promise<void> {
     // Googleドライブへの PDF 保存先フォルダ（ユーザーごと1つ）。
     `ALTER TABLE kikigaki_google_connections ADD COLUMN drive_folder_id TEXT NOT NULL DEFAULT ''`,
     `ALTER TABLE kikigaki_google_connections ADD COLUMN drive_folder_input TEXT NOT NULL DEFAULT ''`,
+    // 2026-09-04以前にDocs/Sheets/Tasks/Calendarスコープで連携した行が残っていると、
+    // drive.fileスコープが無いままフォルダだけ設定でき「保存に失敗し続ける」事故になるため、
+    // トークン取得時に実際に許可されたスコープを記録し、drive.fileの有無を判定できるようにする。
+    `ALTER TABLE kikigaki_google_connections ADD COLUMN granted_scope TEXT NOT NULL DEFAULT ''`,
   ]
   for (const sql of columns) await db.prepare(sql).run().catch(() => {})
 }

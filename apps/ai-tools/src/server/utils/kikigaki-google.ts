@@ -166,6 +166,7 @@ interface ConnRow {
   spreadsheet_url: string
   drive_folder_id: string
   drive_folder_input: string
+  granted_scope: string
 }
 
 async function getConnection(event: H3Event, userId: string): Promise<ConnRow | null> {
@@ -174,20 +175,34 @@ async function getConnection(event: H3Event, userId: string): Promise<ConnRow | 
   await ensureKikigakiTables(db)
   const row = await db
     .prepare(
-      'SELECT refresh_token, spreadsheet_id, spreadsheet_url, drive_folder_id, drive_folder_input FROM kikigaki_google_connections WHERE user_id = ?'
+      'SELECT refresh_token, spreadsheet_id, spreadsheet_url, drive_folder_id, drive_folder_input, granted_scope FROM kikigaki_google_connections WHERE user_id = ?'
     )
     .bind(userId)
     .first()
   return (row as ConnRow) ?? null
 }
 
+/**
+ * granted_scope に drive.file が含まれているか。
+ * 2026-09-04以前にDocs/Sheets/Tasks/Calendarスコープで連携した行は granted_scope が空のまま
+ * 残っているため、空文字も「不足」として扱う（＝再連携するまでDriveへは保存させない）。
+ */
+function hasDriveScope(grantedScope: string): boolean {
+  return grantedScope.split(/\s+/).includes('https://www.googleapis.com/auth/drive.file')
+}
+
 export async function getKikigakiGoogleStatus(
   event: H3Event,
   userId: string
-): Promise<{ connected: boolean; driveFolderId: string; driveFolderInput: string }> {
+): Promise<{ connected: boolean; needsReconnect: boolean; driveFolderId: string; driveFolderInput: string }> {
   const conn = await getConnection(event, userId)
-  if (!conn) return { connected: false, driveFolderId: '', driveFolderInput: '' }
-  return { connected: true, driveFolderId: conn.drive_folder_id || '', driveFolderInput: conn.drive_folder_input || '' }
+  if (!conn) return { connected: false, needsReconnect: false, driveFolderId: '', driveFolderInput: '' }
+  return {
+    connected: true,
+    needsReconnect: !hasDriveScope(conn.granted_scope),
+    driveFolderId: conn.drive_folder_id || '',
+    driveFolderInput: conn.drive_folder_input || '',
+  }
 }
 
 /**
@@ -220,6 +235,14 @@ export async function saveKikigakiDriveFolder(
   await ensureKikigakiTables(db)
   const conn = await getConnection(event, userId)
   if (!conn) throw createError({ statusCode: 400, message: 'Googleドライブと連携されていません' })
+  if (!hasDriveScope(conn.granted_scope)) {
+    // 2026-09-04以前の連携（Docs/Sheets/Tasks/Calendarスコープ）が残っていると、フォルダだけ設定できて
+    // 実際のアップロードは権限不足で失敗し続ける事故になるため、ここで先に弾く。
+    throw createError({
+      statusCode: 400,
+      message: '権限が古いため、フォルダを設定する前に「連携する」からGoogleと再連携してください',
+    })
+  }
 
   await db
     .prepare(
@@ -336,11 +359,12 @@ export async function saveKikigakiGoogleConnection(event: H3Event, userId: strin
   const now = Math.floor(Date.now() / 1000)
   await db
     .prepare(
-      `INSERT INTO kikigaki_google_connections (user_id, refresh_token, created_at, updated_at)
-       VALUES (?, ?, ?, ?)
-       ON CONFLICT(user_id) DO UPDATE SET refresh_token = excluded.refresh_token, updated_at = excluded.updated_at`
+      `INSERT INTO kikigaki_google_connections (user_id, refresh_token, granted_scope, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(user_id) DO UPDATE SET
+         refresh_token = excluded.refresh_token, granted_scope = excluded.granted_scope, updated_at = excluded.updated_at`
     )
-    .bind(userId, await encryptComment(event, refreshToken), now, now)
+    .bind(userId, await encryptComment(event, refreshToken), tok.scope || '', now, now)
     .run()
 }
 

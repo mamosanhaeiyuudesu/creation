@@ -24,9 +24,13 @@ export default defineEventHandler(async (event) => {
   } catch (e: any) {
     const detail = e?.data ? (typeof e.data === 'string' ? e.data : JSON.stringify(e.data)) : e?.message || String(e)
     console.error('[kikigaki/google/callback] error:', detail)
-    await sendRedirect(event, '/kikigaki?kikigaki_error=' + encodeURIComponent(String(detail).slice(0, 500)))
+    await sendRedirect(
+      event,
+      '/kikigaki?openDriveSettings=1&kikigaki_error=' + encodeURIComponent(String(detail).slice(0, 500))
+    )
     return
   }
 
-  await sendRedirect(event, '/kikigaki')
+  // 連携直後にそのままフォルダ設定へ進めるよう、設定モーダルを開いた状態で一覧ページへ戻す。
+  await sendRedirect(event, '/kikigaki?openDriveSettings=1')
 })

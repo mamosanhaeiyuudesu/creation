@@ -241,12 +241,16 @@
           <!-- 記録は全員で共有するが、消せるのはアップロードした本人だけ -->
           <button v-if="record.isOwner" class="kk-btn-ghost ml-auto" :disabled="saving || generatingPdf" @click="remove">削除</button>
         </div>
-        <p v-if="driveConnected && !driveFolderId" class="text-[11px] text-[var(--kk-ink-faint)] mt-2">
+        <p v-if="driveConnected && driveNeedsReconnect" class="text-[11px] text-[var(--kk-ink-faint)] mt-2">
+          Googleとの連携が古くなっています。
+          <NuxtLink to="/kikigaki?openDriveSettings=1" class="underline underline-offset-2">一覧ページの設定（⚙）で再連携</NuxtLink>するとGoogleドライブに保存できるようになります。
+        </p>
+        <p v-else-if="driveConnected && !driveFolderId" class="text-[11px] text-[var(--kk-ink-faint)] mt-2">
           Googleと連携済みですが、保存先フォルダが未設定です。
-          <NuxtLink to="/kikigaki" class="underline underline-offset-2">一覧ページで設定</NuxtLink>するとGoogleドライブにも保存できます。
+          <NuxtLink to="/kikigaki?openDriveSettings=1" class="underline underline-offset-2">一覧ページの設定（⚙）で設定</NuxtLink>するとGoogleドライブにも保存できます。
         </p>
         <p v-else-if="!driveConnected" class="text-[11px] text-[var(--kk-ink-faint)] mt-2">
-          <NuxtLink to="/kikigaki" class="underline underline-offset-2">Googleドライブと連携</NuxtLink>すると、PDFをそのままドライブにも保存できます。
+          <NuxtLink to="/kikigaki?openDriveSettings=1" class="underline underline-offset-2">一覧ページの設定（⚙）でGoogleドライブと連携</NuxtLink>すると、PDFをそのままドライブにも保存できます。
         </p>
       </div>
     </template>
@@ -575,16 +579,21 @@ async function downloadPdf() {
 // ボタンの出し分けと、実際のアップロードだけを行う。
 
 const driveConnected = ref(false)
+/** 2026-09-04以前のDocs/Sheets/Tasks/Calendarスコープの連携が残っていて、drive.file権限が無い状態 */
+const driveNeedsReconnect = ref(false)
 const driveFolderId = ref('')
-const driveReady = computed(() => driveConnected.value && !!driveFolderId.value)
+const driveReady = computed(() => driveConnected.value && !driveNeedsReconnect.value && !!driveFolderId.value)
 const savingToDrive = ref(false)
 const driveSaveMessage = ref('')
 const driveSaveFailed = ref(false)
 
 async function loadGoogleStatus() {
   try {
-    const status = await $fetch<{ connected: boolean; driveFolderId?: string }>('/api/kikigaki/google/status')
+    const status = await $fetch<{ connected: boolean; needsReconnect?: boolean; driveFolderId?: string }>(
+      '/api/kikigaki/google/status'
+    )
     driveConnected.value = status.connected
+    driveNeedsReconnect.value = !!status.needsReconnect
     driveFolderId.value = status.driveFolderId ?? ''
   } catch {
     /* 未ログイン時などは未連携のまま */

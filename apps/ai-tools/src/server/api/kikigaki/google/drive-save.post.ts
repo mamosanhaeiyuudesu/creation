@@ -16,6 +16,13 @@ export default defineEventHandler(async (event) => {
   if (!status.connected || !status.driveFolderId) {
     return { saved: false }
   }
+  if (status.needsReconnect) {
+    // 2026-09-04以前の古いスコープの連携が残っているケース。Google側の生エラーより先にこちらで案内する。
+    throw createError({
+      statusCode: 400,
+      message: '権限が古いため保存できません。一覧ページで「連携する」からGoogleと再連携してください',
+    })
+  }
 
   try {
     const uploaded = await uploadPdfToDrive(event, user.id, status.driveFolderId, fileName, pdfBase64)
