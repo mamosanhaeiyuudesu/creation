@@ -1,0 +1,14 @@
+name = "genogram"
+main = ".output/server/index.mjs"
+compatibility_date = "2026-03-12"
+
+[vars]
+# Add non-secret variables here.
+# Set secrets with:
+#   wrangler secret put NUXT_ANTHROPIC_API_KEY
+
+[build]
+command = "yarn build"
+
+[assets]
+directory = ".output/public"

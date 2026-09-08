@@ -6471,6 +6471,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"genogram@workspace:apps/genogram":
+  version: 0.0.0-use.local
+  resolution: "genogram@workspace:apps/genogram"
+  dependencies:
+    nuxt: "npm:^4.5.2"
+    wrangler: "npm:^4.75.0"
+  languageName: unknown
+  linkType: soft
+
 "gensync@npm:^1.0.0-beta.2":
   version: 1.0.0-beta.2
   resolution: "gensync@npm:1.0.0-beta.2"
