@@ -73,6 +73,22 @@ export function validateGenogramData(input: unknown): ValidationResult {
       errors.push(`people[${i}] (id: "${id}"): "generation" は数値である必要があります`)
       return
     }
+    if (raw.birthYear !== undefined && typeof raw.birthYear !== 'number') {
+      errors.push(`people[${i}] (id: "${id}"): "birthYear" は数値である必要があります`)
+      return
+    }
+    if (raw.deathYear !== undefined && typeof raw.deathYear !== 'number') {
+      errors.push(`people[${i}] (id: "${id}"): "deathYear" は数値である必要があります`)
+      return
+    }
+    if (raw.occupation !== undefined && typeof raw.occupation !== 'string') {
+      errors.push(`people[${i}] (id: "${id}"): "occupation" は文字列である必要があります`)
+      return
+    }
+    if (raw.healthNote !== undefined && typeof raw.healthNote !== 'string') {
+      errors.push(`people[${i}] (id: "${id}"): "healthNote" は文字列である必要があります`)
+      return
+    }
     if (raw.isSelf === true) {
       selfCount++
     }
@@ -84,6 +100,10 @@ export function validateGenogramData(input: unknown): ValidationResult {
       generation: raw.generation as number | undefined,
       deceased: raw.deceased === true,
       isSelf: raw.isSelf === true,
+      birthYear: raw.birthYear as number | undefined,
+      deathYear: raw.deathYear as number | undefined,
+      occupation: typeof raw.occupation === 'string' ? raw.occupation : undefined,
+      healthNote: typeof raw.healthNote === 'string' ? raw.healthNote : undefined,
       note: typeof raw.note === 'string' ? raw.note : undefined,
     })
   })
@@ -129,10 +149,25 @@ export function validateGenogramData(input: unknown): ValidationResult {
         }
       }
     }
+    if (raw.startYear !== undefined && typeof raw.startYear !== 'number') {
+      errors.push(`unions[${i}]: "startYear" は数値である必要があります`)
+      return
+    }
+    if (raw.endYear !== undefined && typeof raw.endYear !== 'number') {
+      errors.push(`unions[${i}]: "endYear" は数値である必要があります`)
+      return
+    }
+    if (raw.note !== undefined && typeof raw.note !== 'string') {
+      errors.push(`unions[${i}]: "note" は文字列である必要があります`)
+      return
+    }
     unions.push({
       partners: partners as [string, string],
       status: status as GenogramData['unions'][number]['status'],
       children,
+      startYear: raw.startYear as number | undefined,
+      endYear: raw.endYear as number | undefined,
+      note: typeof raw.note === 'string' ? raw.note : undefined,
     })
   })
 

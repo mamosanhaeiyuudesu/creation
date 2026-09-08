@@ -1,4 +1,5 @@
 import type { GenogramData, Person, Union, Relation } from '~/types/genogram'
+import { personDetailLines, hasEnrichedInfo } from '~/utils/personDisplay'
 
 export const LAYOUT = {
   margin: 40,
@@ -55,7 +56,7 @@ export interface RelationLine {
 }
 
 export interface LegendItem {
-  kind: 'union' | 'relation'
+  kind: 'union' | 'relation' | 'badge'
   value: string
   label: string
 }
@@ -70,6 +71,8 @@ export interface GenogramLayoutResult {
   height: number
   /** 家系図本体(凡例を除く)の高さ。凡例グループの描画位置に使う */
   diagramHeight: number
+  /** 凡例1列分の幅。凡例項目の描画位置(GenogramSvg側)に使う */
+  legendColWidth: number
   viewBox: string
   errors: string[]
 }
@@ -96,7 +99,9 @@ class DisjointSet {
 
 function slotWidthOf(person: Person): number {
   const nameWidth = person.name.length * LAYOUT.charWidth + LAYOUT.labelPadding
-  return Math.max(LAYOUT.symbolSize + 16, nameWidth)
+  // 生没年・職業・注記は名前より小さいフォントで表示するため、文字幅は控えめに見積もる
+  const detailWidths = personDetailLines(person).map((line) => line.length * 8 + LAYOUT.labelPadding)
+  return Math.max(LAYOUT.symbolSize + 16, nameWidth, ...detailWidths)
 }
 
 /** 親子の有向グラフ(親→子)に循環があるか検出する。あれば関与するidの配列を返す */
@@ -236,7 +241,7 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
   if (cycle) {
     const names = cycle.map((id) => people.find((p) => p.id === id)?.name ?? id)
     errors.push(`親子関係が循環しています: ${names.join(' → ')}`)
-    return { nodes: [], unionLines: [], childConnectors: [], relationLines: [], legend: [], width: 0, height: 0, diagramHeight: 0, viewBox: '0 0 0 0', errors }
+    return { nodes: [], unionLines: [], childConnectors: [], relationLines: [], legend: [], width: 0, height: 0, diagramHeight: 0, legendColWidth: 0, viewBox: '0 0 0 0', errors }
   }
 
   const { genOf, parentUnionOfChild } = resolveGenerations(people, unions)
@@ -476,12 +481,23 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
   const usedRelationTypes = new Set(relations.map((r) => r.type))
   for (const status of usedUnionStatuses) legend.push({ kind: 'union', value: status, label: unionLabels[status] ?? status })
   for (const type of usedRelationTypes) legend.push({ kind: 'relation', value: type, label: relationLabels[type] ?? type })
+  if (people.some((p) => !!p.healthNote)) {
+    legend.push({ kind: 'badge', value: 'health', label: '健康メモあり(ホバーで表示)' })
+  }
+  if (people.some((p) => !hasEnrichedInfo(p))) {
+    legend.push({ kind: 'badge', value: 'nudge', label: '情報を追加できます' })
+  }
 
   const rowCount = rows.length
   const diagramHeight = LAYOUT.margin * 2 + Math.max(rowCount - 1, 0) * LAYOUT.rowHeight + LAYOUT.symbolSize
   const legendHeight = legend.length > 0 ? LAYOUT.legendTopGap + Math.ceil(legend.length / 2) * LAYOUT.legendRowHeight + LAYOUT.margin / 2 : LAYOUT.margin / 2
+  // 凡例は2列組み。ラベルの文字数が長い項目(健康メモ等)があっても列同士が重ならないよう、
+  // 実際の最長ラベルから列幅を逆算する(短いラベルだけの時は詰めて、長い時だけ広げる)
+  const legendMaxLabelLen = legend.length > 0 ? Math.max(...legend.map((item) => item.label.length)) : 0
+  const legendColWidth = Math.max(160, 42 + legendMaxLabelLen * 11 + 16)
+  const legendWidth = legend.length > 0 ? LAYOUT.margin * 2 + legendColWidth * Math.min(2, legend.length) : 0
 
-  const width = Math.max(maxX + LAYOUT.margin, 320)
+  const width = Math.max(maxX + LAYOUT.margin, legendWidth, 320)
   const height = diagramHeight + legendHeight
 
   return {
@@ -493,6 +509,7 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
     width,
     height,
     diagramHeight,
+    legendColWidth,
     viewBox: `0 0 ${width} ${height}`,
     errors,
   }

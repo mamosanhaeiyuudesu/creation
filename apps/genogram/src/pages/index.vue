@@ -15,7 +15,7 @@
             class="genogram-ai-textarea"
             rows="4"
             :disabled="aiLoading"
-            placeholder="例: 父の太郎と母の恵子は結婚していて仲が悪い。娘の花子は母とべったり。"
+            placeholder="例: 父の太郎(1950年生まれ、農業、糖尿病持ち)と母の恵子は1978年に結婚していて仲が悪い。娘の花子は母とべったり。"
             @keydown.meta.enter="submitAiText"
             @keydown.ctrl.enter="submitAiText"
           />

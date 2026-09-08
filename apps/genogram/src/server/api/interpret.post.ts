@@ -9,8 +9,8 @@ const SYSTEM = `あなたはジェノグラム(家系図+感情関係図)作成�
 ユーザーが自然な日本語で説明した家族構成や感情的な関係性を、以下のJSON形式(GenogramData)に変換・反映してください。
 
 型定義:
-- Person: { id: string(半角英数字・一意), name: string, gender: "M"|"F"|"U"(男性/女性/不明。性別が明言・推測できないときはU), generation?: number(省略可。世代が上がるほど大きい整数。祖父母=0, 親=1, 本人=2のように。unions.children による親子関係で世代が特定できるなら省略してよい), deceased?: boolean(故人), isSelf?: boolean(相談者本人。ユーザーが「私」「自分」「相談者」等と明示的に言った人物にのみtrueにする。誰が本人か明言されていなければ、全員falseのままにし勝手に推測しない。trueは最大1人まで), note?: string(記号の下に出す短い注記) }
-- Union: { partners: [id, id](夫婦・パートナーのidを2つ), status: "married"|"divorced"|"separated"|"distant"|"conflict", children?: string[](その夫婦の子のid配列) }
+- Person: { id: string(半角英数字・一意), name: string, gender: "M"|"F"|"U"(男性/女性/不明。性別が明言・推測できないときはU), generation?: number(省略可。世代が上がるほど大きい整数。祖父母=0, 親=1, 本人=2のように。unions.children による親子関係で世代が特定できるなら省略してよい), deceased?: boolean(没年が分からないが故人だと分かっている場合のみ), isSelf?: boolean(相談者本人。ユーザーが「私」「自分」「相談者」等と明示的に言った人物にのみtrueにする。誰が本人か明言されていなければ、全員falseのままにし勝手に推測しない。trueは最大1人まで), birthYear?: number(生年・西暦), deathYear?: number(没年・西暦。指定すると自動的に故人として扱われる), occupation?: string(職業), healthNote?: string(疾患・健康上の注記。例:"2型糖尿病","うつ病で通院中"), note?: string(その他の重要な出来事など短い注記) }
+- Union: { partners: [id, id](夫婦・パートナーのidを2つ), status: "married"|"divorced"|"separated"|"distant"|"conflict", children?: string[](その夫婦の子のid配列), startYear?: number(結婚・関係開始の年・西暦), endYear?: number(離婚・別居など関係終了の年・西暦), note?: string(短い注記) }
 - Relation: { from: id, to: id, type: "conflict"|"cutoff"|"enmeshed"|"close"|"distant", label?: string(関係を表す短い日本語、例:"疎遠","対立","絶縁","べったり") }
 - GenogramData: { people: Person[], unions: Union[], relations: Relation[] }
 
@@ -20,8 +20,9 @@ const SYSTEM = `あなたはジェノグラム(家系図+感情関係図)作成�
 3. 新しい人物には他と衝突しない新しいid(ローマ字や連番)を割り振る。
 4. 「仲が悪い」「絶縁」「べったり」「疎遠」「ぶつかる」のような感情表現は relations の type (conflict/cutoff/enmeshed/close/distant) に対応づけ、label に短い日本語を入れる。
 5. 結婚・離婚・別居・疎遠・不仲などの夫婦の状態は unions の status に対応づける。
-6. 推測でむやみに人物や関係を作らない。説明されていないことは追加しない。
-7. 出力は説明文やコードブロック記号(\`\`\`)を一切付けず、GenogramData の JSON オブジェクトのみ。`
+6. 生年・没年・年齢・職業・病気/持病・結婚/離婚した年など、ジェノグラムとして本来重要な情報が説明文の中にあれば、対応するフィールド(birthYear/deathYear/occupation/healthNote/startYear/endYear)に必ず反映する。年齢しか分からない場合は、説明文中や現在日時から西暦の生年を逆算してbirthYearに入れてよい。
+7. 推測でむやみに人物や関係、上記6の詳細情報を作らない。説明されていないことは追加しない(空欄のままにする)。
+8. 出力は説明文やコードブロック記号(\`\`\`)を一切付けず、GenogramData の JSON オブジェクトのみ。`
 
 export default defineEventHandler(async (event) => {
   const { anthropicApiKey } = useRuntimeConfig(event)

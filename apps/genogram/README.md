@@ -26,8 +26,12 @@ interface Person {
   name: string
   gender: Gender
   generation?: number // 省略時は unions.children から自動算出
-  deceased?: boolean
+  deceased?: boolean // 没年不明でも故人と分かっている場合
   isSelf?: boolean // 二重線枠で強調。1人まで
+  birthYear?: number // 名前の下に (1950-2020) のように表示
+  deathYear?: number // 指定すると自動的に故人(×印)として扱う
+  occupation?: string
+  healthNote?: string // 記号の隅に赤い「+」印。ホバー/タップで内容を表示
   note?: string
 }
 
@@ -37,6 +41,9 @@ interface Union {
   partners: [string, string]
   status: UnionStatus
   children?: string[]
+  startYear?: number // 婚姻/関係開始年
+  endYear?: number // 離婚・別居など終了年
+  note?: string
 }
 
 type RelationType = 'conflict' | 'cutoff' | 'enmeshed' | 'close' | 'distant'
@@ -54,6 +61,13 @@ interface GenogramData {
   relations: Relation[]
 }
 ```
+
+臨床的なジェノグラム(McGoldrick/Gerson方式)は本来、構造(誰が誰の親か)だけでなく生没年・職業・健康状態などの
+情報も持つ。これらは記号を増やさず、名前の下に小さい文字で添えるか、記号の隅の印(健康メモ)として表示する
+(エコマップが担う「家族の外」の情報――仕事先・支援機関などとのつながり――は対象外)。
+`birthYear`/`deathYear`/`occupation`/`healthNote`/`startYear`/`endYear`/`note` のいずれも入っていない人物には、
+図の隅に薄いグレーの点線「+」印が自動で付く。これは入力ミスではなく「まだ情報を追加できます」という合図で、
+該当フィールドを埋めると消える。
 
 ## 環境変数
 

@@ -53,6 +53,17 @@
         <template v-else-if="ul.union.status === 'separated'">
           <line v-bind="unionTick(ul, 0)" class="genogram-union-tick" />
         </template>
+
+        <g v-if="unionNoteText(ul.union)">
+          <rect
+            :x="ul.midX - labelHalfWidth(unionNoteText(ul.union)!)"
+            :y="ul.midY - 37"
+            :width="labelHalfWidth(unionNoteText(ul.union)!) * 2"
+            height="13"
+            class="genogram-union-note-bg"
+          />
+          <text :x="ul.midX" :y="ul.midY - 27" class="genogram-union-note-text">{{ unionNoteText(ul.union) }}</text>
+        </g>
       </g>
     </g>
 
@@ -134,7 +145,7 @@
       />
       <polygon v-else :points="diamondPoints(node.x, node.y, node.size)" class="genogram-shape" />
 
-      <template v-if="node.person.deceased">
+      <template v-if="isDeceased(node.person)">
         <line
           :x1="node.x - deceasedInset"
           :y1="node.y - deceasedInset"
@@ -152,14 +163,35 @@
       </template>
 
       <text :x="node.x" :y="nameY(node)" class="genogram-name-text">{{ node.person.name }}</text>
-      <text v-if="node.person.note" :x="node.x" :y="nameY(node) + 13" class="genogram-note-text">{{ node.person.note }}</text>
+      <text
+        v-for="(line, li) in personDetailLines(node.person)"
+        :key="li"
+        :x="node.x"
+        :y="nameY(node) + 13 * (li + 1)"
+        class="genogram-note-text"
+      >{{ line }}</text>
+
+      <g v-if="node.person.healthNote" :transform="`translate(${node.x + node.size / 2 - 5}, ${node.y - node.size / 2 - 5})`">
+        <circle r="7" class="genogram-health-badge-bg" />
+        <text y="3" class="genogram-health-badge-text">+</text>
+        <title>{{ node.person.healthNote }}</title>
+      </g>
+      <g v-else-if="!hasEnrichedInfo(node.person)" :transform="`translate(${node.x + node.size / 2 - 3}, ${node.y + node.size / 2 - 3})`">
+        <circle r="7" class="genogram-nudge-badge" />
+        <text y="3" class="genogram-nudge-badge-text">+</text>
+        <title>生年・職業・健康情報などを追加できます</title>
+      </g>
     </g>
 
     <!-- 凡例 -->
     <g v-if="layout.legend.length > 0" class="genogram-legend">
       <g v-for="(item, i) in layout.legend" :key="`legend-${item.kind}-${item.value}`" :transform="legendTransform(i)">
+        <template v-if="item.kind === 'badge'">
+          <circle cx="7" cy="0" r="7" :class="item.value === 'health' ? 'genogram-health-badge-bg' : 'genogram-nudge-badge'" />
+          <text x="7" y="3" :class="item.value === 'health' ? 'genogram-health-badge-text' : 'genogram-nudge-badge-text'">+</text>
+        </template>
         <polyline
-          v-if="item.value === 'conflict'"
+          v-else-if="item.value === 'conflict'"
           :points="zigzagPoints(0, 0, 34, 0, 6, 4)"
           :class="item.kind === 'union' ? 'genogram-union-conflict' : 'genogram-relation-conflict'"
         />
@@ -193,9 +225,10 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { GenogramData } from '~/types/genogram'
+import type { GenogramData, Union } from '~/types/genogram'
 import { computeGenogramLayout, type LayoutNode, type LegendItem } from '~/composables/useGenogramLayout'
 import { zigzagPoints, wavePath, diagonalTick, perpendicularTick } from '~/utils/svgLines'
+import { isDeceased, hasEnrichedInfo, personDetailLines, formatUnionYears } from '~/utils/personDisplay'
 
 const props = defineProps<{ data: GenogramData }>()
 
@@ -224,6 +257,12 @@ function labelHalfWidth(label: string) {
   return Math.max(14, label.length * 5.5 + 4)
 }
 
+function unionNoteText(union: Union): string | null {
+  const years = formatUnionYears(union)
+  if (years && union.note) return `${years} ${union.note}`
+  return years ?? union.note ?? null
+}
+
 type LineLike = { x1: number; y1: number; x2: number; y2: number }
 
 function unionTick(ul: LineLike, offset: number) {
@@ -239,8 +278,7 @@ function relationTick(rl: LineLike, ratio: number) {
 function legendTransform(i: number) {
   const col = i % 2
   const row = Math.floor(i / 2)
-  const colWidth = Math.max(200, layout.value.width / 2)
-  const x = 40 + col * colWidth
+  const x = 40 + col * layout.value.legendColWidth
   const y = layout.value.diagramHeight + 34 + row * 22
   return `translate(${x}, ${y})`
 }
@@ -269,6 +307,43 @@ function legendLineClass(item: LegendItem) {
   fill: none;
   stroke: #1f2933;
   stroke-width: 2;
+}
+
+.genogram-health-badge-bg {
+  fill: #dc2626;
+  stroke: #ffffff;
+  stroke-width: 1.5;
+}
+
+.genogram-health-badge-text {
+  fill: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.genogram-nudge-badge {
+  fill: #ffffff;
+  stroke: #9ca3af;
+  stroke-width: 1.2;
+  stroke-dasharray: 2 2;
+}
+
+.genogram-nudge-badge-text {
+  fill: #9ca3af;
+  font-size: 10px;
+  text-anchor: middle;
+}
+
+.genogram-union-note-bg {
+  fill: #fafafa;
+  opacity: 0.9;
+}
+
+.genogram-union-note-text {
+  font-size: 10px;
+  fill: #6b7280;
+  text-anchor: middle;
 }
 
 .genogram-deceased-mark {
