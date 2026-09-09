@@ -22,7 +22,38 @@ const SYSTEM = `あなたはジェノグラム(家系図+感情関係図)作成�
 5. 結婚・離婚・別居・疎遠・不仲などの夫婦の状態は unions の status に対応づける。
 6. 生年・没年・年齢・職業・病気/持病・結婚/離婚した年など、ジェノグラムとして本来重要な情報が説明文の中にあれば、対応するフィールド(birthYear/deathYear/occupation/healthNote/startYear/endYear)に必ず反映する。年齢しか分からない場合は、説明文中や現在日時から西暦の生年を逆算してbirthYearに入れてよい。
 7. 推測でむやみに人物や関係、上記6の詳細情報を作らない。説明されていないことは追加しない(空欄のままにする)。
-8. 出力は説明文やコードブロック記号(\`\`\`)を一切付けず、GenogramData の JSON オブジェクトのみ。`
+8. unions の partners/children や relations の from/to で使ったidは、必ず people 配列にも人物として存在すること(名前が分からない人物でも、name を "(名前不明)" などにして必ず people に追加する。idだけ作って people に足し忘れることは絶対にしない)。
+9. 出力は説明文やコードブロック記号(\`\`\`)を一切付けず、GenogramData の JSON オブジェクトのみ。`
+
+/**
+ * AIがunions/relationsでidを参照しつつ、対応するPersonをpeopleに足し忘れることがある。
+ * プロンプトで禁止してはいるが完全には防げないため、最後の砦として不明idに仮のPersonを補って
+ * バリデーションエラーで丸ごと失敗するのを防ぐ(手掛かりが無い形式不正までは面倒を見ない)。
+ */
+function fillMissingPeople(parsed: unknown): unknown {
+  if (!parsed || typeof parsed !== 'object' || !Array.isArray((parsed as any).people)) return parsed
+  const data = parsed as { people: any[]; unions?: any[]; relations?: any[] }
+
+  const knownIds = new Set(data.people.map((p) => p?.id).filter((id): id is string => typeof id === 'string'))
+  const missingIds = new Set<string>()
+  const collect = (id: unknown) => {
+    if (typeof id === 'string' && !knownIds.has(id)) missingIds.add(id)
+  }
+
+  for (const u of data.unions ?? []) {
+    if (Array.isArray(u?.partners)) u.partners.forEach(collect)
+    if (Array.isArray(u?.children)) u.children.forEach(collect)
+  }
+  for (const r of data.relations ?? []) {
+    collect(r?.from)
+    collect(r?.to)
+  }
+
+  for (const id of missingIds) {
+    data.people.push({ id, name: '(名前不明)', gender: 'U' })
+  }
+  return data
+}
 
 export default defineEventHandler(async (event) => {
   const { anthropicApiKey } = useRuntimeConfig(event)
@@ -50,7 +81,7 @@ export default defineEventHandler(async (event) => {
   const parsed = parseJsonLoose<GenogramData>(out)
   if (!parsed) throw createError({ statusCode: 502, statusMessage: 'AIの応答をJSONとして解釈できませんでした。もう一度お試しください。' })
 
-  const { data, errors } = validateGenogramData(parsed)
+  const { data, errors } = validateGenogramData(fillMissingPeople(parsed))
   if (!data) throw createError({ statusCode: 502, statusMessage: `AIが生成したデータが不正でした: ${errors[0] ?? '不明なエラー'}` })
 
   return { data }

@@ -14,70 +14,111 @@ body {
 }
 
 .genogram-page {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 24px 20px 60px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.genogram-header h1 {
-  margin: 0 0 8px;
-  font-size: 24px;
-}
-
-.genogram-header p {
-  margin: 0 0 20px;
-  color: #4b5563;
-  font-size: 14px;
-  max-width: 720px;
-}
-
-.genogram-layout {
-  display: grid;
-  grid-template-columns: minmax(320px, 420px) 1fr;
-  gap: 20px;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .genogram-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-.genogram-input,
-.genogram-preview {
+.genogram-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
   background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.genogram-ai {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
-  border-radius: 10px;
+.genogram-topbar h1 {
+  margin: 0;
+  font-size: 18px;
+  white-space: nowrap;
 }
 
-.genogram-ai-label {
-  display: block;
-  margin-bottom: 6px;
+.genogram-topbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.genogram-topbar-actions button {
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #1f2933;
+  border-radius: 6px;
+  padding: 7px 12px;
   font-size: 13px;
-  font-weight: 600;
-  color: #3730a3;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
+.genogram-topbar-actions button:hover:not(:disabled) {
+  background: #eef2ff;
+  border-color: #a5b4fc;
+}
+
+.genogram-topbar-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.genogram-topbar-actions .genogram-ai-btn {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.genogram-topbar-actions .genogram-ai-btn:hover:not(:disabled) {
+  background: #4338ca;
+}
+
+.genogram-share-message {
+  padding: 6px 20px;
+  font-size: 12px;
+  color: #4f46e5;
+  background: #eef2ff;
+  text-align: center;
+}
+
+.genogram-fullscreen-canvas {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 30px 20px;
+}
+
+.genogram-empty {
+  margin: auto;
+  color: #9ca3af;
+  font-size: 14px;
+  text-align: center;
+  max-width: 320px;
+}
+
+.genogram-hint {
+  padding: 6px 20px;
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+  background: #ffffff;
+  border-top: 1px solid #f3f4f6;
+}
+
+/* AIポップアップの入力欄 */
 .genogram-ai-textarea {
   width: 100%;
   resize: vertical;
   font-size: 13px;
   line-height: 1.5;
   padding: 8px 10px;
-  border: 1px solid #c7d2fe;
+  border: 1px solid #d1d5db;
   border-radius: 6px;
   background: #ffffff;
   color: #1f2933;
+  font-family: inherit;
 }
 
 .genogram-ai-textarea:disabled {
@@ -85,40 +126,13 @@ body {
   color: #9ca3af;
 }
 
-.genogram-ai-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.genogram-ai-actions button {
-  border: none;
-  background: #4f46e5;
-  color: #ffffff;
-  border-radius: 6px;
-  padding: 7px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.genogram-ai-actions button:hover:not(:disabled) {
-  background: #4338ca;
-}
-
-.genogram-ai-actions button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .genogram-ai-hint {
   font-size: 11px;
-  color: #6366f1;
+  color: #9ca3af;
 }
 
 .genogram-ai-error {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   padding: 8px 10px;
   background: #fef2f2;
   border: 1px solid #fecaca;
@@ -127,57 +141,10 @@ body {
   font-size: 12.5px;
 }
 
-.genogram-toolbar {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-
-.genogram-toolbar button {
-  border: 1px solid #d1d5db;
-  background: #f9fafb;
-  color: #1f2933;
-  border-radius: 6px;
-  padding: 7px 12px;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.genogram-toolbar .genogram-clear-btn {
-  margin-left: auto;
-  padding: 3px 8px;
-  font-size: 11px;
-  color: #9ca3af;
-  background: transparent;
-  border-color: #e5e7eb;
-}
-
-.genogram-toolbar .genogram-clear-btn:hover:not(:disabled) {
-  color: #b91c1c;
-  background: #fef2f2;
-  border-color: #fecaca;
-}
-
-.genogram-toolbar button:hover:not(:disabled) {
-  background: #eef2ff;
-  border-color: #a5b4fc;
-}
-
-.genogram-toolbar button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.genogram-share-message {
-  margin: -4px 0 10px;
-  font-size: 12px;
-  color: #4f46e5;
-}
-
+/* JSONポップアップの中身 */
 .genogram-textarea {
   width: 100%;
-  min-height: 420px;
+  min-height: 320px;
   resize: vertical;
   font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
   font-size: 12.5px;
@@ -200,37 +167,130 @@ body {
   line-height: 1.6;
 }
 
-.genogram-canvas {
-  overflow: auto;
-  min-height: 420px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
+/* モーダル共通(Modal.vueが背景・カードを提供し、ここでは中身のスタイルだけ持つ) */
+.genogram-modal-title {
+  margin: 0 0 14px;
+  font-size: 16px;
+  color: #1f2933;
 }
 
-.genogram-empty {
-  color: #9ca3af;
+.genogram-modal-field {
+  margin-bottom: 12px;
+  flex: 1;
+}
+
+.genogram-modal-field label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.genogram-modal-field input,
+.genogram-modal-field select,
+.genogram-modal-field textarea {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
   font-size: 13px;
-  padding: 60px 0;
+  color: #1f2933;
+  font-family: inherit;
+}
+
+.genogram-modal-field-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.genogram-modal-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #1f2933;
+}
+
+.genogram-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.genogram-modal-actions.genogram-modal-actions-between {
+  justify-content: space-between;
+}
+
+.genogram-modal-save {
+  border: none;
+  background: #4f46e5;
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.genogram-modal-save:hover:not(:disabled) {
+  background: #4338ca;
+}
+
+.genogram-modal-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.genogram-modal-cancel {
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #1f2933;
+  border-radius: 6px;
+  padding: 7px 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.genogram-modal-cancel:hover {
+  background: #eef2ff;
+  border-color: #a5b4fc;
+}
+
+.genogram-clear-btn {
+  border: 1px solid #e5e7eb;
+  background: transparent;
+  color: #9ca3af;
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.genogram-clear-btn:hover {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+@media (max-width: 640px) {
+  .genogram-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 @media print {
-  .genogram-header,
-  .genogram-input,
-  .genogram-toolbar {
+  .genogram-topbar,
+  .genogram-hint,
+  .genogram-share-message {
     display: none !important;
   }
 
-  .genogram-layout {
-    display: block;
-  }
-
-  .genogram-preview {
-    border: none;
-    padding: 0;
-  }
-
-  .genogram-canvas {
+  .genogram-fullscreen-canvas {
     overflow: visible;
+    padding: 0;
   }
 }

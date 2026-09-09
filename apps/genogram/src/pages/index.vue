@@ -1,72 +1,65 @@
 <template>
   <div class="genogram-page">
-    <header class="genogram-header">
+    <header class="genogram-topbar">
       <h1>ジェノグラム作成ツール</h1>
-      <p>家族構成や感情的な関係性を文章で伝えるとAIがJSONを作成・更新し、家系図(ジェノグラム)をその場に描画します。文章やJSONは保存されず、AIへの一時的な問い合わせのみ行います。</p>
+      <div class="genogram-topbar-actions">
+        <button type="button" class="genogram-ai-btn" @click="showAiPopup = true">AIに伝える</button>
+        <button type="button" @click="showJsonPopup = true">JSONを見る</button>
+        <button type="button" @click="copyShareLink">共有リンクをコピー</button>
+        <button type="button" :disabled="!parsedData" @click="downloadSvg">SVGをダウンロード</button>
+        <button type="button" :disabled="!parsedData" @click="downloadPng">PNGをダウンロード</button>
+      </div>
     </header>
 
-    <div class="genogram-layout">
-      <section class="genogram-input">
-        <section class="genogram-ai">
-          <label class="genogram-ai-label" for="genogram-ai-text">家族構成をAIに伝える</label>
-          <textarea
-            id="genogram-ai-text"
-            v-model="aiText"
-            class="genogram-ai-textarea"
-            rows="4"
-            :disabled="aiLoading"
-            placeholder="例: 父の太郎(1950年生まれ、農業、糖尿病持ち)と母の恵子は1978年に結婚していて仲が悪い。娘の花子は母とべったり。"
-            @keydown.meta.enter="submitAiText"
-            @keydown.ctrl.enter="submitAiText"
-          />
-          <div class="genogram-ai-actions">
-            <button type="button" :disabled="aiLoading || !aiText.trim()" @click="submitAiText">
-              {{ aiLoading ? '解釈中…' : '送信' }}
-            </button>
-            <span class="genogram-ai-hint">Cmd/Ctrl+Enterでも送信できます</span>
-          </div>
-          <p v-if="aiError" class="genogram-ai-error">{{ aiError }}</p>
-        </section>
+    <p v-if="shareMessage" class="genogram-share-message">{{ shareMessage }}</p>
 
-        <div class="genogram-toolbar">
-          <button type="button" @click="copyShareLink">共有リンクをコピー</button>
-          <button type="button" class="genogram-clear-btn" @click="clearAll">クリア</button>
-        </div>
-        <p v-if="shareMessage" class="genogram-share-message">{{ shareMessage }}</p>
+    <main class="genogram-fullscreen-canvas">
+      <GenogramSvg v-if="parsedData" ref="genogramRef" :data="parsedData" @select="handleSelect" />
+      <p v-else class="genogram-empty">「AIに伝える」で家族構成を説明するか、「JSONを見る」から直接JSONを入力すると、ここにジェノグラムが表示されます。</p>
+    </main>
 
-        <textarea
-          v-model="jsonText"
-          class="genogram-textarea"
-          spellcheck="false"
-          placeholder='{"people": [...], "unions": [...], "relations": [...]}'
-        />
+    <p v-if="parsedData" class="genogram-hint">図の人物・線をクリックすると詳細の確認・編集ができます。</p>
 
-        <ul v-if="errors.length > 0" class="genogram-errors">
-          <li v-for="(e, i) in errors" :key="i">{{ e }}</li>
-        </ul>
-      </section>
+    <AiPopup
+      v-if="showAiPopup"
+      v-model="aiText"
+      :loading="aiLoading"
+      :error="aiError"
+      @submit="submitAiText"
+      @close="showAiPopup = false"
+    />
 
-      <section class="genogram-preview">
-        <div class="genogram-toolbar">
-          <button type="button" :disabled="!parsedData" @click="downloadSvg">SVGをダウンロード</button>
-          <button type="button" :disabled="!parsedData" @click="downloadPng">PNGをダウンロード</button>
-        </div>
+    <JsonPopup
+      v-if="showJsonPopup"
+      v-model="jsonText"
+      :errors="errors"
+      @clear="handleClearFromPopup"
+      @close="showJsonPopup = false"
+    />
 
-        <div class="genogram-canvas">
-          <GenogramSvg v-if="parsedData" ref="genogramRef" :data="parsedData" />
-          <p v-else class="genogram-empty">左上でAIに家族構成を伝えるか、下のJSONを直接入力すると、ここにジェノグラムが表示されます。</p>
-        </div>
-      </section>
-    </div>
+    <DetailPanel
+      v-if="selectedEntity && parsedData"
+      :selection="selectedEntity"
+      :people="parsedData.people"
+      @close="closePanel"
+      @save-person="handleSavePerson"
+      @save-union="handleSaveUnion"
+      @save-relation="handleSaveRelation"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
-import type { GenogramData } from '~/types/genogram'
+import type { GenogramData, Person, UnionStatus, RelationType } from '~/types/genogram'
+import type { GenogramSelection } from '~/types/selection'
 import { validateGenogramData } from '~/utils/validateGenogram'
 import { computeGenogramLayout } from '~/composables/useGenogramLayout'
+import { defaultTemplateJson } from '~/utils/defaultTemplate'
 import GenogramSvg from '~/components/GenogramSvg.vue'
+import DetailPanel from '~/components/DetailPanel.vue'
+import AiPopup from '~/components/AiPopup.vue'
+import JsonPopup from '~/components/JsonPopup.vue'
 
 useHead({
   title: 'ジェノグラム作成ツール',
@@ -90,6 +83,10 @@ const genogramRef = ref<InstanceType<typeof GenogramSvg> | null>(null)
 const aiText = ref('')
 const aiLoading = ref(false)
 const aiError = ref('')
+
+const selectedEntity = ref<GenogramSelection | null>(null)
+const showAiPopup = ref(false)
+const showJsonPopup = ref(false)
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -146,6 +143,7 @@ async function submitAiText() {
     })
     jsonText.value = JSON.stringify(res.data, null, 2)
     aiText.value = ''
+    showAiPopup.value = false
   } catch (e: any) {
     aiError.value = e?.data?.statusMessage || e?.data?.message || e?.statusMessage || e?.message || 'AIの呼び出しに失敗しました。'
   } finally {
@@ -194,22 +192,71 @@ async function copyShareLink() {
   }, 3000)
 }
 
-function clearAll() {
-  if (!window.confirm('入力したテキストとJSONをすべて消去します。よろしいですか?')) return
+function clearAll(): boolean {
+  if (!window.confirm('入力したテキストとJSONを消去し、本人・両親・祖父母だけの初期状態に戻します。よろしいですか?')) return false
 
-  jsonText.value = ''
   aiText.value = ''
   aiError.value = ''
-  errors.value = []
-  parsedData.value = null
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // localStorageが使えない環境では何もしない
-  }
   if (location.hash) {
     history.replaceState(null, '', location.pathname)
   }
+  jsonText.value = defaultTemplateJson
+  processJson(defaultTemplateJson)
+  return true
+}
+
+function handleClearFromPopup() {
+  if (clearAll()) showJsonPopup.value = false
+}
+
+function isSameSelection(a: GenogramSelection, b: GenogramSelection): boolean {
+  if (a.kind !== b.kind) return false
+  if (a.kind === 'person' && b.kind === 'person') return a.person.id === b.person.id
+  if (a.kind === 'union' && b.kind === 'union') return a.index === b.index
+  if (a.kind === 'relation' && b.kind === 'relation') return a.index === b.index
+  return false
+}
+
+function handleSelect(sel: GenogramSelection) {
+  selectedEntity.value = selectedEntity.value && isSameSelection(selectedEntity.value, sel) ? null : sel
+}
+
+function closePanel() {
+  selectedEntity.value = null
+}
+
+function cloneParsedData(): GenogramData | null {
+  return parsedData.value ? (JSON.parse(JSON.stringify(parsedData.value)) as GenogramData) : null
+}
+
+function applyEditedData(data: GenogramData) {
+  jsonText.value = JSON.stringify(data, null, 2)
+  closePanel()
+}
+
+function handleSavePerson(patch: Pick<Person, 'id' | 'name' | 'gender' | 'deceased' | 'isSelf'> & Partial<Pick<Person, 'birthYear' | 'deathYear' | 'occupation' | 'healthNote' | 'note' | 'generation'>>) {
+  const data = cloneParsedData()
+  const target = data?.people.find((p) => p.id === patch.id)
+  if (!data || !target) return
+  Object.assign(target, patch)
+  if (patch.isSelf) {
+    for (const p of data.people) p.isSelf = p.id === patch.id
+  }
+  applyEditedData(data)
+}
+
+function handleSaveUnion(index: number, patch: { status: UnionStatus; startYear?: number; endYear?: number; note?: string }) {
+  const data = cloneParsedData()
+  if (!data || !data.unions[index]) return
+  Object.assign(data.unions[index], patch)
+  applyEditedData(data)
+}
+
+function handleSaveRelation(index: number, patch: { type: RelationType; label?: string }) {
+  const data = cloneParsedData()
+  if (!data || !data.relations[index]) return
+  Object.assign(data.relations[index], patch)
+  applyEditedData(data)
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -291,9 +338,8 @@ onMounted(() => {
   } catch {
     saved = null
   }
-  if (saved) {
-    jsonText.value = saved
-    processJson(saved)
-  }
+  const initial = saved ?? defaultTemplateJson
+  jsonText.value = initial
+  processJson(initial)
 })
 </script>

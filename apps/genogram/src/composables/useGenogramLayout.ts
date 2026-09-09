@@ -1,5 +1,11 @@
 import type { GenogramData, Person, Union, Relation } from '~/types/genogram'
-import { personDetailLines, hasEnrichedInfo } from '~/utils/personDisplay'
+import {
+  hasEnrichedInfo,
+  formatLifespan,
+  characteristicLines,
+  CHARACTERISTIC_LINE_HEIGHT,
+  CHARACTERISTIC_GAP_ABOVE_ICON,
+} from '~/utils/personDisplay'
 
 export const LAYOUT = {
   margin: 40,
@@ -99,9 +105,11 @@ class DisjointSet {
 
 function slotWidthOf(person: Person): number {
   const nameWidth = person.name.length * LAYOUT.charWidth + LAYOUT.labelPadding
-  // 生没年・職業・注記は名前より小さいフォントで表示するため、文字幅は控えめに見積もる
-  const detailWidths = personDetailLines(person).map((line) => line.length * 8 + LAYOUT.labelPadding)
-  return Math.max(LAYOUT.symbolSize + 16, nameWidth, ...detailWidths)
+  // 生涯・特徴要約は名前より小さいフォントで表示するため、文字幅は控えめに見積もる
+  const lifespan = formatLifespan(person)
+  const lifespanWidth = lifespan ? lifespan.length * 8 + LAYOUT.labelPadding : 0
+  const charWidths = characteristicLines(person).map((line) => line.length * 8 + LAYOUT.labelPadding)
+  return Math.max(LAYOUT.symbolSize + 16, nameWidth, lifespanWidth, ...charWidths)
 }
 
 /** 親子の有向グラフ(親→子)に循環があるか検出する。あれば関与するidの配列を返す */
@@ -269,6 +277,20 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
   const childConnectors: ChildConnector[] = []
   let maxX = 0
 
+  // 最上段(row0)の人物の特徴要約(記号の上に出す)は、行数によっては margin だけでは収まらず
+  // SVGの外にはみ出すため、あらかじめ上の余白を広げておく
+  // (row0にしか影響しない。他の行はそのすぐ上の行のノード群が余白代わりになるため不要)
+  let topMarginExtra = 0
+  for (const p of people) {
+    if (rowIndexOf.get(genOf.get(p.id)!) !== 0) continue
+    const lines = characteristicLines(p)
+    if (lines.length === 0) continue
+    const boxHeight = CHARACTERISTIC_LINE_HEIGHT * lines.length + 1
+    const boxBottom = LAYOUT.margin - CHARACTERISTIC_GAP_ABOVE_ICON
+    const boxTop = boxBottom - boxHeight
+    if (boxTop < 0) topMarginExtra = Math.max(topMarginExtra, -boxTop)
+  }
+
   let prevRowClusterOrder: string[][] = []
 
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
@@ -326,28 +348,66 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
       desiredCenterOf.set(root, centers.length > 0 ? centers.reduce((a, b) => a + b, 0) / centers.length : null)
     }
 
-    const y = LAYOUT.margin + rowIndex * LAYOUT.rowHeight + LAYOUT.symbolSize / 2
-    let cursor = LAYOUT.margin
+    const y = LAYOUT.margin + topMarginExtra + rowIndex * LAYOUT.rowHeight + LAYOUT.symbolSize / 2
+    let cursor: number = LAYOUT.margin
 
+    // 結婚していない兄弟は1人ずつ独立したクラスタになるが、全員が同じ親unionを desiredCenter に持つ。
+    // 1人ずつ順に詰めると全体が親の中心から右へずれてしまうため、同じ desiredCenter を持つ連続クラスタは
+    // 「兄弟グループ」としてまとめ、グループ全体の幅で親の中心に合わせる
+    const clusterBlocks: string[][] = []
     for (const root of orderedClusterRoots) {
-      const members = clusterMap.get(root)!
-      const widthById = new Map(members.map((id) => [id, slotWidthOf(people.find((p) => p.id === id)!)]))
-      const clusterWidth = members.reduce((sum, id) => sum + widthById.get(id)!, 0) + (members.length - 1) * LAYOUT.partnerGap
       const desired = desiredCenterOf.get(root) ?? null
-      const idealLeft = desired !== null ? desired - clusterWidth / 2 : cursor
-      const left = Math.max(cursor, idealLeft)
+      const prevBlock = clusterBlocks[clusterBlocks.length - 1]
+      const prevRoot = prevBlock?.[prevBlock.length - 1]
+      if (prevBlock && prevRoot !== undefined && desired !== null && desiredCenterOf.get(prevRoot) === desired) {
+        prevBlock.push(root)
+      } else {
+        clusterBlocks.push([root])
+      }
+    }
 
-      let memberCursor = left
-      members.forEach((id) => {
-        const w = widthById.get(id)!
-        const person = people.find((p) => p.id === id)!
-        const cx = memberCursor + w / 2
-        nodeById.set(id, { person, x: cx, y, slotWidth: w, size: LAYOUT.symbolSize })
-        maxX = Math.max(maxX, cx + w / 2)
-        memberCursor += w + LAYOUT.partnerGap
+    for (const block of clusterBlocks) {
+      const blockClusters = block.map((root) => {
+        const members = clusterMap.get(root)!
+        const widthById = new Map(members.map((id) => [id, slotWidthOf(people.find((p) => p.id === id)!)]))
+        const clusterWidth = members.reduce((sum, id) => sum + widthById.get(id)!, 0) + (members.length - 1) * LAYOUT.partnerGap
+        return { members, widthById, clusterWidth }
       })
+      const totalWidth = blockClusters.reduce((sum, c) => sum + c.clusterWidth, 0) + (blockClusters.length - 1) * LAYOUT.clusterGap
+      const desired = desiredCenterOf.get(block[0]!) ?? null
+      let idealLeft = desired !== null ? desired - totalWidth / 2 : cursor
 
-      cursor = left + clusterWidth + LAYOUT.clusterGap
+      // 兄弟が多い等でこの行が上の世代よりずっと横長になると、中央寄せしようとした結果
+      // 左マージンより外に出てしまうことがある。その場合は諦めて詰めるのではなく、
+      // 既に配置済みの上の世代(祖先)ごと右へずらして中央寄せを成立させる
+      if (desired !== null && idealLeft < LAYOUT.margin && cursor <= LAYOUT.margin) {
+        const shiftNeeded = LAYOUT.margin - idealLeft
+        for (const node of nodeById.values()) node.x += shiftNeeded
+        for (const ul of unionLines) {
+          if (!ul) continue
+          ul.x1 += shiftNeeded
+          ul.x2 += shiftNeeded
+          ul.midX += shiftNeeded
+        }
+        maxX += shiftNeeded
+        idealLeft += shiftNeeded
+      }
+
+      let blockLeft = Math.max(cursor, idealLeft)
+
+      for (const { members, widthById, clusterWidth } of blockClusters) {
+        let memberCursor = blockLeft
+        members.forEach((id) => {
+          const w = widthById.get(id)!
+          const person = people.find((p) => p.id === id)!
+          const cx = memberCursor + w / 2
+          nodeById.set(id, { person, x: cx, y, slotWidth: w, size: LAYOUT.symbolSize })
+          maxX = Math.max(maxX, cx + w / 2)
+          memberCursor += w + LAYOUT.partnerGap
+        })
+        blockLeft += clusterWidth + LAYOUT.clusterGap
+      }
+      cursor = blockLeft
     }
 
     // このrowで完結する婚姻線を確定させる(次rowの desiredCenter 計算に使うため先に埋める)
@@ -403,13 +463,17 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
     const rowGapY = firstChild.y - ul.midY
     const busY = ul.midY + rowGapY * LAYOUT.busRatio
     const xs = childNodes.map((n) => n.x)
+    // 親からの縦線は、子の人数の真ん中(生まれ順)へ向けて下ろす(3人なら2番目、5人なら3番目)。
+    // 偶数人の場合は中央2人の中間。単純な親の中点ではなく、視覚的に「兄弟の真ん中」に見えるようにする
+    const n = childNodes.length
+    const dropX = n % 2 === 1 ? childNodes[(n - 1) / 2]!.x : (childNodes[n / 2 - 1]!.x + childNodes[n / 2]!.x) / 2
     childConnectors.push({
       unionIndex: idx,
-      dropX: ul.midX,
+      dropX,
       dropTopY: ul.midY,
       busY,
-      busX1: Math.min(ul.midX, ...xs),
-      busX2: Math.max(ul.midX, ...xs),
+      busX1: Math.min(dropX, ...xs),
+      busX2: Math.max(dropX, ...xs),
       children: childNodes.map((n) => ({ id: n.person.id, x: n.x, topY: n.y - n.size / 2 })),
     })
   })
@@ -489,7 +553,7 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
   }
 
   const rowCount = rows.length
-  const diagramHeight = LAYOUT.margin * 2 + Math.max(rowCount - 1, 0) * LAYOUT.rowHeight + LAYOUT.symbolSize
+  const diagramHeight = LAYOUT.margin * 2 + topMarginExtra + Math.max(rowCount - 1, 0) * LAYOUT.rowHeight + LAYOUT.symbolSize
   const legendHeight = legend.length > 0 ? LAYOUT.legendTopGap + Math.ceil(legend.length / 2) * LAYOUT.legendRowHeight + LAYOUT.margin / 2 : LAYOUT.margin / 2
   // 凡例は2列組み。ラベルの文字数が長い項目(健康メモ等)があっても列同士が重ならないよう、
   // 実際の最長ラベルから列幅を逆算する(短いラベルだけの時は詰めて、長い時だけ広げる)

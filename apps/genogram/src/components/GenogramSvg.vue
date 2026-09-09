@@ -33,7 +33,13 @@
 
     <!-- 婚姻線 -->
     <g class="genogram-unions">
-      <g v-for="ul in layout.unionLines" :key="`u-${ul.unionIndex}`">
+      <g
+        v-for="ul in layout.unionLines"
+        :key="`u-${ul.unionIndex}`"
+        class="genogram-clickable"
+        @click="emit('select', { kind: 'union', union: ul.union, index: ul.unionIndex })"
+      >
+        <line :x1="ul.x1" :y1="ul.y1" :x2="ul.x2" :y2="ul.y2" class="genogram-hit-area" />
         <polyline
           v-if="ul.union.status === 'conflict'"
           :points="zigzagPoints(ul.x1, ul.y1, ul.x2, ul.y2, 7, 5)"
@@ -53,23 +59,19 @@
         <template v-else-if="ul.union.status === 'separated'">
           <line v-bind="unionTick(ul, 0)" class="genogram-union-tick" />
         </template>
-
-        <g v-if="unionNoteText(ul.union)">
-          <rect
-            :x="ul.midX - labelHalfWidth(unionNoteText(ul.union)!)"
-            :y="ul.midY - 37"
-            :width="labelHalfWidth(unionNoteText(ul.union)!) * 2"
-            height="13"
-            class="genogram-union-note-bg"
-          />
-          <text :x="ul.midX" :y="ul.midY - 27" class="genogram-union-note-text">{{ unionNoteText(ul.union) }}</text>
-        </g>
+        <title v-if="unionTitle(ul.union)">{{ unionTitle(ul.union) }}</title>
       </g>
     </g>
 
     <!-- 感情関係線 -->
     <g class="genogram-relations">
-      <g v-for="rl in layout.relationLines" :key="`r-${rl.index}`">
+      <g
+        v-for="rl in layout.relationLines"
+        :key="`r-${rl.index}`"
+        class="genogram-clickable"
+        @click="emit('select', { kind: 'relation', relation: rl.relation, index: rl.index })"
+      >
+        <line :x1="rl.x1" :y1="rl.y1" :x2="rl.x2" :y2="rl.y2" class="genogram-hit-area" />
         <polyline
           v-if="rl.relation.type === 'conflict'"
           :points="zigzagPoints(rl.x1, rl.y1, rl.x2, rl.y2, 8, 4)"
@@ -93,22 +95,17 @@
           :y2="rl.y2"
           :class="rl.relation.type === 'close' ? 'genogram-relation-close' : 'genogram-relation-distant'"
         />
-
-        <g v-if="rl.relation.label">
-          <rect
-            :x="rl.labelX - labelHalfWidth(rl.relation.label)"
-            :y="rl.labelY - 9"
-            :width="labelHalfWidth(rl.relation.label) * 2"
-            height="14"
-            class="genogram-relation-label-bg"
-          />
-          <text :x="rl.labelX" :y="rl.labelY + 1" class="genogram-relation-label">{{ rl.relation.label }}</text>
-        </g>
+        <title v-if="rl.relation.label">{{ rl.relation.label }}</title>
       </g>
     </g>
 
     <!-- 人物ノード -->
-    <g v-for="node in layout.nodes" :key="node.person.id" class="genogram-node">
+    <g
+      v-for="node in layout.nodes"
+      :key="node.person.id"
+      class="genogram-node genogram-clickable"
+      @click="emit('select', { kind: 'person', person: node.person })"
+    >
       <template v-if="node.person.isSelf">
         <rect
           v-if="node.person.gender === 'M'"
@@ -162,14 +159,36 @@
         />
       </template>
 
+      <!-- 記号の中央: 年齢(死亡していれば享年、生存なら満年齢)とその下に(結婚年齢) -->
+      <g v-if="centerAgeInfo(node)">
+        <rect
+          :x="node.x - node.size / 2 + 4"
+          :y="node.y - centerAgeInfo(node)!.maskHeight / 2"
+          :width="node.size - 8"
+          :height="centerAgeInfo(node)!.maskHeight"
+          class="genogram-center-age-bg"
+        />
+        <text v-if="centerAgeInfo(node)!.age" :x="node.x" :y="centerAgeInfo(node)!.ageY" class="genogram-center-age-text">{{ centerAgeInfo(node)!.age }}</text>
+        <text v-if="centerAgeInfo(node)!.marriage" :x="node.x" :y="centerAgeInfo(node)!.marriageY" class="genogram-center-marriage-text">{{ centerAgeInfo(node)!.marriage }}</text>
+      </g>
+
+      <!-- 記号の上: 特徴の要約(20文字程度) -->
+      <g v-if="characteristicBox(node)">
+        <rect
+          :x="characteristicBox(node)!.x"
+          :y="characteristicBox(node)!.y"
+          :width="characteristicBox(node)!.width"
+          :height="characteristicBox(node)!.height"
+          class="genogram-characteristic-bg"
+        />
+        <text :x="node.x" :y="characteristicBox(node)!.firstLineY" class="genogram-characteristic-text">
+          <tspan v-for="(line, li) in characteristicBox(node)!.lines" :key="li" :x="node.x" :dy="li === 0 ? 0 : 12">{{ line }}</tspan>
+        </text>
+      </g>
+
+      <!-- 記号の下: 名前とその下に生涯(1920~1978) -->
       <text :x="node.x" :y="nameY(node)" class="genogram-name-text">{{ node.person.name }}</text>
-      <text
-        v-for="(line, li) in personDetailLines(node.person)"
-        :key="li"
-        :x="node.x"
-        :y="nameY(node) + 13 * (li + 1)"
-        class="genogram-note-text"
-      >{{ line }}</text>
+      <text v-if="formatLifespan(node.person)" :x="node.x" :y="nameY(node) + 12" class="genogram-note-text">{{ formatLifespan(node.person) }}</text>
 
       <g v-if="node.person.healthNote" :transform="`translate(${node.x + node.size / 2 - 5}, ${node.y - node.size / 2 - 5})`">
         <circle r="7" class="genogram-health-badge-bg" />
@@ -228,9 +247,21 @@ import { computed, ref } from 'vue'
 import type { GenogramData, Union } from '~/types/genogram'
 import { computeGenogramLayout, type LayoutNode, type LegendItem } from '~/composables/useGenogramLayout'
 import { zigzagPoints, wavePath, diagonalTick, perpendicularTick } from '~/utils/svgLines'
-import { isDeceased, hasEnrichedInfo, personDetailLines, formatUnionYears } from '~/utils/personDisplay'
+import {
+  isDeceased,
+  hasEnrichedInfo,
+  formatUnionYears,
+  formatLifespan,
+  centerAgeText,
+  marriageAgeText,
+  characteristicLines,
+  CHARACTERISTIC_LINE_HEIGHT,
+  CHARACTERISTIC_GAP_ABOVE_ICON,
+} from '~/utils/personDisplay'
+import type { GenogramSelection } from '~/types/selection'
 
 const props = defineProps<{ data: GenogramData }>()
+const emit = defineEmits<{ select: [selection: GenogramSelection] }>()
 
 const layout = computed(() => computeGenogramLayout(props.data))
 const svgEl = ref<SVGSVGElement | null>(null)
@@ -253,14 +284,37 @@ function nameY(node: LayoutNode) {
   return node.y + node.size / 2 + (node.person.isSelf ? 6 : 0) + 15
 }
 
-function labelHalfWidth(label: string) {
-  return Math.max(14, label.length * 5.5 + 4)
+/** 記号中央の年齢表示(死亡していれば享年、生存なら満年齢)とその下の(結婚年齢) */
+function centerAgeInfo(node: LayoutNode) {
+  const age = centerAgeText(node.person)
+  const marriage = marriageAgeText(node.person, props.data.unions)
+  if (!age && !marriage) return null
+  const hasBoth = !!age && !!marriage
+  return {
+    age,
+    marriage,
+    ageY: node.y + (hasBoth ? -4 : 3),
+    marriageY: node.y + 8,
+    // 死亡×印(deceasedInset=11、22px四方)を完全に覆って見た目をすっきりさせる
+    maskHeight: 24,
+  }
 }
 
-function unionNoteText(union: Union): string | null {
-  const years = formatUnionYears(union)
-  if (years && union.note) return `${years} ${union.note}`
-  return years ?? union.note ?? null
+/** 記号の上に置く特徴要約の位置とサイズ。行数が増えても下端(ノード直上)を固定し、上へ伸ばす */
+function characteristicBox(node: LayoutNode) {
+  const lines = characteristicLines(node.person)
+  if (lines.length === 0) return null
+  const height = CHARACTERISTIC_LINE_HEIGHT * lines.length + 1
+  const bottomY = node.y - node.size / 2 - CHARACTERISTIC_GAP_ABOVE_ICON
+  const y = bottomY - height
+  const maxLineLen = Math.max(...lines.map((line) => line.length))
+  const halfWidth = Math.max(14, maxLineLen * 4.8 + 4)
+  return { x: node.x - halfWidth, y, width: halfWidth * 2, height, lines, firstLineY: y + 9 }
+}
+
+/** 婚姻線にホバーした時だけ年号を見せる(グラフには常時出さず、クリックすれば詳細パネルでも見られる) */
+function unionTitle(union: Union) {
+  return formatUnionYears(union)
 }
 
 type LineLike = { x1: number; y1: number; x2: number; y2: number }
@@ -295,6 +349,19 @@ function legendLineClass(item: LegendItem) {
   max-width: 100%;
   height: auto;
   font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
+}
+
+.genogram-clickable {
+  cursor: pointer;
+}
+
+.genogram-clickable:hover {
+  opacity: 0.75;
+}
+
+.genogram-hit-area {
+  stroke: transparent;
+  stroke-width: 16;
 }
 
 .genogram-shape {
@@ -332,17 +399,6 @@ function legendLineClass(item: LegendItem) {
 .genogram-nudge-badge-text {
   fill: #9ca3af;
   font-size: 10px;
-  text-anchor: middle;
-}
-
-.genogram-union-note-bg {
-  fill: #fafafa;
-  opacity: 0.9;
-}
-
-.genogram-union-note-text {
-  font-size: 10px;
-  fill: #6b7280;
   text-anchor: middle;
 }
 
@@ -424,14 +480,31 @@ function legendLineClass(item: LegendItem) {
   stroke-dasharray: 3 3;
 }
 
-.genogram-relation-label-bg {
+.genogram-center-age-bg {
+  fill: #ffffff;
+}
+
+.genogram-center-age-text {
+  font-size: 11px;
+  font-weight: 700;
+  fill: #1f2933;
+  text-anchor: middle;
+}
+
+.genogram-center-marriage-text {
+  font-size: 9px;
+  fill: #4b5563;
+  text-anchor: middle;
+}
+
+.genogram-characteristic-bg {
   fill: #fafafa;
   opacity: 0.9;
 }
 
-.genogram-relation-label {
-  font-size: 11px;
-  fill: #374151;
+.genogram-characteristic-text {
+  font-size: 10px;
+  fill: #4b5563;
   text-anchor: middle;
 }
 
