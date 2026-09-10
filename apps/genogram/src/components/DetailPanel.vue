@@ -91,9 +91,19 @@
         </div>
       </template>
 
-      <div class="genogram-modal-actions">
-        <button type="button" class="genogram-modal-save" @click="save">保存</button>
-        <button type="button" class="genogram-modal-cancel" @click="emit('close')">キャンセル</button>
+      <div class="genogram-modal-actions" :class="{ 'genogram-modal-actions-between': selection.kind === 'person' }">
+        <button
+          v-if="selection.kind === 'person'"
+          type="button"
+          class="genogram-modal-delete"
+          @click="removePerson"
+        >
+          この人物を削除
+        </button>
+        <span class="genogram-modal-actions-right">
+          <button type="button" class="genogram-modal-save" @click="save">保存</button>
+          <button type="button" class="genogram-modal-cancel" @click="emit('close')">キャンセル</button>
+        </span>
       </div>
   </Modal>
 </template>
@@ -104,13 +114,23 @@ import type { Person, Gender, UnionStatus, RelationType } from '~/types/genogram
 import type { GenogramSelection } from '~/types/selection'
 import Modal from '~/components/Modal.vue'
 
-const props = defineProps<{ selection: GenogramSelection; people: Person[] }>()
+const props = defineProps<{ selection: GenogramSelection; people: Person[]; deleteImpact?: string[] }>()
 const emit = defineEmits<{
   close: []
   'save-person': [patch: Pick<Person, 'id' | 'name' | 'gender' | 'deceased' | 'isSelf'> & Partial<Pick<Person, 'birthYear' | 'deathYear' | 'occupation' | 'healthNote' | 'relation' | 'note' | 'generation'>>]
   'save-union': [index: number, patch: { status: UnionStatus; startYear?: number; endYear?: number; note?: string }]
   'save-relation': [index: number, patch: { type: RelationType; label?: string }]
+  'delete-person': [id: string]
 }>()
+
+function removePerson() {
+  if (props.selection.kind !== 'person') return
+  // 巻き添えで消える線(婚姻・親子・感情関係)を、消す前に具体的に伝える
+  const impact = props.deleteImpact ?? []
+  const detail = impact.length > 0 ? `\n\n一緒に消えるもの:\n・${impact.join('\n・')}` : ''
+  if (!window.confirm(`「${props.selection.person.name}」を削除します。${detail}\n\nよろしいですか?`)) return
+  emit('delete-person', props.selection.person.id)
+}
 
 function personName(id: string) {
   return props.people.find((p) => p.id === id)?.name ?? id

@@ -41,17 +41,19 @@
       v-if="selectedEntity && parsedData"
       :selection="selectedEntity"
       :people="parsedData.people"
+      :delete-impact="deleteImpact"
       @close="closePanel"
       @save-person="handleSavePerson"
       @save-union="handleSaveUnion"
       @save-relation="handleSaveRelation"
+      @delete-person="handleDeletePerson"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
-import type { GenogramData, Person, UnionStatus, RelationType } from '~/types/genogram'
+import { ref, computed, watch, onMounted } from 'vue'
+import type { GenogramData, Person, Union, UnionStatus, RelationType } from '~/types/genogram'
 import type { GenogramSelection } from '~/types/selection'
 import { validateGenogramData } from '~/utils/validateGenogram'
 import { computeGenogramLayout } from '~/composables/useGenogramLayout'
@@ -242,6 +244,89 @@ function handleSavePerson(patch: Pick<Person, 'id' | 'name' | 'gender' | 'deceas
   if (patch.isSelf) {
     for (const p of data.people) p.isSelf = p.id === patch.id
   }
+  applyEditedData(data)
+}
+
+/** 名前が分からない相手として自動で置かれた人物か。これ自体を消すときは代役を作り直さない */
+const PLACEHOLDER_NAMES = ['(配偶者不明)', '(名前不明)']
+function isPlaceholder(person: Person | undefined): boolean {
+  return !!person && PLACEHOLDER_NAMES.includes(person.name)
+}
+
+/**
+ * 配偶者を消したとき、その婚姻を「(配偶者不明)」で残すべきか。
+ * 子がいる場合だけ残す ―― まるごと消すと、残った親と子のつながりまで切れて孤立するため。
+ * ただし当人や相方が既に代役なら残さない(代役が無限に作り直されて消せなくなる)。
+ */
+function shouldKeepUnionWithPlaceholder(union: Union, deletedId: string, people: Person[]): boolean {
+  if ((union.children ?? []).filter((c) => c !== deletedId).length === 0) return false
+  const deleted = people.find((p) => p.id === deletedId)
+  if (isPlaceholder(deleted)) return false
+  const spouseId = union.partners.find((p) => p !== deletedId)
+  return !isPlaceholder(people.find((p) => p.id === spouseId))
+}
+
+/** 人物を消したときに巻き添えで消える線を、確認ダイアログ用に日本語で列挙する */
+const deleteImpact = computed<string[]>(() => {
+  const sel = selectedEntity.value
+  const data = parsedData.value
+  if (!data || !sel || sel.kind !== 'person') return []
+  const id = sel.person.id
+  const nameOf = (pid: string) => data.people.find((p) => p.id === pid)?.name ?? pid
+  const lines: string[] = []
+
+  for (const u of data.unions) {
+    if (!u.partners.includes(id)) continue
+    const spouse = u.partners.find((p) => p !== id)
+    const spouseName = spouse ? nameOf(spouse) : '配偶者'
+    if (shouldKeepUnionWithPlaceholder(u, id, data.people)) {
+      const kids = (u.children ?? []).filter((c) => c !== id).length
+      lines.push(`${spouseName}との婚姻線(子${kids}人とのつながりは残すため、あなたの位置は「(配偶者不明)」になります)`)
+    } else {
+      lines.push(`${spouseName}との婚姻線`)
+    }
+  }
+  for (const u of data.unions) {
+    if (!(u.children ?? []).includes(id)) continue
+    lines.push(`${u.partners.map(nameOf).join('と')}の子としての線`)
+  }
+  const relCount = data.relations.filter((r) => r.from === id || r.to === id).length
+  if (relCount > 0) lines.push(`関係線 ${relCount} 本`)
+
+  return lines
+})
+
+function handleDeletePerson(id: string) {
+  const data = cloneParsedData()
+  if (!data) return
+
+  // 判定に当人の情報が要るので、people から取り除くのは union を処理したあと
+  const before = data.people
+  let placeholderSeq = 0
+  const nextPlaceholderId = () => {
+    let candidate: string
+    do {
+      placeholderSeq += 1
+      candidate = `unknown_spouse_${placeholderSeq}`
+    } while (data.people.some((p) => p.id === candidate))
+    return candidate
+  }
+
+  data.unions = data.unions.flatMap((u) => {
+    const partnerIdx = u.partners.indexOf(id)
+    const children = (u.children ?? []).filter((c) => c !== id)
+    if (partnerIdx === -1) return [{ ...u, children }]
+    if (!shouldKeepUnionWithPlaceholder(u, id, before)) return []
+    const placeholderId = nextPlaceholderId()
+    data.people.push({ id: placeholderId, name: '(配偶者不明)', gender: 'U' })
+    const partners: [string, string] = [...u.partners] as [string, string]
+    partners[partnerIdx] = placeholderId
+    return [{ ...u, partners, children }]
+  })
+
+  data.people = data.people.filter((p) => p.id !== id)
+  data.relations = data.relations.filter((r) => r.from !== id && r.to !== id)
+
   applyEditedData(data)
 }
 

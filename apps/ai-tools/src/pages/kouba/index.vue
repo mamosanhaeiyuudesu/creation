@@ -5,7 +5,7 @@ import KoubaTaskModal from '~/components/kouba/KoubaTaskModal.vue'
 import KoubaIconPicker from '~/components/kouba/KoubaIconPicker.vue'
 import KoubaConfirmModal from '~/components/kouba/KoubaConfirmModal.vue'
 import { KOUBA_DEFAULT_CATEGORY_ICON, KOUBA_DEFAULT_TASK_ICON } from '~/types/kouba'
-import type { KoubaCategory, KoubaTask } from '~/types/kouba'
+import type { KoubaCategory, KoubaTask, KoubaSubtask, KoubaSubtaskLog } from '~/types/kouba'
 
 useHead({
   title: import.meta.dev ? '工数 (dev)' : '工数',
@@ -26,8 +26,12 @@ const showAuthModal = computed(() => !isDev && checked.value && !isLoggedIn.valu
 const showPasswordModal = ref(false)
 const showSettingsMenu = ref(false)
 
-const { categories, loading, loadError, saving, actionError, load, addCategory, updateCategory, deleteCategory, addTask, updateTask, deleteTask, reorderTasks, addLog, deleteLog } =
-  useKouba()
+const {
+  categories, loading, loadError, saving, actionError, load,
+  addCategory, updateCategory, deleteCategory,
+  addTask, updateTask, deleteTask, reorderTasks,
+  addSubtask, updateSubtask, deleteSubtask, setSubtaskLog, deleteSubtaskLog,
+} = useKouba()
 
 // 日本語入力の変換確定Enterでも @keydown.enter は発火するため、確定中は無視する
 function isImeEnter(e: KeyboardEvent): boolean {
@@ -140,23 +144,36 @@ function openTask(taskId: string) {
 async function handleUpdateTask(patch: { title?: string; icon?: string; categoryId?: string }) {
   if (activeTaskId.value) await updateTask(activeTaskId.value, patch)
 }
-async function handleAddLog(payload: { workDate: string; hours: number; note: string }) {
-  if (activeTaskId.value) await addLog(activeTaskId.value, payload.workDate, payload.hours, payload.note)
+async function handleAddSubtask(title: string) {
+  if (activeTaskId.value) await addSubtask(activeTaskId.value, title)
+}
+async function handleRenameSubtask(payload: { id: string; title: string }) {
+  await updateSubtask(payload.id, { title: payload.title })
+}
+async function handleSetSubtaskLog(payload: { subtaskId: string; workDate: string; hours: number }) {
+  await setSubtaskLog(payload.subtaskId, payload.workDate, payload.hours)
 }
 
-// ── 削除確認ポップアップ（カテゴリ/タスク/記録で共通）──────────────────────────────
+// ── 削除確認ポップアップ（カテゴリ/タスク/サブタスク/日別記録で共通）──────────────────────────────
 type ConfirmTarget =
   | { kind: 'category'; id: string; name: string }
   | { kind: 'task'; id: string; title: string }
-  | { kind: 'log'; id: string }
+  | { kind: 'subtask'; id: string; title: string }
+  | { kind: 'subtaskLog'; id: string; workDate: string; hours: number }
 const confirmTarget = ref<ConfirmTarget | null>(null)
 const confirmMessage = computed(() => {
   const t = confirmTarget.value
   if (!t) return ''
   if (t.kind === 'category') return `「${t.name}」を削除しますか？\n中のタスク・記録もすべて削除されます。`
-  if (t.kind === 'task') return `「${t.title}」を削除しますか？\n記録もすべて削除されます。`
-  return 'この記録を削除しますか？'
+  if (t.kind === 'task') return `「${t.title}」を削除しますか？\nサブタスク・記録もすべて削除されます。`
+  if (t.kind === 'subtask') return `「${t.title}」を削除しますか？\n記録もすべて削除されます。`
+  return `${formatDateLabel(t.workDate)}の記録（${t.hours}時間）を削除しますか？`
 })
+
+function formatDateLabel(ymd: string): string {
+  const [y, m, d] = ymd.split('-').map(Number)
+  return `${y}/${m}/${d}(${weekdayJa(ymd)})`
+}
 
 function askDeleteCategory(cat: KoubaCategory) {
   confirmTarget.value = { kind: 'category', id: cat.id, name: cat.name }
@@ -164,8 +181,11 @@ function askDeleteCategory(cat: KoubaCategory) {
 function askDeleteTask(task: KoubaTask) {
   confirmTarget.value = { kind: 'task', id: task.id, title: task.title }
 }
-function askDeleteLog(logId: string) {
-  confirmTarget.value = { kind: 'log', id: logId }
+function askDeleteSubtask(subtask: KoubaSubtask) {
+  confirmTarget.value = { kind: 'subtask', id: subtask.id, title: subtask.title }
+}
+function askDeleteSubtaskLog(log: KoubaSubtaskLog) {
+  confirmTarget.value = { kind: 'subtaskLog', id: log.id, workDate: log.workDate, hours: log.hours }
 }
 async function onConfirmDelete() {
   const target = confirmTarget.value
@@ -176,8 +196,10 @@ async function onConfirmDelete() {
   } else if (target.kind === 'task') {
     if (activeTaskId.value === target.id) activeTaskId.value = null
     await deleteTask(target.id)
+  } else if (target.kind === 'subtask') {
+    await deleteSubtask(target.id)
   } else {
-    await deleteLog(target.id)
+    await deleteSubtaskLog(target.id)
   }
 }
 
@@ -276,8 +298,11 @@ watch(isLoggedIn, (v) => {
     :error="actionError"
     @update="handleUpdateTask"
     @delete="activeTask && askDeleteTask(activeTask)"
-    @add-log="handleAddLog"
-    @delete-log="askDeleteLog"
+    @add-subtask="handleAddSubtask"
+    @rename-subtask="handleRenameSubtask"
+    @delete-subtask="askDeleteSubtask"
+    @set-subtask-log="handleSetSubtaskLog"
+    @delete-subtask-log="askDeleteSubtaskLog"
   />
 
   <!-- 削除確認ポップアップ -->

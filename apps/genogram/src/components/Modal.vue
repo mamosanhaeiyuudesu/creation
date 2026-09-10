@@ -7,8 +7,17 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, onBeforeUnmount } from 'vue'
+
 withDefaults(defineProps<{ width?: string }>(), { width: '420px' })
 const emit = defineEmits<{ close: [] }>()
+
+// Escapeで閉じられないと、入力欄にフォーカスがあるときの逃げ道が背景クリックしか無くなる
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') emit('close')
+}
+onMounted(() => document.addEventListener('keydown', onKeydown))
+onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
 </script>
 
 <style scoped>

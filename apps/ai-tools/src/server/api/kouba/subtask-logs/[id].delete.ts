@@ -1,6 +1,6 @@
 import { requireKoubaUser, requireKoubaDb, ensureKoubaTables } from '~/server/utils/kouba'
 
-// 作業ログの削除。kouba_logs は user_id を持たないため kouba_tasks と join して所有者を確認する。
+// 日別作業時間の削除。kouba_subtask_logs は user_id を持たないため kouba_subtasks と join して所有者を確認する。
 export default defineEventHandler(async (event) => {
   const user = await requireKoubaUser(event)
   const db = requireKoubaDb(event)
@@ -8,11 +8,11 @@ export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')!
 
   const existing = await db
-    .prepare('SELECT l.id FROM kouba_logs l JOIN kouba_tasks t ON t.id = l.task_id WHERE l.id = ? AND t.user_id = ?')
+    .prepare('SELECT l.id FROM kouba_subtask_logs l JOIN kouba_subtasks s ON s.id = l.subtask_id WHERE l.id = ? AND s.user_id = ?')
     .bind(id, user.id)
     .first<{ id: string }>()
   if (!existing) throw createError({ statusCode: 404, message: '記録が見つかりません' })
 
-  await db.prepare('DELETE FROM kouba_logs WHERE id = ?').bind(id).run()
+  await db.prepare('DELETE FROM kouba_subtask_logs WHERE id = ?').bind(id).run()
   return { ok: true }
 })

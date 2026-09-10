@@ -27,14 +27,25 @@ CREATE TABLE IF NOT EXISTS kouba_tasks (
 
 CREATE INDEX IF NOT EXISTS idx_kouba_tasks_category ON kouba_tasks(category_id, sort_order);
 
--- 作業ログ（日付×時間×箇条書きメモを1件ずつ追記。タスクの合計時間はこれをSUMして出す）
-CREATE TABLE IF NOT EXISTS kouba_logs (
+-- サブタスク（タスクに属する。「何をやったか」はサブタスク名で表し、実績はこの下の日別作業時間で持つ）
+CREATE TABLE IF NOT EXISTS kouba_subtasks (
   id         TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL,
   task_id    TEXT NOT NULL,
-  work_date  TEXT NOT NULL,                 -- YYYY-MM-DD
-  hours      REAL NOT NULL DEFAULT 0,
-  note       TEXT NOT NULL DEFAULT '',      -- 箇条書き想定。改行区切りで複数行入ることがある
+  title      TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_kouba_logs_task ON kouba_logs(task_id, work_date);
+CREATE INDEX IF NOT EXISTS idx_kouba_subtasks_task ON kouba_subtasks(task_id);
+
+-- サブタスクの日別作業時間（1日1件・(subtask_id, work_date)で一意。既存の日を指定すると上書き＝編集になる）
+CREATE TABLE IF NOT EXISTS kouba_subtask_logs (
+  id          TEXT PRIMARY KEY,
+  subtask_id  TEXT NOT NULL,
+  work_date   TEXT NOT NULL,                -- YYYY-MM-DD
+  hours       INTEGER NOT NULL,             -- 1〜30（selectで選択）
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (subtask_id, work_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_kouba_subtask_logs_subtask ON kouba_subtask_logs(subtask_id, work_date);

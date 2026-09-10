@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
-import type { KoubaTask } from '~/types/kouba'
+import type { KoubaTask, KoubaSubtask, KoubaSubtaskLog } from '~/types/kouba'
 import KoubaIconPicker from '~/components/kouba/KoubaIconPicker.vue'
+import KoubaSubtaskCard from '~/components/kouba/KoubaSubtaskCard.vue'
 
 const props = defineProps<{
   show: boolean
@@ -15,8 +16,11 @@ const emit = defineEmits<{
   'update:show': [value: boolean]
   update: [patch: { title?: string; icon?: string; categoryId?: string }]
   delete: []
-  addLog: [payload: { workDate: string; hours: number; note: string }]
-  deleteLog: [logId: string]
+  addSubtask: [title: string]
+  renameSubtask: [payload: { id: string; title: string }]
+  deleteSubtask: [subtask: KoubaSubtask]
+  setSubtaskLog: [payload: { subtaskId: string; workDate: string; hours: number }]
+  deleteSubtaskLog: [log: KoubaSubtaskLog]
 }>()
 
 // 日本語入力の変換確定Enterでも @keydown.enter は発火するため、確定中は無視する
@@ -29,58 +33,36 @@ function runOnEnter(e: KeyboardEvent, fn: () => void) {
   fn()
 }
 
-const form = ref<{ workDate: string; hours: number | null; note: string }>({ workDate: todayJST(), hours: 1, note: '' })
-const formError = ref('')
 const editingTitle = ref(false)
 const titleDraft = ref('')
 const titleInputEl = ref<HTMLInputElement | null>(null)
 const editingIcon = ref(false)
+const subtaskDraft = ref('')
 
 watch(
   () => props.show,
   (v) => {
     if (v) {
-      form.value = { workDate: todayJST(), hours: 1, note: '' }
-      formError.value = ''
       editingTitle.value = false
       editingIcon.value = false
+      subtaskDraft.value = ''
     }
   }
 )
 
-function submitLog() {
-  formError.value = ''
-  const hours = Number(form.value.hours)
-  if (!form.value.workDate) {
-    formError.value = '日付を選んでください'
-    return
-  }
-  if (!Number.isFinite(hours) || hours <= 0) {
-    formError.value = '時間を正しく入力してください'
-    return
-  }
-  emit('addLog', { workDate: form.value.workDate, hours, note: form.value.note })
-  form.value.note = ''
+function submitAddSubtask() {
+  const title = subtaskDraft.value.trim()
+  if (!title) return
+  emit('addSubtask', title)
+  subtaskDraft.value = ''
 }
 
 function close() {
   emit('update:show', false)
 }
 
-function noteLines(note: string): string[] {
-  return note
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean)
-}
-
 function formatHours(h: number): string {
   return (Math.round(h * 100) / 100).toString()
-}
-
-function formatDate(ymd: string): string {
-  const [y, m, d] = ymd.split('-').map(Number)
-  return `${y}/${m}/${d}(${weekdayJa(ymd)})`
 }
 
 function startEditTitle() {
@@ -169,69 +151,37 @@ function onChangeCategory(e: Event) {
         </div>
 
         <!-- 本体: スクロール -->
-        <div class="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-5">
-          <!-- 記録の追加フォーム -->
-          <form class="flex flex-col gap-2.5 bg-white/[0.04] border border-white/10 rounded-xl p-3.5" @submit.prevent="submitLog">
-            <div class="flex gap-2">
-              <div class="flex flex-col gap-1 flex-1">
-                <label class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">日付</label>
-                <input
-                  v-model="form.workDate"
-                  type="date"
-                  class="bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-2 text-slate-100 text-[13px] outline-none focus:border-sky-400/50"
-                  required
-                />
-              </div>
-              <div class="flex flex-col gap-1 w-28">
-                <label class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">時間</label>
-                <input
-                  v-model.number="form.hours"
-                  type="number"
-                  min="0.25"
-                  step="0.25"
-                  placeholder="1.5"
-                  class="bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-2 text-slate-100 text-[13px] outline-none focus:border-sky-400/50"
-                  required
-                />
-              </div>
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">やったこと（箇条書き。改行で複数項目）</label>
-              <textarea
-                v-model="form.note"
-                rows="3"
-                placeholder="資料を作成した&#10;SNSに投稿した"
-                class="bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-2 text-slate-100 text-[13px] outline-none focus:border-sky-400/50 resize-y leading-relaxed font-[inherit]"
-              />
-            </div>
-            <p v-if="formError || error" class="text-xs text-rose-400 m-0">{{ formError || error }}</p>
+        <div class="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-3">
+          <!-- サブタスクの追加 -->
+          <form class="flex gap-2" @submit.prevent="submitAddSubtask">
+            <input
+              v-model="subtaskDraft"
+              type="text"
+              placeholder="サブタスクを追加（例: 資料を作成する）"
+              class="flex-1 min-w-0 bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-2 text-slate-100 text-[13px] outline-none focus:border-sky-400/50"
+              @keydown.enter="runOnEnter($event, submitAddSubtask)"
+            />
             <button
               type="submit"
-              class="self-end h-9 px-4 rounded-full bg-sky-500 text-white text-[13px] font-bold hover:bg-sky-400 disabled:opacity-40"
+              class="h-9 px-4 rounded-full bg-sky-500 text-white text-[13px] font-bold hover:bg-sky-400 disabled:opacity-40 shrink-0"
               :disabled="saving"
-            >記録を追加</button>
+            >追加</button>
           </form>
+          <p v-if="error" class="text-xs text-rose-400 m-0">{{ error }}</p>
 
-          <!-- 記録一覧（新しい日付が上） -->
+          <!-- サブタスク一覧。各サブタスクの中に日別の作業時間 -->
           <div class="flex flex-col gap-2.5">
-            <div v-if="!task.logs.length" class="text-center text-slate-500 text-[13px] py-6">まだ記録がありません</div>
-            <div v-for="log in task.logs" :key="log.id" class="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3">
-              <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2 text-[13px] font-semibold text-slate-200">
-                  <span>{{ formatDate(log.workDate) }}</span>
-                  <span class="text-amber-300 tabular-nums">{{ formatHours(log.hours) }}時間</span>
-                </div>
-                <button
-                  class="w-6 h-6 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs"
-                  title="この記録を削除"
-                  :disabled="saving"
-                  @click="emit('deleteLog', log.id)"
-                >🗑</button>
-              </div>
-              <ul v-if="noteLines(log.note).length" class="mt-1.5 pl-4 space-y-0.5">
-                <li v-for="(line, i) in noteLines(log.note)" :key="i" class="text-[13px] text-slate-300 leading-relaxed list-disc">{{ line }}</li>
-              </ul>
-            </div>
+            <div v-if="!task.subtasks.length" class="text-center text-slate-500 text-[13px] py-6">まだサブタスクがありません</div>
+            <KoubaSubtaskCard
+              v-for="st in task.subtasks"
+              :key="st.id"
+              :subtask="st"
+              :saving="saving"
+              @rename="(title) => emit('renameSubtask', { id: st.id, title })"
+              @delete="emit('deleteSubtask', st)"
+              @set-log="(payload) => emit('setSubtaskLog', { subtaskId: st.id, ...payload })"
+              @delete-log="(log) => emit('deleteSubtaskLog', log)"
+            />
           </div>
         </div>
       </div>

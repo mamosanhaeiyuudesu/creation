@@ -92,16 +92,38 @@ export function useKouba() {
     })
   }
 
-  async function addLog(taskId: string, workDate: string, hours: number, note: string) {
+  async function addSubtask(taskId: string, title: string) {
     await withSaving(async () => {
-      await $fetch('/api/kouba/logs', { method: 'POST', body: { taskId, workDate, hours, note } })
+      await $fetch('/api/kouba/subtasks', { method: 'POST', body: { taskId, title } })
       await load()
     })
   }
 
-  async function deleteLog(id: string) {
+  async function updateSubtask(id: string, patch: { title?: string }) {
     await withSaving(async () => {
-      await $fetch(`/api/kouba/logs/${id}`, { method: 'DELETE' })
+      await $fetch(`/api/kouba/subtasks/${id}`, { method: 'PATCH', body: patch })
+      await load()
+    })
+  }
+
+  async function deleteSubtask(id: string) {
+    await withSaving(async () => {
+      await $fetch(`/api/kouba/subtasks/${id}`, { method: 'DELETE' })
+      await load()
+    })
+  }
+
+  /** サブタスクの指定日の作業時間を追加/編集する（同じ日を指定すると上書き）。 */
+  async function setSubtaskLog(subtaskId: string, workDate: string, hours: number) {
+    await withSaving(async () => {
+      await $fetch('/api/kouba/subtask-logs', { method: 'POST', body: { subtaskId, workDate, hours } })
+      await load()
+    })
+  }
+
+  async function deleteSubtaskLog(id: string) {
+    await withSaving(async () => {
+      await $fetch(`/api/kouba/subtask-logs/${id}`, { method: 'DELETE' })
       await load()
     })
   }
@@ -120,7 +142,10 @@ export function useKouba() {
     updateTask,
     deleteTask,
     reorderTasks,
-    addLog,
-    deleteLog,
+    addSubtask,
+    updateSubtask,
+    deleteSubtask,
+    setSubtaskLog,
+    deleteSubtaskLog,
   }
 }

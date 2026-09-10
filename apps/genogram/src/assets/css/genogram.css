@@ -224,6 +224,12 @@ body {
   justify-content: space-between;
 }
 
+.genogram-modal-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .genogram-modal-save {
   border: none;
   background: #4f46e5;
@@ -257,6 +263,21 @@ body {
 .genogram-modal-cancel:hover {
   background: #eef2ff;
   border-color: #a5b4fc;
+}
+
+.genogram-modal-delete {
+  border: 1px solid #fecaca;
+  background: #fff5f5;
+  color: #b91c1c;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.genogram-modal-delete:hover {
+  background: #fee2e2;
+  border-color: #f87171;
 }
 
 .genogram-clear-btn {
