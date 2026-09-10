@@ -6,12 +6,12 @@ import type { GenogramData } from '~/types/genogram'
  */
 export const defaultTemplateData: GenogramData = {
   people: [
-    { id: 'pgf', name: '祖父(父方)', gender: 'M' },
-    { id: 'pgm', name: '祖母(父方)', gender: 'F' },
-    { id: 'mgf', name: '祖父(母方)', gender: 'M' },
-    { id: 'mgm', name: '祖母(母方)', gender: 'F' },
-    { id: 'father', name: '父', gender: 'M' },
-    { id: 'mother', name: '母', gender: 'F' },
+    { id: 'pgf', name: '祖父(父方)', gender: 'M', relation: '祖父(父方)' },
+    { id: 'pgm', name: '祖母(父方)', gender: 'F', relation: '祖母(父方)' },
+    { id: 'mgf', name: '祖父(母方)', gender: 'M', relation: '祖父(母方)' },
+    { id: 'mgm', name: '祖母(母方)', gender: 'F', relation: '祖母(母方)' },
+    { id: 'father', name: '父', gender: 'M', relation: '父' },
+    { id: 'mother', name: '母', gender: 'F', relation: '母' },
     { id: 'self', name: '本人', gender: 'U', isSelf: true },
   ],
   unions: [

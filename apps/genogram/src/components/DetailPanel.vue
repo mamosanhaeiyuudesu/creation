@@ -8,12 +8,12 @@
           <input v-model="personForm.name" type="text" />
         </div>
         <div class="genogram-modal-field">
-          <label>性別</label>
-          <select v-model="personForm.gender">
-            <option value="M">男性</option>
-            <option value="F">女性</option>
-            <option value="U">不明</option>
-          </select>
+          <label>続柄(本人から見て)</label>
+          <input v-model="personForm.relation" type="text" placeholder="例: 母, 叔父, 姪" />
+        </div>
+        <div class="genogram-modal-field">
+          <label>人物像</label>
+          <textarea v-model="personForm.note" rows="5" placeholder="この人物についての気づき・エピソード・関係性の背景など" />
         </div>
         <div class="genogram-modal-field-row">
           <label class="genogram-modal-checkbox"><input v-model="personForm.deceased" type="checkbox" /> 故人</label>
@@ -36,10 +36,6 @@
         <div class="genogram-modal-field">
           <label>健康メモ</label>
           <input v-model="personForm.healthNote" type="text" placeholder="例: 2型糖尿病" />
-        </div>
-        <div class="genogram-modal-field">
-          <label>その他の注記</label>
-          <textarea v-model="personForm.note" rows="2" />
         </div>
         <div class="genogram-modal-field">
           <label>世代(空欄なら親子関係から自動算出)</label>
@@ -111,7 +107,7 @@ import Modal from '~/components/Modal.vue'
 const props = defineProps<{ selection: GenogramSelection; people: Person[] }>()
 const emit = defineEmits<{
   close: []
-  'save-person': [patch: Pick<Person, 'id' | 'name' | 'gender' | 'deceased' | 'isSelf'> & Partial<Pick<Person, 'birthYear' | 'deathYear' | 'occupation' | 'healthNote' | 'note' | 'generation'>>]
+  'save-person': [patch: Pick<Person, 'id' | 'name' | 'gender' | 'deceased' | 'isSelf'> & Partial<Pick<Person, 'birthYear' | 'deathYear' | 'occupation' | 'healthNote' | 'relation' | 'note' | 'generation'>>]
   'save-union': [index: number, patch: { status: UnionStatus; startYear?: number; endYear?: number; note?: string }]
   'save-relation': [index: number, patch: { type: RelationType; label?: string }]
 }>()
@@ -140,6 +136,7 @@ const personForm = reactive<{
   deathYear: number | string
   occupation: string
   healthNote: string
+  relation: string
   note: string
   generation: number | string
 }>({
@@ -151,6 +148,7 @@ const personForm = reactive<{
   deathYear: '',
   occupation: '',
   healthNote: '',
+  relation: '',
   note: '',
   generation: '',
 })
@@ -180,6 +178,7 @@ watch(
         deathYear: sel.person.deathYear ?? '',
         occupation: sel.person.occupation ?? '',
         healthNote: sel.person.healthNote ?? '',
+        relation: sel.person.relation ?? '',
         note: sel.person.note ?? '',
         generation: sel.person.generation ?? '',
       })
@@ -223,6 +222,7 @@ function save() {
       deathYear: numOrUndef(personForm.deathYear),
       occupation: strOrUndef(personForm.occupation),
       healthNote: strOrUndef(personForm.healthNote),
+      relation: strOrUndef(personForm.relation),
       note: strOrUndef(personForm.note),
       generation: numOrUndef(personForm.generation),
     })

@@ -1,7 +1,7 @@
 import type { GenogramData, Person, Union, Relation } from '~/types/genogram'
 import {
   hasEnrichedInfo,
-  formatLifespan,
+  belowNameLines,
   characteristicLines,
   CHARACTERISTIC_LINE_HEIGHT,
   CHARACTERISTIC_GAP_ABOVE_ICON,
@@ -105,11 +105,10 @@ class DisjointSet {
 
 function slotWidthOf(person: Person): number {
   const nameWidth = person.name.length * LAYOUT.charWidth + LAYOUT.labelPadding
-  // 生涯・特徴要約は名前より小さいフォントで表示するため、文字幅は控えめに見積もる
-  const lifespan = formatLifespan(person)
-  const lifespanWidth = lifespan ? lifespan.length * 8 + LAYOUT.labelPadding : 0
+  // 続柄・生涯・特徴要約は名前より小さいフォントで表示するため、文字幅は控えめに見積もる
+  const belowWidths = belowNameLines(person).map((line) => line.length * 8 + LAYOUT.labelPadding)
   const charWidths = characteristicLines(person).map((line) => line.length * 8 + LAYOUT.labelPadding)
-  return Math.max(LAYOUT.symbolSize + 16, nameWidth, lifespanWidth, ...charWidths)
+  return Math.max(LAYOUT.symbolSize + 16, nameWidth, ...belowWidths, ...charWidths)
 }
 
 /** 親子の有向グラフ(親→子)に循環があるか検出する。あれば関与するidの配列を返す */
@@ -185,6 +184,7 @@ function resolveGenerations(people: Person[], unions: Union[]) {
     for (const c of u.children ?? []) {
       parentUnionOfChild.set(c, idx)
       const childGroup = dsu.find(c)
+      if (parentGroup === childGroup) return // 近親婚など異常データは無視(循環自体は別途detectCycleで検出)
       if (!childGroupsOf.has(parentGroup)) childGroupsOf.set(parentGroup, new Set())
       childGroupsOf.get(parentGroup)!.add(childGroup)
       if (!parentGroupsOf.has(childGroup)) parentGroupsOf.set(childGroup, new Set())
@@ -193,41 +193,44 @@ function resolveGenerations(people: Person[], unions: Union[]) {
   })
 
   const groupGen = new Map<string, number>()
-  const queue: string[] = []
 
+  // 明示的な世代指定を、そのグループの初期値にする(グループ内で最初に見つかった値を採用)
   for (const p of people) {
     if (p.generation === undefined) continue
     const group = dsu.find(p.id)
-    if (!groupGen.has(group)) {
-      groupGen.set(group, p.generation)
-      queue.push(group)
-    }
+    if (!groupGen.has(group)) groupGen.set(group, p.generation)
   }
+  // 親グループを持たないグループ(=データ上いちばん上の世代)は0を初期値にする
   for (const group of groupMembers.keys()) {
-    if (!groupGen.has(group) && !parentGroupsOf.has(group)) {
-      groupGen.set(group, 0)
-      queue.push(group)
-    }
+    if (!groupGen.has(group) && !parentGroupsOf.has(group)) groupGen.set(group, 0)
+  }
+
+  // 親→子は「親の世代+1」を子に伝える。夫婦それぞれの実家の血筋が合流する場合など、
+  // 1つのグループ(例:結婚した夫婦)が複数の親グループを持つことがある。その場合は
+  // より深い(値が大きい)方に合わせる ―― 浅い方の血筋が先に確定してしまうと、
+  // 本来もっと下の世代にいるはずの人物が実の親と同じ段に引き上げられてしまうため。
+  // 全ての親グループが確定してから子グループを確定させたいので、トポロジカル順(Kahn法)で処理する
+  const indegree = new Map<string, number>()
+  for (const group of groupMembers.keys()) indegree.set(group, parentGroupsOf.get(group)?.size ?? 0)
+
+  const queue: string[] = []
+  for (const group of groupMembers.keys()) {
+    if (indegree.get(group) === 0) queue.push(group)
   }
 
   while (queue.length > 0) {
     const group = queue.shift()!
+    if (!groupGen.has(group)) groupGen.set(group, 0)
     const gen = groupGen.get(group)!
     for (const childGroup of childGroupsOf.get(group) ?? []) {
-      if (!groupGen.has(childGroup)) {
-        groupGen.set(childGroup, gen + 1)
-        queue.push(childGroup)
-      }
-    }
-    for (const parentGroup of parentGroupsOf.get(group) ?? []) {
-      if (!groupGen.has(parentGroup)) {
-        groupGen.set(parentGroup, gen - 1)
-        queue.push(parentGroup)
-      }
+      groupGen.set(childGroup, Math.max(groupGen.get(childGroup) ?? -Infinity, gen + 1))
+      const remaining = (indegree.get(childGroup) ?? 1) - 1
+      indegree.set(childGroup, remaining)
+      if (remaining <= 0) queue.push(childGroup)
     }
   }
 
-  // 孤立していた場合(理論上ここには来ないはずだが念のため)の最終フォールバック
+  // 孤立していた場合や、想定外の残留(indegreeが0にならなかった)場合の最終フォールバック
   for (const group of groupMembers.keys()) {
     if (!groupGen.has(group)) groupGen.set(group, 0)
   }

@@ -188,7 +188,13 @@
 
       <!-- 記号の下: 名前とその下に生涯(1920~1978) -->
       <text :x="node.x" :y="nameY(node)" class="genogram-name-text">{{ node.person.name }}</text>
-      <text v-if="formatLifespan(node.person)" :x="node.x" :y="nameY(node) + 12" class="genogram-note-text">{{ formatLifespan(node.person) }}</text>
+      <text
+        v-for="(line, li) in belowNameLines(node.person)"
+        :key="li"
+        :x="node.x"
+        :y="nameY(node) + 12 * (li + 1)"
+        :class="li === 0 && node.person.relation ? 'genogram-relation-tag-text' : 'genogram-note-text'"
+      >{{ line }}</text>
 
       <g v-if="node.person.healthNote" :transform="`translate(${node.x + node.size / 2 - 5}, ${node.y - node.size / 2 - 5})`">
         <circle r="7" class="genogram-health-badge-bg" />
@@ -251,7 +257,7 @@ import {
   isDeceased,
   hasEnrichedInfo,
   formatUnionYears,
-  formatLifespan,
+  belowNameLines,
   centerAgeText,
   marriageAgeText,
   characteristicLines,
@@ -416,6 +422,13 @@ function legendLineClass(item: LegendItem) {
 .genogram-note-text {
   font-size: 10px;
   fill: #6b7280;
+  text-anchor: middle;
+}
+
+.genogram-relation-tag-text {
+  font-size: 10.5px;
+  font-weight: 600;
+  fill: #374151;
   text-anchor: middle;
 }
 

@@ -89,6 +89,10 @@ export function validateGenogramData(input: unknown): ValidationResult {
       errors.push(`people[${i}] (id: "${id}"): "healthNote" は文字列である必要があります`)
       return
     }
+    if (raw.relation !== undefined && typeof raw.relation !== 'string') {
+      errors.push(`people[${i}] (id: "${id}"): "relation" は文字列である必要があります`)
+      return
+    }
     if (raw.isSelf === true) {
       selfCount++
     }
@@ -104,6 +108,7 @@ export function validateGenogramData(input: unknown): ValidationResult {
       deathYear: raw.deathYear as number | undefined,
       occupation: typeof raw.occupation === 'string' ? raw.occupation : undefined,
       healthNote: typeof raw.healthNote === 'string' ? raw.healthNote : undefined,
+      relation: typeof raw.relation === 'string' ? raw.relation : undefined,
       note: typeof raw.note === 'string' ? raw.note : undefined,
     })
   })

@@ -9,7 +9,7 @@ const SYSTEM = `あなたはジェノグラム(家系図+感情関係図)作成�
 ユーザーが自然な日本語で説明した家族構成や感情的な関係性を、以下のJSON形式(GenogramData)に変換・反映してください。
 
 型定義:
-- Person: { id: string(半角英数字・一意), name: string, gender: "M"|"F"|"U"(男性/女性/不明。性別が明言・推測できないときはU), generation?: number(省略可。世代が上がるほど大きい整数。祖父母=0, 親=1, 本人=2のように。unions.children による親子関係で世代が特定できるなら省略してよい), deceased?: boolean(没年が分からないが故人だと分かっている場合のみ), isSelf?: boolean(相談者本人。ユーザーが「私」「自分」「相談者」等と明示的に言った人物にのみtrueにする。誰が本人か明言されていなければ、全員falseのままにし勝手に推測しない。trueは最大1人まで), birthYear?: number(生年・西暦), deathYear?: number(没年・西暦。指定すると自動的に故人として扱われる), occupation?: string(職業), healthNote?: string(疾患・健康上の注記。例:"2型糖尿病","うつ病で通院中"), note?: string(その他の重要な出来事など短い注記) }
+- Person: { id: string(半角英数字・一意), name: string, gender: "M"|"F"|"U"(男性/女性/不明。性別が明言・推測できないときはU), generation?: number(省略可。世代が上がるほど大きい整数。祖父母=0, 親=1, 本人=2のように。unions.children による親子関係で世代が特定できるなら省略してよい), deceased?: boolean(没年が分からないが故人だと分かっている場合のみ), isSelf?: boolean(相談者本人。ユーザーが「私」「自分」「相談者」等と明示的に言った人物にのみtrueにする。誰が本人か明言されていなければ、全員falseのままにし勝手に推測しない。trueは最大1人まで), birthYear?: number(生年・西暦), deathYear?: number(没年・西暦。指定すると自動的に故人として扱われる), occupation?: string(職業), healthNote?: string(疾患・健康上の注記。例:"2型糖尿病","うつ病で通院中"), relation?: string(本人(isSelf)から見た続柄。例:"母","父","祖父(父方)","叔父","姪","配偶者"。本人がまだ特定されていなければ付けない), note?: string(人物像。その人物についての気づき・エピソード・関係性の背景・生い立ちなど、説明文から読み取れる範囲でまとまった分量を書いてよい。このジェノグラムでは最も重要な情報の1つなので、短く切り詰めず、意味のある記述はできるだけ残す) }
 - Union: { partners: [id, id](夫婦・パートナーのidを2つ), status: "married"|"divorced"|"separated"|"distant"|"conflict", children?: string[](その夫婦の子のid配列), startYear?: number(結婚・関係開始の年・西暦), endYear?: number(離婚・別居など関係終了の年・西暦), note?: string(短い注記) }
 - Relation: { from: id, to: id, type: "conflict"|"cutoff"|"enmeshed"|"close"|"distant", label?: string(関係を表す短い日本語、例:"疎遠","対立","絶縁","べったり") }
 - GenogramData: { people: Person[], unions: Union[], relations: Relation[] }
@@ -23,7 +23,9 @@ const SYSTEM = `あなたはジェノグラム(家系図+感情関係図)作成�
 6. 生年・没年・年齢・職業・病気/持病・結婚/離婚した年など、ジェノグラムとして本来重要な情報が説明文の中にあれば、対応するフィールド(birthYear/deathYear/occupation/healthNote/startYear/endYear)に必ず反映する。年齢しか分からない場合は、説明文中や現在日時から西暦の生年を逆算してbirthYearに入れてよい。
 7. 推測でむやみに人物や関係、上記6の詳細情報を作らない。説明されていないことは追加しない(空欄のままにする)。
 8. unions の partners/children や relations の from/to で使ったidは、必ず people 配列にも人物として存在すること(名前が分からない人物でも、name を "(名前不明)" などにして必ず people に追加する。idだけ作って people に足し忘れることは絶対にしない)。
-9. 出力は説明文やコードブロック記号(\`\`\`)を一切付けず、GenogramData の JSON オブジェクトのみ。`
+9. 世代(generation)はJSON上には基本的に出てこず、unions.children の親子関係だけから自動計算される。そのため「曽祖母」「祖父の弟」のように既存人物より上や同じ世代の人物を新しく追加するときは、その人物を既存人物の"兄弟姉妹"に対する relations(感情関係)だけで繋いでは絶対にいけない(relationsは世代を意味しないため、その人物が孤立して間違った世代に配置される)。必ず unions で親子関係を構造化すること: 例えば「祖母の弟の母(=曽祖母)」を追加するなら、曽祖母を partners に含む union を作り、children に祖母と祖母の弟(両方が既存/新規のidで people にいること)を入れる。もう一方の配偶者(曽祖父)が説明文に出てこない場合は、ルール8と同様に name を "(配偶者不明)" 等にした人物を新規に作って partners のもう一方に入れてよい(この場合もgenerationは指定せず、union.children によって自動計算させる)。
+10. relation(本人から見た続柄)は、本人(isSelf)が特定されている場合、家族関係から機械的に分かる範囲で埋める(親→「父」「母」、親の親→「祖父」「祖母」(父方/母方が分かれば併記)、親のきょうだい→「叔父」「叔母」、きょうだいの子→「甥」「姪」、配偶者→「配偶者」、本人自身は付けなくてよい、等)。本人がまだ特定されていない、または関係が遠すぎて日本語の続柄名が定まらない場合は無理に付けない。既に name に続柄が含まれている人物(例: name が「祖父(母方)」)は、relation にも同じ内容を入れてよい。
+11. 出力は説明文やコードブロック記号(\`\`\`)を一切付けず、GenogramData の JSON オブジェクトのみ。`
 
 /**
  * AIがunions/relationsでidを参照しつつ、対応するPersonをpeopleに足し忘れることがある。

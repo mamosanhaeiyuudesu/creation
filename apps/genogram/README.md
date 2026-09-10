@@ -36,7 +36,7 @@ interface Person {
   deathYear?: number // 指定すると自動的に故人(×印+享年)として扱う
   occupation?: string // note と合わせて記号の上に20文字程度の要約(職業・特徴)として表示
   healthNote?: string // 記号の隅に赤い「+」印。ホバー/タップで内容を表示
-  note?: string
+  note?: string // 人物像(気づき・エピソード・関係性の背景など)。詳細パネルでは「人物像」として最上部に表示する主要項目
 }
 
 type UnionStatus = 'married' | 'divorced' | 'separated' | 'distant' | 'conflict'

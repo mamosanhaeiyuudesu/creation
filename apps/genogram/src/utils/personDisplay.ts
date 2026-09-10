@@ -49,9 +49,15 @@ export function marriageAgeText(person: Person, unions: Union[]): string | null 
   return `(${union.startYear - person.birthYear})`
 }
 
-/** 生年/没年・職業・健康メモのいずれかがあれば true。無ければ入力を促すバッジを出す判定に使う */
+/** 生年/没年・職業・健康メモ・続柄のいずれかがあれば true。無ければ入力を促すバッジを出す判定に使う */
 export function hasEnrichedInfo(person: Person): boolean {
-  return person.birthYear !== undefined || person.deathYear !== undefined || !!person.occupation || !!person.healthNote
+  return (
+    person.birthYear !== undefined ||
+    person.deathYear !== undefined ||
+    !!person.occupation ||
+    !!person.healthNote ||
+    !!person.relation
+  )
 }
 
 /**
@@ -63,4 +69,13 @@ export function characteristicLines(person: Person): string[] {
   if (parts.length === 0) return []
   const text = truncateText(parts.join('・'), CHARACTERISTIC_MAX_CHARS)
   return wrapText(text, CHARACTERISTIC_WRAP_CHARS)
+}
+
+/** 名前の下に続けて表示する行(続柄→生涯の順)。存在するものだけ。名前と同じ内容の続柄は重複表示しない */
+export function belowNameLines(person: Person): string[] {
+  const lines: string[] = []
+  if (person.relation && person.relation !== person.name) lines.push(person.relation)
+  const lifespan = formatLifespan(person)
+  if (lifespan) lines.push(lifespan)
+  return lines
 }

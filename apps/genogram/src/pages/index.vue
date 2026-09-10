@@ -234,7 +234,7 @@ function applyEditedData(data: GenogramData) {
   closePanel()
 }
 
-function handleSavePerson(patch: Pick<Person, 'id' | 'name' | 'gender' | 'deceased' | 'isSelf'> & Partial<Pick<Person, 'birthYear' | 'deathYear' | 'occupation' | 'healthNote' | 'note' | 'generation'>>) {
+function handleSavePerson(patch: Pick<Person, 'id' | 'name' | 'gender' | 'deceased' | 'isSelf'> & Partial<Pick<Person, 'birthYear' | 'deathYear' | 'occupation' | 'healthNote' | 'relation' | 'note' | 'generation'>>) {
   const data = cloneParsedData()
   const target = data?.people.find((p) => p.id === patch.id)
   if (!data || !target) return
