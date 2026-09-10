@@ -1,21 +1,12 @@
 // 工数管理ツール (kouba) の型定義。
 
-/** サブタスクの日別作業時間1件（その日ぶんの時間のみ。1日1件・編集可能）。 */
-export interface KoubaSubtaskLog {
-  id: string
-  workDate: string // YYYY-MM-DD
-  hours: number // 1〜30
-  createdAt: string
-}
-
-/** サブタスク（「何をやったか」はタイトルで表す）。日別作業時間の合計を totalHours に持つ。 */
+/** サブタスク（「何をやったか」はタイトルで表す）。時間は日別に分けず hours にまとめて1個持つ（編集可能）。 */
 export interface KoubaSubtask {
   id: string
   taskId: string
   title: string
+  hours: number // 1〜30
   createdAt: string
-  logs: KoubaSubtaskLog[]
-  totalHours: number
 }
 
 /** タスク（付箋1枚）。配下のサブタスクの合計時間を totalHours に持つ。 */
@@ -51,6 +42,6 @@ export const KOUBA_ICON_PRESETS = [
   '🔥', '⭐', '💬', '🔍',
 ]
 
-/** サブタスクの日別作業時間の入力範囲（select式）。 */
+/** サブタスクの作業時間の入力範囲（select式）。 */
 export const KOUBA_MIN_HOURS = 1
 export const KOUBA_MAX_HOURS = 30

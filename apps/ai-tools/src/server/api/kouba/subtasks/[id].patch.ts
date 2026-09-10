@@ -1,6 +1,6 @@
-import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, findOwnedSubtask } from '~/server/utils/kouba'
+import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, findOwnedSubtask, normalizeHours } from '~/server/utils/kouba'
 
-// サブタスク名の変更。
+// サブタスクの部分更新（title / hours のどちらか一方以上）。
 export default defineEventHandler(async (event) => {
   const user = await requireKoubaUser(event)
   const db = requireKoubaDb(event)
@@ -10,10 +10,25 @@ export default defineEventHandler(async (event) => {
   const existing = await findOwnedSubtask(db, user.id, id)
   if (!existing) throw createError({ statusCode: 404, message: 'サブタスクが見つかりません' })
 
-  const body = await readBody<{ title?: string }>(event)
-  const title = (body?.title ?? '').trim()
-  if (!title) throw createError({ statusCode: 400, message: 'サブタスク名を入力してください' })
+  const body = await readBody<{ title?: string; hours?: number }>(event)
+  const sets: string[] = []
+  const params: unknown[] = []
 
-  await db.prepare('UPDATE kouba_subtasks SET title = ? WHERE id = ?').bind(title, id).run()
+  if (body?.title !== undefined) {
+    const title = body.title.trim()
+    if (!title) throw createError({ statusCode: 400, message: 'サブタスク名を入力してください' })
+    sets.push('title = ?')
+    params.push(title)
+  }
+  if (body?.hours !== undefined) {
+    const hours = normalizeHours(body.hours)
+    if (hours === null) throw createError({ statusCode: 400, message: '時間は1〜30の範囲で指定してください' })
+    sets.push('hours = ?')
+    params.push(hours)
+  }
+  if (!sets.length) throw createError({ statusCode: 400, message: '更新する項目がありません' })
+
+  params.push(id)
+  await db.prepare(`UPDATE kouba_subtasks SET ${sets.join(', ')} WHERE id = ?`).bind(...params).run()
   return { ok: true }
 })

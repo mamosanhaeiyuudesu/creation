@@ -1,24 +1,27 @@
-import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, findOwnedTask } from '~/server/utils/kouba'
+import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, findOwnedTask, normalizeHours } from '~/server/utils/kouba'
 
-// サブタスクを新規作成する。
+// サブタスクを新規作成する。時間は日別に分けず、作成時に選んだ1個の値をまとめて持つ。
 export default defineEventHandler(async (event) => {
   const user = await requireKoubaUser(event)
   const db = requireKoubaDb(event)
   await ensureKoubaTables(db)
 
-  const body = await readBody<{ taskId?: string; title?: string }>(event)
+  const body = await readBody<{ taskId?: string; title?: string; hours?: number }>(event)
   const taskId = body?.taskId ?? ''
   const title = (body?.title ?? '').trim()
   if (!title) throw createError({ statusCode: 400, message: 'サブタスク名を入力してください' })
+
+  const hours = normalizeHours(body?.hours)
+  if (hours === null) throw createError({ statusCode: 400, message: '時間は1〜30の範囲で指定してください' })
 
   const task = await findOwnedTask(db, user.id, taskId)
   if (!task) throw createError({ statusCode: 404, message: 'タスクが見つかりません' })
 
   const id = crypto.randomUUID()
   await db
-    .prepare('INSERT INTO kouba_subtasks (id, user_id, task_id, title) VALUES (?, ?, ?, ?)')
-    .bind(id, user.id, taskId, title)
+    .prepare('INSERT INTO kouba_subtasks (id, user_id, task_id, title, hours) VALUES (?, ?, ?, ?, ?)')
+    .bind(id, user.id, taskId, title, hours)
     .run()
 
-  return { id, taskId, title, createdAt: new Date().toISOString(), logs: [], totalHours: 0 }
+  return { id, taskId, title, hours, createdAt: new Date().toISOString() }
 })

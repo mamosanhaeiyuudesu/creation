@@ -2,7 +2,7 @@
 // 認証は既存の WHISPER_DB / users / sessions に相乗りし、カテゴリ・タスクは user_id でスコープする。
 import { getSessionUser, getAppDb } from '~/server/utils/auth'
 import { KOUBA_DEFAULT_CATEGORY_ICON, KOUBA_DEFAULT_TASK_ICON, KOUBA_MIN_HOURS, KOUBA_MAX_HOURS } from '~/types/kouba'
-import type { KoubaCategory, KoubaTask, KoubaSubtask, KoubaSubtaskLog } from '~/types/kouba'
+import type { KoubaCategory, KoubaTask, KoubaSubtask } from '~/types/kouba'
 
 export interface KoubaUser {
   id: string
@@ -43,26 +43,19 @@ export async function ensureKoubaTables(db: any): Promise<void> {
       user_id TEXT NOT NULL,
       task_id TEXT NOT NULL,
       title TEXT NOT NULL DEFAULT '',
+      hours INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
     `CREATE INDEX IF NOT EXISTS idx_kouba_subtasks_task ON kouba_subtasks(task_id)`,
-    `CREATE TABLE IF NOT EXISTS kouba_subtask_logs (
-      id TEXT PRIMARY KEY,
-      subtask_id TEXT NOT NULL,
-      work_date TEXT NOT NULL,
-      hours INTEGER NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      UNIQUE (subtask_id, work_date)
-    )`,
-    `CREATE INDEX IF NOT EXISTS idx_kouba_subtask_logs_subtask ON kouba_subtask_logs(subtask_id, work_date)`,
   ]
   for (const sql of statements) await db.prepare(sql).run().catch(() => {})
 
-  // 既存テーブルへの列追加（icon/sort_order を後から足した分）。無ければ足す、あれば失敗を握りつぶす。
+  // 既存テーブルへの列追加（icon/sort_order/hours を後から足した分）。無ければ足す、あれば失敗を握りつぶす。
   const columns = [
     `ALTER TABLE kouba_categories ADD COLUMN icon TEXT NOT NULL DEFAULT '${KOUBA_DEFAULT_CATEGORY_ICON}'`,
     `ALTER TABLE kouba_tasks ADD COLUMN icon TEXT NOT NULL DEFAULT '${KOUBA_DEFAULT_TASK_ICON}'`,
     `ALTER TABLE kouba_tasks ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE kouba_subtasks ADD COLUMN hours INTEGER NOT NULL DEFAULT 1`,
   ]
   for (const sql of columns) await db.prepare(sql).run().catch(() => {})
 }
@@ -94,11 +87,6 @@ export function normalizeHours(raw: unknown): number | null {
   return n
 }
 
-/** "YYYY-MM-DD" 形式かどうか。 */
-export function isValidDateString(raw: unknown): raw is string {
-  return typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw)
-}
-
 // ── 読み取り・整形 ──────────────────────────────
 
 interface CategoryRow {
@@ -119,28 +107,16 @@ interface SubtaskRow {
   id: string
   task_id: string
   title: string
-  created_at: string
-}
-interface SubtaskLogRow {
-  id: string
-  subtask_id: string
-  work_date: string
   hours: number
   created_at: string
 }
 
-function shapeSubtaskLog(row: SubtaskLogRow): KoubaSubtaskLog {
-  return { id: row.id, workDate: row.work_date, hours: row.hours, createdAt: row.created_at }
-}
-
-function shapeSubtask(row: SubtaskRow, logRows: SubtaskLogRow[]): KoubaSubtask {
-  const logs = logRows.map(shapeSubtaskLog).sort((a, b) => (a.workDate < b.workDate ? 1 : a.workDate > b.workDate ? -1 : 0))
-  const totalHours = logs.reduce((sum, l) => sum + l.hours, 0)
-  return { id: row.id, taskId: row.task_id, title: row.title, createdAt: row.created_at, logs, totalHours }
+function shapeSubtask(row: SubtaskRow): KoubaSubtask {
+  return { id: row.id, taskId: row.task_id, title: row.title, hours: row.hours, createdAt: row.created_at }
 }
 
 function shapeTask(row: TaskRow, subtasks: KoubaSubtask[]): KoubaTask {
-  const totalHours = subtasks.reduce((sum, s) => sum + s.totalHours, 0)
+  const totalHours = subtasks.reduce((sum, s) => sum + s.hours, 0)
   return {
     id: row.id,
     categoryId: row.category_id,
@@ -165,7 +141,7 @@ function shapeCategory(row: CategoryRow, tasks: KoubaTask[]): KoubaCategory {
   }
 }
 
-/** ユーザーのカテゴリ→タスク→サブタスク→日別作業時間をまとめて取得（板の表示用）。 */
+/** ユーザーのカテゴリ→タスク→サブタスクをまとめて取得（板の表示用）。 */
 export async function loadBoard(db: any, userId: string): Promise<KoubaCategory[]> {
   const catRows = await db
     .prepare('SELECT * FROM kouba_categories WHERE user_id = ? ORDER BY position ASC')
@@ -193,25 +169,9 @@ export async function loadBoard(db: any, userId: string): Promise<KoubaCategory[
     subtasks = subtaskRows?.results ?? []
   }
 
-  let logs: SubtaskLogRow[] = []
-  if (subtasks.length) {
-    const subtaskIds = subtasks.map((s) => s.id)
-    const subtaskPlaceholders = subtaskIds.map(() => '?').join(',')
-    const logRows = await db
-      .prepare(`SELECT * FROM kouba_subtask_logs WHERE subtask_id IN (${subtaskPlaceholders})`)
-      .bind(...subtaskIds)
-      .all<SubtaskLogRow>()
-    logs = logRows?.results ?? []
-  }
-
-  const logsBySubtask = new Map<string, SubtaskLogRow[]>()
-  for (const l of logs) {
-    if (!logsBySubtask.has(l.subtask_id)) logsBySubtask.set(l.subtask_id, [])
-    logsBySubtask.get(l.subtask_id)!.push(l)
-  }
   const subtasksByTask = new Map<string, KoubaSubtask[]>()
   for (const s of subtasks) {
-    const shaped = shapeSubtask(s, logsBySubtask.get(s.id) ?? [])
+    const shaped = shapeSubtask(s)
     if (!subtasksByTask.has(s.task_id)) subtasksByTask.set(s.task_id, [])
     subtasksByTask.get(s.task_id)!.push(shaped)
   }

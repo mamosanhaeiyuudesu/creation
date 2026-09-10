@@ -5,7 +5,7 @@ import KoubaTaskModal from '~/components/kouba/KoubaTaskModal.vue'
 import KoubaIconPicker from '~/components/kouba/KoubaIconPicker.vue'
 import KoubaConfirmModal from '~/components/kouba/KoubaConfirmModal.vue'
 import { KOUBA_DEFAULT_CATEGORY_ICON, KOUBA_DEFAULT_TASK_ICON } from '~/types/kouba'
-import type { KoubaCategory, KoubaTask, KoubaSubtask, KoubaSubtaskLog } from '~/types/kouba'
+import type { KoubaCategory, KoubaTask, KoubaSubtask } from '~/types/kouba'
 
 useHead({
   title: import.meta.dev ? '工数 (dev)' : '工数',
@@ -30,7 +30,7 @@ const {
   categories, loading, loadError, saving, actionError, load,
   addCategory, updateCategory, deleteCategory,
   addTask, updateTask, deleteTask, reorderTasks,
-  addSubtask, updateSubtask, deleteSubtask, setSubtaskLog, deleteSubtaskLog,
+  addSubtask, updateSubtask, deleteSubtask,
 } = useKouba()
 
 // 日本語入力の変換確定Enterでも @keydown.enter は発火するため、確定中は無視する
@@ -144,36 +144,27 @@ function openTask(taskId: string) {
 async function handleUpdateTask(patch: { title?: string; icon?: string; categoryId?: string }) {
   if (activeTaskId.value) await updateTask(activeTaskId.value, patch)
 }
-async function handleAddSubtask(title: string) {
-  if (activeTaskId.value) await addSubtask(activeTaskId.value, title)
+async function handleAddSubtask(payload: { title: string; hours: number }) {
+  if (activeTaskId.value) await addSubtask(activeTaskId.value, payload.title, payload.hours)
 }
-async function handleRenameSubtask(payload: { id: string; title: string }) {
-  await updateSubtask(payload.id, { title: payload.title })
-}
-async function handleSetSubtaskLog(payload: { subtaskId: string; workDate: string; hours: number }) {
-  await setSubtaskLog(payload.subtaskId, payload.workDate, payload.hours)
+async function handleUpdateSubtask(payload: { id: string; title?: string; hours?: number }) {
+  const { id, ...patch } = payload
+  await updateSubtask(id, patch)
 }
 
-// ── 削除確認ポップアップ（カテゴリ/タスク/サブタスク/日別記録で共通）──────────────────────────────
+// ── 削除確認ポップアップ（カテゴリ/タスク/サブタスクで共通）──────────────────────────────
 type ConfirmTarget =
   | { kind: 'category'; id: string; name: string }
   | { kind: 'task'; id: string; title: string }
   | { kind: 'subtask'; id: string; title: string }
-  | { kind: 'subtaskLog'; id: string; workDate: string; hours: number }
 const confirmTarget = ref<ConfirmTarget | null>(null)
 const confirmMessage = computed(() => {
   const t = confirmTarget.value
   if (!t) return ''
   if (t.kind === 'category') return `「${t.name}」を削除しますか？\n中のタスク・記録もすべて削除されます。`
-  if (t.kind === 'task') return `「${t.title}」を削除しますか？\nサブタスク・記録もすべて削除されます。`
-  if (t.kind === 'subtask') return `「${t.title}」を削除しますか？\n記録もすべて削除されます。`
-  return `${formatDateLabel(t.workDate)}の記録（${t.hours}時間）を削除しますか？`
+  if (t.kind === 'task') return `「${t.title}」を削除しますか？\nサブタスクもすべて削除されます。`
+  return `「${t.title}」を削除しますか？`
 })
-
-function formatDateLabel(ymd: string): string {
-  const [y, m, d] = ymd.split('-').map(Number)
-  return `${y}/${m}/${d}(${weekdayJa(ymd)})`
-}
 
 function askDeleteCategory(cat: KoubaCategory) {
   confirmTarget.value = { kind: 'category', id: cat.id, name: cat.name }
@@ -184,9 +175,6 @@ function askDeleteTask(task: KoubaTask) {
 function askDeleteSubtask(subtask: KoubaSubtask) {
   confirmTarget.value = { kind: 'subtask', id: subtask.id, title: subtask.title }
 }
-function askDeleteSubtaskLog(log: KoubaSubtaskLog) {
-  confirmTarget.value = { kind: 'subtaskLog', id: log.id, workDate: log.workDate, hours: log.hours }
-}
 async function onConfirmDelete() {
   const target = confirmTarget.value
   confirmTarget.value = null
@@ -196,10 +184,8 @@ async function onConfirmDelete() {
   } else if (target.kind === 'task') {
     if (activeTaskId.value === target.id) activeTaskId.value = null
     await deleteTask(target.id)
-  } else if (target.kind === 'subtask') {
-    await deleteSubtask(target.id)
   } else {
-    await deleteSubtaskLog(target.id)
+    await deleteSubtask(target.id)
   }
 }
 
@@ -299,10 +285,8 @@ watch(isLoggedIn, (v) => {
     @update="handleUpdateTask"
     @delete="activeTask && askDeleteTask(activeTask)"
     @add-subtask="handleAddSubtask"
-    @rename-subtask="handleRenameSubtask"
+    @update-subtask="handleUpdateSubtask"
     @delete-subtask="askDeleteSubtask"
-    @set-subtask-log="handleSetSubtaskLog"
-    @delete-subtask-log="askDeleteSubtaskLog"
   />
 
   <!-- 削除確認ポップアップ -->

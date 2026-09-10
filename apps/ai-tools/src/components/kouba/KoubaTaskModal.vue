@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
-import type { KoubaTask, KoubaSubtask, KoubaSubtaskLog } from '~/types/kouba'
+import type { KoubaTask, KoubaSubtask } from '~/types/kouba'
+import { KOUBA_MIN_HOURS, KOUBA_MAX_HOURS } from '~/types/kouba'
 import KoubaIconPicker from '~/components/kouba/KoubaIconPicker.vue'
 import KoubaSubtaskCard from '~/components/kouba/KoubaSubtaskCard.vue'
 
@@ -16,11 +17,9 @@ const emit = defineEmits<{
   'update:show': [value: boolean]
   update: [patch: { title?: string; icon?: string; categoryId?: string }]
   delete: []
-  addSubtask: [title: string]
-  renameSubtask: [payload: { id: string; title: string }]
+  addSubtask: [payload: { title: string; hours: number }]
+  updateSubtask: [payload: { id: string; title?: string; hours?: number }]
   deleteSubtask: [subtask: KoubaSubtask]
-  setSubtaskLog: [payload: { subtaskId: string; workDate: string; hours: number }]
-  deleteSubtaskLog: [log: KoubaSubtaskLog]
 }>()
 
 // 日本語入力の変換確定Enterでも @keydown.enter は発火するため、確定中は無視する
@@ -33,11 +32,14 @@ function runOnEnter(e: KeyboardEvent, fn: () => void) {
   fn()
 }
 
+const HOUR_OPTIONS = Array.from({ length: KOUBA_MAX_HOURS - KOUBA_MIN_HOURS + 1 }, (_, i) => i + KOUBA_MIN_HOURS)
+
 const editingTitle = ref(false)
 const titleDraft = ref('')
 const titleInputEl = ref<HTMLInputElement | null>(null)
 const editingIcon = ref(false)
-const subtaskDraft = ref('')
+const subtaskTitleDraft = ref('')
+const subtaskHoursDraft = ref(KOUBA_MIN_HOURS)
 
 watch(
   () => props.show,
@@ -45,16 +47,18 @@ watch(
     if (v) {
       editingTitle.value = false
       editingIcon.value = false
-      subtaskDraft.value = ''
+      subtaskTitleDraft.value = ''
+      subtaskHoursDraft.value = KOUBA_MIN_HOURS
     }
   }
 )
 
 function submitAddSubtask() {
-  const title = subtaskDraft.value.trim()
+  const title = subtaskTitleDraft.value.trim()
   if (!title) return
-  emit('addSubtask', title)
-  subtaskDraft.value = ''
+  emit('addSubtask', { title, hours: Number(subtaskHoursDraft.value) })
+  subtaskTitleDraft.value = ''
+  subtaskHoursDraft.value = KOUBA_MIN_HOURS
 }
 
 function close() {
@@ -152,15 +156,21 @@ function onChangeCategory(e: Event) {
 
         <!-- 本体: スクロール -->
         <div class="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-3">
-          <!-- サブタスクの追加 -->
+          <!-- サブタスクの追加（時間もまとめて1個選ぶ。日別には分けない） -->
           <form class="flex gap-2" @submit.prevent="submitAddSubtask">
             <input
-              v-model="subtaskDraft"
+              v-model="subtaskTitleDraft"
               type="text"
               placeholder="サブタスクを追加（例: 資料を作成する）"
               class="flex-1 min-w-0 bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-2 text-slate-100 text-[13px] outline-none focus:border-sky-400/50"
               @keydown.enter="runOnEnter($event, submitAddSubtask)"
             />
+            <select
+              v-model.number="subtaskHoursDraft"
+              class="bg-white/[0.06] border border-white/10 rounded-lg px-2 py-2 text-slate-100 text-[13px] outline-none focus:border-sky-400/50 shrink-0"
+            >
+              <option v-for="h in HOUR_OPTIONS" :key="h" :value="h">{{ h }}時間</option>
+            </select>
             <button
               type="submit"
               class="h-9 px-4 rounded-full bg-sky-500 text-white text-[13px] font-bold hover:bg-sky-400 disabled:opacity-40 shrink-0"
@@ -169,18 +179,17 @@ function onChangeCategory(e: Event) {
           </form>
           <p v-if="error" class="text-xs text-rose-400 m-0">{{ error }}</p>
 
-          <!-- サブタスク一覧。各サブタスクの中に日別の作業時間 -->
-          <div class="flex flex-col gap-2.5">
+          <!-- サブタスク一覧。時間は日別に分けず1個の値をまとめて持ち、その場で編集できる -->
+          <div class="flex flex-col gap-2">
             <div v-if="!task.subtasks.length" class="text-center text-slate-500 text-[13px] py-6">まだサブタスクがありません</div>
             <KoubaSubtaskCard
               v-for="st in task.subtasks"
               :key="st.id"
               :subtask="st"
               :saving="saving"
-              @rename="(title) => emit('renameSubtask', { id: st.id, title })"
+              @rename="(title) => emit('updateSubtask', { id: st.id, title })"
+              @set-hours="(hours) => emit('updateSubtask', { id: st.id, hours })"
               @delete="emit('deleteSubtask', st)"
-              @set-log="(payload) => emit('setSubtaskLog', { subtaskId: st.id, ...payload })"
-              @delete-log="(log) => emit('deleteSubtaskLog', log)"
             />
           </div>
         </div>
