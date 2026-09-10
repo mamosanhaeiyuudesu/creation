@@ -11,7 +11,7 @@ apps/
 ├── ai-tools/       # AI ツール群（Nuxt 3 + Nitro + Cloudflare Workers）
 ├── homepages/      # ホームページ一覧のポータル（開発用インデックス）
 ├── prototyper/     # 以下、1サイト = 1 Nuxt ワークスペース（静的生成）
-├── mamorin/
+├── shugorin/
 ├── kaito/
 ├── ai-consultant/
 ├── sakubun/
@@ -34,7 +34,7 @@ apps/
 |---|---|---|
 | homepages | 3001 | 各ホームページへのリンク一覧（ローカル開発用ポータル） |
 | prototyper | 3002 | ヒアリング × 高速プロトタイピングの相談窓口（可視化はその一部） |
-| mamorin | 3003 | カウンセリング & 感情フォーカス・セラピー（個人ページ） |
+| shugorin | 3003 | カウンセリング & 感情フォーカス・セラピー（個人ページ） |
 | kaito | 3004 | セラピスト「月ノ瀬 直」のランディングページ |
 | ai-consultant | 3005 | AIと人間の協調をテーマにしたコンサルタントページ |
 | sakubun | 3006 | 「心の作文」 |

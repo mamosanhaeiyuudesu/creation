@@ -2,7 +2,10 @@
 import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { useKouba, KOUBA_GRID_SIZE } from '~/composables/kouba/useKouba'
 import KoubaTaskModal from '~/components/kouba/KoubaTaskModal.vue'
-import type { KoubaCategory } from '~/types/kouba'
+import KoubaIconPicker from '~/components/kouba/KoubaIconPicker.vue'
+import KoubaConfirmModal from '~/components/kouba/KoubaConfirmModal.vue'
+import { KOUBA_DEFAULT_CATEGORY_ICON, KOUBA_DEFAULT_TASK_ICON } from '~/types/kouba'
+import type { KoubaCategory, KoubaTask } from '~/types/kouba'
 
 useHead({
   title: import.meta.dev ? '工数 (dev)' : '工数',
@@ -23,7 +26,7 @@ const showAuthModal = computed(() => !isDev && checked.value && !isLoggedIn.valu
 const showPasswordModal = ref(false)
 const showSettingsMenu = ref(false)
 
-const { categories, loading, loadError, saving, actionError, load, addCategory, renameCategory, deleteCategory, addTask, renameTask, deleteTask, addLog, deleteLog } =
+const { categories, loading, loadError, saving, actionError, load, addCategory, updateCategory, deleteCategory, addTask, updateTask, deleteTask, reorderTasks, addLog, deleteLog } =
   useKouba()
 
 // 日本語入力の変換確定Enterでも @keydown.enter は発火するため、確定中は無視する
@@ -47,10 +50,12 @@ const isFull = computed(() => categories.value.length >= KOUBA_GRID_SIZE)
 // v-for内で同名のテンプレートrefを使うと配列参照になってしまうため、id指定+getElementByIdで直接focusする
 const addingCategoryAt = ref<number | null>(null)
 const categoryNameDraft = ref('')
+const categoryIconDraft = ref(KOUBA_DEFAULT_CATEGORY_ICON)
 
 function openAddCategory(position: number) {
   addingCategoryAt.value = position
   categoryNameDraft.value = ''
+  categoryIconDraft.value = KOUBA_DEFAULT_CATEGORY_ICON
   nextTick(() => document.getElementById(`kouba-add-category-${position}`)?.focus())
 }
 function cancelAddCategory() {
@@ -61,13 +66,15 @@ async function submitAddCategory() {
   const name = categoryNameDraft.value.trim()
   const position = addingCategoryAt.value
   if (!name || position === null) return
+  const icon = categoryIconDraft.value
   cancelAddCategory()
-  await addCategory(name, position)
+  await addCategory(name, position, icon)
 }
 
 // ── カテゴリ名の編集 ──────────────────────────────
 const editingCategoryId = ref<string | null>(null)
 const categoryEditDraft = ref('')
+const editingCategoryIconId = ref<string | null>(null)
 
 function startEditCategory(cat: KoubaCategory) {
   editingCategoryId.value = cat.id
@@ -78,20 +85,22 @@ async function commitCategoryEdit(cat: KoubaCategory) {
   if (editingCategoryId.value !== cat.id) return
   editingCategoryId.value = null
   const name = categoryEditDraft.value.trim()
-  if (name && name !== cat.name) await renameCategory(cat.id, name)
+  if (name && name !== cat.name) await updateCategory(cat.id, { name })
 }
-async function confirmDeleteCategory(cat: KoubaCategory) {
-  if (!confirm(`「${cat.name}」を削除しますか？中のタスク・記録もすべて削除されます。`)) return
-  await deleteCategory(cat.id)
+async function pickCategoryIcon(cat: KoubaCategory, icon: string) {
+  editingCategoryIconId.value = null
+  if (icon && icon !== cat.icon) await updateCategory(cat.id, { icon })
 }
 
 // ── タスクの追加 ──────────────────────────────
 const addingTaskFor = ref<string | null>(null)
 const taskNameDraft = ref('')
+const taskIconDraft = ref(KOUBA_DEFAULT_TASK_ICON)
 
 function openAddTask(categoryId: string) {
   addingTaskFor.value = categoryId
   taskNameDraft.value = ''
+  taskIconDraft.value = KOUBA_DEFAULT_TASK_ICON
   nextTick(() => document.getElementById(`kouba-add-task-${categoryId}`)?.focus())
 }
 function cancelAddTask() {
@@ -102,8 +111,9 @@ async function submitAddTask() {
   const title = taskNameDraft.value.trim()
   const categoryId = addingTaskFor.value
   if (!title || !categoryId) return
+  const icon = taskIconDraft.value
   cancelAddTask()
-  await addTask(categoryId, title)
+  await addTask(categoryId, title, icon)
 }
 
 // ── タスク詳細モーダル ──────────────────────────────
@@ -122,24 +132,100 @@ const activeTask = computed(() => {
   }
   return null
 })
+const categoryOptions = computed(() => categories.value.map((c) => ({ id: c.id, name: c.name, icon: c.icon })))
 
 function openTask(taskId: string) {
   activeTaskId.value = taskId
 }
-async function handleRenameTask(title: string) {
-  if (activeTaskId.value) await renameTask(activeTaskId.value, title)
-}
-async function handleDeleteTask() {
-  if (!activeTaskId.value) return
-  const id = activeTaskId.value
-  activeTaskId.value = null
-  await deleteTask(id)
+async function handleUpdateTask(patch: { title?: string; icon?: string; categoryId?: string }) {
+  if (activeTaskId.value) await updateTask(activeTaskId.value, patch)
 }
 async function handleAddLog(payload: { workDate: string; hours: number; note: string }) {
   if (activeTaskId.value) await addLog(activeTaskId.value, payload.workDate, payload.hours, payload.note)
 }
-async function handleDeleteLog(logId: string) {
-  await deleteLog(logId)
+
+// ── 削除確認ポップアップ（カテゴリ/タスク/記録で共通）──────────────────────────────
+type ConfirmTarget =
+  | { kind: 'category'; id: string; name: string }
+  | { kind: 'task'; id: string; title: string }
+  | { kind: 'log'; id: string }
+const confirmTarget = ref<ConfirmTarget | null>(null)
+const confirmMessage = computed(() => {
+  const t = confirmTarget.value
+  if (!t) return ''
+  if (t.kind === 'category') return `「${t.name}」を削除しますか？\n中のタスク・記録もすべて削除されます。`
+  if (t.kind === 'task') return `「${t.title}」を削除しますか？\n記録もすべて削除されます。`
+  return 'この記録を削除しますか？'
+})
+
+function askDeleteCategory(cat: KoubaCategory) {
+  confirmTarget.value = { kind: 'category', id: cat.id, name: cat.name }
+}
+function askDeleteTask(task: KoubaTask) {
+  confirmTarget.value = { kind: 'task', id: task.id, title: task.title }
+}
+function askDeleteLog(logId: string) {
+  confirmTarget.value = { kind: 'log', id: logId }
+}
+async function onConfirmDelete() {
+  const target = confirmTarget.value
+  confirmTarget.value = null
+  if (!target) return
+  if (target.kind === 'category') {
+    await deleteCategory(target.id)
+  } else if (target.kind === 'task') {
+    if (activeTaskId.value === target.id) activeTaskId.value = null
+    await deleteTask(target.id)
+  } else {
+    await deleteLog(target.id)
+  }
+}
+
+// ── タスクのドラッグ&ドロップ（カテゴリ間の移動・同一カテゴリ内の並べ替え）──────────────────────────────
+const dragTaskId = ref<string | null>(null)
+const dragOverCategoryId = ref<string | null>(null)
+const dragOverTaskId = ref<string | null>(null)
+
+function onTaskDragStart(e: DragEvent, task: KoubaTask) {
+  dragTaskId.value = task.id
+  e.dataTransfer?.setData('text/plain', task.id)
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
+}
+function onTaskDragEnd() {
+  dragTaskId.value = null
+  dragOverCategoryId.value = null
+  dragOverTaskId.value = null
+}
+function onCategoryDragOver(cat: KoubaCategory) {
+  if (!dragTaskId.value) return
+  dragOverCategoryId.value = cat.id
+  dragOverTaskId.value = null
+}
+function onTaskDragOver(task: KoubaTask) {
+  if (!dragTaskId.value) return
+  dragOverCategoryId.value = task.categoryId
+  dragOverTaskId.value = task.id
+}
+async function moveTaskTo(taskId: string, targetCategoryId: string, beforeTaskId: string | null) {
+  const targetCat = categories.value.find((c) => c.id === targetCategoryId)
+  if (!targetCat) return
+  const ids = targetCat.tasks.map((t) => t.id).filter((id) => id !== taskId)
+  let insertAt = beforeTaskId ? ids.indexOf(beforeTaskId) : ids.length
+  if (insertAt < 0) insertAt = ids.length
+  ids.splice(insertAt, 0, taskId)
+  await reorderTasks(targetCategoryId, ids)
+}
+async function onCategoryDrop(cat: KoubaCategory) {
+  const taskId = dragTaskId.value
+  onTaskDragEnd()
+  if (!taskId) return
+  await moveTaskTo(taskId, cat.id, null)
+}
+async function onTaskDrop(cat: KoubaCategory, targetTask: KoubaTask) {
+  const taskId = dragTaskId.value
+  onTaskDragEnd()
+  if (!taskId || taskId === targetTask.id) return
+  await moveTaskTo(taskId, cat.id, targetTask.id)
 }
 
 // ── 付箋の色（見た目のバリエーションだけの装飾。データとは無関係）──────────────────────────────
@@ -185,12 +271,21 @@ watch(isLoggedIn, (v) => {
   <KoubaTaskModal
     v-model:show="showTaskModal"
     :task="activeTask"
+    :categories="categoryOptions"
     :saving="saving"
     :error="actionError"
-    @rename="handleRenameTask"
-    @delete="handleDeleteTask"
+    @update="handleUpdateTask"
+    @delete="activeTask && askDeleteTask(activeTask)"
     @add-log="handleAddLog"
-    @delete-log="handleDeleteLog"
+    @delete-log="askDeleteLog"
+  />
+
+  <!-- 削除確認ポップアップ -->
+  <KoubaConfirmModal
+    :show="!!confirmTarget"
+    :message="confirmMessage"
+    @confirm="onConfirmDelete"
+    @cancel="confirmTarget = null"
   />
 
   <div class="min-h-full px-4 pt-4 pb-20 flex flex-col items-center">
@@ -232,21 +327,44 @@ watch(isLoggedIn, (v) => {
             <div class="grid grid-cols-3 gap-4 min-w-[900px]">
               <template v-for="(cat, i) in gridSlots" :key="i">
                 <!-- カテゴリの枠 -->
-                <div v-if="cat" class="rounded-2xl border border-white/10 bg-white/[0.03] flex flex-col min-h-[280px] overflow-hidden">
+                <div
+                  v-if="cat"
+                  class="rounded-2xl border bg-white/[0.03] flex flex-col min-h-[280px] overflow-hidden transition-colors"
+                  :class="dragOverCategoryId === cat.id ? 'border-sky-400/70 ring-2 ring-sky-400/30' : 'border-white/10'"
+                >
                   <!-- カテゴリヘッダー -->
                   <div class="flex items-start justify-between gap-2 px-4 pt-3.5 pb-3 border-b border-white/[0.08]">
                     <div class="flex-1 min-w-0">
-                      <input
-                        v-if="editingCategoryId === cat.id"
-                        :id="`kouba-edit-category-${cat.id}`"
-                        v-model="categoryEditDraft"
-                        class="w-full bg-white/[0.08] border border-sky-400/50 rounded-lg px-2 py-1 text-slate-50 text-sm font-bold outline-none"
-                        @keydown.enter="runOnEnter($event, () => commitCategoryEdit(cat))"
-                        @blur="commitCategoryEdit(cat)"
-                      />
-                      <h2 v-else class="m-0 text-sm font-bold text-slate-100 truncate cursor-text" title="クリックして名前を編集" @click="startEditCategory(cat)">
-                        {{ cat.name }}
-                      </h2>
+                      <div class="flex items-center gap-2 relative">
+                        <button
+                          type="button"
+                          class="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-sm shrink-0 hover:border-white/25"
+                          title="アイコンを変更"
+                          @click="editingCategoryIconId = editingCategoryIconId === cat.id ? null : cat.id"
+                        >{{ cat.icon }}</button>
+                        <div
+                          v-if="editingCategoryIconId === cat.id"
+                          class="absolute top-full left-0 mt-1 z-20 w-56 bg-[#0f172a] border border-white/10 rounded-xl p-2.5 shadow-xl"
+                          @click.stop
+                        >
+                          <KoubaIconPicker :model-value="cat.icon" @update:model-value="(icon) => pickCategoryIcon(cat, icon)" />
+                        </div>
+
+                        <input
+                          v-if="editingCategoryId === cat.id"
+                          :id="`kouba-edit-category-${cat.id}`"
+                          v-model="categoryEditDraft"
+                          class="flex-1 min-w-0 bg-white/[0.08] border border-sky-400/50 rounded-lg px-2 py-1 text-slate-50 text-sm font-bold outline-none"
+                          @keydown.enter="runOnEnter($event, () => commitCategoryEdit(cat))"
+                          @blur="commitCategoryEdit(cat)"
+                        />
+                        <h2
+                          v-else
+                          class="flex-1 min-w-0 m-0 text-sm font-bold text-slate-100 truncate cursor-text"
+                          title="クリックして名前を編集"
+                          @click="startEditCategory(cat)"
+                        >{{ cat.name }}</h2>
+                      </div>
                       <div class="mt-1 text-lg font-extrabold text-amber-300 tabular-nums">
                         {{ formatHours(cat.totalHours) }}<span class="text-[11px] font-semibold text-slate-500 ml-1">時間</span>
                       </div>
@@ -260,42 +378,57 @@ watch(isLoggedIn, (v) => {
                       <button
                         class="w-7 h-7 rounded-lg text-slate-400 hover:bg-white/10 hover:text-rose-300 flex items-center justify-center text-xs"
                         title="カテゴリを削除"
-                        @click="confirmDeleteCategory(cat)"
+                        @click="askDeleteCategory(cat)"
                       >🗑</button>
                     </div>
                   </div>
 
-                  <!-- 付箋（タスク）エリア -->
-                  <div class="flex-1 p-3.5 flex flex-wrap content-start gap-2.5 overflow-y-auto">
-                    <button
+                  <!-- 付箋（タスク）エリア。ここにドロップするとカテゴリ末尾へ移動 -->
+                  <div
+                    class="flex-1 p-3.5 flex flex-wrap content-start gap-2.5 overflow-y-auto"
+                    @dragover.prevent="onCategoryDragOver(cat)"
+                    @drop.prevent="onCategoryDrop(cat)"
+                  >
+                    <div
                       v-for="(task, ti) in cat.tasks"
                       :key="task.id"
-                      class="w-[120px] min-h-[100px] rounded-sm p-2.5 text-left shadow-md hover:shadow-lg hover:brightness-105 transition-shadow cursor-pointer flex flex-col gap-1.5"
+                      draggable="true"
+                      class="w-[120px] min-h-[100px] rounded-sm p-2.5 text-left shadow-md hover:shadow-lg hover:brightness-105 transition-shadow cursor-grab active:cursor-grabbing flex flex-col gap-1.5 border-2"
                       :style="{ background: stickyColor(ti), transform: stickyTilt(ti) }"
+                      :class="[
+                        dragTaskId === task.id ? 'opacity-40' : '',
+                        dragOverTaskId === task.id ? 'border-sky-500' : 'border-transparent',
+                      ]"
                       @click="openTask(task.id)"
+                      @dragstart="onTaskDragStart($event, task)"
+                      @dragend="onTaskDragEnd"
+                      @dragover.prevent.stop="onTaskDragOver(task)"
+                      @drop.prevent.stop="onTaskDrop(cat, task)"
                     >
+                      <span class="text-base leading-none">{{ task.icon }}</span>
                       <span class="text-[12.5px] font-bold text-slate-800 leading-snug break-words line-clamp-3">{{ task.title }}</span>
                       <span class="mt-auto text-[12px] font-extrabold text-slate-700 tabular-nums">{{ formatHours(task.totalHours) }}h</span>
-                    </button>
+                    </div>
 
-                    <!-- タスク追加フォーム -->
+                    <!-- タスク追加フォーム（実際の付箋と違い、操作画面なので板と同じ濃色トーン） -->
                     <form
                       v-if="addingTaskFor === cat.id"
-                      class="w-[120px] min-h-[100px] rounded-sm p-2 bg-white/90 flex flex-col gap-1.5"
+                      class="w-56 min-h-[100px] rounded-lg p-2.5 bg-[#0f172a] border border-white/10 flex flex-col gap-1.5"
                       @submit.prevent="submitAddTask"
                     >
+                      <KoubaIconPicker v-model="taskIconDraft" />
                       <textarea
                         :id="`kouba-add-task-${cat.id}`"
                         v-model="taskNameDraft"
                         rows="2"
                         placeholder="タスク名"
-                        class="flex-1 resize-none bg-transparent text-[12.5px] text-slate-800 outline-none font-[inherit] leading-snug"
+                        class="flex-1 resize-none bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1.5 text-[12.5px] text-slate-100 outline-none focus:border-sky-400/50 font-[inherit] leading-snug"
                         @keydown.enter.prevent="runOnEnter($event, submitAddTask)"
                         @keydown.esc="cancelAddTask"
                       />
                       <div class="flex gap-1">
                         <button type="submit" class="flex-1 h-6 rounded bg-sky-500 text-white text-[11px] font-bold">追加</button>
-                        <button type="button" class="w-6 h-6 rounded bg-slate-200 text-slate-500 text-[11px]" @click="cancelAddTask">✕</button>
+                        <button type="button" class="w-6 h-6 rounded bg-white/10 text-slate-300 text-[11px]" @click="cancelAddTask">✕</button>
                       </div>
                     </form>
 
@@ -306,6 +439,7 @@ watch(isLoggedIn, (v) => {
                 <!-- 空き枠（カテゴリ追加） -->
                 <div v-else class="rounded-2xl border border-dashed border-white/15 min-h-[280px] flex items-center justify-center p-4">
                   <form v-if="addingCategoryAt === i" class="w-full flex flex-col gap-2" @submit.prevent="submitAddCategory">
+                    <KoubaIconPicker v-model="categoryIconDraft" />
                     <input
                       :id="`kouba-add-category-${i}`"
                       v-model="categoryNameDraft"

@@ -38,7 +38,7 @@ useHead({
 })
 
 const pages = [
-  { url: 'http://localhost:3003', icon: '☯️', name: 'mamorin', desc: 'カウンセリング & 感情フォーカス・セラピー' },
+  { url: 'http://localhost:3003', icon: '🧠', name: 'shugorin', desc: 'カウンセリング & 感情フォーカス・セラピー' },
   { url: 'http://localhost:3004', icon: '🌊', name: 'kaito', desc: 'セラピスト月ノ瀬 直' },
   { url: 'http://localhost:3002', icon: '🛠️', name: 'prototyper', desc: 'ヒアリング × 高速プロトタイピングの相談窓口' },
   { url: 'http://localhost:3005', icon: '🤝', name: 'AI Consultant', desc: 'AIと人間の協調を、一緒に考える。' },

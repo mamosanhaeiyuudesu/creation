@@ -16,7 +16,7 @@
   --line-height-base: 1.85;
   /* 追従ヘッダーの高さぶん、アンカー遷移先を下げる */
   --anchor-offset: 88px;
-  /* フォント構成は mamorin と揃える（本文=Noto Sans JP / 見出し=Zen Maru Gothic / 数字・ラベル=IBM Plex Mono） */
+  /* フォント構成は shugorin と揃える（本文=Noto Sans JP / 見出し=Zen Maru Gothic / 数字・ラベル=IBM Plex Mono） */
   --f-sans: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
   --f-serif: 'Zen Maru Gothic', sans-serif;
   --f-mono: 'IBM Plex Mono', 'Courier New', monospace;

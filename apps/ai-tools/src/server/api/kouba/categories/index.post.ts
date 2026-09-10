@@ -1,4 +1,5 @@
-import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, KOUBA_GRID_SIZE } from '~/server/utils/kouba'
+import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, normalizeIcon, KOUBA_GRID_SIZE } from '~/server/utils/kouba'
+import { KOUBA_DEFAULT_CATEGORY_ICON } from '~/types/kouba'
 
 // カテゴリを新規作成する。position はクライアントがクリックした3×3グリッドの空き枠番号(0〜8)。
 export default defineEventHandler(async (event) => {
@@ -6,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const db = requireKoubaDb(event)
   await ensureKoubaTables(db)
 
-  const body = await readBody<{ name?: string; position?: number }>(event)
+  const body = await readBody<{ name?: string; position?: number; icon?: string }>(event)
   const name = (body?.name ?? '').trim()
   if (!name) throw createError({ statusCode: 400, message: 'カテゴリ名を入力してください' })
 
@@ -14,6 +15,8 @@ export default defineEventHandler(async (event) => {
   if (!Number.isInteger(position) || position < 0 || position >= KOUBA_GRID_SIZE) {
     throw createError({ statusCode: 400, message: '不正な位置です' })
   }
+
+  const icon = normalizeIcon(body?.icon, KOUBA_DEFAULT_CATEGORY_ICON)
 
   const taken = await db
     .prepare('SELECT id FROM kouba_categories WHERE user_id = ? AND position = ?')
@@ -23,9 +26,9 @@ export default defineEventHandler(async (event) => {
 
   const id = crypto.randomUUID()
   await db
-    .prepare('INSERT INTO kouba_categories (id, user_id, name, position) VALUES (?, ?, ?, ?)')
-    .bind(id, user.id, name, position)
+    .prepare('INSERT INTO kouba_categories (id, user_id, name, icon, position) VALUES (?, ?, ?, ?, ?)')
+    .bind(id, user.id, name, icon, position)
     .run()
 
-  return { id, name, position, totalHours: 0, tasks: [], createdAt: new Date().toISOString() }
+  return { id, name, icon, position, totalHours: 0, tasks: [], createdAt: new Date().toISOString() }
 })

@@ -14,6 +14,7 @@ export interface KoubaTask {
   id: string
   categoryId: string
   title: string
+  icon: string
   createdAt: string
   logs: KoubaLog[]
   totalHours: number
@@ -23,8 +24,20 @@ export interface KoubaTask {
 export interface KoubaCategory {
   id: string
   name: string
+  icon: string
   position: number
   createdAt: string
   tasks: KoubaTask[]
   totalHours: number
 }
+
+/** アイコン未設定時のフォールバック。 */
+export const KOUBA_DEFAULT_CATEGORY_ICON = '📁'
+export const KOUBA_DEFAULT_TASK_ICON = '📝'
+
+/** アイコン選択の候補（カテゴリ・タスク共通）。 */
+export const KOUBA_ICON_PRESETS = [
+  '📁', '📝', '📈', '🎯', '💡', '🧠', '❤️', '💰',
+  '🏃', '📚', '🎨', '🛠️', '🌱', '📣', '🗓️', '✅',
+  '🔥', '⭐', '💬', '🔍',
+]

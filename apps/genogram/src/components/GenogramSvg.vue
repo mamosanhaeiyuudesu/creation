@@ -10,7 +10,12 @@
     <!-- 子への接続線(バスライン) -->
     <g class="genogram-buslines">
       <template v-for="cc in layout.childConnectors" :key="`bus-${cc.unionIndex}`">
-        <line :x1="cc.dropX" :y1="cc.dropTopY" :x2="cc.dropX" :y2="cc.busY" class="genogram-busline" />
+        <!-- 婚姻線の中点から下ろし、必要なら横に折れて中央の子の真上へ回り込んでからバスへ下りる -->
+        <polyline
+          :points="`${cc.startX},${cc.dropTopY} ${cc.startX},${cc.kneeY} ${cc.dropX},${cc.kneeY} ${cc.dropX},${cc.busY}`"
+          class="genogram-busline"
+          fill="none"
+        />
         <line
           v-if="cc.children.length > 1"
           :x1="cc.busX1"

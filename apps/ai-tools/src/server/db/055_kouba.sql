@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS kouba_categories (
   id         TEXT PRIMARY KEY,
   user_id    TEXT NOT NULL,
   name       TEXT NOT NULL DEFAULT '',
+  icon       TEXT NOT NULL DEFAULT '📁',    -- 作成時にあわせて選ぶ絵文字アイコン
   position   INTEGER NOT NULL,              -- 0〜8（3×3グリッド内の位置）
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -19,10 +20,12 @@ CREATE TABLE IF NOT EXISTS kouba_tasks (
   user_id     TEXT NOT NULL,
   category_id TEXT NOT NULL,
   title       TEXT NOT NULL DEFAULT '',
+  icon        TEXT NOT NULL DEFAULT '📝',   -- 作成時にあわせて選ぶ絵文字アイコン
+  sort_order  INTEGER NOT NULL DEFAULT 0,   -- カテゴリ内の並び順（ドラッグで並べ替え）。カテゴリをまたぐ移動でも使う
   created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_kouba_tasks_category ON kouba_tasks(category_id);
+CREATE INDEX IF NOT EXISTS idx_kouba_tasks_category ON kouba_tasks(category_id, sort_order);
 
 -- 作業ログ（日付×時間×箇条書きメモを1件ずつ追記。タスクの合計時間はこれをSUMして出す）
 CREATE TABLE IF NOT EXISTS kouba_logs (

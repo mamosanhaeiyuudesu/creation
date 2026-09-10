@@ -42,8 +42,13 @@ export interface UnionLine {
 
 export interface ChildConnector {
   unionIndex: number
+  /** 婚姻線から下ろし始めるx(婚姻線の中点)。ここから始めないと線が宙に浮く */
+  startX: number
+  /** 中央の子(生まれ順)へ向けて下ろす先のx。startXと違う場合は kneeY で横に折れる */
   dropX: number
   dropTopY: number
+  /** startX から dropX へ横に折れる高さ。startX===dropX ならまっすぐ下りるので使われない */
+  kneeY: number
   busY: number
   busX1: number
   busX2: number
@@ -162,11 +167,22 @@ function detectCycle(people: Person[], unions: Union[]): string[] | null {
  * Union-Findでグループ化してから親子関係を「グループ間」の辺として解決する。
  * こうしないと「よそから嫁いできた配偶者(このデータ内に親がいない人)」が
  * 誤って世代0のルート扱いされてしまう(配偶者の実際の世代は相手の世代に従うべき)。
+ *
+ * 同じunionの子(きょうだい)も同様に必ず同じ世代なので、同じグループにまとめる。
+ * これが無いと、片方の血筋がより深い相手と結婚した人だけが下の世代へ引っ張られ、
+ * 実のきょうだいから切り離されて配偶者の兄弟の側に並んでしまう。
  */
 function resolveGenerations(people: Person[], unions: Union[]) {
   const dsu = new DisjointSet()
   for (const p of people) dsu.find(p.id)
-  for (const u of unions) dsu.union(u.partners[0], u.partners[1])
+  for (const u of unions) {
+    dsu.union(u.partners[0], u.partners[1])
+    const kids = u.children ?? []
+    const [firstKid] = kids
+    if (firstKid !== undefined) {
+      for (const kid of kids) dsu.union(firstKid, kid)
+    }
+  }
 
   const groupMembers = new Map<string, string[]>()
   for (const p of people) {
@@ -218,8 +234,10 @@ function resolveGenerations(people: Person[], unions: Union[]) {
     if (indegree.get(group) === 0) queue.push(group)
   }
 
+  const topoOrder: string[] = []
   while (queue.length > 0) {
     const group = queue.shift()!
+    topoOrder.push(group)
     if (!groupGen.has(group)) groupGen.set(group, 0)
     const gen = groupGen.get(group)!
     for (const childGroup of childGroupsOf.get(group) ?? []) {
@@ -233,6 +251,27 @@ function resolveGenerations(people: Person[], unions: Union[]) {
   // 孤立していた場合や、想定外の残留(indegreeが0にならなかった)場合の最終フォールバック
   for (const group of groupMembers.keys()) {
     if (!groupGen.has(group)) groupGen.set(group, 0)
+  }
+
+  // 上向きの調整: 親グループは「いちばん浅い子のすぐ1つ上」に引き下げる。
+  // 上の下向きパスは親を持たないグループを一律0に置くため、片方の家系だけ世代数が多いと
+  // もう片方の祖父母が実際より上の段(例: 相手方の曽祖父母と同じ段)に描かれてしまう。
+  // 子側から見て常に「親は自分の1つ上」になるよう、トポロジカル順の逆順に詰め直す。
+  // 明示的にgenerationが指定された人を含むグループは、その指定を尊重して動かさない。
+  const pinned = new Set<string>()
+  for (const p of people) {
+    if (p.generation !== undefined) pinned.add(dsu.find(p.id))
+  }
+  for (let i = topoOrder.length - 1; i >= 0; i--) {
+    const group = topoOrder[i]!
+    if (pinned.has(group)) continue
+    const childGroups = childGroupsOf.get(group)
+    if (!childGroups || childGroups.size === 0) continue
+    let minChildGen = Infinity
+    for (const childGroup of childGroups) {
+      minChildGen = Math.min(minChildGen, groupGen.get(childGroup) ?? Infinity)
+    }
+    if (Number.isFinite(minChildGen)) groupGen.set(group, minChildGen - 1)
   }
 
   const genOf = new Map<string, number>()
@@ -350,6 +389,14 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
       }
       desiredCenterOf.set(root, centers.length > 0 ? centers.reduce((a, b) => a + b, 0) / centers.length : null)
     }
+
+    // 親の位置を基準に左→右へ並べ替える(重心ソート)。
+    // 上の走査順だけだと、夫婦クラスタが「妻側の親」に先に拾われた場合に
+    // 夫の実きょうだいが妻のきょうだいより後ろへ回され、遠くへ飛ばされてしまう。
+    // 親unionの中点が左にある人ほど左に置くことで、それぞれのきょうだいが自分の親の真下に集まる。
+    // 親がこの図にいないクラスタ(nullのもの)は順位を持たないので、走査順のまま末尾に残す。
+    const orderKeyOf = (root: string) => desiredCenterOf.get(root) ?? Infinity
+    orderedClusterRoots.sort((a, b) => orderKeyOf(a) - orderKeyOf(b))
 
     const y = LAYOUT.margin + topMarginExtra + rowIndex * LAYOUT.rowHeight + LAYOUT.symbolSize / 2
     let cursor: number = LAYOUT.margin
@@ -472,14 +519,43 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
     const dropX = n % 2 === 1 ? childNodes[(n - 1) / 2]!.x : (childNodes[n / 2 - 1]!.x + childNodes[n / 2]!.x) / 2
     childConnectors.push({
       unionIndex: idx,
+      startX: ul.midX,
       dropX,
       dropTopY: ul.midY,
+      kneeY: ul.midY + rowGapY * (LAYOUT.busRatio / 2),
       busY,
-      busX1: Math.min(dropX, ...xs),
-      busX2: Math.max(dropX, ...xs),
+      busX1: Math.min(dropX, ul.midX, ...xs),
+      busX2: Math.max(dropX, ul.midX, ...xs),
       children: childNodes.map((n) => ({ id: n.person.id, x: n.x, topY: n.y - n.size / 2 })),
     })
   })
+
+  // 同じ段で兄弟バスの横幅が重なると1本の長い線に見えてしまい、どの子がどの親の子か読めなくなる
+  // (夫婦の一方が相手方の兄弟の間に配置されると必ず起きる)。重なる分だけ少しずつ下にずらす。
+  const BUS_STAGGER_STEP = 14
+  const busRowGroups = new Map<number, ChildConnector[]>()
+  for (const cc of childConnectors) {
+    const key = Math.round(cc.busY)
+    if (!busRowGroups.has(key)) busRowGroups.set(key, [])
+    busRowGroups.get(key)!.push(cc)
+  }
+  for (const group of busRowGroups.values()) {
+    if (group.length < 2) continue
+    group.sort((a, b) => a.busX1 - b.busX1)
+    const settled: ChildConnector[] = []
+    for (const cc of group) {
+      // 子の記号の上端より下にはみ出さない範囲で、重なりが無くなる高さまで下げる
+      const childTopY = Math.min(...cc.children.map((c) => c.topY))
+      const maxBusY = childTopY - 8
+      while (
+        cc.busY + BUS_STAGGER_STEP <= maxBusY &&
+        settled.some((o) => Math.abs(o.busY - cc.busY) < 1 && o.busX2 > cc.busX1 && cc.busX2 > o.busX1)
+      ) {
+        cc.busY += BUS_STAGGER_STEP
+      }
+      settled.push(cc)
+    }
+  }
 
   // 感情関係線
   const relationLines: RelationLine[] = []

@@ -42,16 +42,16 @@ export function useKouba() {
     }
   }
 
-  async function addCategory(name: string, position: number) {
+  async function addCategory(name: string, position: number, icon: string) {
     await withSaving(async () => {
-      await $fetch('/api/kouba/categories', { method: 'POST', body: { name, position } })
+      await $fetch('/api/kouba/categories', { method: 'POST', body: { name, position, icon } })
       await load()
     })
   }
 
-  async function renameCategory(id: string, name: string) {
+  async function updateCategory(id: string, patch: { name?: string; icon?: string }) {
     await withSaving(async () => {
-      await $fetch(`/api/kouba/categories/${id}`, { method: 'PATCH', body: { name } })
+      await $fetch(`/api/kouba/categories/${id}`, { method: 'PATCH', body: patch })
       await load()
     })
   }
@@ -63,16 +63,16 @@ export function useKouba() {
     })
   }
 
-  async function addTask(categoryId: string, title: string) {
+  async function addTask(categoryId: string, title: string, icon: string) {
     await withSaving(async () => {
-      await $fetch('/api/kouba/tasks', { method: 'POST', body: { categoryId, title } })
+      await $fetch('/api/kouba/tasks', { method: 'POST', body: { categoryId, title, icon } })
       await load()
     })
   }
 
-  async function renameTask(id: string, title: string) {
+  async function updateTask(id: string, patch: { title?: string; icon?: string; categoryId?: string }) {
     await withSaving(async () => {
-      await $fetch(`/api/kouba/tasks/${id}`, { method: 'PATCH', body: { title } })
+      await $fetch(`/api/kouba/tasks/${id}`, { method: 'PATCH', body: patch })
       await load()
     })
   }
@@ -80,6 +80,14 @@ export function useKouba() {
   async function deleteTask(id: string) {
     await withSaving(async () => {
       await $fetch(`/api/kouba/tasks/${id}`, { method: 'DELETE' })
+      await load()
+    })
+  }
+
+  /** ドラッグ&ドロップ用: 指定カテゴリの並び順（+必要なら移動）を丸ごと反映する。 */
+  async function reorderTasks(categoryId: string, taskIds: string[]) {
+    await withSaving(async () => {
+      await $fetch('/api/kouba/tasks/reorder', { method: 'POST', body: { categoryId, taskIds } })
       await load()
     })
   }
@@ -106,11 +114,12 @@ export function useKouba() {
     actionError,
     load,
     addCategory,
-    renameCategory,
+    updateCategory,
     deleteCategory,
     addTask,
-    renameTask,
+    updateTask,
     deleteTask,
+    reorderTasks,
     addLog,
     deleteLog,
   }

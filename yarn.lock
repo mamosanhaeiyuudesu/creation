@@ -8107,14 +8107,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mamorin@workspace:apps/mamorin":
-  version: 0.0.0-use.local
-  resolution: "mamorin@workspace:apps/mamorin"
-  dependencies:
-    nuxt: "npm:^4.5.2"
-  languageName: unknown
-  linkType: soft
-
 "marked@npm:*, marked@npm:^17.0.4":
   version: 17.0.4
   resolution: "marked@npm:17.0.4"
@@ -10640,6 +10632,14 @@ __metadata:
   checksum: 10c0/46ee59bfd972ce6a45500c44ed130dff2d0a7d6fbac9841e59d548518cad8060a06393c9a5dcbc0cede294ad80b2a2cd8c904679e09265f53efc0a0879f30961
   languageName: node
   linkType: hard
+
+"shugorin@workspace:apps/shugorin":
+  version: 0.0.0-use.local
+  resolution: "shugorin@workspace:apps/shugorin"
+  dependencies:
+    nuxt: "npm:^4.5.2"
+  languageName: unknown
+  linkType: soft
 
 "side-channel-list@npm:^1.0.0":
   version: 1.0.1

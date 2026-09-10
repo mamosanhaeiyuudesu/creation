@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
 import type { KoubaTask } from '~/types/kouba'
+import KoubaIconPicker from '~/components/kouba/KoubaIconPicker.vue'
 
 const props = defineProps<{
   show: boolean
   task: KoubaTask | null
+  categories: { id: string; name: string; icon: string }[]
   saving: boolean
   error: string
 }>()
 
 const emit = defineEmits<{
   'update:show': [value: boolean]
-  rename: [title: string]
+  update: [patch: { title?: string; icon?: string; categoryId?: string }]
   delete: []
   addLog: [payload: { workDate: string; hours: number; note: string }]
   deleteLog: [logId: string]
@@ -32,6 +34,7 @@ const formError = ref('')
 const editingTitle = ref(false)
 const titleDraft = ref('')
 const titleInputEl = ref<HTMLInputElement | null>(null)
+const editingIcon = ref(false)
 
 watch(
   () => props.show,
@@ -40,6 +43,7 @@ watch(
       form.value = { workDate: todayJST(), hours: 1, note: '' }
       formError.value = ''
       editingTitle.value = false
+      editingIcon.value = false
     }
   }
 )
@@ -57,14 +61,6 @@ function submitLog() {
   }
   emit('addLog', { workDate: form.value.workDate, hours, note: form.value.note })
   form.value.note = ''
-}
-
-function confirmDeleteLog(id: string) {
-  if (confirm('この記録を削除しますか？')) emit('deleteLog', id)
-}
-
-function confirmDeleteTask() {
-  if (confirm('このタスクを削除しますか？記録もすべて削除されます。')) emit('delete')
 }
 
 function close() {
@@ -98,7 +94,17 @@ function commitTitle() {
   if (!editingTitle.value) return
   editingTitle.value = false
   const title = titleDraft.value.trim()
-  if (title && props.task && title !== props.task.title) emit('rename', title)
+  if (title && props.task && title !== props.task.title) emit('update', { title })
+}
+
+function onPickIcon(icon: string) {
+  editingIcon.value = false
+  if (props.task && icon && icon !== props.task.icon) emit('update', { icon })
+}
+
+function onChangeCategory(e: Event) {
+  const categoryId = (e.target as HTMLSelectElement).value
+  if (props.task && categoryId && categoryId !== props.task.categoryId) emit('update', { categoryId })
 }
 </script>
 
@@ -110,20 +116,44 @@ function commitTitle() {
       @click.self="close"
     >
       <div class="w-[min(560px,100%)] max-h-[88vh] bg-[#1e293b] border border-white/10 rounded-2xl flex flex-col overflow-hidden">
-        <!-- ヘッダー: タイトル編集・合計時間・削除/閉じる -->
+        <!-- ヘッダー: アイコン・タイトル編集・カテゴリ移動・合計時間・削除/閉じる -->
         <div class="flex items-start justify-between gap-3 px-6 pt-5 pb-4 border-b border-white/[0.08]">
           <div class="flex-1 min-w-0">
-            <input
-              v-if="editingTitle"
-              ref="titleInputEl"
-              v-model="titleDraft"
-              class="w-full bg-white/[0.06] border border-sky-400/50 rounded-lg px-2.5 py-1.5 text-slate-50 text-base font-bold outline-none"
-              @keydown.enter="runOnEnter($event, commitTitle)"
-              @blur="commitTitle"
-            />
-            <h2 v-else class="m-0 text-base font-bold text-slate-50 truncate cursor-text" title="クリックして編集" @click="startEditTitle">
-              {{ task.title }}
-            </h2>
+            <div class="flex items-center gap-2 relative">
+              <button
+                type="button"
+                class="w-8 h-8 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-base shrink-0 hover:border-white/25"
+                title="アイコンを変更"
+                @click="editingIcon = !editingIcon"
+              >{{ task.icon }}</button>
+              <div v-if="editingIcon" class="absolute top-full left-0 mt-1 z-10 w-56 bg-[#0f172a] border border-white/10 rounded-xl p-2.5 shadow-xl" @click.stop>
+                <KoubaIconPicker :model-value="task.icon" @update:model-value="onPickIcon" />
+              </div>
+
+              <input
+                v-if="editingTitle"
+                ref="titleInputEl"
+                v-model="titleDraft"
+                class="flex-1 min-w-0 bg-white/[0.06] border border-sky-400/50 rounded-lg px-2.5 py-1.5 text-slate-50 text-base font-bold outline-none"
+                @keydown.enter="runOnEnter($event, commitTitle)"
+                @blur="commitTitle"
+              />
+              <h2 v-else class="flex-1 min-w-0 m-0 text-base font-bold text-slate-50 truncate cursor-text" title="クリックして編集" @click="startEditTitle">
+                {{ task.title }}
+              </h2>
+            </div>
+
+            <div class="mt-2 flex items-center gap-2">
+              <label class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">カテゴリ</label>
+              <select
+                class="bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1 text-slate-200 text-xs outline-none focus:border-sky-400/50"
+                :value="task.categoryId"
+                @change="onChangeCategory"
+              >
+                <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.icon }} {{ c.name }}</option>
+              </select>
+            </div>
+
             <div class="mt-1.5 text-2xl font-extrabold text-amber-300 tabular-nums">
               {{ formatHours(task.totalHours) }}<span class="text-sm font-semibold text-slate-400 ml-1">時間</span>
             </div>
@@ -132,7 +162,7 @@ function commitTitle() {
             <button
               class="w-8 h-8 rounded-lg text-slate-400 hover:bg-white/10 hover:text-rose-300 flex items-center justify-center"
               title="タスクを削除"
-              @click="confirmDeleteTask"
+              @click="emit('delete')"
             >🗑</button>
             <button class="w-8 h-8 rounded-lg text-slate-400 hover:bg-white/10 flex items-center justify-center" title="閉じる" @click="close">✕</button>
           </div>
@@ -195,7 +225,7 @@ function commitTitle() {
                   class="w-6 h-6 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs"
                   title="この記録を削除"
                   :disabled="saving"
-                  @click="confirmDeleteLog(log.id)"
+                  @click="emit('deleteLog', log.id)"
                 >🗑</button>
               </div>
               <ul v-if="noteLines(log.note).length" class="mt-1.5 pl-4 space-y-0.5">

@@ -1,25 +1,25 @@
 <template>
   <div class="therapist-layout">
-    <header class="mm-header">
-      <div class="mm-header-inner">
-        <!-- <NuxtLink to="/" class="mm-logo">
-          <span class="mm-yinyang">☯</span> まもりん
+    <header class="sg-header">
+      <div class="sg-header-inner">
+        <!-- <NuxtLink to="/" class="sg-logo">
+          <span class="sg-yinyang">☯</span> しゅごりん
         </NuxtLink> -->
-        <nav class="mm-nav">
-          <a href="#voice" class="mm-nav-link">お客様の声</a>
-          <a href="#profile" class="mm-nav-link">私について</a>
-          <a href="#pricing" class="mm-nav-link">料金体系</a>
-          <a href="#qa" class="mm-nav-link">Q&amp;A</a>
-          <a href="https://note.com/parent_child" target="_blank" rel="noopener noreferrer" class="mm-nav-link">ブログ</a>
+        <nav class="sg-nav">
+          <a href="#voice" class="sg-nav-link">お客様の声</a>
+          <a href="#profile" class="sg-nav-link">私について</a>
+          <a href="#pricing" class="sg-nav-link">料金体系</a>
+          <a href="#qa" class="sg-nav-link">Q&amp;A</a>
+          <a href="https://note.com/parent_child" target="_blank" rel="noopener noreferrer" class="sg-nav-link">ブログ</a>
           <a
             href="https://docs.google.com/forms/d/e/1FAIpQLSckcLkBNH9xEMSeS3_SuDznoShew41SF6Ja6Du7XHvS6-rwRg/viewform?usp=publish-editor"
             target="_blank"
             rel="noopener noreferrer"
-            class="mm-nav-link mm-nav-cta"
+            class="sg-nav-link sg-nav-cta"
           >無料相談</a>
         </nav>
         <button
-          class="mm-menu-btn"
+          class="sg-menu-btn"
           :class="{ open: menuOpen }"
           @click="menuOpen = !menuOpen"
           aria-label="メニュー"
@@ -27,17 +27,17 @@
           <span /><span /><span />
         </button>
       </div>
-      <div class="mm-drawer" :class="{ open: menuOpen }" @click="menuOpen = false">
-        <a href="#voice" class="mm-drawer-link">お客様の声</a>
-        <a href="#profile" class="mm-drawer-link">私について</a>
-        <a href="#pricing" class="mm-drawer-link">料金体系</a>
-        <a href="#qa" class="mm-drawer-link">Q&amp;A</a>
-        <a href="https://note.com/parent_child" target="_blank" rel="noopener noreferrer" class="mm-drawer-link">ブログ</a>
+      <div class="sg-drawer" :class="{ open: menuOpen }" @click="menuOpen = false">
+        <a href="#voice" class="sg-drawer-link">お客様の声</a>
+        <a href="#profile" class="sg-drawer-link">私について</a>
+        <a href="#pricing" class="sg-drawer-link">料金体系</a>
+        <a href="#qa" class="sg-drawer-link">Q&amp;A</a>
+        <a href="https://note.com/parent_child" target="_blank" rel="noopener noreferrer" class="sg-drawer-link">ブログ</a>
         <a
           href="https://docs.google.com/forms/d/e/1FAIpQLSckcLkBNH9xEMSeS3_SuDznoShew41SF6Ja6Du7XHvS6-rwRg/viewform?usp=publish-editor"
           target="_blank"
           rel="noopener noreferrer"
-          class="mm-drawer-link"
+          class="sg-drawer-link"
         >無料相談（初回無料）</a>
       </div>
     </header>
@@ -52,7 +52,7 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
 </script>
 
 <style>
-@import '~/assets/css/mamorin.css';
+@import '~/assets/css/shugorin.css';
 
 .therapist-layout,
 .therapist-layout ~ * {
@@ -84,7 +84,7 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
   background: transparent !important;
 }
 
-.mm-yinyang {
+.sg-yinyang {
   font-size: 18px;
   line-height: 1;
   vertical-align: middle;
