@@ -1,8 +1,6 @@
 import type { Person, Union } from '~/types/genogram'
-import { truncateText, wrapText } from '~/utils/textWrap'
+import { wrapText } from '~/utils/textWrap'
 
-/** 記号の上に出す特徴要約の最大文字数(全文はクリックした詳細パネルで見る) */
-const CHARACTERISTIC_MAX_CHARS = 20
 /** 特徴要約を折り返す文字数 */
 export const CHARACTERISTIC_WRAP_CHARS = 10
 /** 特徴要約の行の高さ(px) */
@@ -61,21 +59,28 @@ export function hasEnrichedInfo(person: Person): boolean {
 }
 
 /**
- * 記号の上に表示する、その人物の特徴の要約(職業・注記から20文字程度)。2行程度に折り返す。
+ * 記号の上に表示する、その人物の特徴の要約(AIが生成した20文字程度の characteristicSummary)。
+ * occupation/note からその場で切り詰めるのではなく、既に20文字程度に収まっている
+ * characteristicSummary をそのまま2行程度に折り返して全文表示する(省略記号は使わない)。
+ * まだ生成されていない(occupation/noteを編集して保存する前)場合は何も表示しない。
  * 健康メモは記号の隅の印(ホバーで表示)に譲り、ここには含めない。
  */
 export function characteristicLines(person: Person): string[] {
-  const parts = [person.occupation, person.note].filter((v): v is string => !!v)
-  if (parts.length === 0) return []
-  const text = truncateText(parts.join('・'), CHARACTERISTIC_MAX_CHARS)
+  const text = person.characteristicSummary?.trim()
+  if (!text) return []
   return wrapText(text, CHARACTERISTIC_WRAP_CHARS)
 }
 
-/** 名前の下に続けて表示する行(続柄→生涯の順)。存在するものだけ。名前と同じ内容の続柄は重複表示しない */
+/** 名前の下に続けて表示する行(生涯のみ)。続柄は displayName() で名前と同じ行にまとめて表示する */
 export function belowNameLines(person: Person): string[] {
-  const lines: string[] = []
-  if (person.relation && person.relation !== person.name) lines.push(person.relation)
   const lifespan = formatLifespan(person)
-  if (lifespan) lines.push(lifespan)
-  return lines
+  return lifespan ? [lifespan] : []
+}
+
+/** 記号の下に出す名前の表示文字列。名前と続柄が両方あれば「徹（父）」のように1行にまとめる */
+export function displayName(person: Person): string {
+  const name = person.name?.trim()
+  const relation = person.relation?.trim()
+  if (name && relation && relation !== name) return `${name}（${relation}）`
+  return name || relation || ''
 }

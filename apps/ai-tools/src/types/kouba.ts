@@ -31,16 +31,28 @@ export interface KoubaCategory {
   totalHours: number
 }
 
-/** アイコン未設定時のフォールバック。 */
+/**
+ * アイコン未設定時のフォールバック（AI生成が終わるまで・失敗したときの表示）。
+ * icon 列には AI が作った SVG 文字列が入る。旧データの絵文字もそのまま表示できる。
+ */
 export const KOUBA_DEFAULT_CATEGORY_ICON = '📁'
 export const KOUBA_DEFAULT_TASK_ICON = '📝'
 
-/** アイコン選択の候補（カテゴリ・タスク共通）。 */
-export const KOUBA_ICON_PRESETS = [
-  '📁', '📝', '📈', '🎯', '💡', '🧠', '❤️', '💰',
-  '🏃', '📚', '🎨', '🛠️', '🌱', '📣', '🗓️', '✅',
-  '🔥', '⭐', '💬', '🔍',
-]
+/** icon が AI 生成の SVG か（false なら絵文字として文字表示する）。 */
+export function isSvgIcon(icon: string): boolean {
+  return icon.trimStart().startsWith('<svg')
+}
+
+/**
+ * SVG を <img> の src に使う data URL にする。v-html で埋め込まず <img> で表示するのは、
+ * AI の出力にスクリプト等が紛れても <img> 内の SVG では実行されないため。
+ */
+export function svgIconDataUrl(svg: string): string {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
+/** アイコン生成の対象。 */
+export type KoubaIconTarget = 'category' | 'task'
 
 /** サブタスクの作業時間の入力範囲（select式）。 */
 export const KOUBA_MIN_HOURS = 1

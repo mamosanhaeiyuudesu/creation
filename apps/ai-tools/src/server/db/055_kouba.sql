@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS kouba_categories (
   id         TEXT PRIMARY KEY,
   user_id    TEXT NOT NULL,
   name       TEXT NOT NULL DEFAULT '',
-  icon       TEXT NOT NULL DEFAULT '📁',    -- 作成時にあわせて選ぶ絵文字アイコン
-  position   INTEGER NOT NULL,              -- 0〜8（3×3グリッド内の位置）
+  icon       TEXT NOT NULL DEFAULT '📁',    -- AIが名前から描いたSVG（生成前・旧データは絵文字）
+  position   INTEGER NOT NULL,              -- 0〜8（3×3グリッド内の位置。削除時にサーバーが前から詰め直す）
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS kouba_tasks (
   user_id     TEXT NOT NULL,
   category_id TEXT NOT NULL,
   title       TEXT NOT NULL DEFAULT '',
-  icon        TEXT NOT NULL DEFAULT '📝',   -- 作成時にあわせて選ぶ絵文字アイコン
+  icon        TEXT NOT NULL DEFAULT '📝',   -- AIが名前から描いたSVG（生成前・旧データは絵文字）
   sort_order  INTEGER NOT NULL DEFAULT 0,   -- カテゴリ内の並び順（ドラッグで並べ替え）。カテゴリをまたぐ移動でも使う
   created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );

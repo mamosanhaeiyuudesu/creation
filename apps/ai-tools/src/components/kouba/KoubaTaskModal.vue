@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
 import type { KoubaTask, KoubaSubtask } from '~/types/kouba'
-import { KOUBA_MIN_HOURS, KOUBA_MAX_HOURS } from '~/types/kouba'
-import KoubaIconPicker from '~/components/kouba/KoubaIconPicker.vue'
+import { KOUBA_MIN_HOURS, KOUBA_MAX_HOURS, isSvgIcon } from '~/types/kouba'
+import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
+import KoubaIconEditor from '~/components/kouba/KoubaIconEditor.vue'
 import KoubaSubtaskCard from '~/components/kouba/KoubaSubtaskCard.vue'
 
 const props = defineProps<{
@@ -11,11 +12,14 @@ const props = defineProps<{
   categories: { id: string; name: string; icon: string }[]
   saving: boolean
   error: string
+  /** AI がこのタスクのアイコンを作成中か */
+  iconBusy: boolean
 }>()
 
 const emit = defineEmits<{
   'update:show': [value: boolean]
-  update: [patch: { title?: string; icon?: string; categoryId?: string }]
+  update: [patch: { title?: string; categoryId?: string }]
+  regenerateIcon: [instruction: string]
   delete: []
   addSubtask: [payload: { title: string; hours: number }]
   updateSubtask: [payload: { id: string; title?: string; hours?: number }]
@@ -83,11 +87,6 @@ function commitTitle() {
   if (title && props.task && title !== props.task.title) emit('update', { title })
 }
 
-function onPickIcon(icon: string) {
-  editingIcon.value = false
-  if (props.task && icon && icon !== props.task.icon) emit('update', { icon })
-}
-
 function onChangeCategory(e: Event) {
   const categoryId = (e.target as HTMLSelectElement).value
   if (props.task && categoryId && categoryId !== props.task.categoryId) emit('update', { categoryId })
@@ -108,12 +107,19 @@ function onChangeCategory(e: Event) {
             <div class="flex items-center gap-2 relative">
               <button
                 type="button"
-                class="w-8 h-8 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-base shrink-0 hover:border-white/25"
-                title="アイコンを変更"
+                class="w-8 h-8 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-base shrink-0 overflow-hidden hover:border-white/25"
+                title="アイコンをAIで作り直す"
                 @click="editingIcon = !editingIcon"
-              >{{ task.icon }}</button>
-              <div v-if="editingIcon" class="absolute top-full left-0 mt-1 z-10 w-56 bg-[#0f172a] border border-white/10 rounded-xl p-2.5 shadow-xl" @click.stop>
-                <KoubaIconPicker :model-value="task.icon" @update:model-value="onPickIcon" />
+              >
+                <KoubaIcon :icon="task.icon" :busy="iconBusy" />
+              </button>
+              <div v-if="editingIcon" class="absolute top-full left-0 mt-1 z-10 w-64 bg-[#0f172a] border border-white/10 rounded-xl p-2.5 shadow-xl" @click.stop>
+                <KoubaIconEditor
+                  :icon="task.icon"
+                  :busy="iconBusy"
+                  @regenerate="(instruction) => emit('regenerateIcon', instruction)"
+                  @close="editingIcon = false"
+                />
               </div>
 
               <input
@@ -136,7 +142,8 @@ function onChangeCategory(e: Event) {
                 :value="task.categoryId"
                 @change="onChangeCategory"
               >
-                <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.icon }} {{ c.name }}</option>
+                <!-- <option> には画像を入れられないので、AI生成(SVG)のアイコンは出さず名前だけにする -->
+                <option v-for="c in categories" :key="c.id" :value="c.id">{{ isSvgIcon(c.icon) ? c.name : `${c.icon} ${c.name}` }}</option>
               </select>
             </div>
 

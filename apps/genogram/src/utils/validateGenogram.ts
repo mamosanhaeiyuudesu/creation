@@ -61,8 +61,14 @@ export function validateGenogramData(input: unknown): ValidationResult {
       errors.push(`people[${i}] (id: "${id}"): id が重複しています`)
       return
     }
-    if (typeof name !== 'string' || name.length === 0) {
-      errors.push(`people[${i}] (id: "${id}"): "name" は空でない文字列が必要です`)
+    // name は空文字を許す(実名がまだ分からず続柄だけ入っている骨組み状態を表示できるようにするため)。
+    // ただし name も relation も両方空だと画面に何も表示する手掛かりが無くなるので、そこだけは弾く
+    if (typeof name !== 'string') {
+      errors.push(`people[${i}] (id: "${id}"): "name" は文字列である必要があります`)
+      return
+    }
+    if (!name.trim() && !(typeof raw.relation === 'string' && raw.relation.trim())) {
+      errors.push(`people[${i}] (id: "${id}"): "name" か "relation" のどちらかは必要です`)
       return
     }
     if (typeof gender !== 'string' || !GENDERS.includes(gender as any)) {
@@ -93,6 +99,10 @@ export function validateGenogramData(input: unknown): ValidationResult {
       errors.push(`people[${i}] (id: "${id}"): "relation" は文字列である必要があります`)
       return
     }
+    if (raw.characteristicSummary !== undefined && typeof raw.characteristicSummary !== 'string') {
+      errors.push(`people[${i}] (id: "${id}"): "characteristicSummary" は文字列である必要があります`)
+      return
+    }
     if (raw.isSelf === true) {
       selfCount++
     }
@@ -110,6 +120,7 @@ export function validateGenogramData(input: unknown): ValidationResult {
       healthNote: typeof raw.healthNote === 'string' ? raw.healthNote : undefined,
       relation: typeof raw.relation === 'string' ? raw.relation : undefined,
       note: typeof raw.note === 'string' ? raw.note : undefined,
+      characteristicSummary: typeof raw.characteristicSummary === 'string' ? raw.characteristicSummary : undefined,
     })
   })
 

@@ -9,7 +9,10 @@
         </div>
         <div class="genogram-modal-field">
           <label>続柄(本人から見て)</label>
-          <input v-model="personForm.relation" type="text" placeholder="例: 母, 叔父, 姪" />
+          <select v-model="personForm.relation">
+            <option value="">(未設定)</option>
+            <option v-for="r in relationOptions" :key="r" :value="r">{{ r }}</option>
+          </select>
         </div>
         <div class="genogram-modal-field">
           <label>人物像</label>
@@ -111,6 +114,7 @@
 <script setup lang="ts">
 import { reactive, watch, computed } from 'vue'
 import type { Person, Gender, UnionStatus, RelationType } from '~/types/genogram'
+import { RELATION_OPTIONS } from '~/types/genogram'
 import type { GenogramSelection } from '~/types/selection'
 import Modal from '~/components/Modal.vue'
 
@@ -145,6 +149,16 @@ const partnerNames = computed(() => {
 const fromToNames = computed(() => {
   if (props.selection.kind !== 'relation') return ''
   return `${personName(props.selection.relation.from)} → ${personName(props.selection.relation.to)}`
+})
+
+// 標準の選択肢に無い続柄が既に入っている(古いデータ・AI生成の自由記述など)場合は、
+// 見えなくなって黙って消えてしまわないよう、その値も選択肢の先頭に足しておく
+const relationOptions = computed(() => {
+  const current = props.selection.kind === 'person' ? props.selection.person.relation : undefined
+  if (current && !(RELATION_OPTIONS as readonly string[]).includes(current)) {
+    return [current, ...RELATION_OPTIONS]
+  }
+  return RELATION_OPTIONS
 })
 
 const personForm = reactive<{

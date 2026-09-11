@@ -1,6 +1,7 @@
-import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, findOwnedCategory } from '~/server/utils/kouba'
+import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, findOwnedCategory, compactCategoryPositions } from '~/server/utils/kouba'
 
-// カテゴリの削除。配下のタスク・ログもまとめて削除する（3テーブルとも所有者はカテゴリ経由でしか辿れないため個別チェックは不要）。
+// カテゴリの削除。配下のタスク・サブタスクもまとめて削除し、
+// 後ろのカテゴリを前へ詰める（空いた枠を「カテゴリを追加」のまま残さない）。
 export default defineEventHandler(async (event) => {
   const user = await requireKoubaUser(event)
   const db = requireKoubaDb(event)
@@ -14,9 +15,10 @@ export default defineEventHandler(async (event) => {
   const taskIds = (taskRows?.results ?? []).map((r: { id: string }) => r.id)
   if (taskIds.length) {
     const placeholders = taskIds.map(() => '?').join(',')
-    await db.prepare(`DELETE FROM kouba_logs WHERE task_id IN (${placeholders})`).bind(...taskIds).run()
+    await db.prepare(`DELETE FROM kouba_subtasks WHERE task_id IN (${placeholders})`).bind(...taskIds).run()
     await db.prepare('DELETE FROM kouba_tasks WHERE category_id = ?').bind(id).run()
   }
   await db.prepare('DELETE FROM kouba_categories WHERE id = ?').bind(id).run()
+  await compactCategoryPositions(db, user.id)
   return { ok: true }
 })

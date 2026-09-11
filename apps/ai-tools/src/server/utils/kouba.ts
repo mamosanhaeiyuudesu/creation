@@ -211,6 +211,23 @@ export async function findOwnedSubtask(db: any, userId: string, subtaskId: strin
   return row ? { id: row.id, taskId: row.task_id } : null
 }
 
+/**
+ * カテゴリの position を今の並び順のまま 0 から詰め直し、カテゴリ数を返す。
+ * 削除で空いた枠を残さず後ろのカテゴリを前へ寄せるため（削除後と、作成前＝旧データの穴埋めに呼ぶ）。
+ */
+export async function compactCategoryPositions(db: any, userId: string): Promise<number> {
+  const rows = await db
+    .prepare('SELECT id, position FROM kouba_categories WHERE user_id = ? ORDER BY position ASC, created_at ASC')
+    .bind(userId)
+    .all<{ id: string; position: number }>()
+  const categories: { id: string; position: number }[] = rows?.results ?? []
+  const updates = categories
+    .map((c, i) => (c.position === i ? null : db.prepare('UPDATE kouba_categories SET position = ? WHERE id = ?').bind(i, c.id)))
+    .filter(Boolean)
+  if (updates.length) await db.batch(updates)
+  return categories.length
+}
+
 /** 指定カテゴリ内で次に使う sort_order（末尾に追加する値）。 */
 export async function nextTaskSortOrder(db: any, categoryId: string): Promise<number> {
   const row = await db

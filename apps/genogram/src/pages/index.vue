@@ -240,11 +240,44 @@ function handleSavePerson(patch: Pick<Person, 'id' | 'name' | 'gender' | 'deceas
   const data = cloneParsedData()
   const target = data?.people.find((p) => p.id === patch.id)
   if (!data || !target) return
+
+  const prevOccupation = target.occupation
+  const prevNote = target.note
   Object.assign(target, patch)
   if (patch.isSelf) {
     for (const p of data.people) p.isSelf = p.id === patch.id
   }
   applyEditedData(data)
+
+  // 特徴要約(characteristicSummary)はUIに専用の入力欄を置かず、occupation/noteが変わった時だけ
+  // 保存のあとで裏側から静かに作り直す(パネルを閉じるのを待たせない。できたら黙って反映する)
+  if (target.occupation !== prevOccupation || target.note !== prevNote) {
+    void refreshCharacteristicSummary(patch.id, target.occupation, target.note)
+  }
+}
+
+async function refreshCharacteristicSummary(personId: string, occupation: string | undefined, note: string | undefined) {
+  let summary: string | undefined
+  if (!occupation && !note) {
+    summary = undefined
+  } else {
+    try {
+      const res = await $fetch<{ summary: string }>('/api/summarize-person', {
+        method: 'POST',
+        body: { occupation, note },
+      })
+      summary = res.summary || undefined
+    } catch {
+      return // 失敗しても保存自体は既に完了している。既存の要約はそのまま残し、次回の編集時に再挑戦させる
+    }
+  }
+  // applyEditedData は closePanel() も行うため使わない(この時点で別の人物のパネルが開いている可能性があり、
+  // 巻き込んで閉じてしまうのを避ける)。jsonTextへの直接反映だけ行う
+  const data = cloneParsedData()
+  const target = data?.people.find((p) => p.id === personId)
+  if (!data || !target) return
+  target.characteristicSummary = summary
+  jsonText.value = JSON.stringify(data, null, 2)
 }
 
 /** 名前が分からない相手として自動で置かれた人物か。これ自体を消すときは代役を作り直さない */

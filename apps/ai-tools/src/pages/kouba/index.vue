@@ -2,9 +2,9 @@
 import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { useKouba, KOUBA_GRID_SIZE } from '~/composables/kouba/useKouba'
 import KoubaTaskModal from '~/components/kouba/KoubaTaskModal.vue'
-import KoubaIconPicker from '~/components/kouba/KoubaIconPicker.vue'
+import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
+import KoubaIconEditor from '~/components/kouba/KoubaIconEditor.vue'
 import KoubaConfirmModal from '~/components/kouba/KoubaConfirmModal.vue'
-import { KOUBA_DEFAULT_CATEGORY_ICON, KOUBA_DEFAULT_TASK_ICON } from '~/types/kouba'
 import type { KoubaCategory, KoubaTask, KoubaSubtask } from '~/types/kouba'
 
 useHead({
@@ -27,7 +27,7 @@ const showPasswordModal = ref(false)
 const showSettingsMenu = ref(false)
 
 const {
-  categories, loading, loadError, saving, actionError, load,
+  categories, loading, loadError, saving, actionError, iconBusyIds, load, generateIcon,
   addCategory, updateCategory, deleteCategory,
   addTask, updateTask, deleteTask, reorderTasks,
   addSubtask, updateSubtask, deleteSubtask,
@@ -43,36 +43,31 @@ function runOnEnter(e: KeyboardEvent, fn: () => void) {
 }
 
 // ── 3×3グリッド ──────────────────────────────
-const gridSlots = computed(() => {
-  const byPosition = new Map<number, KoubaCategory>()
-  for (const c of categories.value) byPosition.set(c.position, c)
-  return Array.from({ length: KOUBA_GRID_SIZE }, (_, i) => byPosition.get(i) ?? null)
-})
+// カテゴリは前から隙間なく詰めて並べる（削除で空いた枠は残さない。サーバーも position を詰め直している）。
+// 空き枠のうち「カテゴリを追加」を出すのは先頭の1つだけで、残りは3×3の形を保つための空枠。
+const gridSlots = computed(() => Array.from({ length: KOUBA_GRID_SIZE }, (_, i) => categories.value[i] ?? null))
 const isFull = computed(() => categories.value.length >= KOUBA_GRID_SIZE)
 
 // ── カテゴリの追加 ──────────────────────────────
+// アイコンは名前を入れて追加したあと AI が作る（useKouba の addCategory が続けて生成する）
 // v-for内で同名のテンプレートrefを使うと配列参照になってしまうため、id指定+getElementByIdで直接focusする
-const addingCategoryAt = ref<number | null>(null)
+const addingCategory = ref(false)
 const categoryNameDraft = ref('')
-const categoryIconDraft = ref(KOUBA_DEFAULT_CATEGORY_ICON)
 
-function openAddCategory(position: number) {
-  addingCategoryAt.value = position
+function openAddCategory() {
+  addingCategory.value = true
   categoryNameDraft.value = ''
-  categoryIconDraft.value = KOUBA_DEFAULT_CATEGORY_ICON
-  nextTick(() => document.getElementById(`kouba-add-category-${position}`)?.focus())
+  nextTick(() => document.getElementById('kouba-add-category')?.focus())
 }
 function cancelAddCategory() {
-  addingCategoryAt.value = null
+  addingCategory.value = false
   categoryNameDraft.value = ''
 }
 async function submitAddCategory() {
   const name = categoryNameDraft.value.trim()
-  const position = addingCategoryAt.value
-  if (!name || position === null) return
-  const icon = categoryIconDraft.value
+  if (!name) return
   cancelAddCategory()
-  await addCategory(name, position, icon)
+  await addCategory(name)
 }
 
 // ── カテゴリ名の編集 ──────────────────────────────
@@ -91,20 +86,18 @@ async function commitCategoryEdit(cat: KoubaCategory) {
   const name = categoryEditDraft.value.trim()
   if (name && name !== cat.name) await updateCategory(cat.id, { name })
 }
-async function pickCategoryIcon(cat: KoubaCategory, icon: string) {
-  editingCategoryIconId.value = null
-  if (icon && icon !== cat.icon) await updateCategory(cat.id, { icon })
+async function regenerateCategoryIcon(cat: KoubaCategory, instruction: string) {
+  await generateIcon('category', cat.id, instruction)
 }
 
 // ── タスクの追加 ──────────────────────────────
+// アイコンはカテゴリと同じく、追加したあと AI が作る
 const addingTaskFor = ref<string | null>(null)
 const taskNameDraft = ref('')
-const taskIconDraft = ref(KOUBA_DEFAULT_TASK_ICON)
 
 function openAddTask(categoryId: string) {
   addingTaskFor.value = categoryId
   taskNameDraft.value = ''
-  taskIconDraft.value = KOUBA_DEFAULT_TASK_ICON
   nextTick(() => document.getElementById(`kouba-add-task-${categoryId}`)?.focus())
 }
 function cancelAddTask() {
@@ -115,9 +108,8 @@ async function submitAddTask() {
   const title = taskNameDraft.value.trim()
   const categoryId = addingTaskFor.value
   if (!title || !categoryId) return
-  const icon = taskIconDraft.value
   cancelAddTask()
-  await addTask(categoryId, title, icon)
+  await addTask(categoryId, title)
 }
 
 // ── タスク詳細モーダル ──────────────────────────────
@@ -141,8 +133,11 @@ const categoryOptions = computed(() => categories.value.map((c) => ({ id: c.id, 
 function openTask(taskId: string) {
   activeTaskId.value = taskId
 }
-async function handleUpdateTask(patch: { title?: string; icon?: string; categoryId?: string }) {
+async function handleUpdateTask(patch: { title?: string; categoryId?: string }) {
   if (activeTaskId.value) await updateTask(activeTaskId.value, patch)
+}
+async function handleRegenerateTaskIcon(instruction: string) {
+  if (activeTaskId.value) await generateIcon('task', activeTaskId.value, instruction)
 }
 async function handleAddSubtask(payload: { title: string; hours: number }) {
   if (activeTaskId.value) await addSubtask(activeTaskId.value, payload.title, payload.hours)
@@ -282,7 +277,9 @@ watch(isLoggedIn, (v) => {
     :categories="categoryOptions"
     :saving="saving"
     :error="actionError"
+    :icon-busy="!!activeTask && iconBusyIds.has(activeTask.id)"
     @update="handleUpdateTask"
+    @regenerate-icon="handleRegenerateTaskIcon"
     @delete="activeTask && askDeleteTask(activeTask)"
     @add-subtask="handleAddSubtask"
     @update-subtask="handleUpdateSubtask"
@@ -347,16 +344,23 @@ watch(isLoggedIn, (v) => {
                       <div class="flex items-center gap-2 relative">
                         <button
                           type="button"
-                          class="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-sm shrink-0 hover:border-white/25"
-                          title="アイコンを変更"
+                          class="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-sm shrink-0 overflow-hidden hover:border-white/25"
+                          title="アイコンをAIで作り直す"
                           @click="editingCategoryIconId = editingCategoryIconId === cat.id ? null : cat.id"
-                        >{{ cat.icon }}</button>
+                        >
+                          <KoubaIcon :icon="cat.icon" :busy="iconBusyIds.has(cat.id)" />
+                        </button>
                         <div
                           v-if="editingCategoryIconId === cat.id"
-                          class="absolute top-full left-0 mt-1 z-20 w-56 bg-[#0f172a] border border-white/10 rounded-xl p-2.5 shadow-xl"
+                          class="absolute top-full left-0 mt-1 z-20 w-64 bg-[#0f172a] border border-white/10 rounded-xl p-2.5 shadow-xl"
                           @click.stop
                         >
-                          <KoubaIconPicker :model-value="cat.icon" @update:model-value="(icon) => pickCategoryIcon(cat, icon)" />
+                          <KoubaIconEditor
+                            :icon="cat.icon"
+                            :busy="iconBusyIds.has(cat.id)"
+                            @regenerate="(instruction) => regenerateCategoryIcon(cat, instruction)"
+                            @close="editingCategoryIconId = null"
+                          />
                         </div>
 
                         <input
@@ -414,7 +418,9 @@ watch(isLoggedIn, (v) => {
                       @dragover.prevent.stop="onTaskDragOver(task)"
                       @drop.prevent.stop="onTaskDrop(cat, task)"
                     >
-                      <span class="text-base leading-none">{{ task.icon }}</span>
+                      <span class="w-7 h-7 text-base">
+                        <KoubaIcon :icon="task.icon" :busy="iconBusyIds.has(task.id)" />
+                      </span>
                       <span class="text-[12.5px] font-bold text-slate-800 leading-snug break-words line-clamp-3">{{ task.title }}</span>
                       <span class="mt-auto text-[12px] font-extrabold text-slate-700 tabular-nums">{{ formatHours(task.totalHours) }}h</span>
                     </div>
@@ -422,10 +428,9 @@ watch(isLoggedIn, (v) => {
                     <!-- タスク追加フォーム（実際の付箋と違い、操作画面なので板と同じ濃色トーン） -->
                     <form
                       v-if="addingTaskFor === cat.id"
-                      class="w-56 min-h-[100px] rounded-lg p-2.5 bg-[#0f172a] border border-white/10 flex flex-col gap-1.5"
+                      class="w-44 min-h-[100px] rounded-lg p-2.5 bg-[#0f172a] border border-white/10 flex flex-col gap-1.5"
                       @submit.prevent="submitAddTask"
                     >
-                      <KoubaIconPicker v-model="taskIconDraft" />
                       <textarea
                         :id="`kouba-add-task-${cat.id}`"
                         v-model="taskNameDraft"
@@ -445,12 +450,11 @@ watch(isLoggedIn, (v) => {
                   </div>
                 </div>
 
-                <!-- 空き枠（カテゴリ追加） -->
-                <div v-else class="rounded-2xl border border-dashed border-white/15 min-h-[280px] flex items-center justify-center p-4">
-                  <form v-if="addingCategoryAt === i" class="w-full flex flex-col gap-2" @submit.prevent="submitAddCategory">
-                    <KoubaIconPicker v-model="categoryIconDraft" />
+                <!-- 先頭の空き枠（カテゴリ追加）。カテゴリは前から詰めて並ぶので、追加できるのはこの枠だけ -->
+                <div v-else-if="i === categories.length" class="rounded-2xl border border-dashed border-white/15 min-h-[280px] flex items-center justify-center p-4">
+                  <form v-if="addingCategory" class="w-full flex flex-col gap-2" @submit.prevent="submitAddCategory">
                     <input
-                      :id="`kouba-add-category-${i}`"
+                      id="kouba-add-category"
                       v-model="categoryNameDraft"
                       type="text"
                       placeholder="カテゴリ名（例: マーケティング）"
@@ -458,6 +462,7 @@ watch(isLoggedIn, (v) => {
                       @keydown.enter="runOnEnter($event, submitAddCategory)"
                       @keydown.esc="cancelAddCategory"
                     />
+                    <p class="m-0 text-[11px] text-slate-500">アイコンは追加後にAIが作ります</p>
                     <div class="flex gap-2">
                       <button type="submit" class="flex-1 h-8 rounded-full bg-sky-500 text-white text-[12px] font-bold hover:bg-sky-400">追加</button>
                       <button type="button" class="h-8 px-3 rounded-full bg-white/10 text-slate-300 text-[12px]" @click="cancelAddCategory">キャンセル</button>
@@ -466,12 +471,15 @@ watch(isLoggedIn, (v) => {
                   <button
                     v-else
                     class="w-full h-full min-h-[240px] flex flex-col items-center justify-center gap-2 text-slate-500 hover:text-slate-300 transition-colors"
-                    @click="openAddCategory(i)"
+                    @click="openAddCategory"
                   >
                     <span class="text-3xl">＋</span>
                     <span class="text-xs">カテゴリを追加</span>
                   </button>
                 </div>
+
+                <!-- 残りの空き枠（3×3の形を保つだけ） -->
+                <div v-else class="rounded-2xl border border-dashed border-white/[0.06] min-h-[280px]" />
               </template>
             </div>
           </div>

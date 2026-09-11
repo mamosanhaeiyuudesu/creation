@@ -3,6 +3,7 @@ import {
   hasEnrichedInfo,
   belowNameLines,
   characteristicLines,
+  displayName,
   CHARACTERISTIC_LINE_HEIGHT,
   CHARACTERISTIC_GAP_ABOVE_ICON,
 } from '~/utils/personDisplay'
@@ -109,8 +110,9 @@ class DisjointSet {
 }
 
 function slotWidthOf(person: Person): number {
-  const nameWidth = person.name.length * LAYOUT.charWidth + LAYOUT.labelPadding
-  // 続柄・生涯・特徴要約は名前より小さいフォントで表示するため、文字幅は控えめに見積もる
+  // 名前欄には「徹（父）」のように続柄を丸括弧で続けて表示するため、その分の文字数も見積もりに含める
+  const nameWidth = displayName(person).length * LAYOUT.charWidth + LAYOUT.labelPadding
+  // 生涯・特徴要約は名前より小さいフォントで表示するため、文字幅は控えめに見積もる
   const belowWidths = belowNameLines(person).map((line) => line.length * 8 + LAYOUT.labelPadding)
   const charWidths = characteristicLines(person).map((line) => line.length * 8 + LAYOUT.labelPadding)
   return Math.max(LAYOUT.symbolSize + 16, nameWidth, ...belowWidths, ...charWidths)
@@ -283,6 +285,67 @@ function resolveGenerations(people: Person[], unions: Union[]) {
   return { genOf, parentUnionOfChild }
 }
 
+type Side = 'father' | 'mother'
+
+/**
+ * 本人(isSelf)の親unionを基準に、血のつながりだけを辿って全員に「父方/母方」を割り当てる
+ * (配偶者には伝えない。配偶者は結婚で入ってきた側であって血筋ではないため)。
+ *
+ * 父方/母方の判定は親unionのパートナーの性別(M=父方, F=母方)で行う。両方Uなど性別で判定できない
+ * 場合はパートナー配列の並び順(0番目=父方扱い)にフォールバックする。これは実際の性自認を主張する
+ * ものではなく、画面の左右どちらの側に割り振るかの目印に過ぎない。
+ *
+ * 本人の親unionが特定できない(本人が居ない/親が不明)場合は空のまま返す＝並び順への影響なし。
+ */
+function resolveSide(people: Person[], unions: Union[]): Map<string, Side> {
+  const sideOf = new Map<string, Side>()
+  const self = people.find((p) => p.isSelf)
+  if (!self) return sideOf
+  const parentUnion = unions.find((u) => u.children?.includes(self.id))
+  if (!parentUnion) return sideOf
+
+  const [a, b] = parentUnion.partners
+  const genderOf = new Map(people.map((p) => [p.id, p.gender]))
+  let fatherId = a
+  let motherId = b
+  if (genderOf.get(a) === 'F' && genderOf.get(b) === 'M') {
+    fatherId = b
+    motherId = a
+  }
+  sideOf.set(fatherId, 'father')
+  sideOf.set(motherId, 'mother')
+
+  const queue: string[] = [fatherId, motherId]
+  while (queue.length > 0) {
+    const id = queue.shift()!
+    const side = sideOf.get(id)!
+    // 下へ: このidが親であるunionの子(きょうだい・甥姪・いとこ等)へ伝える。
+    // 本人(self)は両側の合流点であり片側に属さないため、ここで伝播を止める。
+    for (const u of unions) {
+      if (!u.partners.includes(id)) continue
+      for (const c of u.children ?? []) {
+        if (c === self.id) continue
+        if (!sideOf.has(c)) {
+          sideOf.set(c, side)
+          queue.push(c)
+        }
+      }
+    }
+    // 上へ: このidが子であるunionの親(祖先)へ伝える
+    for (const u of unions) {
+      if (!u.children?.includes(id)) continue
+      for (const p of u.partners) {
+        if (!sideOf.has(p)) {
+          sideOf.set(p, side)
+          queue.push(p)
+        }
+      }
+    }
+  }
+
+  return sideOf
+}
+
 export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult {
   const { people, unions, relations } = data
   const errors: string[] = []
@@ -295,6 +358,7 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
   }
 
   const { genOf, parentUnionOfChild } = resolveGenerations(people, unions)
+  const sideOf = resolveSide(people, unions)
 
   const dsu = new DisjointSet()
   for (const p of people) dsu.find(p.id)
@@ -345,8 +409,15 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
     }
     // クラスタ内の並び順は people 配列での初出順に揃える
     const peopleOrderIndex = new Map(people.map((p, i) => [p.id, i]))
+    const genderOf = new Map(people.map((p) => [p.id, p.gender]))
     for (const members of clusterMap.values()) {
       members.sort((a, b) => peopleOrderIndex.get(a)! - peopleOrderIndex.get(b)!)
+      // 夫婦は男性を左・女性を右にするのがジェノグラムの慣習。2人ちょうどでM/Fが1人ずつの時だけ入れ替える
+      // (単身者・同性カップル・再婚等で3人以上つながったクラスタは対象外＝入力順のまま変えない)
+      if (members.length === 2) {
+        const [idA, idB] = members as [string, string]
+        if (genderOf.get(idA) === 'F' && genderOf.get(idB) === 'M') members.reverse()
+      }
     }
 
     // このrowのクラスタの左→右の並び順を決める
@@ -390,13 +461,28 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
       desiredCenterOf.set(root, centers.length > 0 ? centers.reduce((a, b) => a + b, 0) / centers.length : null)
     }
 
-    // 親の位置を基準に左→右へ並べ替える(重心ソート)。
+    // 父方/母方(sideOf)を最優先で並べる(父方=0, 不明=1, 母方=2)。ジェノグラムの慣習どおり
+    // 父方は常に左半分、母方は常に右半分にまとまるようにするため、これは重心より優先する。
+    // 同じ側の中では親の位置を基準に左→右へ並べ替える(重心ソート)。
     // 上の走査順だけだと、夫婦クラスタが「妻側の親」に先に拾われた場合に
     // 夫の実きょうだいが妻のきょうだいより後ろへ回され、遠くへ飛ばされてしまう。
     // 親unionの中点が左にある人ほど左に置くことで、それぞれのきょうだいが自分の親の真下に集まる。
-    // 親がこの図にいないクラスタ(nullのもの)は順位を持たないので、走査順のまま末尾に残す。
-    const orderKeyOf = (root: string) => desiredCenterOf.get(root) ?? Infinity
-    orderedClusterRoots.sort((a, b) => orderKeyOf(a) - orderKeyOf(b))
+    // 親がこの図にいないクラスタ(nullのもの)は重心を持たないので、同じ側の中では走査順のまま末尾に残る。
+    const sideRankOf = (root: string): number => {
+      for (const m of clusterMap.get(root) ?? []) {
+        const side = sideOf.get(m)
+        if (side === 'father') return 0
+        if (side === 'mother') return 2
+      }
+      return 1
+    }
+    orderedClusterRoots.sort((a, b) => {
+      const rankDiff = sideRankOf(a) - sideRankOf(b)
+      if (rankDiff !== 0) return rankDiff
+      const centerA = desiredCenterOf.get(a) ?? Infinity
+      const centerB = desiredCenterOf.get(b) ?? Infinity
+      return centerA - centerB
+    })
 
     const y = LAYOUT.margin + topMarginExtra + rowIndex * LAYOUT.rowHeight + LAYOUT.symbolSize / 2
     let cursor: number = LAYOUT.margin
@@ -500,6 +586,60 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
       midY: (na.y + nb.y) / 2,
     }
   })
+
+  // 兄弟(比較対象)がいない孤立した祖先の行を、実際の子の位置の真上に揃え直す。
+  // 上のメインループは上→下の順に配置するため、ある行にクラスタが1つしか無い(比較対象が無い)場合、
+  // その時点ではマージン(左端)に置くしかない。しかしそのすぐ下の世代で「反対側の血筋」が
+  // sideOf の並び替えにより右へ押し出されると、先に置いたこちらの行だけ追従できず、
+  // 実際の子孫から見て不自然な位置(例: 父方の真上)に取り残されてしまう。
+  // 全行の配置が終わったあとに、下の世代から上の世代へ順に「クラスタが1つだけの行」を
+  // その行が持つunionの子の実際の位置の中央に合わせて横シフトする(兄弟がいないので重なりの心配はない)。
+  for (let rowIndex = rows.length - 1; rowIndex >= 0; rowIndex--) {
+    const rowPeopleIds = (peopleByRow.get(rowIndex) ?? []).map((p) => p.id)
+    if (rowPeopleIds.length === 0) continue
+    const rootsInRow = new Set(rowPeopleIds.map((id) => dsu.find(id)))
+    if (rootsInRow.size !== 1) continue
+
+    const childXs: number[] = []
+    unions.forEach((u) => {
+      const [a, b] = u.partners
+      if (!rowPeopleIds.includes(a) && !rowPeopleIds.includes(b)) return
+      for (const c of u.children ?? []) {
+        const cn = nodeById.get(c)
+        if (cn) childXs.push(cn.x)
+      }
+    })
+    if (childXs.length === 0) continue
+
+    const targetCenter = childXs.reduce((sum, x) => sum + x, 0) / childXs.length
+    const currentCenter = rowPeopleIds.reduce((sum, id) => sum + nodeById.get(id)!.x, 0) / rowPeopleIds.length
+    let shift = targetCenter - currentCenter
+    if (shift === 0) continue
+
+    // マージンより外へ出そうな場合はそこで止める(重なる相手がいないので右へは自由に動かしてよいが、左端は守る)
+    const minLeftEdge = Math.min(...rowPeopleIds.map((id) => {
+      const n = nodeById.get(id)!
+      return n.x - n.slotWidth / 2
+    }))
+    const minShift = LAYOUT.margin - minLeftEdge
+    if (shift < minShift) shift = minShift
+    if (Math.abs(shift) < 0.5) continue
+
+    for (const id of rowPeopleIds) {
+      const n = nodeById.get(id)!
+      n.x += shift
+      maxX = Math.max(maxX, n.x + n.slotWidth / 2)
+    }
+    unions.forEach((u, idx) => {
+      const [a, b] = u.partners
+      if (!rowPeopleIds.includes(a) && !rowPeopleIds.includes(b)) return
+      const ul = unionLines[idx]
+      if (!ul) return
+      ul.x1 += shift
+      ul.x2 += shift
+      ul.midX += shift
+    })
+  }
 
   // 子への接続線(バスライン)
   unions.forEach((u, idx) => {

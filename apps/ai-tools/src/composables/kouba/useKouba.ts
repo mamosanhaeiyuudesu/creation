@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import type { KoubaCategory } from '~/types/kouba'
+import type { KoubaCategory, KoubaIconTarget } from '~/types/kouba'
 
 /** カテゴリは3×3グリッドの9枠まで。 */
 export const KOUBA_GRID_SIZE = 9
@@ -17,6 +17,9 @@ export function useKouba() {
   // （同時に複数の操作を並行させるUIが無いため）。
   const saving = ref(false)
   const actionError = ref('')
+
+  // AI がアイコンを作成中の対象ID（カテゴリ・タスク共通）。数秒かかり、その間も他の操作はできるので saving とは分けている。
+  const iconBusyIds = ref(new Set<string>())
 
   async function load() {
     loading.value = true
@@ -42,14 +45,18 @@ export function useKouba() {
     }
   }
 
-  async function addCategory(name: string, position: number, icon: string) {
+  /** カテゴリを末尾（先頭の空き枠）に追加し、続けて AI にアイコンを作らせる。 */
+  async function addCategory(name: string) {
+    let id = ''
     await withSaving(async () => {
-      await $fetch('/api/kouba/categories', { method: 'POST', body: { name, position, icon } })
+      const created = await $fetch<{ id: string }>('/api/kouba/categories', { method: 'POST', body: { name } })
+      id = created.id
       await load()
     })
+    if (id) await generateIcon('category', id)
   }
 
-  async function updateCategory(id: string, patch: { name?: string; icon?: string }) {
+  async function updateCategory(id: string, patch: { name?: string }) {
     await withSaving(async () => {
       await $fetch(`/api/kouba/categories/${id}`, { method: 'PATCH', body: patch })
       await load()
@@ -63,14 +70,40 @@ export function useKouba() {
     })
   }
 
-  async function addTask(categoryId: string, title: string, icon: string) {
+  /** タスクを追加し、続けて AI にアイコンを作らせる。 */
+  async function addTask(categoryId: string, title: string) {
+    let id = ''
     await withSaving(async () => {
-      await $fetch('/api/kouba/tasks', { method: 'POST', body: { categoryId, title, icon } })
+      const created = await $fetch<{ id: string }>('/api/kouba/tasks', { method: 'POST', body: { categoryId, title } })
+      id = created.id
       await load()
     })
+    if (id) await generateIcon('task', id)
   }
 
-  async function updateTask(id: string, patch: { title?: string; icon?: string; categoryId?: string }) {
+  /**
+   * AI にアイコンを作らせる（作成直後の自動生成と、編集時の作り直しで共通）。instruction が空なら名前からおまかせ。
+   * 失敗しても元のアイコンのまま残る。他の操作と違い load() せず手元の値だけ差し替える
+   * （load() 中は板全体が「読み込み中…」に置き換わり、開いている作り直しポップオーバーの入力まで消えてしまうため）。
+   */
+  async function generateIcon(target: KoubaIconTarget, id: string, instruction = '') {
+    iconBusyIds.value.add(id)
+    actionError.value = ''
+    try {
+      const { icon } = await $fetch<{ icon: string }>('/api/kouba/icon', { method: 'POST', body: { target, id, instruction } })
+      for (const c of categories.value) {
+        if (target === 'category' && c.id === id) c.icon = icon
+        const t = target === 'task' ? c.tasks.find((t) => t.id === id) : undefined
+        if (t) t.icon = icon
+      }
+    } catch (e: any) {
+      actionError.value = e?.data?.message || 'アイコンの作成に失敗しました'
+    } finally {
+      iconBusyIds.value.delete(id)
+    }
+  }
+
+  async function updateTask(id: string, patch: { title?: string; categoryId?: string }) {
     await withSaving(async () => {
       await $fetch(`/api/kouba/tasks/${id}`, { method: 'PATCH', body: patch })
       await load()
@@ -119,7 +152,9 @@ export function useKouba() {
     loadError,
     saving,
     actionError,
+    iconBusyIds,
     load,
+    generateIcon,
     addCategory,
     updateCategory,
     deleteCategory,

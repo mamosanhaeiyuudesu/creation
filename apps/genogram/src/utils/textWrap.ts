@@ -13,9 +13,3 @@ export function wrapText(text: string, maxCharsPerLine: number): string[] {
   }
   return lines
 }
-
-/** 指定文字数を超える場合は末尾を「…」に置き換える(グラフ上には要点だけを出し、全文はクリックで見る想定) */
-export function truncateText(text: string, maxChars: number): string {
-  if (text.length <= maxChars) return text
-  return `${text.slice(0, maxChars)}…`
-}

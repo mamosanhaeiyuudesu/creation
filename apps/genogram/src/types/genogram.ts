@@ -22,6 +22,11 @@ export interface Person {
   healthNote?: string
   /** 人物像(気づき・エピソード・関係性の背景など)。クリックした詳細パネルの中心的な項目。長文もOK */
   note?: string
+  /**
+   * 職業・人物像から AI が生成した20文字程度の特徴要約。記号の上に常時表示する。
+   * occupation/note を編集して保存するたびに裏側で自動生成・更新する（詳細パネルには専用の入力欄を置かない）。
+   */
+  characteristicSummary?: string
 }
 
 export type UnionStatus = 'married' | 'divorced' | 'separated' | 'distant' | 'conflict'
@@ -56,3 +61,23 @@ export interface GenogramData {
 export const GENDERS: Gender[] = ['M', 'F', 'U']
 export const UNION_STATUSES: UnionStatus[] = ['married', 'divorced', 'separated', 'distant', 'conflict']
 export const RELATION_TYPES: RelationType[] = ['conflict', 'cutoff', 'enmeshed', 'close', 'distant']
+
+/**
+ * 本人(isSelf)から見た続柄の選択肢。「祖父(父方)」のような父方/母方の区別は持たない
+ * (左右どちら側かはレイアウト側が血縁を辿って自動的に決めるため、ラベルに含める必要が無い)。
+ */
+export const RELATION_OPTIONS = [
+  '本人',
+  '配偶者', '夫', '妻', 'パートナー',
+  '父', '母',
+  '息子', '娘',
+  '兄', '姉', '弟', '妹',
+  '祖父', '祖母', '曽祖父', '曽祖母',
+  '孫',
+  '伯父', '叔父', '伯母', '叔母',
+  '甥', '姪',
+  '従兄弟', '従姉妹',
+  '養父', '養母', '継父', '継母',
+  '義父', '義母', '義兄', '義姉', '義弟', '義妹',
+  '友人', 'その他',
+] as const
