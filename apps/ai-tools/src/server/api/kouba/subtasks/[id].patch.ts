@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   }
   if (body?.hours !== undefined) {
     const hours = normalizeHours(body.hours)
-    if (hours === null) throw createError({ statusCode: 400, message: '時間は1〜30の範囲で指定してください' })
+    if (hours === null) throw createError({ statusCode: 400, message: '時間は30分〜30時間の範囲（30分刻み）で指定してください' })
     sets.push('hours = ?')
     params.push(hours)
   }

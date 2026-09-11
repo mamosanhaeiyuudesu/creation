@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
 import type { KoubaTask, KoubaSubtask } from '~/types/kouba'
-import { KOUBA_MIN_HOURS, KOUBA_MAX_HOURS, isSvgIcon } from '~/types/kouba'
+import { isSvgIcon } from '~/types/kouba'
 import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
+import KoubaHoursStepper from '~/components/kouba/KoubaHoursStepper.vue'
 import KoubaIconEditor from '~/components/kouba/KoubaIconEditor.vue'
 import KoubaSubtaskCard from '~/components/kouba/KoubaSubtaskCard.vue'
 
@@ -36,14 +37,14 @@ function runOnEnter(e: KeyboardEvent, fn: () => void) {
   fn()
 }
 
-const HOUR_OPTIONS = Array.from({ length: KOUBA_MAX_HOURS - KOUBA_MIN_HOURS + 1 }, (_, i) => i + KOUBA_MIN_HOURS)
-
 const editingTitle = ref(false)
 const titleDraft = ref('')
 const titleInputEl = ref<HTMLInputElement | null>(null)
 const editingIcon = ref(false)
 const subtaskTitleDraft = ref('')
-const subtaskHoursDraft = ref(KOUBA_MIN_HOURS)
+/** 追加フォームの初期値。最小の30分ではなく1時間から始めて、+/- で寄せる。 */
+const SUBTASK_HOURS_DEFAULT = 1
+const subtaskHoursDraft = ref(SUBTASK_HOURS_DEFAULT)
 
 watch(
   () => props.show,
@@ -52,7 +53,7 @@ watch(
       editingTitle.value = false
       editingIcon.value = false
       subtaskTitleDraft.value = ''
-      subtaskHoursDraft.value = KOUBA_MIN_HOURS
+      subtaskHoursDraft.value = SUBTASK_HOURS_DEFAULT
     }
   }
 )
@@ -62,7 +63,7 @@ function submitAddSubtask() {
   if (!title) return
   emit('addSubtask', { title, hours: Number(subtaskHoursDraft.value) })
   subtaskTitleDraft.value = ''
-  subtaskHoursDraft.value = KOUBA_MIN_HOURS
+  subtaskHoursDraft.value = SUBTASK_HOURS_DEFAULT
 }
 
 function close() {
@@ -163,7 +164,7 @@ function onChangeCategory(e: Event) {
 
         <!-- 本体: スクロール -->
         <div class="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-3">
-          <!-- サブタスクの追加（時間もまとめて1個選ぶ。日別には分けない） -->
+          <!-- サブタスクの追加（時間もまとめて1個入れる。日別には分けない） -->
           <form class="flex gap-2" @submit.prevent="submitAddSubtask">
             <input
               v-model="subtaskTitleDraft"
@@ -172,12 +173,7 @@ function onChangeCategory(e: Event) {
               class="flex-1 min-w-0 bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-2 text-slate-100 text-[13px] outline-none focus:border-sky-400/50"
               @keydown.enter="runOnEnter($event, submitAddSubtask)"
             />
-            <select
-              v-model.number="subtaskHoursDraft"
-              class="bg-white/[0.06] border border-white/10 rounded-lg px-2 py-2 text-slate-100 text-[13px] outline-none focus:border-sky-400/50 shrink-0"
-            >
-              <option v-for="h in HOUR_OPTIONS" :key="h" :value="h">{{ h }}時間</option>
-            </select>
+            <KoubaHoursStepper v-model="subtaskHoursDraft" />
             <button
               type="submit"
               class="h-9 px-4 rounded-full bg-sky-500 text-white text-[13px] font-bold hover:bg-sky-400 disabled:opacity-40 shrink-0"

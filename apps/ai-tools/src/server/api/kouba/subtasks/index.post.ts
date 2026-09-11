@@ -1,6 +1,6 @@
 import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, findOwnedTask, normalizeHours } from '~/server/utils/kouba'
 
-// サブタスクを新規作成する。時間は日別に分けず、作成時に選んだ1個の値をまとめて持つ。
+// サブタスクを新規作成する。時間は日別に分けず、作成時に +/- で決めた1個の値（30分刻み）をまとめて持つ。
 export default defineEventHandler(async (event) => {
   const user = await requireKoubaUser(event)
   const db = requireKoubaDb(event)
@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   if (!title) throw createError({ statusCode: 400, message: 'サブタスク名を入力してください' })
 
   const hours = normalizeHours(body?.hours)
-  if (hours === null) throw createError({ statusCode: 400, message: '時間は1〜30の範囲で指定してください' })
+  if (hours === null) throw createError({ statusCode: 400, message: '時間は30分〜30時間の範囲（30分刻み）で指定してください' })
 
   const task = await findOwnedTask(db, user.id, taskId)
   if (!task) throw createError({ statusCode: 404, message: 'タスクが見つかりません' })

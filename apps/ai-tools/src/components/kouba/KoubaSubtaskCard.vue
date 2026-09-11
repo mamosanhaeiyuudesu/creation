@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
 import type { KoubaSubtask } from '~/types/kouba'
-import { KOUBA_MIN_HOURS, KOUBA_MAX_HOURS } from '~/types/kouba'
+import KoubaHoursStepper from '~/components/kouba/KoubaHoursStepper.vue'
 
 const props = defineProps<{ subtask: KoubaSubtask; saving: boolean }>()
 const emit = defineEmits<{
@@ -19,8 +19,6 @@ function runOnEnter(e: KeyboardEvent, fn: () => void) {
   fn()
 }
 
-const HOUR_OPTIONS = Array.from({ length: KOUBA_MAX_HOURS - KOUBA_MIN_HOURS + 1 }, (_, i) => i + KOUBA_MIN_HOURS)
-
 const editingTitle = ref(false)
 const titleDraft = ref('')
 const titleInputEl = ref<HTMLInputElement | null>(null)
@@ -35,11 +33,6 @@ function commitTitle() {
   editingTitle.value = false
   const title = titleDraft.value.trim()
   if (title && title !== props.subtask.title) emit('rename', title)
-}
-
-function onChangeHours(e: Event) {
-  const hours = Number((e.target as HTMLSelectElement).value)
-  if (hours !== props.subtask.hours) emit('setHours', hours)
 }
 </script>
 
@@ -60,14 +53,12 @@ function onChangeHours(e: Event) {
       @click="startEdit"
     >{{ subtask.title }}</h3>
 
-    <select
-      class="bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1.5 text-slate-100 text-xs outline-none focus:border-sky-400/50 shrink-0"
-      :value="subtask.hours"
+    <!-- +/- を押すたびその場で保存する（30分刻み） -->
+    <KoubaHoursStepper
+      :model-value="subtask.hours"
       :disabled="saving"
-      @change="onChangeHours"
-    >
-      <option v-for="h in HOUR_OPTIONS" :key="h" :value="h">{{ h }}時間</option>
-    </select>
+      @update:model-value="(hours) => emit('setHours', hours)"
+    />
 
     <button
       class="w-7 h-7 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"

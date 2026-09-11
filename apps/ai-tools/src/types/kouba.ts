@@ -5,7 +5,7 @@ export interface KoubaSubtask {
   id: string
   taskId: string
   title: string
-  hours: number // 1〜30
+  hours: number // 0.5〜30（30分刻み）
   createdAt: string
 }
 
@@ -54,6 +54,24 @@ export function svgIconDataUrl(svg: string): string {
 /** アイコン生成の対象。 */
 export type KoubaIconTarget = 'category' | 'task'
 
-/** サブタスクの作業時間の入力範囲（select式）。 */
-export const KOUBA_MIN_HOURS = 1
+/**
+ * サブタスクの作業時間。+/- ボタンで 30 分（0.5時間）ずつ増減する。
+ * 0.5 は2進小数で誤差なく表せるので、足し引きも合計も丸め無しで一致する。
+ */
+export const KOUBA_HOURS_STEP = 0.5
+export const KOUBA_MIN_HOURS = 0.5
 export const KOUBA_MAX_HOURS = 30
+
+/** 30分刻みに丸めて 0.5〜30 に収める（+/- ボタンで範囲を超えないようにする用）。 */
+export function clampKoubaHours(hours: number): number {
+  const stepped = Math.round(hours / KOUBA_HOURS_STEP) * KOUBA_HOURS_STEP
+  return Math.min(KOUBA_MAX_HOURS, Math.max(KOUBA_MIN_HOURS, stepped))
+}
+
+/** 1.5 →「1時間30分」、2 →「2時間」、0.5 →「30分」。30分刻みなので端数はこの2通りだけ。 */
+export function formatKoubaHours(hours: number): string {
+  const h = Math.floor(hours)
+  const half = hours - h >= KOUBA_HOURS_STEP
+  if (!h) return '30分'
+  return half ? `${h}時間30分` : `${h}時間`
+}

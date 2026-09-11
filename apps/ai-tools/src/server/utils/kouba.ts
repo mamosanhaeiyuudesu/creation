@@ -1,7 +1,7 @@
 // 工数管理ツール (kouba) のサーバー共通処理。
 // 認証は既存の WHISPER_DB / users / sessions に相乗りし、カテゴリ・タスクは user_id でスコープする。
 import { getSessionUser, getAppDb } from '~/server/utils/auth'
-import { KOUBA_DEFAULT_CATEGORY_ICON, KOUBA_DEFAULT_TASK_ICON, KOUBA_MIN_HOURS, KOUBA_MAX_HOURS } from '~/types/kouba'
+import { KOUBA_DEFAULT_CATEGORY_ICON, KOUBA_DEFAULT_TASK_ICON, KOUBA_MIN_HOURS, KOUBA_MAX_HOURS, KOUBA_HOURS_STEP } from '~/types/kouba'
 import type { KoubaCategory, KoubaTask, KoubaSubtask } from '~/types/kouba'
 
 export interface KoubaUser {
@@ -43,7 +43,7 @@ export async function ensureKoubaTables(db: any): Promise<void> {
       user_id TEXT NOT NULL,
       task_id TEXT NOT NULL,
       title TEXT NOT NULL DEFAULT '',
-      hours INTEGER NOT NULL DEFAULT 1,
+      hours REAL NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
     `CREATE INDEX IF NOT EXISTS idx_kouba_subtasks_task ON kouba_subtasks(task_id)`,
@@ -55,7 +55,7 @@ export async function ensureKoubaTables(db: any): Promise<void> {
     `ALTER TABLE kouba_categories ADD COLUMN icon TEXT NOT NULL DEFAULT '${KOUBA_DEFAULT_CATEGORY_ICON}'`,
     `ALTER TABLE kouba_tasks ADD COLUMN icon TEXT NOT NULL DEFAULT '${KOUBA_DEFAULT_TASK_ICON}'`,
     `ALTER TABLE kouba_tasks ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`,
-    `ALTER TABLE kouba_subtasks ADD COLUMN hours INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE kouba_subtasks ADD COLUMN hours REAL NOT NULL DEFAULT 1`,
   ]
   for (const sql of columns) await db.prepare(sql).run().catch(() => {})
 }
@@ -80,11 +80,18 @@ export function normalizeIcon(raw: unknown, fallback: string): string {
   return s || fallback
 }
 
-/** 作業時間（1〜30の整数）の正規化。範囲外・非数値なら null。 */
+/**
+ * 作業時間（0.5〜30、30分刻み）の正規化。範囲外・非数値なら null。
+ * 刻みからずれた値は 30分単位に丸める（画面は +/- しか出さないので、ずれるのは直接APIを叩いたときだけ）。
+ * 本番の既存テーブルの hours は INTEGER 宣言のままだが（新規作成分だけ REAL）、SQLite の型アフィニティは
+ * 整数にできない実数を REAL のまま保存するので 1.5 はそのまま入る（実測で確認済み＝列の作り直しは不要）。
+ */
 export function normalizeHours(raw: unknown): number | null {
   const n = Number(raw)
-  if (!Number.isInteger(n) || n < KOUBA_MIN_HOURS || n > KOUBA_MAX_HOURS) return null
-  return n
+  if (!Number.isFinite(n)) return null
+  const stepped = Math.round(n / KOUBA_HOURS_STEP) * KOUBA_HOURS_STEP
+  if (stepped < KOUBA_MIN_HOURS || stepped > KOUBA_MAX_HOURS) return null
+  return stepped
 }
 
 // ── 読み取り・整形 ──────────────────────────────

@@ -56,20 +56,24 @@ database_id = "7698b7b5-b0c8-4289-b19e-a99c669ca75f"
 
 # Cron Trigger
 #   "0 7 * * *"  = UTC 7:00 ＝ JST 16:00 → mlb-sync
-#   "0 22 * * *" = UTC 22:00 ＝ JST 翌朝 7:00 → news-digest（収集・要約・分類）
-#   "15 22 * * *" = UTC 22:15 ＝ JST 翌朝 7:15 → news-trends（潮流の考察を更新）
+#   "0 22 */3 * *" = UTC 22:00 ＝ JST 翌朝 7:00、3日に1回 → news-digest（収集・要約・分類）
+#   "15 22 */3 * *" = UTC 22:15 ＝ JST 翌朝 7:15、3日に1回 → news-trends（潮流の考察を更新）
 # news-digest と news-trends を分けているのは Cloudflare Workers の subrequest 上限
 # （1回の呼び出しにつき、Freeプランは50個。外部fetch()もD1バインディング経由のアクセスも
 # 同じ枠でカウントされる）に当たらないため。15フィードの取得＋要約＋考察更新を1回に
 # 詰め込むと簡単に超える（実際に "Too many subrequests" で失敗した）。詳しくは
 # src/server/utils/news-run.ts の冒頭コメント参照。
+# 「3日に1回」は日付(day-of-month)のステップ指定（毎月1,4,7...日に実行）で表現している。
+# cron に「N日おき」を直接書く構文は無いための近似で、月をまたぐ境目だけ間隔が1〜2日ずれる
+# （例: 31日→翌月1日）。ずれを許容できない実行間隔が必要になったら Durable Object の
+# Alarm 等への置き換えを検討すること。
 # mlb-sync が毎時ではなく1日1回なのは、差分ではなく毎回シーズン全体を INSERT OR REPLACE するため、
 # 回数がそのまま D1 の書き込み行数（無料枠10万行/日）になるから。米国の試合は西海岸ぶんも
 # UTC 6:00 頃までに終わるので、その後の 7:00 に前日ぶんをまとめて取り込む。
 # 曜日を絞るときは UTC 基準になる点に注意（JST 平日の朝 = "0 22 * * 0-4"）。
 # nuxt.config.ts の nitro.scheduledTasks の式と必ず揃えること（片方だけ変えると動かない）。
 [triggers]
-crons = ["0 7 * * *", "0 22 * * *", "15 22 * * *"]
+crons = ["0 7 * * *", "0 22 */3 * *", "15 22 */3 * *"]
 
 [build]
 command = "npm run build"
