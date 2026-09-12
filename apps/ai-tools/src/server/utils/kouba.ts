@@ -1,8 +1,15 @@
 // 工数管理ツール (kouba) のサーバー共通処理。
 // 認証は既存の WHISPER_DB / users / sessions に相乗りし、カテゴリ・タスクは user_id でスコープする。
 import { getSessionUser, getAppDb } from '~/server/utils/auth'
-import { KOUBA_DEFAULT_CATEGORY_ICON, KOUBA_DEFAULT_TASK_ICON, KOUBA_MIN_HOURS, KOUBA_MAX_HOURS, KOUBA_HOURS_STEP } from '~/types/kouba'
-import type { KoubaCategory, KoubaTask, KoubaSubtask } from '~/types/kouba'
+import {
+  KOUBA_DEFAULT_CATEGORY_ICON,
+  KOUBA_DEFAULT_TASK_ICON,
+  KOUBA_MIN_HOURS,
+  KOUBA_MAX_HOURS,
+  KOUBA_HOURS_STEP,
+  KOUBA_THEME_MIN_HISTORY_MS,
+} from '~/types/kouba'
+import type { KoubaCategory, KoubaTask, KoubaSubtask, KoubaTheme } from '~/types/kouba'
 
 export interface KoubaUser {
   id: string
@@ -47,6 +54,15 @@ export async function ensureKoubaTables(db: any): Promise<void> {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
     `CREATE INDEX IF NOT EXISTS idx_kouba_subtasks_task ON kouba_subtasks(task_id)`,
+    `CREATE TABLE IF NOT EXISTS kouba_themes (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      text TEXT NOT NULL DEFAULT '',
+      started_at TEXT NOT NULL,
+      ended_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_kouba_themes_user ON kouba_themes(user_id, started_at DESC)`,
   ]
   for (const sql of statements) await db.prepare(sql).run().catch(() => {})
 
@@ -81,7 +97,8 @@ export function normalizeIcon(raw: unknown, fallback: string): string {
 }
 
 /**
- * 作業時間（0.5〜30、30分刻み）の正規化。範囲外・非数値なら null。
+ * 作業時間（0〜30、30分刻み）の正規化。範囲外・非数値なら null。**0 は有効な値**（時間を入れずに置いておける）
+ * なので、呼び出し側は返り値を `=== null` で見ること（falsy 判定だと 0 を弾いてしまう）。
  * 刻みからずれた値は 30分単位に丸める（画面は +/- しか出さないので、ずれるのは直接APIを叩いたときだけ）。
  * 本番の既存テーブルの hours は INTEGER 宣言のままだが（新規作成分だけ REAL）、SQLite の型アフィニティは
  * 整数にできない実数を REAL のまま保存するので 1.5 はそのまま入る（実測で確認済み＝列の作り直しは不要）。
@@ -242,4 +259,68 @@ export async function nextTaskSortOrder(db: any, categoryId: string): Promise<nu
     .bind(categoryId)
     .first<{ m: number }>()
   return (row?.m ?? -1) + 1
+}
+
+// ── 今のテーマ ──────────────────────────────
+
+interface ThemeRow {
+  id: string
+  text: string
+  started_at: string
+  ended_at: string | null
+}
+
+function shapeTheme(row: ThemeRow): KoubaTheme {
+  return { id: row.id, text: row.text, startedAt: row.started_at, endedAt: row.ended_at }
+}
+
+/** 今掲げているテーマ（ended_at が NULL の1件）。無ければ null。 */
+export async function loadCurrentTheme(db: any, userId: string): Promise<KoubaTheme | null> {
+  const row = await db
+    .prepare('SELECT id, text, started_at, ended_at FROM kouba_themes WHERE user_id = ? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1')
+    .bind(userId)
+    .first<ThemeRow>()
+  return row ? shapeTheme(row) : null
+}
+
+/**
+ * 掲載を終えたテーマの履歴（新しい順）。**1日（24時間）以上掲げたものだけ**を返す＝
+ * 書き間違いの直しのような短命な版まで並べても読む価値が無いため。
+ * julianday() は "...Z" 付きの ISO8601 をそのまま読める（実測確認済み）ので、絞り込みはSQL側で済ませる。
+ */
+export async function loadThemeHistory(db: any, userId: string): Promise<KoubaTheme[]> {
+  const rows = await db
+    .prepare(
+      `SELECT id, text, started_at, ended_at FROM kouba_themes
+       WHERE user_id = ? AND ended_at IS NOT NULL
+         AND (julianday(ended_at) - julianday(started_at)) * 86400000 >= ?
+       ORDER BY started_at DESC`
+    )
+    .bind(userId, KOUBA_THEME_MIN_HISTORY_MS)
+    .all<ThemeRow>()
+  return (rows?.results ?? []).map(shapeTheme)
+}
+
+/**
+ * テーマを書き換える。今のものに終了時刻を入れて履歴に落とし、新しいものを掲げ始める（空文字なら掲げない）。
+ * 中身が同じなら何もしない＝ただ入力欄からフォーカスが外れただけで履歴が1件増えるのを防ぐ。
+ */
+export async function setCurrentTheme(db: any, userId: string, text: string): Promise<KoubaTheme | null> {
+  const current = await loadCurrentTheme(db, userId)
+  if (current && current.text === text) return current
+
+  const now = new Date().toISOString()
+  const writes: any[] = []
+  if (current) writes.push(db.prepare('UPDATE kouba_themes SET ended_at = ? WHERE id = ?').bind(now, current.id))
+
+  let next: KoubaTheme | null = null
+  if (text) {
+    const id = crypto.randomUUID()
+    writes.push(
+      db.prepare('INSERT INTO kouba_themes (id, user_id, text, started_at) VALUES (?, ?, ?, ?)').bind(id, userId, text, now)
+    )
+    next = { id, text, startedAt: now, endedAt: null }
+  }
+  if (writes.length) await db.batch(writes)
+  return next
 }

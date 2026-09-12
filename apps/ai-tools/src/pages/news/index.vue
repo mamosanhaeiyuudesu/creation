@@ -6,7 +6,7 @@
         <div>
           <h1 class="news-display text-[26px] sm:text-[30px] leading-none tracking-[0.12em]">AI ニュース</h1>
           <p class="text-[12px] text-[var(--news-ink-soft)] mt-2">
-            {{ NEWS_SOURCES.length }}ソースの新着を毎朝7時に集め、5つの潮流に分けています
+            {{ NEWS_SOURCES.length }}ソースの新着を毎朝7時に集め、6つの潮流に分けています
           </p>
         </div>
         <div class="flex items-center gap-1.5">
@@ -191,7 +191,7 @@
 /**
  * news — 毎朝のAIニュースを読むページ。
  *
- * 上段は5潮流の「いまの考察」（直近1ヶ月を踏まえてAIが更新）。クリックすると
+ * 上段は6潮流の「いまの考察」（直近1ヶ月を踏まえてAIが更新）。クリックすると
  * 下の記事一覧がその潮流だけに絞り込まれる＝大きな流れから個別記事へのドリルダウン。
  * 通知やメールは無く、cron（毎朝7時）が集めておいたものをここで読む。
  */

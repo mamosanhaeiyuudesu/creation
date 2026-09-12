@@ -43,7 +43,7 @@ export interface Union {
   note?: string
 }
 
-export type RelationType = 'conflict' | 'cutoff' | 'enmeshed' | 'close' | 'distant'
+export type RelationType = 'conflict' | 'cutoff' | 'enmeshed' | 'codependent' | 'close' | 'distant'
 
 export interface Relation {
   from: string
@@ -60,7 +60,7 @@ export interface GenogramData {
 
 export const GENDERS: Gender[] = ['M', 'F', 'U']
 export const UNION_STATUSES: UnionStatus[] = ['married', 'divorced', 'separated', 'distant', 'conflict']
-export const RELATION_TYPES: RelationType[] = ['conflict', 'cutoff', 'enmeshed', 'close', 'distant']
+export const RELATION_TYPES: RelationType[] = ['conflict', 'cutoff', 'enmeshed', 'codependent', 'close', 'distant']
 
 /**
  * 本人(isSelf)から見た続柄の選択肢。「祖父(父方)」のような父方/母方の区別は持たない

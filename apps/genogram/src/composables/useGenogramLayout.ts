@@ -757,6 +757,7 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
     conflict: '対立',
     cutoff: '断絶',
     enmeshed: '巻き込み',
+    codependent: '共依存',
     close: '良好',
     distant: '疎遠',
   }

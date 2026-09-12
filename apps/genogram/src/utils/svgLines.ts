@@ -70,6 +70,17 @@ export function perpendicularTick(x1: number, y1: number, x2: number, y2: number
   }
 }
 
+/** 線を法線方向に offset だけ平行移動した座標を返す(共依存の二重線用) */
+export function offsetLine(x1: number, y1: number, x2: number, y2: number, offset: number) {
+  const { px, py } = dir(x1, y1, x2, y2)
+  return {
+    x1: x1 + px * offset,
+    y1: y1 + py * offset,
+    x2: x2 + px * offset,
+    y2: y2 + py * offset,
+  }
+}
+
 /** 直線を(clipStart, clipEnd)の分だけ端点から内側に詰めた座標を返す(シンボル境界を避けるため) */
 export function clipLine(x1: number, y1: number, x2: number, y2: number, clipStart: number, clipEnd: number) {
   const { ux, uy, len } = dir(x1, y1, x2, y2)

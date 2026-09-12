@@ -127,6 +127,26 @@ export function useKouba() {
     })
   }
 
+  /**
+   * ドラッグ&ドロップ用: カテゴリの並び順（＝3×3グリッド内の位置）を丸ごと反映する。
+   * 時間の +/- と同じく、手元の並びを先に入れ替えてから保存する（load() で取り直すと
+   * 板全体が一瞬「読み込み中…」に化けて、掴んで放した手応えが消えるため）。失敗したら取り直して戻す。
+   */
+  async function reorderCategories(categoryIds: string[]) {
+    const before = categories.value
+    const byId = new Map(before.map((c) => [c.id, c]))
+    const reordered = categoryIds.map((id) => byId.get(id)).filter((c): c is KoubaCategory => !!c)
+    if (reordered.length !== before.length) return
+    categories.value = reordered
+    actionError.value = ''
+    try {
+      await $fetch('/api/kouba/categories/reorder', { method: 'POST', body: { categoryIds } })
+    } catch (e: any) {
+      actionError.value = e?.data?.message || '並べ替えに失敗しました'
+      await load()
+    }
+  }
+
   /** ドラッグ&ドロップ用: 指定カテゴリの並び順（+必要なら移動）を丸ごと反映する。 */
   async function reorderTasks(categoryId: string, taskIds: string[]) {
     await withSaving(async () => {
@@ -218,6 +238,7 @@ export function useKouba() {
     addCategory,
     updateCategory,
     deleteCategory,
+    reorderCategories,
     addTask,
     updateTask,
     deleteTask,

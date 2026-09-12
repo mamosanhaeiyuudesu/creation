@@ -27,7 +27,7 @@ export interface NewsSource {
 }
 
 export const NEWS_SOURCES: NewsSource[] = [
-  // 知的労働の自動化
+  // コーディング・マーケの自動化
   {
     id: 'openai',
     name: 'OpenAI',
@@ -47,7 +47,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://blog.hubspot.com/marketing/rss.xml',
     enabled: true,
   },
-  // 実世界に手を伸ばすAI
+  // フィジカルAI
   {
     id: 'ieee-spectrum-robotics',
     name: 'IEEE Spectrum Robotics',
@@ -60,13 +60,14 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://www.therobotreport.com/feed/',
     enabled: true,
   },
+  // 農業・畜産とAI
   {
     id: 'agfundernews',
     name: 'AgFunderNews',
     url: 'https://agfundernews.com/feed',
     enabled: true,
   },
-  // 土台を巡る競争
+  // 半導体と電力の競争
   {
     id: 'semianalysis',
     name: 'SemiAnalysis',
@@ -85,7 +86,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://www.datacenterdynamics.com/en/rss/',
     enabled: true,
   },
-  // 安全保障とガバナンス
+  // 軍事・サイバーとAI規制
   {
     id: 'the-record',
     name: 'The Record',
@@ -104,7 +105,7 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: 'https://krebsonsecurity.com/feed/',
     enabled: true,
   },
-  // 心と健康に触れるAI
+  // メンタルヘルスとAI
   {
     id: 'stat-news',
     name: 'STAT News',

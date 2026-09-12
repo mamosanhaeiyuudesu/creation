@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   if (!title) throw createError({ statusCode: 400, message: 'サブタスク名を入力してください' })
 
   const hours = normalizeHours(body?.hours)
-  if (hours === null) throw createError({ statusCode: 400, message: '時間は30分〜30時間の範囲（30分刻み）で指定してください' })
+  if (hours === null) throw createError({ statusCode: 400, message: '時間は0〜30時間の範囲（30分刻み）で指定してください' })
 
   const task = await findOwnedTask(db, user.id, taskId)
   if (!task) throw createError({ statusCode: 404, message: 'タスクが見つかりません' })

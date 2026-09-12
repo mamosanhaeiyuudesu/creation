@@ -92,6 +92,11 @@
           <line v-bind="relationTick(rl, 1 / 3)" class="genogram-relation-cutoff-tick" />
           <line v-bind="relationTick(rl, 2 / 3)" class="genogram-relation-cutoff-tick" />
         </template>
+        <!-- 共依存は、互いに抜け出せない結びつきとして二重線で表す(良好=実線1本、巻き込み=波線と区別する) -->
+        <template v-else-if="rl.relation.type === 'codependent'">
+          <line v-bind="offsetLine(rl.x1, rl.y1, rl.x2, rl.y2, 3)" class="genogram-relation-codependent" />
+          <line v-bind="offsetLine(rl.x1, rl.y1, rl.x2, rl.y2, -3)" class="genogram-relation-codependent" />
+        </template>
         <line
           v-else
           :x1="rl.x1"
@@ -226,6 +231,10 @@
           :class="item.kind === 'union' ? 'genogram-union-conflict' : 'genogram-relation-conflict'"
         />
         <path v-else-if="item.value === 'enmeshed'" :d="wavePath(0, 0, 34, 0, 4, 4)" class="genogram-relation-enmeshed" />
+        <template v-else-if="item.value === 'codependent'">
+          <line x1="0" y1="-3" x2="34" y2="-3" class="genogram-relation-codependent" />
+          <line x1="0" y1="3" x2="34" y2="3" class="genogram-relation-codependent" />
+        </template>
         <template v-else-if="item.value === 'cutoff'">
           <line x1="0" y1="0" x2="34" y2="0" class="genogram-relation-cutoff" />
           <line v-bind="relationTick({ x1: 0, y1: 0, x2: 34, y2: 0 }, 1 / 3)" class="genogram-relation-cutoff-tick" />
@@ -257,7 +266,7 @@
 import { computed, ref } from 'vue'
 import type { GenogramData, Union } from '~/types/genogram'
 import { computeGenogramLayout, type LayoutNode, type LegendItem } from '~/composables/useGenogramLayout'
-import { zigzagPoints, wavePath, diagonalTick, perpendicularTick } from '~/utils/svgLines'
+import { zigzagPoints, wavePath, diagonalTick, perpendicularTick, offsetLine } from '~/utils/svgLines'
 import {
   isDeceased,
   hasEnrichedInfo,
@@ -479,6 +488,11 @@ function legendLineClass(item: LegendItem) {
   fill: none;
   stroke: #1f2933;
   stroke-width: 4;
+}
+
+.genogram-relation-codependent {
+  stroke: #1f2933;
+  stroke-width: 2;
 }
 
 .genogram-relation-close {

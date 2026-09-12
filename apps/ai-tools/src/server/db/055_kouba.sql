@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS kouba_subtasks (
   user_id    TEXT NOT NULL,
   task_id    TEXT NOT NULL,
   title      TEXT NOT NULL DEFAULT '',
-  hours      REAL NOT NULL DEFAULT 1,        -- 0.5〜30（+/- で30分ずつ増減。編集可能）
+  hours      REAL NOT NULL DEFAULT 1,        -- 0〜30（+/- で30分ずつ増減。編集可能。0時間のまま置いておける）
                                              -- ※先にINTEGERで作った既存テーブルもそのままでよい＝SQLiteの型アフィニティは
                                              --   整数にできない実数をREALのまま保存するので 1.5 がちゃんと入る（実測確認済み）
   created_at TEXT NOT NULL DEFAULT (datetime('now'))

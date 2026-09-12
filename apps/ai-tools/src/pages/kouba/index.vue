@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useKouba, KOUBA_GRID_SIZE } from '~/composables/kouba/useKouba'
+import { useKoubaTheme } from '~/composables/kouba/useKoubaTheme'
 import KoubaTaskModal from '~/components/kouba/KoubaTaskModal.vue'
+import KoubaThemeBanner from '~/components/kouba/KoubaThemeBanner.vue'
+import KoubaThemeHistoryModal from '~/components/kouba/KoubaThemeHistoryModal.vue'
 import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
 import KoubaIconEditor from '~/components/kouba/KoubaIconEditor.vue'
 import KoubaConfirmModal from '~/components/kouba/KoubaConfirmModal.vue'
@@ -28,10 +31,17 @@ const showSettingsMenu = ref(false)
 
 const {
   categories, loading, loadError, saving, actionError, iconBusyIds, load, generateIcon,
-  addCategory, updateCategory, deleteCategory,
+  addCategory, updateCategory, deleteCategory, reorderCategories,
   addTask, updateTask, deleteTask, reorderTasks,
   addSubtask, updateSubtask, setSubtaskHours, flushPendingHours, deleteSubtask,
 } = useKouba()
+
+// ── 今のテーマ（板のトップに掲げる一言）──────────────────────────────
+const {
+  current: currentTheme, history: themeHistory, saving: themeSaving, error: themeError,
+  load: loadTheme, save: saveTheme,
+} = useKoubaTheme()
+const showThemeHistory = ref(false)
 
 // 日本語入力の変換確定Enterでも @keydown.enter は発火するため、確定中は無視する
 function isImeEnter(e: KeyboardEvent): boolean {
@@ -191,6 +201,46 @@ async function onConfirmDelete() {
   }
 }
 
+// ── カテゴリのドラッグ&ドロップ（3×3グリッド内の並べ替え）──────────────────────────────
+// 掴むのはカテゴリヘッダーだけ（枠ごと draggable にすると、中の付箋のドラッグや名前の入力と取り合いになる）。
+const dragCategoryId = ref<string | null>(null)
+// 掴んだカテゴリが入る位置。カテゴリIDなら「その手前」、'end' なら末尾（空き枠の上）、null はドラッグ中でない。
+const dropBeforeCategoryId = ref<string | 'end' | null>(null)
+
+/** 名前・アイコンの編集中は掴めなくする（入力欄の中でのドラッグ選択を邪魔しないため）。 */
+function isCategoryDraggable(cat: KoubaCategory): boolean {
+  return editingCategoryId.value !== cat.id && editingCategoryIconId.value !== cat.id
+}
+function onCategoryDragStart(e: DragEvent, cat: KoubaCategory) {
+  dragCategoryId.value = cat.id
+  e.dataTransfer?.setData('text/plain', cat.id)
+  if (!e.dataTransfer) return
+  e.dataTransfer.effectAllowed = 'move'
+  // ヘッダーだけを掴んでいるので、そのままだと幽霊画像がヘッダーの帯になる。枠ごと掴んでいるように見せる
+  const frame = document.getElementById(`kouba-category-${cat.id}`)
+  if (frame) e.dataTransfer.setDragImage(frame, 40, 20)
+}
+function onCategoryDragEnd() {
+  dragCategoryId.value = null
+  dropBeforeCategoryId.value = null
+}
+/** cat が null の枠（空き枠）は末尾へ入れる意味。 */
+function onCategorySlotDragOver(cat: KoubaCategory | null) {
+  if (!dragCategoryId.value) return
+  dropBeforeCategoryId.value = cat ? cat.id : 'end'
+}
+async function onCategorySlotDrop(cat: KoubaCategory | null) {
+  const id = dragCategoryId.value
+  onCategoryDragEnd()
+  if (!id) return
+  const ids = categories.value.map((c) => c.id).filter((v) => v !== id)
+  let insertAt = cat && cat.id !== id ? ids.indexOf(cat.id) : ids.length
+  if (insertAt < 0) insertAt = ids.length
+  ids.splice(insertAt, 0, id)
+  if (ids.every((v, i) => v === categories.value[i]?.id)) return // 並びが変わらないなら送らない
+  await reorderCategories(ids)
+}
+
 // ── タスクのドラッグ&ドロップ（カテゴリ間の移動・同一カテゴリ内の並べ替え）──────────────────────────────
 const dragTaskId = ref<string | null>(null)
 const dragOverCategoryId = ref<string | null>(null)
@@ -212,9 +262,14 @@ function onCategoryDragOver(cat: KoubaCategory) {
   dragOverTaskId.value = null
 }
 function onTaskDragOver(task: KoubaTask) {
+  // 付箋側のハンドラは .stop で伝播を止めるので、カテゴリを掴んでいるときはここで枠の処理へ引き取る
+  if (dragCategoryId.value) return onCategorySlotDragOver(findCategory(task.categoryId))
   if (!dragTaskId.value) return
   dragOverCategoryId.value = task.categoryId
   dragOverTaskId.value = task.id
+}
+function findCategory(id: string): KoubaCategory | null {
+  return categories.value.find((c) => c.id === id) ?? null
 }
 async function moveTaskTo(taskId: string, targetCategoryId: string, beforeTaskId: string | null) {
   const targetCat = categories.value.find((c) => c.id === targetCategoryId)
@@ -232,6 +287,7 @@ async function onCategoryDrop(cat: KoubaCategory) {
   await moveTaskTo(taskId, cat.id, null)
 }
 async function onTaskDrop(cat: KoubaCategory, targetTask: KoubaTask) {
+  if (dragCategoryId.value) return await onCategorySlotDrop(cat)
   const taskId = dragTaskId.value
   onTaskDragEnd()
   if (!taskId || taskId === targetTask.id) return
@@ -259,11 +315,15 @@ async function doLogout() {
 
 onMounted(async () => {
   await checkAuth()
-  if (isLoggedIn.value || isDev) load()
-  else loading.value = false
+  if (isLoggedIn.value || isDev) {
+    load()
+    loadTheme()
+  } else loading.value = false
 })
 watch(isLoggedIn, (v) => {
-  if (v) load()
+  if (!v) return
+  load()
+  loadTheme()
 })
 
 // スマホでアプリを切り替えたときなど、そのままページが捨てられても時間の +/- を取りこぼさないように送り切る
@@ -286,6 +346,9 @@ onBeforeUnmount(() => {
 
   <!-- 設定メニューの背景クリックで閉じる -->
   <div v-if="showSettingsMenu" class="fixed inset-0 z-40" @click="showSettingsMenu = false" />
+
+  <!-- これまでのテーマ -->
+  <KoubaThemeHistoryModal v-model:show="showThemeHistory" :themes="themeHistory" />
 
   <!-- タスク詳細モーダル -->
   <KoubaTaskModal
@@ -337,6 +400,15 @@ onBeforeUnmount(() => {
       </header>
 
       <template v-if="isLoggedIn || isDev">
+        <KoubaThemeBanner
+          :theme="currentTheme"
+          :history-count="themeHistory.length"
+          :saving="themeSaving"
+          :error="themeError"
+          @save="saveTheme"
+          @open-history="showThemeHistory = true"
+        />
+
         <div v-if="loading" class="mt-16 text-center text-slate-500 text-sm animate-pulse">読み込み中…</div>
         <div v-else-if="loadError" class="mt-16 text-center text-rose-400 text-sm flex flex-col items-center gap-3">
           <p class="m-0">{{ loadError }}</p>
@@ -353,11 +425,25 @@ onBeforeUnmount(() => {
                 <!-- カテゴリの枠 -->
                 <div
                   v-if="cat"
+                  :id="`kouba-category-${cat.id}`"
                   class="rounded-2xl border bg-white/[0.03] flex flex-col min-h-[280px] overflow-hidden transition-colors"
-                  :class="dragOverCategoryId === cat.id ? 'border-sky-400/70 ring-2 ring-sky-400/30' : 'border-white/10'"
+                  :class="[
+                    dragOverCategoryId === cat.id || dropBeforeCategoryId === cat.id
+                      ? 'border-sky-400/70 ring-2 ring-sky-400/30'
+                      : 'border-white/10',
+                    dragCategoryId === cat.id ? 'opacity-40' : '',
+                  ]"
+                  @dragover.prevent="onCategorySlotDragOver(cat)"
+                  @drop.prevent="onCategorySlotDrop(cat)"
                 >
-                  <!-- カテゴリヘッダー -->
-                  <div class="flex items-start justify-between gap-2 px-4 pt-3.5 pb-3 border-b border-white/[0.08]">
+                  <!-- カテゴリヘッダー。ここがカテゴリを掴む取っ手（枠ごと draggable にすると付箋のドラッグと取り合いになる） -->
+                  <div
+                    class="flex items-start justify-between gap-2 px-4 pt-3.5 pb-3 border-b border-white/[0.08]"
+                    :class="isCategoryDraggable(cat) ? 'cursor-grab active:cursor-grabbing' : ''"
+                    :draggable="isCategoryDraggable(cat)"
+                    @dragstart="onCategoryDragStart($event, cat)"
+                    @dragend="onCategoryDragEnd"
+                  >
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center gap-2 relative">
                         <button
@@ -401,6 +487,10 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
+                      <span
+                        class="w-5 h-7 flex items-center justify-center text-slate-600 text-sm select-none"
+                        title="ヘッダーをドラッグすると枠の位置を入れ替えられます"
+                      >⠿</span>
                       <button
                         class="w-7 h-7 rounded-lg text-slate-400 hover:bg-white/10 flex items-center justify-center text-sm"
                         title="タスクを追加"
@@ -469,7 +559,13 @@ onBeforeUnmount(() => {
                 </div>
 
                 <!-- 先頭の空き枠（カテゴリ追加）。カテゴリは前から詰めて並ぶので、追加できるのはこの枠だけ -->
-                <div v-else-if="i === categories.length" class="rounded-2xl border border-dashed border-white/15 min-h-[280px] flex items-center justify-center p-4">
+                <div
+                  v-else-if="i === categories.length"
+                  class="rounded-2xl border border-dashed min-h-[280px] flex items-center justify-center p-4 transition-colors"
+                  :class="dropBeforeCategoryId === 'end' ? 'border-sky-400/70 ring-2 ring-sky-400/30' : 'border-white/15'"
+                  @dragover.prevent="onCategorySlotDragOver(null)"
+                  @drop.prevent="onCategorySlotDrop(null)"
+                >
                   <form v-if="addingCategory" class="w-full flex flex-col gap-2" @submit.prevent="submitAddCategory">
                     <input
                       id="kouba-add-category"
@@ -496,8 +592,13 @@ onBeforeUnmount(() => {
                   </button>
                 </div>
 
-                <!-- 残りの空き枠（3×3の形を保つだけ） -->
-                <div v-else class="rounded-2xl border border-dashed border-white/[0.06] min-h-[280px]" />
+                <!-- 残りの空き枠（3×3の形を保つだけ。カテゴリを落とすと末尾へ回る） -->
+                <div
+                  v-else
+                  class="rounded-2xl border border-dashed border-white/[0.06] min-h-[280px]"
+                  @dragover.prevent="onCategorySlotDragOver(null)"
+                  @drop.prevent="onCategorySlotDrop(null)"
+                />
               </template>
             </div>
           </div>
