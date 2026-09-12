@@ -344,6 +344,7 @@
   margin-bottom: 36px;
 }
 
+
 .sg-hero-cta {
   display: inline-flex;
   align-items: center;
@@ -368,6 +369,7 @@
 }
 
 .sg-hero-deco {
+  position: relative;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -385,6 +387,59 @@
   height: auto;
   border-radius: 50%;
   box-shadow: 0 0 0 1px rgba(0, 118, 134, 0.13), 0 24px 48px -16px rgba(0, 118, 134, 0.35);
+}
+
+/* ヒーロー右側にかぶせる、大きめ太字のポスター風タグ */
+.sg-hero-float {
+  position: absolute;
+  width: 152px;
+  padding: 16px 14px;
+  border-radius: 18px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 20px 36px -14px rgba(0, 40, 46, 0.5);
+  animation: mmFadeSlideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sg-hero-float:hover {
+  transform: rotate(0deg) scale(1.04) !important;
+}
+
+.sg-hero-float-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  margin: 0 auto 10px;
+}
+
+.sg-hero-float-label {
+  display: block;
+  font-family: var(--f-sans);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+}
+
+.sg-hero-float--ai {
+  top: -6%;
+  left: -16%;
+  background: linear-gradient(145deg, var(--c-primary), var(--c-primary-dark));
+  transform: rotate(-7deg);
+  animation-delay: 0.2s;
+}
+
+.sg-hero-float--logic {
+  bottom: -4%;
+  right: -18%;
+  background: linear-gradient(145deg, var(--c-accent), var(--c-accent-light));
+  transform: rotate(6deg);
+  animation-delay: 0.4s;
 }
 
 /* SVG 同心円アニメーション */
@@ -1223,7 +1278,42 @@
   .sg-hero-deco {
     max-width: 220px;
     margin: 0 auto;
-    opacity: 0.6;
+  }
+
+  .sg-hero-photo {
+    opacity: 0.75;
+  }
+
+  .sg-hero-float {
+    width: 116px;
+    padding: 12px 10px;
+    border-radius: 14px;
+  }
+
+  .sg-hero-float-icon {
+    width: 28px;
+    height: 28px;
+    margin-bottom: 7px;
+  }
+
+  .sg-hero-float-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .sg-hero-float-label {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .sg-hero-float--ai {
+    top: -8%;
+    left: -10%;
+  }
+
+  .sg-hero-float--logic {
+    bottom: -8%;
+    right: -12%;
   }
 
   .sg-for-you-inner {

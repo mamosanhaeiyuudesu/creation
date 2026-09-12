@@ -84,7 +84,7 @@
             <option value="conflict">対立</option>
             <option value="cutoff">断絶</option>
             <option value="enmeshed">巻き込み</option>
-            <option value="close">密着(良好)</option>
+            <option value="close">良好</option>
             <option value="distant">疎遠</option>
           </select>
         </div>

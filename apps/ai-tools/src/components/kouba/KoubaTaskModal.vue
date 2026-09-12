@@ -23,7 +23,9 @@ const emit = defineEmits<{
   regenerateIcon: [instruction: string]
   delete: []
   addSubtask: [payload: { title: string; hours: number }]
-  updateSubtask: [payload: { id: string; title?: string; hours?: number }]
+  updateSubtask: [payload: { id: string; title: string }]
+  /** 時間の +/-。連打されるので rename とは別の口にして、ページ側でまとめ保存に回す。 */
+  setSubtaskHours: [payload: { id: string; hours: number }]
   deleteSubtask: [subtask: KoubaSubtask]
 }>()
 
@@ -191,7 +193,7 @@ function onChangeCategory(e: Event) {
               :subtask="st"
               :saving="saving"
               @rename="(title) => emit('updateSubtask', { id: st.id, title })"
-              @set-hours="(hours) => emit('updateSubtask', { id: st.id, hours })"
+              @set-hours="(hours) => emit('setSubtaskHours', { id: st.id, hours })"
               @delete="emit('deleteSubtask', st)"
             />
           </div>

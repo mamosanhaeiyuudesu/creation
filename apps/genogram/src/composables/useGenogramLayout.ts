@@ -757,7 +757,7 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
     conflict: '対立',
     cutoff: '断絶',
     enmeshed: '巻き込み',
-    close: '密着(良好)',
+    close: '良好',
     distant: '疎遠',
   }
   const usedUnionStatuses = new Set(unions.map((u) => u.status))

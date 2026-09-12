@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, watch } from 'vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useKouba, KOUBA_GRID_SIZE } from '~/composables/kouba/useKouba'
 import KoubaTaskModal from '~/components/kouba/KoubaTaskModal.vue'
 import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
@@ -30,7 +30,7 @@ const {
   categories, loading, loadError, saving, actionError, iconBusyIds, load, generateIcon,
   addCategory, updateCategory, deleteCategory,
   addTask, updateTask, deleteTask, reorderTasks,
-  addSubtask, updateSubtask, deleteSubtask,
+  addSubtask, updateSubtask, setSubtaskHours, flushPendingHours, deleteSubtask,
 } = useKouba()
 
 // 日本語入力の変換確定Enterでも @keydown.enter は発火するため、確定中は無視する
@@ -117,7 +117,11 @@ const activeTaskId = ref<string | null>(null)
 const showTaskModal = computed({
   get: () => activeTaskId.value !== null,
   set: (v) => {
-    if (!v) activeTaskId.value = null
+    // 閉じるときは、時間の +/- の保存待ちを送り切ってから（待っている間に画面が消えると変更が残らない）
+    if (!v) {
+      void flushPendingHours()
+      activeTaskId.value = null
+    }
   },
 })
 const activeTask = computed(() => {
@@ -142,9 +146,12 @@ async function handleRegenerateTaskIcon(instruction: string) {
 async function handleAddSubtask(payload: { title: string; hours: number }) {
   if (activeTaskId.value) await addSubtask(activeTaskId.value, payload.title, payload.hours)
 }
-async function handleUpdateSubtask(payload: { id: string; title?: string; hours?: number }) {
-  const { id, ...patch } = payload
-  await updateSubtask(id, patch)
+async function handleUpdateSubtask(payload: { id: string; title: string }) {
+  await updateSubtask(payload.id, { title: payload.title })
+}
+/** 時間の +/- は押すたびに保存せず、useKouba 側で手元反映＋まとめ保存にする。 */
+function handleSetSubtaskHours(payload: { id: string; hours: number }) {
+  setSubtaskHours(payload.id, payload.hours)
 }
 
 // ── 削除確認ポップアップ（カテゴリ/タスク/サブタスクで共通）──────────────────────────────
@@ -258,6 +265,16 @@ onMounted(async () => {
 watch(isLoggedIn, (v) => {
   if (v) load()
 })
+
+// スマホでアプリを切り替えたときなど、そのままページが捨てられても時間の +/- を取りこぼさないように送り切る
+function flushOnHide() {
+  if (document.visibilityState === 'hidden') void flushPendingHours()
+}
+onMounted(() => document.addEventListener('visibilitychange', flushOnHide))
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', flushOnHide)
+  void flushPendingHours()
+})
 </script>
 
 <template>
@@ -283,6 +300,7 @@ watch(isLoggedIn, (v) => {
     @delete="activeTask && askDeleteTask(activeTask)"
     @add-subtask="handleAddSubtask"
     @update-subtask="handleUpdateSubtask"
+    @set-subtask-hours="handleSetSubtaskHours"
     @delete-subtask="askDeleteSubtask"
   />
 
