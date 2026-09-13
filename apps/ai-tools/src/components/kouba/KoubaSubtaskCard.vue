@@ -34,37 +34,54 @@ function commitTitle() {
   const title = titleDraft.value.trim()
   if (title && title !== props.subtask.title) emit('rename', title)
 }
+
+/** 編集中の✗＝保存せずに編集をやめてそのまま削除（一気に削除できるように）。 */
+function cancelEditAndDelete() {
+  editingTitle.value = false
+  emit('delete')
+}
 </script>
 
 <template>
   <div class="rounded-xl border border-white/10 bg-white/[0.03] p-3 flex items-center gap-2">
-    <input
-      v-if="editingTitle"
-      ref="titleInputEl"
-      v-model="titleDraft"
-      class="flex-1 min-w-0 bg-white/[0.08] border border-sky-400/50 rounded-lg px-2 py-1 text-slate-50 text-[13px] font-bold outline-none"
-      @keydown.enter="runOnEnter($event, commitTitle)"
-      @blur="commitTitle"
-    />
-    <h3
-      v-else
-      class="flex-1 min-w-0 m-0 text-[13px] font-bold text-slate-100 truncate cursor-text"
-      title="クリックして編集"
-      @click="startEdit"
-    >{{ subtask.title }}</h3>
+    <!-- 編集中は時間の+/-と🗑を隠し、✗だけにする（1行に削除ボタンが2つ並ぶのを避けるため） -->
+    <template v-if="editingTitle">
+      <input
+        ref="titleInputEl"
+        v-model="titleDraft"
+        class="flex-1 min-w-0 bg-white/[0.08] border border-sky-400/50 rounded-lg px-2 py-1 text-slate-50 text-[13px] font-bold outline-none"
+        @keydown.enter="runOnEnter($event, commitTitle)"
+        @blur="commitTitle"
+      />
+      <!-- mousedown.prevent で input の blur による保存を先に発火させない -->
+      <button
+        type="button"
+        class="w-7 h-7 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
+        title="編集をやめて削除"
+        :disabled="saving"
+        @mousedown.prevent="cancelEditAndDelete"
+      >✗</button>
+    </template>
+    <template v-else>
+      <h3
+        class="flex-1 min-w-0 m-0 text-[13px] font-bold text-slate-100 truncate cursor-text"
+        title="クリックして編集"
+        @click="startEdit"
+      >{{ subtask.title }}</h3>
 
-    <!-- +/- を押すたびその場で保存する（30分刻み） -->
-    <KoubaHoursStepper
-      :model-value="subtask.hours"
-      :disabled="saving"
-      @update:model-value="(hours) => emit('setHours', hours)"
-    />
+      <!-- +/- を押すたびその場で保存する（30分刻み） -->
+      <KoubaHoursStepper
+        :model-value="subtask.hours"
+        :disabled="saving"
+        @update:model-value="(hours) => emit('setHours', hours)"
+      />
 
-    <button
-      class="w-7 h-7 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
-      title="サブタスクを削除"
-      :disabled="saving"
-      @click="emit('delete')"
-    >🗑</button>
+      <button
+        class="w-7 h-7 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
+        title="サブタスクを削除"
+        :disabled="saving"
+        @click="emit('delete')"
+      >🗑</button>
+    </template>
   </div>
 </template>

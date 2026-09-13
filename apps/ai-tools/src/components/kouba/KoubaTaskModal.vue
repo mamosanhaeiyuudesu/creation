@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
 import type { KoubaTask, KoubaSubtask } from '~/types/kouba'
-import { isSvgIcon } from '~/types/kouba'
+import { KOUBA_MIN_HOURS, isSvgIcon } from '~/types/kouba'
 import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
 import KoubaHoursStepper from '~/components/kouba/KoubaHoursStepper.vue'
 import KoubaIconEditor from '~/components/kouba/KoubaIconEditor.vue'
@@ -19,7 +19,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:show': [value: boolean]
-  update: [patch: { title?: string; categoryId?: string }]
+  update: [patch: { title?: string; categoryIds?: string[] }]
   regenerateIcon: [instruction: string]
   delete: []
   addSubtask: [payload: { title: string; hours: number }]
@@ -44,8 +44,8 @@ const titleDraft = ref('')
 const titleInputEl = ref<HTMLInputElement | null>(null)
 const editingIcon = ref(false)
 const subtaskTitleDraft = ref('')
-/** 追加フォームの初期値。最小の30分ではなく1時間から始めて、+/- で寄せる。 */
-const SUBTASK_HOURS_DEFAULT = 1
+/** 追加フォームの初期値。0時間で追加して、やったぶんだけ +/- で足していく。 */
+const SUBTASK_HOURS_DEFAULT = KOUBA_MIN_HOURS
 const subtaskHoursDraft = ref(SUBTASK_HOURS_DEFAULT)
 
 watch(
@@ -90,9 +90,28 @@ function commitTitle() {
   if (title && props.task && title !== props.task.title) emit('update', { title })
 }
 
-function onChangeCategory(e: Event) {
-  const categoryId = (e.target as HTMLSelectElement).value
-  if (props.task && categoryId && categoryId !== props.task.categoryId) emit('update', { categoryId })
+/** 編集中の✗＝保存せずに編集をやめてそのまま削除確認へ（一気に削除できるように）。 */
+function cancelEditAndDelete() {
+  editingTitle.value = false
+  emit('delete')
+}
+
+/**
+ * カテゴリのチップをクリックしてON/OFF。複数選択可＝タスクは1つ以上のカテゴリに同時掲載できる。
+ * 最後の1つは外せない（タスクがどこにも属さなくなるのを防ぐ。サーバー側にも同じ制約がある）。
+ */
+function onToggleCategory(categoryId: string) {
+  if (!props.task) return
+  const current = props.task.categoryIds
+  if (current.includes(categoryId)) {
+    if (current.length <= 1) return
+    emit('update', { categoryIds: current.filter((id) => id !== categoryId) })
+  } else {
+    emit('update', { categoryIds: [...current, categoryId] })
+  }
+}
+function isOnlySelectedCategory(categoryId: string): boolean {
+  return !!props.task && props.task.categoryIds.length === 1 && props.task.categoryIds[0] === categoryId
 }
 </script>
 
@@ -133,21 +152,39 @@ function onChangeCategory(e: Event) {
                 @keydown.enter="runOnEnter($event, commitTitle)"
                 @blur="commitTitle"
               />
+              <!-- 編集中だけ出す✗＝保存せずそのまま削除確認へ（mousedown.prevent で input の blur による保存を先に発火させない） -->
+              <button
+                v-if="editingTitle"
+                type="button"
+                class="w-7 h-7 rounded-lg text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
+                title="編集をやめて削除"
+                @mousedown.prevent="cancelEditAndDelete"
+              >✗</button>
               <h2 v-else class="flex-1 min-w-0 m-0 text-base font-bold text-slate-50 truncate cursor-text" title="クリックして編集" @click="startEditTitle">
                 {{ task.title }}
               </h2>
             </div>
 
-            <div class="mt-2 flex items-center gap-2">
-              <label class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">カテゴリ</label>
-              <select
-                class="bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1 text-slate-200 text-xs outline-none focus:border-sky-400/50"
-                :value="task.categoryId"
-                @change="onChangeCategory"
-              >
-                <!-- <option> には画像を入れられないので、AI生成(SVG)のアイコンは出さず名前だけにする -->
-                <option v-for="c in categories" :key="c.id" :value="c.id">{{ isSvgIcon(c.icon) ? c.name : `${c.icon} ${c.name}` }}</option>
-              </select>
+            <!-- カテゴリは複数選択可（チップのON/OFF）＝チェックしたカテゴリすべての枠に同じタスクが表示される -->
+            <div class="mt-2">
+              <label class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">カテゴリ（複数選択可）</label>
+              <div class="mt-1 flex flex-wrap gap-1.5">
+                <button
+                  v-for="c in categories"
+                  :key="c.id"
+                  type="button"
+                  class="h-6 pl-2 pr-2.5 rounded-full border text-[11px] font-semibold flex items-center gap-1 transition-colors disabled:cursor-not-allowed"
+                  :class="task.categoryIds.includes(c.id)
+                    ? 'bg-sky-500/20 border-sky-400/60 text-sky-200'
+                    : 'bg-white/[0.04] border-white/10 text-slate-400 hover:border-white/25'"
+                  :disabled="isOnlySelectedCategory(c.id)"
+                  :title="isOnlySelectedCategory(c.id) ? '最後の1つは外せません' : undefined"
+                  @click="onToggleCategory(c.id)"
+                >
+                  <span v-if="!isSvgIcon(c.icon)">{{ c.icon }}</span>
+                  <span>{{ c.name }}</span>
+                </button>
+              </div>
             </div>
 
             <div class="mt-1.5 text-2xl font-extrabold text-amber-300 tabular-nums">

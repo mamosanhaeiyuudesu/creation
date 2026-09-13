@@ -1,9 +1,20 @@
-import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, findOwnedTask, findOwnedCategory, normalizeIcon, nextTaskSortOrder } from '~/server/utils/kouba'
+import {
+  requireKoubaUser,
+  requireKoubaDb,
+  ensureKoubaTables,
+  findOwnedTask,
+  ownedCategoryIds,
+  loadTaskCategoryIds,
+  normalizeIcon,
+  nextTaskSortOrder,
+} from '~/server/utils/kouba'
 import { KOUBA_DEFAULT_TASK_ICON } from '~/types/kouba'
 
-// タスクの部分更新（title / icon / categoryId のいずれか1つ以上）。
-// categoryId を変えると「別カテゴリへ移動」＝移動先の末尾（sort_orderの最大+1）に置く
-// （並び順を指定したい移動＝ドラッグ＆ドロップは reorder.patch.ts の担当）。
+// タスクの部分更新（title / icon / categoryIds のいずれか1つ以上）。
+// categoryIds は「このタスクが属することになるカテゴリの集合」を丸ごと差し替える差分更新＝
+// 増えたカテゴリには末尾（sort_orderの最大+1）へ追加、外れたカテゴリからは表示ごと外す
+// （タスク自体やサブタスクは消さない。今まで属していたカテゴリの並び順はそのまま）。
+// 1つも選ばれていない状態は許さない（400）。並び順を指定した移動＝ドラッグ&ドロップは reorder.post.ts の担当。
 export default defineEventHandler(async (event) => {
   const user = await requireKoubaUser(event)
   const db = requireKoubaDb(event)
@@ -13,10 +24,13 @@ export default defineEventHandler(async (event) => {
   const existing = await findOwnedTask(db, user.id, id)
   if (!existing) throw createError({ statusCode: 404, message: 'タスクが見つかりません' })
 
-  const body = await readBody<{ title?: string; icon?: string; categoryId?: string }>(event)
+  const body = await readBody<{ title?: string; icon?: string; categoryIds?: string[] }>(event)
+  if (body?.title === undefined && body?.icon === undefined && body?.categoryIds === undefined) {
+    throw createError({ statusCode: 400, message: '更新する項目がありません' })
+  }
+
   const sets: string[] = []
   const params: unknown[] = []
-
   if (body?.title !== undefined) {
     const title = body.title.trim()
     if (!title) throw createError({ statusCode: 400, message: 'タスク名を入力してください' })
@@ -27,16 +41,38 @@ export default defineEventHandler(async (event) => {
     sets.push('icon = ?')
     params.push(normalizeIcon(body.icon, KOUBA_DEFAULT_TASK_ICON))
   }
-  if (body?.categoryId !== undefined && body.categoryId !== existing.categoryId) {
-    const destCategory = await findOwnedCategory(db, user.id, body.categoryId)
-    if (!destCategory) throw createError({ statusCode: 404, message: 'カテゴリが見つかりません' })
-    const sortOrder = await nextTaskSortOrder(db, body.categoryId)
-    sets.push('category_id = ?', 'sort_order = ?')
-    params.push(body.categoryId, sortOrder)
+  if (sets.length) {
+    params.push(id)
+    await db.prepare(`UPDATE kouba_tasks SET ${sets.join(', ')} WHERE id = ?`).bind(...params).run()
   }
-  if (!sets.length) throw createError({ statusCode: 400, message: '更新する項目がありません' })
 
-  params.push(id)
-  await db.prepare(`UPDATE kouba_tasks SET ${sets.join(', ')} WHERE id = ?`).bind(...params).run()
+  if (body?.categoryIds !== undefined) {
+    const nextIds = [...new Set(body.categoryIds.filter((v) => typeof v === 'string'))]
+    if (!nextIds.length) throw createError({ statusCode: 400, message: 'カテゴリを1つ以上選んでください' })
+    const owned = await ownedCategoryIds(db, user.id, nextIds)
+    if (owned.size !== nextIds.length) throw createError({ statusCode: 404, message: 'カテゴリが見つかりません' })
+
+    const currentIds = await loadTaskCategoryIds(db, id)
+    const currentSet = new Set(currentIds)
+    const nextSet = new Set(nextIds)
+    const toRemove = currentIds.filter((cid) => !nextSet.has(cid))
+    const toAdd = nextIds.filter((cid) => !currentSet.has(cid))
+
+    if (toRemove.length) {
+      const placeholders = toRemove.map(() => '?').join(',')
+      await db
+        .prepare(`DELETE FROM kouba_task_categories WHERE task_id = ? AND category_id IN (${placeholders})`)
+        .bind(id, ...toRemove)
+        .run()
+    }
+    for (const categoryId of toAdd) {
+      const sortOrder = await nextTaskSortOrder(db, categoryId)
+      await db
+        .prepare('INSERT INTO kouba_task_categories (task_id, category_id, user_id, sort_order) VALUES (?, ?, ?, ?)')
+        .bind(id, categoryId, user.id, sortOrder)
+        .run()
+    }
+  }
+
   return { ok: true }
 })

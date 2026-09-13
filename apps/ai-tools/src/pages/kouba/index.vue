@@ -147,7 +147,7 @@ const categoryOptions = computed(() => categories.value.map((c) => ({ id: c.id, 
 function openTask(taskId: string) {
   activeTaskId.value = taskId
 }
-async function handleUpdateTask(patch: { title?: string; categoryId?: string }) {
+async function handleUpdateTask(patch: { title?: string; categoryIds?: string[] }) {
   if (activeTaskId.value) await updateTask(activeTaskId.value, patch)
 }
 async function handleRegenerateTaskIcon(instruction: string) {
@@ -173,13 +173,19 @@ const confirmTarget = ref<ConfirmTarget | null>(null)
 const confirmMessage = computed(() => {
   const t = confirmTarget.value
   if (!t) return ''
-  if (t.kind === 'category') return `「${t.name}」を削除しますか？\n中のタスク・記録もすべて削除されます。`
+  if (t.kind === 'category')
+    return `「${t.name}」を削除しますか？\n他のカテゴリにも表示されているタスクは残ります。このカテゴリだけにあるタスクは、サブタスクごと削除されます。`
   if (t.kind === 'task') return `「${t.title}」を削除しますか？\nサブタスクもすべて削除されます。`
   return `「${t.title}」を削除しますか？`
 })
 
 function askDeleteCategory(cat: KoubaCategory) {
   confirmTarget.value = { kind: 'category', id: cat.id, name: cat.name }
+}
+/** カテゴリ名の編集中の✗＝保存せず編集をやめてそのまま削除確認へ。 */
+function cancelEditCategoryAndDelete(cat: KoubaCategory) {
+  editingCategoryId.value = null
+  askDeleteCategory(cat)
 }
 function askDeleteTask(task: KoubaTask) {
   confirmTarget.value = { kind: 'task', id: task.id, title: task.title }
@@ -242,17 +248,22 @@ async function onCategorySlotDrop(cat: KoubaCategory | null) {
 }
 
 // ── タスクのドラッグ&ドロップ（カテゴリ間の移動・同一カテゴリ内の並べ替え）──────────────────────────────
+// タスクは複数カテゴリに同時掲載できるので「どのカテゴリの枠から掴んだか」を別途持つ
+// （task.categoryIds だけでは、複数ある所属のうちどれが「今回の移動元」か分からないため）。
 const dragTaskId = ref<string | null>(null)
+const dragSourceCategoryId = ref<string | null>(null)
 const dragOverCategoryId = ref<string | null>(null)
 const dragOverTaskId = ref<string | null>(null)
 
-function onTaskDragStart(e: DragEvent, task: KoubaTask) {
+function onTaskDragStart(e: DragEvent, task: KoubaTask, sourceCategoryId: string) {
   dragTaskId.value = task.id
+  dragSourceCategoryId.value = sourceCategoryId
   e.dataTransfer?.setData('text/plain', task.id)
   if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
 }
 function onTaskDragEnd() {
   dragTaskId.value = null
+  dragSourceCategoryId.value = null
   dragOverCategoryId.value = null
   dragOverTaskId.value = null
 }
@@ -261,37 +272,51 @@ function onCategoryDragOver(cat: KoubaCategory) {
   dragOverCategoryId.value = cat.id
   dragOverTaskId.value = null
 }
-function onTaskDragOver(task: KoubaTask) {
+function onTaskDragOver(cat: KoubaCategory, task: KoubaTask) {
   // 付箋側のハンドラは .stop で伝播を止めるので、カテゴリを掴んでいるときはここで枠の処理へ引き取る
-  if (dragCategoryId.value) return onCategorySlotDragOver(findCategory(task.categoryId))
+  if (dragCategoryId.value) return onCategorySlotDragOver(cat)
   if (!dragTaskId.value) return
-  dragOverCategoryId.value = task.categoryId
+  dragOverCategoryId.value = cat.id
   dragOverTaskId.value = task.id
 }
-function findCategory(id: string): KoubaCategory | null {
-  return categories.value.find((c) => c.id === id) ?? null
-}
-async function moveTaskTo(taskId: string, targetCategoryId: string, beforeTaskId: string | null) {
+/**
+ * タスクを targetCategoryId の beforeTaskId の手前（null なら末尾）へ置く。
+ * sourceCategoryId が targetCategoryId と異なれば「移動」＝掴んだ元のカテゴリの表示からは外す
+ * （他のカテゴリにも属していればそちらは残る。タスク自体を削除するわけではない）。
+ * **追加が先・削除が後**の順で呼ぶ＝先に削除すると、他のカテゴリに属していないタスクが一瞬どこにも
+ * 属さない状態になり得るため（reorder.post.ts 側にも同じ理由の安全策がある）。
+ */
+async function moveTaskTo(taskId: string, targetCategoryId: string, beforeTaskId: string | null, sourceCategoryId: string | null) {
   const targetCat = categories.value.find((c) => c.id === targetCategoryId)
   if (!targetCat) return
-  const ids = targetCat.tasks.map((t) => t.id).filter((id) => id !== taskId)
-  let insertAt = beforeTaskId ? ids.indexOf(beforeTaskId) : ids.length
-  if (insertAt < 0) insertAt = ids.length
-  ids.splice(insertAt, 0, taskId)
-  await reorderTasks(targetCategoryId, ids)
+  const targetIds = targetCat.tasks.map((t) => t.id).filter((id) => id !== taskId)
+  let insertAt = beforeTaskId ? targetIds.indexOf(beforeTaskId) : targetIds.length
+  if (insertAt < 0) insertAt = targetIds.length
+  targetIds.splice(insertAt, 0, taskId)
+  await reorderTasks(targetCategoryId, targetIds)
+
+  if (sourceCategoryId && sourceCategoryId !== targetCategoryId) {
+    const sourceCat = categories.value.find((c) => c.id === sourceCategoryId)
+    if (sourceCat) {
+      const sourceIds = sourceCat.tasks.map((t) => t.id).filter((id) => id !== taskId)
+      await reorderTasks(sourceCategoryId, sourceIds)
+    }
+  }
 }
 async function onCategoryDrop(cat: KoubaCategory) {
   const taskId = dragTaskId.value
+  const sourceCategoryId = dragSourceCategoryId.value
   onTaskDragEnd()
   if (!taskId) return
-  await moveTaskTo(taskId, cat.id, null)
+  await moveTaskTo(taskId, cat.id, null, sourceCategoryId)
 }
 async function onTaskDrop(cat: KoubaCategory, targetTask: KoubaTask) {
   if (dragCategoryId.value) return await onCategorySlotDrop(cat)
   const taskId = dragTaskId.value
+  const sourceCategoryId = dragSourceCategoryId.value
   onTaskDragEnd()
   if (!taskId || taskId === targetTask.id) return
-  await moveTaskTo(taskId, cat.id, targetTask.id)
+  await moveTaskTo(taskId, cat.id, targetTask.id, sourceCategoryId)
 }
 
 // ── 付箋の色（見た目のバリエーションだけの装飾。データとは無関係）──────────────────────────────
@@ -475,6 +500,14 @@ onBeforeUnmount(() => {
                           @keydown.enter="runOnEnter($event, () => commitCategoryEdit(cat))"
                           @blur="commitCategoryEdit(cat)"
                         />
+                        <!-- 編集中だけ出す✗＝保存せずそのまま削除確認へ（mousedown.prevent で input の blur による保存を先に発火させない） -->
+                        <button
+                          v-if="editingCategoryId === cat.id"
+                          type="button"
+                          class="w-6 h-6 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
+                          title="編集をやめて削除"
+                          @mousedown.prevent="cancelEditCategoryAndDelete(cat)"
+                        >✗</button>
                         <h2
                           v-else
                           class="flex-1 min-w-0 m-0 text-sm font-bold text-slate-100 truncate cursor-text"
@@ -514,18 +547,24 @@ onBeforeUnmount(() => {
                       v-for="(task, ti) in cat.tasks"
                       :key="task.id"
                       draggable="true"
-                      class="w-[120px] min-h-[100px] rounded-sm p-2.5 text-left shadow-md hover:shadow-lg hover:brightness-105 transition-shadow cursor-grab active:cursor-grabbing flex flex-col gap-1.5 border-2"
+                      class="relative w-[120px] min-h-[100px] rounded-sm p-2.5 text-left shadow-md hover:shadow-lg hover:brightness-105 transition-shadow cursor-grab active:cursor-grabbing flex flex-col gap-1.5 border-2"
                       :style="{ background: stickyColor(ti), transform: stickyTilt(ti) }"
                       :class="[
                         dragTaskId === task.id ? 'opacity-40' : '',
                         dragOverTaskId === task.id ? 'border-sky-500' : 'border-transparent',
                       ]"
                       @click="openTask(task.id)"
-                      @dragstart="onTaskDragStart($event, task)"
+                      @dragstart="onTaskDragStart($event, task, cat.id)"
                       @dragend="onTaskDragEnd"
-                      @dragover.prevent.stop="onTaskDragOver(task)"
+                      @dragover.prevent.stop="onTaskDragOver(cat, task)"
                       @drop.prevent.stop="onTaskDrop(cat, task)"
                     >
+                      <!-- 他のカテゴリにも同時掲載されているタスクの目印（クリックで開けば所属は詳細モーダルで確認・編集できる） -->
+                      <span
+                        v-if="task.categoryIds.length > 1"
+                        class="absolute top-1 right-1 text-[9px] font-extrabold text-slate-700/70 bg-black/10 rounded-full px-1 leading-4"
+                        :title="`他${task.categoryIds.length - 1}件のカテゴリにも表示`"
+                      >+{{ task.categoryIds.length - 1 }}</span>
                       <span class="w-7 h-7 text-base">
                         <KoubaIcon :icon="task.icon" :busy="iconBusyIds.has(task.id)" />
                       </span>

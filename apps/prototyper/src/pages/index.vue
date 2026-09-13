@@ -609,39 +609,11 @@
 
         <div class="portfolio-card">
           <div class="portfolio-card-header">
-            <span class="portfolio-tag portfolio-tag-soft">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              稼働中
-            </span>
-            <h3 class="portfolio-card-title">ゲストハウスの、観光インサイトツール</h3>
-            <dl class="work-ba">
-              <div>
-                <dt>どなたの</dt>
-                <dd>ゲストハウスの運営者、そして地域の観光事業者の方</dd>
-              </div>
-              <div>
-                <dt>困っていたこと</dt>
-                <dd>観光客のレビューや対話の記録が溜まる一方で、活かしきれていなかった</dd>
-              </div>
-              <div>
-                <dt>したこと</dt>
-                <dd>溜まったデータを分析し、観光業を盛り上げるための気づきを取り出せる道具をつくりました</dd>
-              </div>
-              <div>
-                <dt>いま</dt>
-                <dd>稼働中（共同制作）</dd>
-              </div>
-            </dl>
-          </div>
-        </div>
-
-        <div class="portfolio-card">
-          <div class="portfolio-card-header">
             <span class="portfolio-tag portfolio-tag-trial">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6.5L4.5 19a2 2 0 0 0 1.7 3h11.6a2 2 0 0 0 1.7-3L14 9.5V3"/></svg>
               実証実験中
             </span>
-            <h3 class="portfolio-card-title">農家のみなさんの、議事録づくりとその後の段取り</h3>
+            <h3 class="portfolio-card-title">農家のみなさんの、会議の議事録づくり「キキガキ」</h3>
             <dl class="work-ba">
               <div>
                 <dt>どなたの</dt>
@@ -653,7 +625,7 @@
               </div>
               <div>
                 <dt>したこと</dt>
-                <dd>音声から議事録を自動でつくり、そこから「やるべきこと」と日程を取り出して、普段お使いのGoogleのドキュメント・タスク・カレンダーへ自動で登録されるようにしました</dd>
+                <dd>音声やテキストから議事録をAIが自動でつくり、決定事項・予定・タスクが一目でわかるPDFにまとめ、指定したGoogleドライブのフォルダへそのまま保存されるようにしました</dd>
               </div>
               <div>
                 <dt>いま</dt>
@@ -661,11 +633,93 @@
               </div>
             </dl>
           </div>
+          <div class="portfolio-card-body">
+            <div class="portfolio-features">
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>録音・音声ファイル・テキストから、自動で議事録に</strong>
+                  会議の録音や、文字起こし済みのテキストをアップロードするだけ。AIが文字起こしから構造化まで行い、タイトル・日付・概要・決定事項・検討事項・タスク・予定を一気にまとめます。
+                </div>
+              </div>
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>内容の確認・修正も、その場でかんたんに</strong>
+                  出来上がった議事録はレビュー画面でそのまま編集できます。「〇〇さんを△△さんに直して」のように指示するだけで、AIが議事録全体を書き直すこともできます。
+                </div>
+              </div>
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>決定事項・予定・タスクが一目でわかるPDFに</strong>
+                  会議で何が決まり、次に何をするかが1枚に整理されたPDFを出力できます。内容が多いときは自動で要約され、必ず1ページに収まります。
+                </div>
+              </div>
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>指定したGoogleドライブに、そのまま保存</strong>
+                  一度連携すれば、PDFを作るたびに指定したフォルダへ自動でコピーが保存されます。複雑な連携はせず、あとから見返しやすい場所に置いておくだけの、シンプルな仕組みです。
+                </div>
+              </div>
+            </div>
+
+            <div class="portfolio-tech">
+              <span class="tech-badge">Nuxt</span>
+              <span class="tech-badge">Cloudflare Workers</span>
+              <span class="tech-badge">Cloudflare D1</span>
+              <span class="tech-badge">OpenAI API</span>
+              <span class="tech-badge">Claude API</span>
+              <span class="tech-badge">Google Drive連携</span>
+            </div>
+          </div>
         </div>
 
         <p class="works-other">
           このほかに、音声の日記から気持ちの動きを見えるようにするツールなども、自分用に作って試しています。
         </p>
+      </div>
+    </section>
+
+    <!-- お客様の声 -->
+    <section id="voices" class="ac-voices">
+      <div class="ac-wrap">
+        <p class="section-label">Voices</p>
+        <h2 class="section-title">お客様の声</h2>
+        <p class="section-body">
+          実際に使っていただいている方から伺った、生の感想です。
+        </p>
+
+        <div class="testimonial-list">
+
+          <div class="testimonial-card">
+            <div class="testimonial-header">
+              <span class="testimonial-tool">キキガキ</span>
+              <span class="testimonial-person">和歌山県で農業に携わる方</span>
+            </div>
+
+            <div class="testimonial-point">
+              <h3 class="testimonial-point-title">「これはもう、100点満点ですね」— 会議の中身が一枚に収まる精度</h3>
+              <p>正直、最初は半信半疑でした。でも実際にZoomでの打ち合わせを録音して、キキガキに読み込ませてみたら、驚くほど綺麗にまとまっていたんです。</p>
+              <p>会議で何を話したか、いつ何が決まったか、次の予定はいつか——そういう情報が全部、1枚のPDFにきちんと整理されている。役員会の日程も、産業祭の締め切りも、パッと見返すだけで分かる。これを見たら、その日どんな会議をしたかが全部思い浮かぶんです。決定事項も予定も、右側にちゃんと見える化されている。</p>
+              <p>多少の誤字はあります。日本語でわーっと喋っている音声を文字に起こしているので、それは仕方ないと思っています。でも、それは自分で直せばいいだけの話。それより、この会議の内容が全部まとまっている、という価値の方がずっと大きいんです。</p>
+            </div>
+
+            <div class="testimonial-point">
+              <h3 class="testimonial-point-title">シンプルにしたことが、逆に正解だった</h3>
+              <p>使い勝手の良さの理由は、機能を詰め込まなかったことにあると思っています。むしろGoogleカレンダーと直接連携させなかったのが正解だったんじゃないでしょうか。連携が複雑になると、今度は違うところに予定が入ってしまったり、その修正にまた手間がかかったりする。</p>
+              <p>最初はもっと色々な機能とリンクさせようという話もあったんですが、結果的にシンプルにしたことで、逆に使い勝手が上がりました。音声ファイルでもテキストでも入れられて、指定したGoogleドライブのフォルダにそのまま保存されていく。今日だけで4つ打ち合わせをしたんですが、それも全部、自分で指定した場所に収まっている。これが地味にすごく便利なんです。シンプルにしたことでいい着地になった、というプロセス自体がすごく良かったなと思っています。</p>
+            </div>
+
+            <div class="testimonial-point">
+              <h3 class="testimonial-point-title">農業に限らず、日常のあらゆる場面で使える</h3>
+              <p>活用の仕方も、農業に限らないと思っています。妻に「さっきから何してたの」と聞かれたときに、このPDFをパッとLINEで送るだけで、「あ、こんな会議してたんだ」とすぐ伝わる。実際、家族との食事のときの会話も録音して、後で「どんなメニューを食べたか」を振り返る記録として使ったこともあります。</p>
+              <p>これは農業に限らず、普通の会議や打ち合わせでも十分使えると思います。世の中にリリースしても全然通用する、そういうレベルのものになっていると思いますね。</p>
+            </div>
+          </div>
+
+        </div>
       </div>
     </section>
 

@@ -9,10 +9,15 @@ export interface KoubaSubtask {
   createdAt: string
 }
 
-/** タスク（付箋1枚）。配下のサブタスクの合計時間を totalHours に持つ。 */
+/**
+ * タスク（付箋1枚）。配下のサブタスクの合計時間を totalHours に持つ。
+ * **1つ以上のカテゴリに同時掲載できる**（2026-09-13〜）＝ categoryIds が複数なら、同じ内容（同じサブタスク・
+ * 同じ合計時間）がその数だけカテゴリの枠に重複して表示される。タスクとしては1つで、どのカテゴリ経由で
+ * 開いても同じ `KoubaTask` を編集することになる＝表示が複数あっても中身は常に同期している。
+ */
 export interface KoubaTask {
   id: string
-  categoryId: string
+  categoryIds: string[]
   title: string
   icon: string
   createdAt: string

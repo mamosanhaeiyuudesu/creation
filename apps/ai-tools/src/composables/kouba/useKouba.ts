@@ -80,11 +80,14 @@ export function useKouba() {
     })
   }
 
-  /** タスクを追加し、続けて AI にアイコンを作らせる。 */
+  /**
+   * タスクを追加し、続けて AI にアイコンを作らせる。
+   * 作成直後は「＋」を押したその1カテゴリにだけ属する＝複数カテゴリへの掲載はタスク詳細モーダルで後から設定する。
+   */
   async function addTask(categoryId: string, title: string) {
     let id = ''
     await withSaving(async () => {
-      const created = await $fetch<{ id: string }>('/api/kouba/tasks', { method: 'POST', body: { categoryId, title } })
+      const created = await $fetch<{ id: string }>('/api/kouba/tasks', { method: 'POST', body: { categoryIds: [categoryId], title } })
       id = created.id
       await load()
     })
@@ -113,7 +116,8 @@ export function useKouba() {
     }
   }
 
-  async function updateTask(id: string, patch: { title?: string; categoryId?: string }) {
+  /** patch.categoryIds は「所属することになるカテゴリの集合」を丸ごと差し替える（増減の両方を1回で表す）。 */
+  async function updateTask(id: string, patch: { title?: string; categoryIds?: string[] }) {
     await withSaving(async () => {
       await $fetch(`/api/kouba/tasks/${id}`, { method: 'PATCH', body: patch })
       await load()
@@ -169,7 +173,11 @@ export function useKouba() {
     })
   }
 
-  /** 手元の合計時間を積み直す（サブタスク→タスク→カテゴリ。サーバーの shapeTask/shapeCategory と同じ計算）。 */
+  /**
+   * 手元の合計時間を積み直す（サブタスク→タスク→カテゴリ。サーバーの shapeTask/shapeCategory と同じ計算）。
+   * カテゴリをまたいで同じタスクが複数の配列に入っていることがある（1タスクが複数カテゴリに属する場合）が、
+   * 全カテゴリ・全タスクを漏れなく回すのでどちらの出現にも同じ値が積まれる＝結果として同期する。
+   */
   function recomputeTotals() {
     for (const c of categories.value) {
       for (const t of c.tasks) t.totalHours = t.subtasks.reduce((sum, s) => sum + s.hours, 0)
@@ -181,6 +189,8 @@ export function useKouba() {
    * サブタスクの時間の +/-。画面はその場で書き換えて合計まで積み直し、サーバーへの保存だけ
    * HOURS_SAVE_DELAY_MS 待ってまとめる（3回押しても PATCH は1回。板の再読込もしない）。
    * saving を立てないので、保存の往復中もボタンが無効にならず続けて押せる。
+   * **タスクが複数カテゴリに属していても**、全カテゴリ・全タスクを走査して id が一致する箇所すべてを
+   * 書き換えるので、どのカテゴリ経由で開いた分にも同じ値が反映される（同期のための特別な仕組みは無い）。
    */
   function setSubtaskHours(id: string, hours: number) {
     for (const c of categories.value) {
