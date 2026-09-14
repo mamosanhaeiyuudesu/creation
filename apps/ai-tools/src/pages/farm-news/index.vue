@@ -23,7 +23,7 @@
             {{ farmNewsCurrentLabel(currentId) }} ×
           </button>
           <button class="fnews-btn-ghost" @click="filterModalOpen = true">
-            フィルタ：{{ sourceLabel }}・{{ importanceLabel }}
+            フィルタ：{{ sourceLabel }}
           </button>
           <input v-model="keyword" class="fnews-input ml-auto w-[150px]" type="search" placeholder="キーワード" />
         </div>
@@ -49,34 +49,65 @@
               class="fnews-card"
               :class="{ 'fnews-card--top': item.importance >= 4 }"
             >
-              <div class="flex items-center gap-2 text-[11.5px] text-[var(--fnews-ink-faint)] mb-1.5 flex-wrap">
-                <span class="text-[var(--fnews-accent)] font-bold tracking-[0.08em]">{{ stars(item.importance) }}</span>
-                <button class="font-bold text-[var(--fnews-ink-soft)] hover:text-[var(--fnews-accent)]" @click="currentId = item.current">
-                  {{ farmNewsCurrentLabel(item.current) }}
-                </button>
-                <span>{{ farmNewsSourceName(item.sourceId) }}</span>
-                <span v-if="item.publishedAt">{{ fmtDate(item.publishedAt.slice(0, 10)) }}</span>
-              </div>
+              <template v-if="topIds.has(item.id)">
+                <div class="flex items-center gap-2 text-[11.5px] text-[var(--fnews-ink-faint)] mb-1.5 flex-wrap">
+                  <span class="text-[var(--fnews-accent)] font-bold tracking-[0.08em]">{{ stars(item.importance) }}</span>
+                  <button class="font-bold text-[var(--fnews-ink-soft)] hover:text-[var(--fnews-accent)]" @click="currentId = item.current">
+                    {{ farmNewsCurrentLabel(item.current) }}
+                  </button>
+                  <span>{{ farmNewsSourceName(item.sourceId) }}</span>
+                  <span v-if="item.publishedAt">{{ fmtDate(item.publishedAt.slice(0, 10)) }}</span>
+                </div>
 
-              <h4 class="fnews-display text-[17px] sm:text-[18px] leading-[1.45] mb-1">{{ item.titleJa }}</h4>
-              <p class="text-[11.5px] text-[var(--fnews-ink-faint)] mb-2.5 leading-snug">{{ item.title }}</p>
-              <p class="text-[13.5px] leading-[1.85] text-[var(--fnews-ink)] whitespace-pre-line">{{ item.summary }}</p>
+                <h4 class="fnews-display text-[17px] sm:text-[18px] leading-[1.45] mb-1">{{ item.titleJa }}</h4>
+                <p class="text-[11.5px] text-[var(--fnews-ink-faint)] mb-2.5 leading-snug">{{ item.title }}</p>
+                <p class="text-[13.5px] leading-[1.85] text-[var(--fnews-ink)] whitespace-pre-line">{{ item.summary }}</p>
 
-              <p v-if="item.reason" class="mt-2.5 text-[12px] text-[var(--fnews-ink-soft)] leading-relaxed border-l-2 border-[var(--fnews-line)] pl-2.5">
-                重要度{{ item.importance }} — {{ item.reason }}
-              </p>
+                <p v-if="item.reason" class="mt-2.5 text-[12px] text-[var(--fnews-ink-soft)] leading-relaxed border-l-2 border-[var(--fnews-line)] pl-2.5">
+                  重要度{{ item.importance }} — {{ item.reason }}
+                </p>
 
-              <div class="mt-3">
-                <a :href="item.url" target="_blank" rel="noopener noreferrer" class="text-[12.5px] text-[var(--fnews-accent)] hover:underline">
-                  原文を読む ↗
-                </a>
-              </div>
+                <div class="mt-3">
+                  <a :href="item.url" target="_blank" rel="noopener noreferrer" class="text-[12.5px] text-[var(--fnews-accent)] hover:underline">
+                    原文を読む ↗
+                  </a>
+                </div>
+              </template>
+
+              <details v-else class="fnews-details">
+                <summary class="fnews-summary">
+                  <div class="flex items-center gap-2 text-[11.5px] text-[var(--fnews-ink-faint)] mb-1 flex-wrap">
+                    <span class="text-[var(--fnews-accent)] font-bold tracking-[0.08em]">{{ stars(item.importance) }}</span>
+                    <button class="font-bold text-[var(--fnews-ink-soft)] hover:text-[var(--fnews-accent)]" @click.stop.prevent="currentId = item.current">
+                      {{ farmNewsCurrentLabel(item.current) }}
+                    </button>
+                    <span>{{ farmNewsSourceName(item.sourceId) }}</span>
+                    <span v-if="item.publishedAt">{{ fmtDate(item.publishedAt.slice(0, 10)) }}</span>
+                  </div>
+                  <div class="fnews-display text-[15px] leading-[1.45]">{{ item.titleJa }}</div>
+                </summary>
+
+                <div class="mt-2.5">
+                  <p class="text-[11.5px] text-[var(--fnews-ink-faint)] mb-2.5 leading-snug">{{ item.title }}</p>
+                  <p class="text-[13.5px] leading-[1.85] text-[var(--fnews-ink)] whitespace-pre-line">{{ item.summary }}</p>
+
+                  <p v-if="item.reason" class="mt-2.5 text-[12px] text-[var(--fnews-ink-soft)] leading-relaxed border-l-2 border-[var(--fnews-line)] pl-2.5">
+                    重要度{{ item.importance }} — {{ item.reason }}
+                  </p>
+
+                  <div class="mt-3">
+                    <a :href="item.url" target="_blank" rel="noopener noreferrer" class="text-[12.5px] text-[var(--fnews-accent)] hover:underline">
+                      原文を読む ↗
+                    </a>
+                  </div>
+                </div>
+              </details>
             </article>
           </div>
         </section>
       </section>
 
-      <!-- ソース・重要度の絞り込みポップアップ -->
+      <!-- ソースの絞り込みポップアップ -->
       <div v-if="filterModalOpen" class="fnews-modal-backdrop" @click.self="filterModalOpen = false">
         <div class="fnews-modal" role="dialog" aria-modal="true">
           <div class="flex items-start justify-between gap-3 mb-4">
@@ -84,7 +115,7 @@
             <button class="fnews-modal-close" aria-label="閉じる" @click="filterModalOpen = false">×</button>
           </div>
 
-          <div class="mb-5">
+          <div>
             <h3 class="text-[11.5px] font-bold text-[var(--fnews-ink-faint)] mb-2">ソース</h3>
             <div class="flex items-center gap-1.5 flex-wrap">
               <button class="fnews-chip" :class="{ 'fnews-chip--on': sourceId === 'all' }" @click="sourceId = 'all'">すべてのソース</button>
@@ -96,21 +127,6 @@
                 @click="sourceId = s.id"
               >
                 {{ s.name }}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <h3 class="text-[11.5px] font-bold text-[var(--fnews-ink-faint)] mb-2">重要度</h3>
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <button
-                v-for="t in THRESHOLDS"
-                :key="t.value"
-                class="fnews-chip"
-                :class="{ 'fnews-chip--on': minImportance === t.value }"
-                @click="minImportance = t.value"
-              >
-                {{ t.label }}
               </button>
             </div>
           </div>
@@ -250,7 +266,7 @@
  * （newsは「潮流カードが上」だが、farm-newsではまずニュースを読んでから潮流の話に入る構成にしている）。
  */
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
-import { FARM_NEWS_ARCHIVE_RECENT_MONTHS, FARM_NEWS_MIN_IMPORTANCE, FARM_NEWS_SOURCES, farmNewsSourceName } from '~/utils/farm-news-sources'
+import { FARM_NEWS_ARCHIVE_RECENT_MONTHS, FARM_NEWS_SOURCES, farmNewsSourceName } from '~/utils/farm-news-sources'
 import { FARM_NEWS_CURRENTS, farmNewsCurrentLabel } from '~/utils/farm-news-currents'
 import { WEEKDAYS_JA, toJSTDate, todayJST } from '~/utils/jst'
 import type { FarmNewsCurrentState, FarmNewsItem, FarmNewsState, FarmNewsTrendSnapshot } from '~/types/farm-news'
@@ -262,17 +278,12 @@ const loading = ref(true)
 const items = ref<FarmNewsItem[]>([])
 const currents = ref<FarmNewsCurrentState[]>([])
 const snapshots = ref<FarmNewsTrendSnapshot[]>([])
-let thresholdApplied = false
 
-const THRESHOLDS = [
-  { value: 0, label: 'すべての重要度' },
-  { value: 3, label: '重要度3以上' },
-  { value: 4, label: '重要度4以上' },
-]
+/** 常に全文表示するトップ記事の件数。これ以外は<details>で折りたたむ。 */
+const TOP_ITEM_COUNT = 5
 
 const currentId = ref('')
 const sourceId = ref('all')
-const minImportance = ref(FARM_NEWS_MIN_IMPORTANCE)
 const keyword = ref('')
 
 const openCurrentId = ref('')
@@ -283,7 +294,6 @@ const filterModalOpen = ref(false)
 const openArchiveKey = ref('')
 
 const sourceLabel = computed(() => (sourceId.value === 'all' ? 'すべてのソース' : farmNewsSourceName(sourceId.value)))
-const importanceLabel = computed(() => THRESHOLDS.find((t) => t.value === minImportance.value)?.label ?? '')
 
 function currentState(id: string): FarmNewsCurrentState | undefined {
   return currents.value.find((c) => c.id === id)
@@ -326,10 +336,18 @@ const filtered = computed(() => {
   return items.value.filter((i) => {
     if (currentId.value && i.current !== currentId.value) return false
     if (sourceId.value !== 'all' && i.sourceId !== sourceId.value) return false
-    if (i.importance < minImportance.value) return false
     if (q && !`${i.titleJa} ${i.title} ${i.summary}`.toLowerCase().includes(q)) return false
     return true
   })
+})
+
+/** 重要度が高いもの（同点は新しい順）上位 TOP_ITEM_COUNT 件は常に全文表示する。 */
+const topIds = computed(() => {
+  const ranked = [...filtered.value].sort((a, b) => {
+    if (b.importance !== a.importance) return b.importance - a.importance
+    return (b.publishedAt || '').localeCompare(a.publishedAt || '')
+  })
+  return new Set(ranked.slice(0, TOP_ITEM_COUNT).map((i) => i.id))
 })
 
 const groups = computed(() => {
@@ -424,10 +442,6 @@ async function load() {
     items.value = state.items
     currents.value = state.currents
     snapshots.value = state.snapshots
-    if (!thresholdApplied) {
-      minImportance.value = state.minImportance
-      thresholdApplied = true
-    }
   } catch {
     // 公開ページなので静かに失敗する（記事0件の表示に自然にフォールバックする）
   } finally {

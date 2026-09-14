@@ -22,8 +22,15 @@ useHead({
       type: 'image/svg+xml',
       href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱️</text></svg>`,
     },
+    { rel: 'manifest', href: '/manifest-kouba.json' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon-kouba.png' },
   ],
-  meta: [{ name: 'theme-color', content: '#0f172a' }],
+  meta: [
+    { name: 'apple-mobile-web-app-capable', content: 'yes' },
+    { name: 'apple-mobile-web-app-title', content: 'タスク管理' },
+    { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+    { name: 'theme-color', content: '#0f172a' },
+  ],
 })
 
 const isDev = import.meta.dev
@@ -177,7 +184,20 @@ function openTask(taskId: string) {
   activeTaskId.value = taskId
 }
 async function handleUpdateTask(patch: { title?: string; categoryIds?: string[]; focused?: boolean; description?: string }) {
-  if (activeTaskId.value) await updateTask(activeTaskId.value, patch)
+  if (!activeTaskId.value) return
+  const taskId = activeTaskId.value
+  await updateTask(taskId, patch)
+  // ハイライト（注力中）をONにしたら、載っている全カテゴリで先頭へ移動する
+  if (patch.focused) {
+    for (const c of categories.value) {
+      const ids = c.tasks.map((t) => t.id)
+      const idx = ids.indexOf(taskId)
+      if (idx <= 0) continue
+      ids.splice(idx, 1)
+      ids.unshift(taskId)
+      await reorderTasks(c.id, ids)
+    }
+  }
 }
 async function handleRegenerateTaskIcon(instruction: string) {
   if (activeTaskId.value) await generateIcon('task', activeTaskId.value, instruction)
@@ -488,9 +508,9 @@ onBeforeUnmount(() => {
         <template v-else>
           <p v-if="actionError" class="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2 m-0">{{ actionError }}</p>
 
-          <!-- 3×3グリッド。狭い画面では横スクロールさせ、枠の比率は常に3×3を保つ -->
+          <!-- 3×3グリッド。スマホ（sm未満）はカテゴリを縦1列に積む。sm以上は横スクロールさせつつ常に3×3の比率を保つ -->
           <div class="overflow-x-auto pb-2">
-            <div class="grid grid-cols-3 gap-4 min-w-[1080px]">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:min-w-[1080px]">
               <template v-for="(cat, i) in gridSlots" :key="i">
                 <!-- カテゴリの枠 -->
                 <div

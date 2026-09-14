@@ -76,6 +76,24 @@ useHead({
 .fnews-card:hover { box-shadow: 0 2px 10px rgba(31, 36, 29, 0.06); }
 .fnews-card--top { border-left: 3px solid var(--fnews-accent); }
 
+.fnews-summary {
+  cursor: pointer;
+  list-style: none;
+  position: relative;
+  padding-right: 1.4rem;
+}
+.fnews-summary::-webkit-details-marker { display: none; }
+.fnews-summary::after {
+  content: '▾';
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: var(--fnews-ink-faint);
+  transition: transform 0.15s, color 0.15s;
+}
+.fnews-details[open] > .fnews-summary::after { transform: rotate(180deg); }
+.fnews-summary:hover::after { color: var(--fnews-accent); }
+
 .fnews-current-card {
   background: var(--fnews-card);
   border: 1px solid var(--fnews-line);

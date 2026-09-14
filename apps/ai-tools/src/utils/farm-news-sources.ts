@@ -76,9 +76,6 @@ export function farmNewsSourceName(id: string): string {
   return FARM_NEWS_SOURCES.find((s) => s.id === id)?.name ?? id
 }
 
-/** ページが既定で表示する重要度のしきい値（これ未満も保存はされ、切り替えれば見られる）。 */
-export const FARM_NEWS_MIN_IMPORTANCE = 3
-
 /** フィードから拾う公開日の範囲（日）。news.ts と同じ考え方（初回実行で全件を要約しないための安全弁）。 */
 export const FARM_NEWS_LOOKBACK_DAYS = 5
 

@@ -69,8 +69,6 @@ export interface FarmNewsState {
   runs: FarmNewsRun[]
   currents: FarmNewsCurrentState[]
   snapshots: FarmNewsTrendSnapshot[]
-  /** ページが既定で表示する重要度のしきい値 */
-  minImportance: number
 }
 
 export interface FarmNewsRunResult {
