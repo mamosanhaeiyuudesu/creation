@@ -8,6 +8,19 @@ export default defineNuxtConfig({
     public: 'src/public',
   },
   compatibilityDate: '2026-03-12',
+  app: {
+    head: {
+      script: [
+        { src: 'https://www.googletagmanager.com/gtag/js?id=G-JZGYERMXNZ', async: true },
+        {
+          innerHTML: `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-JZGYERMXNZ');`,
+        },
+      ],
+    },
+  },
   devtools: {
     enabled: true,
     vscode: {},
