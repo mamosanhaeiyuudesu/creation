@@ -3,11 +3,15 @@ import { ref, nextTick } from 'vue'
 import type { KoubaSubtask } from '~/types/kouba'
 import KoubaHoursStepper from '~/components/kouba/KoubaHoursStepper.vue'
 
-const props = defineProps<{ subtask: KoubaSubtask; saving: boolean }>()
+const props = defineProps<{ subtask: KoubaSubtask; saving: boolean; dragging?: boolean; dropTarget?: boolean }>()
 const emit = defineEmits<{
   rename: [title: string]
   setHours: [hours: number]
   delete: []
+  dragstart: [event: DragEvent]
+  dragend: []
+  dragover: []
+  drop: []
 }>()
 
 // 日本語入力の変換確定Enterでも @keydown.enter は発火するため、確定中は無視する
@@ -43,7 +47,21 @@ function cancelEditAndDelete() {
 </script>
 
 <template>
-  <div class="rounded-xl border border-white/10 bg-white/[0.03] p-3 flex items-center gap-2">
+  <div
+    class="rounded-xl border bg-white/[0.03] p-3 flex items-center gap-2 transition-colors"
+    :class="[dragging ? 'opacity-40' : '', dropTarget ? 'border-sky-500' : 'border-white/10']"
+    @dragover.prevent="emit('dragover')"
+    @drop.prevent="emit('drop')"
+  >
+    <!-- 掴むハンドル。編集中は掴めなくする（入力欄でのドラッグ選択を邪魔しないため） -->
+    <span
+      class="w-5 h-7 flex items-center justify-center text-slate-600 text-sm select-none shrink-0"
+      :class="editingTitle ? '' : 'cursor-grab active:cursor-grabbing'"
+      :draggable="!editingTitle"
+      title="ドラッグして並べ替え"
+      @dragstart="emit('dragstart', $event)"
+      @dragend="emit('dragend')"
+    >⠿</span>
     <!-- 編集中は時間の+/-と🗑を隠し、✗だけにする（1行に削除ボタンが2つ並ぶのを避けるため） -->
     <template v-if="editingTitle">
       <input

@@ -50,6 +50,8 @@ export interface NewsCurrentSection {
 export interface NewsCurrentState {
   id: string
   sections: NewsCurrentSection[]
+  /** カード面に出す要点3つ（15字程度の短いフレーズ）。sections から独立してAIが生成する */
+  bullets: string[]
   /** 直近30日でこの潮流に分類された記事数 */
   itemCount30d: number
   updatedAt: string

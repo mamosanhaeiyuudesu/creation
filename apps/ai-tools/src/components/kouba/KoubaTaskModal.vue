@@ -27,6 +27,8 @@ const emit = defineEmits<{
   /** 時間の +/-。連打されるので rename とは別の口にして、ページ側でまとめ保存に回す。 */
   setSubtaskHours: [payload: { id: string; hours: number }]
   deleteSubtask: [subtask: KoubaSubtask]
+  /** ドラッグ&ドロップでの並べ替え。新しい並び順どおりの全サブタスクIDを渡す。 */
+  reorderSubtasks: [subtaskIds: string[]]
 }>()
 
 // 日本語入力の変換確定Enterでも @keydown.enter は発火するため、確定中は無視する
@@ -121,6 +123,35 @@ function onToggleCategory(categoryId: string) {
 }
 function isOnlySelectedCategory(categoryId: string): boolean {
   return !!props.task && props.task.categoryIds.length === 1 && props.task.categoryIds[0] === categoryId
+}
+
+// ── サブタスクのドラッグ&ドロップ（上下の入れ替え）──────────────────────────────
+const dragSubtaskId = ref<string | null>(null)
+const dragOverSubtaskId = ref<string | null>(null)
+
+function onSubtaskDragStart(e: DragEvent, subtask: KoubaSubtask) {
+  dragSubtaskId.value = subtask.id
+  e.dataTransfer?.setData('text/plain', subtask.id)
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
+}
+function onSubtaskDragEnd() {
+  dragSubtaskId.value = null
+  dragOverSubtaskId.value = null
+}
+function onSubtaskDragOver(subtask: KoubaSubtask) {
+  if (!dragSubtaskId.value || dragSubtaskId.value === subtask.id) return
+  dragOverSubtaskId.value = subtask.id
+}
+/** targetSubtask の手前に挿入する（カテゴリ・タスクのドラッグ&ドロップと同じ規則）。 */
+function onSubtaskDrop(targetSubtask: KoubaSubtask) {
+  const draggedId = dragSubtaskId.value
+  onSubtaskDragEnd()
+  if (!draggedId || draggedId === targetSubtask.id || !props.task) return
+  const ids = props.task.subtasks.map((s) => s.id).filter((id) => id !== draggedId)
+  let insertAt = ids.indexOf(targetSubtask.id)
+  if (insertAt < 0) insertAt = ids.length
+  ids.splice(insertAt, 0, draggedId)
+  emit('reorderSubtasks', ids)
 }
 </script>
 
@@ -251,7 +282,7 @@ function isOnlySelectedCategory(categoryId: string): boolean {
           </form>
           <p v-if="error" class="text-xs text-rose-400 m-0">{{ error }}</p>
 
-          <!-- サブタスク一覧。時間は日別に分けず1個の値をまとめて持ち、その場で編集できる -->
+          <!-- サブタスク一覧。時間は日別に分けず1個の値をまとめて持ち、その場で編集できる。ドラッグで上下に並べ替え可能 -->
           <div class="flex flex-col gap-2">
             <div v-if="!task.subtasks.length" class="text-center text-slate-500 text-[13px] py-6">まだサブタスクがありません</div>
             <KoubaSubtaskCard
@@ -259,9 +290,15 @@ function isOnlySelectedCategory(categoryId: string): boolean {
               :key="st.id"
               :subtask="st"
               :saving="saving"
+              :dragging="dragSubtaskId === st.id"
+              :drop-target="dragOverSubtaskId === st.id"
               @rename="(title) => emit('updateSubtask', { id: st.id, title })"
               @set-hours="(hours) => emit('setSubtaskHours', { id: st.id, hours })"
               @delete="emit('deleteSubtask', st)"
+              @dragstart="(e) => onSubtaskDragStart(e, st)"
+              @dragend="onSubtaskDragEnd"
+              @dragover="onSubtaskDragOver(st)"
+              @drop="onSubtaskDrop(st)"
             />
           </div>
         </div>

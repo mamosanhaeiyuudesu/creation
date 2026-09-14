@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import type { KoubaCategory, KoubaIconTarget } from '~/types/kouba'
+import type { KoubaCategory, KoubaIconTarget, KoubaSubtask } from '~/types/kouba'
 
 /** カテゴリは3×3グリッドの9枠まで。 */
 export const KOUBA_GRID_SIZE = 9
@@ -174,6 +174,30 @@ export function useKouba() {
   }
 
   /**
+   * ドラッグ&ドロップ用: 指定タスク内のサブタスクの並び順を丸ごと反映する。
+   * タスクは複数カテゴリに重複して表示されることがあるので、カテゴリのreorderと同じく
+   * 手元を先に入れ替えてから保存する（load()で取り直すと板全体が一瞬「読み込み中…」に化けるため）。
+   * 全カテゴリ・全タスクを走査してtaskIdが一致する箇所すべてのsubtasksを並べ替える（時間の+/-や合計と同じ「同期」）。
+   */
+  async function reorderSubtasks(taskId: string, subtaskIds: string[]) {
+    for (const c of categories.value) {
+      for (const t of c.tasks) {
+        if (t.id !== taskId) continue
+        const byId = new Map(t.subtasks.map((s) => [s.id, s]))
+        const reordered = subtaskIds.map((id) => byId.get(id)).filter((s): s is KoubaSubtask => !!s)
+        if (reordered.length === t.subtasks.length) t.subtasks = reordered
+      }
+    }
+    actionError.value = ''
+    try {
+      await $fetch('/api/kouba/subtasks/reorder', { method: 'POST', body: { taskId, subtaskIds } })
+    } catch (e: any) {
+      actionError.value = e?.data?.message || '並べ替えに失敗しました'
+      await load()
+    }
+  }
+
+  /**
    * 手元の合計時間を積み直す（サブタスク→タスク→カテゴリ。サーバーの shapeTask/shapeCategory と同じ計算）。
    * カテゴリをまたいで同じタスクが複数の配列に入っていることがある（1タスクが複数カテゴリに属する場合）が、
    * 全カテゴリ・全タスクを漏れなく回すのでどちらの出現にも同じ値が積まれる＝結果として同期する。
@@ -255,6 +279,7 @@ export function useKouba() {
     reorderTasks,
     addSubtask,
     updateSubtask,
+    reorderSubtasks,
     setSubtaskHours,
     flushPendingHours,
     deleteSubtask,

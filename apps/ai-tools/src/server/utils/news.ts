@@ -321,23 +321,36 @@ export interface CurrentContext {
   todayItems: { titleJa: string; summary: string; importance: number }[]
 }
 
+interface StoredNarrative {
+  sections: NewsCurrentSection[]
+  /** カード面用の要点3つ。bullets を持たない旧形式の行では空配列（次回の考察更新で埋まる） */
+  bullets: string[]
+}
+
 /**
- * news_currents.narrative に保存されている文字列を章立て配列にする。
- * 通常は JSON.stringify(NewsCurrentSection[]) だが、章立て化する前（2026-09-06以前）に
- * 保存された素のプレーンテキストが残っている可能性があるため、JSON として読めなければ
- * 見出し無しの1章として扱う（ページを壊さないための保険）。
+ * news_currents.narrative に保存されている文字列を章立て＋要点にする。
+ * 現在の形式は JSON.stringify({ sections, bullets })。それより前は
+ * JSON.stringify(NewsCurrentSection[])（bulletsを追加する前）、さらに前は
+ * 章立て化する前（2026-09-06以前）の素のプレーンテキストが残っている可能性があるため、
+ * 古い形式もすべてフォールバックで読めるようにしている（ページを壊さないための保険）。
  */
-function parseSections(raw: string | null | undefined): NewsCurrentSection[] {
-  if (!raw) return []
+function parseSections(raw: string | null | undefined): StoredNarrative {
+  if (!raw) return { sections: [], bullets: [] }
   try {
     const parsed = JSON.parse(raw)
     if (Array.isArray(parsed) && parsed.every((s) => typeof s?.title === 'string' && typeof s?.body === 'string')) {
-      return parsed
+      return { sections: parsed, bullets: [] }
+    }
+    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.sections)) {
+      return {
+        sections: parsed.sections,
+        bullets: Array.isArray(parsed.bullets) ? parsed.bullets.filter((b: unknown) => typeof b === 'string') : [],
+      }
     }
   } catch {
     // 旧形式（プレーンテキスト1本）のフォールバックへ落ちる
   }
-  return raw.trim() ? [{ title: '', body: raw }] : []
+  return raw.trim() ? { sections: [{ title: '', body: raw }], bullets: [] } : { sections: [], bullets: [] }
 }
 
 /**
@@ -362,7 +375,7 @@ export async function loadCurrentContext(
       .bind(currentId, digestDate),
   ])
   return {
-    previousSections: parseSections(narrativeRes?.results?.[0]?.narrative),
+    previousSections: parseSections(narrativeRes?.results?.[0]?.narrative).sections,
     recentItems: (recentRes?.results ?? []).map((r: any) => ({
       titleJa: r.title_ja ?? '',
       importance: r.importance ?? 0,
@@ -376,18 +389,22 @@ export async function loadCurrentContext(
   }
 }
 
-/** 潮流の考察を書き直す。5潮流ぶん、履歴は持たず1行を上書きする（章立てはJSON文字列として保存）。 */
+/**
+ * 潮流の考察を書き直す。6潮流ぶん、履歴は持たず1行を上書きする
+ * （章立て＋カード用の要点3つをまとめて `{ sections, bullets }` のJSON文字列として保存）。
+ */
 export async function upsertCurrentNarrative(
   db: any,
   currentId: string,
   sections: NewsCurrentSection[],
+  bullets: string[],
   itemCount30d: number
 ): Promise<void> {
   await db
     .prepare(
       `INSERT OR REPLACE INTO news_currents (id, narrative, item_count_30d, updated_at) VALUES (?, ?, ?, datetime('now'))`
     )
-    .bind(currentId, JSON.stringify(sections), itemCount30d)
+    .bind(currentId, JSON.stringify({ sections, bullets }), itemCount30d)
     .run()
 }
 
@@ -406,11 +423,15 @@ export async function listCurrentsWithNewItems(db: any, digestDate: string): Pro
 
 export async function listCurrentStates(db: any): Promise<NewsCurrentState[]> {
   const res = await db.prepare('SELECT * FROM news_currents').all<any>()
-  return (res?.results ?? []).map((r: any) => ({
-    id: r.id,
-    sections: parseSections(r.narrative),
-    itemCount30d: r.item_count_30d ?? 0,
-    updatedAt: r.updated_at ?? '',
-  }))
+  return (res?.results ?? []).map((r: any) => {
+    const { sections, bullets } = parseSections(r.narrative)
+    return {
+      id: r.id,
+      sections,
+      bullets,
+      itemCount30d: r.item_count_30d ?? 0,
+      updatedAt: r.updated_at ?? '',
+    }
+  })
 }
 

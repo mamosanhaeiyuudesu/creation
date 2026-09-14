@@ -40,7 +40,7 @@ function submit() {
 
 <template>
   <section class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-4">
-    <h2 class="m-0 text-sm font-bold text-slate-100">🏆 達成したこと</h2>
+    <h2 class="m-0 text-sm font-bold text-slate-100">🏆 目に見える形で達成したこと</h2>
 
     <form class="flex items-start gap-2.5" @submit.prevent="submit">
       <textarea

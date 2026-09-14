@@ -1,6 +1,7 @@
-import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, findOwnedTask, normalizeHours } from '~/server/utils/kouba'
+import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, findOwnedTask, normalizeHours, nextSubtaskSortOrder } from '~/server/utils/kouba'
 
 // サブタスクを新規作成する。時間は日別に分けず、作成時に +/- で決めた1個の値（30分刻み）をまとめて持つ。
+// 並び順（sort_order）は常に末尾に追加する。並べ替えは subtasks/reorder.post.ts の担当。
 export default defineEventHandler(async (event) => {
   const user = await requireKoubaUser(event)
   const db = requireKoubaDb(event)
@@ -17,10 +18,11 @@ export default defineEventHandler(async (event) => {
   const task = await findOwnedTask(db, user.id, taskId)
   if (!task) throw createError({ statusCode: 404, message: 'タスクが見つかりません' })
 
+  const sortOrder = await nextSubtaskSortOrder(db, taskId)
   const id = crypto.randomUUID()
   await db
-    .prepare('INSERT INTO kouba_subtasks (id, user_id, task_id, title, hours) VALUES (?, ?, ?, ?, ?)')
-    .bind(id, user.id, taskId, title, hours)
+    .prepare('INSERT INTO kouba_subtasks (id, user_id, task_id, title, hours, sort_order) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(id, user.id, taskId, title, hours, sortOrder)
     .run()
 
   return { id, taskId, title, hours, createdAt: new Date().toISOString() }

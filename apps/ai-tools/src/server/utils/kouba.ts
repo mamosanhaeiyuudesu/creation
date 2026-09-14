@@ -55,6 +55,7 @@ export async function ensureKoubaTables(db: any): Promise<void> {
       task_id TEXT NOT NULL,
       title TEXT NOT NULL DEFAULT '',
       hours REAL NOT NULL DEFAULT 1,
+      sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
     `CREATE INDEX IF NOT EXISTS idx_kouba_subtasks_task ON kouba_subtasks(task_id)`,
@@ -100,6 +101,7 @@ export async function ensureKoubaTables(db: any): Promise<void> {
     `ALTER TABLE kouba_tasks ADD COLUMN focused INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE kouba_categories ADD COLUMN description TEXT NOT NULL DEFAULT ''`,
     `ALTER TABLE kouba_tasks ADD COLUMN description TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE kouba_subtasks ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`,
   ]
   for (const sql of columns) await db.prepare(sql).run().catch(() => {})
 
@@ -270,7 +272,7 @@ export async function loadBoard(db: any, userId: string): Promise<KoubaCategory[
     for (const r of taskRows?.results ?? []) taskRowsById.set(r.id, r)
 
     const subtaskRows = await db
-      .prepare(`SELECT * FROM kouba_subtasks WHERE task_id IN (${taskPlaceholders}) ORDER BY created_at ASC`)
+      .prepare(`SELECT * FROM kouba_subtasks WHERE task_id IN (${taskPlaceholders}) ORDER BY sort_order ASC, created_at ASC`)
       .bind(...taskIds)
       .all<SubtaskRow>()
     for (const s of subtaskRows?.results ?? []) {
@@ -364,6 +366,15 @@ export async function nextTaskSortOrder(db: any, categoryId: string): Promise<nu
   const row = await db
     .prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM kouba_task_categories WHERE category_id = ?')
     .bind(categoryId)
+    .first<{ m: number }>()
+  return (row?.m ?? -1) + 1
+}
+
+/** 指定タスク内で次に使う sort_order（末尾に追加する値）。サブタスクのドラッグ&ドロップ並べ替えで使う。 */
+export async function nextSubtaskSortOrder(db: any, taskId: string): Promise<number> {
+  const row = await db
+    .prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM kouba_subtasks WHERE task_id = ?')
+    .bind(taskId)
     .first<{ m: number }>()
   return (row?.m ?? -1) + 1
 }

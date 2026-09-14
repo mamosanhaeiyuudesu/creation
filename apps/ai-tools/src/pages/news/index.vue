@@ -44,11 +44,17 @@
             <h2 class="news-display text-[14px]">{{ c.label }}</h2>
             <span class="text-[11px] text-[var(--news-ink-faint)] whitespace-nowrap">{{ currentState(c.id)?.itemCount30d ?? 0 }}件/30日</span>
           </div>
-          <p
-            class="text-[12.5px] leading-[1.7] text-[var(--news-ink-soft)] overflow-hidden"
-            style="display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;"
-          >
-            {{ cardPreview(c.id) }}
+          <ul v-if="cardBullets(c.id).length" class="flex flex-col gap-1">
+            <li
+              v-for="(b, i) in cardBullets(c.id)"
+              :key="i"
+              class="text-[12.5px] leading-[1.5] text-[var(--news-ink-soft)]"
+            >
+              ・{{ b }}
+            </li>
+          </ul>
+          <p v-else class="text-[12.5px] leading-[1.7] text-[var(--news-ink-soft)]">
+            まだ記事が集まっていません。
           </p>
         </button>
       </div>
@@ -273,10 +279,20 @@ function currentState(id: string): NewsCurrentState | undefined {
   return currents.value.find((c) => c.id === id)
 }
 
-/** カード面のプレビュー。1章目（ここまでの流れ）の本文を出す。line-clamp で途中までしか見えない。 */
-function cardPreview(id: string): string {
-  const sections = currentState(id)?.sections
-  return sections?.[0]?.body || 'まだ記事が集まっていません。'
+/**
+ * カード面の要点3つ（15字程度）。クリックすると全文がポップアップで読める。
+ * bulletsを持たない旧データ（考察はあるが要点だけ未生成）は、各章の最初の1文を短く切って代わりに出す
+ * （次に新着があって考察が更新されれば自然にAI生成のbulletsへ置き換わる）。
+ */
+function cardBullets(id: string): string[] {
+  const state = currentState(id)
+  if (!state) return []
+  if (state.bullets.length) return state.bullets
+  return state.sections
+    .map((s) => s.body.split('\n')[0]?.trim())
+    .filter((s): s is string => Boolean(s))
+    .slice(0, 3)
+    .map((s) => (s.length > 24 ? `${s.slice(0, 23)}…` : s))
 }
 
 /** ポップアップの「この潮流の記事だけ見る」。絞り込んで閉じ、記事一覧までスクロールする。 */

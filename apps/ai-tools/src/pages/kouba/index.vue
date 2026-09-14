@@ -36,7 +36,7 @@ const {
   categories, loading, loadError, saving, actionError, iconBusyIds, load, generateIcon,
   addCategory, updateCategory, deleteCategory, reorderCategories,
   addTask, updateTask, deleteTask, reorderTasks,
-  addSubtask, updateSubtask, setSubtaskHours, flushPendingHours, deleteSubtask,
+  addSubtask, updateSubtask, reorderSubtasks, setSubtaskHours, flushPendingHours, deleteSubtask,
 } = useKouba()
 
 // ── 今のテーマ（板のトップに掲げる一言）──────────────────────────────
@@ -191,6 +191,9 @@ async function handleUpdateSubtask(payload: { id: string; title: string }) {
 /** 時間の +/- は押すたびに保存せず、useKouba 側で手元反映＋まとめ保存にする。 */
 function handleSetSubtaskHours(payload: { id: string; hours: number }) {
   setSubtaskHours(payload.id, payload.hours)
+}
+async function handleReorderSubtasks(subtaskIds: string[]) {
+  if (activeTaskId.value) await reorderSubtasks(activeTaskId.value, subtaskIds)
 }
 
 // ── 削除確認ポップアップ（カテゴリ/タスク/サブタスクで共通）──────────────────────────────
@@ -431,6 +434,7 @@ onBeforeUnmount(() => {
     @update-subtask="handleUpdateSubtask"
     @set-subtask-hours="handleSetSubtaskHours"
     @delete-subtask="askDeleteSubtask"
+    @reorder-subtasks="handleReorderSubtasks"
   />
 
   <!-- 削除確認ポップアップ -->

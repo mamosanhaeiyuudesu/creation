@@ -144,7 +144,7 @@ export async function synthesizeCurrentNarrative(
     recentItems: RecentCurrentItem[]
     todayItems: { titleJa: string; summary: string; importance: number }[]
   }
-): Promise<NewsCurrentSection[]> {
+): Promise<{ sections: NewsCurrentSection[]; bullets: string[] }> {
   const recentList =
     input.recentItems.map((i) => `- ${i.digestDate} [重要度${i.importance}] ${i.titleJa}`).join('\n') ||
     '（過去1ヶ月の記録なし）'
@@ -163,12 +163,15 @@ export async function synthesizeCurrentNarrative(
 3つの観点で考察を書いてください。
 
 出力は次のJSONのみ。前置きやコードフェンスを付けないこと。
-{"trend": "…", "today": "…", "outlook": "…"}
+{"trend": "…", "today": "…", "outlook": "…", "bullets": ["…", "…", "…"]}
 
 - trend: この1ヶ月、この潮流がどちらに向かっているかの大きな流れ（3〜4文）。個別記事の紹介ではなく、
   月単位で見たときの方向性・勢い・転換点を述べる
 - today: 今日入った新着が何で、この流れの中でどういう意味を持つか（2〜3文）
 - outlook: これからどうなりそうか、何に注目しておくとよいか（1〜2文）
+- bullets: trend/today/outlook 全体の要点を3つ、それぞれ15字程度の短いフレーズにしたもの。
+  カード一覧でひと目で中身が分かるための見出し語で、文章ではなく体言止めの短句（例:「配送ロボが都市部で実用化」）。
+  句点「。」や主語の重複は付けない。3つとも似た内容にならないよう、違う角度（動き・要因・今後 など）から選ぶ
 
 書き方（重要）:
 - 分析レポートのような硬い言い回しは避け、詳しい友人が雑談で教えてくれるような言葉づかいにする
@@ -194,9 +197,18 @@ export async function synthesizeCurrentNarrative(
 
   const parsed = extractJson(text)
   const clean = (raw: unknown) => breakSentences(stripMarkdown(String(raw ?? '').trim()))
-  return [
+  const sections = [
     { title: TREND_SECTION_TITLES.trend, body: clean(parsed.trend) },
     { title: TREND_SECTION_TITLES.today, body: clean(parsed.today) },
     { title: TREND_SECTION_TITLES.outlook, body: clean(parsed.outlook) },
   ].filter((s) => s.body)
+
+  // 15字程度の指示は守られないことがあるので、カードのレイアウトが崩れないよう長さも機械的に切る
+  const bullets = (Array.isArray(parsed.bullets) ? parsed.bullets : [])
+    .map((b: unknown) => stripMarkdown(String(b ?? '').trim()).replace(/[。.]+$/, ''))
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((b: string) => (b.length > 24 ? `${b.slice(0, 23)}…` : b))
+
+  return { sections, bullets }
 }
