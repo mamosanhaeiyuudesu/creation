@@ -61,6 +61,48 @@ function fillMissingPeople(parsed: unknown): unknown {
 }
 
 /**
+ * unions の partners は必ずちょうど2人でなければならないが、「子ども3人の面倒を見てもらっている」のような
+ * 文でAIが面倒を見ている子をpartnersに混ぜ込んで3人以上にしたり、配偶者が不明で1人しか書かなかったりすることがある。
+ * 3人以上なら先頭2人を夫婦とみなし残りをchildrenへ回し、1人なら配偶者不明の人物を補って2人にする。
+ * それでも直せない(0人)場合は、そのunionだけ諦めて捨てる(1件のせいで解釈結果が丸ごと失敗するのを防ぐ)。
+ */
+function normalizeUnionPartners(parsed: unknown): unknown {
+  if (!parsed || typeof parsed !== 'object' || !Array.isArray((parsed as any).people) || !Array.isArray((parsed as any).unions)) {
+    return parsed
+  }
+  const data = parsed as { people: any[]; unions: any[] }
+  const knownIds = new Set(data.people.map((p) => p?.id).filter((id): id is string => typeof id === 'string'))
+
+  data.unions = data.unions.filter((u) => {
+    if (!u || typeof u !== 'object' || !Array.isArray(u.partners)) return true
+    const partners = (u.partners as unknown[]).filter((p): p is string => typeof p === 'string')
+
+    if (partners.length > 2) {
+      const extra = partners.slice(2)
+      u.partners = partners.slice(0, 2)
+      const existingChildren = Array.isArray(u.children) ? u.children.filter((c: unknown) => typeof c === 'string') : []
+      u.children = [...existingChildren, ...extra.filter((id) => !existingChildren.includes(id))]
+      return true
+    }
+    if (partners.length === 2) {
+      u.partners = partners
+      return true
+    }
+    if (partners.length === 1) {
+      let spouseId = `${partners[0]}_spouse`
+      while (knownIds.has(spouseId)) spouseId += '_'
+      knownIds.add(spouseId)
+      data.people.push({ id: spouseId, name: '(配偶者不明)', gender: 'U' })
+      u.partners = [partners[0], spouseId]
+      return true
+    }
+    return false
+  })
+
+  return data
+}
+
+/**
  * name も relation も空の人物は、記号の下に何も表示されない箱になってしまうためバリデーションで弾かれる。
  * 本人(isSelf)が未特定で続柄を付けられず、実名も語られていない人物(「父の兄」など)で起きやすく、
  * たった1人のせいで解釈結果が丸ごと失敗してしまう。プロンプトでも禁止しているが、ここでも仮の名前を補う。
@@ -104,7 +146,7 @@ export default defineEventHandler(async (event) => {
   const parsed = parseJsonLoose<GenogramData>(out)
   if (!parsed) throw createError({ statusCode: 502, statusMessage: 'AIの応答をJSONとして解釈できませんでした。もう一度お試しください。' })
 
-  const { data, errors } = validateGenogramData(labelUnnamedPeople(fillMissingPeople(parsed)))
+  const { data, errors } = validateGenogramData(labelUnnamedPeople(fillMissingPeople(normalizeUnionPartners(parsed))))
   if (!data) throw createError({ statusCode: 502, statusMessage: `AIが生成したデータが不正でした: ${errors[0] ?? '不明なエラー'}` })
 
   return { data }

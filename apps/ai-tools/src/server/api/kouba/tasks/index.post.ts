@@ -4,6 +4,7 @@ import { KOUBA_DEFAULT_TASK_ICON } from '~/types/kouba'
 // タスク（付箋）を新規作成する。1つ以上のカテゴリに同時掲載できる（categoryIds）＝
 // 作成時は「＋」を押したその1カテゴリだけを渡す運用で、複数掲載は後からタスク詳細モーダルで設定する。
 // 各カテゴリ内では、そのカテゴリの末尾（sort_orderの最大+1）に追加する。
+// 説明文は作成フォームには無く、作成後にタスク詳細モーダルから編集する運用（description は任意）。
 export default defineEventHandler(async (event) => {
   const user = await requireKoubaUser(event)
   const db = requireKoubaDb(event)
@@ -39,5 +40,5 @@ export default defineEventHandler(async (event) => {
   }
   await db.batch(links)
 
-  return { id, categoryIds, title, icon, createdAt: new Date().toISOString(), subtasks: [], totalHours: 0 }
+  return { id, categoryIds, title, icon, createdAt: new Date().toISOString(), subtasks: [], totalHours: 0, focused: false, description: '' }
 })

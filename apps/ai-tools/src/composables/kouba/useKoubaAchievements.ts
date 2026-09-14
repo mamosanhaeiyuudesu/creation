@@ -23,11 +23,11 @@ export function useKoubaAchievements() {
   }
 
   /** 追加後は達成日の新しい順を保つよう並べ直す（過去日付を後から追加することもあるため）。 */
-  async function add(text: string, impact: number, achievedAt: string): Promise<boolean> {
+  async function add(text: string, achievedAt: string): Promise<boolean> {
     saving.value = true
     error.value = ''
     try {
-      const created = await $fetch<KoubaAchievement>('/api/kouba/achievements', { method: 'POST', body: { text, impact, achievedAt } })
+      const created = await $fetch<KoubaAchievement>('/api/kouba/achievements', { method: 'POST', body: { text, achievedAt } })
       achievements.value = [...achievements.value, created].sort((a, b) => b.achievedAt.localeCompare(a.achievedAt))
       return true
     } catch (e: any) {

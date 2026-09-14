@@ -8,8 +8,7 @@ import {
   KOUBA_MAX_HOURS,
   KOUBA_HOURS_STEP,
   KOUBA_THEME_MIN_HISTORY_MS,
-  KOUBA_IMPACT_MIN,
-  KOUBA_IMPACT_MAX,
+  KOUBA_DESCRIPTION_MAX,
 } from '~/types/kouba'
 import type { KoubaCategory, KoubaTask, KoubaSubtask, KoubaTheme, KoubaAchievement } from '~/types/kouba'
 
@@ -34,6 +33,7 @@ export async function ensureKoubaTables(db: any): Promise<void> {
       name TEXT NOT NULL DEFAULT '',
       icon TEXT NOT NULL DEFAULT '${KOUBA_DEFAULT_CATEGORY_ICON}',
       position INTEGER NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
     `CREATE INDEX IF NOT EXISTS idx_kouba_categories_user ON kouba_categories(user_id, position)`,
@@ -44,6 +44,8 @@ export async function ensureKoubaTables(db: any): Promise<void> {
       title TEXT NOT NULL DEFAULT '',
       icon TEXT NOT NULL DEFAULT '${KOUBA_DEFAULT_TASK_ICON}',
       sort_order INTEGER NOT NULL DEFAULT 0,
+      focused INTEGER NOT NULL DEFAULT 0,
+      description TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
     `CREATE INDEX IF NOT EXISTS idx_kouba_tasks_category ON kouba_tasks(category_id, sort_order)`,
@@ -76,7 +78,7 @@ export async function ensureKoubaTables(db: any): Promise<void> {
     )`,
     `CREATE INDEX IF NOT EXISTS idx_kouba_task_categories_category ON kouba_task_categories(category_id, sort_order)`,
     `CREATE INDEX IF NOT EXISTS idx_kouba_task_categories_task ON kouba_task_categories(task_id)`,
-    // 達成したこと（画面下部の一覧。インパクト5段階・達成日つき）
+    // 達成したこと（画面下部の一覧。達成日つき）。impact列はインパクト機能を廃止した名残＝以後は読み書きしない
     `CREATE TABLE IF NOT EXISTS kouba_achievements (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
@@ -95,6 +97,9 @@ export async function ensureKoubaTables(db: any): Promise<void> {
     `ALTER TABLE kouba_tasks ADD COLUMN icon TEXT NOT NULL DEFAULT '${KOUBA_DEFAULT_TASK_ICON}'`,
     `ALTER TABLE kouba_tasks ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE kouba_subtasks ADD COLUMN hours REAL NOT NULL DEFAULT 1`,
+    `ALTER TABLE kouba_tasks ADD COLUMN focused INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE kouba_categories ADD COLUMN description TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE kouba_tasks ADD COLUMN description TEXT NOT NULL DEFAULT ''`,
   ]
   for (const sql of columns) await db.prepare(sql).run().catch(() => {})
 
@@ -130,6 +135,13 @@ export function normalizeIcon(raw: unknown, fallback: string): string {
   return s || fallback
 }
 
+/** カテゴリ・タスクの説明文の正規化（trimのみ。空文字＝説明なしで許す）。文字数超過はnull。 */
+export function normalizeDescription(raw: unknown): string | null {
+  const s = typeof raw === 'string' ? raw.trim() : ''
+  if (s.length > KOUBA_DESCRIPTION_MAX) return null
+  return s
+}
+
 /**
  * 作業時間（0〜30、30分刻み）の正規化。範囲外・非数値なら null。**0 は有効な値**（時間を入れずに置いておける）
  * なので、呼び出し側は返り値を `=== null` で見ること（falsy 判定だと 0 を弾いてしまう）。
@@ -143,14 +155,6 @@ export function normalizeHours(raw: unknown): number | null {
   const stepped = Math.round(n / KOUBA_HOURS_STEP) * KOUBA_HOURS_STEP
   if (stepped < KOUBA_MIN_HOURS || stepped > KOUBA_MAX_HOURS) return null
   return stepped
-}
-
-/** インパクト（1〜5の整数）の正規化。範囲外・非整数なら null。 */
-export function normalizeImpact(raw: unknown): number | null {
-  const n = Number(raw)
-  if (!Number.isInteger(n)) return null
-  if (n < KOUBA_IMPACT_MIN || n > KOUBA_IMPACT_MAX) return null
-  return n
 }
 
 /**
@@ -175,12 +179,15 @@ interface CategoryRow {
   icon: string
   position: number
   created_at: string
+  description: string
 }
 interface TaskRow {
   id: string
   title: string
   icon: string
   created_at: string
+  focused: number
+  description: string
 }
 interface TaskCategoryLinkRow {
   task_id: string
@@ -209,6 +216,8 @@ function shapeTask(row: TaskRow, categoryIds: string[], subtasks: KoubaSubtask[]
     createdAt: row.created_at,
     subtasks,
     totalHours,
+    focused: !!row.focused,
+    description: row.description ?? '',
   }
 }
 
@@ -222,6 +231,7 @@ function shapeCategory(row: CategoryRow, tasks: KoubaTask[]): KoubaCategory {
     createdAt: row.created_at,
     tasks,
     totalHours,
+    description: row.description ?? '',
   }
 }
 
@@ -254,7 +264,7 @@ export async function loadBoard(db: any, userId: string): Promise<KoubaCategory[
   if (taskIds.length) {
     const taskPlaceholders = taskIds.map(() => '?').join(',')
     const taskRows = await db
-      .prepare(`SELECT id, title, icon, created_at FROM kouba_tasks WHERE id IN (${taskPlaceholders})`)
+      .prepare(`SELECT id, title, icon, created_at, focused, description FROM kouba_tasks WHERE id IN (${taskPlaceholders})`)
       .bind(...taskIds)
       .all<TaskRow>()
     for (const r of taskRows?.results ?? []) taskRowsById.set(r.id, r)
@@ -427,38 +437,32 @@ export async function setCurrentTheme(db: any, userId: string, text: string): Pr
 interface AchievementRow {
   id: string
   text: string
-  impact: number
   achieved_at: string
   created_at: string
 }
 
 function shapeAchievement(row: AchievementRow): KoubaAchievement {
-  return { id: row.id, text: row.text, impact: row.impact, achievedAt: row.achieved_at, createdAt: row.created_at }
+  return { id: row.id, text: row.text, achievedAt: row.achieved_at, createdAt: row.created_at }
 }
 
 /** 達成したことの一覧（達成日の新しい順）。 */
 export async function loadAchievements(db: any, userId: string): Promise<KoubaAchievement[]> {
   const rows = await db
-    .prepare('SELECT * FROM kouba_achievements WHERE user_id = ? ORDER BY achieved_at DESC, created_at DESC')
+    .prepare('SELECT id, text, achieved_at, created_at FROM kouba_achievements WHERE user_id = ? ORDER BY achieved_at DESC, created_at DESC')
     .bind(userId)
     .all<AchievementRow>()
   return (rows?.results ?? []).map(shapeAchievement)
 }
 
-export async function createAchievement(
-  db: any,
-  userId: string,
-  text: string,
-  impact: number,
-  achievedAt: string
-): Promise<KoubaAchievement> {
+/** impact 列は今は書き込まない（廃止済み。列自体はデフォルト値のまま残る）。 */
+export async function createAchievement(db: any, userId: string, text: string, achievedAt: string): Promise<KoubaAchievement> {
   const id = crypto.randomUUID()
   const createdAt = new Date().toISOString()
   await db
-    .prepare('INSERT INTO kouba_achievements (id, user_id, text, impact, achieved_at) VALUES (?, ?, ?, ?, ?)')
-    .bind(id, userId, text, impact, achievedAt)
+    .prepare('INSERT INTO kouba_achievements (id, user_id, text, achieved_at) VALUES (?, ?, ?, ?)')
+    .bind(id, userId, text, achievedAt)
     .run()
-  return { id, text, impact, achievedAt, createdAt }
+  return { id, text, achievedAt, createdAt }
 }
 
 /** 達成記録の所有者チェック。無ければ null。 */

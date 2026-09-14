@@ -23,6 +23,10 @@ export interface KoubaTask {
   createdAt: string
   subtasks: KoubaSubtask[]
   totalHours: number
+  /** 「直近で特に力を入れている」印。ONのタスクは付箋の枠をハイライトして目立たせる。 */
+  focused: boolean
+  /** 補足の説明文（任意）。 */
+  description: string
 }
 
 /** カテゴリ（3×3グリッドの1枠）。position は 0〜8。 */
@@ -34,7 +38,11 @@ export interface KoubaCategory {
   createdAt: string
   tasks: KoubaTask[]
   totalHours: number
+  /** 補足の説明文（任意）。 */
+  description: string
 }
+
+export const KOUBA_DESCRIPTION_MAX = 500
 
 /**
  * アイコン未設定時のフォールバック（AI生成が終わるまで・失敗したときの表示）。
@@ -139,11 +147,8 @@ export function formatKoubaHours(hours: number): string {
 export interface KoubaAchievement {
   id: string
   text: string
-  impact: number // 1〜5（5段階）
   achievedAt: string
   createdAt: string
 }
 
-export const KOUBA_IMPACT_MIN = 1
-export const KOUBA_IMPACT_MAX = 5
 export const KOUBA_ACHIEVEMENT_TEXT_MAX = 500

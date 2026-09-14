@@ -6,11 +6,12 @@ import {
   ownedCategoryIds,
   loadTaskCategoryIds,
   normalizeIcon,
+  normalizeDescription,
   nextTaskSortOrder,
 } from '~/server/utils/kouba'
 import { KOUBA_DEFAULT_TASK_ICON } from '~/types/kouba'
 
-// タスクの部分更新（title / icon / categoryIds のいずれか1つ以上）。
+// タスクの部分更新（title / icon / categoryIds / focused / description のいずれか1つ以上）。
 // categoryIds は「このタスクが属することになるカテゴリの集合」を丸ごと差し替える差分更新＝
 // 増えたカテゴリには末尾（sort_orderの最大+1）へ追加、外れたカテゴリからは表示ごと外す
 // （タスク自体やサブタスクは消さない。今まで属していたカテゴリの並び順はそのまま）。
@@ -24,8 +25,14 @@ export default defineEventHandler(async (event) => {
   const existing = await findOwnedTask(db, user.id, id)
   if (!existing) throw createError({ statusCode: 404, message: 'タスクが見つかりません' })
 
-  const body = await readBody<{ title?: string; icon?: string; categoryIds?: string[] }>(event)
-  if (body?.title === undefined && body?.icon === undefined && body?.categoryIds === undefined) {
+  const body = await readBody<{ title?: string; icon?: string; categoryIds?: string[]; focused?: boolean; description?: string }>(event)
+  if (
+    body?.title === undefined &&
+    body?.icon === undefined &&
+    body?.categoryIds === undefined &&
+    body?.focused === undefined &&
+    body?.description === undefined
+  ) {
     throw createError({ statusCode: 400, message: '更新する項目がありません' })
   }
 
@@ -40,6 +47,16 @@ export default defineEventHandler(async (event) => {
   if (body?.icon !== undefined) {
     sets.push('icon = ?')
     params.push(normalizeIcon(body.icon, KOUBA_DEFAULT_TASK_ICON))
+  }
+  if (body?.focused !== undefined) {
+    sets.push('focused = ?')
+    params.push(body.focused ? 1 : 0)
+  }
+  if (body?.description !== undefined) {
+    const description = normalizeDescription(body.description)
+    if (description === null) throw createError({ statusCode: 400, message: '説明が長すぎます' })
+    sets.push('description = ?')
+    params.push(description)
   }
   if (sets.length) {
     params.push(id)

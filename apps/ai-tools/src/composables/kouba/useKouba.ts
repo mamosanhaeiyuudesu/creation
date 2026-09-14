@@ -66,7 +66,7 @@ export function useKouba() {
     if (id) await generateIcon('category', id)
   }
 
-  async function updateCategory(id: string, patch: { name?: string }) {
+  async function updateCategory(id: string, patch: { name?: string; description?: string }) {
     await withSaving(async () => {
       await $fetch(`/api/kouba/categories/${id}`, { method: 'PATCH', body: patch })
       await load()
@@ -117,7 +117,7 @@ export function useKouba() {
   }
 
   /** patch.categoryIds は「所属することになるカテゴリの集合」を丸ごと差し替える（増減の両方を1回で表す）。 */
-  async function updateTask(id: string, patch: { title?: string; categoryIds?: string[] }) {
+  async function updateTask(id: string, patch: { title?: string; categoryIds?: string[]; focused?: boolean; description?: string }) {
     await withSaving(async () => {
       await $fetch(`/api/kouba/tasks/${id}`, { method: 'PATCH', body: patch })
       await load()

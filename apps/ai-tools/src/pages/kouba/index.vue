@@ -11,6 +11,7 @@ import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
 import KoubaIconEditor from '~/components/kouba/KoubaIconEditor.vue'
 import KoubaConfirmModal from '~/components/kouba/KoubaConfirmModal.vue'
 import type { KoubaCategory, KoubaTask, KoubaSubtask, KoubaAchievement } from '~/types/kouba'
+import { KOUBA_DESCRIPTION_MAX } from '~/types/kouba'
 
 useHead({
   title: import.meta.dev ? '工数 (dev)' : '工数',
@@ -50,8 +51,8 @@ const {
   achievements, loading: achievementsLoading, saving: achievementsSaving, error: achievementsError,
   load: loadAchievements, add: addAchievement, remove: removeAchievement,
 } = useKoubaAchievements()
-async function handleAddAchievement(payload: { text: string; impact: number; achievedAt: string }) {
-  await addAchievement(payload.text, payload.impact, payload.achievedAt)
+async function handleAddAchievement(payload: { text: string; achievedAt: string }) {
+  await addAchievement(payload.text, payload.achievedAt)
 }
 
 // 日本語入力の変換確定Enterでも @keydown.enter は発火するため、確定中は無視する
@@ -112,6 +113,22 @@ async function regenerateCategoryIcon(cat: KoubaCategory, instruction: string) {
   await generateIcon('category', cat.id, instruction)
 }
 
+// ── カテゴリの説明（任意）の編集 ──────────────────────────────
+const editingCategoryDescId = ref<string | null>(null)
+const categoryDescDraft = ref('')
+
+function startEditCategoryDesc(cat: KoubaCategory) {
+  editingCategoryDescId.value = cat.id
+  categoryDescDraft.value = cat.description
+  nextTick(() => document.getElementById(`kouba-edit-category-desc-${cat.id}`)?.focus())
+}
+async function commitCategoryDescEdit(cat: KoubaCategory) {
+  if (editingCategoryDescId.value !== cat.id) return
+  editingCategoryDescId.value = null
+  const description = categoryDescDraft.value.trim()
+  if (description !== cat.description) await updateCategory(cat.id, { description })
+}
+
 // ── タスクの追加 ──────────────────────────────
 // アイコンはカテゴリと同じく、追加したあと AI が作る
 const addingTaskFor = ref<string | null>(null)
@@ -159,7 +176,7 @@ const categoryOptions = computed(() => categories.value.map((c) => ({ id: c.id, 
 function openTask(taskId: string) {
   activeTaskId.value = taskId
 }
-async function handleUpdateTask(patch: { title?: string; categoryIds?: string[] }) {
+async function handleUpdateTask(patch: { title?: string; categoryIds?: string[]; focused?: boolean; description?: string }) {
   if (activeTaskId.value) await updateTask(activeTaskId.value, patch)
 }
 async function handleRegenerateTaskIcon(instruction: string) {
@@ -469,7 +486,7 @@ onBeforeUnmount(() => {
 
           <!-- 3×3グリッド。狭い画面では横スクロールさせ、枠の比率は常に3×3を保つ -->
           <div class="overflow-x-auto pb-2">
-            <div class="grid grid-cols-3 gap-4 min-w-[900px]">
+            <div class="grid grid-cols-3 gap-4 min-w-[1080px]">
               <template v-for="(cat, i) in gridSlots" :key="i">
                 <!-- カテゴリの枠 -->
                 <div
@@ -539,6 +556,31 @@ onBeforeUnmount(() => {
                           @click="startEditCategory(cat)"
                         >{{ cat.name }}</h2>
                       </div>
+
+                      <!-- カテゴリの説明（任意）。クリックして編集、フォーカスを外すと保存 -->
+                      <textarea
+                        v-if="editingCategoryDescId === cat.id"
+                        :id="`kouba-edit-category-desc-${cat.id}`"
+                        v-model="categoryDescDraft"
+                        rows="2"
+                        :maxlength="KOUBA_DESCRIPTION_MAX"
+                        class="mt-1 w-full resize-none bg-white/[0.06] border border-sky-400/50 rounded-lg px-2 py-1 text-slate-200 text-[11px] outline-none font-[inherit] leading-snug"
+                        @keydown.esc="editingCategoryDescId = null"
+                        @blur="commitCategoryDescEdit(cat)"
+                      />
+                      <p
+                        v-else-if="cat.description"
+                        class="mt-1 mb-0 text-[11px] text-slate-400 leading-snug line-clamp-2 cursor-text"
+                        title="クリックして説明を編集"
+                        @click="startEditCategoryDesc(cat)"
+                      >{{ cat.description }}</p>
+                      <button
+                        v-else
+                        type="button"
+                        class="mt-1 text-[11px] text-slate-600 hover:text-slate-400"
+                        @click="startEditCategoryDesc(cat)"
+                      >+ 説明を追加</button>
+
                       <div class="mt-1 text-lg font-extrabold text-amber-300 tabular-nums">
                         {{ formatHours(cat.totalHours) }}<span class="text-[11px] font-semibold text-slate-500 ml-1">時間</span>
                       </div>
@@ -561,9 +603,9 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
 
-                  <!-- 付箋（タスク）エリア。ここにドロップするとカテゴリ末尾へ移動 -->
+                  <!-- 付箋（タスク）エリア。3列グリッドで3×3に収める。ここにドロップするとカテゴリ末尾へ移動 -->
                   <div
-                    class="flex-1 p-3.5 flex flex-wrap content-start gap-2.5 overflow-y-auto"
+                    class="flex-1 p-3.5 grid grid-cols-3 gap-2 content-start overflow-y-auto"
                     @dragover.prevent="onCategoryDragOver(cat)"
                     @drop.prevent="onCategoryDrop(cat)"
                   >
@@ -571,11 +613,12 @@ onBeforeUnmount(() => {
                       v-for="(task, ti) in cat.tasks"
                       :key="task.id"
                       draggable="true"
-                      class="relative w-[120px] min-h-[100px] rounded-sm p-2.5 text-left shadow-md hover:shadow-lg hover:brightness-105 transition-shadow cursor-grab active:cursor-grabbing flex flex-col gap-1.5 border-2"
+                      class="relative w-full min-h-[100px] rounded-sm p-2.5 text-left shadow-md hover:shadow-lg hover:brightness-105 transition-shadow cursor-grab active:cursor-grabbing flex flex-col gap-1.5 border-2"
                       :style="{ background: stickyColor(ti), transform: stickyTilt(ti) }"
                       :class="[
                         dragTaskId === task.id ? 'opacity-40' : '',
                         dragOverTaskId === task.id ? 'border-sky-500' : 'border-transparent',
+                        task.focused ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-[#0f172a]' : '',
                       ]"
                       @click="openTask(task.id)"
                       @dragstart="onTaskDragStart($event, task, cat.id)"
@@ -583,6 +626,12 @@ onBeforeUnmount(() => {
                       @dragover.prevent.stop="onTaskDragOver(cat, task)"
                       @drop.prevent.stop="onTaskDrop(cat, task)"
                     >
+                      <!-- 直近で特に力を入れているタスクの印（枠のハイライトと対にした目印） -->
+                      <span
+                        v-if="task.focused"
+                        class="absolute -top-2 -left-2 text-sm drop-shadow"
+                        title="直近で特に力を入れているタスク"
+                      >⭐</span>
                       <!-- 他のカテゴリにも同時掲載されているタスクの目印（クリックで開けば所属は詳細モーダルで確認・編集できる） -->
                       <span
                         v-if="task.categoryIds.length > 1"
@@ -599,7 +648,7 @@ onBeforeUnmount(() => {
                     <!-- タスク追加フォーム（実際の付箋と違い、操作画面なので板と同じ濃色トーン） -->
                     <form
                       v-if="addingTaskFor === cat.id"
-                      class="w-44 min-h-[100px] rounded-lg p-2.5 bg-[#0f172a] border border-white/10 flex flex-col gap-1.5"
+                      class="w-full min-h-[100px] rounded-lg p-2.5 bg-[#0f172a] border border-white/10 flex flex-col gap-1.5"
                       @submit.prevent="submitAddTask"
                     >
                       <textarea
@@ -617,7 +666,7 @@ onBeforeUnmount(() => {
                       </div>
                     </form>
 
-                    <p v-if="!cat.tasks.length && addingTaskFor !== cat.id" class="w-full text-center text-slate-500 text-xs py-6">タスクがありません</p>
+                    <p v-if="!cat.tasks.length && addingTaskFor !== cat.id" class="col-span-3 text-center text-slate-500 text-xs py-6">タスクがありません</p>
                   </div>
                 </div>
 

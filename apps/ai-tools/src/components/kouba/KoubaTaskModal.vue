@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
 import type { KoubaTask, KoubaSubtask } from '~/types/kouba'
-import { KOUBA_MIN_HOURS, isSvgIcon } from '~/types/kouba'
+import { KOUBA_MIN_HOURS, KOUBA_DESCRIPTION_MAX, isSvgIcon } from '~/types/kouba'
 import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
 import KoubaHoursStepper from '~/components/kouba/KoubaHoursStepper.vue'
 import KoubaIconEditor from '~/components/kouba/KoubaIconEditor.vue'
@@ -19,7 +19,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:show': [value: boolean]
-  update: [patch: { title?: string; categoryIds?: string[] }]
+  update: [patch: { title?: string; categoryIds?: string[]; focused?: boolean; description?: string }]
   regenerateIcon: [instruction: string]
   delete: []
   addSubtask: [payload: { title: string; hours: number }]
@@ -47,6 +47,7 @@ const subtaskTitleDraft = ref('')
 /** 追加フォームの初期値。0時間で追加して、やったぶんだけ +/- で足していく。 */
 const SUBTASK_HOURS_DEFAULT = KOUBA_MIN_HOURS
 const subtaskHoursDraft = ref(SUBTASK_HOURS_DEFAULT)
+const descriptionDraft = ref('')
 
 watch(
   () => props.show,
@@ -56,9 +57,17 @@ watch(
       editingIcon.value = false
       subtaskTitleDraft.value = ''
       subtaskHoursDraft.value = SUBTASK_HOURS_DEFAULT
+      descriptionDraft.value = props.task?.description ?? ''
     }
   }
 )
+
+/** 説明はフォーカスを外したときにまとめて保存する（名前と同じ「押すたび保存」しない方式）。 */
+function commitDescription() {
+  if (!props.task) return
+  const description = descriptionDraft.value.trim()
+  if (description !== props.task.description) emit('update', { description })
+}
 
 function submitAddSubtask() {
   const title = subtaskTitleDraft.value.trim()
@@ -186,6 +195,27 @@ function isOnlySelectedCategory(categoryId: string): boolean {
                 </button>
               </div>
             </div>
+
+            <!-- 直近で特に力を入れているタスクの印。ONにすると板の付箋がハイライトされる -->
+            <label class="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-amber-300 cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                :checked="task.focused"
+                class="accent-amber-400"
+                @change="emit('update', { focused: ($event.target as HTMLInputElement).checked })"
+              />
+              ⭐ 直近で特に力を入れている
+            </label>
+
+            <!-- 補足の説明文（任意）。フォーカスを外すとまとめて保存する -->
+            <textarea
+              v-model="descriptionDraft"
+              rows="2"
+              :maxlength="KOUBA_DESCRIPTION_MAX"
+              placeholder="説明を追加（任意）"
+              class="mt-2 w-full resize-none bg-white/[0.04] border border-white/10 rounded-lg px-2.5 py-1.5 text-[12px] text-slate-300 outline-none focus:border-sky-400/50 font-[inherit] leading-snug"
+              @blur="commitDescription"
+            />
 
             <div class="mt-1.5 text-2xl font-extrabold text-amber-300 tabular-nums">
               {{ formatHours(task.totalHours) }}<span class="text-sm font-semibold text-slate-400 ml-1">時間</span>
