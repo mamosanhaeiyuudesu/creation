@@ -83,8 +83,8 @@ function jstDayIndex(time: number): number {
   return Math.floor((time + JST_OFFSET_MS) / 86400000)
 }
 
-/** ISO日時を JST の 2026/5/4 形式にする。 */
-function formatJstDate(iso: string): string {
+/** ISO日時を JST の 2026/5/4 形式にする。達成したことの一覧でも使う。 */
+export function formatJstDate(iso: string): string {
   const d = new Date(new Date(iso).getTime() + JST_OFFSET_MS)
   return `${d.getUTCFullYear()}/${d.getUTCMonth() + 1}/${d.getUTCDate()}`
 }
@@ -129,3 +129,21 @@ export function formatKoubaHours(hours: number): string {
   if (!h) return half ? '30分' : '0時間'
   return half ? `${h}時間30分` : `${h}時間`
 }
+
+// ── 達成したこと（画面下部の一覧）──────────────────────────────
+
+/**
+ * 達成したこと1件。`achievedAt` は「達成した日」を表すISO8601(UTC)＝日付選択(JST)を
+ * その日の正午JSTに固定して変換した値（日付境界のズレを避けるため。時刻そのものに意味は無い）。
+ */
+export interface KoubaAchievement {
+  id: string
+  text: string
+  impact: number // 1〜5（5段階）
+  achievedAt: string
+  createdAt: string
+}
+
+export const KOUBA_IMPACT_MIN = 1
+export const KOUBA_IMPACT_MAX = 5
+export const KOUBA_ACHIEVEMENT_TEXT_MAX = 500

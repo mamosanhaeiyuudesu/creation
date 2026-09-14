@@ -57,10 +57,13 @@
     <!-- 潮流の考察：全文ポップアップ -->
     <div v-if="openCurrentMeta" class="news-modal-backdrop" @click.self="openCurrentId = ''">
       <div class="news-modal" role="dialog" aria-modal="true">
-        <div class="flex items-start justify-between gap-3 mb-1">
+        <div class="flex items-start justify-between gap-3 mb-3">
           <h2 class="news-display text-[18px] leading-snug">{{ openCurrentMeta.label }}</h2>
           <button class="news-modal-close" aria-label="閉じる" @click="openCurrentId = ''">×</button>
         </div>
+
+        <button class="news-btn-ghost mb-4" @click="filterByCurrent(openCurrentMeta.id)">この潮流の記事だけ見る ↓</button>
+
         <p class="text-[11.5px] text-[var(--news-ink-faint)] mb-4">
           {{ openCurrentMeta.description }}
         </p>
@@ -78,10 +81,6 @@
             <p class="text-[14px] leading-[1.85] text-[var(--news-ink)] whitespace-pre-line">{{ section.body }}</p>
           </div>
         </div>
-
-        <div class="mt-5 pt-3 border-t border-[var(--news-line)]">
-          <button class="news-btn-ghost" @click="filterByCurrent(openCurrentMeta.id)">この潮流の記事だけ見る ↓</button>
-        </div>
       </div>
     </div>
 
@@ -90,27 +89,51 @@
       <button v-if="currentId" class="news-chip news-chip--on" @click="currentId = ''">
         {{ currentLabel(currentId) }} ×
       </button>
-      <button class="news-chip" :class="{ 'news-chip--on': sourceId === 'all' }" @click="sourceId = 'all'">すべてのソース</button>
-      <button
-        v-for="s in usedSources"
-        :key="s.id"
-        class="news-chip"
-        :class="{ 'news-chip--on': sourceId === s.id }"
-        @click="sourceId = s.id"
-      >
-        {{ s.name }}
-      </button>
-      <span class="w-px h-5 bg-[var(--news-line)] mx-1" />
-      <button
-        v-for="t in THRESHOLDS"
-        :key="t.value"
-        class="news-chip"
-        :class="{ 'news-chip--on': minImportance === t.value }"
-        @click="minImportance = t.value"
-      >
-        {{ t.label }}
+      <button class="news-btn-ghost" @click="filterModalOpen = true">
+        フィルタ：{{ sourceLabel }}・{{ importanceLabel }}
       </button>
       <input v-model="keyword" class="news-input ml-auto w-[150px]" type="search" placeholder="キーワード" />
+    </div>
+
+    <!-- ソース・重要度の絞り込みポップアップ -->
+    <div v-if="filterModalOpen" class="news-modal-backdrop" @click.self="filterModalOpen = false">
+      <div class="news-modal" role="dialog" aria-modal="true">
+        <div class="flex items-start justify-between gap-3 mb-4">
+          <h2 class="news-display text-[18px] leading-snug">絞り込み</h2>
+          <button class="news-modal-close" aria-label="閉じる" @click="filterModalOpen = false">×</button>
+        </div>
+
+        <div class="mb-5">
+          <h3 class="text-[11.5px] font-bold text-[var(--news-ink-faint)] mb-2">ソース</h3>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button class="news-chip" :class="{ 'news-chip--on': sourceId === 'all' }" @click="sourceId = 'all'">すべてのソース</button>
+            <button
+              v-for="s in usedSources"
+              :key="s.id"
+              class="news-chip"
+              :class="{ 'news-chip--on': sourceId === s.id }"
+              @click="sourceId = s.id"
+            >
+              {{ s.name }}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-[11.5px] font-bold text-[var(--news-ink-faint)] mb-2">重要度</h3>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button
+              v-for="t in THRESHOLDS"
+              :key="t.value"
+              class="news-chip"
+              :class="{ 'news-chip--on': minImportance === t.value }"
+              @click="minImportance = t.value"
+            >
+              {{ t.label }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <p v-if="loading" class="text-[13px] text-[var(--news-ink-soft)] py-16 text-center">読み込み中…</p>
@@ -235,6 +258,11 @@ const openCurrentId = ref('')
 const openCurrentMeta = computed(() => NEWS_CURRENTS.find((c) => c.id === openCurrentId.value) ?? null)
 const filterBarEl = ref<HTMLElement | null>(null)
 
+/** ソース・重要度の絞り込みポップアップの開閉。 */
+const filterModalOpen = ref(false)
+const sourceLabel = computed(() => (sourceId.value === 'all' ? 'すべてのソース' : sourceName(sourceId.value)))
+const importanceLabel = computed(() => THRESHOLDS.find((t) => t.value === minImportance.value)?.label ?? '')
+
 const lastRun = computed<NewsRun | null>(() => runs.value[0] ?? null)
 
 function errorCount(run: NewsRun): number {
@@ -260,7 +288,9 @@ async function filterByCurrent(id: string) {
 }
 
 function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') openCurrentId.value = ''
+  if (e.key !== 'Escape') return
+  if (openCurrentId.value) openCurrentId.value = ''
+  else if (filterModalOpen.value) filterModalOpen.value = false
 }
 onMounted(() => window.addEventListener('keydown', onKeydown))
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))

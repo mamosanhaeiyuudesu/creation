@@ -8,8 +8,10 @@ import {
   KOUBA_MAX_HOURS,
   KOUBA_HOURS_STEP,
   KOUBA_THEME_MIN_HISTORY_MS,
+  KOUBA_IMPACT_MIN,
+  KOUBA_IMPACT_MAX,
 } from '~/types/kouba'
-import type { KoubaCategory, KoubaTask, KoubaSubtask, KoubaTheme } from '~/types/kouba'
+import type { KoubaCategory, KoubaTask, KoubaSubtask, KoubaTheme, KoubaAchievement } from '~/types/kouba'
 
 export interface KoubaUser {
   id: string
@@ -74,6 +76,16 @@ export async function ensureKoubaTables(db: any): Promise<void> {
     )`,
     `CREATE INDEX IF NOT EXISTS idx_kouba_task_categories_category ON kouba_task_categories(category_id, sort_order)`,
     `CREATE INDEX IF NOT EXISTS idx_kouba_task_categories_task ON kouba_task_categories(task_id)`,
+    // 達成したこと（画面下部の一覧。インパクト5段階・達成日つき）
+    `CREATE TABLE IF NOT EXISTS kouba_achievements (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      text TEXT NOT NULL DEFAULT '',
+      impact INTEGER NOT NULL DEFAULT 3,
+      achieved_at TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_kouba_achievements_user ON kouba_achievements(user_id, achieved_at DESC)`,
   ]
   for (const sql of statements) await db.prepare(sql).run().catch(() => {})
 
@@ -131,6 +143,28 @@ export function normalizeHours(raw: unknown): number | null {
   const stepped = Math.round(n / KOUBA_HOURS_STEP) * KOUBA_HOURS_STEP
   if (stepped < KOUBA_MIN_HOURS || stepped > KOUBA_MAX_HOURS) return null
   return stepped
+}
+
+/** インパクト（1〜5の整数）の正規化。範囲外・非整数なら null。 */
+export function normalizeImpact(raw: unknown): number | null {
+  const n = Number(raw)
+  if (!Number.isInteger(n)) return null
+  if (n < KOUBA_IMPACT_MIN || n > KOUBA_IMPACT_MAX) return null
+  return n
+}
+
+/**
+ * 達成日（"YYYY-MM-DD"の日付入力）の正規化。JST正午に固定してUTCのISO8601へ変換する
+ * （0時基準だと日付境界のタイムゾーン差でズレることがあるため、正午を基準に取って避ける）。
+ * 形式が違えば null。
+ */
+export function normalizeAchievedAt(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const s = raw.trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null
+  const d = new Date(`${s}T12:00:00+09:00`)
+  if (Number.isNaN(d.getTime())) return null
+  return d.toISOString()
 }
 
 // ── 読み取り・整形 ──────────────────────────────
@@ -386,4 +420,53 @@ export async function setCurrentTheme(db: any, userId: string, text: string): Pr
   }
   if (writes.length) await db.batch(writes)
   return next
+}
+
+// ── 達成したこと ──────────────────────────────
+
+interface AchievementRow {
+  id: string
+  text: string
+  impact: number
+  achieved_at: string
+  created_at: string
+}
+
+function shapeAchievement(row: AchievementRow): KoubaAchievement {
+  return { id: row.id, text: row.text, impact: row.impact, achievedAt: row.achieved_at, createdAt: row.created_at }
+}
+
+/** 達成したことの一覧（達成日の新しい順）。 */
+export async function loadAchievements(db: any, userId: string): Promise<KoubaAchievement[]> {
+  const rows = await db
+    .prepare('SELECT * FROM kouba_achievements WHERE user_id = ? ORDER BY achieved_at DESC, created_at DESC')
+    .bind(userId)
+    .all<AchievementRow>()
+  return (rows?.results ?? []).map(shapeAchievement)
+}
+
+export async function createAchievement(
+  db: any,
+  userId: string,
+  text: string,
+  impact: number,
+  achievedAt: string
+): Promise<KoubaAchievement> {
+  const id = crypto.randomUUID()
+  const createdAt = new Date().toISOString()
+  await db
+    .prepare('INSERT INTO kouba_achievements (id, user_id, text, impact, achieved_at) VALUES (?, ?, ?, ?, ?)')
+    .bind(id, userId, text, impact, achievedAt)
+    .run()
+  return { id, text, impact, achievedAt, createdAt }
+}
+
+/** 達成記録の所有者チェック。無ければ null。 */
+export async function findOwnedAchievement(db: any, userId: string, id: string): Promise<{ id: string } | null> {
+  const row = await db.prepare('SELECT id FROM kouba_achievements WHERE id = ? AND user_id = ?').bind(id, userId).first<{ id: string }>()
+  return row ? { id: row.id } : null
+}
+
+export async function deleteAchievement(db: any, id: string): Promise<void> {
+  await db.prepare('DELETE FROM kouba_achievements WHERE id = ?').bind(id).run()
 }

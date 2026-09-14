@@ -2,13 +2,15 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useKouba, KOUBA_GRID_SIZE } from '~/composables/kouba/useKouba'
 import { useKoubaTheme } from '~/composables/kouba/useKoubaTheme'
+import { useKoubaAchievements } from '~/composables/kouba/useKoubaAchievements'
 import KoubaTaskModal from '~/components/kouba/KoubaTaskModal.vue'
 import KoubaThemeBanner from '~/components/kouba/KoubaThemeBanner.vue'
 import KoubaThemeHistoryModal from '~/components/kouba/KoubaThemeHistoryModal.vue'
+import KoubaAchievementsSection from '~/components/kouba/KoubaAchievementsSection.vue'
 import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
 import KoubaIconEditor from '~/components/kouba/KoubaIconEditor.vue'
 import KoubaConfirmModal from '~/components/kouba/KoubaConfirmModal.vue'
-import type { KoubaCategory, KoubaTask, KoubaSubtask } from '~/types/kouba'
+import type { KoubaCategory, KoubaTask, KoubaSubtask, KoubaAchievement } from '~/types/kouba'
 
 useHead({
   title: import.meta.dev ? '工数 (dev)' : '工数',
@@ -43,6 +45,15 @@ const {
 } = useKoubaTheme()
 const showThemeHistory = ref(false)
 
+// ── 達成したこと（画面下部の一覧）──────────────────────────────
+const {
+  achievements, loading: achievementsLoading, saving: achievementsSaving, error: achievementsError,
+  load: loadAchievements, add: addAchievement, remove: removeAchievement,
+} = useKoubaAchievements()
+async function handleAddAchievement(payload: { text: string; impact: number; achievedAt: string }) {
+  await addAchievement(payload.text, payload.impact, payload.achievedAt)
+}
+
 // 日本語入力の変換確定Enterでも @keydown.enter は発火するため、確定中は無視する
 function isImeEnter(e: KeyboardEvent): boolean {
   return e.isComposing || e.keyCode === 229
@@ -52,11 +63,12 @@ function runOnEnter(e: KeyboardEvent, fn: () => void) {
   fn()
 }
 
-// ── 3×3グリッド ──────────────────────────────
+// ── カテゴリの枠（3列グリッド、行数は可変）──────────────────────────────
 // カテゴリは前から隙間なく詰めて並べる（削除で空いた枠は残さない。サーバーも position を詰め直している）。
-// 空き枠のうち「カテゴリを追加」を出すのは先頭の1つだけで、残りは3×3の形を保つための空枠。
-const gridSlots = computed(() => Array.from({ length: KOUBA_GRID_SIZE }, (_, i) => categories.value[i] ?? null))
+// 枠は実際のカテゴリ数ぶんだけ出し、9個未満のときだけ末尾に「カテゴリを追加」の空欄を1つ足す
+// （9×9を毎回埋める固定グリッドではなく、カテゴリが少なければ表示も少なくする）。
 const isFull = computed(() => categories.value.length >= KOUBA_GRID_SIZE)
+const gridSlots = computed<(KoubaCategory | null)[]>(() => (isFull.value ? categories.value : [...categories.value, null]))
 
 // ── カテゴリの追加 ──────────────────────────────
 // アイコンは名前を入れて追加したあと AI が作る（useKouba の addCategory が続けて生成する）
@@ -169,6 +181,7 @@ type ConfirmTarget =
   | { kind: 'category'; id: string; name: string }
   | { kind: 'task'; id: string; title: string }
   | { kind: 'subtask'; id: string; title: string }
+  | { kind: 'achievement'; id: string; text: string }
 const confirmTarget = ref<ConfirmTarget | null>(null)
 const confirmMessage = computed(() => {
   const t = confirmTarget.value
@@ -176,6 +189,10 @@ const confirmMessage = computed(() => {
   if (t.kind === 'category')
     return `「${t.name}」を削除しますか？\n他のカテゴリにも表示されているタスクは残ります。このカテゴリだけにあるタスクは、サブタスクごと削除されます。`
   if (t.kind === 'task') return `「${t.title}」を削除しますか？\nサブタスクもすべて削除されます。`
+  if (t.kind === 'achievement') {
+    const preview = t.text.length > 40 ? `${t.text.slice(0, 40)}…` : t.text
+    return `「${preview}」を削除しますか？`
+  }
   return `「${t.title}」を削除しますか？`
 })
 
@@ -193,6 +210,9 @@ function askDeleteTask(task: KoubaTask) {
 function askDeleteSubtask(subtask: KoubaSubtask) {
   confirmTarget.value = { kind: 'subtask', id: subtask.id, title: subtask.title }
 }
+function askDeleteAchievement(achievement: KoubaAchievement) {
+  confirmTarget.value = { kind: 'achievement', id: achievement.id, text: achievement.text }
+}
 async function onConfirmDelete() {
   const target = confirmTarget.value
   confirmTarget.value = null
@@ -202,6 +222,8 @@ async function onConfirmDelete() {
   } else if (target.kind === 'task') {
     if (activeTaskId.value === target.id) activeTaskId.value = null
     await deleteTask(target.id)
+  } else if (target.kind === 'achievement') {
+    await removeAchievement(target.id)
   } else {
     await deleteSubtask(target.id)
   }
@@ -343,12 +365,14 @@ onMounted(async () => {
   if (isLoggedIn.value || isDev) {
     load()
     loadTheme()
+    loadAchievements()
   } else loading.value = false
 })
 watch(isLoggedIn, (v) => {
   if (!v) return
   load()
   loadTheme()
+  loadAchievements()
 })
 
 // スマホでアプリを切り替えたときなど、そのままページが捨てられても時間の +/- を取りこぼさないように送り切る
@@ -597,7 +621,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
 
-                <!-- 先頭の空き枠（カテゴリ追加）。カテゴリは前から詰めて並ぶので、追加できるのはこの枠だけ -->
+                <!-- 空き枠（カテゴリ追加）。9個未満なら常にgridSlotsの末尾に1つだけ出る -->
                 <div
                   v-else-if="i === categories.length"
                   class="rounded-2xl border border-dashed min-h-[280px] flex items-center justify-center p-4 transition-colors"
@@ -630,19 +654,21 @@ onBeforeUnmount(() => {
                     <span class="text-xs">カテゴリを追加</span>
                   </button>
                 </div>
-
-                <!-- 残りの空き枠（3×3の形を保つだけ。カテゴリを落とすと末尾へ回る） -->
-                <div
-                  v-else
-                  class="rounded-2xl border border-dashed border-white/[0.06] min-h-[280px]"
-                  @dragover.prevent="onCategorySlotDragOver(null)"
-                  @drop.prevent="onCategorySlotDrop(null)"
-                />
               </template>
             </div>
           </div>
 
-          <p v-if="isFull" class="text-center text-slate-500 text-xs">カテゴリは{{ KOUBA_GRID_SIZE }}個（3×3）までです</p>
+          <p v-if="isFull" class="text-center text-slate-500 text-xs">カテゴリは{{ KOUBA_GRID_SIZE }}個までです</p>
+
+          <!-- 達成したこと（画面下部の一覧） -->
+          <KoubaAchievementsSection
+            :achievements="achievements"
+            :loading="achievementsLoading"
+            :saving="achievementsSaving"
+            :error="achievementsError"
+            @add="handleAddAchievement"
+            @delete="askDeleteAchievement"
+          />
         </template>
       </template>
     </div>
