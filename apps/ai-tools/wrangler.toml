@@ -28,6 +28,8 @@ custom_domain = true
 #   wrangler secret put NUXT_KIKIGAKI_GOOGLE_CLIENT_SECRET
 #   wrangler secret put NUXT_KIKIGAKI_GOOGLE_REDIRECT_URI  ← 例: https://<host>/api/kikigaki/google/callback
 #     （REDIRECT_URI は秘密ではないので [vars] でもよいが、既存の NUXT_FITBIT_REDIRECT_URI が secret なので揃えている）
+#   wrangler secret put NUXT_FARM_NEWS_ADMIN_KEY  ← farm-news の手動実行API（/api/farm-news/run 等）を
+#     x-admin-key ヘッダーで守るための秘密キー。公開ページなのでログインではなくこのキーで守る
 
 [[d1_databases]]
 binding = "WHISPER_DB"
@@ -58,11 +60,15 @@ database_id = "7698b7b5-b0c8-4289-b19e-a99c669ca75f"
 #   "0 7 * * *"  = UTC 7:00 ＝ JST 16:00 → mlb-sync
 #   "0 22 */3 * *" = UTC 22:00 ＝ JST 翌朝 7:00、3日に1回 → news-digest（収集・要約・分類）
 #   "15 22 */3 * *" = UTC 22:15 ＝ JST 翌朝 7:15、3日に1回 → news-trends（潮流の考察を更新）
+#   "0 23 */3 * *" = UTC 23:00 ＝ JST 翌朝 8:00、3日に1回 → farm-news-digest（news-digestと同じ理由で時刻をずらす）
+#   "15 23 */3 * *" = UTC 23:15 ＝ JST 翌朝 8:15、3日に1回 → farm-news-trends
+#   "30 23 1 * *" = UTC 23:30 ＝ JST 翌朝 8:30、毎月1日 → farm-news-archive（潮流アーカイブの月次/年次バックフィル）
 # news-digest と news-trends を分けているのは Cloudflare Workers の subrequest 上限
 # （1回の呼び出しにつき、Freeプランは50個。外部fetch()もD1バインディング経由のアクセスも
 # 同じ枠でカウントされる）に当たらないため。15フィードの取得＋要約＋考察更新を1回に
 # 詰め込むと簡単に超える（実際に "Too many subrequests" で失敗した）。詳しくは
-# src/server/utils/news-run.ts の冒頭コメント参照。
+# src/server/utils/news-run.ts の冒頭コメント参照。farm-news-digest/trends も同じ理由で分けている
+# （詳しくは src/server/utils/farm-news-run.ts 冒頭コメント）。
 # 「3日に1回」は日付(day-of-month)のステップ指定（毎月1,4,7...日に実行）で表現している。
 # cron に「N日おき」を直接書く構文は無いための近似で、月をまたぐ境目だけ間隔が1〜2日ずれる
 # （例: 31日→翌月1日）。ずれを許容できない実行間隔が必要になったら Durable Object の
@@ -73,7 +79,7 @@ database_id = "7698b7b5-b0c8-4289-b19e-a99c669ca75f"
 # 曜日を絞るときは UTC 基準になる点に注意（JST 平日の朝 = "0 22 * * 0-4"）。
 # nuxt.config.ts の nitro.scheduledTasks の式と必ず揃えること（片方だけ変えると動かない）。
 [triggers]
-crons = ["0 7 * * *", "0 22 */3 * *", "15 22 */3 * *"]
+crons = ["0 7 * * *", "0 22 */3 * *", "15 22 */3 * *", "0 23 */3 * *", "15 23 */3 * *", "30 23 1 * *"]
 
 [build]
 command = "npm run build"
