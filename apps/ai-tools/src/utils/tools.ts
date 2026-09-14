@@ -45,6 +45,7 @@ export const SECTIONS: Section[] = [
       { path: '/momo', icon: '🍑', name: '桃 注文管理', desc: 'SNSの会話を貼るとAIが注文を構造化。選果集計と佐川e飛伝III用CSVまで。', tags: ['要ログイン'] },
       { path: '/guesthouse', icon: '🏡', name: 'ゲストハウス案内', desc: 'お客様チャットにAIが自ら回答し、緊急時だけホストへ取り次ぐ。日記から顧客分析も。', tags: ['要ログイン', '共有リンク'] },
       { path: '/ippon', icon: '✏️', name: 'Sketch2View', desc: '紙のスケッチを撮ると、AIが形を読み解いて3Dビューにする。共有リンクで見せられる。', tags: ['要ログイン', '共有リンク'] },
+      { path: '/farm-manager', icon: '🌾', name: '農園の経営', desc: '納品書を撮るとAIが仕訳。畑の中（変動費）と畑の外（固定費）を色で分けて、毎月の利益が5秒で分かる。', tags: ['要ログイン'] },
       { path: '/keiko', icon: '🥋', name: 'けいこ記録', desc: '剣道の稽古をメンバーごとに記録。週・月・年でポイントを集計する。', tags: ['要ログイン'] },
       { path: '/kiroku', icon: '📝', name: 'kiroku', desc: '感情メモ。開いたらすぐ書ける入力欄ひとつ。AIの分析も採点もしない。', tags: ['端末内に保存'] },
       { path: '/life', icon: '📖', name: '人生のインタビュー', desc: 'ライフステージごとのテーマをAIと対話で深掘り。答えは本人のスプレッドシートへ。', tags: ['要ログイン', 'Google連携'] },
