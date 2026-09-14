@@ -4,7 +4,7 @@
     <header class="border-b-2 border-[var(--fnews-ink)] pb-3 mb-6">
       <h1 class="fnews-display text-[26px] sm:text-[30px] leading-none tracking-[0.12em]">farm news</h1>
       <p class="text-[12px] text-[var(--fnews-ink-soft)] mt-2">
-        農業×AIの動向を{{ FARM_NEWS_SOURCES.length }}ソースから集め、6つの潮流で読み解く専門ニュースサイトです
+        農業×AIの動向を{{ FARM_NEWS_SOURCES.length }}ソースから集め、{{ FARM_NEWS_CURRENTS.length }}つの潮流で読み解く専門ニュースサイトです
       </p>
     </header>
 

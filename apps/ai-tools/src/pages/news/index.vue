@@ -281,8 +281,9 @@ function currentState(id: string): NewsCurrentState | undefined {
 
 /**
  * カード面の要点3つ（15字程度）。クリックすると全文がポップアップで読める。
- * bulletsを持たない旧データ（考察はあるが要点だけ未生成）は、各章の最初の1文を短く切って代わりに出す
- * （次に新着があって考察が更新されれば自然にAI生成のbulletsへ置き換わる）。
+ * bulletsを持たない旧データ（考察はあるが要点だけ未生成）は、各章の最初の1文をそのまま代わりに出す
+ * （breakSentences で文末ごとに改行済みなので1行目だけで文が完結している。途中で「…」と切らない。
+ * 次に新着があって考察が更新されれば自然にAI生成のbulletsへ置き換わる）。
  */
 function cardBullets(id: string): string[] {
   const state = currentState(id)
@@ -292,7 +293,6 @@ function cardBullets(id: string): string[] {
     .map((s) => s.body.split('\n')[0]?.trim())
     .filter((s): s is string => Boolean(s))
     .slice(0, 3)
-    .map((s) => (s.length > 24 ? `${s.slice(0, 23)}…` : s))
 }
 
 /** ポップアップの「この潮流の記事だけ見る」。絞り込んで閉じ、記事一覧までスクロールする。 */

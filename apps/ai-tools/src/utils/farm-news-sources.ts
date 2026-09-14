@@ -16,8 +16,10 @@
  *   - agri-navi.com / smartagriexpo.jp: 日本語ソース候補も試したがいずれも404/DNS不可。
  *     日本語ソースは見つけられていない（見つかれば追加すること）
  *   - IEEE Spectrum の agriculture トピックフィード: 404（robotics トピックは news 側で使用中）
- * 上記の事情で **漁業・林業（fishery-forestry潮流）専用のソースが無い**。他ソースの記事が
- * その内容に触れたときだけAIがこの潮流に分類する運用（ソースと潮流は固定対応ではないため成立する）。
+ *
+ * 2026-09-14、本人の「農業だけでいい、酪農や漁業はいらない」という要望で、畜産専門ソースの
+ * feedstuffs（Feedstuffs）・beefmagazine（BEEF Magazine）を削除した（対応する livestock-ai 潮流も
+ * farm-news-currents.ts から削除済み）。漁業・林業の専用ソースは元々見つけられていない（上記参照）。
  */
 export interface FarmNewsSource {
   id: string
@@ -66,19 +68,6 @@ export const FARM_NEWS_SOURCES: FarmNewsSource[] = [
     id: 'modernfarmer',
     name: 'Modern Farmer',
     url: 'https://modernfarmer.com/feed/',
-    enabled: true,
-  },
-  // 畜産・酪農
-  {
-    id: 'feedstuffs',
-    name: 'Feedstuffs',
-    url: 'https://www.feedstuffs.com/rss.xml',
-    enabled: true,
-  },
-  {
-    id: 'beefmagazine',
-    name: 'BEEF Magazine',
-    url: 'https://www.beefmagazine.com/rss.xml',
     enabled: true,
   },
 ]

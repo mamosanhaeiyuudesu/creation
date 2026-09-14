@@ -89,7 +89,7 @@ gtag('config', 'G-JRBVTJYCEH');`,
       '15 22 */3 * *': ['news-trends'], // UTC 22:15 ＝ JST 翌朝 7:15（news-digestの15分後。subrequest予算を分けるため別呼び出しにしている）、3日に1回
       '0 23 */3 * *': ['farm-news-digest'], // UTC 23:00 ＝ JST 翌朝 8:00、3日に1回（news-digestと時刻をずらしている）
       '15 23 */3 * *': ['farm-news-trends'], // UTC 23:15 ＝ JST 翌朝 8:15（farm-news-digestの15分後、subrequest予算を分けるため別呼び出し）
-      '30 23 1 * *': ['farm-news-archive'], // UTC 23:30 ＝ JST 翌朝 8:30、毎月1日 → 潮流アーカイブの月次/年次バックフィル
+      // farm-news-archive はcron未登録＝手動実行のみ（Freeプランのcron上限5個に当たったため。wrangler.toml参照）
     },
     devServer: {
       // @ts-ignore — Nitro の型定義に maxBodySize がないが、h3 dev server では有効

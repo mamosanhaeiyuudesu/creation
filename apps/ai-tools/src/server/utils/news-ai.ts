@@ -203,12 +203,12 @@ export async function synthesizeCurrentNarrative(
     { title: TREND_SECTION_TITLES.outlook, body: clean(parsed.outlook) },
   ].filter((s) => s.body)
 
-  // 15字程度の指示は守られないことがあるので、カードのレイアウトが崩れないよう長さも機械的に切る
+  // 文の途中で「…」と切ると尻切れに見えるので、長さでの機械的な切り詰めはしない
+  // （15字程度の指示自体は守られないことがあるが、短い言い切りの形にする指示はプロンプト側で担保する）
   const bullets = (Array.isArray(parsed.bullets) ? parsed.bullets : [])
     .map((b: unknown) => stripMarkdown(String(b ?? '').trim()).replace(/[。.]+$/, ''))
     .filter(Boolean)
     .slice(0, 3)
-    .map((b: string) => (b.length > 24 ? `${b.slice(0, 23)}…` : b))
 
   return { sections, bullets }
 }

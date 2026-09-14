@@ -62,7 +62,7 @@ database_id = "7698b7b5-b0c8-4289-b19e-a99c669ca75f"
 #   "15 22 */3 * *" = UTC 22:15 ＝ JST 翌朝 7:15、3日に1回 → news-trends（潮流の考察を更新）
 #   "0 23 */3 * *" = UTC 23:00 ＝ JST 翌朝 8:00、3日に1回 → farm-news-digest（news-digestと同じ理由で時刻をずらす）
 #   "15 23 */3 * *" = UTC 23:15 ＝ JST 翌朝 8:15、3日に1回 → farm-news-trends
-#   "30 23 1 * *" = UTC 23:30 ＝ JST 翌朝 8:30、毎月1日 → farm-news-archive（潮流アーカイブの月次/年次バックフィル）
+# 潮流アーカイブ（farm-news-archive）はcronに登録していない＝手動実行のみ（下記「cronトリガーは5個まで」参照）。
 # news-digest と news-trends を分けているのは Cloudflare Workers の subrequest 上限
 # （1回の呼び出しにつき、Freeプランは50個。外部fetch()もD1バインディング経由のアクセスも
 # 同じ枠でカウントされる）に当たらないため。15フィードの取得＋要約＋考察更新を1回に
@@ -78,8 +78,13 @@ database_id = "7698b7b5-b0c8-4289-b19e-a99c669ca75f"
 # UTC 6:00 頃までに終わるので、その後の 7:00 に前日ぶんをまとめて取り込む。
 # 曜日を絞るときは UTC 基準になる点に注意（JST 平日の朝 = "0 22 * * 0-4"）。
 # nuxt.config.ts の nitro.scheduledTasks の式と必ず揃えること（片方だけ変えると動かない）。
+#
+# ⚠️ Cloudflare Workers の Free プランは **cronトリガーがアカウント全体で5個まで**（Workerごとではない）。
+# 2026-09-14、farm-news-archive を3つ目のcronとして追加しようとして実際に6個目でエラーになった
+# （`workers/plans` への誘導＝Paid化 or 削減の二択。ユーザー判断で削減を選んだ）。
+# 6個目以降を追加したくなったら、まず既存のどれかを間引けないか検討すること（Paid化は月$5）。
 [triggers]
-crons = ["0 7 * * *", "0 22 */3 * *", "15 22 */3 * *", "0 23 */3 * *", "15 23 */3 * *", "30 23 1 * *"]
+crons = ["0 7 * * *", "0 22 */3 * *", "15 22 */3 * *", "0 23 */3 * *", "15 23 */3 * *"]
 
 [build]
 command = "npm run build"
