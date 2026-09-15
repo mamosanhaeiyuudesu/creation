@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
 import type { KoubaSubtask } from '~/types/kouba'
-import { KOUBA_MIN_HOURS, formatKoubaHours } from '~/types/kouba'
+import { formatKoubaHours } from '~/types/kouba'
 import KoubaHoursStepper from '~/components/kouba/KoubaHoursStepper.vue'
 
-/** "今のテーマ"の下に出す、板全体を横断した「サブタスク」一覧。タスクを選んで紐付けて追加し、
- * DONEにすると紐づくタスクの時間へその分が加算される（外すと引き戻る）。板の奥（ジョブ→タスク）まで
- * 辿らずに、思いついた細目をすぐ書き留められる入り口として置いている。 */
+/** "今のテーマ"の下に出す、板全体を横断した「サブタスク」一覧。タスクを選んで紐付けて追加できる
+ * （紐付けは任意＝タスクなしでも書き留められる）。DONEにすると紐づくタスクの時間へその分が加算される
+ * （外すと引き戻る）。板の奥（ジョブ→タスク）まで辿らずに、思いついた細目をすぐ書き留められる入り口として置いている。
+ * 追加はこの一覧からではなく、ヘッダーの「＋」で開くポップアップ（KoubaSubtaskFormModal）から行う。 */
 export interface KoubaTaskOption {
   id: string
   /** 「カテゴリ名 > ジョブ名 > タスク名」の形。選択肢と、紐付け済みサブタスクの文脈表示の両方に使う。 */
@@ -18,10 +19,11 @@ const props = defineProps<{
   subtasks: KoubaSubtask[]
   taskOptions: KoubaTaskOption[]
   saving: boolean
+  /** 一覧側の操作（リネーム・時間・DONE切替・削除）の失敗時のエラー。追加ポップアップ側のエラーは別に持つ。 */
   error: string
 }>()
 const emit = defineEmits<{
-  add: [payload: { taskId: string; title: string; hours: number }]
+  openAdd: []
   rename: [payload: { id: string; title: string }]
   setHours: [payload: { id: string; hours: number }]
   toggleDone: [payload: { id: string; done: boolean }]
@@ -37,27 +39,13 @@ function runOnEnter(e: KeyboardEvent, fn: () => void) {
 }
 
 const taskById = computed(() => new Map(props.taskOptions.map((o) => [o.id, o])))
+/** subtask.taskId は任意（null可）＝紐付けが無ければ文脈バッジは出さない。 */
 function optionFor(subtask: KoubaSubtask): KoubaTaskOption | undefined {
-  return taskById.value.get(subtask.taskId)
+  return subtask.taskId ? taskById.value.get(subtask.taskId) : undefined
 }
 
 const openSubtasks = computed(() => props.subtasks.filter((s) => !s.done))
 const doneSubtasks = computed(() => props.subtasks.filter((s) => s.done).sort((a, b) => (b.doneAt ?? '').localeCompare(a.doneAt ?? '')))
-
-// ── 追加フォーム ──────────────────────────────
-const titleDraft = ref('')
-const taskIdDraft = ref('')
-const HOURS_DEFAULT = KOUBA_MIN_HOURS
-const hoursDraft = ref(HOURS_DEFAULT)
-
-function submitAdd() {
-  const title = titleDraft.value.trim()
-  if (!title || !taskIdDraft.value) return
-  emit('add', { taskId: taskIdDraft.value, title, hours: Number(hoursDraft.value) })
-  titleDraft.value = ''
-  hoursDraft.value = HOURS_DEFAULT
-  // taskId はそのまま残す＝同じタスクへ続けて書き留めることが多いため
-}
 
 // ── タイトルの編集（クリックで編集、Enter/フォーカス外しで保存、編集中の✗で削除確認へ）──────────────────────────────
 const editingId = ref<string | null>(null)
@@ -82,37 +70,17 @@ function cancelEditAndDelete(subtask: KoubaSubtask) {
 
 <template>
   <section class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex flex-col gap-4">
-    <div>
-      <h2 class="m-0 text-sm font-bold text-slate-100">🧩 サブタスク</h2>
-      <p class="m-0 mt-0.5 text-[11px] text-slate-500">タスクを選んで紐付けます。DONEにすると、その時間がタスクへ加算されます</p>
-    </div>
-
-    <!-- 追加フォーム: タイトル＋どのタスクに紐付けるか＋時間 -->
-    <form class="flex flex-col sm:flex-row gap-2" @submit.prevent="submitAdd">
-      <input
-        v-model="titleDraft"
-        type="text"
-        placeholder="サブタスクを書く（例: 参考記事を探す）"
-        class="flex-1 min-w-0 bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-2 text-slate-100 text-[13px] outline-none focus:border-sky-400/50"
-        @keydown.enter="runOnEnter($event, submitAdd)"
-      />
-      <select
-        v-model="taskIdDraft"
-        class="min-w-0 sm:max-w-[220px] bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-2 text-slate-100 text-[13px] outline-none focus:border-sky-400/50"
-      >
-        <option value="" disabled>タスクを選ぶ</option>
-        <option v-for="o in taskOptions" :key="o.id" :value="o.id">{{ o.label }}</option>
-      </select>
-      <div class="flex gap-2 shrink-0">
-        <KoubaHoursStepper v-model="hoursDraft" />
-        <button
-          type="submit"
-          class="h-9 px-4 rounded-full bg-sky-500 text-white text-[13px] font-bold hover:bg-sky-400 disabled:opacity-40 shrink-0"
-          :disabled="saving || !taskIdDraft"
-        >追加</button>
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h2 class="m-0 text-sm font-bold text-slate-100">🧩 サブタスク</h2>
+        <p class="m-0 mt-0.5 text-[11px] text-slate-500">DONEにすると、紐付けたタスクへ時間が加算されます</p>
       </div>
-    </form>
-    <p v-if="!taskOptions.length" class="m-0 -mt-2 text-[11px] text-slate-500">先にカテゴリ・ジョブ・タスクを1つ作ると、ここで選べるようになります</p>
+      <button
+        type="button"
+        class="h-8 px-3.5 rounded-full bg-sky-500 text-white text-[12px] font-bold hover:bg-sky-400 shrink-0"
+        @click="emit('openAdd')"
+      >＋ 追加</button>
+    </div>
     <p v-if="error" class="m-0 text-[11px] text-rose-400">{{ error }}</p>
 
     <!-- 未完了 -->

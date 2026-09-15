@@ -99,12 +99,13 @@ export async function ensureKoubaTables(db: any): Promise<void> {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
     `CREATE INDEX IF NOT EXISTS idx_kouba_achievements_user ON kouba_achievements(user_id, achieved_at DESC)`,
-    // UI「サブタスク」（2026-09-15新規）。task_id はタスク(kouba_subtasks)のID。DONEにすると hours が
-    // そのタスクの kouba_subtasks.hours へ加算される（サーバー側は toggleSubtaskDone に集約）。
+    // UI「サブタスク」（2026-09-15新規）。task_id はタスク(kouba_subtasks)のID＝**任意（NULL可）**、
+    // どのタスクにも紐付けずに書き留めるだけのメモとしても使える。DONEにすると hours が
+    // （taskIdがあれば）そのタスクの kouba_subtasks.hours へ加算される（サーバー側は toggleSubtaskDone に集約）。
     `CREATE TABLE IF NOT EXISTS kouba_task_subtasks (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
-      task_id TEXT NOT NULL,
+      task_id TEXT,
       title TEXT NOT NULL DEFAULT '',
       hours REAL NOT NULL DEFAULT 0,
       done INTEGER NOT NULL DEFAULT 0,
@@ -230,10 +231,10 @@ interface TaskRow {
   hours: number
   created_at: string
 }
-/** kouba_task_subtasks の行＝UI「サブタスク」。task_id はタスク(kouba_subtasks)のID。 */
+/** kouba_task_subtasks の行＝UI「サブタスク」。task_id はタスク(kouba_subtasks)のID（任意＝NULL可）。 */
 interface SubtaskRow {
   id: string
-  task_id: string
+  task_id: string | null
   title: string
   hours: number
   done: number
@@ -253,8 +254,8 @@ function shapeSubtask(row: SubtaskRow): KoubaSubtask {
   }
 }
 
-function shapeTask(row: TaskRow, subtasks: KoubaSubtask[]): KoubaTask {
-  return { id: row.id, jobId: row.task_id, title: row.title, hours: row.hours, subtasks, createdAt: row.created_at }
+function shapeTask(row: TaskRow): KoubaTask {
+  return { id: row.id, jobId: row.task_id, title: row.title, hours: row.hours, createdAt: row.created_at }
 }
 
 function shapeJob(row: JobRow, categoryIds: string[], tasks: KoubaTask[]): KoubaJob {
@@ -287,7 +288,8 @@ function shapeCategory(row: CategoryRow, jobs: KoubaJob[]): KoubaCategory {
 }
 
 /**
- * ユーザーのカテゴリ→ジョブ→タスク→サブタスクをまとめて取得（板の表示用）。
+ * ユーザーのカテゴリ→ジョブ→タスクをまとめて取得（板の表示用）。**サブタスクはここには含まない**
+ * （タスクに紐付けずに書き留められる＝板の入れ子だけでは表現できないため、`loadSubtasks()` で別に取得する）。
  * ジョブは複数カテゴリに同時掲載できる（kouba_task_categories）ので、1つのジョブが複数カテゴリの
  * jobs 配列に重複して入ることがある＝どの配列に入っている分も同じDB行（同じタスク・同じ合計時間）
  * から作るので中身は必ず一致する（=同期している。オブジェクトの参照を使い回してはいない）。
@@ -324,26 +326,8 @@ export async function loadBoard(db: any, userId: string): Promise<KoubaCategory[
       .prepare(`SELECT * FROM kouba_subtasks WHERE task_id IN (${jobPlaceholders}) ORDER BY sort_order ASC, created_at ASC`)
       .bind(...jobIds)
       .all<TaskRow>()
-    const taskList: TaskRow[] = taskRows?.results ?? []
-
-    // タスク(kouba_subtasks)配下のサブタスク(kouba_task_subtasks)をまとめて取得
-    const taskIds = taskList.map((t) => t.id)
-    const subtasksByTask = new Map<string, KoubaSubtask[]>()
-    if (taskIds.length) {
-      const taskPlaceholders = taskIds.map(() => '?').join(',')
-      const subtaskRows = await db
-        .prepare(`SELECT * FROM kouba_task_subtasks WHERE task_id IN (${taskPlaceholders}) ORDER BY sort_order ASC, created_at ASC`)
-        .bind(...taskIds)
-        .all<SubtaskRow>()
-      for (const s of subtaskRows?.results ?? []) {
-        const shaped = shapeSubtask(s)
-        if (!subtasksByTask.has(s.task_id)) subtasksByTask.set(s.task_id, [])
-        subtasksByTask.get(s.task_id)!.push(shaped)
-      }
-    }
-
-    for (const t of taskList) {
-      const shaped = shapeTask(t, subtasksByTask.get(t.id) ?? [])
+    for (const t of taskRows?.results ?? []) {
+      const shaped = shapeTask(t)
       if (!tasksByJob.has(t.task_id)) tasksByJob.set(t.task_id, [])
       tasksByJob.get(t.task_id)!.push(shaped)
     }
@@ -416,12 +400,21 @@ export async function findOwnedSubtask(
   db: any,
   userId: string,
   subtaskId: string
-): Promise<{ id: string; taskId: string; hours: number; done: boolean } | null> {
+): Promise<{ id: string; taskId: string | null; hours: number; done: boolean } | null> {
   const row = await db
     .prepare('SELECT id, task_id, hours, done FROM kouba_task_subtasks WHERE id = ? AND user_id = ?')
     .bind(subtaskId, userId)
-    .first<{ id: string; task_id: string; hours: number; done: number }>()
+    .first<{ id: string; task_id: string | null; hours: number; done: number }>()
   return row ? { id: row.id, taskId: row.task_id, hours: row.hours, done: !!row.done } : null
+}
+
+/** サブタスクの一覧（新しい順）。板の入れ子は辿らない＝タスクに紐付かない分（taskId が null）も含む。 */
+export async function loadSubtasks(db: any, userId: string): Promise<KoubaSubtask[]> {
+  const rows = await db
+    .prepare('SELECT * FROM kouba_task_subtasks WHERE user_id = ? ORDER BY created_at DESC')
+    .bind(userId)
+    .all<SubtaskRow>()
+  return (rows?.results ?? []).map(shapeSubtask)
 }
 
 /**
@@ -469,13 +462,18 @@ export async function nextSubtaskSortOrder(db: any, taskId: string): Promise<num
 }
 
 /**
- * サブタスクのDONE/未DONEを切り替え、紐づくタスクの時間へ増減を反映する（画面下部・タスク詳細モーダル共通）。
+ * サブタスクのDONE/未DONEを切り替え、紐づくタスクの時間へ増減を反映する（"今のテーマ"下の一覧共通）。
  * **DONEにする→タスクの hours へこのサブタスクの hours を加算**、**外す→同じ分を引き戻す**
  * （押し間違いを直せるようにするための対称な設計。タスクの hours は手入力の+/-でも独立に動かせるので、
  * 「サブタスクが加えた分」を専用の列で追跡はしていない＝サブタスクのDONEを外す前提はこのAPIを通ることだけ）。
+ * **taskId が null（どのタスクにも紐付いていない）ならタスク側の更新はせず、DONEの記録だけ行う**。
  * すでに目的の状態なら何もしない（連打での二重加算・二重減算を防ぐ）。
  */
-export async function toggleSubtaskDone(db: any, subtask: { id: string; taskId: string; hours: number; done: boolean }, done: boolean): Promise<void> {
+export async function toggleSubtaskDone(
+  db: any,
+  subtask: { id: string; taskId: string | null; hours: number; done: boolean },
+  done: boolean
+): Promise<void> {
   if (subtask.done === done) return
 
   const now = new Date().toISOString()
@@ -485,18 +483,20 @@ export async function toggleSubtaskDone(db: any, subtask: { id: string; taskId: 
       .bind(done ? 1 : 0, done ? now : null, subtask.id),
   ]
 
-  const taskRow = await db.prepare('SELECT hours FROM kouba_subtasks WHERE id = ?').bind(subtask.taskId).first<{ hours: number }>()
-  if (taskRow) {
-    const delta = done ? subtask.hours : -subtask.hours
-    const nextHours = clampKoubaHours(taskRow.hours + delta)
-    writes.push(db.prepare('UPDATE kouba_subtasks SET hours = ? WHERE id = ?').bind(nextHours, subtask.taskId))
+  if (subtask.taskId) {
+    const taskRow = await db.prepare('SELECT hours FROM kouba_subtasks WHERE id = ?').bind(subtask.taskId).first<{ hours: number }>()
+    if (taskRow) {
+      const delta = done ? subtask.hours : -subtask.hours
+      const nextHours = clampKoubaHours(taskRow.hours + delta)
+      writes.push(db.prepare('UPDATE kouba_subtasks SET hours = ? WHERE id = ?').bind(nextHours, subtask.taskId))
+    }
   }
 
   await db.batch(writes)
 }
 
 /** サブタスクの削除。DONE中に消すと加算されたままになるため、消す前に未DONEへ戻して時間を引き戻す。 */
-export async function deleteSubtask(db: any, subtask: { id: string; taskId: string; hours: number; done: boolean }): Promise<void> {
+export async function deleteSubtask(db: any, subtask: { id: string; taskId: string | null; hours: number; done: boolean }): Promise<void> {
   if (subtask.done) await toggleSubtaskDone(db, subtask, false)
   await db.prepare('DELETE FROM kouba_task_subtasks WHERE id = ?').bind(subtask.id).run()
 }

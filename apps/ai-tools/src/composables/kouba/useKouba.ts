@@ -5,7 +5,8 @@ import type { KoubaCategory, KoubaIconTarget, KoubaTask } from '~/types/kouba'
 export const KOUBA_GRID_SIZE = 9
 
 /**
- * kouba（工数管理）の板データと操作。階層は カテゴリ → ジョブ（付箋） → タスク（時間を持つ実作業） → サブタスク。
+ * kouba（工数管理）の板データと操作。階層は カテゴリ → ジョブ（付箋） → タスク（時間を持つ実作業）。
+ * サブタスク（タスクに任意で紐付く細目）は板には含まず `useKoubaSubtasks` が別に読み書きする。
  * どの操作も、成功後は load() で板全体を取り直す（規模が小さく、局所パッチの複雑さに見合わないため）。
  * **例外はタスクの時間の +/- だけ**＝30分ずつ連打されるので、押すたびに PATCH + 板の再読込をすると重い。
  * 画面はその場で書き換え、サーバーへの保存は最後の操作から少し待ってまとめて1回だけ送る（`setTaskHours`）。
@@ -260,38 +261,9 @@ export function useKouba() {
     })
   }
 
-  // ── サブタスク（タスクにぶら下がる細目。DONEでタスクの時間へ加算） ──────────────────────────────
-  // "今のテーマ"の下の一覧・タスク詳細モーダルの両方から使う。件数が少なく連打されるUIでもないので、
-  // タスクの+/-のような手元パッチ＋デバウンス保存はせず、他の操作と同じ withSaving + load() でよい。
-
-  async function addSubtask(taskId: string, title: string, hours: number) {
-    await withSaving(async () => {
-      await $fetch('/api/kouba/subtasks', { method: 'POST', body: { taskId, title, hours } })
-      await load()
-    })
-  }
-
-  async function updateSubtask(id: string, patch: { title?: string; hours?: number }) {
-    await withSaving(async () => {
-      await $fetch(`/api/kouba/subtasks/${id}`, { method: 'PATCH', body: patch })
-      await load()
-    })
-  }
-
-  /** DONE/未DONEの切り替え。サーバー側が紐づくタスクの時間へ増減を反映してから板を取り直す。 */
-  async function toggleSubtaskDone(id: string, done: boolean) {
-    await withSaving(async () => {
-      await $fetch(`/api/kouba/subtasks/${id}`, { method: 'PATCH', body: { done } })
-      await load()
-    })
-  }
-
-  async function deleteSubtask(id: string) {
-    await withSaving(async () => {
-      await $fetch(`/api/kouba/subtasks/${id}`, { method: 'DELETE' })
-      await load()
-    })
-  }
+  // サブタスク（タスクにぶら下がる細目。タスクに紐付かない分もある）は板の入れ子には含まれない＝
+  // `useKoubaSubtasks` が別に読み書きする。DONE/削除で板側のタスク時間が変わることがあるので、
+  // ページ側がその操作のあとにこの `load()` を呼んで板を取り直す。
 
   return {
     categories,
@@ -316,9 +288,5 @@ export function useKouba() {
     reorderTasks,
     setTaskHours,
     flushPendingHours,
-    addSubtask,
-    updateSubtask,
-    toggleSubtaskDone,
-    deleteSubtask,
   }
 }

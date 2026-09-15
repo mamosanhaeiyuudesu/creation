@@ -1,12 +1,12 @@
 -- 工数管理ツール (kouba) に「サブタスク」を追加する（2026-09-15、呼び名を1段ずつ繰り下げた際の新設分）。
--- UI「サブタスク」= このテーブル。task_id は UI「タスク」（既存の kouba_subtasks テーブル）のID。
+-- UI「サブタスク」= このテーブル。task_id は UI「タスク」（既存の kouba_subtasks テーブル）のID＝**任意（NULL可）**。
 -- DONEにすると hours が紐づくタスク(kouba_subtasks.hours)へ加算され、外すと引き戻される（server/utils/kouba.ts の toggleSubtaskDone）。
 -- 適用: wrangler d1 execute whisper-db --remote --file src/server/db/064_kouba_task_subtasks.sql
 
 CREATE TABLE IF NOT EXISTS kouba_task_subtasks (
   id          TEXT PRIMARY KEY,
   user_id     TEXT NOT NULL,
-  task_id     TEXT NOT NULL,
+  task_id     TEXT,                     -- タスクへの紐付けは任意。NULLならどのタスクにも属さないメモ
   title       TEXT NOT NULL DEFAULT '',
   hours       REAL NOT NULL DEFAULT 0,   -- 0〜30（30分刻み）。DONEにした時点のこの値がタスクへ加算される
   done        INTEGER NOT NULL DEFAULT 0,

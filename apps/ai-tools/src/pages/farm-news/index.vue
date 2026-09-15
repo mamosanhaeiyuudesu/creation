@@ -170,7 +170,8 @@
             </div>
             <ul v-if="cardBullets(c.id).length" class="flex flex-col gap-1">
               <li v-for="(b, i) in cardBullets(c.id)" :key="i" class="text-[12.5px] leading-[1.5] text-[var(--fnews-ink-soft)]">
-                ・{{ b }}
+                <span v-if="cardBullets(c.id).length === 3" class="text-[var(--fnews-accent)] font-bold">{{ BULLET_LABELS[i] }}：</span>
+                <span v-else>・</span>{{ b }}
               </li>
             </ul>
             <p v-else class="text-[12.5px] leading-[1.7] text-[var(--fnews-ink-soft)]">まだ記事が集まっていません。</p>
@@ -214,21 +215,21 @@
         </div>
         <p class="text-[12px] text-[var(--fnews-ink-soft)] mb-4">直近{{ FARM_NEWS_ARCHIVE_RECENT_MONTHS }}ヶ月は月ごと、それより前は年ごとに振り返れます</p>
 
-        <p v-if="!archive.recent.length && !archive.older.length" class="text-[13px] text-[var(--fnews-ink-soft)] py-10 text-center leading-relaxed">
+        <p v-if="!archive.recentBundle && !archive.older.length" class="text-[13px] text-[var(--fnews-ink-soft)] py-10 text-center leading-relaxed">
           まだアーカイブがありません。半年ほど記事が積み上がると月ごとの振り返りが読めるようになります。
         </p>
 
         <template v-else>
-          <div v-if="archive.recent.length" class="mb-6">
+          <div v-if="archive.recentBundle" class="mb-6">
             <h3 class="text-[11.5px] font-bold text-[var(--fnews-ink-faint)] mb-2">直近{{ FARM_NEWS_ARCHIVE_RECENT_MONTHS }}ヶ月</h3>
             <div class="grid gap-2.5 sm:grid-cols-2">
-              <button v-for="e in archive.recent" :key="e.key" class="fnews-archive-card text-left" @click="openArchiveKey = e.key">
+              <button class="fnews-archive-card text-left" @click="openArchiveKey = 'recent'">
                 <div class="flex items-center justify-between gap-2 mb-1">
-                  <h4 class="fnews-display text-[13.5px]">{{ periodLabel(e.snapshot) }}</h4>
-                  <span class="text-[11px] text-[var(--fnews-ink-faint)]">{{ archiveCountLabel(e.snapshot) }}</span>
+                  <h4 class="fnews-display text-[13.5px]">{{ archive.recentBundle.label }}</h4>
+                  <span class="text-[11px] text-[var(--fnews-ink-faint)]">{{ archive.recentBundle.totalItemCount }}件</span>
                 </div>
                 <p class="text-[12.5px] leading-[1.6] text-[var(--fnews-ink-soft)] line-clamp-2">
-                  {{ e.snapshot.sections[0]?.body || 'まだ記事が集まっていません。' }}
+                  {{ archive.recentBundle.snapshots[0]?.sections[0]?.body || 'まだ記事が集まっていません。' }}
                 </p>
               </button>
             </div>
@@ -255,15 +256,36 @@
       <div v-if="openArchiveEntry" class="fnews-modal-backdrop" @click.self="openArchiveKey = ''">
         <div class="fnews-modal" role="dialog" aria-modal="true">
           <div class="flex items-start justify-between gap-3 mb-3">
-            <h2 class="fnews-display text-[18px] leading-snug">{{ periodLabel(openArchiveEntry.snapshot) }}</h2>
+            <h2 class="fnews-display text-[18px] leading-snug">
+              {{ openArchiveEntry.kind === 'bundle' ? openArchiveEntry.label : periodLabel(openArchiveEntry.snapshot) }}
+            </h2>
             <button class="fnews-modal-close" aria-label="閉じる" @click="openArchiveKey = ''">×</button>
           </div>
-          <p class="text-[12px] text-[var(--fnews-ink-faint)] mb-4">{{ archiveCountLabel(openArchiveEntry.snapshot, true) }}</p>
-          <div class="flex flex-col gap-4">
-            <p class="text-[14px] leading-[1.85] text-[var(--fnews-ink)] whitespace-pre-line">
-              {{ openArchiveEntry.snapshot.sections[0]?.body }}
-            </p>
-          </div>
+
+          <template v-if="openArchiveEntry.kind === 'single'">
+            <p class="text-[12px] text-[var(--fnews-ink-faint)] mb-4">{{ archiveCountLabel(openArchiveEntry.snapshot, true) }}</p>
+            <div class="flex flex-col gap-4">
+              <div v-for="(section, i) in openArchiveEntry.snapshot.sections" :key="i">
+                <h3 v-if="section.title" class="fnews-display text-[13px] text-[var(--fnews-accent)] mb-1">{{ section.title }}</h3>
+                <p class="text-[14px] leading-[1.85] text-[var(--fnews-ink)] whitespace-pre-line">{{ section.body }}</p>
+              </div>
+            </div>
+          </template>
+
+          <template v-else>
+            <p class="text-[12px] text-[var(--fnews-ink-faint)] mb-4">記事{{ openArchiveEntry.totalItemCount }}件をもとにした、月ごとの振り返りです</p>
+            <div class="flex flex-col gap-5">
+              <div v-for="snap in openArchiveEntry.snapshots" :key="snap.id">
+                <h3 class="fnews-display text-[14px] mb-2 pb-1 border-b border-[var(--fnews-line)]">{{ periodLabel(snap) }}</h3>
+                <div class="flex flex-col gap-3">
+                  <div v-for="(section, i) in snap.sections" :key="i">
+                    <h4 v-if="section.title" class="fnews-display text-[12.5px] text-[var(--fnews-accent)] mb-1">{{ section.title }}</h4>
+                    <p class="text-[13.5px] leading-[1.8] text-[var(--fnews-ink)] whitespace-pre-line">{{ section.body }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
     </template>
@@ -303,6 +325,9 @@ const THRESHOLDS = [
   { value: 3, label: '重要度3以上' },
   { value: 4, label: '重要度4以上' },
 ]
+
+/** カード面の3行bullet（AI側もtrend/today/outlookの順で1つずつ出す構成に合わせてある）のラベル。 */
+const BULLET_LABELS = ['流れ', '新着', '予測']
 
 const currentId = ref('')
 const sourceId = ref('all')
@@ -420,16 +445,45 @@ function archiveCountLabel(s: FarmNewsTrendSnapshot, long = false): string {
   return long ? `記事${s.itemCount}件をもとにした振り返りです` : `${s.itemCount}件`
 }
 
-interface ArchiveEntry {
+interface ArchiveSingleEntry {
+  kind: 'single'
   key: string
   snapshot: FarmNewsTrendSnapshot
 }
 
 /**
- * 直近 FARM_NEWS_ARCHIVE_RECENT_MONTHS ヶ月は月次スナップショットをそのまま、
- * それより前は年ごとにまとめる（year snapshot があればそれを1枚、まだ無ければ
- * その年の月次スナップショットをそのまま個別カードにフォールバック表示する＝
- * 今年のように、まだ年次サマリーが作れない年でもデータの欠落なく見せるための救済）。
+ * 直近 FARM_NEWS_ARCHIVE_RECENT_MONTHS ヶ月ぶんの月次スナップショットを1つにまとめたカード。
+ * 2026-09-15、「直近6ヶ月は年と同じ粒度に」という要望で、月ごとにN枚のカードを並べる旧仕様から
+ * 1枚のカードへ変更した（＝「1年=1カード」と同じ見た目の粗さに揃える）。新しくAIを呼んで
+ * 1本の文章に書き直すのではなく、既存の月次スナップショット（すでにAIが書いた本文）をそのまま
+ * 月ごとに区切って1つのポップアップにまとめる方式＝コスト増なし・鮮度も保たれる（日次で境界が
+ * 動く「直近6ヶ月」をD1に固定保存すると、境界をまたぐたびに作り直しが要るため）。
+ */
+interface ArchiveBundleEntry {
+  kind: 'bundle'
+  key: 'recent'
+  label: string
+  totalItemCount: number
+  snapshots: FarmNewsTrendSnapshot[]
+}
+
+type ArchiveEntry = ArchiveSingleEntry | ArchiveBundleEntry
+
+/** 束ねた月次スナップショットの範囲を '2026年4〜9月' / '2025年11月〜2026年4月' のように表す。 */
+function recentRangeLabel(snaps: FarmNewsTrendSnapshot[]): string {
+  const keys = [...snaps.map((s) => s.periodKey)].sort()
+  if (!keys.length) return ''
+  const [fy, fm] = keys[0]!.split('-')
+  const [ly, lm] = keys[keys.length - 1]!.split('-')
+  if (fy === ly && fm === lm) return `${fy}年${Number(fm)}月`
+  if (fy === ly) return `${fy}年${Number(fm)}〜${Number(lm)}月`
+  return `${fy}年${Number(fm)}月〜${ly}年${Number(lm)}月`
+}
+
+/**
+ * 直近 FARM_NEWS_ARCHIVE_RECENT_MONTHS ヶ月は1つのカードにまとめ、それより前は年ごとにまとめる
+ * （year snapshot があればそれを1枚、まだ無ければその年の月次スナップショットをそのまま個別カードに
+ * フォールバック表示する＝今年のように、まだ年次サマリーが作れない年でもデータの欠落なく見せるための救済）。
  */
 const archive = computed(() => {
   const cutoff = (() => {
@@ -441,34 +495,41 @@ const archive = computed(() => {
   const monthSnaps = snapshots.value.filter((s) => s.periodType === 'month')
   const yearSnaps = snapshots.value.filter((s) => s.periodType === 'year')
 
-  const recent: ArchiveEntry[] = monthSnaps
-    .filter((s) => s.periodKey >= cutoff)
-    .sort((a, b) => b.periodKey.localeCompare(a.periodKey))
-    .map((s) => ({ key: `month:${s.periodKey}`, snapshot: s }))
+  const recentMonths = monthSnaps.filter((s) => s.periodKey >= cutoff).sort((a, b) => b.periodKey.localeCompare(a.periodKey))
+  const recentBundle: ArchiveBundleEntry | null = recentMonths.length
+    ? {
+        kind: 'bundle',
+        key: 'recent',
+        label: recentRangeLabel(recentMonths),
+        totalItemCount: recentMonths.reduce((sum, s) => sum + s.itemCount, 0),
+        snapshots: recentMonths,
+      }
+    : null
 
   const olderMonths = monthSnaps.filter((s) => s.periodKey < cutoff)
   // 年次スナップショットだけ存在して月次が1件も無い年（Web検索の過去アーカイブ＝historical-backfill）も
   // 一覧に含める。月次由来だけで years を作ると、その年が丸ごと older から抜け落ちてしまうため。
   const years = [...new Set([...olderMonths.map((s) => s.periodKey.slice(0, 4)), ...yearSnaps.map((s) => s.periodKey)])].sort().reverse()
 
-  const older: ArchiveEntry[] = []
+  const older: ArchiveSingleEntry[] = []
   for (const year of years) {
     const yearSnap = yearSnaps.find((s) => s.periodKey === year)
     if (yearSnap) {
-      older.push({ key: `year:${year}`, snapshot: yearSnap })
+      older.push({ kind: 'single', key: `year:${year}`, snapshot: yearSnap })
     } else {
       for (const s of olderMonths.filter((m) => m.periodKey.slice(0, 4) === year).sort((a, b) => b.periodKey.localeCompare(a.periodKey))) {
-        older.push({ key: `month:${s.periodKey}`, snapshot: s })
+        older.push({ kind: 'single', key: `month:${s.periodKey}`, snapshot: s })
       }
     }
   }
 
-  return { recent, older }
+  return { recentBundle, older }
 })
 
 const openArchiveEntry = computed<ArchiveEntry | null>(() => {
   if (!openArchiveKey.value) return null
-  return [...archive.value.recent, ...archive.value.older].find((e) => e.key === openArchiveKey.value) ?? null
+  if (openArchiveKey.value === 'recent') return archive.value.recentBundle
+  return archive.value.older.find((e) => e.key === openArchiveKey.value) ?? null
 })
 
 async function load() {

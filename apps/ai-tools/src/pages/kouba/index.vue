@@ -2,13 +2,16 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useKouba, KOUBA_GRID_SIZE } from '~/composables/kouba/useKouba'
 import { useKoubaTheme } from '~/composables/kouba/useKoubaTheme'
+import { useKoubaSubtasks } from '~/composables/kouba/useKoubaSubtasks'
 import { useKoubaAchievements } from '~/composables/kouba/useKoubaAchievements'
 import KoubaJobModal from '~/components/kouba/KoubaJobModal.vue'
 import KoubaThemeBanner from '~/components/kouba/KoubaThemeBanner.vue'
 import KoubaThemeHistoryModal from '~/components/kouba/KoubaThemeHistoryModal.vue'
 import KoubaSubtasksSection from '~/components/kouba/KoubaSubtasksSection.vue'
 import type { KoubaTaskOption } from '~/components/kouba/KoubaSubtasksSection.vue'
+import KoubaSubtaskFormModal from '~/components/kouba/KoubaSubtaskFormModal.vue'
 import KoubaAchievementsSection from '~/components/kouba/KoubaAchievementsSection.vue'
+import KoubaAchievementFormModal from '~/components/kouba/KoubaAchievementFormModal.vue'
 import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
 import KoubaIconEditor from '~/components/kouba/KoubaIconEditor.vue'
 import KoubaConfirmModal from '~/components/kouba/KoubaConfirmModal.vue'
@@ -46,7 +49,6 @@ const {
   addCategory, updateCategory, deleteCategory, reorderCategories,
   addJob, updateJob, deleteJob, reorderJobs,
   addTask, updateTask, deleteTask, reorderTasks, setTaskHours, flushPendingHours,
-  addSubtask, updateSubtask, toggleSubtaskDone, deleteSubtask,
 } = useKouba()
 
 // ── 今のテーマ（板のトップに掲げる一言）──────────────────────────────
@@ -56,20 +58,15 @@ const {
 } = useKoubaTheme()
 const showThemeHistory = ref(false)
 
-// ── サブタスク（"今のテーマ"の下の一覧。板を横断してタスクに紐付けられる）──────────────────────────────
-// 別途の一覧取得APIは持たず、板（categories）から毎回組み立てる＝board が唯一の情報源で二重管理にならない。
-// ジョブは複数カテゴリに重複掲載され得るので、id で重複排除してから使う。
-const flatSubtasks = computed<KoubaSubtask[]>(() => {
-  const map = new Map<string, KoubaSubtask>()
-  for (const c of categories.value) {
-    for (const j of c.jobs) {
-      for (const t of j.tasks) {
-        for (const s of t.subtasks) map.set(s.id, s)
-      }
-    }
-  }
-  return [...map.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-})
+// ── サブタスク（"今のテーマ"の下の一覧。板とは別に取得する＝タスクに紐付かない分も扱うため）──────────────────────────────
+const {
+  subtasks, saving: subtasksSaving, error: subtasksError,
+  load: loadSubtasks, add: addSubtaskItem, rename: renameSubtask, setHours: setSubtaskHoursItem,
+  flushPendingHours: flushPendingSubtaskHours, toggleDone: toggleSubtaskDoneItem, remove: removeSubtaskItem,
+} = useKoubaSubtasks()
+const showSubtaskFormModal = ref(false)
+
+/** タスクの選択肢（紐付け先）は板（categories）から組み立てる。ジョブは複数カテゴリに重複掲載され得るので id で重複排除。 */
 const taskOptions = computed<KoubaTaskOption[]>(() => {
   const map = new Map<string, KoubaTaskOption>()
   for (const c of categories.value) {
@@ -81,17 +78,21 @@ const taskOptions = computed<KoubaTaskOption[]>(() => {
   }
   return [...map.values()]
 })
-async function handleAddSubtask(payload: { taskId: string; title: string; hours: number }) {
-  await addSubtask(payload.taskId, payload.title, payload.hours)
+/** ポップアップの送信処理。成功したら true を返す（呼び出し側の「続けて入力しますか？」の判定に使う）。 */
+async function handleAddSubtaskSubmit(payload: { taskId: string | null; title: string; hours: number }): Promise<boolean> {
+  return await addSubtaskItem(payload)
 }
 async function handleRenameSubtask(payload: { id: string; title: string }) {
-  await updateSubtask(payload.id, { title: payload.title })
+  await renameSubtask(payload.id, payload.title)
 }
-async function handleSetSubtaskHours(payload: { id: string; hours: number }) {
-  await updateSubtask(payload.id, { hours: payload.hours })
+/** 時間の +/- は押すたびに保存せず、useKoubaSubtasks 側で手元反映＋まとめ保存にする（タスクの時間と同じやり方）。 */
+function handleSetSubtaskHours(payload: { id: string; hours: number }) {
+  setSubtaskHoursItem(payload.id, payload.hours)
 }
+/** DONEの切り替えは紐づくタスクの時間（板側）も変わるので、続けて板を取り直す。 */
 async function handleToggleSubtaskDone(payload: { id: string; done: boolean }) {
-  await toggleSubtaskDone(payload.id, payload.done)
+  await toggleSubtaskDoneItem(payload.id, payload.done)
+  await load()
 }
 
 // ── 達成したこと（画面下部の一覧）──────────────────────────────
@@ -99,8 +100,9 @@ const {
   achievements, loading: achievementsLoading, saving: achievementsSaving, error: achievementsError,
   load: loadAchievements, add: addAchievement, remove: removeAchievement,
 } = useKoubaAchievements()
-async function handleAddAchievement(payload: { text: string; achievedAt: string }) {
-  await addAchievement(payload.text, payload.achievedAt)
+const showAchievementFormModal = ref(false)
+async function handleAddAchievementSubmit(payload: { text: string; achievedAt: string }): Promise<boolean> {
+  return await addAchievement(payload.text, payload.achievedAt)
 }
 
 // 日本語入力の変換確定Enterでも @keydown.enter は発火するため、確定中は無視する
@@ -313,7 +315,9 @@ async function onConfirmDelete() {
   } else if (target.kind === 'achievement') {
     await removeAchievement(target.id)
   } else {
-    await deleteSubtask(target.id)
+    // DONE中のサブタスクを削除すると、紐づくタスクの時間（板側）が引き戻ることがあるので続けて板を取り直す
+    await removeSubtaskItem(target.id)
+    await load()
   }
 }
 
@@ -453,6 +457,7 @@ onMounted(async () => {
   if (isLoggedIn.value || isDev) {
     load()
     loadTheme()
+    loadSubtasks()
     loadAchievements()
   } else loading.value = false
 })
@@ -460,17 +465,22 @@ watch(isLoggedIn, (v) => {
   if (!v) return
   load()
   loadTheme()
+  loadSubtasks()
   loadAchievements()
 })
 
 // スマホでアプリを切り替えたときなど、そのままページが捨てられても時間の +/- を取りこぼさないように送り切る
 function flushOnHide() {
-  if (document.visibilityState === 'hidden') void flushPendingHours()
+  if (document.visibilityState === 'hidden') {
+    void flushPendingHours()
+    void flushPendingSubtaskHours()
+  }
 }
 onMounted(() => document.addEventListener('visibilitychange', flushOnHide))
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', flushOnHide)
   void flushPendingHours()
+  void flushPendingSubtaskHours()
 })
 </script>
 
@@ -486,6 +496,23 @@ onBeforeUnmount(() => {
 
   <!-- これまでのテーマ -->
   <KoubaThemeHistoryModal v-model:show="showThemeHistory" :themes="themeHistory" />
+
+  <!-- サブタスクの追加ポップアップ -->
+  <KoubaSubtaskFormModal
+    v-model:show="showSubtaskFormModal"
+    :task-options="taskOptions"
+    :on-submit="handleAddSubtaskSubmit"
+    :saving="subtasksSaving"
+    :error="subtasksError"
+  />
+
+  <!-- 達成したことの記録ポップアップ -->
+  <KoubaAchievementFormModal
+    v-model:show="showAchievementFormModal"
+    :on-submit="handleAddAchievementSubmit"
+    :saving="achievementsSaving"
+    :error="achievementsError"
+  />
 
   <!-- ジョブ詳細モーダル -->
   <KoubaJobModal
@@ -547,14 +574,14 @@ onBeforeUnmount(() => {
           @open-history="showThemeHistory = true"
         />
 
-        <!-- サブタスク一覧（板とは別概念。いずれかのタスクに紐付けて追加し、DONEにすると紐づくタスクの時間へ加算される） -->
+        <!-- サブタスク一覧（板とは別概念。追加はヘッダーの「＋」で開くポップアップから。DONEにすると紐づくタスクの時間へ加算される） -->
         <KoubaSubtasksSection
           v-if="!loading && !loadError"
-          :subtasks="flatSubtasks"
+          :subtasks="subtasks"
           :task-options="taskOptions"
-          :saving="saving"
-          :error="actionError"
-          @add="handleAddSubtask"
+          :saving="subtasksSaving"
+          :error="subtasksError"
+          @open-add="showSubtaskFormModal = true"
           @rename="handleRenameSubtask"
           @set-hours="handleSetSubtaskHours"
           @toggle-done="handleToggleSubtaskDone"
@@ -799,9 +826,8 @@ onBeforeUnmount(() => {
           <KoubaAchievementsSection
             :achievements="achievements"
             :loading="achievementsLoading"
-            :saving="achievementsSaving"
             :error="achievementsError"
-            @add="handleAddAchievement"
+            @open-add="showAchievementFormModal = true"
             @delete="askDeleteAchievement"
           />
         </template>

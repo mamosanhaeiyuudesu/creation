@@ -74,6 +74,15 @@ function breakSentences(text: string): string {
     .join('\n')
 }
 
+/**
+ * 一般の読者向けの平易さ・専門用語の言い換え指示。潮流の考察・アーカイブ系の複数プロンプトで共用する
+ * （2026-09-15、「USDAとかTaranisとか言われても分からない」という指摘で追加。読者を農業/AIの専門家と
+ * 想定した書きっぷりだと固有名詞・略称が説明なしで並んでしまうため、初出時にカッコ書きの説明を必須にした）。
+ */
+const PLAIN_LANGUAGE_NOTE = `読者は農業やAI技術の専門家ではない一般の人を想定する。専門用語・企業名・団体名の略称は
+初出時にカッコで簡潔な説明を添えること（例:「USDA（アメリカ農務省）」「Taranis（イスラエル発の精密農業AI企業）」
+のように）。説明を省いて固有名詞だけを並べないこと。`
+
 export async function summarizeArticle(
   apiKey: string,
   input: { title: string; url: string; sourceName: string; body: string; bodyIsFeedSummary: boolean }
@@ -150,7 +159,8 @@ export async function synthesizeCurrentNarrative(
 - today: 新しく入った記事が何で、この流れの中でどういう意味を持つか（2〜3文）
 - outlook: 何を根拠にどう予測するか（3〜4文。「〜が進むと、次は〜が起きやすい」のように材料と予測をセットで書く。
   断定しすぎず、材料が薄いところは薄いと分かるように書く）
-- bullets: outlookの要点を15字程度で3つ（カード面のプレビュー用）
+- bullets: 必ず3つ、trend・today・outlookの要点をそれぞれ1つずつ15字程度で、その順番で（カード面の
+  プレビュー用。3つとも同じ観点〈例えば全部outlookの話〉に偏らせず、この3章それぞれの要約になっていること）
 
 書き方（重要）:
 - 分析レポートのような硬い言い回しは避け、詳しい友人が雑談で教えてくれるような言葉づかいにする
@@ -160,11 +170,15 @@ export async function synthesizeCurrentNarrative(
 - 材料の記事はほとんどが海外（主に米国）発なので、trend か outlook のどちらかで必ず「日本ではどうか」に
   一言触れること。材料の中に日本発の記事があればそれを使い、無ければ一般に知られている日本の農業×AI事情
   （規模や制度の違いで海外ほど急には進みにくい、といった傾向）を踏まえつつ、確信の無い細部は断定しない。
-  材料に日本の記事が全く無いこと自体も「日本では目立った動きが少ない／情報が少ない」のヒントとして触れてよい`
+  材料に日本の記事が全く無いこと自体も「日本では目立った動きが少ない／情報が少ない」のヒントとして触れてよい
+- ${PLAIN_LANGUAGE_NOTE}`
 
   const userContent = `${previousText ? `前回の考察:\n${previousText}\n\n` : ''}直近1ヶ月の一覧:\n${recentList}\n\n新着:\n${todayList}`
 
-  const text = await callClaudeText(apiKey, { model: FARM_NEWS_MODEL, maxTokens: 900, system, messages: [{ role: 'user', content: userContent }] })
+  // news-ai.ts の同名関数は900だが、farm-newsでは2026-09-15に「日本の状況に必ず触れる」指示を
+  // 足してtrend/outlookが1文ぶん長くなった。900のままだと出力が途中で切れてJSONが閉じずパースに
+  // 失敗する事故が実際に頻発した（実測：4潮流中1〜2件が毎回のように失敗）ので1400へ上げた。
+  const text = await callClaudeText(apiKey, { model: FARM_NEWS_MODEL, maxTokens: 1400, system, messages: [{ role: 'user', content: userContent }] })
 
   const parsed = extractJson(text)
   const clean = (raw: unknown) => breakSentences(stripMarkdown(String(raw ?? '').trim()))
@@ -197,7 +211,8 @@ ${input.monthKey}（YYYY-MM）にあった記事一覧を材料に、この1ヶ�
 出力は次のJSONのみ。前置きやコードフェンスを付けないこと。
 {"summary": "…"}
 
-書き方: 硬い分析文体は避け、平易な言葉で。一文が終わったら改行し、次の文を続けて書かない。Markdown記法は使わない。`
+書き方: 硬い分析文体は避け、平易な言葉で。一文が終わったら改行し、次の文を続けて書かない。Markdown記法は使わない。
+${PLAIN_LANGUAGE_NOTE}`
 
   const text = await callClaudeText(apiKey, {
     model: FARM_NEWS_MODEL,
@@ -221,29 +236,36 @@ ${input.monthKey}（YYYY-MM）にあった記事一覧を材料に、この1ヶ�
 export async function synthesizeHistoricalYearSnapshot(apiKey: string, input: { year: string }): Promise<FarmNewsCurrentSection[]> {
   const system = `あなたは農業×AIの動向をアーカイブする日本語のアナリストです。
 Web検索を使って、${input.year}年に農業×AI（精密農業・センシング／農業ロボット・自動化／農業データ・経営／
-政策・気候とAI）の分野で世界的に何が起きたかを調べ、その年を振り返る文章を5〜7文でまとめてください。
+政策・気候とAI）の分野で世界的に何が起きたかを調べ、2つに分けて振り返りをまとめてください。
 
-調べる際は主に米国・欧州の動きを中心にしつつ、必ず「日本国内の農業×AIの状況」にも触れること。
+調べる際は主に米国・欧州の動きを中心にしつつ、必ず「日本国内の農業×AIの状況」も別途調べること。
 日本語でも検索し、具体的な動きが見つかればそれを書く。見つからなければ「日本では目立った報道が見当たらない
 ＝取り組みがまだ薄い可能性がある」のように、情報の有無自体をヒントとして書いてよい（無理に断定しない）。
 個別の出来事を羅列するのではなく、その年を通した大きな流れ・転換点として書くこと。
 
 出力は次のJSONのみ。前置きやコードフェンスを付けないこと。
-{"summary": "…"}
+{"overview": "…", "japan": "…"}
+
+- overview: 主に米国・欧州を中心とした世界の動き（5〜6文）
+- japan: 日本国内の農業×AIはその年どうだったか（2〜4文。情報が薄ければ薄いなりに、上記の通りヒントとして書く）
 
 書き方: 硬い分析文体は避け、平易な言葉で。一文が終わったら改行し、次の文を続けて書かない。Markdown記法は使わない。
-確信の持てない細部（正確な日付・数値等）は無理に断定せず、大きな流れとして書くこと。`
+確信の持てない細部（正確な日付・数値等）は無理に断定せず、大きな流れとして書くこと。
+${PLAIN_LANGUAGE_NOTE}`
 
   const text = await callClaudeText(apiKey, {
-    maxTokens: 900,
+    maxTokens: 1400,
     system,
     messages: [{ role: 'user', content: `${input.year}年の農業×AIの動向を調べてください（日本の状況への言及を忘れずに）。` }],
     webSearch: { maxUses: FARM_NEWS_HISTORICAL_WEB_SEARCH_MAX_USES },
   })
 
   const parsed = extractJson(text)
-  const body = breakSentences(stripMarkdown(String(parsed.summary ?? '').trim()))
-  return body ? [{ title: '', body }] : []
+  const clean = (raw: unknown) => breakSentences(stripMarkdown(String(raw ?? '').trim()))
+  return [
+    { title: 'この年の動き', body: clean(parsed.overview) },
+    { title: '日本の状況', body: clean(parsed.japan) },
+  ].filter((s) => s.body)
 }
 
 /**
@@ -257,22 +279,30 @@ export async function synthesizeYearSnapshot(
   const list = input.monthSummaries.map((m) => `【${m.periodKey}】${m.body}`).join('\n')
 
   const system = `あなたは農業×AIの動向をアーカイブする日本語のアナリストです。
-${input.year}年の月ごとの考察一覧を材料に、この1年を通してどう動いたかを4〜6文でまとめてください。
+${input.year}年の月ごとの考察一覧を材料に、この1年を通してどう動いたかを2つに分けてまとめてください。
 月ごとの出来事を羅列するのではなく、年間を通した大きな流れ・転換点として書く。
 
 出力は次のJSONのみ。前置きやコードフェンスを付けないこと。
-{"summary": "…"}
+{"overview": "…", "japan": "…"}
 
-書き方: 硬い分析文体は避け、平易な言葉で。一文が終わったら改行し、次の文を続けて書かない。Markdown記法は使わない。`
+- overview: 世界（主に米欧）を中心とした、この1年を通した大きな流れ・転換点（4〜6文）
+- japan: 材料の月ごとの考察の中に日本発の内容があればそれを踏まえてこの年の日本の状況を2〜4文で。
+  無ければ「日本発の目立った報道は少なかった」旨を簡潔に書いてよい（無理に長く書かない）
+
+書き方: 硬い分析文体は避け、平易な言葉で。一文が終わったら改行し、次の文を続けて書かない。Markdown記法は使わない。
+${PLAIN_LANGUAGE_NOTE}`
 
   const text = await callClaudeText(apiKey, {
     model: FARM_NEWS_MODEL,
-    maxTokens: 700,
+    maxTokens: 1100,
     system,
     messages: [{ role: 'user', content: `月ごとの考察（${input.monthSummaries.length}ヶ月分）:\n${list}` }],
   })
 
   const parsed = extractJson(text)
-  const body = breakSentences(stripMarkdown(String(parsed.summary ?? '').trim()))
-  return body ? [{ title: '', body }] : []
+  const clean = (raw: unknown) => breakSentences(stripMarkdown(String(raw ?? '').trim()))
+  return [
+    { title: 'この年の動き', body: clean(parsed.overview) },
+    { title: '日本の状況', body: clean(parsed.japan) },
+  ].filter((s) => s.body)
 }

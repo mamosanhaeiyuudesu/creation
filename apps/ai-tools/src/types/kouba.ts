@@ -1,8 +1,9 @@
 // 工数管理ツール (kouba) の型定義。
 //
-// **階層は カテゴリ → ジョブ（付箋1枚） → タスク（時間を持つ実作業） → サブタスク（タスクにぶら下がる細目）の4段**。
+// **階層は カテゴリ → ジョブ（付箋1枚） → タスク（時間を持つ実作業）の3段＋サブタスク（タスクに任意で紐付く細目）**。
 // 2026-09-15に「タスク」「サブタスク」の呼び名を1段ずつ繰り下げた（旧タスク→ジョブ、旧サブタスク→タスク）うえで、
-// 新しく「サブタスク」という概念を追加した（DONEにすると紐づくタスクの時間へ加算される細目）。
+// 新しく「サブタスク」という概念を追加した（DONEにすると紐づくタスクの時間へ加算される細目。タスクへの紐付けは
+// 任意＝紐付けずに書き留めるだけのメモとしても使える）。
 // **この改名は画面の文言・TypeScriptの型名・APIパスにだけ及ぼし、D1のテーブル名・列名は変えていない**
 // （データ移行が不要で最も安全という判断。既存の `kouba_tasks.category_id`・`kouba_achievements.impact` のような
 // 「実装は残るが名前は古いまま」の列と同じ扱い）。対応は次のとおり:
@@ -14,13 +15,16 @@
 /**
  * サブタスク（タスクにぶら下がる細目。DONEにすると `hours` が紐づくタスクへ加算される）。2026-09-15追加。
  * "今のテーマ"の下に独立した一覧として出し、そこから直接追加・DONEの切り替えができる（板を深く辿らなくてよい）。
- * DBは新規テーブル `kouba_task_subtasks`。
+ * DBは新規テーブル `kouba_task_subtasks`。**taskId は任意**＝どのタスクにも紐付けずに書き留めておける
+ * （その場合はDONEにしても加算先が無いのでタイトル・時間の記録だけになる）。板（`useKouba`）が返すデータの
+ * 一部ではなく、`useKoubaSubtasks`／`GET・POST /api/kouba/subtasks` で独立に読み書きする＝タスクに紐付かない
+ * サブタスクも扱えるようにするため、板の入れ子（カテゴリ→ジョブ→タスク）を辿らずに一覧を取得する。
  */
 export interface KoubaSubtask {
   id: string
-  taskId: string
+  taskId: string | null
   title: string
-  hours: number // 0〜30（30分刻み）。DONEにした時点のこの値がタスクへ加算される
+  hours: number // 0〜30（30分刻み）。DONEにした時点のこの値がタスクへ加算される（taskIdがあるときだけ）
   done: boolean
   doneAt: string | null
   createdAt: string
@@ -30,14 +34,13 @@ export interface KoubaSubtask {
  * タスク（ジョブの中の実作業。「何をやったか」はタイトルで表す）。時間は日別に分けず hours にまとめて1個持つ
  * （手入力の+/-で自由に増減できる。加えて、紐づくサブタスクをDONEにするとその分が自動で加算される＝
  * サブタスクのON/OFFと手入力の+/-は同じ hours を触る2つの入り口で、どちらで動かしても以後は区別を持たない）。
+ * サブタスクの一覧はここには持たない（`KoubaSubtask`側が`taskId`で参照する形。板とは別に取得する）。
  */
 export interface KoubaTask {
   id: string
   jobId: string
   title: string
   hours: number // 0〜30（30分刻み。0時間のまま置いておける）
-  /** このタスクにぶら下がるサブタスク（DONE/未DONEの両方を含む）。 */
-  subtasks: KoubaSubtask[]
   createdAt: string
 }
 
