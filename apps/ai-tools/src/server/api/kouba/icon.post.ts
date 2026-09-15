@@ -2,8 +2,9 @@ import { requireKoubaUser, requireKoubaDb, ensureKoubaTables } from '~/server/ut
 import { generateKoubaIcon } from '~/server/utils/kouba-ai'
 import type { KoubaIconTarget } from '~/types/kouba'
 
-// カテゴリ・タスクのアイコンを AI で作る／作り直す。名前（＋任意の指示）から SVG を描かせて icon 列に保存する。
+// カテゴリ・ジョブのアイコンを AI で作る／作り直す。名前（＋任意の指示）から SVG を描かせて icon 列に保存する。
 // 作成直後の自動生成と、編集時の「AIに指示して作り直す」の両方がこれを呼ぶ。
+// （アイコンを持つのはカテゴリとジョブだけ。タスク・サブタスクは持たない）
 export default defineEventHandler(async (event) => {
   const user = await requireKoubaUser(event)
   const db = requireKoubaDb(event)
@@ -11,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<{ target?: KoubaIconTarget; id?: string; instruction?: string }>(event)
   const target = body?.target
-  if (target !== 'category' && target !== 'task') throw createError({ statusCode: 400, message: '対象が不正です' })
+  if (target !== 'category' && target !== 'job') throw createError({ statusCode: 400, message: '対象が不正です' })
   const id = body?.id ?? ''
   const table = target === 'category' ? 'kouba_categories' : 'kouba_tasks'
   const nameColumn = target === 'category' ? 'name' : 'title'
@@ -20,7 +21,7 @@ export default defineEventHandler(async (event) => {
     .prepare(`SELECT ${nameColumn} AS name, icon FROM ${table} WHERE id = ? AND user_id = ?`)
     .bind(id, user.id)
     .first<{ name: string; icon: string }>()
-  if (!row) throw createError({ statusCode: 404, message: target === 'category' ? 'カテゴリが見つかりません' : 'タスクが見つかりません' })
+  if (!row) throw createError({ statusCode: 404, message: target === 'category' ? 'カテゴリが見つかりません' : 'ジョブが見つかりません' })
 
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) throw createError({ statusCode: 500, message: 'Anthropic API key is not configured.' })

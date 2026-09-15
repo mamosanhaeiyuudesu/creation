@@ -3,7 +3,7 @@
  * Claude 呼び出しは既存の callClaudeText に任せる（news-ai.ts と同じ構成）。
  */
 import { callClaudeText } from '~/server/utils/anthropic'
-import { FARM_NEWS_MODEL } from '~/utils/farm-news-sources'
+import { FARM_NEWS_HISTORICAL_WEB_SEARCH_MAX_USES, FARM_NEWS_MODEL } from '~/utils/farm-news-sources'
 import { FARM_NEWS_CURRENTS, FARM_NEWS_FALLBACK_CURRENT, isKnownFarmNewsCurrent } from '~/utils/farm-news-currents'
 import type { RecentCurrentItem } from '~/server/utils/farm-news'
 import type { FarmNewsCurrentSection } from '~/types/farm-news'
@@ -32,6 +32,9 @@ ${CURRENT_TAXONOMY}
 5 = 政策や産業の前提が変わる規模。法規制、国家レベルの合意、業界を再編する発表
 
 判定で重視すること:
+- 最優先で見るのは「AI・IoT・ロボティクス・データ活用など農業のデジタル化と明確に関係しているか」。
+  天候・相場・新品種・一般的な栽培技術・人事など、デジタル化の要素が無い記事は、農業ニュースとしては
+  価値があっても、このサイト（農業×AI専門メディア）にとっての重要度は1〜2に留める
 - 「誰が使えるようになったか」より「何が構造として変わったか」を見る
 - 宣伝文句の大きさに引きずられない。金額や固有名詞の派手さは重要度ではない
 - 情報が薄く判断材料が足りないときは、盛らずに低めに付けてよい
@@ -153,7 +156,11 @@ export async function synthesizeCurrentNarrative(
 - 分析レポートのような硬い言い回しは避け、詳しい友人が雑談で教えてくれるような言葉づかいにする
 - 一文は短く。1つの文が終わったら必ず改行し、次の文を続けて書かない
 - 前回の考察がある場合は、全部書き直すのではなく「その後どう変わったか」を踏まえて更新する
-- Markdown記法は一切使わない。装飾記号のないプレーンテキストのみ`
+- Markdown記法は一切使わない。装飾記号のないプレーンテキストのみ
+- 材料の記事はほとんどが海外（主に米国）発なので、trend か outlook のどちらかで必ず「日本ではどうか」に
+  一言触れること。材料の中に日本発の記事があればそれを使い、無ければ一般に知られている日本の農業×AI事情
+  （規模や制度の違いで海外ほど急には進みにくい、といった傾向）を踏まえつつ、確信の無い細部は断定しない。
+  材料に日本の記事が全く無いこと自体も「日本では目立った動きが少ない／情報が少ない」のヒントとして触れてよい`
 
   const userContent = `${previousText ? `前回の考察:\n${previousText}\n\n` : ''}直近1ヶ月の一覧:\n${recentList}\n\n新着:\n${todayList}`
 
@@ -197,6 +204,41 @@ ${input.monthKey}（YYYY-MM）にあった記事一覧を材料に、この1ヶ�
     maxTokens: 500,
     system,
     messages: [{ role: 'user', content: `記事一覧（${input.items.length}件）:\n${list}` }],
+  })
+
+  const parsed = extractJson(text)
+  const body = breakSentences(stripMarkdown(String(parsed.summary ?? '').trim()))
+  return body ? [{ title: '', body }] : []
+}
+
+/**
+ * 過去年アーカイブ（Web検索バックフィル）。RSSでは遡れない年（サイト運用開始より前）を、
+ * Claudeの Web検索で調べさせて1年分の振り返りにする。月次スナップショットを積み上げる
+ * 通常の年次生成（synthesizeYearSnapshot）とは別物＝実際の収集記事は材料にせず、検索結果だけが根拠。
+ * モデルは軽い分類作業用の FARM_NEWS_MODEL（Haiku）ではなく anthropic.ts の既定（Sonnet 5）を使う
+ * ＝実行頻度が低い（年1回×バックフィル分だけ）ので、調べ物の質を優先してよい。
+ */
+export async function synthesizeHistoricalYearSnapshot(apiKey: string, input: { year: string }): Promise<FarmNewsCurrentSection[]> {
+  const system = `あなたは農業×AIの動向をアーカイブする日本語のアナリストです。
+Web検索を使って、${input.year}年に農業×AI（精密農業・センシング／農業ロボット・自動化／農業データ・経営／
+政策・気候とAI）の分野で世界的に何が起きたかを調べ、その年を振り返る文章を5〜7文でまとめてください。
+
+調べる際は主に米国・欧州の動きを中心にしつつ、必ず「日本国内の農業×AIの状況」にも触れること。
+日本語でも検索し、具体的な動きが見つかればそれを書く。見つからなければ「日本では目立った報道が見当たらない
+＝取り組みがまだ薄い可能性がある」のように、情報の有無自体をヒントとして書いてよい（無理に断定しない）。
+個別の出来事を羅列するのではなく、その年を通した大きな流れ・転換点として書くこと。
+
+出力は次のJSONのみ。前置きやコードフェンスを付けないこと。
+{"summary": "…"}
+
+書き方: 硬い分析文体は避け、平易な言葉で。一文が終わったら改行し、次の文を続けて書かない。Markdown記法は使わない。
+確信の持てない細部（正確な日付・数値等）は無理に断定せず、大きな流れとして書くこと。`
+
+  const text = await callClaudeText(apiKey, {
+    maxTokens: 900,
+    system,
+    messages: [{ role: 'user', content: `${input.year}年の農業×AIの動向を調べてください（日本の状況への言及を忘れずに）。` }],
+    webSearch: { maxUses: FARM_NEWS_HISTORICAL_WEB_SEARCH_MAX_USES },
   })
 
   const parsed = extractJson(text)

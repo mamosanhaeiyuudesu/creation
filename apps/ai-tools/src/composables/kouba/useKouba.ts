@@ -1,14 +1,14 @@
 import { ref } from 'vue'
-import type { KoubaCategory, KoubaIconTarget, KoubaSubtask } from '~/types/kouba'
+import type { KoubaCategory, KoubaIconTarget, KoubaTask } from '~/types/kouba'
 
 /** カテゴリは3×3グリッドの9枠まで。 */
 export const KOUBA_GRID_SIZE = 9
 
 /**
- * kouba（工数管理）の板データと操作。
+ * kouba（工数管理）の板データと操作。階層は カテゴリ → ジョブ（付箋） → タスク（時間を持つ実作業） → サブタスク。
  * どの操作も、成功後は load() で板全体を取り直す（規模が小さく、局所パッチの複雑さに見合わないため）。
- * **例外はサブタスクの時間の +/- だけ**＝30分ずつ連打されるので、押すたびに PATCH + 板の再読込をすると重い。
- * 画面はその場で書き換え、サーバーへの保存は最後の操作から少し待ってまとめて1回だけ送る（`setSubtaskHours`）。
+ * **例外はタスクの時間の +/- だけ**＝30分ずつ連打されるので、押すたびに PATCH + 板の再読込をすると重い。
+ * 画面はその場で書き換え、サーバーへの保存は最後の操作から少し待ってまとめて1回だけ送る（`setTaskHours`）。
  */
 export function useKouba() {
   const categories = ref<KoubaCategory[]>([])
@@ -20,10 +20,10 @@ export function useKouba() {
   const saving = ref(false)
   const actionError = ref('')
 
-  // AI がアイコンを作成中の対象ID（カテゴリ・タスク共通）。数秒かかり、その間も他の操作はできるので saving とは分けている。
+  // AI がアイコンを作成中の対象ID（カテゴリ・ジョブ共通）。数秒かかり、その間も他の操作はできるので saving とは分けている。
   const iconBusyIds = ref(new Set<string>())
 
-  // 時間の +/- の保存待ち（サブタスクIDごとに最後の値とタイマーを1つ持つ）。
+  // 時間の +/- の保存待ち（タスクIDごとに最後の値とタイマーを1つ持つ）。
   // 待ち時間は「連打が止まったと見なすまで」＝長すぎると閉じ際の取りこぼしが増え、短いと連打のたびに飛ぶ。
   const HOURS_SAVE_DELAY_MS = 700
   const pendingHourSaves = new Map<string, { hours: number; timer: ReturnType<typeof setTimeout> }>()
@@ -81,17 +81,17 @@ export function useKouba() {
   }
 
   /**
-   * タスクを追加し、続けて AI にアイコンを作らせる。
-   * 作成直後は「＋」を押したその1カテゴリにだけ属する＝複数カテゴリへの掲載はタスク詳細モーダルで後から設定する。
+   * ジョブ（付箋）を追加し、続けて AI にアイコンを作らせる。
+   * 作成直後は「＋」を押したその1カテゴリにだけ属する＝複数カテゴリへの掲載はジョブ詳細モーダルで後から設定する。
    */
-  async function addTask(categoryId: string, title: string) {
+  async function addJob(categoryId: string, title: string) {
     let id = ''
     await withSaving(async () => {
-      const created = await $fetch<{ id: string }>('/api/kouba/tasks', { method: 'POST', body: { categoryIds: [categoryId], title } })
+      const created = await $fetch<{ id: string }>('/api/kouba/jobs', { method: 'POST', body: { categoryIds: [categoryId], title } })
       id = created.id
       await load()
     })
-    if (id) await generateIcon('task', id)
+    if (id) await generateIcon('job', id)
   }
 
   /**
@@ -106,8 +106,8 @@ export function useKouba() {
       const { icon } = await $fetch<{ icon: string }>('/api/kouba/icon', { method: 'POST', body: { target, id, instruction } })
       for (const c of categories.value) {
         if (target === 'category' && c.id === id) c.icon = icon
-        const t = target === 'task' ? c.tasks.find((t) => t.id === id) : undefined
-        if (t) t.icon = icon
+        const j = target === 'job' ? c.jobs.find((j) => j.id === id) : undefined
+        if (j) j.icon = icon
       }
     } catch (e: any) {
       actionError.value = e?.data?.message || 'アイコンの作成に失敗しました'
@@ -117,16 +117,16 @@ export function useKouba() {
   }
 
   /** patch.categoryIds は「所属することになるカテゴリの集合」を丸ごと差し替える（増減の両方を1回で表す）。 */
-  async function updateTask(id: string, patch: { title?: string; categoryIds?: string[]; focused?: boolean; description?: string }) {
+  async function updateJob(id: string, patch: { title?: string; categoryIds?: string[]; focused?: boolean; description?: string }) {
     await withSaving(async () => {
-      await $fetch(`/api/kouba/tasks/${id}`, { method: 'PATCH', body: patch })
+      await $fetch(`/api/kouba/jobs/${id}`, { method: 'PATCH', body: patch })
       await load()
     })
   }
 
-  async function deleteTask(id: string) {
+  async function deleteJob(id: string) {
     await withSaving(async () => {
-      await $fetch(`/api/kouba/tasks/${id}`, { method: 'DELETE' })
+      await $fetch(`/api/kouba/jobs/${id}`, { method: 'DELETE' })
       await load()
     })
   }
@@ -151,46 +151,46 @@ export function useKouba() {
     }
   }
 
-  /** ドラッグ&ドロップ用: 指定カテゴリの並び順（+必要なら移動）を丸ごと反映する。 */
-  async function reorderTasks(categoryId: string, taskIds: string[]) {
+  /** ドラッグ&ドロップ用: 指定カテゴリのジョブの並び順（+必要なら移動）を丸ごと反映する。 */
+  async function reorderJobs(categoryId: string, jobIds: string[]) {
     await withSaving(async () => {
-      await $fetch('/api/kouba/tasks/reorder', { method: 'POST', body: { categoryId, taskIds } })
+      await $fetch('/api/kouba/jobs/reorder', { method: 'POST', body: { categoryId, jobIds } })
       await load()
     })
   }
 
-  async function addSubtask(taskId: string, title: string, hours: number) {
+  async function addTask(jobId: string, title: string, hours: number) {
     await withSaving(async () => {
-      await $fetch('/api/kouba/subtasks', { method: 'POST', body: { taskId, title, hours } })
+      await $fetch('/api/kouba/tasks', { method: 'POST', body: { jobId, title, hours } })
       await load()
     })
   }
 
-  async function updateSubtask(id: string, patch: { title?: string; hours?: number }) {
+  async function updateTask(id: string, patch: { title?: string; hours?: number }) {
     await withSaving(async () => {
-      await $fetch(`/api/kouba/subtasks/${id}`, { method: 'PATCH', body: patch })
+      await $fetch(`/api/kouba/tasks/${id}`, { method: 'PATCH', body: patch })
       await load()
     })
   }
 
   /**
-   * ドラッグ&ドロップ用: 指定タスク内のサブタスクの並び順を丸ごと反映する。
-   * タスクは複数カテゴリに重複して表示されることがあるので、カテゴリのreorderと同じく
+   * ドラッグ&ドロップ用: 指定ジョブ内のタスクの並び順を丸ごと反映する。
+   * ジョブは複数カテゴリに重複して表示されることがあるので、カテゴリ・ジョブのreorderと同じく
    * 手元を先に入れ替えてから保存する（load()で取り直すと板全体が一瞬「読み込み中…」に化けるため）。
-   * 全カテゴリ・全タスクを走査してtaskIdが一致する箇所すべてのsubtasksを並べ替える（時間の+/-や合計と同じ「同期」）。
+   * 全カテゴリ・全ジョブを走査してjobIdが一致する箇所すべてのtasksを並べ替える（時間の+/-や合計と同じ「同期」）。
    */
-  async function reorderSubtasks(taskId: string, subtaskIds: string[]) {
+  async function reorderTasks(jobId: string, taskIds: string[]) {
     for (const c of categories.value) {
-      for (const t of c.tasks) {
-        if (t.id !== taskId) continue
-        const byId = new Map(t.subtasks.map((s) => [s.id, s]))
-        const reordered = subtaskIds.map((id) => byId.get(id)).filter((s): s is KoubaSubtask => !!s)
-        if (reordered.length === t.subtasks.length) t.subtasks = reordered
+      for (const j of c.jobs) {
+        if (j.id !== jobId) continue
+        const byId = new Map(j.tasks.map((t) => [t.id, t]))
+        const reordered = taskIds.map((id) => byId.get(id)).filter((t): t is KoubaTask => !!t)
+        if (reordered.length === j.tasks.length) j.tasks = reordered
       }
     }
     actionError.value = ''
     try {
-      await $fetch('/api/kouba/subtasks/reorder', { method: 'POST', body: { taskId, subtaskIds } })
+      await $fetch('/api/kouba/tasks/reorder', { method: 'POST', body: { jobId, taskIds } })
     } catch (e: any) {
       actionError.value = e?.data?.message || '並べ替えに失敗しました'
       await load()
@@ -198,29 +198,29 @@ export function useKouba() {
   }
 
   /**
-   * 手元の合計時間を積み直す（サブタスク→タスク→カテゴリ。サーバーの shapeTask/shapeCategory と同じ計算）。
-   * カテゴリをまたいで同じタスクが複数の配列に入っていることがある（1タスクが複数カテゴリに属する場合）が、
-   * 全カテゴリ・全タスクを漏れなく回すのでどちらの出現にも同じ値が積まれる＝結果として同期する。
+   * 手元の合計時間を積み直す（タスク→ジョブ→カテゴリ。サーバーの shapeJob/shapeCategory と同じ計算）。
+   * カテゴリをまたいで同じジョブが複数の配列に入っていることがある（1ジョブが複数カテゴリに属する場合）が、
+   * 全カテゴリ・全ジョブを漏れなく回すのでどちらの出現にも同じ値が積まれる＝結果として同期する。
    */
   function recomputeTotals() {
     for (const c of categories.value) {
-      for (const t of c.tasks) t.totalHours = t.subtasks.reduce((sum, s) => sum + s.hours, 0)
-      c.totalHours = c.tasks.reduce((sum, t) => sum + t.totalHours, 0)
+      for (const j of c.jobs) j.totalHours = j.tasks.reduce((sum, t) => sum + t.hours, 0)
+      c.totalHours = c.jobs.reduce((sum, j) => sum + j.totalHours, 0)
     }
   }
 
   /**
-   * サブタスクの時間の +/-。画面はその場で書き換えて合計まで積み直し、サーバーへの保存だけ
+   * タスクの時間の +/-。画面はその場で書き換えて合計まで積み直し、サーバーへの保存だけ
    * HOURS_SAVE_DELAY_MS 待ってまとめる（3回押しても PATCH は1回。板の再読込もしない）。
    * saving を立てないので、保存の往復中もボタンが無効にならず続けて押せる。
-   * **タスクが複数カテゴリに属していても**、全カテゴリ・全タスクを走査して id が一致する箇所すべてを
+   * **ジョブが複数カテゴリに属していても**、全カテゴリ・全ジョブを走査して id が一致する箇所すべてを
    * 書き換えるので、どのカテゴリ経由で開いた分にも同じ値が反映される（同期のための特別な仕組みは無い）。
    */
-  function setSubtaskHours(id: string, hours: number) {
+  function setTaskHours(id: string, hours: number) {
     for (const c of categories.value) {
-      for (const t of c.tasks) {
-        const subtask = t.subtasks.find((s) => s.id === id)
-        if (subtask) subtask.hours = hours
+      for (const j of c.jobs) {
+        const task = j.tasks.find((t) => t.id === id)
+        if (task) task.hours = hours
       }
     }
     recomputeTotals()
@@ -237,7 +237,7 @@ export function useKouba() {
     clearTimeout(pending.timer)
     pendingHourSaves.delete(id)
     try {
-      await $fetch(`/api/kouba/subtasks/${id}`, { method: 'PATCH', body: { hours: pending.hours } })
+      await $fetch(`/api/kouba/tasks/${id}`, { method: 'PATCH', body: { hours: pending.hours } })
     } catch (e: any) {
       actionError.value = e?.data?.message || '保存に失敗しました'
       await load()
@@ -251,6 +251,39 @@ export function useKouba() {
   async function flushPendingHours(): Promise<void> {
     if (!pendingHourSaves.size) return
     await Promise.all([...pendingHourSaves.keys()].map((id) => flushHours(id)))
+  }
+
+  async function deleteTask(id: string) {
+    await withSaving(async () => {
+      await $fetch(`/api/kouba/tasks/${id}`, { method: 'DELETE' })
+      await load()
+    })
+  }
+
+  // ── サブタスク（タスクにぶら下がる細目。DONEでタスクの時間へ加算） ──────────────────────────────
+  // "今のテーマ"の下の一覧・タスク詳細モーダルの両方から使う。件数が少なく連打されるUIでもないので、
+  // タスクの+/-のような手元パッチ＋デバウンス保存はせず、他の操作と同じ withSaving + load() でよい。
+
+  async function addSubtask(taskId: string, title: string, hours: number) {
+    await withSaving(async () => {
+      await $fetch('/api/kouba/subtasks', { method: 'POST', body: { taskId, title, hours } })
+      await load()
+    })
+  }
+
+  async function updateSubtask(id: string, patch: { title?: string; hours?: number }) {
+    await withSaving(async () => {
+      await $fetch(`/api/kouba/subtasks/${id}`, { method: 'PATCH', body: patch })
+      await load()
+    })
+  }
+
+  /** DONE/未DONEの切り替え。サーバー側が紐づくタスクの時間へ増減を反映してから板を取り直す。 */
+  async function toggleSubtaskDone(id: string, done: boolean) {
+    await withSaving(async () => {
+      await $fetch(`/api/kouba/subtasks/${id}`, { method: 'PATCH', body: { done } })
+      await load()
+    })
   }
 
   async function deleteSubtask(id: string) {
@@ -273,15 +306,19 @@ export function useKouba() {
     updateCategory,
     deleteCategory,
     reorderCategories,
+    addJob,
+    updateJob,
+    deleteJob,
+    reorderJobs,
     addTask,
     updateTask,
     deleteTask,
     reorderTasks,
+    setTaskHours,
+    flushPendingHours,
     addSubtask,
     updateSubtask,
-    reorderSubtasks,
-    setSubtaskHours,
-    flushPendingHours,
+    toggleSubtaskDone,
     deleteSubtask,
   }
 }

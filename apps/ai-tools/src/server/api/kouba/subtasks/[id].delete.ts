@@ -1,6 +1,6 @@
-import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, findOwnedSubtask } from '~/server/utils/kouba'
+import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, findOwnedSubtask, deleteSubtask } from '~/server/utils/kouba'
 
-// サブタスクの削除。
+// サブタスクの削除。DONE中なら削除前に自動でタスクの時間を引き戻す（deleteSubtask に集約）。
 export default defineEventHandler(async (event) => {
   const user = await requireKoubaUser(event)
   const db = requireKoubaDb(event)
@@ -10,6 +10,6 @@ export default defineEventHandler(async (event) => {
   const existing = await findOwnedSubtask(db, user.id, id)
   if (!existing) throw createError({ statusCode: 404, message: 'サブタスクが見つかりません' })
 
-  await db.prepare('DELETE FROM kouba_subtasks WHERE id = ?').bind(id).run()
+  await deleteSubtask(db, existing)
   return { ok: true }
 })

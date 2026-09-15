@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
-import type { KoubaSubtask } from '~/types/kouba'
+import type { KoubaTask } from '~/types/kouba'
 import KoubaHoursStepper from '~/components/kouba/KoubaHoursStepper.vue'
 
-const props = defineProps<{ subtask: KoubaSubtask; saving: boolean; dragging?: boolean; dropTarget?: boolean }>()
+// ジョブ詳細モーダルの中の1行＝「タスク」（旧「サブタスク」）。時間は+/-で手入力できるほか、
+// このタスクに紐づく「サブタスク」をDONEにすると自動でも増える（サブタスクの操作は"今のテーマ"下の一覧で行う）。
+const props = defineProps<{ task: KoubaTask; saving: boolean; dragging?: boolean; dropTarget?: boolean }>()
 const emit = defineEmits<{
   rename: [title: string]
   setHours: [hours: number]
@@ -28,7 +30,7 @@ const titleDraft = ref('')
 const titleInputEl = ref<HTMLInputElement | null>(null)
 
 function startEdit() {
-  titleDraft.value = props.subtask.title
+  titleDraft.value = props.task.title
   editingTitle.value = true
   nextTick(() => titleInputEl.value?.focus())
 }
@@ -36,7 +38,7 @@ function commitTitle() {
   if (!editingTitle.value) return
   editingTitle.value = false
   const title = titleDraft.value.trim()
-  if (title && title !== props.subtask.title) emit('rename', title)
+  if (title && title !== props.task.title) emit('rename', title)
 }
 
 /** 編集中の✗＝保存せずに編集をやめてそのまま削除（一気に削除できるように）。 */
@@ -85,18 +87,18 @@ function cancelEditAndDelete() {
         class="flex-1 min-w-0 m-0 text-[13px] font-bold text-slate-100 truncate cursor-text"
         title="クリックして編集"
         @click="startEdit"
-      >{{ subtask.title }}</h3>
+      >{{ task.title }}</h3>
 
       <!-- +/- を押すたびその場で保存する（30分刻み） -->
       <KoubaHoursStepper
-        :model-value="subtask.hours"
+        :model-value="task.hours"
         :disabled="saving"
         @update:model-value="(hours) => emit('setHours', hours)"
       />
 
       <button
         class="w-7 h-7 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
-        title="サブタスクを削除"
+        title="タスクを削除"
         :disabled="saving"
         @click="emit('delete')"
       >🗑</button>

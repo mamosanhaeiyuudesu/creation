@@ -13,13 +13,19 @@
  *   - no-tillfarmer.com: bot拒否（Cloudflareのチャレンジページ）で403
  *   - agriculture.com: 402（アクセス制限）
  *   - agritechtomorrow.com: DNS解決不可
- *   - agri-navi.com / smartagriexpo.jp: 日本語ソース候補も試したがいずれも404/DNS不可。
- *     日本語ソースは見つけられていない（見つかれば追加すること）
+ *   - agri-navi.com / smartagriexpo.jp: 日本語ソース候補も試したがいずれも404/DNS不可
  *   - IEEE Spectrum の agriculture トピックフィード: 404（robotics トピックは news 側で使用中）
  *
  * 2026-09-14、本人の「農業だけでいい、酪農や漁業はいらない」という要望で、畜産専門ソースの
  * feedstuffs（Feedstuffs）・beefmagazine（BEEF Magazine）を削除した（対応する livestock-ai 潮流も
  * farm-news-currents.ts から削除済み）。漁業・林業の専用ソースは元々見つけられていない（上記参照）。
+ *
+ * 2026-09-15、日本語ソースを追加。上記コメントには「日本語ソースは見つけられていない」と書いていたが、
+ * これは agri-navi.com / smartagriexpo.jp の2件しか試していなかっただけで、改めて探すと
+ * SMART AGRI・AGRI JOURNAL は実際に生きたフィードを持っていた（＝「日本語ソースが無い」のではなく
+ * 「探し方が甘かった」が正しい）。SMART AGRIのフィードURLは `/feed`（WordPressの定番パス）ではなく
+ * `/rss`（Atom形式）＝ページの`<link rel="alternate" type="application/rss+xml" href="/rss">`から
+ * 見つけた。`/feed`はアイテム0件の空チャンネルを返すだけの罠なので、直しても戻さないこと。
  */
 export interface FarmNewsSource {
   id: string
@@ -70,11 +76,32 @@ export const FARM_NEWS_SOURCES: FarmNewsSource[] = [
     url: 'https://modernfarmer.com/feed/',
     enabled: true,
   },
+  // 日本語ソース（スマート農業・農業DX全般）
+  {
+    id: 'smartagri',
+    name: 'SMART AGRI（スマートアグリ）',
+    url: 'https://smartagri-jp.com/rss',
+    enabled: true,
+  },
+  {
+    id: 'agrijournal',
+    name: 'AGRI JOURNAL（アグリジャーナル）',
+    url: 'https://agrijournal.jp/feed/',
+    enabled: true,
+  },
 ]
 
 export function farmNewsSourceName(id: string): string {
   return FARM_NEWS_SOURCES.find((s) => s.id === id)?.name ?? id
 }
+
+/**
+ * ページが既定で表示する重要度のしきい値（これ未満も保存はされ、切り替えれば見られる）。
+ * 2026-09-14に一度削除したが（①最新ニュースが寂しく見える、という理由）、ソースが広く
+ * 「農業全般」も拾ってしまう構成のため、重要度で絞らないとAI/IoTと関係の薄い記事が①に
+ * 混ざって見える、という不満で2026-09-15に復活させた。日本語ソース追加とあわせて様子を見る。
+ */
+export const FARM_NEWS_MIN_IMPORTANCE = 3
 
 /** フィードから拾う公開日の範囲（日）。news.ts と同じ考え方（初回実行で全件を要約しないための安全弁）。 */
 export const FARM_NEWS_LOOKBACK_DAYS = 5
@@ -103,3 +130,19 @@ export const FARM_NEWS_MAX_YEAR_SNAPSHOTS_PER_RUN = 2
  * news と同じ実測結果（Haiku 4.5で品質差なし・コスト大幅減）を踏襲して既定にする。
  */
 export const FARM_NEWS_MODEL = 'claude-haiku-4-5'
+
+/**
+ * 過去アーカイブ（Web検索バックフィル）関連。RSSは直近の記事しか配信しないため、
+ * サイト運用開始（2026-09-14）より前の年は実際の収集記事が存在しない。その代わりに
+ * Claudeの Web検索（anthropic.ts の callClaudeText の webSearch オプション）で年ごとに
+ * 1回だけ調べ物をさせ、1年分＝1スナップショットとして`farm_news_trend_snapshots`に
+ * 保存する（1500日を日次/月次で埋めるのは費用的に見合わないため、年単位の粗いサンプリングに
+ * している）。実データが貯まっている年（`listMonthsWithItems`に含まれる年）は対象にしない
+ * ＝いずれ本物のアーカイブに置き換わっていく設計。詳しくは farm-news-run.ts の
+ * `runFarmNewsHistoricalBackfill` 冒頭コメント参照。
+ */
+export const FARM_NEWS_HISTORICAL_YEARS_BACK = 5
+/** 1回の実行で生成する過去年スナップショットの上限（Web検索を伴うため月次/年次アーカイブより低めに絞る）。 */
+export const FARM_NEWS_HISTORICAL_MAX_SNAPSHOTS_PER_RUN = 2
+/** 1年分を調べるときのWeb検索の最大回数。 */
+export const FARM_NEWS_HISTORICAL_WEB_SEARCH_MAX_USES = 6

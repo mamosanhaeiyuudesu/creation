@@ -1,5 +1,6 @@
 import { getAppDb } from '~/server/utils/auth'
 import { ensureFarmNewsTables, listCurrentStates, listItems, listRuns, listSnapshots } from '~/server/utils/farm-news'
+import { FARM_NEWS_MIN_IMPORTANCE } from '~/utils/farm-news-sources'
 import type { FarmNewsState } from '~/types/farm-news'
 
 /**
@@ -19,5 +20,5 @@ export default defineEventHandler(async (event): Promise<FarmNewsState> => {
     listSnapshots(db),
   ])
 
-  return { items, runs, currents, snapshots }
+  return { items, runs, currents, snapshots, minImportance: FARM_NEWS_MIN_IMPORTANCE }
 })

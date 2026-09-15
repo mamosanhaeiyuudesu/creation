@@ -32,7 +32,7 @@ interface GenerateOptions {
 }
 
 function buildUserMessage(opts: GenerateOptions): string {
-  const label = opts.target === 'category' ? 'カテゴリ（仕事の大きな分類）' : 'タスク（カテゴリの中の作業）'
+  const label = opts.target === 'category' ? 'カテゴリ（仕事の大きな分類）' : 'ジョブ（カテゴリの中の作業）'
   const lines = [`種類: ${label}`, `名前: ${opts.name}`]
   const current = opts.currentIcon && isSvgIcon(opts.currentIcon) ? opts.currentIcon : ''
   const instruction = opts.instruction?.trim() ?? ''

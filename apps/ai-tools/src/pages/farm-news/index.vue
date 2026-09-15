@@ -23,7 +23,7 @@
             {{ farmNewsCurrentLabel(currentId) }} ×
           </button>
           <button class="fnews-btn-ghost" @click="filterModalOpen = true">
-            フィルタ：{{ sourceLabel }}
+            フィルタ：{{ sourceLabel }}・{{ importanceLabel }}
           </button>
           <input v-model="keyword" class="fnews-input ml-auto w-[150px]" type="search" placeholder="キーワード" />
         </div>
@@ -107,7 +107,7 @@
         </section>
       </section>
 
-      <!-- ソースの絞り込みポップアップ -->
+      <!-- ソース・重要度の絞り込みポップアップ -->
       <div v-if="filterModalOpen" class="fnews-modal-backdrop" @click.self="filterModalOpen = false">
         <div class="fnews-modal" role="dialog" aria-modal="true">
           <div class="flex items-start justify-between gap-3 mb-4">
@@ -115,7 +115,7 @@
             <button class="fnews-modal-close" aria-label="閉じる" @click="filterModalOpen = false">×</button>
           </div>
 
-          <div>
+          <div class="mb-5">
             <h3 class="text-[11.5px] font-bold text-[var(--fnews-ink-faint)] mb-2">ソース</h3>
             <div class="flex items-center gap-1.5 flex-wrap">
               <button class="fnews-chip" :class="{ 'fnews-chip--on': sourceId === 'all' }" @click="sourceId = 'all'">すべてのソース</button>
@@ -127,6 +127,21 @@
                 @click="sourceId = s.id"
               >
                 {{ s.name }}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-[11.5px] font-bold text-[var(--fnews-ink-faint)] mb-2">重要度</h3>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <button
+                v-for="t in THRESHOLDS"
+                :key="t.value"
+                class="fnews-chip"
+                :class="{ 'fnews-chip--on': minImportance === t.value }"
+                @click="minImportance = t.value"
+              >
+                {{ t.label }}
               </button>
             </div>
           </div>
@@ -210,7 +225,7 @@
               <button v-for="e in archive.recent" :key="e.key" class="fnews-archive-card text-left" @click="openArchiveKey = e.key">
                 <div class="flex items-center justify-between gap-2 mb-1">
                   <h4 class="fnews-display text-[13.5px]">{{ periodLabel(e.snapshot) }}</h4>
-                  <span class="text-[11px] text-[var(--fnews-ink-faint)]">{{ e.snapshot.itemCount }}件</span>
+                  <span class="text-[11px] text-[var(--fnews-ink-faint)]">{{ archiveCountLabel(e.snapshot) }}</span>
                 </div>
                 <p class="text-[12.5px] leading-[1.6] text-[var(--fnews-ink-soft)] line-clamp-2">
                   {{ e.snapshot.sections[0]?.body || 'まだ記事が集まっていません。' }}
@@ -225,7 +240,7 @@
               <button v-for="e in archive.older" :key="e.key" class="fnews-archive-card text-left" @click="openArchiveKey = e.key">
                 <div class="flex items-center justify-between gap-2 mb-1">
                   <h4 class="fnews-display text-[13.5px]">{{ periodLabel(e.snapshot) }}</h4>
-                  <span class="text-[11px] text-[var(--fnews-ink-faint)]">{{ e.snapshot.itemCount }}件</span>
+                  <span class="text-[11px] text-[var(--fnews-ink-faint)]">{{ archiveCountLabel(e.snapshot) }}</span>
                 </div>
                 <p class="text-[12.5px] leading-[1.6] text-[var(--fnews-ink-soft)] line-clamp-2">
                   {{ e.snapshot.sections[0]?.body || 'まだ記事が集まっていません。' }}
@@ -243,7 +258,7 @@
             <h2 class="fnews-display text-[18px] leading-snug">{{ periodLabel(openArchiveEntry.snapshot) }}</h2>
             <button class="fnews-modal-close" aria-label="閉じる" @click="openArchiveKey = ''">×</button>
           </div>
-          <p class="text-[12px] text-[var(--fnews-ink-faint)] mb-4">記事{{ openArchiveEntry.snapshot.itemCount }}件をもとにした振り返りです</p>
+          <p class="text-[12px] text-[var(--fnews-ink-faint)] mb-4">{{ archiveCountLabel(openArchiveEntry.snapshot, true) }}</p>
           <div class="flex flex-col gap-4">
             <p class="text-[14px] leading-[1.85] text-[var(--fnews-ink)] whitespace-pre-line">
               {{ openArchiveEntry.snapshot.sections[0]?.body }}
@@ -266,7 +281,7 @@
  * （newsは「潮流カードが上」だが、farm-newsではまずニュースを読んでから潮流の話に入る構成にしている）。
  */
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
-import { FARM_NEWS_ARCHIVE_RECENT_MONTHS, FARM_NEWS_SOURCES, farmNewsSourceName } from '~/utils/farm-news-sources'
+import { FARM_NEWS_ARCHIVE_RECENT_MONTHS, FARM_NEWS_MIN_IMPORTANCE, FARM_NEWS_SOURCES, farmNewsSourceName } from '~/utils/farm-news-sources'
 import { FARM_NEWS_CURRENTS, farmNewsCurrentLabel } from '~/utils/farm-news-currents'
 import { WEEKDAYS_JA, toJSTDate, todayJST } from '~/utils/jst'
 import type { FarmNewsCurrentState, FarmNewsItem, FarmNewsState, FarmNewsTrendSnapshot } from '~/types/farm-news'
@@ -278,12 +293,20 @@ const loading = ref(true)
 const items = ref<FarmNewsItem[]>([])
 const currents = ref<FarmNewsCurrentState[]>([])
 const snapshots = ref<FarmNewsTrendSnapshot[]>([])
+let thresholdApplied = false
 
 /** 常に全文表示するトップ記事の件数。これ以外は<details>で折りたたむ。 */
 const TOP_ITEM_COUNT = 5
 
+const THRESHOLDS = [
+  { value: 0, label: 'すべての重要度' },
+  { value: 3, label: '重要度3以上' },
+  { value: 4, label: '重要度4以上' },
+]
+
 const currentId = ref('')
 const sourceId = ref('all')
+const minImportance = ref(FARM_NEWS_MIN_IMPORTANCE)
 const keyword = ref('')
 
 const openCurrentId = ref('')
@@ -294,6 +317,7 @@ const filterModalOpen = ref(false)
 const openArchiveKey = ref('')
 
 const sourceLabel = computed(() => (sourceId.value === 'all' ? 'すべてのソース' : farmNewsSourceName(sourceId.value)))
+const importanceLabel = computed(() => THRESHOLDS.find((t) => t.value === minImportance.value)?.label ?? '')
 
 function currentState(id: string): FarmNewsCurrentState | undefined {
   return currents.value.find((c) => c.id === id)
@@ -336,6 +360,7 @@ const filtered = computed(() => {
   return items.value.filter((i) => {
     if (currentId.value && i.current !== currentId.value) return false
     if (sourceId.value !== 'all' && i.sourceId !== sourceId.value) return false
+    if (i.importance < minImportance.value) return false
     if (q && !`${i.titleJa} ${i.title} ${i.summary}`.toLowerCase().includes(q)) return false
     return true
   })
@@ -386,6 +411,15 @@ function periodLabel(s: FarmNewsTrendSnapshot): string {
   return `${y}年${Number(m)}月`
 }
 
+/**
+ * itemCount が 0 の年次スナップショットは、実際の収集記事ではなく Web検索だけで作った
+ * 過去アーカイブ（historical-backfill、farm-news-run.ts 参照）＝その旨が伝わる表記にする。
+ */
+function archiveCountLabel(s: FarmNewsTrendSnapshot, long = false): string {
+  if (s.itemCount === 0) return long ? 'Web検索をもとにした振り返りです（当時の収集記事はありません）' : 'Web検索'
+  return long ? `記事${s.itemCount}件をもとにした振り返りです` : `${s.itemCount}件`
+}
+
 interface ArchiveEntry {
   key: string
   snapshot: FarmNewsTrendSnapshot
@@ -413,7 +447,9 @@ const archive = computed(() => {
     .map((s) => ({ key: `month:${s.periodKey}`, snapshot: s }))
 
   const olderMonths = monthSnaps.filter((s) => s.periodKey < cutoff)
-  const years = [...new Set(olderMonths.map((s) => s.periodKey.slice(0, 4)))].sort().reverse()
+  // 年次スナップショットだけ存在して月次が1件も無い年（Web検索の過去アーカイブ＝historical-backfill）も
+  // 一覧に含める。月次由来だけで years を作ると、その年が丸ごと older から抜け落ちてしまうため。
+  const years = [...new Set([...olderMonths.map((s) => s.periodKey.slice(0, 4)), ...yearSnaps.map((s) => s.periodKey)])].sort().reverse()
 
   const older: ArchiveEntry[] = []
   for (const year of years) {
@@ -442,6 +478,10 @@ async function load() {
     items.value = state.items
     currents.value = state.currents
     snapshots.value = state.snapshots
+    if (!thresholdApplied) {
+      minImportance.value = state.minImportance
+      thresholdApplied = true
+    }
   } catch {
     // 公開ページなので静かに失敗する（記事0件の表示に自然にフォールバックする）
   } finally {

@@ -1,29 +1,61 @@
 // 工数管理ツール (kouba) の型定義。
+//
+// **階層は カテゴリ → ジョブ（付箋1枚） → タスク（時間を持つ実作業） → サブタスク（タスクにぶら下がる細目）の4段**。
+// 2026-09-15に「タスク」「サブタスク」の呼び名を1段ずつ繰り下げた（旧タスク→ジョブ、旧サブタスク→タスク）うえで、
+// 新しく「サブタスク」という概念を追加した（DONEにすると紐づくタスクの時間へ加算される細目）。
+// **この改名は画面の文言・TypeScriptの型名・APIパスにだけ及ぼし、D1のテーブル名・列名は変えていない**
+// （データ移行が不要で最も安全という判断。既存の `kouba_tasks.category_id`・`kouba_achievements.impact` のような
+// 「実装は残るが名前は古いまま」の列と同じ扱い）。対応は次のとおり:
+//   UI「ジョブ」  = 型 KoubaJob     = DBテーブル kouba_tasks   （旧UI「タスク」）
+//   UI「タスク」  = 型 KoubaTask    = DBテーブル kouba_subtasks（旧UI「サブタスク」）
+//   UI「サブタスク」= 型 KoubaSubtask = DBテーブル kouba_task_subtasks（新規）
+// サーバー側のSQLは旧テーブル名・列名のまま書く。`server/utils/kouba.ts` の shape 関数で新しいフィールド名に組み替える。
 
-/** サブタスク（「何をやったか」はタイトルで表す）。時間は日別に分けず hours にまとめて1個持つ（編集可能）。 */
+/**
+ * サブタスク（タスクにぶら下がる細目。DONEにすると `hours` が紐づくタスクへ加算される）。2026-09-15追加。
+ * "今のテーマ"の下に独立した一覧として出し、そこから直接追加・DONEの切り替えができる（板を深く辿らなくてよい）。
+ * DBは新規テーブル `kouba_task_subtasks`。
+ */
 export interface KoubaSubtask {
   id: string
   taskId: string
   title: string
-  hours: number // 0〜30（30分刻み。0時間のまま置いておける）
+  hours: number // 0〜30（30分刻み）。DONEにした時点のこの値がタスクへ加算される
+  done: boolean
+  doneAt: string | null
   createdAt: string
 }
 
 /**
- * タスク（付箋1枚）。配下のサブタスクの合計時間を totalHours に持つ。
- * **1つ以上のカテゴリに同時掲載できる**（2026-09-13〜）＝ categoryIds が複数なら、同じ内容（同じサブタスク・
- * 同じ合計時間）がその数だけカテゴリの枠に重複して表示される。タスクとしては1つで、どのカテゴリ経由で
- * 開いても同じ `KoubaTask` を編集することになる＝表示が複数あっても中身は常に同期している。
+ * タスク（ジョブの中の実作業。「何をやったか」はタイトルで表す）。時間は日別に分けず hours にまとめて1個持つ
+ * （手入力の+/-で自由に増減できる。加えて、紐づくサブタスクをDONEにするとその分が自動で加算される＝
+ * サブタスクのON/OFFと手入力の+/-は同じ hours を触る2つの入り口で、どちらで動かしても以後は区別を持たない）。
  */
 export interface KoubaTask {
+  id: string
+  jobId: string
+  title: string
+  hours: number // 0〜30（30分刻み。0時間のまま置いておける）
+  /** このタスクにぶら下がるサブタスク（DONE/未DONEの両方を含む）。 */
+  subtasks: KoubaSubtask[]
+  createdAt: string
+}
+
+/**
+ * ジョブ（付箋1枚）。配下のタスクの合計時間を totalHours に持つ。
+ * **1つ以上のカテゴリに同時掲載できる**（2026-09-13〜）＝ categoryIds が複数なら、同じ内容（同じタスク・
+ * 同じ合計時間）がその数だけカテゴリの枠に重複して表示される。ジョブとしては1つで、どのカテゴリ経由で
+ * 開いても同じ `KoubaJob` を編集することになる＝表示が複数あっても中身は常に同期している。
+ */
+export interface KoubaJob {
   id: string
   categoryIds: string[]
   title: string
   icon: string
   createdAt: string
-  subtasks: KoubaSubtask[]
+  tasks: KoubaTask[]
   totalHours: number
-  /** 「直近で特に力を入れている」印。ONのタスクは付箋の枠をハイライトして目立たせる。 */
+  /** 「直近で特に力を入れている」印。ONのジョブは付箋の枠をハイライトして目立たせる。 */
   focused: boolean
   /** 補足の説明文（任意）。 */
   description: string
@@ -36,7 +68,7 @@ export interface KoubaCategory {
   icon: string
   position: number
   createdAt: string
-  tasks: KoubaTask[]
+  jobs: KoubaJob[]
   totalHours: number
   /** 補足の説明文（任意）。 */
   description: string
@@ -49,7 +81,7 @@ export const KOUBA_DESCRIPTION_MAX = 500
  * icon 列には AI が作った SVG 文字列が入る。旧データの絵文字もそのまま表示できる。
  */
 export const KOUBA_DEFAULT_CATEGORY_ICON = '📁'
-export const KOUBA_DEFAULT_TASK_ICON = '📝'
+export const KOUBA_DEFAULT_JOB_ICON = '📝'
 
 /** icon が AI 生成の SVG か（false なら絵文字として文字表示する）。 */
 export function isSvgIcon(icon: string): boolean {
@@ -64,8 +96,8 @@ export function svgIconDataUrl(svg: string): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }
 
-/** アイコン生成の対象。 */
-export type KoubaIconTarget = 'category' | 'task'
+/** アイコン生成の対象（アイコンを持つのはカテゴリとジョブだけ。タスク・サブタスクは持たない）。 */
+export type KoubaIconTarget = 'category' | 'job'
 
 // ── 今のテーマ（板のトップに掲げる一言）──────────────────────────────
 
@@ -116,9 +148,10 @@ export function formatKoubaThemePeriod(theme: KoubaTheme, now: Date = new Date()
 }
 
 /**
- * サブタスクの作業時間。+/- ボタンで 30 分（0.5時間）ずつ増減する。
+ * 作業時間。+/- ボタンで 30 分（0.5時間）ずつ増減する。タスク（手入力の+/-）・サブタスク（DONE時に
+ * タスクへ加算される分）の両方がこの刻みを共有する。
  * 0.5 は2進小数で誤差なく表せるので、足し引きも合計も丸め無しで一致する。
- * 下限は 0＝「やったことだけ先に書いて時間は後で入れる」ができるよう、0時間のサブタスクを許す。
+ * 下限は 0＝「やったことだけ先に書いて時間は後で入れる」ができるよう、0時間のまま置いておける。
  */
 export const KOUBA_HOURS_STEP = 0.5
 export const KOUBA_MIN_HOURS = 0

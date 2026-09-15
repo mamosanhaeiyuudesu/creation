@@ -3,14 +3,16 @@ import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useKouba, KOUBA_GRID_SIZE } from '~/composables/kouba/useKouba'
 import { useKoubaTheme } from '~/composables/kouba/useKoubaTheme'
 import { useKoubaAchievements } from '~/composables/kouba/useKoubaAchievements'
-import KoubaTaskModal from '~/components/kouba/KoubaTaskModal.vue'
+import KoubaJobModal from '~/components/kouba/KoubaJobModal.vue'
 import KoubaThemeBanner from '~/components/kouba/KoubaThemeBanner.vue'
 import KoubaThemeHistoryModal from '~/components/kouba/KoubaThemeHistoryModal.vue'
+import KoubaSubtasksSection from '~/components/kouba/KoubaSubtasksSection.vue'
+import type { KoubaTaskOption } from '~/components/kouba/KoubaSubtasksSection.vue'
 import KoubaAchievementsSection from '~/components/kouba/KoubaAchievementsSection.vue'
 import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
 import KoubaIconEditor from '~/components/kouba/KoubaIconEditor.vue'
 import KoubaConfirmModal from '~/components/kouba/KoubaConfirmModal.vue'
-import type { KoubaCategory, KoubaTask, KoubaSubtask, KoubaAchievement } from '~/types/kouba'
+import type { KoubaCategory, KoubaJob, KoubaTask, KoubaSubtask, KoubaAchievement } from '~/types/kouba'
 import { KOUBA_DESCRIPTION_MAX } from '~/types/kouba'
 
 useHead({
@@ -42,8 +44,9 @@ const showSettingsMenu = ref(false)
 const {
   categories, loading, loadError, saving, actionError, iconBusyIds, load, generateIcon,
   addCategory, updateCategory, deleteCategory, reorderCategories,
-  addTask, updateTask, deleteTask, reorderTasks,
-  addSubtask, updateSubtask, reorderSubtasks, setSubtaskHours, flushPendingHours, deleteSubtask,
+  addJob, updateJob, deleteJob, reorderJobs,
+  addTask, updateTask, deleteTask, reorderTasks, setTaskHours, flushPendingHours,
+  addSubtask, updateSubtask, toggleSubtaskDone, deleteSubtask,
 } = useKouba()
 
 // ── 今のテーマ（板のトップに掲げる一言）──────────────────────────────
@@ -52,6 +55,44 @@ const {
   load: loadTheme, save: saveTheme,
 } = useKoubaTheme()
 const showThemeHistory = ref(false)
+
+// ── サブタスク（"今のテーマ"の下の一覧。板を横断してタスクに紐付けられる）──────────────────────────────
+// 別途の一覧取得APIは持たず、板（categories）から毎回組み立てる＝board が唯一の情報源で二重管理にならない。
+// ジョブは複数カテゴリに重複掲載され得るので、id で重複排除してから使う。
+const flatSubtasks = computed<KoubaSubtask[]>(() => {
+  const map = new Map<string, KoubaSubtask>()
+  for (const c of categories.value) {
+    for (const j of c.jobs) {
+      for (const t of j.tasks) {
+        for (const s of t.subtasks) map.set(s.id, s)
+      }
+    }
+  }
+  return [...map.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+})
+const taskOptions = computed<KoubaTaskOption[]>(() => {
+  const map = new Map<string, KoubaTaskOption>()
+  for (const c of categories.value) {
+    for (const j of c.jobs) {
+      for (const t of j.tasks) {
+        if (!map.has(t.id)) map.set(t.id, { id: t.id, label: `${c.name} > ${j.title} > ${t.title}`, taskTitle: t.title })
+      }
+    }
+  }
+  return [...map.values()]
+})
+async function handleAddSubtask(payload: { taskId: string; title: string; hours: number }) {
+  await addSubtask(payload.taskId, payload.title, payload.hours)
+}
+async function handleRenameSubtask(payload: { id: string; title: string }) {
+  await updateSubtask(payload.id, { title: payload.title })
+}
+async function handleSetSubtaskHours(payload: { id: string; hours: number }) {
+  await updateSubtask(payload.id, { hours: payload.hours })
+}
+async function handleToggleSubtaskDone(payload: { id: string; done: boolean }) {
+  await toggleSubtaskDone(payload.id, payload.done)
+}
 
 // ── 達成したこと（画面下部の一覧）──────────────────────────────
 const {
@@ -136,89 +177,90 @@ async function commitCategoryDescEdit(cat: KoubaCategory) {
   if (description !== cat.description) await updateCategory(cat.id, { description })
 }
 
-// ── タスクの追加 ──────────────────────────────
+// ── ジョブの追加 ──────────────────────────────
 // アイコンはカテゴリと同じく、追加したあと AI が作る
-const addingTaskFor = ref<string | null>(null)
-const taskNameDraft = ref('')
+const addingJobFor = ref<string | null>(null)
+const jobNameDraft = ref('')
 
-function openAddTask(categoryId: string) {
-  addingTaskFor.value = categoryId
-  taskNameDraft.value = ''
-  nextTick(() => document.getElementById(`kouba-add-task-${categoryId}`)?.focus())
+function openAddJob(categoryId: string) {
+  addingJobFor.value = categoryId
+  jobNameDraft.value = ''
+  nextTick(() => document.getElementById(`kouba-add-job-${categoryId}`)?.focus())
 }
-function cancelAddTask() {
-  addingTaskFor.value = null
-  taskNameDraft.value = ''
+function cancelAddJob() {
+  addingJobFor.value = null
+  jobNameDraft.value = ''
 }
-async function submitAddTask() {
-  const title = taskNameDraft.value.trim()
-  const categoryId = addingTaskFor.value
+async function submitAddJob() {
+  const title = jobNameDraft.value.trim()
+  const categoryId = addingJobFor.value
   if (!title || !categoryId) return
-  cancelAddTask()
-  await addTask(categoryId, title)
+  cancelAddJob()
+  await addJob(categoryId, title)
 }
 
-// ── タスク詳細モーダル ──────────────────────────────
-const activeTaskId = ref<string | null>(null)
-const showTaskModal = computed({
-  get: () => activeTaskId.value !== null,
+// ── ジョブ詳細モーダル ──────────────────────────────
+const activeJobId = ref<string | null>(null)
+const showJobModal = computed({
+  get: () => activeJobId.value !== null,
   set: (v) => {
     // 閉じるときは、時間の +/- の保存待ちを送り切ってから（待っている間に画面が消えると変更が残らない）
     if (!v) {
       void flushPendingHours()
-      activeTaskId.value = null
+      activeJobId.value = null
     }
   },
 })
-const activeTask = computed(() => {
-  if (!activeTaskId.value) return null
+const activeJob = computed(() => {
+  if (!activeJobId.value) return null
   for (const c of categories.value) {
-    const t = c.tasks.find((t) => t.id === activeTaskId.value)
-    if (t) return t
+    const j = c.jobs.find((j) => j.id === activeJobId.value)
+    if (j) return j
   }
   return null
 })
 const categoryOptions = computed(() => categories.value.map((c) => ({ id: c.id, name: c.name, icon: c.icon })))
 
-function openTask(taskId: string) {
-  activeTaskId.value = taskId
+function openJob(jobId: string) {
+  activeJobId.value = jobId
 }
-async function handleUpdateTask(patch: { title?: string; categoryIds?: string[]; focused?: boolean; description?: string }) {
-  if (!activeTaskId.value) return
-  const taskId = activeTaskId.value
-  await updateTask(taskId, patch)
+async function handleUpdateJob(patch: { title?: string; categoryIds?: string[]; focused?: boolean; description?: string }) {
+  if (!activeJobId.value) return
+  const jobId = activeJobId.value
+  await updateJob(jobId, patch)
   // ハイライト（注力中）をONにしたら、載っている全カテゴリで先頭へ移動する
   if (patch.focused) {
     for (const c of categories.value) {
-      const ids = c.tasks.map((t) => t.id)
-      const idx = ids.indexOf(taskId)
+      const ids = c.jobs.map((j) => j.id)
+      const idx = ids.indexOf(jobId)
       if (idx <= 0) continue
       ids.splice(idx, 1)
-      ids.unshift(taskId)
-      await reorderTasks(c.id, ids)
+      ids.unshift(jobId)
+      await reorderJobs(c.id, ids)
     }
   }
 }
-async function handleRegenerateTaskIcon(instruction: string) {
-  if (activeTaskId.value) await generateIcon('task', activeTaskId.value, instruction)
+async function handleRegenerateJobIcon(instruction: string) {
+  if (activeJobId.value) await generateIcon('job', activeJobId.value, instruction)
 }
-async function handleAddSubtask(payload: { title: string; hours: number }) {
-  if (activeTaskId.value) await addSubtask(activeTaskId.value, payload.title, payload.hours)
+async function handleAddTask(payload: { title: string; hours: number }) {
+  if (activeJobId.value) await addTask(activeJobId.value, payload.title, payload.hours)
 }
-async function handleUpdateSubtask(payload: { id: string; title: string }) {
-  await updateSubtask(payload.id, { title: payload.title })
+async function handleUpdateTask(payload: { id: string; title: string }) {
+  await updateTask(payload.id, { title: payload.title })
 }
 /** 時間の +/- は押すたびに保存せず、useKouba 側で手元反映＋まとめ保存にする。 */
-function handleSetSubtaskHours(payload: { id: string; hours: number }) {
-  setSubtaskHours(payload.id, payload.hours)
+function handleSetTaskHours(payload: { id: string; hours: number }) {
+  setTaskHours(payload.id, payload.hours)
 }
-async function handleReorderSubtasks(subtaskIds: string[]) {
-  if (activeTaskId.value) await reorderSubtasks(activeTaskId.value, subtaskIds)
+async function handleReorderTasks(taskIds: string[]) {
+  if (activeJobId.value) await reorderTasks(activeJobId.value, taskIds)
 }
 
-// ── 削除確認ポップアップ（カテゴリ/タスク/サブタスクで共通）──────────────────────────────
+// ── 削除確認ポップアップ（カテゴリ/ジョブ/タスク/サブタスクで共通）──────────────────────────────
 type ConfirmTarget =
   | { kind: 'category'; id: string; name: string }
+  | { kind: 'job'; id: string; title: string }
   | { kind: 'task'; id: string; title: string }
   | { kind: 'subtask'; id: string; title: string }
   | { kind: 'achievement'; id: string; text: string }
@@ -227,7 +269,8 @@ const confirmMessage = computed(() => {
   const t = confirmTarget.value
   if (!t) return ''
   if (t.kind === 'category')
-    return `「${t.name}」を削除しますか？\n他のカテゴリにも表示されているタスクは残ります。このカテゴリだけにあるタスクは、サブタスクごと削除されます。`
+    return `「${t.name}」を削除しますか？\n他のカテゴリにも表示されているジョブは残ります。このカテゴリだけにあるジョブは、タスクごと削除されます。`
+  if (t.kind === 'job') return `「${t.title}」を削除しますか？\nタスクもすべて削除されます。`
   if (t.kind === 'task') return `「${t.title}」を削除しますか？\nサブタスクもすべて削除されます。`
   if (t.kind === 'achievement') {
     const preview = t.text.length > 40 ? `${t.text.slice(0, 40)}…` : t.text
@@ -244,6 +287,9 @@ function cancelEditCategoryAndDelete(cat: KoubaCategory) {
   editingCategoryId.value = null
   askDeleteCategory(cat)
 }
+function askDeleteJob(job: KoubaJob) {
+  confirmTarget.value = { kind: 'job', id: job.id, title: job.title }
+}
 function askDeleteTask(task: KoubaTask) {
   confirmTarget.value = { kind: 'task', id: task.id, title: task.title }
 }
@@ -259,8 +305,10 @@ async function onConfirmDelete() {
   if (!target) return
   if (target.kind === 'category') {
     await deleteCategory(target.id)
+  } else if (target.kind === 'job') {
+    if (activeJobId.value === target.id) activeJobId.value = null
+    await deleteJob(target.id)
   } else if (target.kind === 'task') {
-    if (activeTaskId.value === target.id) activeTaskId.value = null
     await deleteTask(target.id)
   } else if (target.kind === 'achievement') {
     await removeAchievement(target.id)
@@ -309,76 +357,76 @@ async function onCategorySlotDrop(cat: KoubaCategory | null) {
   await reorderCategories(ids)
 }
 
-// ── タスクのドラッグ&ドロップ（カテゴリ間の移動・同一カテゴリ内の並べ替え）──────────────────────────────
-// タスクは複数カテゴリに同時掲載できるので「どのカテゴリの枠から掴んだか」を別途持つ
-// （task.categoryIds だけでは、複数ある所属のうちどれが「今回の移動元」か分からないため）。
-const dragTaskId = ref<string | null>(null)
+// ── ジョブのドラッグ&ドロップ（カテゴリ間の移動・同一カテゴリ内の並べ替え）──────────────────────────────
+// ジョブは複数カテゴリに同時掲載できるので「どのカテゴリの枠から掴んだか」を別途持つ
+// （job.categoryIds だけでは、複数ある所属のうちどれが「今回の移動元」か分からないため）。
+const dragJobId = ref<string | null>(null)
 const dragSourceCategoryId = ref<string | null>(null)
 const dragOverCategoryId = ref<string | null>(null)
-const dragOverTaskId = ref<string | null>(null)
+const dragOverJobId = ref<string | null>(null)
 
-function onTaskDragStart(e: DragEvent, task: KoubaTask, sourceCategoryId: string) {
-  dragTaskId.value = task.id
+function onJobDragStart(e: DragEvent, job: KoubaJob, sourceCategoryId: string) {
+  dragJobId.value = job.id
   dragSourceCategoryId.value = sourceCategoryId
-  e.dataTransfer?.setData('text/plain', task.id)
+  e.dataTransfer?.setData('text/plain', job.id)
   if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
 }
-function onTaskDragEnd() {
-  dragTaskId.value = null
+function onJobDragEnd() {
+  dragJobId.value = null
   dragSourceCategoryId.value = null
   dragOverCategoryId.value = null
-  dragOverTaskId.value = null
+  dragOverJobId.value = null
 }
 function onCategoryDragOver(cat: KoubaCategory) {
-  if (!dragTaskId.value) return
+  if (!dragJobId.value) return
   dragOverCategoryId.value = cat.id
-  dragOverTaskId.value = null
+  dragOverJobId.value = null
 }
-function onTaskDragOver(cat: KoubaCategory, task: KoubaTask) {
+function onJobDragOver(cat: KoubaCategory, job: KoubaJob) {
   // 付箋側のハンドラは .stop で伝播を止めるので、カテゴリを掴んでいるときはここで枠の処理へ引き取る
   if (dragCategoryId.value) return onCategorySlotDragOver(cat)
-  if (!dragTaskId.value) return
+  if (!dragJobId.value) return
   dragOverCategoryId.value = cat.id
-  dragOverTaskId.value = task.id
+  dragOverJobId.value = job.id
 }
 /**
- * タスクを targetCategoryId の beforeTaskId の手前（null なら末尾）へ置く。
+ * ジョブを targetCategoryId の beforeJobId の手前（null なら末尾）へ置く。
  * sourceCategoryId が targetCategoryId と異なれば「移動」＝掴んだ元のカテゴリの表示からは外す
- * （他のカテゴリにも属していればそちらは残る。タスク自体を削除するわけではない）。
- * **追加が先・削除が後**の順で呼ぶ＝先に削除すると、他のカテゴリに属していないタスクが一瞬どこにも
- * 属さない状態になり得るため（reorder.post.ts 側にも同じ理由の安全策がある）。
+ * （他のカテゴリにも属していればそちらは残る。ジョブ自体を削除するわけではない）。
+ * **追加が先・削除が後**の順で呼ぶ＝先に削除すると、他のカテゴリに属していないジョブが一瞬どこにも
+ * 属さない状態になり得るため（jobs/reorder.post.ts 側にも同じ理由の安全策がある）。
  */
-async function moveTaskTo(taskId: string, targetCategoryId: string, beforeTaskId: string | null, sourceCategoryId: string | null) {
+async function moveJobTo(jobId: string, targetCategoryId: string, beforeJobId: string | null, sourceCategoryId: string | null) {
   const targetCat = categories.value.find((c) => c.id === targetCategoryId)
   if (!targetCat) return
-  const targetIds = targetCat.tasks.map((t) => t.id).filter((id) => id !== taskId)
-  let insertAt = beforeTaskId ? targetIds.indexOf(beforeTaskId) : targetIds.length
+  const targetIds = targetCat.jobs.map((j) => j.id).filter((id) => id !== jobId)
+  let insertAt = beforeJobId ? targetIds.indexOf(beforeJobId) : targetIds.length
   if (insertAt < 0) insertAt = targetIds.length
-  targetIds.splice(insertAt, 0, taskId)
-  await reorderTasks(targetCategoryId, targetIds)
+  targetIds.splice(insertAt, 0, jobId)
+  await reorderJobs(targetCategoryId, targetIds)
 
   if (sourceCategoryId && sourceCategoryId !== targetCategoryId) {
     const sourceCat = categories.value.find((c) => c.id === sourceCategoryId)
     if (sourceCat) {
-      const sourceIds = sourceCat.tasks.map((t) => t.id).filter((id) => id !== taskId)
-      await reorderTasks(sourceCategoryId, sourceIds)
+      const sourceIds = sourceCat.jobs.map((j) => j.id).filter((id) => id !== jobId)
+      await reorderJobs(sourceCategoryId, sourceIds)
     }
   }
 }
 async function onCategoryDrop(cat: KoubaCategory) {
-  const taskId = dragTaskId.value
+  const jobId = dragJobId.value
   const sourceCategoryId = dragSourceCategoryId.value
-  onTaskDragEnd()
-  if (!taskId) return
-  await moveTaskTo(taskId, cat.id, null, sourceCategoryId)
+  onJobDragEnd()
+  if (!jobId) return
+  await moveJobTo(jobId, cat.id, null, sourceCategoryId)
 }
-async function onTaskDrop(cat: KoubaCategory, targetTask: KoubaTask) {
+async function onJobDrop(cat: KoubaCategory, targetJob: KoubaJob) {
   if (dragCategoryId.value) return await onCategorySlotDrop(cat)
-  const taskId = dragTaskId.value
+  const jobId = dragJobId.value
   const sourceCategoryId = dragSourceCategoryId.value
-  onTaskDragEnd()
-  if (!taskId || taskId === targetTask.id) return
-  await moveTaskTo(taskId, cat.id, targetTask.id, sourceCategoryId)
+  onJobDragEnd()
+  if (!jobId || jobId === targetJob.id) return
+  await moveJobTo(jobId, cat.id, targetJob.id, sourceCategoryId)
 }
 
 // ── 付箋の色（見た目のバリエーションだけの装飾。データとは無関係）──────────────────────────────
@@ -439,22 +487,22 @@ onBeforeUnmount(() => {
   <!-- これまでのテーマ -->
   <KoubaThemeHistoryModal v-model:show="showThemeHistory" :themes="themeHistory" />
 
-  <!-- タスク詳細モーダル -->
-  <KoubaTaskModal
-    v-model:show="showTaskModal"
-    :task="activeTask"
+  <!-- ジョブ詳細モーダル -->
+  <KoubaJobModal
+    v-model:show="showJobModal"
+    :job="activeJob"
     :categories="categoryOptions"
     :saving="saving"
     :error="actionError"
-    :icon-busy="!!activeTask && iconBusyIds.has(activeTask.id)"
-    @update="handleUpdateTask"
-    @regenerate-icon="handleRegenerateTaskIcon"
-    @delete="activeTask && askDeleteTask(activeTask)"
-    @add-subtask="handleAddSubtask"
-    @update-subtask="handleUpdateSubtask"
-    @set-subtask-hours="handleSetSubtaskHours"
-    @delete-subtask="askDeleteSubtask"
-    @reorder-subtasks="handleReorderSubtasks"
+    :icon-busy="!!activeJob && iconBusyIds.has(activeJob.id)"
+    @update="handleUpdateJob"
+    @regenerate-icon="handleRegenerateJobIcon"
+    @delete="activeJob && askDeleteJob(activeJob)"
+    @add-task="handleAddTask"
+    @update-task="handleUpdateTask"
+    @set-task-hours="handleSetTaskHours"
+    @delete-task="askDeleteTask"
+    @reorder-tasks="handleReorderTasks"
   />
 
   <!-- 削除確認ポップアップ -->
@@ -497,6 +545,20 @@ onBeforeUnmount(() => {
           :error="themeError"
           @save="saveTheme"
           @open-history="showThemeHistory = true"
+        />
+
+        <!-- サブタスク一覧（板とは別概念。いずれかのタスクに紐付けて追加し、DONEにすると紐づくタスクの時間へ加算される） -->
+        <KoubaSubtasksSection
+          v-if="!loading && !loadError"
+          :subtasks="flatSubtasks"
+          :task-options="taskOptions"
+          :saving="saving"
+          :error="actionError"
+          @add="handleAddSubtask"
+          @rename="handleRenameSubtask"
+          @set-hours="handleSetSubtaskHours"
+          @toggle-done="handleToggleSubtaskDone"
+          @delete="askDeleteSubtask"
         />
 
         <div v-if="loading" class="mt-16 text-center text-slate-500 text-sm animate-pulse">読み込み中…</div>
@@ -616,8 +678,8 @@ onBeforeUnmount(() => {
                       >⠿</span>
                       <button
                         class="w-7 h-7 rounded-lg text-slate-400 hover:bg-white/10 flex items-center justify-center text-sm"
-                        title="タスクを追加"
-                        @click="openAddTask(cat.id)"
+                        title="ジョブを追加"
+                        @click="openAddJob(cat.id)"
                       >＋</button>
                       <button
                         class="w-7 h-7 rounded-lg text-slate-400 hover:bg-white/10 hover:text-rose-300 flex items-center justify-center text-xs"
@@ -627,70 +689,70 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
 
-                  <!-- 付箋（タスク）エリア。3列グリッドで3×3に収める。ここにドロップするとカテゴリ末尾へ移動 -->
+                  <!-- 付箋（ジョブ）エリア。3列グリッドで3×3に収める。ここにドロップするとカテゴリ末尾へ移動 -->
                   <div
                     class="flex-1 p-3.5 grid grid-cols-3 gap-2 content-start overflow-y-auto"
                     @dragover.prevent="onCategoryDragOver(cat)"
                     @drop.prevent="onCategoryDrop(cat)"
                   >
                     <div
-                      v-for="(task, ti) in cat.tasks"
-                      :key="task.id"
+                      v-for="(job, ji) in cat.jobs"
+                      :key="job.id"
                       draggable="true"
                       class="relative w-full min-h-[100px] rounded-sm p-2.5 text-left shadow-md hover:shadow-lg hover:brightness-105 transition-shadow cursor-grab active:cursor-grabbing flex flex-col gap-1.5 border-2"
-                      :style="{ background: stickyColor(ti), transform: stickyTilt(ti) }"
+                      :style="{ background: stickyColor(ji), transform: stickyTilt(ji) }"
                       :class="[
-                        dragTaskId === task.id ? 'opacity-40' : '',
-                        dragOverTaskId === task.id ? 'border-sky-500' : 'border-transparent',
-                        task.focused ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-[#0f172a]' : '',
+                        dragJobId === job.id ? 'opacity-40' : '',
+                        dragOverJobId === job.id ? 'border-sky-500' : 'border-transparent',
+                        job.focused ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-[#0f172a]' : '',
                       ]"
-                      @click="openTask(task.id)"
-                      @dragstart="onTaskDragStart($event, task, cat.id)"
-                      @dragend="onTaskDragEnd"
-                      @dragover.prevent.stop="onTaskDragOver(cat, task)"
-                      @drop.prevent.stop="onTaskDrop(cat, task)"
+                      @click="openJob(job.id)"
+                      @dragstart="onJobDragStart($event, job, cat.id)"
+                      @dragend="onJobDragEnd"
+                      @dragover.prevent.stop="onJobDragOver(cat, job)"
+                      @drop.prevent.stop="onJobDrop(cat, job)"
                     >
-                      <!-- 直近で特に力を入れているタスクの印（枠のハイライトと対にした目印） -->
+                      <!-- 直近で特に力を入れているジョブの印（枠のハイライトと対にした目印） -->
                       <span
-                        v-if="task.focused"
+                        v-if="job.focused"
                         class="absolute -top-2 -left-2 text-sm drop-shadow"
-                        title="直近で特に力を入れているタスク"
+                        title="直近で特に力を入れているジョブ"
                       >⭐</span>
-                      <!-- 他のカテゴリにも同時掲載されているタスクの目印（クリックで開けば所属は詳細モーダルで確認・編集できる） -->
+                      <!-- 他のカテゴリにも同時掲載されているジョブの目印（クリックで開けば所属は詳細モーダルで確認・編集できる） -->
                       <span
-                        v-if="task.categoryIds.length > 1"
+                        v-if="job.categoryIds.length > 1"
                         class="absolute top-1 right-1 text-[9px] font-extrabold text-slate-700/70 bg-black/10 rounded-full px-1 leading-4"
-                        :title="`他${task.categoryIds.length - 1}件のカテゴリにも表示`"
-                      >+{{ task.categoryIds.length - 1 }}</span>
+                        :title="`他${job.categoryIds.length - 1}件のカテゴリにも表示`"
+                      >+{{ job.categoryIds.length - 1 }}</span>
                       <span class="w-7 h-7 text-base">
-                        <KoubaIcon :icon="task.icon" :busy="iconBusyIds.has(task.id)" />
+                        <KoubaIcon :icon="job.icon" :busy="iconBusyIds.has(job.id)" />
                       </span>
-                      <span class="text-[12.5px] font-bold text-slate-800 leading-snug break-words line-clamp-3">{{ task.title }}</span>
-                      <span class="mt-auto text-[12px] font-extrabold text-slate-700 tabular-nums">{{ formatHours(task.totalHours) }}h</span>
+                      <span class="text-[12.5px] font-bold text-slate-800 leading-snug break-words line-clamp-3">{{ job.title }}</span>
+                      <span class="mt-auto text-[12px] font-extrabold text-slate-700 tabular-nums">{{ formatHours(job.totalHours) }}h</span>
                     </div>
 
-                    <!-- タスク追加フォーム（実際の付箋と違い、操作画面なので板と同じ濃色トーン） -->
+                    <!-- ジョブ追加フォーム（実際の付箋と違い、操作画面なので板と同じ濃色トーン） -->
                     <form
-                      v-if="addingTaskFor === cat.id"
+                      v-if="addingJobFor === cat.id"
                       class="w-full min-h-[100px] rounded-lg p-2.5 bg-[#0f172a] border border-white/10 flex flex-col gap-1.5"
-                      @submit.prevent="submitAddTask"
+                      @submit.prevent="submitAddJob"
                     >
                       <textarea
-                        :id="`kouba-add-task-${cat.id}`"
-                        v-model="taskNameDraft"
+                        :id="`kouba-add-job-${cat.id}`"
+                        v-model="jobNameDraft"
                         rows="2"
-                        placeholder="タスク名"
+                        placeholder="ジョブ名"
                         class="flex-1 resize-none bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1.5 text-[12.5px] text-slate-100 outline-none focus:border-sky-400/50 font-[inherit] leading-snug"
-                        @keydown.enter.prevent="runOnEnter($event, submitAddTask)"
-                        @keydown.esc="cancelAddTask"
+                        @keydown.enter.prevent="runOnEnter($event, submitAddJob)"
+                        @keydown.esc="cancelAddJob"
                       />
                       <div class="flex gap-1">
                         <button type="submit" class="flex-1 h-6 rounded bg-sky-500 text-white text-[11px] font-bold">追加</button>
-                        <button type="button" class="w-6 h-6 rounded bg-white/10 text-slate-300 text-[11px]" @click="cancelAddTask">✕</button>
+                        <button type="button" class="w-6 h-6 rounded bg-white/10 text-slate-300 text-[11px]" @click="cancelAddJob">✕</button>
                       </div>
                     </form>
 
-                    <p v-if="!cat.tasks.length && addingTaskFor !== cat.id" class="col-span-3 text-center text-slate-500 text-xs py-6">タスクがありません</p>
+                    <p v-if="!cat.jobs.length && addingJobFor !== cat.id" class="col-span-3 text-center text-slate-500 text-xs py-6">ジョブがありません</p>
                   </div>
                 </div>
 

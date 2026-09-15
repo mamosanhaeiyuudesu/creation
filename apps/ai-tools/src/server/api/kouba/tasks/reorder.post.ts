@@ -1,75 +1,43 @@
-import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, findOwnedCategory } from '~/server/utils/kouba'
+import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, findOwnedJob } from '~/server/utils/kouba'
 
-// ドラッグ&ドロップ用: 指定カテゴリに掲載するタスクの集合と並び順を丸ごと差し替える。
-// taskIds は「そのカテゴリに今後表示することになる全タスクID」を新しい並び順どおりに渡す
-// （同一カテゴリ内の入れ替えでも、他カテゴリからドラッグしてきて新たに加わる場合でも同じ形）。
-// タスクは複数カテゴリに同時掲載できるので、taskIds に含まれなかった「今までこのカテゴリにいたタスク」は
-// このカテゴリの表示からだけ外れる（他のカテゴリに属していればそちらは残る。タスク自体の削除はしない）。
-//
-// **安全策**: 外そうとしたタスクが「このカテゴリにしか属していない」場合は外さない（このカテゴリに残す）。
-// クライアント（moveTaskTo）は「移動先へ先に追加してから、移動元を外す」の順で2回このAPIを呼ぶので、
-// 正しく動いていれば移動元を外す時点でそのタスクは既に移動先にも属しており孤立しない。この安全策は、
-// 呼び出し順が入れ替わる・呼び出しが片方だけ届く等の不整合があっても「タスクを消してしまう」より
-// 「余分なカテゴリに残ってしまう」側に倒すための保険（後者はUIから直せるが、前者は起きるとデータが戻らない）。
+// ドラッグ&ドロップ用: 指定ジョブ内のタスクの並び順を丸ごと差し替える。
+// taskIds には「そのジョブの全タスクID」を新しい並び順どおりに渡す。sort_order は 0 から順に振り直すので、
+// 一部だけ送られると sort_order が重複したり穴が空いたりする＝件数が合わなければ 400 で弾く。
+// メソッドが POST なのは categories/reorder.post.ts・jobs/reorder.post.ts と同じ理由
+// （[id].patch.ts / [id].delete.ts と同じ親配下に同名メソッドの兄弟ルートを置くと $fetch の型推論が壊れる）。
 export default defineEventHandler(async (event) => {
   const user = await requireKoubaUser(event)
   const db = requireKoubaDb(event)
   await ensureKoubaTables(db)
 
-  const body = await readBody<{ categoryId?: string; taskIds?: string[] }>(event)
-  const categoryId = body?.categoryId ?? ''
+  const body = await readBody<{ jobId?: string; taskIds?: string[] }>(event)
+  const jobId = body?.jobId ?? ''
   const taskIds = Array.isArray(body?.taskIds) ? body!.taskIds.filter((v) => typeof v === 'string') : []
-
-  const category = await findOwnedCategory(db, user.id, categoryId)
-  if (!category) throw createError({ statusCode: 404, message: 'カテゴリが見つかりません' })
-
-  if (taskIds.length) {
-    const placeholders = taskIds.map(() => '?').join(',')
-    const owned = await db
-      .prepare(`SELECT id FROM kouba_tasks WHERE id IN (${placeholders}) AND user_id = ?`)
-      .bind(...taskIds, user.id)
-      .all<{ id: string }>()
-    const ownedIds = new Set((owned?.results ?? []).map((r: { id: string }) => r.id))
-    if (ownedIds.size !== taskIds.length) throw createError({ statusCode: 404, message: 'タスクが見つかりません' })
+  if (!taskIds.length) return { ok: true }
+  if (new Set(taskIds).size !== taskIds.length) {
+    throw createError({ statusCode: 400, message: 'タスクの並び順が不正です' })
   }
 
-  const currentRows = await db
-    .prepare('SELECT task_id FROM kouba_task_categories WHERE category_id = ?')
-    .bind(categoryId)
-    .all<{ task_id: string }>()
-  const currentIds = (currentRows?.results ?? []).map((r: { task_id: string }) => r.task_id)
-  const nextIdSet = new Set(taskIds)
-  const candidateRemove = currentIds.filter((tid: string) => !nextIdSet.has(tid))
+  const job = await findOwnedJob(db, user.id, jobId)
+  if (!job) throw createError({ statusCode: 404, message: 'ジョブが見つかりません' })
 
-  // 「このカテゴリにしか属していない」ものは安全策で除外する
-  let toRemove = candidateRemove
-  if (candidateRemove.length) {
-    const placeholders = candidateRemove.map(() => '?').join(',')
-    const counts = await db
-      .prepare(`SELECT task_id, COUNT(*) AS n FROM kouba_task_categories WHERE task_id IN (${placeholders}) GROUP BY task_id`)
-      .bind(...candidateRemove)
-      .all<{ task_id: string; n: number }>()
-    const countByTask = new Map<string, number>((counts?.results ?? []).map((r: { task_id: string; n: number }) => [r.task_id, r.n]))
-    toRemove = candidateRemove.filter((tid: string) => (countByTask.get(tid) ?? 0) > 1)
+  const placeholders = taskIds.map(() => '?').join(',')
+  const owned = await db
+    .prepare(`SELECT COUNT(*) AS n FROM kouba_subtasks WHERE id IN (${placeholders}) AND task_id = ?`)
+    .bind(...taskIds, jobId)
+    .first<{ n: number }>()
+  if ((owned?.n ?? 0) !== taskIds.length) throw createError({ statusCode: 404, message: 'タスクが見つかりません' })
+
+  const total = await db
+    .prepare('SELECT COUNT(*) AS n FROM kouba_subtasks WHERE task_id = ?')
+    .bind(jobId)
+    .first<{ n: number }>()
+  if ((total?.n ?? 0) !== taskIds.length) {
+    throw createError({ statusCode: 400, message: 'タスクの並び順が最新ではありません。読み込み直してください' })
   }
 
-  const writes: any[] = []
-  if (toRemove.length) {
-    const placeholders = toRemove.map(() => '?').join(',')
-    writes.push(
-      db.prepare(`DELETE FROM kouba_task_categories WHERE category_id = ? AND task_id IN (${placeholders})`).bind(categoryId, ...toRemove)
-    )
-  }
-  taskIds.forEach((taskId, i) => {
-    writes.push(
-      db
-        .prepare(
-          `INSERT INTO kouba_task_categories (task_id, category_id, user_id, sort_order) VALUES (?, ?, ?, ?)
-           ON CONFLICT (task_id, category_id) DO UPDATE SET sort_order = excluded.sort_order`
-        )
-        .bind(taskId, categoryId, user.id, i)
-    )
-  })
-  if (writes.length) await db.batch(writes)
+  await db.batch(
+    taskIds.map((id, i) => db.prepare('UPDATE kouba_subtasks SET sort_order = ? WHERE id = ?').bind(i, id))
+  )
   return { ok: true }
 })

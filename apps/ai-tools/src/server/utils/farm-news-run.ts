@@ -11,6 +11,8 @@
  */
 import { todayJST } from '~/utils/jst'
 import {
+  FARM_NEWS_HISTORICAL_MAX_SNAPSHOTS_PER_RUN,
+  FARM_NEWS_HISTORICAL_YEARS_BACK,
   FARM_NEWS_LOOKBACK_DAYS,
   FARM_NEWS_MAX_MONTH_SNAPSHOTS_PER_RUN,
   FARM_NEWS_MAX_PER_RUN,
@@ -39,8 +41,14 @@ import {
   type FeedEntry,
   type NewItemInput,
 } from '~/server/utils/farm-news'
-import { summarizeArticle, synthesizeCurrentNarrative, synthesizeMonthSnapshot, synthesizeYearSnapshot } from '~/server/utils/farm-news-ai'
-import type { FarmNewsArchiveResult, FarmNewsRunResult } from '~/types/farm-news'
+import {
+  summarizeArticle,
+  synthesizeCurrentNarrative,
+  synthesizeHistoricalYearSnapshot,
+  synthesizeMonthSnapshot,
+  synthesizeYearSnapshot,
+} from '~/server/utils/farm-news-ai'
+import type { FarmNewsArchiveResult, FarmNewsHistoricalBackfillResult, FarmNewsRunResult } from '~/types/farm-news'
 
 export interface FarmNewsEnv {
   WHISPER_DB?: any
@@ -312,4 +320,57 @@ export async function runFarmNewsArchive(env: FarmNewsEnv): Promise<FarmNewsArch
   }
 
   return { monthsCreated, yearsCreated, errors }
+}
+
+/**
+ * 過去アーカイブのバックフィル（Web検索版）。runFarmNewsArchive は「実際に収集した記事」を材料にするが、
+ * RSSフィードは直近の記事しか配信しないため、サイト運用開始（2026-09-14）より前の年はそもそも
+ * 収集記事が存在せず、runFarmNewsArchive では永久に埋まらない。その代わりにここでは年ごとに
+ * Claude の Web検索で1回だけ調べ物をさせ、年次スナップショットとして直接生成する
+ * （1500日ぶんを日次/月次で埋めるのは費用に見合わないため、年単位の粗いサンプリングにしている）。
+ *
+ * 対象は「今年からFARM_NEWS_HISTORICAL_YEARS_BACK年前まで」のうち、①実際の収集記事が1件もない年
+ * （＝listMonthsWithItemsに出てこない年。実データが貯まり始めた年は通常のrunFarmNewsArchiveに任せる）
+ * ②まだ年次スナップショットが無い年、の両方を満たすものだけ。一度生成した年はinsertSnapshotの
+ * INSERT OR IGNOREでそのまま不変（作り直すときは該当行を明示的にDELETEしてから再実行）。
+ */
+export async function runFarmNewsHistoricalBackfill(env: FarmNewsEnv): Promise<FarmNewsHistoricalBackfillResult> {
+  const db = env.WHISPER_DB
+  if (!db) throw new Error('WHISPER_DB バインディングが見つかりません')
+
+  const apiKey = env.NUXT_ANTHROPIC_API_KEY ?? ''
+  const errors: string[] = []
+  if (!apiKey) return { yearsCreated: [], errors: ['NUXT_ANTHROPIC_API_KEY が未設定のため生成できません'] }
+
+  await ensureFarmNewsTables(db)
+
+  const currentYear = Number(todayJST().slice(0, 4))
+  const monthsWithItems = await listMonthsWithItems(db)
+  const yearsWithRealData = new Set(monthsWithItems.map((m) => m.slice(0, 4)))
+  const existingYears = await listSnapshotPeriodKeys(db, 'year')
+
+  const candidateYears: string[] = []
+  for (let y = currentYear - FARM_NEWS_HISTORICAL_YEARS_BACK; y < currentYear; y++) {
+    const key = String(y)
+    if (yearsWithRealData.has(key) || existingYears.has(key)) continue
+    candidateYears.push(key)
+  }
+  const yearsToCreate = candidateYears.slice(0, FARM_NEWS_HISTORICAL_MAX_SNAPSHOTS_PER_RUN)
+
+  const yearsCreated: string[] = []
+  for (const year of yearsToCreate) {
+    try {
+      const sections = await synthesizeHistoricalYearSnapshot(apiKey, { year })
+      if (!sections.length) continue
+      await insertSnapshot(db, { periodType: 'year', periodKey: year, sections, itemCount: 0 })
+      yearsCreated.push(year)
+      console.log(`[farm-news] 過去年アーカイブ生成（Web検索）: ${year}`)
+    } catch (e: any) {
+      const msg = `${year}: 過去年アーカイブの生成に失敗（${e?.message ?? e}）`
+      console.error(`[farm-news] ${msg}`)
+      errors.push(msg)
+    }
+  }
+
+  return { yearsCreated, errors }
 }
