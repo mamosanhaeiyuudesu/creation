@@ -2,20 +2,22 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useKouba, KOUBA_GRID_SIZE } from '~/composables/kouba/useKouba'
 import { useKoubaTheme } from '~/composables/kouba/useKoubaTheme'
-import { useKoubaSubtasks } from '~/composables/kouba/useKoubaSubtasks'
+// サブタスク機能は一時的にコメントアウト中（2026-09-16）。実装（composable・コンポーネント・API・DB）は
+// そのまま残してあるので、下のコメントを外せば復活する。関連箇所すべてに同じ日付コメントを付けてある。
+// import { useKoubaSubtasks } from '~/composables/kouba/useKoubaSubtasks'
 import { useKoubaAchievements } from '~/composables/kouba/useKoubaAchievements'
 import KoubaJobModal from '~/components/kouba/KoubaJobModal.vue'
 import KoubaThemeBanner from '~/components/kouba/KoubaThemeBanner.vue'
 import KoubaThemeHistoryModal from '~/components/kouba/KoubaThemeHistoryModal.vue'
-import KoubaSubtasksSection from '~/components/kouba/KoubaSubtasksSection.vue'
-import type { KoubaTaskOption } from '~/components/kouba/KoubaSubtasksSection.vue'
-import KoubaSubtaskFormModal from '~/components/kouba/KoubaSubtaskFormModal.vue'
+// import KoubaSubtasksSection from '~/components/kouba/KoubaSubtasksSection.vue'
+// import type { KoubaTaskOption } from '~/components/kouba/KoubaSubtasksSection.vue'
+// import KoubaSubtaskFormModal from '~/components/kouba/KoubaSubtaskFormModal.vue'
 import KoubaAchievementsSection from '~/components/kouba/KoubaAchievementsSection.vue'
 import KoubaAchievementFormModal from '~/components/kouba/KoubaAchievementFormModal.vue'
 import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
 import KoubaIconEditor from '~/components/kouba/KoubaIconEditor.vue'
 import KoubaConfirmModal from '~/components/kouba/KoubaConfirmModal.vue'
-import type { KoubaCategory, KoubaJob, KoubaTask, KoubaSubtask, KoubaAchievement } from '~/types/kouba'
+import type { KoubaCategory, KoubaJob, KoubaTask, KoubaAchievement } from '~/types/kouba'
 import { KOUBA_DESCRIPTION_MAX } from '~/types/kouba'
 
 useHead({
@@ -58,42 +60,42 @@ const {
 } = useKoubaTheme()
 const showThemeHistory = ref(false)
 
-// ── サブタスク（"今のテーマ"の下の一覧。板とは別に取得する＝タスクに紐付かない分も扱うため）──────────────────────────────
-const {
-  subtasks, saving: subtasksSaving, error: subtasksError,
-  load: loadSubtasks, add: addSubtaskItem, rename: renameSubtask, setHours: setSubtaskHoursItem,
-  flushPendingHours: flushPendingSubtaskHours, toggleDone: toggleSubtaskDoneItem, remove: removeSubtaskItem,
-} = useKoubaSubtasks()
-const showSubtaskFormModal = ref(false)
-
-/** タスクの選択肢（紐付け先）は板（categories）から組み立てる。ジョブは複数カテゴリに重複掲載され得るので id で重複排除。 */
-const taskOptions = computed<KoubaTaskOption[]>(() => {
-  const map = new Map<string, KoubaTaskOption>()
-  for (const c of categories.value) {
-    for (const j of c.jobs) {
-      for (const t of j.tasks) {
-        if (!map.has(t.id)) map.set(t.id, { id: t.id, label: `${c.name} > ${j.title} > ${t.title}`, taskTitle: t.title })
-      }
-    }
-  }
-  return [...map.values()]
-})
-/** ポップアップの送信処理。成功したら true を返す（呼び出し側の「続けて入力しますか？」の判定に使う）。 */
-async function handleAddSubtaskSubmit(payload: { taskId: string | null; title: string; hours: number }): Promise<boolean> {
-  return await addSubtaskItem(payload)
-}
-async function handleRenameSubtask(payload: { id: string; title: string }) {
-  await renameSubtask(payload.id, payload.title)
-}
-/** 時間の +/- は押すたびに保存せず、useKoubaSubtasks 側で手元反映＋まとめ保存にする（タスクの時間と同じやり方）。 */
-function handleSetSubtaskHours(payload: { id: string; hours: number }) {
-  setSubtaskHoursItem(payload.id, payload.hours)
-}
-/** DONEの切り替えは紐づくタスクの時間（板側）も変わるので、続けて板を取り直す。 */
-async function handleToggleSubtaskDone(payload: { id: string; done: boolean }) {
-  await toggleSubtaskDoneItem(payload.id, payload.done)
-  await load()
-}
+// ── サブタスクは一時的にコメントアウト中（2026-09-16）。以下、composable・handlerごとまとめて無効化 ──────────────────────────────
+// const {
+//   subtasks, saving: subtasksSaving, error: subtasksError,
+//   load: loadSubtasks, add: addSubtaskItem, rename: renameSubtask, setHours: setSubtaskHoursItem,
+//   flushPendingHours: flushPendingSubtaskHours, toggleDone: toggleSubtaskDoneItem, remove: removeSubtaskItem,
+// } = useKoubaSubtasks()
+// const showSubtaskFormModal = ref(false)
+//
+// /** タスクの選択肢（紐付け先）は板（categories）から組み立てる。ジョブは複数カテゴリに重複掲載され得るので id で重複排除。 */
+// const taskOptions = computed<KoubaTaskOption[]>(() => {
+//   const map = new Map<string, KoubaTaskOption>()
+//   for (const c of categories.value) {
+//     for (const j of c.jobs) {
+//       for (const t of j.tasks) {
+//         if (!map.has(t.id)) map.set(t.id, { id: t.id, label: `${c.name} > ${j.title} > ${t.title}`, taskTitle: t.title })
+//       }
+//     }
+//   }
+//   return [...map.values()]
+// })
+// /** ポップアップの送信処理。成功したら true を返す（呼び出し側の「続けて入力しますか？」の判定に使う）。 */
+// async function handleAddSubtaskSubmit(payload: { taskId: string | null; title: string; hours: number }): Promise<boolean> {
+//   return await addSubtaskItem(payload)
+// }
+// async function handleRenameSubtask(payload: { id: string; title: string }) {
+//   await renameSubtask(payload.id, payload.title)
+// }
+// /** 時間の +/- は押すたびに保存せず、useKoubaSubtasks 側で手元反映＋まとめ保存にする（タスクの時間と同じやり方）。 */
+// function handleSetSubtaskHours(payload: { id: string; hours: number }) {
+//   setSubtaskHoursItem(payload.id, payload.hours)
+// }
+// /** DONEの切り替えは紐づくタスクの時間（板側）も変わるので、続けて板を取り直す。 */
+// async function handleToggleSubtaskDone(payload: { id: string; done: boolean }) {
+//   await toggleSubtaskDoneItem(payload.id, payload.done)
+//   await load()
+// }
 
 // ── 達成したこと（画面下部の一覧）──────────────────────────────
 const {
@@ -259,12 +261,12 @@ async function handleReorderTasks(taskIds: string[]) {
   if (activeJobId.value) await reorderTasks(activeJobId.value, taskIds)
 }
 
-// ── 削除確認ポップアップ（カテゴリ/ジョブ/タスク/サブタスクで共通）──────────────────────────────
+// ── 削除確認ポップアップ（カテゴリ/ジョブ/タスクで共通。サブタスクは機能ごとコメントアウト中）──────────────────────────────
 type ConfirmTarget =
   | { kind: 'category'; id: string; name: string }
   | { kind: 'job'; id: string; title: string }
   | { kind: 'task'; id: string; title: string }
-  | { kind: 'subtask'; id: string; title: string }
+  // | { kind: 'subtask'; id: string; title: string } // 2026-09-16 コメントアウト中
   | { kind: 'achievement'; id: string; text: string }
 const confirmTarget = ref<ConfirmTarget | null>(null)
 const confirmMessage = computed(() => {
@@ -273,12 +275,11 @@ const confirmMessage = computed(() => {
   if (t.kind === 'category')
     return `「${t.name}」を削除しますか？\n他のカテゴリにも表示されているジョブは残ります。このカテゴリだけにあるジョブは、タスクごと削除されます。`
   if (t.kind === 'job') return `「${t.title}」を削除しますか？\nタスクもすべて削除されます。`
-  if (t.kind === 'task') return `「${t.title}」を削除しますか？\nサブタスクもすべて削除されます。`
   if (t.kind === 'achievement') {
     const preview = t.text.length > 40 ? `${t.text.slice(0, 40)}…` : t.text
     return `「${preview}」を削除しますか？`
   }
-  return `「${t.title}」を削除しますか？`
+  return `「${t.title}」を削除しますか？\nサブタスクもすべて削除されます。`
 })
 
 function askDeleteCategory(cat: KoubaCategory) {
@@ -295,9 +296,9 @@ function askDeleteJob(job: KoubaJob) {
 function askDeleteTask(task: KoubaTask) {
   confirmTarget.value = { kind: 'task', id: task.id, title: task.title }
 }
-function askDeleteSubtask(subtask: KoubaSubtask) {
-  confirmTarget.value = { kind: 'subtask', id: subtask.id, title: subtask.title }
-}
+// function askDeleteSubtask(subtask: KoubaSubtask) { // 2026-09-16 コメントアウト中
+//   confirmTarget.value = { kind: 'subtask', id: subtask.id, title: subtask.title }
+// }
 function askDeleteAchievement(achievement: KoubaAchievement) {
   confirmTarget.value = { kind: 'achievement', id: achievement.id, text: achievement.text }
 }
@@ -312,13 +313,11 @@ async function onConfirmDelete() {
     await deleteJob(target.id)
   } else if (target.kind === 'task') {
     await deleteTask(target.id)
-  } else if (target.kind === 'achievement') {
-    await removeAchievement(target.id)
   } else {
-    // DONE中のサブタスクを削除すると、紐づくタスクの時間（板側）が引き戻ることがあるので続けて板を取り直す
-    await removeSubtaskItem(target.id)
-    await load()
+    await removeAchievement(target.id)
   }
+  // サブタスク（kind: 'subtask'）の削除は機能ごとコメントアウト中。復活させるときは
+  // removeSubtaskItem(target.id) を呼んだあと、紐づくタスクの時間（板側）が変わり得るので load() も呼ぶこと
 }
 
 // ── カテゴリのドラッグ&ドロップ（3×3グリッド内の並べ替え）──────────────────────────────
@@ -457,7 +456,7 @@ onMounted(async () => {
   if (isLoggedIn.value || isDev) {
     load()
     loadTheme()
-    loadSubtasks()
+    // loadSubtasks() // 2026-09-16 コメントアウト中
     loadAchievements()
   } else loading.value = false
 })
@@ -465,7 +464,7 @@ watch(isLoggedIn, (v) => {
   if (!v) return
   load()
   loadTheme()
-  loadSubtasks()
+  // loadSubtasks() // 2026-09-16 コメントアウト中
   loadAchievements()
 })
 
@@ -473,14 +472,14 @@ watch(isLoggedIn, (v) => {
 function flushOnHide() {
   if (document.visibilityState === 'hidden') {
     void flushPendingHours()
-    void flushPendingSubtaskHours()
+    // void flushPendingSubtaskHours() // 2026-09-16 コメントアウト中
   }
 }
 onMounted(() => document.addEventListener('visibilitychange', flushOnHide))
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', flushOnHide)
   void flushPendingHours()
-  void flushPendingSubtaskHours()
+  // void flushPendingSubtaskHours() // 2026-09-16 コメントアウト中
 })
 </script>
 
@@ -497,7 +496,7 @@ onBeforeUnmount(() => {
   <!-- これまでのテーマ -->
   <KoubaThemeHistoryModal v-model:show="showThemeHistory" :themes="themeHistory" />
 
-  <!-- サブタスクの追加ポップアップ -->
+  <!-- サブタスクの追加ポップアップ（2026-09-16 コメントアウト中。復活させるときはscript側の同日付コメントも外すこと）
   <KoubaSubtaskFormModal
     v-model:show="showSubtaskFormModal"
     :task-options="taskOptions"
@@ -505,6 +504,7 @@ onBeforeUnmount(() => {
     :saving="subtasksSaving"
     :error="subtasksError"
   />
+  -->
 
   <!-- 達成したことの記録ポップアップ -->
   <KoubaAchievementFormModal
@@ -574,7 +574,7 @@ onBeforeUnmount(() => {
           @open-history="showThemeHistory = true"
         />
 
-        <!-- サブタスク一覧（板とは別概念。追加はヘッダーの「＋」で開くポップアップから。DONEにすると紐づくタスクの時間へ加算される） -->
+        <!-- サブタスク一覧（2026-09-16 コメントアウト中。復活させるときはscript側の同日付コメントも外すこと）
         <KoubaSubtasksSection
           v-if="!loading && !loadError"
           :subtasks="subtasks"
@@ -587,6 +587,7 @@ onBeforeUnmount(() => {
           @toggle-done="handleToggleSubtaskDone"
           @delete="askDeleteSubtask"
         />
+        -->
 
         <div v-if="loading" class="mt-16 text-center text-slate-500 text-sm animate-pulse">読み込み中…</div>
         <div v-else-if="loadError" class="mt-16 text-center text-rose-400 text-sm flex flex-col items-center gap-3">
