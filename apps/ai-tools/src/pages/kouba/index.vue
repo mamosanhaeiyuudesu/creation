@@ -2,22 +2,18 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useKouba, KOUBA_GRID_SIZE } from '~/composables/kouba/useKouba'
 import { useKoubaTheme } from '~/composables/kouba/useKoubaTheme'
-// サブタスク機能は一時的にコメントアウト中（2026-09-16）。実装（composable・コンポーネント・API・DB）は
-// そのまま残してあるので、下のコメントを外せば復活する。関連箇所すべてに同じ日付コメントを付けてある。
-// import { useKoubaSubtasks } from '~/composables/kouba/useKoubaSubtasks'
+import { useKoubaSubtasks } from '~/composables/kouba/useKoubaSubtasks'
 import { useKoubaAchievements } from '~/composables/kouba/useKoubaAchievements'
 import KoubaJobModal from '~/components/kouba/KoubaJobModal.vue'
 import KoubaThemeBanner from '~/components/kouba/KoubaThemeBanner.vue'
 import KoubaThemeHistoryModal from '~/components/kouba/KoubaThemeHistoryModal.vue'
-// import KoubaSubtasksSection from '~/components/kouba/KoubaSubtasksSection.vue'
-// import type { KoubaTaskOption } from '~/components/kouba/KoubaSubtasksSection.vue'
-// import KoubaSubtaskFormModal from '~/components/kouba/KoubaSubtaskFormModal.vue'
+import KoubaSubtasksSection from '~/components/kouba/KoubaSubtasksSection.vue'
 import KoubaAchievementsSection from '~/components/kouba/KoubaAchievementsSection.vue'
 import KoubaAchievementFormModal from '~/components/kouba/KoubaAchievementFormModal.vue'
 import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
 import KoubaIconEditor from '~/components/kouba/KoubaIconEditor.vue'
 import KoubaConfirmModal from '~/components/kouba/KoubaConfirmModal.vue'
-import type { KoubaCategory, KoubaJob, KoubaTask, KoubaAchievement } from '~/types/kouba'
+import type { KoubaCategory, KoubaJob, KoubaTask, KoubaSubtask, KoubaAchievement } from '~/types/kouba'
 import { KOUBA_DESCRIPTION_MAX } from '~/types/kouba'
 
 useHead({
@@ -60,42 +56,15 @@ const {
 } = useKoubaTheme()
 const showThemeHistory = ref(false)
 
-// ── サブタスクは一時的にコメントアウト中（2026-09-16）。以下、composable・handlerごとまとめて無効化 ──────────────────────────────
-// const {
-//   subtasks, saving: subtasksSaving, error: subtasksError,
-//   load: loadSubtasks, add: addSubtaskItem, rename: renameSubtask, setHours: setSubtaskHoursItem,
-//   flushPendingHours: flushPendingSubtaskHours, toggleDone: toggleSubtaskDoneItem, remove: removeSubtaskItem,
-// } = useKoubaSubtasks()
-// const showSubtaskFormModal = ref(false)
-//
-// /** タスクの選択肢（紐付け先）は板（categories）から組み立てる。ジョブは複数カテゴリに重複掲載され得るので id で重複排除。 */
-// const taskOptions = computed<KoubaTaskOption[]>(() => {
-//   const map = new Map<string, KoubaTaskOption>()
-//   for (const c of categories.value) {
-//     for (const j of c.jobs) {
-//       for (const t of j.tasks) {
-//         if (!map.has(t.id)) map.set(t.id, { id: t.id, label: `${c.name} > ${j.title} > ${t.title}`, taskTitle: t.title })
-//       }
-//     }
-//   }
-//   return [...map.values()]
-// })
-// /** ポップアップの送信処理。成功したら true を返す（呼び出し側の「続けて入力しますか？」の判定に使う）。 */
-// async function handleAddSubtaskSubmit(payload: { taskId: string | null; title: string; hours: number }): Promise<boolean> {
-//   return await addSubtaskItem(payload)
-// }
-// async function handleRenameSubtask(payload: { id: string; title: string }) {
-//   await renameSubtask(payload.id, payload.title)
-// }
-// /** 時間の +/- は押すたびに保存せず、useKoubaSubtasks 側で手元反映＋まとめ保存にする（タスクの時間と同じやり方）。 */
-// function handleSetSubtaskHours(payload: { id: string; hours: number }) {
-//   setSubtaskHoursItem(payload.id, payload.hours)
-// }
-// /** DONEの切り替えは紐づくタスクの時間（板側）も変わるので、続けて板を取り直す。 */
-// async function handleToggleSubtaskDone(payload: { id: string; done: boolean }) {
-//   await toggleSubtaskDoneItem(payload.id, payload.done)
-//   await load()
-// }
+// ── サブタスク（板・タスクとは無関係な、名前だけのTODOリスト）──────────────────────────────
+// PCでは画面左の常設サイドバー、スマホではタブ切り替えで表示する（mobileTab参照）。
+const {
+  subtasks, loading: subtasksLoading, saving: subtasksSaving, error: subtasksError,
+  load: loadSubtasks, add: addSubtask, rename: renameSubtask, remove: removeSubtaskItem, reorder: reorderSubtasks,
+} = useKoubaSubtasks()
+
+/** スマホ（sm未満）だけで使うタブ。PCは常にサイドバー＋ジョブ側の両方を表示するので参照しない。 */
+const mobileTab = ref<'subtasks' | 'jobs'>('subtasks')
 
 // ── 達成したこと（画面下部の一覧）──────────────────────────────
 const {
@@ -261,12 +230,12 @@ async function handleReorderTasks(taskIds: string[]) {
   if (activeJobId.value) await reorderTasks(activeJobId.value, taskIds)
 }
 
-// ── 削除確認ポップアップ（カテゴリ/ジョブ/タスクで共通。サブタスクは機能ごとコメントアウト中）──────────────────────────────
+// ── 削除確認ポップアップ（カテゴリ/ジョブ/タスク/サブタスク/達成したことで共通）──────────────────────────────
 type ConfirmTarget =
   | { kind: 'category'; id: string; name: string }
   | { kind: 'job'; id: string; title: string }
   | { kind: 'task'; id: string; title: string }
-  // | { kind: 'subtask'; id: string; title: string } // 2026-09-16 コメントアウト中
+  | { kind: 'subtask'; id: string; title: string }
   | { kind: 'achievement'; id: string; text: string }
 const confirmTarget = ref<ConfirmTarget | null>(null)
 const confirmMessage = computed(() => {
@@ -275,11 +244,12 @@ const confirmMessage = computed(() => {
   if (t.kind === 'category')
     return `「${t.name}」を削除しますか？\n他のカテゴリにも表示されているジョブは残ります。このカテゴリだけにあるジョブは、タスクごと削除されます。`
   if (t.kind === 'job') return `「${t.title}」を削除しますか？\nタスクもすべて削除されます。`
+  if (t.kind === 'task') return `「${t.title}」を削除しますか？`
   if (t.kind === 'achievement') {
     const preview = t.text.length > 40 ? `${t.text.slice(0, 40)}…` : t.text
     return `「${preview}」を削除しますか？`
   }
-  return `「${t.title}」を削除しますか？\nサブタスクもすべて削除されます。`
+  return `「${t.title}」を削除しますか？`
 })
 
 function askDeleteCategory(cat: KoubaCategory) {
@@ -296,9 +266,9 @@ function askDeleteJob(job: KoubaJob) {
 function askDeleteTask(task: KoubaTask) {
   confirmTarget.value = { kind: 'task', id: task.id, title: task.title }
 }
-// function askDeleteSubtask(subtask: KoubaSubtask) { // 2026-09-16 コメントアウト中
-//   confirmTarget.value = { kind: 'subtask', id: subtask.id, title: subtask.title }
-// }
+function askDeleteSubtask(subtask: KoubaSubtask) {
+  confirmTarget.value = { kind: 'subtask', id: subtask.id, title: subtask.title }
+}
 function askDeleteAchievement(achievement: KoubaAchievement) {
   confirmTarget.value = { kind: 'achievement', id: achievement.id, text: achievement.text }
 }
@@ -313,11 +283,11 @@ async function onConfirmDelete() {
     await deleteJob(target.id)
   } else if (target.kind === 'task') {
     await deleteTask(target.id)
+  } else if (target.kind === 'subtask') {
+    await removeSubtaskItem(target.id)
   } else {
     await removeAchievement(target.id)
   }
-  // サブタスク（kind: 'subtask'）の削除は機能ごとコメントアウト中。復活させるときは
-  // removeSubtaskItem(target.id) を呼んだあと、紐づくタスクの時間（板側）が変わり得るので load() も呼ぶこと
 }
 
 // ── カテゴリのドラッグ&ドロップ（3×3グリッド内の並べ替え）──────────────────────────────
@@ -456,7 +426,7 @@ onMounted(async () => {
   if (isLoggedIn.value || isDev) {
     load()
     loadTheme()
-    // loadSubtasks() // 2026-09-16 コメントアウト中
+    loadSubtasks()
     loadAchievements()
   } else loading.value = false
 })
@@ -464,22 +434,18 @@ watch(isLoggedIn, (v) => {
   if (!v) return
   load()
   loadTheme()
-  // loadSubtasks() // 2026-09-16 コメントアウト中
+  loadSubtasks()
   loadAchievements()
 })
 
 // スマホでアプリを切り替えたときなど、そのままページが捨てられても時間の +/- を取りこぼさないように送り切る
 function flushOnHide() {
-  if (document.visibilityState === 'hidden') {
-    void flushPendingHours()
-    // void flushPendingSubtaskHours() // 2026-09-16 コメントアウト中
-  }
+  if (document.visibilityState === 'hidden') void flushPendingHours()
 }
 onMounted(() => document.addEventListener('visibilitychange', flushOnHide))
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', flushOnHide)
   void flushPendingHours()
-  // void flushPendingSubtaskHours() // 2026-09-16 コメントアウト中
 })
 </script>
 
@@ -495,16 +461,6 @@ onBeforeUnmount(() => {
 
   <!-- これまでのテーマ -->
   <KoubaThemeHistoryModal v-model:show="showThemeHistory" :themes="themeHistory" />
-
-  <!-- サブタスクの追加ポップアップ（2026-09-16 コメントアウト中。復活させるときはscript側の同日付コメントも外すこと）
-  <KoubaSubtaskFormModal
-    v-model:show="showSubtaskFormModal"
-    :task-options="taskOptions"
-    :on-submit="handleAddSubtaskSubmit"
-    :saving="subtasksSaving"
-    :error="subtasksError"
-  />
-  -->
 
   <!-- 達成したことの記録ポップアップ -->
   <KoubaAchievementFormModal
@@ -541,7 +497,7 @@ onBeforeUnmount(() => {
   />
 
   <div class="min-h-full px-4 pt-4 pb-20 flex flex-col items-center">
-    <div class="w-full max-w-[1100px] flex flex-col gap-4">
+    <div class="w-full max-w-[1440px] flex flex-col gap-4">
       <!-- ヘッダー -->
       <header class="flex items-center justify-between pt-1">
         <h1 class="text-lg font-bold bg-gradient-to-br from-amber-300 to-orange-500 bg-clip-text text-transparent">⏱️ 工数</h1>
@@ -565,42 +521,60 @@ onBeforeUnmount(() => {
       </header>
 
       <template v-if="isLoggedIn || isDev">
-        <KoubaThemeBanner
-          :theme="currentTheme"
-          :history-count="themeHistory.length"
-          :saving="themeSaving"
-          :error="themeError"
-          @save="saveTheme"
-          @open-history="showThemeHistory = true"
-        />
-
-        <!-- サブタスク一覧（2026-09-16 コメントアウト中。復活させるときはscript側の同日付コメントも外すこと）
-        <KoubaSubtasksSection
-          v-if="!loading && !loadError"
-          :subtasks="subtasks"
-          :task-options="taskOptions"
-          :saving="subtasksSaving"
-          :error="subtasksError"
-          @open-add="showSubtaskFormModal = true"
-          @rename="handleRenameSubtask"
-          @set-hours="handleSetSubtaskHours"
-          @toggle-done="handleToggleSubtaskDone"
-          @delete="askDeleteSubtask"
-        />
-        -->
-
-        <div v-if="loading" class="mt-16 text-center text-slate-500 text-sm animate-pulse">読み込み中…</div>
-        <div v-else-if="loadError" class="mt-16 text-center text-rose-400 text-sm flex flex-col items-center gap-3">
-          <p class="m-0">{{ loadError }}</p>
-          <button class="h-9 px-4 rounded-full bg-white/10 text-slate-200 text-[13px] font-semibold hover:bg-white/20" @click="load">読み込み直す</button>
+        <!-- スマホ（sm未満）だけのタブ切り替え。PCは下のサイドバー＋ジョブ側を常に両方表示する -->
+        <div class="flex sm:hidden rounded-full bg-white/5 border border-white/10 p-1 gap-1">
+          <button
+            type="button"
+            class="flex-1 h-8 rounded-full text-[12px] font-bold transition-colors"
+            :class="mobileTab === 'subtasks' ? 'bg-sky-500 text-white' : 'text-slate-400'"
+            @click="mobileTab = 'subtasks'"
+          >🧩 サブタスク</button>
+          <button
+            type="button"
+            class="flex-1 h-8 rounded-full text-[12px] font-bold transition-colors"
+            :class="mobileTab === 'jobs' ? 'bg-sky-500 text-white' : 'text-slate-400'"
+            @click="mobileTab = 'jobs'"
+          >📋 ジョブ一覧</button>
         </div>
 
-        <template v-else>
-          <p v-if="actionError" class="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2 m-0">{{ actionError }}</p>
+        <div class="flex flex-col sm:flex-row gap-4 sm:items-stretch">
+          <!-- サブタスク一覧。PCでは画面左の常設サイドバー、スマホはタブで切り替える -->
+          <aside class="w-full sm:w-72 sm:shrink-0" :class="mobileTab === 'subtasks' ? '' : 'hidden sm:block'">
+            <KoubaSubtasksSection
+              :subtasks="subtasks"
+              :loading="subtasksLoading"
+              :saving="subtasksSaving"
+              :error="subtasksError"
+              @add="addSubtask"
+              @rename="({ id, title }) => renameSubtask(id, title)"
+              @delete="askDeleteSubtask"
+              @reorder="reorderSubtasks"
+            />
+          </aside>
 
-          <!-- 3×3グリッド。スマホ（sm未満）はカテゴリを縦1列に積む。sm以上は横スクロールさせつつ常に3×3の比率を保つ -->
-          <div class="overflow-x-auto pb-2">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:min-w-[1080px]">
+          <!-- ジョブ側（今のテーマ・カテゴリの板・達成したこと）。PCでは常に表示、スマホはタブで切り替える -->
+          <div class="w-full min-w-0 flex flex-col gap-4" :class="mobileTab === 'jobs' ? '' : 'hidden sm:flex'">
+            <KoubaThemeBanner
+              :theme="currentTheme"
+              :history-count="themeHistory.length"
+              :saving="themeSaving"
+              :error="themeError"
+              @save="saveTheme"
+              @open-history="showThemeHistory = true"
+            />
+
+            <div v-if="loading" class="mt-16 text-center text-slate-500 text-sm animate-pulse">読み込み中…</div>
+            <div v-else-if="loadError" class="mt-16 text-center text-rose-400 text-sm flex flex-col items-center gap-3">
+              <p class="m-0">{{ loadError }}</p>
+              <button class="h-9 px-4 rounded-full bg-white/10 text-slate-200 text-[13px] font-semibold hover:bg-white/20" @click="load">読み込み直す</button>
+            </div>
+
+            <template v-else>
+              <p v-if="actionError" class="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2 m-0">{{ actionError }}</p>
+
+              <!-- 3×3グリッド。スマホ（sm未満）はカテゴリを縦1列に積む。sm以上は横スクロールさせつつ常に3×3の比率を保つ -->
+              <div class="overflow-x-auto pb-2">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:min-w-[1080px]">
               <template v-for="(cat, i) in gridSlots" :key="i">
                 <!-- カテゴリの枠 -->
                 <div
@@ -823,15 +797,17 @@ onBeforeUnmount(() => {
 
           <p v-if="isFull" class="text-center text-slate-500 text-xs">カテゴリは{{ KOUBA_GRID_SIZE }}個までです</p>
 
-          <!-- 達成したこと（画面下部の一覧） -->
-          <KoubaAchievementsSection
-            :achievements="achievements"
-            :loading="achievementsLoading"
-            :error="achievementsError"
-            @open-add="showAchievementFormModal = true"
-            @delete="askDeleteAchievement"
-          />
-        </template>
+              <!-- 達成したこと（画面下部の一覧） -->
+              <KoubaAchievementsSection
+                :achievements="achievements"
+                :loading="achievementsLoading"
+                :error="achievementsError"
+                @open-add="showAchievementFormModal = true"
+                @delete="askDeleteAchievement"
+              />
+            </template>
+          </div>
+        </div>
       </template>
     </div>
   </div>

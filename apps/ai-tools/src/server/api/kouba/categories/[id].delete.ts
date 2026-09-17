@@ -1,8 +1,9 @@
 import { requireKoubaUser, requireKoubaDb, ensureKoubaTables, findOwnedCategory, compactCategoryPositions } from '~/server/utils/kouba'
 
 // カテゴリの削除。**他のカテゴリにも属しているジョブはそのまま残す**（このカテゴリの表示からだけ外れる）。
-// **このカテゴリだけに属していたジョブ**はタスク・サブタスクごと削除する（=どこにも属さない孤立ジョブを作らない）。
+// **このカテゴリだけに属していたジョブ**はタスクごと削除する（=どこにも属さない孤立ジョブを作らない）。
 // 削除後、後ろのカテゴリを前へ詰める（空いた枠を「カテゴリを追加」のまま残さない）。
+// サブタスク（kouba_task_subtasks）は板と無関係の独立機能なので、ここでは触らない。
 export default defineEventHandler(async (event) => {
   const user = await requireKoubaUser(event)
   const db = requireKoubaDb(event)
@@ -28,15 +29,6 @@ export default defineEventHandler(async (event) => {
     const orphanJobIds = jobIds.filter((jid: string) => !remainingIds.has(jid))
     if (orphanJobIds.length) {
       const orphanPlaceholders = orphanJobIds.map(() => '?').join(',')
-      const taskRows = await db
-        .prepare(`SELECT id FROM kouba_subtasks WHERE task_id IN (${orphanPlaceholders})`)
-        .bind(...orphanJobIds)
-        .all<{ id: string }>()
-      const taskIds = (taskRows?.results ?? []).map((r: { id: string }) => r.id)
-      if (taskIds.length) {
-        const taskPlaceholders = taskIds.map(() => '?').join(',')
-        await db.prepare(`DELETE FROM kouba_task_subtasks WHERE task_id IN (${taskPlaceholders})`).bind(...taskIds).run()
-      }
       await db.prepare(`DELETE FROM kouba_subtasks WHERE task_id IN (${orphanPlaceholders})`).bind(...orphanJobIds).run()
       await db.prepare(`DELETE FROM kouba_tasks WHERE id IN (${orphanPlaceholders})`).bind(...orphanJobIds).run()
     }
