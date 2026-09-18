@@ -3,8 +3,8 @@ import { ref, computed, nextTick } from 'vue'
 import type { KoubaSubtask } from '~/types/kouba'
 
 /**
- * 板・タスクとは完全に無関係な、名前だけのサブタスク一覧。ドラッグ&ドロップで自由に並べ替えられる
- * （カテゴリの並べ替えと同じ「掴んだ場所の手前に入る」規則）。PCでは画面左の常設サイドバー、
+ * 板・タスクとは完全に無関係な、名前だけのサブタスク一覧。各行の上下ボタンで並べ替えられる
+ * （ドラッグ&ドロップは2026-09-18に廃止した）。PCでは画面左の常設サイドバー、
  * スマホではタブ切り替えで表示する（どちらで出すかは pages/kouba/index.vue 側が決める＝このコンポーネントは
  * 自分がサイドバーかタブの中身かを意識しない）。
  */
@@ -64,36 +64,6 @@ function cancelEditAndDelete(s: KoubaSubtask) {
   emit('delete', s)
 }
 
-// ── ドラッグ&ドロップでの並べ替え（掴めるのは左端の⠿ハンドルだけ。行全体だとタイトル編集・削除ボタンと取り合いになる）──────────────────────────────
-const dragId = ref<string | null>(null)
-const dropBeforeId = ref<string | 'end' | null>(null)
-
-function onDragStart(e: DragEvent, s: KoubaSubtask) {
-  dragId.value = s.id
-  e.dataTransfer?.setData('text/plain', s.id)
-  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
-}
-function onDragEnd() {
-  dragId.value = null
-  dropBeforeId.value = null
-}
-/** s が null なら一覧の末尾（リスト下の余白）へのドロップを表す。 */
-function onRowDragOver(s: KoubaSubtask | null) {
-  if (!dragId.value) return
-  dropBeforeId.value = s ? s.id : 'end'
-}
-function onRowDrop(s: KoubaSubtask | null) {
-  const id = dragId.value
-  onDragEnd()
-  if (!id) return
-  const ids = props.subtasks.map((x) => x.id).filter((v) => v !== id)
-  let insertAt = s && s.id !== id ? ids.indexOf(s.id) : ids.length
-  if (insertAt < 0) insertAt = ids.length
-  ids.splice(insertAt, 0, id)
-  if (ids.every((v, i) => v === props.subtasks[i]?.id)) return // 並びが変わらないなら送らない
-  emit('reorder', ids)
-}
-
 // ── 上下ボタンでの並べ替え（未完了どうしの隣り合う2件の並び順を入れ替えるだけ。完了済みは対象外）──────────────────────────────
 function moveActive(s: KoubaSubtask, dir: -1 | 1) {
   const active = activeSubtasks.value
@@ -138,22 +108,12 @@ function canMoveDown(s: KoubaSubtask): boolean {
     <div v-if="loading" class="text-center text-slate-500 text-xs py-4">読み込み中…</div>
     <p v-else-if="!subtasks.length" class="m-0 text-center text-slate-500 text-xs py-4">まだサブタスクがありません</p>
     <div v-else class="flex flex-col gap-2 sm:flex-1 sm:overflow-y-auto sm:min-h-0">
-      <div
-        class="flex flex-col gap-1.5"
-        @dragover.prevent="onRowDragOver(null)"
-        @drop.prevent="onRowDrop(null)"
-      >
+      <div class="flex flex-col gap-1.5">
         <p v-if="!activeSubtasks.length" class="m-0 text-center text-slate-500 text-xs py-2">すべて完了しました</p>
         <div
           v-for="s in activeSubtasks"
           :key="s.id"
-          class="rounded-lg border px-2 py-2 flex items-center gap-2 transition-colors"
-          :class="[
-            dropBeforeId === s.id ? 'border-sky-400/70 ring-1 ring-sky-400/30' : 'border-white/10 bg-white/[0.03]',
-            dragId === s.id ? 'opacity-40' : '',
-          ]"
-          @dragover.prevent.stop="onRowDragOver(s)"
-          @drop.prevent.stop="onRowDrop(s)"
+          class="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2 flex items-center gap-2 transition-colors"
         >
           <input
             type="checkbox"
@@ -161,14 +121,6 @@ function canMoveDown(s: KoubaSubtask): boolean {
             title="完了にする"
             @change="emit('toggleDone', { id: s.id, done: true })"
           />
-
-          <span
-            draggable="true"
-            class="w-5 h-6 shrink-0 flex items-center justify-center text-slate-600 text-sm cursor-grab active:cursor-grabbing select-none"
-            title="ドラッグで並べ替え"
-            @dragstart="onDragStart($event, s)"
-            @dragend="onDragEnd"
-          >⠿</span>
 
           <div class="flex flex-col shrink-0 -my-1">
             <button
@@ -191,7 +143,7 @@ function canMoveDown(s: KoubaSubtask): boolean {
             <input
               :id="`kouba-subtask-edit-${s.id}`"
               v-model="editDraft"
-              class="flex-1 min-w-0 bg-white/[0.08] border border-sky-400/50 rounded px-1.5 py-1 text-slate-50 text-[12.5px] font-semibold outline-none"
+              class="flex-1 min-w-0 bg-white/[0.08] border border-sky-400/50 rounded px-1.5 py-1 text-slate-50 text-[10.5px] font-semibold outline-none"
               @keydown.enter="runOnEnter($event, () => commitEdit(s))"
               @blur="commitEdit(s)"
             />
@@ -204,8 +156,8 @@ function canMoveDown(s: KoubaSubtask): boolean {
           </template>
           <template v-else>
             <span
-              class="flex-1 min-w-0 text-[12.5px] font-semibold text-slate-100 truncate cursor-text"
-              title="クリックして編集"
+              class="flex-1 min-w-0 text-[10.5px] font-semibold text-slate-100 truncate cursor-text"
+              :title="s.title"
               @click="startEdit(s)"
             >{{ s.title }}</span>
             <button
@@ -240,7 +192,7 @@ function canMoveDown(s: KoubaSubtask): boolean {
               title="未完了に戻す"
               @change="emit('toggleDone', { id: s.id, done: false })"
             />
-            <span class="flex-1 min-w-0 text-[12.5px] text-slate-500 line-through truncate">{{ s.title }}</span>
+            <span class="flex-1 min-w-0 text-[10.5px] text-slate-500 line-through truncate" :title="s.title">{{ s.title }}</span>
             <button
               type="button"
               class="w-6 h-6 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
