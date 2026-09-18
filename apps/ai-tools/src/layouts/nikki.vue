@@ -22,7 +22,12 @@ useHead({
 </script>
 
 <style>
-.nk-root {
+/*
+ * 色は :root に置く（.nk-root ではない）。
+ * モーダルは <Teleport to="body"> で .nk-root の外へ出るので、.nk-root に変数を置くと
+ * 継承されず background が無色＝ポップアップが透けて見える、という不具合になる。
+ */
+:root {
   /* 生成りの紙＋藍のインク。読み返すことが主目的なので明るい側に振る */
   --nk-paper: #f7f5ef;
   --nk-paper-deep: #efece3;
@@ -36,7 +41,9 @@ useHead({
   --nk-gold: #b8853a;
   --nk-gold-soft: #f2e4cb;
   --nk-today: #c2453f;
+}
 
+.nk-root {
   position: relative;
   color: var(--nk-ink);
   background: var(--nk-paper);
@@ -111,6 +118,27 @@ useHead({
 .nk-impact-5 { background: var(--nk-gold); color: #fff; }
 .nk-impact-4 { background: var(--nk-gold-soft); color: #7a5518; }
 .nk-impact-3 { background: var(--nk-indigo-soft); color: var(--nk-indigo); }
+
+/*
+ * モーダル（Teleport 先）の面。変数が解決できない状況でも必ず色が乗るよう実色も書く。
+ * 透けたポップアップは文字が読めないので、ここは変数だけに頼らない。
+ */
+.nk-sheet {
+  background: #f7f5ef;
+  background: var(--nk-paper, #f7f5ef);
+  border: 1px solid var(--nk-line, #e5e1d7);
+  color: var(--nk-ink, #22252c);
+}
+.nk-sheet-bar {
+  background: #f7f5ef;
+  background: var(--nk-paper, #f7f5ef);
+  border-bottom: 1px solid var(--nk-line, #e5e1d7);
+}
+/* モーダルの中のカードも、変数が無くても白く出るようにする */
+.nk-sheet .nk-card {
+  background: #ffffff;
+  border-color: var(--nk-line, #e5e1d7);
+}
 
 /* 横スクロールのタイムライン。スクロールバーは細く、指で流せるように */
 .nk-scroll-x {

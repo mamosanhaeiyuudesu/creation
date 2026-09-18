@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import { appendLog, getOpenAiKey } from '~/server/utils/openai'
 import { getGeminiKey, bytesToBase64 } from '~/server/utils/gemini'
+import { stripTranscriptionHallucinations } from '~/server/utils/transcript-clean'
 
 type TranscriptionModel = 'whisper' | 'gemini'
 
@@ -21,9 +22,14 @@ export default defineEventHandler(async (event) => {
         const prompt = formData.get('prompt') as string | null
         const model = ((formData.get('model') as string | null) === 'gemini' ? 'gemini' : 'whisper') as TranscriptionModel
 
-        const text = model === 'gemini'
+        const raw = model === 'gemini'
             ? await transcribeWithGemini(event, audioFile, prompt)
             : await transcribeWithWhisper(event, audioFile, prompt)
+
+        // 無音だと「ご視聴ありがとうございました」だけが返ってくる（実測済みの既知の幻覚）。
+        // 偽の文章を本文として渡すと、呼び出し側は「声が入っていなかった」ことに気づけないので、
+        // ここで落として空文字にする＝呼び出し側は「取れなかった」と扱える。
+        const text = stripTranscriptionHallucinations(raw)
 
         return { text }
     } catch (error) {

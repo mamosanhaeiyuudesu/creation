@@ -37,6 +37,44 @@ export function stripPromptEcho(text: string, echoes: string[]): string {
 }
 
 /**
+ * 無音・雑音だけの音声に対して Whisper が返す定型の幻覚を落とす。
+ *
+ * 実測（2026-09-18、whisper-1）: 完全な無音3秒・微小ノイズ3秒・環境音5秒のいずれでも
+ * 「ご視聴ありがとうございました」が返った。学習データの動画字幕に由来する既知の failure mode で、
+ * マイクが拾えていないときに必ずこの形で現れるため、本文として残すと日記や議事録が汚れる。
+ *
+ * **行まるごとがこれらの語だけで出来ているときにしか消さない**（句読点を除いて何も残らない行だけ）。
+ * 「みんなにご視聴ありがとうございましたと言った」のような、本当に喋られた文は消さない。
+ */
+const HALLUCINATION_PHRASES = [
+  'ご視聴ありがとうございました',
+  'ご視聴ありがとうございます',
+  'ご清聴ありがとうございました',
+  'ご清聴ありがとうございます',
+  '最後までご視聴いただきありがとうございました',
+  'ご覧いただきありがとうございました',
+  'チャンネル登録をお願いします',
+  'チャンネル登録よろしくお願いします',
+  '高評価とチャンネル登録をお願いします',
+  '次回もお楽しみに',
+]
+
+export function stripTranscriptionHallucinations(text: string): string {
+  return text
+    .split('\n')
+    .filter((line) => {
+      const t = line.trim()
+      if (!t) return true
+      let rest = t
+      for (const phrase of HALLUCINATION_PHRASES) rest = rest.split(phrase).join('')
+      // 句読点・記号・空白しか残らなければ、その行は幻覚だけで出来ていたということ
+      return rest.replace(/[\s。、．，.,!！?？ー・…]/g, '').length > 0
+    })
+    .join('\n')
+    .trim()
+}
+
+/**
  * 1行の中で同じ短い断片が3回以上続くのを1回に畳む（「飛行機が飛行機が飛行機が…」対策）。
  * 長さを固定した `(.{n})\1{2,}` を n ごとに回すので、可変長の後方参照のような
  * 破滅的バックトラックは起きない。

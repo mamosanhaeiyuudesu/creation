@@ -132,61 +132,68 @@ function onRowDrop(s: KoubaSubtask | null) {
         @drop.prevent="onRowDrop(null)"
       >
         <p v-if="!activeSubtasks.length" class="m-0 text-center text-slate-500 text-xs py-2">すべて完了しました</p>
-        <div
-          v-for="s in activeSubtasks"
-          :key="s.id"
-          draggable="true"
-          class="rounded-lg border px-2 py-2 flex items-center gap-2 transition-colors cursor-grab active:cursor-grabbing"
-          :class="[
-            dropBeforeId === s.id ? 'border-sky-400/70 ring-1 ring-sky-400/30' : 'border-white/10 bg-white/[0.03]',
-            dragId === s.id ? 'opacity-40' : '',
-          ]"
-          @dragstart="onDragStart($event, s)"
-          @dragend="onDragEnd"
-          @dragover.prevent.stop="onRowDragOver(s)"
-          @drop.prevent.stop="onRowDrop(s)"
-        >
-          <input
-            type="checkbox"
-            class="w-4 h-4 shrink-0 rounded border-white/20 bg-white/[0.06] accent-sky-500 cursor-pointer"
-            title="完了にする"
-            @change="emit('toggleDone', { id: s.id, done: true })"
-          />
-
-          <template v-if="editingId === s.id">
+        <div v-for="s in activeSubtasks" :key="s.id" class="relative">
+          <!-- 掴んだ項目が入り込む場所を、行のハイライトではなく上端の線で示す -->
+          <div
+            v-if="dropBeforeId === s.id"
+            class="absolute left-1 right-1 -top-1 h-0.5 rounded-full bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.7)] pointer-events-none"
+          ></div>
+          <div
+            draggable="true"
+            class="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2 flex items-center gap-2 transition-colors cursor-grab active:cursor-grabbing"
+            :class="dragId === s.id ? 'opacity-40' : ''"
+            @dragstart="onDragStart($event, s)"
+            @dragend="onDragEnd"
+            @dragover.prevent.stop="onRowDragOver(s)"
+            @drop.prevent.stop="onRowDrop(s)"
+          >
             <input
-              :id="`kouba-subtask-edit-${s.id}`"
-              v-model="editDraft"
-              class="flex-1 min-w-0 bg-white/[0.08] border border-sky-400/50 rounded px-1.5 py-1 text-slate-50 text-[12.5px] font-semibold outline-none"
-              @keydown.enter="runOnEnter($event, () => commitEdit(s))"
-              @blur="commitEdit(s)"
+              type="checkbox"
+              class="w-4 h-4 shrink-0 rounded border-white/20 bg-white/[0.06] accent-sky-500 cursor-pointer"
+              title="完了にする"
+              @change="emit('toggleDone', { id: s.id, done: true })"
             />
-            <button
-              type="button"
-              class="w-6 h-6 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
-              title="編集をやめて削除"
-              @mousedown.prevent="cancelEditAndDelete(s)"
-            >✗</button>
-          </template>
-          <template v-else>
-            <span
-              class="flex-1 min-w-0 text-[12.5px] font-semibold text-slate-100 truncate"
-              :title="s.title"
-            >{{ s.title }}</span>
-            <button
-              type="button"
-              class="w-6 h-6 rounded text-slate-500 hover:text-sky-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
-              title="名前を編集"
-              @click="startEdit(s)"
-            >✏️</button>
-            <button
-              type="button"
-              class="w-6 h-6 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
-              title="削除"
-              @click="emit('delete', s)"
-            >🗑</button>
-          </template>
+
+            <template v-if="editingId === s.id">
+              <input
+                :id="`kouba-subtask-edit-${s.id}`"
+                v-model="editDraft"
+                class="flex-1 min-w-0 bg-white/[0.08] border border-sky-400/50 rounded px-1.5 py-1 text-slate-50 text-[12.5px] font-semibold outline-none"
+                @keydown.enter="runOnEnter($event, () => commitEdit(s))"
+                @blur="commitEdit(s)"
+              />
+              <button
+                type="button"
+                class="w-6 h-6 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
+                title="編集をやめて削除"
+                @mousedown.prevent="cancelEditAndDelete(s)"
+              >✗</button>
+            </template>
+            <template v-else>
+              <span
+                class="flex-1 min-w-0 text-[12.5px] font-semibold text-slate-100 truncate"
+                :title="s.title"
+              >{{ s.title }}</span>
+              <button
+                type="button"
+                class="w-6 h-6 rounded text-slate-500 hover:text-sky-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
+                title="名前を編集"
+                @click="startEdit(s)"
+              >✏️</button>
+              <button
+                type="button"
+                class="w-6 h-6 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
+                title="削除"
+                @click="emit('delete', s)"
+              >🗑</button>
+            </template>
+          </div>
         </div>
+        <!-- 一覧末尾への挿入も同じ線で示す -->
+        <div
+          v-if="dropBeforeId === 'end'"
+          class="h-0.5 rounded-full mx-1 bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.7)]"
+        ></div>
       </div>
 
       <div v-if="doneSubtasks.length" class="border-t border-white/10 pt-2 shrink-0">

@@ -1,9 +1,9 @@
 <template>
   <Teleport to="body">
-    <div class="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-black/45 backdrop-blur-[2px]" @click.self="emit('close')">
-      <div class="w-full sm:max-w-[560px] max-h-[92vh] overflow-y-auto bg-[var(--nk-paper)] border border-[var(--nk-line)] rounded-t-2xl sm:rounded-2xl shadow-[0_24px_70px_rgba(34,37,44,0.35)]">
+    <div class="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-[3px]" @click.self="emit('close')">
+      <div class="nk-sheet w-full sm:max-w-[560px] max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-[0_24px_70px_rgba(34,37,44,0.45)]">
         <!-- 見出し -->
-        <header class="sticky top-0 z-10 flex items-start justify-between gap-3 px-5 pt-4 pb-3 bg-[var(--nk-paper)] border-b border-[var(--nk-line)]">
+        <header class="nk-sheet-bar sticky top-0 z-10 flex items-start justify-between gap-3 px-5 pt-4 pb-3">
           <div>
             <h2 class="nk-serif m-0 text-[20px] leading-none" :class="date === today ? 'text-[var(--nk-today)]' : ''">
               {{ formatDateLabel(date) }}
@@ -46,6 +46,16 @@
               </button>
               <template v-else>
                 <span class="text-[13px] font-bold tabular-nums text-[var(--nk-today)]">● {{ formatTime(duration) }}</span>
+                <!-- マイクが生きているかを録音中に見せる（無音のまま話し続けるのを防ぐ） -->
+                <span class="flex items-center gap-1" :title="`入力レベル ${Math.round(level * 100)}%`">
+                  <span
+                    v-for="i in 8"
+                    :key="i"
+                    class="w-[3px] rounded-full transition-[height,background-color] duration-100"
+                    :class="level * 8 >= i ? 'bg-[var(--nk-indigo)]' : 'bg-[var(--nk-line)]'"
+                    :style="{ height: `${6 + i * 2}px` }"
+                  />
+                </span>
                 <button v-if="isRecording" class="nk-btn-ghost" @click="pauseRecording">一時停止</button>
                 <button v-else class="nk-btn-ghost" @click="resumeRecording">再開</button>
                 <button class="nk-btn" @click="transcribeRecording">文字にする</button>
@@ -61,6 +71,9 @@
               </label>
             </div>
 
+            <p v-if="micSeemsDead" class="mb-2 text-[12px] text-[var(--nk-today)]">
+              マイクが音を拾えていないようです。入力デバイスやブラウザのマイク許可を確認してください（このまま録っても文字にはなりません）。
+            </p>
             <p v-if="isProcessing" class="mb-2 text-[12px] text-[var(--nk-indigo)]">文字起こし中…</p>
 
             <!-- 文字起こしはそのまま保存せず、いちど直せるようにテキスト欄へ入れる -->
@@ -191,14 +204,28 @@ const topics = computed(() => props.entry?.topics ?? [])
 const { transcriptionModel } = useTranscriptionModel()
 
 // 文字起こしは下書き欄に足す（続けて録音したときに前の文章を消さない）
-const { isRecording, isPaused, isProcessing, duration, formatTime, startRecording, pauseRecording, resumeRecording, transcribeRecording, cancelRecording } =
+const { isRecording, isPaused, isProcessing, duration, level, formatTime, startRecording, pauseRecording, resumeRecording, transcribeRecording, cancelRecording } =
   useAudioRecorder({
     onTranscribed: (text: string) => {
-      draft.value = draft.value.trim() ? `${draft.value.trim()}\n${text}` : text
+      const t = text.trim()
+      if (!t) {
+        // 無音だと Whisper は「ご視聴ありがとうございました」を返す。サーバー側で落としてあるので
+        // ここには空が来る＝「声が入っていなかった」ということなので、そう伝える。
+        recordError.value = '声が入っていませんでした。マイクが拾えているか（録音中のメーターが動くか）を確かめて、もう一度お試しください。'
+        return
+      }
+      recordError.value = ''
+      draft.value = draft.value.trim() ? `${draft.value.trim()}\n${t}` : t
     },
     onError: (msg: string) => { recordError.value = msg },
     getModel: () => transcriptionModel.value,
   })
+
+// 録り始めて数秒たってもレベルがまったく動かない＝マイクが死んでいる
+const loudEnoughSeen = ref(false)
+watch(level, (v) => { if (v > 0.02) loudEnoughSeen.value = true })
+watch(isRecording, (v) => { if (v) loudEnoughSeen.value = false })
+const micSeemsDead = computed(() => (isRecording.value || isPaused.value) && duration.value >= 3 && !loudEnoughSeen.value)
 
 const error = computed(() => recordError.value || props.error)
 

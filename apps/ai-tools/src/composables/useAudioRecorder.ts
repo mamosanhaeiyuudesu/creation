@@ -243,10 +243,59 @@ export const useAudioRecorder = ({ onTranscribed, onError, getPrompt, getModel }
   const isPaused = ref(false)
   const isProcessing = ref(false)
   const duration = ref(0)
+  /**
+   * 入力レベル（0〜1）。マイクが死んでいる（=無音を録っている）ことに録音中に気づくための表示用。
+   * 無音のまま Whisper に投げると「ご視聴ありがとうございました」という定型の幻覚が返ってくるだけで、
+   * ユーザーには何が起きたか分からない。画面に出すかどうかは呼び出し側の自由（使わなくても害はない）。
+   */
+  const level = ref(0)
 
   let mediaRecorder: MediaRecorder | null = null
   let audioChunks: Blob[] = []
   let timerInterval: ReturnType<typeof setInterval> | null = null
+  let audioCtx: AudioContext | null = null
+  let sourceNode: MediaStreamAudioSourceNode | null = null
+  let analyser: AnalyserNode | null = null
+  let levelRaf: number | null = null
+
+  const startLevelMeter = (stream: MediaStream) => {
+    try {
+      const Ctx: typeof AudioContext | undefined = window.AudioContext ?? (window as any).webkitAudioContext
+      if (!Ctx) return
+      audioCtx = new Ctx()
+      sourceNode = audioCtx.createMediaStreamSource(stream)
+      analyser = audioCtx.createAnalyser()
+      analyser.fftSize = 1024
+      sourceNode.connect(analyser)
+      const buf = new Float32Array(analyser.fftSize)
+      const tick = () => {
+        if (!analyser) return
+        analyser.getFloatTimeDomainData(buf)
+        let peak = 0
+        for (let i = 0; i < buf.length; i++) {
+          const v = Math.abs(buf[i]!)
+          if (v > peak) peak = v
+        }
+        // 山をゆっくり落とす（1フレームごとの生の値だとメーターがちらついて読めない）
+        level.value = Math.max(peak, level.value * 0.85)
+        levelRaf = requestAnimationFrame(tick)
+      }
+      tick()
+    } catch {
+      // メーターは補助なので、作れなくても録音自体は続ける
+    }
+  }
+
+  const stopLevelMeter = () => {
+    if (levelRaf !== null) cancelAnimationFrame(levelRaf)
+    levelRaf = null
+    analyser = null
+    sourceNode?.disconnect()
+    sourceNode = null
+    audioCtx?.close().catch(() => {})
+    audioCtx = null
+    level.value = 0
+  }
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60)
@@ -261,6 +310,7 @@ export const useAudioRecorder = ({ onTranscribed, onError, getPrompt, getModel }
       audioChunks = []
       mediaRecorder.ondataavailable = (event) => { audioChunks.push(event.data) }
       mediaRecorder.start()
+      startLevelMeter(stream)
       isRecording.value = true
       isPaused.value = false
       duration.value = 0
@@ -292,6 +342,7 @@ export const useAudioRecorder = ({ onTranscribed, onError, getPrompt, getModel }
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null }
 
     mediaRecorder.onstop = async () => {
+      stopLevelMeter()
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
       isProcessing.value = true
       try {
@@ -314,6 +365,7 @@ export const useAudioRecorder = ({ onTranscribed, onError, getPrompt, getModel }
     isRecording.value = false
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null }
     mediaRecorder.onstop = () => {
+      stopLevelMeter()
       duration.value = 0
       audioChunks = []
       mediaRecorder!.stream.getTracks().forEach(track => track.stop())
@@ -321,7 +373,7 @@ export const useAudioRecorder = ({ onTranscribed, onError, getPrompt, getModel }
     mediaRecorder.stop()
   }
 
-  return { isRecording, isPaused, isProcessing, duration, formatTime, startRecording, pauseRecording, resumeRecording, transcribeRecording, cancelRecording }
+  return { isRecording, isPaused, isProcessing, duration, level, formatTime, startRecording, pauseRecording, resumeRecording, transcribeRecording, cancelRecording }
 }
 
 export const fetchTitle = async (text: string): Promise<string> => {

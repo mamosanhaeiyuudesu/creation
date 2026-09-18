@@ -50,11 +50,16 @@ function cancelEditAndDelete() {
 
 <template>
   <div
-    class="rounded-xl border bg-white/[0.03] p-3 flex items-center gap-2 transition-colors"
-    :class="[dragging ? 'opacity-40' : '', dropTarget ? 'border-sky-500' : 'border-white/10']"
+    class="relative rounded-xl border border-white/10 bg-white/[0.03] p-3 flex items-center gap-2 transition-colors"
+    :class="dragging ? 'opacity-40' : ''"
     @dragover.prevent="emit('dragover')"
     @drop.prevent="emit('drop')"
   >
+    <!-- 掴んだタスクが入り込む場所を、カードのハイライトではなく上端の線で示す -->
+    <div
+      v-if="dropTarget"
+      class="absolute left-1 right-1 -top-1.5 h-0.5 rounded-full bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.7)] pointer-events-none"
+    ></div>
     <!-- 掴むハンドル。編集中は掴めなくする（入力欄でのドラッグ選択を邪魔しないため） -->
     <span
       class="w-5 h-7 flex items-center justify-center text-slate-600 text-sm select-none shrink-0"
