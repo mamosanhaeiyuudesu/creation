@@ -1,6 +1,6 @@
 import { requireKoubaUser, requireKoubaDb, ensureKoubaTables } from '~/server/utils/kouba'
 
-// 上下ボタン用: サブタスクの並び順を丸ごと差し替える。subtaskIds には「そのユーザーの全サブタスクID」を
+// ドラッグ&ドロップ用: サブタスクの並び順を丸ごと差し替える。subtaskIds には「そのユーザーの全サブタスクID」を
 // 新しい並び順どおりに渡す。sort_order は 0 から振り直すので、件数が合わなければ 400 で弾く
 // （カテゴリの並べ替え・タスクの並べ替えと同じ安全策）。
 // メソッドが POST なのも他の reorder 系と同じ理由（[id].patch.ts / [id].delete.ts と同じ親配下に

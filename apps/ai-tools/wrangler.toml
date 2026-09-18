@@ -28,6 +28,9 @@ custom_domain = true
 #   wrangler secret put NUXT_KIKIGAKI_GOOGLE_CLIENT_SECRET
 #   wrangler secret put NUXT_KIKIGAKI_GOOGLE_REDIRECT_URI  ← 例: https://<host>/api/kikigaki/google/callback
 #     （REDIRECT_URI は秘密ではないので [vars] でもよいが、既存の NUXT_FITBIT_REDIRECT_URI が secret なので揃えている）
+#   wrangler secret put NUXT_NIKKI_GOOGLE_CLIENT_ID      ← nikki（日記）のGoogleカレンダー連携。読み取り専用（calendar.readonly）
+#   wrangler secret put NUXT_NIKKI_GOOGLE_CLIENT_SECRET
+#   wrangler secret put NUXT_NIKKI_GOOGLE_REDIRECT_URI  ← 例: https://<host>/api/nikki/google/callback
 #   wrangler secret put NUXT_FARM_NEWS_ADMIN_KEY  ← farm-news の手動実行API（/api/farm-news/run 等）を
 #     x-admin-key ヘッダーで守るための秘密キー。公開ページなのでログインではなくこのキーで守る
 

@@ -67,6 +67,11 @@ gtag('config', 'G-JRBVTJYCEH');`,
     kikigakiGoogleClientId: '',
     kikigakiGoogleClientSecret: '',
     kikigakiGoogleRedirectUri: '',
+    // nikki（日記）Google連携。カレンダーの**読み取り専用**（calendar.readonly）。
+    // life/kikigaki とはスコープが違うので使い回さず、別のOAuthクライアントを発行する
+    nikkiGoogleClientId: '',
+    nikkiGoogleClientSecret: '',
+    nikkiGoogleRedirectUri: '',
     // ippon（Sketch2View）3D生成プロバイダ。鍵が無ければ mock にフォールバック。
     ipponProvider: '', // 'tripo' | 'mock'（既定 mock）
     tripoApiKey: '',

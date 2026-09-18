@@ -540,7 +540,17 @@ onBeforeUnmount(() => {
 
         <div class="flex flex-col sm:flex-row gap-4 sm:items-stretch">
           <!-- サブタスク一覧。PCでは画面左の常設サイドバー、スマホはタブで切り替える -->
-          <aside class="w-full sm:w-72 sm:shrink-0" :class="mobileTab === 'subtasks' ? '' : 'hidden sm:block'">
+          <aside class="w-full sm:w-72 sm:shrink-0 flex flex-col gap-4" :class="mobileTab === 'subtasks' ? '' : 'hidden sm:block'">
+            <!-- 今のテーマ。PCではジョブ側に1つだけ出すので、ここではスマホのサブタスクタブでのみ表示する -->
+            <KoubaThemeBanner
+              class="sm:hidden"
+              :theme="currentTheme"
+              :history-count="themeHistory.length"
+              :saving="themeSaving"
+              :error="themeError"
+              @save="saveTheme"
+              @open-history="showThemeHistory = true"
+            />
             <KoubaSubtasksSection
               :subtasks="subtasks"
               :loading="subtasksLoading"
