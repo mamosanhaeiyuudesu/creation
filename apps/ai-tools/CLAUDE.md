@@ -353,7 +353,7 @@ cron登録は無い＝Freeプランのcron上限（既存5個）に既に当た�
 - バズ語を計算するのは **2026年以降の定例会**（`MIYAKO_ANALYZE_FROM`）。それより前は比較対象として本文を持つだけ
 - 二重アップロードは、Vector Store の一覧（新しい順1ページ）に同じ会期名の attributes があれば使い回すことで防ぐ（ローカルと本番で D1 が別でも重複しない）
 
-初回セットアップ（順番どおりに）:
+初回セットアップ（**2026-09-18 に本番で実施済み**。作り直すときの手順として残す）:
 
 ```bash
 wrangler d1 execute whisper-db --remote --file src/server/db/068_miyako_trends.sql
@@ -371,6 +371,7 @@ curl -X POST https://<host>/api/miyako/trends/run -H "x-admin-key: $NUXT_MIYAKO_
 - AI の JSON 出力は、22語を書いたあと改行を2000行以上出し続けて上限で切れる崩れ方をした（実測）。`parseTerms()` は壊れた応答からも書き切れた語を拾い、説明文に混ざった `}]} Assistant has stopped…` のような残骸は `cleanNote()` が切り落とす
 - **OpenAI の残高切れも HTTP 429 で返る**（`type: insufficient_quota`）。1分あたりの上限と違い待っても戻らないので、再試行せずに止める
 - 費用は定例会1回あたり約20円（gpt-4.1-mini、約32万トークン）。臨時会はAIを呼ばない
+- **本番の CPU 時間の実測（2026-09-18、`wrangler tail`）: 初回の取り込み（PDF7本の登録＋本文54万字の保存）164ms、分析つきの回 62ms・78ms。いずれも outcome=ok**＝Free プランの「10ms」を大きく超えても打ち切られなかった。見積もり（10ms以内）より重かったので、処理を増やすときは tail の `cpuTime` を見ること（どこまで許されるかは確かめていない）
 - ローカル確認は `yarn build` 後に `wrangler dev --test-scheduled`（ローカル D1）で行った。`--var NUXT_MIYAKO_VECTOR_STORE_ID:<テスト用のvs>` で本番の Vector Store に触らずに試せる。cron は `curl "http://localhost:8787/__scheduled?cron=0+7+1+*+*"`。**wrangler dev 中にソースを続けて編集すると、自動の再ビルドが2つ重なって wrangler dev ごと落ちる**（止めてから編集する）
 
 ## アーキテクチャ
