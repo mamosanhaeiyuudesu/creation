@@ -1,6 +1,7 @@
 /**
- * Nitro server task — Cloudflare Cron Trigger から自動実行される
- * nuxt.config.ts の nitro.scheduledTasks で登録済み
+ * Nitro server task — 2026-09-18 まで Cloudflare Cron Trigger（毎日 UTC 7:00）から自動実行されていた。
+ * いまは cron 未登録（Free プランの cron 枠5個を miyako-trends に回したため）で、どこからも呼ばれない。
+ * 再開するときは wrangler.toml の [triggers] と nuxt.config.ts の nitro.scheduledTasks の両方に戻すこと。
  */
 
 import { PLAYERS } from '~/utils/japanese-mlb-player/players'

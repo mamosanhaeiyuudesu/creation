@@ -58,7 +58,7 @@ export const SECTIONS: Section[] = [
     lead: '集めたデータを読めるかたちにしたもの',
     accent: 'emerald',
     tools: [
-      { path: '/miyako', icon: '🏝️', name: '宮古島市議会 議事録', desc: 'キーワード×会期のヒートマップとAI解説。キーワード検索・議員別・年別の推移も。' },
+      { path: '/miyako', icon: '🏝️', name: '宮古島市議会 議事録', desc: '最新の定例会でよく議論された言葉をワードクラウドで。全体像・年別・議員別・キーワード検索とAI解説も。' },
       { path: '/japanese-mlb-player', icon: '⚾', name: '日本人MLB選手', desc: '打者・投手のスタッツを FanGraphs / MLB Stats から取得して一覧。' },
       { path: '/farm-log', icon: '🌿', name: '農作業ログ', desc: 'スマホのセンサーで記録した農作業の動きを可視化。' },
     ],

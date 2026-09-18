@@ -35,7 +35,11 @@ NUXT_NIKKI_GOOGLE_CLIENT_ID=...      # Google Cloud の OAuth 2.0 クライア�
 NUXT_NIKKI_GOOGLE_CLIENT_SECRET=...  # 同上シークレット
 NUXT_NIKKI_GOOGLE_REDIRECT_URI=...   # 例: https://<host>/api/nikki/google/callback
 NUXT_FARM_NEWS_ADMIN_KEY=...   # farm-news の手動実行API（/api/farm-news/run 等）を x-admin-key ヘッダーで守る秘密キー
+NUXT_MIYAKO_ADMIN_KEY=...      # miyako「直近の傾向」の手動実行API（/api/miyako/trends/run）を x-admin-key ヘッダーで守る秘密キー
 ```
+
+※ `NUXT_MIYAKO_VECTOR_STORE_ID` は `vs_` で始まるIDであること（2026-09-18時点、ローカルの `.env` には別の値が入っていて
+miyako のAI解説がローカルでは動かない状態だった。正しいIDは OpenAI の Vector Store 一覧の「宮古島市議会の議事録」）。
 
 ### kikigaki（キキガキ）のGoogle連携セットアップ
 
@@ -195,7 +199,7 @@ bulletsを持たない古い行は、`index.vue` の `cardBullets()` が各章�
   日付が全部空になっていないか一度確認する
 - AIの潮流分類がハルシネーションで5つのID以外を返したら `NEWS_FALLBACK_CURRENT`（`knowledge-work`）に丸める
 - プレビュー環境は `[env.preview.triggers] crons = []` で cron を止めてある。
-  triggers は継承されるキーなので、これが無いと本番と同じDBに対して二重に走る（mlb-sync も同様）
+  triggers は継承されるキーなので、これが無いと本番と同じDBに対して二重に走る（miyako-trends も同様）
 - cron の曜日は UTC 基準。平日だけにするなら `0 22 * * 0-4`（UTC 日〜木 ＝ JST 月〜金）
 - **メールをやめた経緯**: Worker から SMTP は張れず、Cloudflare Email Sending は公式ドキュメント上
   「Workers Paid プランで利用可能」（月$5）。要約代が月180〜280円なのに通知だけで数倍かかるため見送った。
@@ -328,6 +332,47 @@ cron登録は無い＝Freeプランのcron上限（既存5個）に既に当た�
 **動作確認**: news と同じくローカルdevはD1が使えないため `/farm-news` は動かない（デプロイ後に管理APIを
 `curl` で叩いて確認する）。ログは `wrangler tail` の `[farm-news]` 接頭辞。
 
+### miyako「直近の傾向」のセットアップ
+
+2026-09-18追加。`/miyako` のトップ（最初のタブ「直近の傾向」）に、**最新の定例会でよく議論された言葉（バズ語）のワードクラウド**を出す。
+それまでトップだったネットワーク図（全体像を見る）は `/miyako/network` に移した（旧URLの `/miyako?cat=…` は全体像へ転送する）。
+市の[会議録PDFファイル](https://www.city.miyakojima.lg.jp/gyosei/gikai/gijiroku.html)を **毎月1日 JST 16:00 の cron（miyako-trends）** で見に行き、
+新しい会期があれば取り込む。**この cron 枠は mlb-sync のものを回した**（Freeプランの cron はアカウント全体で5個まで。ユーザー判断で mlb を止めた）。
+会議録は閉会から2〜3か月後に公開されるので月1回で足りる。詳しい設計は `src/server/utils/miyako-trends-run.ts` の冒頭コメント参照。
+
+**処理の分担（Workers Free の CPU 10ms に収めるため。いずれも実測で決めた）**:
+- PDF の文字化は **OpenAI の Vector Store** に任せる（既存の miyako のAI解説と同じ置き場に PDF を登録し、`/vector_stores/{id}/files/{file}/content` で本文を取り出す。373ページでも1回で全文が返った）。副次的に、新しい会期がAI解説の検索対象になる
+- 語の切り出しは **AI（gpt-4.1-mini）**。Worker で形態素解析すると43万字で約96ms かかるため。本文を約11万字ずつに分けて候補を出させる（定例会1回分は約32万トークンで、このアカウントの上限＝1分あたり20万トークンを1回で超える）
+- 回数を数えるのは **D1 の SQL**（`replace()` で消えた長さ÷語の長さ）。AIの言う回数は使わない。0回の候補＝AIが作った語として落ちる
+- **バズ度 = 今回の頻度 × log2((今回の頻度+1)/(過去3年の定例会の頻度+1))**（頻度は10万字あたり）。毎回出る語（学校・予算・職員）は沈む
+- 議案・条例の名前や手続きの語（陳情書・議決内容の一部変更・繰越明許費…）は、AIへの指示だけでは守られなかったので `miyako-trends-ai.ts` の `PROCEDURAL_TERM` で機械的にも落とす
+
+**会期の状態**は `miyako_sessions.status` で持ち、found → indexed（Vector Store 登録。臨時会はここで完了）→ stored（本文を D1 に保存。定例会のみ）→ analyzed（バズ語を保存）と1段ずつ進む。
+途中で落ちても次回その続きから再開する。1回の呼び出しで本文を扱うのは1会期まで（CPU）、subrequest は48で打ち切る。
+- 取り込むのは **2025年以降の会期**（`MIYAKO_INGEST_FROM`）。最初の前処理で入れた会期（`miyako-file-ids.json`）は同じ会期名ならそのファイルを使い回す。**令和7年の第1〜3回はその前処理で漏れていて Vector Store にも features にも無かった**ので、ここで入れ直している
+- バズ語を計算するのは **2026年以降の定例会**（`MIYAKO_ANALYZE_FROM`）。それより前は比較対象として本文を持つだけ
+- 二重アップロードは、Vector Store の一覧（新しい順1ページ）に同じ会期名の attributes があれば使い回すことで防ぐ（ローカルと本番で D1 が別でも重複しない）
+
+初回セットアップ（順番どおりに）:
+
+```bash
+wrangler d1 execute whisper-db --remote --file src/server/db/068_miyako_trends.sql
+node scripts/miyako-trends-backfill.mjs --remote     # 比較対象＝2023年以降の定例会11件の本文を D1 へ（約15MB。.env の VECTOR_STORE_ID が vs_ であること）
+wrangler secret put NUXT_MIYAKO_ADMIN_KEY
+# デプロイ後、deferred が空になるまで繰り返す（初回は3回＝令和7年第3回の本文 → 令和8年第2回 → 令和8年第4回）
+curl -X POST https://<host>/api/miyako/trends/run -H "x-admin-key: $NUXT_MIYAKO_ADMIN_KEY"
+```
+
+分析だけやり直す（AIへの指示を変えたとき）: `curl ... -H "Content-Type: application/json" -d '{"reanalyze":"令和8年第4回定例会"}'`。
+やり直しが失敗しても前回の結果がページに出続ける（status は成功するまで analyzed のまま）。
+
+作りの前提（触る前に読むこと）:
+- **`wrangler d1 execute --file` に流す SQL で `CASE … END,` と書かないこと**。wrangler の SQL 分割は「CASE」を複合文の始まりと見なし、直後に空白か `;` が続く「END」まで区切らないので、後ろの文が全部1つにつながって `SQLITE_TOOBIG` になる（バックフィルで実際に踏んだ）。D1 の1文の上限は UTF-8 で100KB＝全角約3.3万字なので、本文は25,000字ずつに分けている
+- AI の JSON 出力は、22語を書いたあと改行を2000行以上出し続けて上限で切れる崩れ方をした（実測）。`parseTerms()` は壊れた応答からも書き切れた語を拾い、説明文に混ざった `}]} Assistant has stopped…` のような残骸は `cleanNote()` が切り落とす
+- **OpenAI の残高切れも HTTP 429 で返る**（`type: insufficient_quota`）。1分あたりの上限と違い待っても戻らないので、再試行せずに止める
+- 費用は定例会1回あたり約20円（gpt-4.1-mini、約32万トークン）。臨時会はAIを呼ばない
+- ローカル確認は `yarn build` 後に `wrangler dev --test-scheduled`（ローカル D1）で行った。`--var NUXT_MIYAKO_VECTOR_STORE_ID:<テスト用のvs>` で本番の Vector Store に触らずに試せる。cron は `curl "http://localhost:8787/__scheduled?cron=0+7+1+*+*"`。**wrangler dev 中にソースを続けて編集すると、自動の再ビルドが2つ重なって wrangler dev ごと落ちる**（止めてから編集する）
+
 ## アーキテクチャ
 
 **Nuxt 3（srcDir: `src/`）+ Nitro（preset: `cloudflare_module`）+ Vuetify 3 + Tailwind CSS**
@@ -358,7 +403,8 @@ cronトリガーのFreeプラン上限（5個/アカウント）に当たった�
 | `/office` | 勤怠管理（日付・打刻記録） |
 | `/games` | ゲーム一覧（リンク集） |
 | `/games/panel-de-pon` | SFC版パネルでポン（5ステージ・進捗保存） |
-| `/miyako` | 宮古島市議会議事録 — キーワード×会期ヒートマップ＋AI解説パネル |
+| `/miyako` | 宮古島市議会議事録 — トップは「直近の傾向」＝最新の定例会のバズ語ワードクラウド（月1回のcronで更新。上のセットアップ節）。語をクリックで回数・前回比・AIの一文、「詳しく見る」で既存のAI解説 |
+| `/miyako/network` | 全体像を見る — 単語の共起ネットワーク＋AI解説パネル（2026-09-18まで `/miyako` のトップだったもの。スマホは年で見るへ転送） |
 | `/miyako/keyword` | キーワード検索・議事録テキスト閲覧 |
 | `/miyako/member` | 議員ごとのTF-IDFランキング（単語・カテゴリ別） |
 | `/miyako/yearly` | 年別発言推移グラフ |
@@ -452,8 +498,11 @@ cronトリガーのFreeプラン上限（5個/アカウント）に当たった�
   - サブタスクの並び順の適用: `wrangler d1 execute whisper-db --remote --file src/server/db/061_kouba_subtask_order.sql`
   - 新設サブタスク（現UI「サブタスク」）の適用: `wrangler d1 execute whisper-db --remote --file src/server/db/064_kouba_task_subtasks.sql`
   - サブタスクの完了(done)の適用: `wrangler d1 execute whisper-db --remote --file src/server/db/066_kouba_subtask_done.sql`
+- `WHISPER_DB` 相乗り（miyako「直近の傾向」）: miyako_sessions（市の一覧で見つけた会期と取り込み状況 `status`）/ miyako_texts（定例会の本文。空白を詰めて25,000字ずつ）/ miyako_trend_terms（会期ごとのバズ語上位40語）/ miyako_trend_runs（実行ログ）。公開ページなので user_id ではスコープしない。テーブルは `ensureMiyakoTrendTables()` で自動生成もされる。
+  - 適用: `wrangler d1 execute whisper-db --remote --file src/server/db/068_miyako_trends.sql`
 - `MLB_DB`（`mlb-db`）: MLB選手・試合データ  
-  `src/server/tasks/mlb-sync.ts` の Cron（**1日1回・UTC 7:00＝JST 16:00**）で同期。
+  **2026-09-18に cron を止めた**（枠を miyako-trends に回したため。`/mlb` の成績は止めた時点のまま）。以下は止める前の記述。
+  `src/server/tasks/mlb-sync.ts` の Cron（**1日1回・UTC 7:00＝JST 16:00**）で同期していた。
   毎回シーズン全体を INSERT OR REPLACE する作りなので、1回の実行でおよそ6,800行書く。
   毎時にすると D1 無料枠の書き込み（10万行/日）をほぼ使い切るため1日1回にしている。
   周期を変えるときは `wrangler.toml` の `[triggers] crons` と `nuxt.config.ts` の `nitro.scheduledTasks` の**両方**を揃える
@@ -472,6 +521,9 @@ cronトリガーのFreeプラン上限（5個/アカウント）に当たった�
 | `farm-news.ts` | farm-news のRSS/Atom解析・記事本文抽出・D1アクセス。フィード解析部分は news.ts と同じロジックを複製（DRYより「ツールごとに独立して壊れる範囲を閉じる」既存方針に倣う）。news に無い**潮流アーカイブ（`farm_news_trend_snapshots`）のCRUD**と、公開ページ用の**秘密キー認証 `requireFarmNewsAdmin`**（`x-admin-key` ヘッダー。news の `getSessionUser` の代わり）を持つ |
 | `farm-news-ai.ts` | farm-news の要約＋重要度判定（AI/IoT関連度を最優先で見る）＋4潮流への分類、潮流ごとの考察（`synthesizeCurrentNarrative`。news と同じ3章だが「これから（予測）」を厚めに書かせ、日本の状況にも触れさせる）に加え、**news に無い** `synthesizeMonthSnapshot`/`synthesizeYearSnapshot`（潮流アーカイブの月次/年次サマリー生成）・`synthesizeHistoricalYearSnapshot`（Web検索で過去年を調べて年次サマリーを直接生成。モデルはHaikuではなくSonnet 5） |
 | `farm-news-run.ts` | farm-news の本処理。`runFarmNewsDigest`/`runFarmNewsTrends` は news-run.ts と同じ分割方針（subrequest上限対策）。**news に無い** `runFarmNewsArchive`（潮流アーカイブのバックフィル生成。月次→年次の順にまだ無い期間だけ埋める。詳しい設計はファイル内コメント参照）・`runFarmNewsHistoricalBackfill`（実データの無い過去年をWeb検索で埋める。年1〜2件/回） |
+| `miyako-trends.ts` | miyako「直近の傾向」の部品。市の会議録一覧の解析（`parseMinutesList`＝ファイル名に規則が無いのでリンク文字列から会期名と日付を読む）・本文の整形（`normalizeMinutesText`＝空白・改行を全部詰める。バックフィルのスクリプトにも同じ処理がある）・D1（会期の状態・本文・バズ語・実行ログ。語の出現回数は `countTermsBySession` が SQL で数える）・OpenAI Vector Store（PDFの登録と、文字化された本文の取り出し） |
+| `miyako-trends-ai.ts` | miyako「直近の傾向」の AI 部分。本文を分けて「具体的な話題を表す語句」の候補を出させる（回数は数えさせない）。429 の待ち・残高切れで止める・崩れた JSON から書き切れた語を拾う・手続き語を落とす、までここで行う |
+| `miyako-trends-run.ts` | miyako「直近の傾向」の本処理。cron（毎月1日）と手動実行APIの両方から呼ぶ。会期を古い順に1段ずつ進め、バズ度（`scoreTerms`）を計算する。設計の理由は冒頭コメント |
 | `mlbstats.ts` | MLB Stats API呼び出し |
 | `fangraphs.ts` | FanGraphs API呼び出し |
 | `mlb-dev.ts` | MLBローカル開発用スタブ |

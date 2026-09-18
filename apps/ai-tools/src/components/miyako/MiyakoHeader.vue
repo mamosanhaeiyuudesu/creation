@@ -1,6 +1,8 @@
 <script setup lang="ts">
-defineProps<{
-  activePage: 'session' | 'member' | 'keyword' | 'network'
+type MiyakoPage = 'trend' | 'network' | 'session' | 'member' | 'keyword'
+
+const props = defineProps<{
+  activePage: MiyakoPage
 }>()
 
 const route = useRoute()
@@ -9,6 +11,18 @@ const base = computed(() => {
   if (route.path.startsWith('/miyako')) return '/miyako'
   return '/miyako'
 })
+
+// 全体像（ネットワーク図）はスマホでは開けない（network.vue が年で見るへ飛ばす）のでスマホのタブには出さない。
+// タブが5つになり、1279px以下ではタブを詰めて短い表記（mobileLabel）にしないと右端がはみ出す（実測: 1024pxでもはみ出した）
+const tabs = computed(() => [
+  { page: 'trend' as const, label: '直近の傾向', mobileLabel: '直近の傾向', to: base.value },
+  { page: 'network' as const, label: '全体像を見る', mobileLabel: '', to: `${base.value}/network` },
+  { page: 'session' as const, label: '年で見る', mobileLabel: '年で見る', to: `${base.value}/yearly` },
+  { page: 'member' as const, label: '議員で見る', mobileLabel: '議員で見る', to: `${base.value}/member` },
+  { page: 'keyword' as const, label: 'キーワードで見る', mobileLabel: 'キーワード', to: `${base.value}/keyword` },
+])
+const mobileTabs = computed(() => tabs.value.filter(t => t.mobileLabel))
+const isActive = (page: MiyakoPage) => props.activePage === page
 </script>
 
 <template>
@@ -31,57 +45,18 @@ const base = computed(() => {
 
         <!-- Desktop tabs (underline style) -->
         <div class="hidden md:flex items-stretch ml-1">
-          <NuxtLink
-            v-if="activePage !== 'network'"
-            :to="base"
-            class="tab-inactive group"
-          >
-            <span>全体像を見る</span>
-            <span class="tab-bar group-hover:opacity-50" />
-          </NuxtLink>
-          <span v-else class="tab-active">
-            <span>全体像を見る</span>
-            <span class="tab-bar opacity-100" />
-          </span>
-
-          <NuxtLink
-            v-if="activePage !== 'session'"
-            :to="`${base}/yearly`"
-            class="tab-inactive group border-l border-white/[0.06]"
-          >
-            <span>年で見る</span>
-            <span class="tab-bar group-hover:opacity-50" />
-          </NuxtLink>
-          <span v-else class="tab-active border-l border-white/[0.06]">
-            <span>年で見る</span>
-            <span class="tab-bar opacity-100" />
-          </span>
-
-          <NuxtLink
-            v-if="activePage !== 'member'"
-            :to="`${base}/member`"
-            class="tab-inactive group border-l border-white/[0.06]"
-          >
-            <span>議員で見る</span>
-            <span class="tab-bar group-hover:opacity-50" />
-          </NuxtLink>
-          <span v-else class="tab-active border-l border-white/[0.06]">
-            <span>議員で見る</span>
-            <span class="tab-bar opacity-100" />
-          </span>
-
-          <NuxtLink
-            v-if="activePage !== 'keyword'"
-            :to="`${base}/keyword`"
-            class="tab-inactive group border-l border-white/[0.06]"
-          >
-            <span>キーワードで見る</span>
-            <span class="tab-bar group-hover:opacity-50" />
-          </NuxtLink>
-          <span v-else class="tab-active border-l border-white/[0.06]">
-            <span>キーワードで見る</span>
-            <span class="tab-bar opacity-100" />
-          </span>
+          <template v-for="(tab, i) in tabs" :key="tab.page">
+            <span v-if="isActive(tab.page)" class="tab-active" :class="{ 'border-l border-white/[0.06]': i > 0 }">
+              <span class="hidden xl:inline">{{ tab.label }}</span>
+              <span class="xl:hidden">{{ tab.mobileLabel || tab.label }}</span>
+              <span class="tab-bar opacity-100" />
+            </span>
+            <NuxtLink v-else :to="tab.to" class="tab-inactive group" :class="{ 'border-l border-white/[0.06]': i > 0 }">
+              <span class="hidden xl:inline">{{ tab.label }}</span>
+              <span class="xl:hidden">{{ tab.mobileLabel || tab.label }}</span>
+              <span class="tab-bar group-hover:opacity-50" />
+            </NuxtLink>
+          </template>
         </div>
 
         <!-- Mobile: feedback icon only -->
@@ -105,7 +80,7 @@ const base = computed(() => {
             class="feedback-link"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            ご意見・お問い合わせ
+            <span class="hidden xl:inline">ご意見・お問い合わせ</span>
           </a>
           <slot />
         </div>
@@ -113,26 +88,10 @@ const base = computed(() => {
 
       <!-- Mobile tabs (second row) -->
       <div class="flex md:hidden border-t border-white/[0.07]">
-        <NuxtLink
-          v-if="activePage !== 'session'"
-          :to="`${base}/yearly`"
-          class="mobile-tab"
-        >年で見る</NuxtLink>
-        <span v-else class="mobile-tab mobile-tab-active">年で見る</span>
-
-        <NuxtLink
-          v-if="activePage !== 'member'"
-          :to="`${base}/member`"
-          class="mobile-tab border-l border-white/[0.07]"
-        >議員で見る</NuxtLink>
-        <span v-else class="mobile-tab mobile-tab-active border-l border-white/[0.07]">議員で見る</span>
-
-        <NuxtLink
-          v-if="activePage !== 'keyword'"
-          :to="`${base}/keyword`"
-          class="mobile-tab border-l border-white/[0.07]"
-        >キーワード</NuxtLink>
-        <span v-else class="mobile-tab mobile-tab-active border-l border-white/[0.07]">キーワード</span>
+        <template v-for="(tab, i) in mobileTabs" :key="tab.page">
+          <span v-if="isActive(tab.page)" class="mobile-tab mobile-tab-active" :class="{ 'border-l border-white/[0.07]': i > 0 }">{{ tab.mobileLabel }}</span>
+          <NuxtLink v-else :to="tab.to" class="mobile-tab" :class="{ 'border-l border-white/[0.07]': i > 0 }">{{ tab.mobileLabel }}</NuxtLink>
+        </template>
       </div>
     </div>
   </header>
@@ -181,6 +140,14 @@ const base = computed(() => {
   border-radius: 2px 2px 0 0;
   opacity: 0;
   transition: opacity 0.15s;
+}
+
+@media (max-width: 1279px) {
+  .tab-inactive,
+  .tab-active {
+    padding: 0 10px;
+    font-size: 13.5px;
+  }
 }
 
 .mobile-tab {

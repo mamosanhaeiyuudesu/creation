@@ -1,4 +1,5 @@
 import { callOpenAi, getOpenAiKey, extractText, wrapApiError } from '../../utils/openai'
+import { getAppDb } from '../../utils/auth'
 import fileIds from '../../data/miyako-file-ids.json'
 
 // "令和3年 第9回 定例会 2021-12-07〜2021-12-21" → "令和3年第9回定例会"
@@ -27,9 +28,23 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'session または sessions が必要です。' })
   }
 
-  const normalizedKeys = rawSessions
-    .map(normalizeKey)
-    .filter(k => (fileIds as Record<string, string>)[k])
+  // 最初の前処理で入れた会期は静的JSON、「直近の傾向」の cron が後から入れた会期は D1 にある
+  const keys = rawSessions.map(normalizeKey)
+  const known = new Set(keys.filter(k => (fileIds as Record<string, string>)[k]))
+  const unknown = keys.filter(k => !known.has(k))
+  const db = getAppDb(event)
+  if (unknown.length && db) {
+    try {
+      const res = await db
+        .prepare(`SELECT session_key FROM miyako_sessions WHERE file_id != '' AND session_key IN (${unknown.map(() => '?').join(',')})`)
+        .bind(...unknown)
+        .all()
+      for (const r of res?.results ?? []) known.add(r.session_key)
+    } catch {
+      // テーブル未作成の環境では静的JSONの会期だけで続ける
+    }
+  }
+  const normalizedKeys = keys.filter(k => known.has(k))
 
   if (!normalizedKeys.length) {
     throw createError({ statusCode: 404, statusMessage: '対象会期のファイルが見つかりません。' })

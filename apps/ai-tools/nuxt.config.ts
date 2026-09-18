@@ -89,7 +89,7 @@ gtag('config', 'G-JRBVTJYCEH');`,
     },
     scheduledTasks: {
       // wrangler.toml の [triggers] crons と同じ式にすること（片方だけ変えると動かない）
-      '0 7 * * *': ['mlb-sync'], // UTC 7:00 ＝ JST 16:00
+      '0 7 1 * *': ['miyako-trends'], // 毎月1日 UTC 7:00 ＝ JST 16:00（2026-09-18 に mlb-sync の枠を回した。mlb-sync は cron 未登録＝止めてある）
       '0 22 */3 * *': ['news-digest'], // UTC 22:00 ＝ JST 翌朝 7:00、3日に1回（day-of-monthステップでの近似）
       '15 22 */3 * *': ['news-trends'], // UTC 22:15 ＝ JST 翌朝 7:15（news-digestの15分後。subrequest予算を分けるため別呼び出しにしている）、3日に1回
       '0 23 */3 * *': ['farm-news-digest'], // UTC 23:00 ＝ JST 翌朝 8:00、3日に1回（news-digestと時刻をずらしている）

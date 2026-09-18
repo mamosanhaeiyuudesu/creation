@@ -1,14 +1,19 @@
 <script setup lang="ts">
+/**
+ * 会期のバズ語ワードクラウド（/miyako「直近の傾向」）。語の大きさ・色・並び順は呼び出し側で決め、
+ * ここでは大きい語から順に、中心から渦巻き状に空いている場所へ置いていくだけ。
+ * 高さは親の class で決める（このコンポーネントは親いっぱいに広がる）。
+ */
 interface WcWord {
   name: string
-  score: number
   size: number
   color: string
+  title?: string
 }
 
 const props = defineProps<{
-  session: string | null
   words: WcWord[]
+  selected?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -19,15 +24,25 @@ const wcContainerRef = ref<HTMLElement>()
 const wcPositions = ref<Record<string, { x: number; y: number }>>({})
 const wcReady = ref(false)
 
-watch(() => props.session, () => {
+watch(() => props.words, () => {
   wcReady.value = false
-  wcPositions.value = {}
-})
-
-watch(() => props.words, (words) => {
-  if (!words.length) return
   layoutWordcloud()
 }, { flush: 'post' })
+
+// 画面幅が変わったら並べ直す（初回の配置もここで走る）
+let observer: ResizeObserver | null = null
+let frame = 0
+onMounted(() => {
+  observer = new ResizeObserver(() => {
+    cancelAnimationFrame(frame)
+    frame = requestAnimationFrame(layoutWordcloud)
+  })
+  if (wcContainerRef.value) observer.observe(wcContainerRef.value)
+})
+onBeforeUnmount(() => {
+  observer?.disconnect()
+  cancelAnimationFrame(frame)
+})
 
 function layoutWordcloud() {
   const container = wcContainerRef.value
@@ -45,11 +60,10 @@ function layoutWordcloud() {
   const newPos: Record<string, { x: number; y: number }> = {}
   const boxes: { x: number; y: number; hw: number; hh: number }[] = []
 
-  for (let i = 0; i < spans.length; i++) {
-    const el = spans[i]
-    const hw = el.offsetWidth / 2 + 1
-    const hh = el.offsetHeight / 2 + 1
-    const name = words[i].name
+  for (const [i, el] of spans.entries()) {
+    const hw = el.offsetWidth / 2 + 3
+    const hh = el.offsetHeight / 2 + 2
+    const name = words[i]!.name
 
     if (i === 0) {
       newPos[name] = { x: cx, y: cy }
@@ -58,11 +72,12 @@ function layoutWordcloud() {
     }
 
     let px = cx, py = cy
-    for (let step = 0; step < 2000; step++) {
-      const theta = step * 0.12
-      const r = 1.5 * theta
+    let placed = false
+    for (let step = 0; step < 4000; step++) {
+      const theta = step * 0.1
+      const r = 1.2 * theta
       const x = cx + r * Math.cos(theta)
-      const y = cy + r * Math.sin(theta) * 0.65
+      const y = cy + r * Math.sin(theta) * (ch / cw)
       if (x - hw < 2 || x + hw > cw - 2) continue
       if (y - hh < 2 || y + hh > ch - 2) continue
       if (!boxes.some(b =>
@@ -70,35 +85,32 @@ function layoutWordcloud() {
         Math.abs(y - b.y) < hh + b.hh
       )) {
         px = x; py = y
+        placed = true
         break
       }
     }
+    // 入りきらなかった語は出さない（下のランキングには全部並ぶ）
+    if (!placed) continue
     newPos[name] = { x: px, y: py }
     boxes.push({ x: px, y: py, hw, hh })
   }
 
+  // 渦巻きは中心に固まるので、はみ出さない範囲で位置だけ広げて枠を使う（文字の大きさは変えない）。
+  // 広げすぎるとまばらに見えるので1.3倍まで
   let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity
-  for (let i = 0; i < spans.length; i++) {
-    const p = newPos[words[i].name]
-    const hw = spans[i].offsetWidth / 2
-    const hh = spans[i].offsetHeight / 2
-    left   = Math.min(left,   p.x - hw)
-    right  = Math.max(right,  p.x + hw)
-    top    = Math.min(top,    p.y - hh)
-    bottom = Math.max(bottom, p.y + hh)
+  for (const b of boxes) {
+    left = Math.min(left, b.x - b.hw)
+    right = Math.max(right, b.x + b.hw)
+    top = Math.min(top, b.y - b.hh)
+    bottom = Math.max(bottom, b.y + b.hh)
   }
-  const contentCx = (left + right) / 2
-  const contentCy = (top + bottom) / 2
-  const scaleX = (cw - 8) / (right - left)
-  const scaleY = (ch - 8) / (bottom - top)
-  const scale  = Math.min(scaleX, scaleY, 2.0)
-
-  if (scale > 1.05) {
+  const scale = Math.min((cw - 8) / (right - left), (ch - 8) / (bottom - top), 1.3)
+  if (scale > 1.02) {
+    const mx = (left + right) / 2
+    const my = (top + bottom) / 2
     for (const name in newPos) {
-      newPos[name] = {
-        x: cx + (newPos[name].x - contentCx) * scale,
-        y: cy + (newPos[name].y - contentCy) * scale,
-      }
+      const p = newPos[name]!
+      newPos[name] = { x: cx + (p.x - mx) * scale, y: cy + (p.y - my) * scale }
     }
   }
 
@@ -108,41 +120,23 @@ function layoutWordcloud() {
 </script>
 
 <template>
-  <div class="bg-white border border-[#dde2ef] rounded-[8px] shadow-[0_2px_8px_rgba(28,45,90,0.07),0_0_0_1px_rgba(28,45,90,0.04)] overflow-hidden">
-    <template v-if="session">
-      <div class="flex items-center gap-2 px-3.5 py-2 bg-white border-b border-[#dde2ef]" style="border-left: 3px solid #a5b4fc">
-        <span class="font-mono text-[8.5px] tracking-[0.18em] text-[#a5b4fc] uppercase shrink-0">Buzzwords</span>
-        <span class="text-[10px] text-[#dde2ef] shrink-0">|</span>
-        <span class="text-[11.5px] font-semibold text-[#1c2d5a] tracking-[0.01em] truncate min-w-0">{{ session.replace(/〜[\d-]+$/, '〜') }}</span>
-        <span v-if="words.length" class="ml-auto shrink-0 font-mono text-[9.5px] text-[#6878a8] bg-[#f0f2f8] px-1.5 py-[2px] rounded-[3px]">{{ words.length }}w</span>
-      </div>
-      <div class="p-0">
-        <div ref="wcContainerRef" class="wordcloud-container">
-          <span
-            v-for="item in words"
-            :key="item.name"
-            class="wc-word"
-            :style="{
-              fontSize: item.size + 'px',
-              color: item.color,
-              left: (wcPositions[item.name]?.x ?? 0) + 'px',
-              top: (wcPositions[item.name]?.y ?? 0) + 'px',
-              opacity: wcReady ? 1 : 0,
-            }"
-            :title="`バズ度: ${Math.min(10, Math.max(1, Math.round((item.score / (words[0]?.score || 1)) * 10)))}`"
-            @click="emit('word-click', item.name)"
-          >{{ item.name }}</span>
-        </div>
-      </div>
-    </template>
-
-    <div v-else class="flex flex-col items-center justify-center min-h-[160px] md:min-h-[280px] gap-3 p-6 text-center">
-      <div class="font-mono text-[10.5px] text-[#9aa3c0] leading-[1.8]">
-        <span class="text-[#c5cad8]">$ </span>select <span class="text-[#a5b4fc]/60">year</span> <span class="text-[#c5cad8]">from</span> heatmap<span class="blink">▋</span>
-      </div>
-      <p class="m-0 text-[11px] text-[#9aa3c0] hidden md:block">左のヒートマップで年をクリック</p>
-      <p class="m-0 text-[11px] text-[#9aa3c0] md:hidden">上のヒートマップで年をクリック</p>
-    </div>
+  <div ref="wcContainerRef" class="wordcloud-container">
+    <button
+      v-for="item in words"
+      :key="item.name"
+      type="button"
+      class="wc-word"
+      :class="{ 'wc-selected': selected === item.name, 'wc-dim': selected && selected !== item.name }"
+      :style="{
+        fontSize: item.size + 'px',
+        color: item.color,
+        left: (wcPositions[item.name]?.x ?? 0) + 'px',
+        top: (wcPositions[item.name]?.y ?? 0) + 'px',
+        visibility: wcReady && wcPositions[item.name] ? 'visible' : 'hidden',
+      }"
+      :title="item.title ?? item.name"
+      @click="emit('word-click', item.name)"
+    >{{ item.name }}</button>
   </div>
 </template>
 
@@ -150,36 +144,39 @@ function layoutWordcloud() {
 .wordcloud-container {
   position: relative;
   width: 100%;
-  height: 260px;
+  height: 100%;
   overflow: hidden;
-}
-
-@media (min-width: 768px) {
-  .wordcloud-container {
-    height: 220px;
-  }
 }
 
 .wc-word {
   position: absolute;
   transform: translate(-50%, -50%);
+  padding: 0;
+  border: 0;
+  background: none;
   cursor: pointer;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
-  transition: opacity 0.25s;
+  border-radius: 3px;
+  transition: opacity 0.2s, background-color 0.2s;
 }
 
 .wc-word:hover {
-  opacity: 0.55 !important;
+  opacity: 0.6;
 }
 
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+.wc-word:focus-visible {
+  outline: 2px solid #a5b4fc;
+  outline-offset: 2px;
 }
-.blink {
-  animation: blink 1.1s step-end infinite;
-  color: #a5b4fc;
+
+.wc-dim {
+  opacity: 0.35;
+}
+
+.wc-selected {
+  opacity: 1;
+  background-color: rgba(165, 180, 252, 0.22);
 }
 </style>

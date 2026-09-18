@@ -646,7 +646,8 @@
                 <span class="feature-dot"></span>
                 <div class="feature-text">
                   <strong>内容の確認・修正も、その場でかんたんに</strong>
-                  出来上がった議事録はレビュー画面でそのまま編集できます。「〇〇さんを△△さんに直して」のように指示するだけで、AIが議事録全体を書き直すこともできます。
+                  出来上がった議事録はレビュー画面でそのまま編集できます。画面のいちばん上には、AIが聞き取れなかったところや自信が持てなかったところをAI自身が書き出すので、どこから確かめればいいかがすぐにわかります。「〇〇さんを△△さんに直して」のように指示するだけで、AIが議事録全体を書き直すこともできます。
+                  <img src="/images/kikigaki-review.png" alt="議事録のレビュー・編集画面のスクリーンショット" class="feature-screenshot" @click="openLightbox('/images/kikigaki-review.png', '議事録のレビュー・編集画面のスクリーンショット')" />
                 </div>
               </div>
               <div class="portfolio-feature">
