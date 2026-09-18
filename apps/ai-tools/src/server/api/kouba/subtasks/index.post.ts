@@ -19,5 +19,5 @@ export default defineEventHandler(async (event): Promise<KoubaSubtask> => {
     .bind(id, user.id, title, sortOrder, createdAt)
     .run()
 
-  return { id, title, createdAt }
+  return { id, title, createdAt, done: false }
 })

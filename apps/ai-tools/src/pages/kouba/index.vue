@@ -61,6 +61,7 @@ const showThemeHistory = ref(false)
 const {
   subtasks, loading: subtasksLoading, saving: subtasksSaving, error: subtasksError,
   load: loadSubtasks, add: addSubtask, rename: renameSubtask, remove: removeSubtaskItem, reorder: reorderSubtasks,
+  toggleDone: toggleSubtaskDone,
 } = useKoubaSubtasks()
 
 /** スマホ（sm未満）だけで使うタブ。PCは常にサイドバー＋ジョブ側の両方を表示するので参照しない。 */
@@ -549,6 +550,7 @@ onBeforeUnmount(() => {
               @rename="({ id, title }) => renameSubtask(id, title)"
               @delete="askDeleteSubtask"
               @reorder="reorderSubtasks"
+              @toggle-done="({ id, done }) => toggleSubtaskDone(id, done)"
             />
           </aside>
 

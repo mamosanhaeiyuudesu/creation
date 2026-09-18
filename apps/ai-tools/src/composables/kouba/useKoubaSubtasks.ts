@@ -3,7 +3,8 @@ import type { KoubaSubtask } from '~/types/kouba'
 
 /**
  * kouba の「サブタスク」一覧（板・テーマ・達成したこととは無関係な、名前だけのTODOリスト）。
- * ドラッグ&ドロップで並べ替えられる。ジョブ・タスクへの紐付けは一切持たない。
+ * ドラッグ&ドロップ、または行の上下ボタンで並べ替えられる。チェックを入れると完了になり一覧下部へ移動する
+ * （`toggleDone`）。ジョブ・タスクへの紐付けは一切持たない。
  */
 export function useKoubaSubtasks() {
   const subtasks = ref<KoubaSubtask[]>([])
@@ -48,6 +49,23 @@ export function useKoubaSubtasks() {
     }
   }
 
+  /**
+   * 完了(done)の切り替え。チェックを入れると一覧下部の「完了済み」へ移動する（表示側の並び替えのみ）。
+   * 手元を先に書き換えてから保存し、失敗したら元に戻す（rename と同じパターン）。
+   */
+  async function toggleDone(id: string, done: boolean) {
+    error.value = ''
+    const target = subtasks.value.find((s) => s.id === id)
+    const prev = target?.done
+    if (target) target.done = done
+    try {
+      await $fetch(`/api/kouba/subtasks/${id}`, { method: 'PATCH', body: { done } })
+    } catch (e: any) {
+      if (target && prev !== undefined) target.done = prev
+      error.value = e?.data?.message || '保存に失敗しました'
+    }
+  }
+
   async function remove(id: string) {
     error.value = ''
     try {
@@ -77,5 +95,5 @@ export function useKoubaSubtasks() {
     }
   }
 
-  return { subtasks, loading, saving, error, load, add, rename, remove, reorder }
+  return { subtasks, loading, saving, error, load, add, rename, remove, reorder, toggleDone }
 }

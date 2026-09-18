@@ -105,6 +105,7 @@ export async function ensureKoubaTables(db: any): Promise<void> {
       user_id TEXT NOT NULL,
       title TEXT NOT NULL DEFAULT '',
       sort_order INTEGER NOT NULL DEFAULT 0,
+      done INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
     `CREATE INDEX IF NOT EXISTS idx_kouba_task_subtasks_user ON kouba_task_subtasks(user_id, sort_order ASC)`,
@@ -121,6 +122,7 @@ export async function ensureKoubaTables(db: any): Promise<void> {
     `ALTER TABLE kouba_categories ADD COLUMN description TEXT NOT NULL DEFAULT ''`,
     `ALTER TABLE kouba_tasks ADD COLUMN description TEXT NOT NULL DEFAULT ''`,
     `ALTER TABLE kouba_subtasks ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE kouba_task_subtasks ADD COLUMN done INTEGER NOT NULL DEFAULT 0`,
   ]
   for (const sql of columns) await db.prepare(sql).run().catch(() => {})
 
@@ -229,10 +231,11 @@ interface SubtaskRow {
   id: string
   title: string
   created_at: string
+  done: number
 }
 
 function shapeSubtask(row: SubtaskRow): KoubaSubtask {
-  return { id: row.id, title: row.title, createdAt: row.created_at }
+  return { id: row.id, title: row.title, createdAt: row.created_at, done: !!row.done }
 }
 
 function shapeTask(row: TaskRow): KoubaTask {
@@ -385,13 +388,23 @@ export async function findOwnedSubtaskItem(db: any, userId: string, subtaskId: s
   return row ? { id: row.id } : null
 }
 
-/** サブタスクの一覧（並び順どおり）。板とは無関係の独立したTODOリスト。 */
+/**
+ * サブタスクの一覧。板とは無関係の独立したTODOリスト。**未完了(done=0)を先に、完了(done=1)を後ろに**まとめて
+ * 返す（`done ASC` が先頭のORDER BY）＝完了済みは常に一覧の下、UI側は `done` で分けて後段の折りたたみへ回す。
+ * 各グループの中は `sort_order ASC, created_at ASC`（ドラッグ&ドロップ・上下ボタンでの並べ替えはこの
+ * `sort_order` を書き換える。完了済みグループは並べ替えの対象外なので、完了にした時点の値のまま動かない）。
+ */
 export async function loadSubtaskList(db: any, userId: string): Promise<KoubaSubtask[]> {
   const rows = await db
-    .prepare('SELECT id, title, created_at FROM kouba_task_subtasks WHERE user_id = ? ORDER BY sort_order ASC, created_at ASC')
+    .prepare('SELECT id, title, created_at, done FROM kouba_task_subtasks WHERE user_id = ? ORDER BY done ASC, sort_order ASC, created_at ASC')
     .bind(userId)
     .all<SubtaskRow>()
   return (rows?.results ?? []).map(shapeSubtask)
+}
+
+/** サブタスクの完了(done)を切り替える。sort_orderは変えない（`loadSubtaskList`のdoneグループ分けだけで表示が動く）。 */
+export async function setSubtaskItemDone(db: any, subtaskId: string, done: boolean): Promise<void> {
+  await db.prepare('UPDATE kouba_task_subtasks SET done = ? WHERE id = ?').bind(done ? 1 : 0, subtaskId).run()
 }
 
 /**
