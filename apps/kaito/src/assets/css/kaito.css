@@ -142,6 +142,13 @@ body.home h6 {
   font-weight: 600;
 }
 
+/* ページ内ではなく別サイト（note）へ出るリンクなので、矢印で区別する */
+.global-nav .nav-external::after {
+  content: '↗';
+  margin-left: 4px;
+  font-size: 0.8em;
+}
+
 .nav-toggle-label {
   display: none;
   width: 44px;
@@ -212,21 +219,30 @@ body.home h6 {
 
 /* PCで横に間延びしないよう、読み幅で止めて中央に置く（hareruya の .hero-inner と同じ） */
 .hero-inner {
-  max-width: 700px;
+  /* 見出し・呼びかけ・一言を大きくしても、PCでは1行に収まる幅 */
+  max-width: 800px;
   margin: 0 auto;
   padding: 0 24px 24px;
   text-align: center;
 }
 
 /*
- * ヒーローは ①問いかけ → ②宣言 の2段構成。
- * ①の背後に写真を画面幅いっぱいの帯として敷き、白のベールを重ねて気配だけ残す
+ * ヒーローは、背後に写真を画面幅いっぱいの帯として敷き、白のベールを重ねて気配だけ残す
  * （hareruya の .hero-catch::before と同じ作り）。写真のパスは site.ts から --hero-image で渡る。
+ * 見出し・呼びかけ・一言はその上に重ねる。
  */
 .hero-question {
   position: relative;
   z-index: 0;
+  box-sizing: border-box;
   padding: 76px 20px 68px;
+  /* 以前の帯（約284px）の1.5倍。写真を縦に広げて海まで見せ、文字は帯の中央に置く */
+  min-height: 426px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* 呼びかけ（.hero-lead）と一言（.hero-sub）の文字の大きさ。26px の1.5倍の8割 */
+  --hero-text-size: 1.95rem;
 }
 
 .hero-question::before {
@@ -240,8 +256,8 @@ body.home h6 {
   z-index: -1;
   /*
    * 中央（＝文字が乗るところ）だけ白を残して可読性を確保し、
-   * 外側はベールをほぼ外して海と島をはっきり見せる。
-   * 縦位置の写真なので、帯に海と島が入るよう 52% を中心にする。
+   * 外側はベールをほぼ外して海をはっきり見せる。
+   * 縦位置の写真なので、帯に女性の髪・腕と水平線、その下の海が入るよう 42% を中心にする。
    */
   background-image:
     radial-gradient(ellipse 50% 76% at 50% 50%,
@@ -249,67 +265,50 @@ body.home h6 {
       rgba(255, 255, 255, 0.06) 100%),
     var(--hero-image);
   background-size: auto, cover;
-  background-position: center, center 52%;
+  background-position: center, center 42%;
   background-repeat: no-repeat;
-  /* 海の青と島の緑を出すため、彩度とコントラストを少し上げる */
+  /* 海の青を出すため、彩度とコントラストを少し上げる */
   filter: saturate(1.22) contrast(1.08);
   pointer-events: none;
 }
 
 /* ベールを薄くした分、文字側の白ハローを厚くして可読性を保つ */
 .hero-question h1,
-.hero-question .hero-lead {
+.hero-question .hero-lead,
+.hero-question .hero-sub {
   text-shadow:
     0 1px 3px rgba(255, 255, 255, 0.95),
     0 1px 14px rgba(255, 255, 255, 0.9);
 }
 
+/* 大きい文字が文節の途中で折り返さないよう、文節ごとにひとまとまりにする */
+.hero-question h1 span,
+.hero-lead span,
+.hero-sub span {
+  display: inline-block;
+}
+
 .hero-question h1 {
-  font-size: clamp(1.7rem, 3.6vw, 2.5rem);
+  font-size: clamp(2.55rem, 5.4vw, 3.75rem);
   font-weight: 400;
   margin: 0 0 26px;
   letter-spacing: 0.04em;
   line-height: 1.6;
-  /* 帯の中で左上に寄せる（下のリード文は逆に右へ寄せて対比をつける） */
-  transform: translate(-54px, -30px);
 }
 
-/* 中央寄せの帯の中では、左の縦線より行間で見せたほうが収まる */
-.hero-lead {
-  font-size: 1.625rem;
-  /* 16px + 10px */
+/* 呼びかけ（.hero-lead）と一言（.hero-sub）は、書体・太さ・行間・字間・色・大きさをすべて同じにする */
+.hero-lead,
+.hero-sub {
+  font-size: var(--hero-text-size);
+  /* 中央寄せの帯の中では、左の縦線より行間で見せたほうが収まる */
   line-height: 1.85;
   color: #3d5252;
   margin: 0;
-  /* 見出しを左に寄せた分、こちらは右へ */
-  transform: translateX(18px);
 }
 
-.hero-statement {
-  max-width: 560px;
-  margin: 36px auto 0;
-  padding: 28px 26px 26px;
-  border-radius: var(--radius-medium);
-  background: linear-gradient(140deg, rgba(255, 255, 255, 0.9), rgba(232, 246, 246, 0.72));
-  border: 1px solid rgba(56, 163, 165, 0.16);
-  box-shadow: var(--shadow-card);
-}
-
-.hero-statement-main {
-  font-family: var(--f-serif);
-  font-size: clamp(1.08rem, 2.1vw, 1.26rem);
-  font-weight: 500;
-  line-height: 1.95;
-  letter-spacing: 0.03em;
-  color: #1d4040;
-  margin: 0 0 16px;
-}
-
-.hero-statement-sub {
-  margin: 0;
-  font-size: 0.94rem;
-  line-height: 1.95;
-  color: #4a6262;
+/* 呼びかけの下に一言を添える */
+.hero-sub {
+  margin-top: 18px;
 }
 
 /* ===== セクション共通 ===== */
@@ -692,12 +691,41 @@ body.home h6 {
   color: #1d4040;
 }
 
+/* 1列目（プラン名）は、金額欄に押されて「プラ/ン」のように割れないよう折り返さない */
+.pricing-table th:first-child,
+.pricing-table td:first-child {
+  white-space: nowrap;
+}
+
 /* 金額は等幅で桁を揃える（漢字部分は本文フォントにフォールバック） */
 .pricing-table td:last-child {
   font-family: var(--f-mono);
   font-weight: 500;
   color: var(--color-primary-dark);
   white-space: nowrap;
+}
+
+/* 料金欄。上段に通常料金（取り消し線）、その下にキャンペーン価格・初回モニター価格 */
+.pricing-table .price-regular {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+/* 価格名と金額を横に並べる。幅が足りないスマホでは金額が下の行に回る */
+.pricing-table .price-now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+  margin-top: 6px;
+}
+
+.pricing-table .price-label {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--color-muted);
 }
 
 /* 専門用語の言い換え注記。本文より一段落として、読み飛ばせるようにする */
@@ -846,6 +874,16 @@ body.home h6 {
   color: var(--color-primary-dark);
 }
 
+/* 感想の元になった記事へのリンク */
+.testimonial-card .testimonial-source {
+  font-size: 0.9rem;
+}
+
+.testimonial-card .testimonial-source a {
+  color: var(--color-primary-dark);
+  text-underline-offset: 3px;
+}
+
 /* ===== よくある質問 ===== */
 
 .faq-list {
@@ -940,7 +978,8 @@ body.home h6 {
   text-decoration: underline;
 }
 
-@media (max-width: 900px) {
+/* ナビ（7項目）とロゴ・お問い合わせが1行に収まるのは約1044px以上。それより狭いときはメニューを畳む */
+@media (max-width: 1059px) {
   .nav-container {
     position: relative;
   }
@@ -983,21 +1022,13 @@ body.home h6 {
 @media (max-width: 640px) {
   .hero-question {
     padding: 52px 4px 46px;
+    /* 文字だけの高さ（約247px）の1.5倍 */
+    min-height: 370px;
+    --hero-text-size: 1.65rem;
   }
 
-  /* 画面が狭いと端に寄りすぎるので、ずらし幅を詰める */
   .hero-question h1 {
-    font-size: 1.575rem;
-    transform: translate(-14px, -16px);
-  }
-
-  .hero-lead {
-    font-size: 1.375rem;
-    transform: translateX(8px);
-  }
-
-  .hero-statement {
-    padding: 22px 20px 20px;
+    font-size: 2.3625rem;
   }
 
   .section-inner {
@@ -1043,6 +1074,12 @@ body.home h6 {
     padding: 9px 12px;
     font-size: 0.82rem;
   }
+
+  /* 価格名と金額が横に収まらない幅なので、どちらも価格名の下に金額を置いてそろえる */
+  .pricing-table .price-now {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 @media (min-width: 860px) {
@@ -1064,7 +1101,7 @@ body.home h6 {
   }
 }
 
-@media (min-width: 960px) {
+@media (min-width: 1060px) {
   .nav-container {
     padding: 16px 20px;
     gap: 12px;

@@ -15,12 +15,18 @@ export const site = {
   contactFormUrl: '',
 
   /**
-   * 写真。フリー素材（Unsplash・商用利用可）の仮画像。
+   * note のアカウント。ヘッダーのナビから別タブで開く。
+   * 空文字にすると、ヘッダーのリンクは出さない。
+   */
+  noteUrl: 'https://note.com/nijiironohane',
+
+  /**
+   * 写真。仮の画像。
    * 本番の写真が用意できたら src/public/images/ に置いて、このパスを差し替える。
    * （セラピーのスタイルは写真ではなく KaitoScene.vue の手描きイラストを使っている）
    */
   images: {
-    /** ヒーロー背景に帯として敷く写真（沖縄の海） */
-    hero: '/images/hero-okinawa.jpg',
+    /** ヒーロー背景に帯として敷く写真（海辺で両手をひろげる女性） */
+    hero: '/images/hero-ocean.jpg',
   },
 } as const

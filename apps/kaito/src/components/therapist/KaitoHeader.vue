@@ -23,6 +23,15 @@
           :class="{ 'is-active': activeId === item.id }"
           @click="closeNav"
         >{{ item.label }}</a>
+        <a
+          v-if="site.noteUrl"
+          class="nav-external"
+          :href="site.noteUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="note（別タブで開きます）"
+          @click="closeNav"
+        >note</a>
       </nav>
       <a
         class="cta-link"

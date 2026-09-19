@@ -3,22 +3,16 @@
     <TherapistKaitoHeader />
 
     <main>
-      <!-- ヒーロー: ①問いかけ → ②宣言 の2段構成。①の背後に写真を帯として敷く -->
+      <!-- ヒーロー: 写真を帯として背後に敷き、その上に見出し・呼びかけ・一言を重ねる。span は文節の途中で折り返さないための区切り -->
       <section id="top" class="home-hero">
         <div class="hero-inner">
-          <!-- ① 問いかけ -->
           <div class="hero-question" :style="{ '--hero-image': `url('${site.images.hero}')` }">
-            <h1>本来の自分を思い出す場所</h1>
+            <h1><span>本来のあなたに</span><span>還る場所</span></h1>
             <p class="hero-lead">
-             あなたのストーリーを聞かせて下さい。
+              <span>あなたの心を</span><span>うるおして</span><span>あげませんか？</span>
             </p>
-          </div>
-
-          <!-- ② 宣言 -->
-          <div class="hero-statement">
-            <p class="hero-statement-main">
-              ここではあなたの心の声に寄り添います。<br />
-              本当はどんなあなたになりたいですか？
+            <p class="hero-sub">
+              <span>ここでは</span><span>あなたの心の声に</span><span>寄り添います。</span>
             </p>
           </div>
         </div>
@@ -86,7 +80,7 @@
 
             <article class="style-card has-photo is-photo-right">
               <figure class="style-photo">
-                <img src="/images/style-shine-ocean.jpg" alt="海辺で両手をひろげ、光に向かって歩く女性" />
+                <img src="/images/style-shine-light.jpg" alt="両手をひろげて笑う女性のまわりに、金色の光と白い蝶が舞っている" />
               </figure>
               <div class="style-body">
               <h3>可能性のない人なんていない</h3>
@@ -152,13 +146,18 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td>単発</td><td>30,000円/回</td></tr>
-                <tr><td>5回コース（3ヶ月）</td><td>110,000円</td></tr>
-                <tr><td>15回コース（9ヶ月）</td><td>240,000円</td></tr>
+                <tr>
+                  <td>単発</td>
+                  <td>
+                    <span class="price-regular">通常 <s>30,000円/回</s></span>
+                    <span class="price-now"><span class="price-label">キャンペーン価格</span>10,000円/回</span>
+                    <span class="price-now"><span class="price-label">初回モニター価格</span>5,000円</span>
+                  </td>
+                </tr>
               </tbody>
             </table>
             <p class="note-text">
-              まずは単発で試して、ご自身に合うか確かめていただいて構いません。コースがあるのは、一度の気づきで終わらせず、日常に戻ったあとの揺り戻しまで一緒に見ていくためです。
+              まずは単発で試して、ご自身に合うか確かめていただいて構いません。
             </p>
           </div>
 
@@ -186,9 +185,14 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td>単発</td><td>30,000円/回</td></tr>
-                <tr><td>5回コース（3ヶ月）</td><td>110,000円</td></tr>
-                <tr><td>15回コース（9ヶ月）</td><td>240,000円</td></tr>
+                <tr>
+                  <td>単発</td>
+                  <td>
+                    <span class="price-regular">通常 <s>30,000円/回</s></span>
+                    <span class="price-now"><span class="price-label">キャンペーン価格</span>10,000円/回</span>
+                    <span class="price-now"><span class="price-label">初回モニター価格</span>5,000円</span>
+                  </td>
+                </tr>
               </tbody>
             </table>
 
@@ -206,7 +210,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td>全6回</td><td>150,000円</td></tr>
+                  <tr><td>全6回</td><td>300,000円</td></tr>
                 </tbody>
               </table>
             </div>
@@ -235,9 +239,14 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td>単発</td><td>30,000円/回</td></tr>
-                <tr><td>5回コース（3ヶ月）</td><td>110,000円</td></tr>
-                <tr><td>15回コース（9ヶ月）</td><td>240,000円</td></tr>
+                <tr>
+                  <td>単発</td>
+                  <td>
+                    <span class="price-regular">通常 <s>30,000円/回</s></span>
+                    <span class="price-now"><span class="price-label">キャンペーン価格</span>10,000円/回</span>
+                    <span class="price-now"><span class="price-label">初回モニター価格</span>5,000円</span>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -306,7 +315,7 @@
             <article class="testimonial-card">
               <h3 class="testimonial-name">
                 <TherapistKaitoAvatar :variant="4" />
-                <span>50代Jさん</span>
+                <span>ブロック解放セラピー・50代Jさん</span>
               </h3>
               <p class="testimonial-title">「安心して、ありのままを話せる場所でした」</p>
               <p>
@@ -326,6 +335,44 @@
               </p>
               <p>
                 人としても尊敬できて、見習いたい方です。
+              </p>
+            </article>
+
+            <article class="testimonial-card">
+              <h3 class="testimonial-name">
+                <TherapistKaitoAvatar :variant="5" />
+                <span>ブロック解放セラピー・40代男性Uさん</span>
+              </h3>
+              <p>
+                <span class="flow-label">なおの記録</span>
+                大切なご友人が厳しい状況にあり、「何がこんなに苦しいのか、自分でもよくわからない」という状態でセッションを受けてくださいました。<br />
+                進めるうちに、死への恐怖、後悔、罪悪感、無力感が溢れてきました。感情を丁寧に見つめていくと、いちばん深くにあったのは「死そのものへの恐怖」でした。<br />
+                その感情を解放していくと、変わっていくご友人を拒絶することなく受け入れている自分がいる、という気づきが生まれました。それはまさに「愛」そのものだと気づかれ、静かでやさしい涙が流れました。
+              </p>
+              <p>
+                <span class="flow-label">Uさんの言葉</span>
+                「愛に完璧はない」——セッションの中で、何度も口にした言葉です。<br />
+                「完璧ではないからこそ、人は伝えようとする。怯えたり、不安になったりしながらも、人は様々な関係を持っていく。でも、それでいいのだと思いました。」<br />
+                セッションのあとには、「愛に包まれたセッションでした。」というメッセージをいただきました。
+              </p>
+              <p class="testimonial-source">
+                <a href="https://note.com/nijiironohane/n/necbe1a6ca091" target="_blank" rel="noopener noreferrer">セッションの記録の全文を note で読む</a>
+              </p>
+            </article>
+
+            <article class="testimonial-card">
+              <h3 class="testimonial-name">
+                <TherapistKaitoAvatar :variant="6" />
+                <span>ヒーリング・40代男性Aさん</span>
+              </h3>
+              <p>
+                友人が私の病状のことをナオさんに相談してくれて、こうして感謝をお伝えできたことが、本当によかったです。遠隔からもエネルギーを送ってくださったとのことで、その思いにお礼を言いたかったのです。
+              </p>
+              <p>
+                実際に、抗がん剤治療中も、副作用でそこまで苦しむことなく日常生活を送れています。ナオさんはじめ、たくさんの方の想いのおかげだと実感しています。
+              </p>
+              <p class="testimonial-source">
+                <a href="https://note.com/nijiironohane/n/n5ec127974633" target="_blank" rel="noopener noreferrer">ヒーリングの記録の全文を note で読む</a>
               </p>
             </article>
           </div>
@@ -359,7 +406,7 @@
             <div class="faq-item">
               <h3>Q. まず1回だけ受けてみることはできますか？</h3>
               <p>
-                できます。単発でお試しいただき、合いそうだと感じられたらコースをご検討ください。無理におすすめすることはありません。
+                できます。単発でお試しいただき、合いそうだと感じられたら、またご予約ください。無理におすすめすることはありません。
               </p>
             </div>
 
@@ -634,10 +681,10 @@ definePageMeta({ layout: 'therapist' })
 
 useHead({
   bodyAttrs: { class: 'home' },
-  title: '月ノ瀬 直 | 本来の自分を思い出す場所',
+  title: '月ノ瀬 直 | 本来のあなたに還る場所',
   meta: [
-    { name: 'description', content: '本来の自分を思い出す場所。おしゃべりカウンセリングとレムリアンヒーリングで、あなたの心の声に寄り添います。セラピスト 月ノ瀬 直。' },
-    { property: 'og:title', content: '月ノ瀬 直 | 本来の自分を思い出す場所' },
+    { name: 'description', content: '本来のあなたに還る場所。おしゃべりカウンセリングとレムリアンヒーリングで、あなたの心の声に寄り添います。セラピスト 月ノ瀬 直。' },
+    { property: 'og:title', content: '月ノ瀬 直 | 本来のあなたに還る場所' },
     { property: 'og:description', content: 'フタをしてしまった想いや感情を解放し、本来の自分を思い出すお手伝いをします。' },
   ],
   link: [

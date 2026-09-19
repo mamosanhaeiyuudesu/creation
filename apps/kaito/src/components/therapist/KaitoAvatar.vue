@@ -23,14 +23,14 @@
       <rect x="12.5" y="26" width="7" height="28" rx="3.5" :fill="theme.hair" />
       <rect x="44.5" y="26" width="7" height="28" rx="3.5" :fill="theme.hair" />
     </template>
-    <template v-else-if="variant !== 4">
+    <template v-else-if="!isShortHair">
       <rect x="13.5" y="26" width="6" height="20" rx="3" :fill="theme.hair" />
       <rect x="44.5" y="26" width="6" height="20" rx="3" :fill="theme.hair" />
     </template>
 
     <!-- 髪（前髪） -->
     <path
-      v-if="variant === 4"
+      v-if="isShortHair"
       d="M15 31a17 17 0 0 1 34 0c-1-7-6-11-10-8-4 2-8 2-11 0-4-2-8 3-9 8Z"
       :fill="theme.hair"
     />
@@ -84,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ variant: 1 | 2 | 3 | 4 }>()
+const props = defineProps<{ variant: 1 | 2 | 3 | 4 | 5 | 6 }>()
 
 /** 地の色・髪・服。海と砂浜の配色から取っている */
 const themes = {
@@ -92,7 +92,12 @@ const themes = {
   2: { bg: '#dcedf7', hair: '#41393a', cloth: '#a9dfe2' },
   3: { bg: '#f7e8d4', hair: '#8a6247', cloth: '#ffe1ea' },
   4: { bg: '#d9eee2', hair: '#6b4a3c', cloth: '#cfe8ea' },
+  5: { bg: '#dfe6f4', hair: '#38363d', cloth: '#b8cbe6' },
+  6: { bg: '#e6efdc', hair: '#4a3b32', cloth: '#d2e2c6' },
 } as const
+
+/** 4・5・6 は横髪のない短い髪 */
+const isShortHair = computed(() => props.variant >= 4)
 
 const theme = computed(() => themes[props.variant])
 </script>
