@@ -838,6 +838,14 @@ body.home h6 {
   margin-top: 16px !important;
 }
 
+/* 長めの感想につける一行の見出し */
+.testimonial-card .testimonial-title {
+  font-size: 1.02rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--color-primary-dark);
+}
+
 /* ===== よくある質問 ===== */
 
 .faq-list {
