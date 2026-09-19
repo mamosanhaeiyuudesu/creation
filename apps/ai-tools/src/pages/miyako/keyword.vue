@@ -90,7 +90,11 @@ onMounted(async () => {
   <div class="min-h-screen page-bg">
     <MiyakoHeader active-page="keyword" />
 
-    <div class="max-w-[1400px] mx-auto px-3 md:px-6 pt-6 pb-8">
+    <div class="max-w-[1400px] mx-auto px-3 md:px-6 pt-[11px] pb-8">
+
+      <div class="flex justify-end mb-2.5">
+        <MiyakoDataPeriod kind="live" />
+      </div>
 
       <!-- 検索バー -->
       <div class="flex gap-2 mb-7 items-center justify-center">

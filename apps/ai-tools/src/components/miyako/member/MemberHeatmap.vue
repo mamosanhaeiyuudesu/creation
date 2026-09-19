@@ -128,7 +128,7 @@ defineExpose({ render })
 
 <template>
   <div class="bg-white border border-[#dde2ef] rounded-[8px] shadow-[0_2px_8px_rgba(28,45,90,0.07),0_0_0_1px_rgba(28,45,90,0.04)] overflow-hidden w-full min-w-0">
-    <div class="flex items-center gap-2 px-3.5 py-2 border-b border-[#dde2ef] bg-white">
+    <div class="flex items-center flex-wrap gap-2 px-3.5 py-2 border-b border-[#dde2ef] bg-white">
       <span class="font-mono text-[8.5px] tracking-[0.2em] text-[#9aa3c0] uppercase shrink-0 pr-2.5 border-r border-[#e8ecf5]">Term</span>
       <div class="flex items-center gap-1 flex-wrap">
         <button
@@ -141,6 +141,7 @@ defineExpose({ render })
           @click="emit('update:filterTerm', opt.term)"
         >{{ opt.term }}期<span class="text-[9.5px] font-normal opacity-70">（{{ opt.count }}）</span></button>
       </div>
+      <MiyakoDataPeriod kind="static" class="ml-auto" />
     </div>
     <div class="w-full overflow-x-auto overflow-y-auto max-h-[45vh] md:max-h-[600px] p-0.5 md:p-1.5" style="-webkit-overflow-scrolling: touch">
       <div ref="heatmapRef" class="inline-block" style="min-width: min-content" />

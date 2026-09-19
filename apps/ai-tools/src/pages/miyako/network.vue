@@ -356,9 +356,12 @@ watch(selectedCategory, () => {
           @click="selectedCategory = cat"
         >{{ CATEGORY_SHORT[cat] ?? cat }}</button>
 
-        <span class="ml-auto font-mono text-[9.5px] text-[#9aa3c0] tracking-[0.1em] shrink-0">
-          {{ graphStats.nodes }} 語 · {{ graphStats.edges }} 接続
-        </span>
+        <div class="ml-auto flex items-center gap-3 shrink-0">
+          <MiyakoDataPeriod kind="static" />
+          <span class="font-mono text-[9.5px] text-[#9aa3c0] tracking-[0.1em]">
+            {{ graphStats.nodes }} 語 · {{ graphStats.edges }} 接続
+          </span>
+        </div>
       </div>
 
       <!-- Two-column content -->
