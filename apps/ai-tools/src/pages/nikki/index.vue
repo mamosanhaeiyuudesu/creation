@@ -4,7 +4,7 @@
     <header class="flex items-start justify-between gap-3 mb-5">
       <div>
         <h1 class="nk-serif m-0 text-[26px] leading-none">nikki</h1>
-        <p class="mt-2 mb-0 text-[12.5px] text-[var(--nk-ink-soft)] leading-relaxed">
+        <p class="hidden sm:block mt-2 mb-0 text-[12.5px] text-[var(--nk-ink-soft)] leading-relaxed">
           カレンダーの日を選んで、話すか書くかするだけ。
           あとで読み返したときに手応えの残ることだけを拾って並べます。
         </p>
@@ -32,28 +32,46 @@
         />
       </div>
 
-      <div class="flex flex-col gap-6">
-        <NikkiMonthCalendar
-          :month="month"
-          :marks="marks"
-          :events="monthEvents"
-          :today="today"
-          :selected="selectedDate"
-          :loading="monthLoading"
-          :has-calendars="status.calendarIds.length > 0"
-          @select="openDay"
-          @shift="shiftMonth"
-          @go-today="month = today.slice(0, 7)"
-        />
+      <!-- スマホは画面が狭いのでタブで切り替え。PCは常に両方並べて表示する -->
+      <div class="flex gap-2 mb-4 sm:hidden">
+        <button
+          class="flex-1"
+          :class="mobileView === 'calendar' ? 'nk-btn' : 'nk-btn-ghost'"
+          @click="mobileView = 'calendar'"
+        >カレンダー</button>
+        <button
+          class="flex-1"
+          :class="mobileView === 'timeline' ? 'nk-btn' : 'nk-btn-ghost'"
+          @click="mobileView = 'timeline'"
+        >これまでの日々</button>
+      </div>
 
-        <NikkiTimeline
-          :days="days"
-          :has-more="hasMore"
-          :loading="timelineLoading"
-          :today="today"
-          :on-load-older="loadOlder"
-          @select="openDay"
-        />
+      <div class="flex flex-col gap-6">
+        <div :class="mobileView === 'calendar' ? '' : 'hidden sm:block'">
+          <NikkiMonthCalendar
+            :month="month"
+            :marks="marks"
+            :events="monthEvents"
+            :today="today"
+            :selected="selectedDate"
+            :loading="monthLoading"
+            :has-calendars="status.calendarIds.length > 0"
+            @select="openDay"
+            @shift="shiftMonth"
+            @go-today="month = today.slice(0, 7)"
+          />
+        </div>
+
+        <div :class="mobileView === 'timeline' ? '' : 'hidden sm:block'">
+          <NikkiTimeline
+            :days="days"
+            :has-more="hasMore"
+            :loading="timelineLoading"
+            :today="today"
+            :on-load-older="loadOlder"
+            @select="openDay"
+          />
+        </div>
       </div>
 
       <NikkiDayPanel
@@ -134,6 +152,8 @@ const {
 const showAuthModal = computed(() => !isLoggedIn.value && checked.value)
 const showPasswordModal = ref(false)
 const showSetup = ref(false)
+// スマホ用タブ（PCでは使わず常に両方表示）
+const mobileView = ref<'calendar' | 'timeline'>('calendar')
 const dismissedSetup = ref(false)
 const savingSetup = ref(false)
 const savedTick = ref(0)

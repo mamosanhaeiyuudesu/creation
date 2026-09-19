@@ -601,78 +601,6 @@
 }
 
 /* ==========================================
-   サービスカード
-   ========================================== */
-
-.service-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-  margin-top: 40px;
-}
-
-.service-card {
-  background: var(--c-bg-card);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius-lg);
-  padding: 32px 28px;
-  position: relative;
-  overflow: hidden;
-  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-}
-
-.service-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--c-primary), var(--c-primary-light));
-}
-
-.service-card:hover {
-  border-color: rgba(27, 95, 217, 0.35);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(27, 95, 217, 0.08);
-}
-
-.service-icon {
-  display: inline;
-  font-size: 20px;
-  margin-right: 7px;
-  opacity: 0.75;
-  vertical-align: middle;
-}
-
-.service-card-title {
-  display: inline;
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--c-text);
-  line-height: 1.4;
-  letter-spacing: -0.01em;
-  vertical-align: middle;
-}
-
-.service-card-body {
-  display: block;
-  margin-top: 14px;
-  font-size: 14px;
-  color: var(--c-text-muted);
-  line-height: 1.85;
-}
-
-.service-card-body p+p {
-  margin-top: 10px;
-}
-
-/* 5枚目（テストのご協力）は2列レイアウトで単独に余るため、横いっぱいに置く */
-.service-card-wide {
-  grid-column: 1 / -1;
-}
-
-/* ==========================================
    3つの道セクション
    （旧「担当範囲 / 対象外」の置き換え。
      規模に応じて運用まで担当することがあるため、
@@ -1640,10 +1568,6 @@
 
   .ac-hero {
     padding: 64px 0 56px;
-  }
-
-  .service-grid {
-    grid-template-columns: 1fr;
   }
 
   .portfolio-card-header,

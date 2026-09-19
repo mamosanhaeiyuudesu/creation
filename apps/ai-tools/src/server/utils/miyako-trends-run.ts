@@ -132,8 +132,9 @@ export async function runMiyakoTrends(
   // 2. 古い順に、終わっていない会期の状態を1段階ずつ進める。
   // reanalyze（AIへの指示を変えたとき用）で指定した会期は、分析済みでも本文から分析し直す。
   // status は分析が成功するまで analyzed のまま＝失敗してもページには前回の結果が出続ける。
+  let reanalyzed = false // reanalyze の会期をこの回で分析し終えたか（終えたら残りに数えない）
   const wantsAnalysis = (row: SessionRow) =>
-    row.session_key === opts.reanalyze
+    row.session_key === opts.reanalyze && !reanalyzed
       ? row.status === 'stored' || row.status === 'analyzed'
       : row.status === 'stored' && row.held_from >= MIYAKO_ANALYZE_FROM
   const isDone = (row: SessionRow) =>
@@ -164,6 +165,7 @@ export async function runMiyakoTrends(
         if ((text === null && texts >= MAX_TEXTS_PER_RUN) || !canSpend(COST_ANALYZE)) continue
         if (text === null) texts++
         const n = await analyzeSession(db, apiKey, row, rows, text, spend)
+        if (key === opts.reanalyze) reanalyzed = true
         progressed.push(`${key}: analyzed（${n}語）`)
       }
     } catch (e: any) {

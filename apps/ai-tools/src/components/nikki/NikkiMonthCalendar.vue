@@ -1,10 +1,10 @@
 <template>
-  <section class="nk-card px-3 py-4 sm:px-5 sm:py-5">
+  <section class="nk-card px-3 py-4 sm:px-4 sm:py-3">
     <!-- 月の送り -->
-    <header class="flex items-center justify-between mb-3">
+    <header class="flex items-center justify-between mb-3 sm:mb-2">
       <button class="nk-btn-ghost !w-9 !px-0 justify-center text-[17px] leading-none" aria-label="前の月" @click="emit('shift', -1)">‹</button>
       <div class="text-center">
-        <h2 class="nk-serif m-0 text-[19px] leading-none">{{ grid.year }}年{{ grid.month }}月</h2>
+        <h2 class="nk-serif m-0 text-[19px] sm:text-[16px] leading-none">{{ grid.year }}年{{ grid.month }}月</h2>
         <button
           v-if="month !== today.slice(0, 7)"
           class="mt-1 text-[11px] text-[var(--nk-indigo)] underline underline-offset-2"
@@ -34,7 +34,7 @@
       <button
         v-for="date in grid.dates"
         :key="date"
-        class="relative min-h-[64px] sm:min-h-[78px] rounded-lg border px-1 pt-1 pb-1 text-left transition-colors overflow-hidden"
+        class="relative min-h-[64px] sm:min-h-[54px] rounded-lg border px-1 pt-1 pb-1 text-left transition-colors overflow-hidden"
         :class="[
           date === selected
             ? 'border-[var(--nk-indigo)] bg-[var(--nk-indigo-soft)]'

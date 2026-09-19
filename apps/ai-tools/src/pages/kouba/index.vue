@@ -64,8 +64,8 @@ const {
   toggleDone: toggleSubtaskDone,
 } = useKoubaSubtasks()
 
-/** スマホ（sm未満）だけで使うタブ。PCは常にサイドバー＋ジョブ側の両方を表示するので参照しない。 */
-const mobileTab = ref<'subtasks' | 'jobs'>('subtasks')
+/** スマホ（sm未満）だけで使うタブ。PCは常にサイドバー＋ジョブ側＋達成したことの全部を表示するので参照しない。 */
+const mobileTab = ref<'subtasks' | 'jobs' | 'achievements'>('subtasks')
 
 // ── 達成したこと（画面下部の一覧）──────────────────────────────
 const {
@@ -522,7 +522,7 @@ onBeforeUnmount(() => {
       </header>
 
       <template v-if="isLoggedIn || isDev">
-        <!-- スマホ（sm未満）だけのタブ切り替え。PCは下のサイドバー＋ジョブ側を常に両方表示する -->
+        <!-- スマホ（sm未満）だけのタブ切り替え。PCは下のサイドバー＋ジョブ側＋達成したことを常にすべて表示する -->
         <div class="flex sm:hidden rounded-full bg-white/5 border border-white/10 p-1 gap-1">
           <button
             type="button"
@@ -536,6 +536,12 @@ onBeforeUnmount(() => {
             :class="mobileTab === 'jobs' ? 'bg-sky-500 text-white' : 'text-slate-400'"
             @click="mobileTab = 'jobs'"
           >📋 ジョブ一覧</button>
+          <button
+            type="button"
+            class="flex-1 h-8 rounded-full text-[12px] font-bold transition-colors"
+            :class="mobileTab === 'achievements' ? 'bg-sky-500 text-white' : 'text-slate-400'"
+            @click="mobileTab = 'achievements'"
+          >🏆 達成</button>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-4 sm:items-stretch">
@@ -564,8 +570,9 @@ onBeforeUnmount(() => {
             />
           </aside>
 
-          <!-- ジョブ側（今のテーマ・カテゴリの板・達成したこと）。PCでは常に表示、スマホはタブで切り替える -->
-          <div class="w-full min-w-0 flex flex-col gap-4" :class="mobileTab === 'jobs' ? '' : 'hidden sm:flex'">
+          <!-- ジョブ側（今のテーマ・カテゴリの板）とその下の達成したこと。PCでは常に表示、スマホはタブで切り替える -->
+          <div class="w-full min-w-0 flex flex-col gap-4">
+            <div class="flex flex-col gap-4" :class="mobileTab === 'jobs' ? '' : 'hidden sm:flex'">
             <KoubaThemeBanner
               :theme="currentTheme"
               :history-count="themeHistory.length"
@@ -807,9 +814,12 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
-          <p v-if="isFull" class="text-center text-slate-500 text-xs">カテゴリは{{ KOUBA_GRID_SIZE }}個までです</p>
+              <p v-if="isFull" class="text-center text-slate-500 text-xs">カテゴリは{{ KOUBA_GRID_SIZE }}個までです</p>
+            </template>
+            </div>
 
-              <!-- 達成したこと（画面下部の一覧） -->
+            <!-- 達成したこと（画面下部の一覧）。PCでは常に表示、スマホは「達成」タブでのみ表示 -->
+            <div :class="mobileTab === 'achievements' ? '' : 'hidden sm:block'">
               <KoubaAchievementsSection
                 :achievements="achievements"
                 :loading="achievementsLoading"
@@ -817,7 +827,7 @@ onBeforeUnmount(() => {
                 @open-add="showAchievementFormModal = true"
                 @delete="askDeleteAchievement"
               />
-            </template>
+            </div>
           </div>
         </div>
       </template>
