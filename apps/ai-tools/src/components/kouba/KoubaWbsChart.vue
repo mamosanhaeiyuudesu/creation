@@ -11,8 +11,11 @@ import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
 // カテゴリは棒を持たず見出しに合計だけ出す（カテゴリの合計はこの目盛りを超えるため）。
 // 完了済みのタスク・稼働停止中のジョブも時間は合計に含まれているので消さず、灰色に落として後ろへ並べる。
 // 表示専用＝行を押すとジョブ詳細モーダルを開く（編集はそちらで行う）。
-const props = defineProps<{ categories: KoubaCategory[] }>()
-const emit = defineEmits<{ openJob: [jobId: string] }>()
+// **タスクの行（名前＋バー）は既定で隠し、右上の「タスクも表示」のチェックで出す**（`showTasks`）。
+// このチェックの状態は親（ページ）が持つ＝板の再読込（load）で loading を挟むとこのコンポーネントごと作り直されるので、
+// ここに持つと、モーダルでタスクを足しただけでチェックが外れてしまう。
+const props = defineProps<{ categories: KoubaCategory[]; showTasks: boolean }>()
+const emit = defineEmits<{ openJob: [jobId: string]; 'update:showTasks': [value: boolean] }>()
 
 interface WbsRow {
   key: string
@@ -43,6 +46,7 @@ function rowsOf(cat: KoubaCategory): WbsRow[] {
       paused: job.paused,
       done: false,
     })
+    if (!props.showTasks) continue
     const tasks = [...job.tasks.filter((t) => !t.done), ...job.tasks.filter((t) => t.done)]
     for (const t of tasks) {
       rows.push({
@@ -89,7 +93,18 @@ function rowTooltip(row: WbsRow): string {
 
 <template>
   <div class="flex flex-col gap-3">
-    <p class="m-0 text-[11px] text-slate-500 leading-snug">横棒＝かけた時間（ジョブは配下のタスクの合計）。行を押すとジョブを開きます。</p>
+    <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
+      <p class="m-0 text-[11px] text-slate-500 leading-snug">横棒＝かけた時間（ジョブは配下のタスクの合計）。行を押すとジョブを開きます。</p>
+      <label class="flex items-center gap-1.5 text-[12px] font-semibold text-slate-300 cursor-pointer shrink-0">
+        <input
+          type="checkbox"
+          class="accent-sky-500"
+          :checked="showTasks"
+          @change="emit('update:showTasks', ($event.target as HTMLInputElement).checked)"
+        />
+        タスクも表示
+      </label>
+    </div>
 
     <p v-if="!categories.length" class="m-0 text-center text-slate-500 text-xs py-8">カテゴリがありません（ボードで追加できます）</p>
 

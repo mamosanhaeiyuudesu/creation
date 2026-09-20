@@ -73,6 +73,11 @@ const mobileTab = ref<'subtasks' | 'jobs' | 'achievements'>('subtasks')
  * かけた時間を横棒で見る）。選んだモードは覚えない＝開くたびにボードから始まる。
  */
 const boardMode = ref<'board' | 'wbs'>('board')
+/**
+ * WBS でタスクの行（名前＋バー）を出すか。既定は隠す。**WBS コンポーネントの中ではなくここに持つ**＝
+ * 板の再読込（load）の間は WBS が作り直されるので、子に持たせると編集のたびにチェックが外れる。
+ */
+const wbsShowTasks = ref(false)
 
 // ── 達成したこと（画面下部の一覧）──────────────────────────────
 const {
@@ -644,7 +649,7 @@ onBeforeUnmount(() => {
             <template v-else>
               <p v-if="actionError" class="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2 m-0">{{ actionError }}</p>
 
-              <KoubaWbsChart v-if="boardMode === 'wbs'" :categories="categories" @open-job="openJob" />
+              <KoubaWbsChart v-if="boardMode === 'wbs'" v-model:show-tasks="wbsShowTasks" :categories="categories" @open-job="openJob" />
 
               <template v-else>
               <!-- 3×3グリッド。スマホ（sm未満）はカテゴリを縦1列に積む。sm以上は横スクロールさせつつ常に3×3の比率を保つ -->
