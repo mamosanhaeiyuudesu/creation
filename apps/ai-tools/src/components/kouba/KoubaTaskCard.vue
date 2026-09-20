@@ -3,12 +3,15 @@ import { ref, nextTick } from 'vue'
 import type { KoubaTask } from '~/types/kouba'
 import KoubaHoursStepper from '~/components/kouba/KoubaHoursStepper.vue'
 
-// ジョブ詳細モーダルの中の1行＝「タスク」（旧「サブタスク」）。時間は+/-で手入力できるほか、
-// このタスクに紐づく「サブタスク」をDONEにすると自動でも増える（サブタスクの操作は"今のテーマ"下の一覧で行う）。
+// ジョブ詳細モーダルの中の1行＝「タスク」（旧「サブタスク」）。時間は+/-で30分ずつ手入力する。
+// 左のチェックボックスで完了にすると、この行は一覧から消えてモーダル下部の「完了済み」へ移る
+// （完了済みの行の描画と、チェックを外して戻す操作は KoubaJobModal 側）。
 const props = defineProps<{ task: KoubaTask; saving: boolean; dragging?: boolean; dropTarget?: boolean }>()
 const emit = defineEmits<{
   rename: [title: string]
   setHours: [hours: number]
+  /** 完了にする（チェックを入れた）。この行は一覧から外れて「完了済み」へ移る。 */
+  complete: []
   delete: []
   dragstart: [event: DragEvent]
   dragend: []
@@ -88,6 +91,13 @@ function cancelEditAndDelete() {
       >✗</button>
     </template>
     <template v-else>
+      <input
+        type="checkbox"
+        class="w-4 h-4 shrink-0 rounded border-white/20 bg-white/[0.06] accent-sky-500 cursor-pointer"
+        title="完了にする"
+        aria-label="完了にする"
+        @change="emit('complete')"
+      />
       <h3
         class="flex-1 min-w-0 m-0 text-[13px] font-bold text-slate-100 truncate cursor-text"
         title="クリックして編集"

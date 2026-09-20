@@ -11,7 +11,9 @@ import {
 } from '~/server/utils/kouba'
 import { KOUBA_DEFAULT_JOB_ICON } from '~/types/kouba'
 
-// ジョブの部分更新（title / icon / categoryIds / focused / description のいずれか1つ以上）。
+// ジョブの部分更新（title / icon / categoryIds / focused / paused / description のいずれか1つ以上）。
+// paused は稼働停止中の切り替え（2026-09-20追加。終わったというより「いずれまたやる」ものを板から畳む印）。
+// 停止にするときは同じ更新で focused も外す＝停止中のジョブに「注力中」の⭐が残らないように。
 // categoryIds は「このジョブが属することになるカテゴリの集合」を丸ごと差し替える差分更新＝
 // 増えたカテゴリには末尾（sort_orderの最大+1）へ追加、外れたカテゴリからは表示ごと外す
 // （ジョブ自体やタスクは消さない。今まで属していたカテゴリの並び順はそのまま）。
@@ -25,12 +27,20 @@ export default defineEventHandler(async (event) => {
   const existing = await findOwnedJob(db, user.id, id)
   if (!existing) throw createError({ statusCode: 404, message: 'ジョブが見つかりません' })
 
-  const body = await readBody<{ title?: string; icon?: string; categoryIds?: string[]; focused?: boolean; description?: string }>(event)
+  const body = await readBody<{
+    title?: string
+    icon?: string
+    categoryIds?: string[]
+    focused?: boolean
+    paused?: boolean
+    description?: string
+  }>(event)
   if (
     body?.title === undefined &&
     body?.icon === undefined &&
     body?.categoryIds === undefined &&
     body?.focused === undefined &&
+    body?.paused === undefined &&
     body?.description === undefined
   ) {
     throw createError({ statusCode: 400, message: '更新する項目がありません' })
@@ -48,9 +58,15 @@ export default defineEventHandler(async (event) => {
     sets.push('icon = ?')
     params.push(normalizeIcon(body.icon, KOUBA_DEFAULT_JOB_ICON))
   }
-  if (body?.focused !== undefined) {
+  // 同じ更新に focused が混ざっていても、停止にするなら外す側が勝つ（SET に同じ列を2回書かないよう1本にまとめる）
+  const focused = body?.paused ? false : body?.focused
+  if (focused !== undefined) {
     sets.push('focused = ?')
-    params.push(body.focused ? 1 : 0)
+    params.push(focused ? 1 : 0)
+  }
+  if (body?.paused !== undefined) {
+    sets.push('paused = ?')
+    params.push(body.paused ? 1 : 0)
   }
   if (body?.description !== undefined) {
     const description = normalizeDescription(body.description)

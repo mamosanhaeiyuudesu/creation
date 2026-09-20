@@ -133,6 +133,30 @@ export function useKouba() {
   }
 
   /**
+   * ジョブの稼働停止中の切り替え。終わったジョブは「完了」ではなく、いずれ再開する前提でこの状態にして板から畳む。
+   * 押した瞬間に手元を書き換え、保存だけ裏で送る（板の再読込をしない＝畳んだり戻したりの手応えが途切れない）。
+   * ジョブは複数カテゴリに重複して表示され得るので、全カテゴリ・全ジョブを走査して id が一致する箇所すべてを書き換える。
+   * 停止にすると注力中の印も外れる（サーバーも同じ。停止中のジョブに⭐が残らないように）。
+   * 失敗したら手元の値が嘘になるので板を取り直す。
+   */
+  async function setJobPaused(id: string, paused: boolean) {
+    for (const c of categories.value) {
+      for (const j of c.jobs) {
+        if (j.id !== id) continue
+        j.paused = paused
+        if (paused) j.focused = false
+      }
+    }
+    actionError.value = ''
+    try {
+      await $fetch(`/api/kouba/jobs/${id}`, { method: 'PATCH', body: { paused } })
+    } catch (e: any) {
+      actionError.value = e?.data?.message || '保存に失敗しました'
+      await load()
+    }
+  }
+
+  /**
    * ドラッグ&ドロップ用: カテゴリの並び順（＝3×3グリッド内の位置）を丸ごと反映する。
    * 時間の +/- と同じく、手元の並びを先に入れ替えてから保存する（load() で取り直すと
    * 板全体が一瞬「読み込み中…」に化けて、掴んで放した手応えが消えるため）。失敗したら取り直して戻す。
@@ -261,6 +285,27 @@ export function useKouba() {
     })
   }
 
+  /**
+   * タスクの完了(done)の切り替え。ジョブ詳細モーダルでチェックを入れると「完了済み」へ移り、外すと戻る。
+   * 完了にしても hours は合計に残るので `recomputeTotals` は要らない。押した瞬間に手元を書き換えて保存だけ裏で送る
+   * （`setJobPaused` と同じ理由）。複数カテゴリに載るジョブの全出現を書き換える。失敗したら板を取り直す。
+   */
+  async function setTaskDone(id: string, done: boolean) {
+    for (const c of categories.value) {
+      for (const j of c.jobs) {
+        const task = j.tasks.find((t) => t.id === id)
+        if (task) task.done = done
+      }
+    }
+    actionError.value = ''
+    try {
+      await $fetch(`/api/kouba/tasks/${id}`, { method: 'PATCH', body: { done } })
+    } catch (e: any) {
+      actionError.value = e?.data?.message || '保存に失敗しました'
+      await load()
+    }
+  }
+
   // サブタスク（タスクにぶら下がる細目。タスクに紐付かない分もある）は板の入れ子には含まれない＝
   // `useKoubaSubtasks` が別に読み書きする。DONE/削除で板側のタスク時間が変わることがあるので、
   // ページ側がその操作のあとにこの `load()` を呼んで板を取り直す。
@@ -281,10 +326,12 @@ export function useKouba() {
     addJob,
     updateJob,
     deleteJob,
+    setJobPaused,
     reorderJobs,
     addTask,
     updateTask,
     deleteTask,
+    setTaskDone,
     reorderTasks,
     setTaskHours,
     flushPendingHours,

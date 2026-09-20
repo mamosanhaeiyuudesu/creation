@@ -54,6 +54,7 @@ export async function ensureKoubaTables(db: any): Promise<void> {
       icon TEXT NOT NULL DEFAULT '${KOUBA_DEFAULT_JOB_ICON}',
       sort_order INTEGER NOT NULL DEFAULT 0,
       focused INTEGER NOT NULL DEFAULT 0,
+      paused INTEGER NOT NULL DEFAULT 0,
       description TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
@@ -66,6 +67,7 @@ export async function ensureKoubaTables(db: any): Promise<void> {
       title TEXT NOT NULL DEFAULT '',
       hours REAL NOT NULL DEFAULT 1,
       sort_order INTEGER NOT NULL DEFAULT 0,
+      done INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
     `CREATE INDEX IF NOT EXISTS idx_kouba_subtasks_task ON kouba_subtasks(task_id)`,
@@ -123,6 +125,8 @@ export async function ensureKoubaTables(db: any): Promise<void> {
     `ALTER TABLE kouba_tasks ADD COLUMN description TEXT NOT NULL DEFAULT ''`,
     `ALTER TABLE kouba_subtasks ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE kouba_task_subtasks ADD COLUMN done INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE kouba_subtasks ADD COLUMN done INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE kouba_tasks ADD COLUMN paused INTEGER NOT NULL DEFAULT 0`,
   ]
   for (const sql of columns) await db.prepare(sql).run().catch(() => {})
 
@@ -211,6 +215,7 @@ interface JobRow {
   icon: string
   created_at: string
   focused: number
+  paused: number
   description: string
 }
 interface TaskCategoryLinkRow {
@@ -225,6 +230,7 @@ interface TaskRow {
   title: string
   hours: number
   created_at: string
+  done: number
 }
 /** kouba_task_subtasks の行＝UI「サブタスク」（板とは無関係の独立したTODOリスト）。 */
 interface SubtaskRow {
@@ -239,7 +245,7 @@ function shapeSubtask(row: SubtaskRow): KoubaSubtask {
 }
 
 function shapeTask(row: TaskRow): KoubaTask {
-  return { id: row.id, jobId: row.task_id, title: row.title, hours: row.hours, createdAt: row.created_at }
+  return { id: row.id, jobId: row.task_id, title: row.title, hours: row.hours, createdAt: row.created_at, done: !!row.done }
 }
 
 function shapeJob(row: JobRow, categoryIds: string[], tasks: KoubaTask[]): KoubaJob {
@@ -254,6 +260,7 @@ function shapeJob(row: JobRow, categoryIds: string[], tasks: KoubaTask[]): Kouba
     totalHours,
     focused: !!row.focused,
     description: row.description ?? '',
+    paused: !!row.paused,
   }
 }
 
@@ -301,7 +308,7 @@ export async function loadBoard(db: any, userId: string): Promise<KoubaCategory[
   if (jobIds.length) {
     const jobPlaceholders = jobIds.map(() => '?').join(',')
     const jobRows = await db
-      .prepare(`SELECT id, title, icon, created_at, focused, description FROM kouba_tasks WHERE id IN (${jobPlaceholders})`)
+      .prepare(`SELECT id, title, icon, created_at, focused, paused, description FROM kouba_tasks WHERE id IN (${jobPlaceholders})`)
       .bind(...jobIds)
       .all<JobRow>()
     for (const r of jobRows?.results ?? []) jobRowsById.set(r.id, r)

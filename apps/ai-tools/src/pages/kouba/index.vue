@@ -5,6 +5,7 @@ import { useKoubaTheme } from '~/composables/kouba/useKoubaTheme'
 import { useKoubaSubtasks } from '~/composables/kouba/useKoubaSubtasks'
 import { useKoubaAchievements } from '~/composables/kouba/useKoubaAchievements'
 import KoubaJobModal from '~/components/kouba/KoubaJobModal.vue'
+import KoubaWbsChart from '~/components/kouba/KoubaWbsChart.vue'
 import KoubaThemeBanner from '~/components/kouba/KoubaThemeBanner.vue'
 import KoubaThemeHistoryModal from '~/components/kouba/KoubaThemeHistoryModal.vue'
 import KoubaSubtasksSection from '~/components/kouba/KoubaSubtasksSection.vue'
@@ -45,8 +46,8 @@ const showSettingsMenu = ref(false)
 const {
   categories, loading, loadError, saving, actionError, iconBusyIds, load, generateIcon,
   addCategory, updateCategory, deleteCategory, reorderCategories,
-  addJob, updateJob, deleteJob, reorderJobs,
-  addTask, updateTask, deleteTask, reorderTasks, setTaskHours, flushPendingHours,
+  addJob, updateJob, deleteJob, setJobPaused, reorderJobs,
+  addTask, updateTask, deleteTask, setTaskDone, reorderTasks, setTaskHours, flushPendingHours,
 } = useKouba()
 
 // ── 今のテーマ（板のトップに掲げる一言）──────────────────────────────
@@ -66,6 +67,12 @@ const {
 
 /** スマホ（sm未満）だけで使うタブ。PCは常にサイドバー＋ジョブ側＋達成したことの全部を表示するので参照しない。 */
 const mobileTab = ref<'subtasks' | 'jobs' | 'achievements'>('subtasks')
+
+/**
+ * ジョブ一覧の表示モード。既定はボード（カテゴリの板）、もうひとつが WBS（ジョブとタスクを縦に並べて、
+ * かけた時間を横棒で見る）。選んだモードは覚えない＝開くたびにボードから始まる。
+ */
+const boardMode = ref<'board' | 'wbs'>('board')
 
 // ── 達成したこと（画面下部の一覧）──────────────────────────────
 const {
@@ -151,6 +158,22 @@ async function commitCategoryDescEdit(cat: KoubaCategory) {
   if (description !== cat.description) await updateCategory(cat.id, { description })
 }
 
+// ── 稼働停止中のジョブ ──────────────────────────────
+// 終わったジョブは完了にせず稼働停止中にする（いずれ再開することが多い）。板ではカテゴリ枠の付箋エリアの下に
+// 折りたたんで畳み、付箋には稼働中のものだけを出す。cat.jobs 自体は停止中も含む全件のまま＝
+// ドラッグの並べ替え（jobs/reorder は全ジョブIDを受け取る）が壊れないように、分けるのは表示するときだけ。
+function activeJobsOf(cat: KoubaCategory): KoubaJob[] {
+  return cat.jobs.filter((j) => !j.paused)
+}
+function pausedJobsOf(cat: KoubaCategory): KoubaJob[] {
+  return cat.jobs.filter((j) => j.paused)
+}
+const expandedPausedCategoryIds = ref(new Set<string>())
+function togglePausedSection(categoryId: string) {
+  const ids = expandedPausedCategoryIds.value
+  if (!ids.delete(categoryId)) ids.add(categoryId)
+}
+
 // ── ジョブの追加 ──────────────────────────────
 // アイコンはカテゴリと同じく、追加したあと AI が作る
 const addingJobFor = ref<string | null>(null)
@@ -214,6 +237,10 @@ async function handleUpdateJob(patch: { title?: string; categoryIds?: string[]; 
     }
   }
 }
+/** 稼働停止中の切り替え（詳細モーダルのボタン）。板の再読込はせず手元だけ書き換える。 */
+function handleSetJobPaused(paused: boolean) {
+  if (activeJobId.value) void setJobPaused(activeJobId.value, paused)
+}
 async function handleRegenerateJobIcon(instruction: string) {
   if (activeJobId.value) await generateIcon('job', activeJobId.value, instruction)
 }
@@ -222,6 +249,10 @@ async function handleAddTask(payload: { title: string; hours: number }) {
 }
 async function handleUpdateTask(payload: { id: string; title: string }) {
   await updateTask(payload.id, { title: payload.title })
+}
+/** 完了の切り替え。板の再読込はせず手元だけ書き換える。 */
+function handleSetTaskDone(payload: { id: string; done: boolean }) {
+  void setTaskDone(payload.id, payload.done)
 }
 /** 時間の +/- は押すたびに保存せず、useKouba 側で手元反映＋まとめ保存にする。 */
 function handleSetTaskHours(payload: { id: string; hours: number }) {
@@ -480,11 +511,13 @@ onBeforeUnmount(() => {
     :error="actionError"
     :icon-busy="!!activeJob && iconBusyIds.has(activeJob.id)"
     @update="handleUpdateJob"
+    @set-paused="handleSetJobPaused"
     @regenerate-icon="handleRegenerateJobIcon"
     @delete="activeJob && askDeleteJob(activeJob)"
     @add-task="handleAddTask"
     @update-task="handleUpdateTask"
     @set-task-hours="handleSetTaskHours"
+    @set-task-done="handleSetTaskDone"
     @delete-task="askDeleteTask"
     @reorder-tasks="handleReorderTasks"
   />
@@ -582,6 +615,26 @@ onBeforeUnmount(() => {
               @open-history="showThemeHistory = true"
             />
 
+            <!-- 表示モードの切り替え。既定はボード。WBS はジョブとタスクを縦に並べ、かけた時間を横棒で見る -->
+            <div class="flex justify-end">
+              <div class="flex rounded-full bg-white/5 border border-white/10 p-1 gap-1" role="group" aria-label="表示モード">
+                <button
+                  type="button"
+                  class="h-7 px-3 rounded-full text-[12px] font-bold transition-colors"
+                  :class="boardMode === 'board' ? 'bg-sky-500 text-white' : 'text-slate-400'"
+                  :aria-pressed="boardMode === 'board'"
+                  @click="boardMode = 'board'"
+                >📋 ボード</button>
+                <button
+                  type="button"
+                  class="h-7 px-3 rounded-full text-[12px] font-bold transition-colors"
+                  :class="boardMode === 'wbs' ? 'bg-sky-500 text-white' : 'text-slate-400'"
+                  :aria-pressed="boardMode === 'wbs'"
+                  @click="boardMode = 'wbs'"
+                >📊 WBS</button>
+              </div>
+            </div>
+
             <div v-if="loading" class="mt-16 text-center text-slate-500 text-sm animate-pulse">読み込み中…</div>
             <div v-else-if="loadError" class="mt-16 text-center text-rose-400 text-sm flex flex-col items-center gap-3">
               <p class="m-0">{{ loadError }}</p>
@@ -591,6 +644,9 @@ onBeforeUnmount(() => {
             <template v-else>
               <p v-if="actionError" class="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2 m-0">{{ actionError }}</p>
 
+              <KoubaWbsChart v-if="boardMode === 'wbs'" :categories="categories" @open-job="openJob" />
+
+              <template v-else>
               <!-- 3×3グリッド。スマホ（sm未満）はカテゴリを縦1列に積む。sm以上は横スクロールさせつつ常に3×3の比率を保つ -->
               <div class="overflow-x-auto pb-2">
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:min-w-[1080px]">
@@ -717,7 +773,7 @@ onBeforeUnmount(() => {
                     @drop.prevent="onCategoryDrop(cat)"
                   >
                     <div
-                      v-for="(job, ji) in cat.jobs"
+                      v-for="(job, ji) in activeJobsOf(cat)"
                       :key="job.id"
                       draggable="true"
                       class="relative w-full min-h-[100px] rounded-sm p-2.5 text-left shadow-md hover:shadow-lg hover:brightness-105 transition-shadow cursor-grab active:cursor-grabbing flex flex-col gap-1.5 border-2"
@@ -773,7 +829,42 @@ onBeforeUnmount(() => {
                       </div>
                     </form>
 
-                    <p v-if="!cat.jobs.length && addingJobFor !== cat.id" class="col-span-3 text-center text-slate-500 text-xs py-6">ジョブがありません</p>
+                    <p v-if="!activeJobsOf(cat).length && addingJobFor !== cat.id" class="col-span-3 text-center text-slate-500 text-xs py-6">
+                      {{ cat.jobs.length ? '稼働中のジョブがありません' : 'ジョブがありません' }}
+                    </p>
+                  </div>
+
+                  <!-- 稼働停止中のジョブ（折りたたみ）。終わったジョブは完了にせずここへ畳む。行を押すと詳細、▶で稼働を再開して付箋に戻す -->
+                  <div v-if="pausedJobsOf(cat).length" class="border-t border-white/[0.08] px-3.5 py-2.5 shrink-0">
+                    <button
+                      type="button"
+                      class="w-full flex items-center justify-between text-[11px] font-bold text-slate-400 hover:text-slate-200 px-0.5"
+                      @click="togglePausedSection(cat.id)"
+                    >
+                      <span>⏸ 稼働停止中（{{ pausedJobsOf(cat).length }}）</span>
+                      <span>{{ expandedPausedCategoryIds.has(cat.id) ? '▲' : '▼' }}</span>
+                    </button>
+                    <div v-if="expandedPausedCategoryIds.has(cat.id)" class="flex flex-col gap-1.5 mt-1.5">
+                      <div
+                        v-for="job in pausedJobsOf(cat)"
+                        :key="job.id"
+                        class="rounded-lg border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] px-2 py-1.5 flex items-center gap-2 cursor-pointer transition-colors"
+                        @click="openJob(job.id)"
+                      >
+                        <span class="w-5 h-5 text-xs shrink-0 block opacity-60">
+                          <KoubaIcon :icon="job.icon" :busy="iconBusyIds.has(job.id)" />
+                        </span>
+                        <span class="flex-1 min-w-0 text-[12px] font-semibold text-slate-400 truncate" :title="job.title">{{ job.title }}</span>
+                        <span class="text-[11px] text-slate-500 tabular-nums shrink-0">{{ formatHours(job.totalHours) }}h</span>
+                        <button
+                          type="button"
+                          class="w-6 h-6 rounded text-slate-500 hover:text-sky-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
+                          title="稼働を再開する"
+                          aria-label="稼働を再開する"
+                          @click.stop="setJobPaused(job.id, false)"
+                        >▶</button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -815,6 +906,7 @@ onBeforeUnmount(() => {
           </div>
 
               <p v-if="isFull" class="text-center text-slate-500 text-xs">カテゴリは{{ KOUBA_GRID_SIZE }}個までです</p>
+              </template>
             </template>
             </div>
 

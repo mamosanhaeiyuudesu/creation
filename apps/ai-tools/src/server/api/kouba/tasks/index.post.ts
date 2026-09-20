@@ -25,5 +25,5 @@ export default defineEventHandler(async (event) => {
     .bind(id, user.id, jobId, title, hours, sortOrder)
     .run()
 
-  return { id, jobId, title, hours, subtasks: [], createdAt: new Date().toISOString() }
+  return { id, jobId, title, hours, subtasks: [], createdAt: new Date().toISOString(), done: false }
 })

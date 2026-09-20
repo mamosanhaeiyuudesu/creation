@@ -40,5 +40,5 @@ export default defineEventHandler(async (event) => {
   }
   await db.batch(links)
 
-  return { id, categoryIds, title, icon, createdAt: new Date().toISOString(), tasks: [], totalHours: 0, focused: false, description: '' }
+  return { id, categoryIds, title, icon, createdAt: new Date().toISOString(), tasks: [], totalHours: 0, focused: false, description: '', paused: false }
 })

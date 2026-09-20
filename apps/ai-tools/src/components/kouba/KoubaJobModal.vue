@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import type { KoubaJob, KoubaTask } from '~/types/kouba'
-import { KOUBA_MIN_HOURS, KOUBA_DESCRIPTION_MAX, isSvgIcon } from '~/types/kouba'
+import { KOUBA_MIN_HOURS, KOUBA_DESCRIPTION_MAX, isSvgIcon, formatKoubaHours } from '~/types/kouba'
 import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
 import KoubaHoursStepper from '~/components/kouba/KoubaHoursStepper.vue'
 import KoubaIconEditor from '~/components/kouba/KoubaIconEditor.vue'
@@ -20,12 +20,16 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:show': [value: boolean]
   update: [patch: { title?: string; categoryIds?: string[]; focused?: boolean; description?: string }]
+  /** 稼働停止中の切り替え。ジョブは終わったというより「いずれまたやる」ことが多いので、完了ではなくこの状態にする。 */
+  setPaused: [paused: boolean]
   regenerateIcon: [instruction: string]
   delete: []
   addTask: [payload: { title: string; hours: number }]
   updateTask: [payload: { id: string; title: string }]
   /** 時間の +/-。連打されるので rename とは別の口にして、ページ側でまとめ保存に回す。 */
   setTaskHours: [payload: { id: string; hours: number }]
+  /** 完了の切り替え。チェックを入れると「完了済み」へ移り、外すと元の位置に戻る（時間は合計に残る）。 */
+  setTaskDone: [payload: { id: string; done: boolean }]
   deleteTask: [task: KoubaTask]
   /** ドラッグ&ドロップでの並べ替え。新しい並び順どおりの全タスクIDを渡す。 */
   reorderTasks: [taskIds: string[]]
@@ -51,12 +55,19 @@ const TASK_HOURS_DEFAULT = KOUBA_MIN_HOURS
 const taskHoursDraft = ref(TASK_HOURS_DEFAULT)
 const descriptionDraft = ref('')
 
+// 完了したタスクは一覧の下の折りたたみへ分ける（サブタスク一覧の「完了済み」と同じ作り）。
+// 並び順（sort_order）は完了にしても変えないので、戻せば元の位置に戻る。
+const activeTasks = computed(() => props.job?.tasks.filter((t) => !t.done) ?? [])
+const doneTasks = computed(() => props.job?.tasks.filter((t) => t.done) ?? [])
+const showDone = ref(false)
+
 watch(
   () => props.show,
   (v) => {
     if (v) {
       editingTitle.value = false
       editingIcon.value = false
+      showDone.value = false
       taskTitleDraft.value = ''
       taskHoursDraft.value = TASK_HOURS_DEFAULT
       descriptionDraft.value = props.job?.description ?? ''
@@ -203,6 +214,10 @@ function onTaskDrop(targetTask: KoubaTask) {
               <h2 v-else class="flex-1 min-w-0 m-0 text-base font-bold text-slate-50 truncate cursor-text" title="クリックして編集" @click="startEditTitle">
                 {{ job.title }}
               </h2>
+              <span
+                v-if="job.paused && !editingTitle"
+                class="shrink-0 h-5 px-2 rounded-full bg-white/10 text-slate-300 text-[10px] font-bold flex items-center"
+              >⏸ 稼働停止中</span>
             </div>
 
             <!-- カテゴリは複数選択可（チップのON/OFF）＝チェックしたカテゴリすべての枠に同じジョブが表示される -->
@@ -227,16 +242,34 @@ function onTaskDrop(targetTask: KoubaTask) {
               </div>
             </div>
 
-            <!-- 直近で特に力を入れているジョブの印。ONにすると板の付箋がハイライトされる -->
-            <label class="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-amber-300 cursor-pointer w-fit">
-              <input
-                type="checkbox"
-                :checked="job.focused"
-                class="accent-amber-400"
-                @change="emit('update', { focused: ($event.target as HTMLInputElement).checked })"
-              />
-              ⭐ 直近で特に力を入れている
-            </label>
+            <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              <!-- 直近で特に力を入れているジョブの印。ONにすると板の付箋がハイライトされる。停止中は付けられない（停止にすると外れる） -->
+              <label
+                class="flex items-center gap-1.5 text-[12px] font-semibold w-fit"
+                :class="job.paused ? 'text-slate-600 cursor-not-allowed' : 'text-amber-300 cursor-pointer'"
+                :title="job.paused ? '稼働停止中は付けられません' : undefined"
+              >
+                <input
+                  type="checkbox"
+                  :checked="job.focused"
+                  :disabled="job.paused"
+                  class="accent-amber-400"
+                  @change="emit('update', { focused: ($event.target as HTMLInputElement).checked })"
+                />
+                ⭐ 直近で特に力を入れている
+              </label>
+
+              <!-- 終わったジョブは「完了」ではなく稼働停止中にする（いずれ再開することが多いため）。板ではカテゴリ枠の下へ畳まれる -->
+              <button
+                type="button"
+                class="h-6 px-2.5 rounded-full border text-[11px] font-semibold transition-colors"
+                :class="job.paused
+                  ? 'bg-sky-500/20 border-sky-400/60 text-sky-200 hover:bg-sky-500/30'
+                  : 'bg-white/[0.04] border-white/10 text-slate-400 hover:border-white/25 hover:text-slate-200'"
+                :title="job.paused ? '板の付箋に戻します' : '板からは畳んで、いつでも再開できます'"
+                @click="emit('setPaused', !job.paused)"
+              >{{ job.paused ? '▶ 稼働を再開する' : '⏸ 稼働停止中にする' }}</button>
+            </div>
 
             <!-- 補足の説明文（任意）。フォーカスを外すとまとめて保存する -->
             <textarea
@@ -285,8 +318,9 @@ function onTaskDrop(targetTask: KoubaTask) {
           <!-- タスク一覧。時間は日別に分けず1個の値をまとめて持ち、その場で編集できる。ドラッグで上下に並べ替え可能 -->
           <div class="flex flex-col gap-2">
             <div v-if="!job.tasks.length" class="text-center text-slate-500 text-[13px] py-6">まだタスクがありません</div>
+            <div v-else-if="!activeTasks.length" class="text-center text-slate-500 text-[13px] py-4">すべて完了しました</div>
             <KoubaTaskCard
-              v-for="t in job.tasks"
+              v-for="t in activeTasks"
               :key="t.id"
               :task="t"
               :saving="saving"
@@ -294,12 +328,50 @@ function onTaskDrop(targetTask: KoubaTask) {
               :drop-target="dragOverTaskId === t.id"
               @rename="(title) => emit('updateTask', { id: t.id, title })"
               @set-hours="(hours) => emit('setTaskHours', { id: t.id, hours })"
+              @complete="emit('setTaskDone', { id: t.id, done: true })"
               @delete="emit('deleteTask', t)"
               @dragstart="(e) => onTaskDragStart(e, t)"
               @dragend="onTaskDragEnd"
               @dragover="onTaskDragOver(t)"
               @drop="onTaskDrop(t)"
             />
+          </div>
+
+          <!-- 完了済み（折りたたみ）。チェックを外すと元の位置に戻る。時間はジョブの合計に含まれたまま -->
+          <div v-if="doneTasks.length" class="border-t border-white/10 pt-2">
+            <button
+              type="button"
+              class="w-full flex items-center justify-between text-[11px] font-bold text-slate-400 hover:text-slate-200 px-0.5"
+              @click="showDone = !showDone"
+            >
+              <span>✅ 完了済み（{{ doneTasks.length }}）</span>
+              <span>{{ showDone ? '▲' : '▼' }}</span>
+            </button>
+            <div v-if="showDone" class="flex flex-col gap-1.5 mt-1.5">
+              <div
+                v-for="t in doneTasks"
+                :key="t.id"
+                class="rounded-lg border border-white/10 bg-white/[0.02] px-2 py-2 flex items-center gap-2"
+              >
+                <input
+                  type="checkbox"
+                  checked
+                  class="w-4 h-4 shrink-0 rounded border-white/20 bg-white/[0.06] accent-sky-500 cursor-pointer"
+                  title="未完了に戻す"
+                  aria-label="未完了に戻す"
+                  @change="emit('setTaskDone', { id: t.id, done: false })"
+                />
+                <span class="flex-1 min-w-0 text-[12.5px] text-slate-500 line-through truncate" :title="t.title">{{ t.title }}</span>
+                <span class="text-[11px] text-slate-500 tabular-nums shrink-0">{{ formatKoubaHours(t.hours) }}</span>
+                <button
+                  type="button"
+                  class="w-6 h-6 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
+                  title="タスクを削除"
+                  :disabled="saving"
+                  @click="emit('deleteTask', t)"
+                >🗑</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
