@@ -203,6 +203,14 @@ const topics = computed(() => props.entry?.topics ?? [])
 
 const { transcriptionModel } = useTranscriptionModel()
 
+// この日のGoogleカレンダーの予定名を文字起こしのヒントとして渡す（聞き間違い対策）。
+// 文章の形のまま渡すこと＝固有名詞を並べるだけだと効かないことが kikigaki の辞書で実測確認済み。
+const transcriptionPrompt = computed(() => {
+  const titles = [...new Set(props.events.map((ev) => ev.title.trim()).filter(Boolean))]
+  if (!titles.length) return ''
+  return `次の固有名詞や予定名が出てきます: ${titles.join('、')}。`
+})
+
 // 文字起こしは下書き欄に足す（続けて録音したときに前の文章を消さない）
 const { isRecording, isPaused, isProcessing, duration, level, formatTime, startRecording, pauseRecording, resumeRecording, transcribeRecording, cancelRecording } =
   useAudioRecorder({
@@ -218,6 +226,7 @@ const { isRecording, isPaused, isProcessing, duration, level, formatTime, startR
       draft.value = draft.value.trim() ? `${draft.value.trim()}\n${t}` : t
     },
     onError: (msg: string) => { recordError.value = msg },
+    getPrompt: () => transcriptionPrompt.value,
     getModel: () => transcriptionModel.value,
   })
 

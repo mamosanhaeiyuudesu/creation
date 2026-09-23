@@ -48,9 +48,14 @@
             class="text-[12px] font-bold leading-none"
             :class="date === today ? 'text-[var(--nk-today)]' : weekdayClass(date)"
           >{{ dayOf(date) }}</span>
-          <!-- 書いた日の印。読み返すときに「書いた日」が一目で分かるように -->
-          <span v-if="markSet.has(date)" class="w-[5px] h-[5px] rounded-full bg-[var(--nk-gold)]" aria-label="記録あり" />
         </span>
+
+        <!-- 書いた日の印。読み返すときに「書いた日」が一目で分かるように、セル右上にチェックを出す -->
+        <span
+          v-if="markSet.has(date)"
+          class="absolute top-1 right-1 flex items-center justify-center w-[15px] h-[15px] rounded-full bg-[var(--nk-gold)] text-white text-[10px] leading-none"
+          aria-label="記録あり"
+        >✓</span>
 
         <ul class="mt-1 space-y-[2px]">
           <li
