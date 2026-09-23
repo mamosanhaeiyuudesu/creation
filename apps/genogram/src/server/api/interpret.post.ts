@@ -134,7 +134,8 @@ export default defineEventHandler(async (event) => {
 
   const out = await callClaudeText(anthropicApiKey as string, {
     system: SYSTEM,
-    maxTokens: 4000,
+    maxTokens: 16000,
+    thinking: 'adaptive',
     messages: [
       {
         role: 'user',

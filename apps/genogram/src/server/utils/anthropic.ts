@@ -10,9 +10,18 @@ interface CallOptions {
   messages: { role: 'user' | 'assistant'; content: string }[]
   maxTokens: number
   model?: string
+  /**
+   * claude-sonnet-5 はthinkingを無効化すると、複雑な指示(このプロジェクトのJSON生成プロンプトのように
+   * 守るべきルールが多いもの)で「出力はJSONのみ」という指示を破り、JSONの前に説明文を漏らすことがある。
+   * その場合に備えたparseJsonLooseの正規表現フォールバックも、説明文の中に { } が入ると抽出に失敗しうる。
+   * thinkingをadaptiveにすると、その説明文はthinkingブロック側に出るようになり(呼び出し側はtextブロックしか
+   * 見ないため)、text側にはJSONだけが残るようになる。既定はdisabledのまま(要らない呼び出しでコスト/レイテンシを
+   * 増やさないため)、複雑なJSON生成タスクだけ明示的にadaptiveを指定する。
+   */
+  thinking?: 'disabled' | 'adaptive'
 }
 
-/** Claude を1回呼び出し、応答のテキストブロックを連結して返す(thinkingは無効)。失敗時は createError を throw。 */
+/** Claude を1回呼び出し、応答のテキストブロックを連結して返す(thinking省略時は無効)。失敗時は createError を throw。 */
 export async function callClaudeText(apiKey: string, opts: CallOptions): Promise<string> {
   const response = await fetch(MESSAGES_URL, {
     method: 'POST',
@@ -20,7 +29,7 @@ export async function callClaudeText(apiKey: string, opts: CallOptions): Promise
     body: JSON.stringify({
       model: opts.model ?? DEFAULT_MODEL,
       max_tokens: opts.maxTokens,
-      thinking: { type: 'disabled' },
+      thinking: { type: opts.thinking ?? 'disabled' },
       system: opts.system,
       messages: opts.messages,
     }),

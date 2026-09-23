@@ -152,10 +152,12 @@ const onScroll = async () => {
 let initialized = false
 const ensureInitialScroll = async () => {
   if (initialized || !props.days.length) return
+  // days が空→非空になった直後は v-if の切り替えで scrollEl がまだDOMに無い（pre-flush watch
+  // はDOM更新前に走る）。nextTick を待ってから読まないと、常に null を見て初期化に失敗する。
+  await nextTick()
   const el = scrollEl.value
   if (!el || el.clientWidth === 0) return
   initialized = true
-  await nextTick()
   scrollToRight()
 }
 watch(() => props.days.length, ensureInitialScroll, { immediate: true })
