@@ -127,11 +127,13 @@
         <div class="sg-strength-list">
           <div class="sg-strength-item">
             <p class="sg-strength-num">01</p>
-            <h3 class="sg-strength-title">当事者であること</h3>
+            <h3 class="sg-strength-title">自分自身に、この方法を使い続けてきたこと</h3>
             <p class="sg-strength-body">
-              私自身、理屈っぽくて、対人不安が強く、人の輪に入れない、目上の人間に反発する、女性とうまく話せない、心から休めない——そんな経験を長く抱えてきました。<br>
-また、親子関係も良くなく、ふつうの親子関係を持てた人には理解しがたい体験もたくさんしてきました。<br>
-同じ悩みを体験してきたからこそ、私自身の言動にも信頼性が生まれると考えています。
+              私自身、人の輪に入れない、目上の人間に反発する、女性とうまく話せない、心から休めない<br>
+              ——そんな経験を長く抱えてきました。<br>
+              親子関係も長年こじれたままで、感情的に向き合うだけでは、どうしても整理がつきませんでした。<br>
+              だから私は、自分自身の家族との関係を、対話を文字起こしし、構造化するという方法で、少しずつ読み解いてきました。<br>
+              今クライアントにお伝えしているアプローチは、まず私自身が自分に対して使い続けてきた方法です。
             </p>
           </div>
           <div class="sg-strength-item">
@@ -183,7 +185,16 @@
               <li>傾聴・対話を中心とした60分セッション</li>
               <li>オンライン（ビデオ通話）対応</li>
               <li>初回無料相談あり（30分）</li>
+              <li>延長は10分まで</li>
+              <li>頻度は週1回を基本とします</li>
+              <li>次回の予定は毎回その場で決めます</li>
             </ul>
+            <p class="sg-service-subhead">LINEでのやり取りについて</p>
+            <p class="sg-service-desc">
+              セッションの合間の質問やご相談も、LINEでやり取りいただけます。<br>
+              むしろ大切にしている部分です。<br>
+              1日10回までを目安にお願いしており、それ以降のご質問には翌日改めてお答えします。
+            </p>
           </div>
         </div>
       </div>
@@ -324,6 +335,9 @@
       </div>
     </section>
 
+    <!-- 最近の記事 -->
+    <RecentArticles />
+
     <!-- 料金 -->
     <section id="pricing" class="sg-surface">
       <div class="sg-wrap">
@@ -360,8 +374,8 @@
               <p class="sg-price-detail">10回セット（カウンセリング）</p>
             </div>
             <div>
-              <p class="sg-price-amount">¥40,000 <span class="sg-price-unit">/ 10回</span></p>
-              <span class="sg-price-badge">20%お得</span>
+              <p class="sg-price-amount">¥45,000 <span class="sg-price-unit">/ 10回</span></p>
+              <span class="sg-price-badge">10%お得</span>
             </div>
           </div>
         </div>

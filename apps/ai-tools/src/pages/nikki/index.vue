@@ -64,6 +64,7 @@
 
         <div :class="mobileView === 'timeline' ? '' : 'hidden sm:block'">
           <NikkiTimeline
+            ref="timelineRef"
             :days="days"
             :has-more="hasMore"
             :loading="timelineLoading"
@@ -99,6 +100,7 @@
 
 <script setup lang="ts">
 import { useNikki } from '~/composables/nikki/useNikki'
+import NikkiTimeline from '~/components/nikki/NikkiTimeline.vue'
 
 definePageMeta({ layout: 'nikki' })
 useHead({
@@ -157,9 +159,19 @@ const showPasswordModal = ref(false)
 const showSetup = ref(false)
 // スマホ用タブ（PCでは使わず常に両方表示）
 const mobileView = ref<'calendar' | 'timeline'>('calendar')
+const timelineRef = ref<InstanceType<typeof NikkiTimeline> | null>(null)
 const dismissedSetup = ref(false)
 const savingSetup = ref(false)
 const savedTick = ref(0)
+
+// スマホではタブが「これまでの日々」に切り替わって初めて表示される（display:none中は
+// scrollWidth が取れず右端寄せができないため）。表示された時点で NikkiTimeline 側に
+// 初期スクロールの再試行をさせる（初回のみ実行、以降は何もしない）。
+watch(mobileView, async (v) => {
+  if (v !== 'timeline') return
+  await nextTick()
+  timelineRef.value?.ensureInitialScroll()
+})
 
 // 連携が未完了（未連携、または連携済みだがカレンダー未選択）なら、開くたびに設定を出す。
 // ただし閉じられるようにする＝連携せずに日記だけ使う人に出し続けない（次に開くとまた出る）。

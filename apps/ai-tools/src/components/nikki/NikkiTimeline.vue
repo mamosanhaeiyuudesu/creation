@@ -146,15 +146,19 @@ const onScroll = async () => {
 }
 
 // 最初に描けたときだけ右端（最新）へ寄せる。以降の追い読みでは動かさない。
+// スマホはタブ切り替えで非表示(display:none)になっており、その間は scrollWidth が
+// 信用できないので、実際に表示されて幅が取れるまで初期化を保留する
+// （親がタブ切り替え時に ensureInitialScroll() を呼び直す）。
 let initialized = false
-watch(
-  () => props.days.length,
-  async (len) => {
-    if (initialized || !len) return
-    initialized = true
-    await nextTick()
-    scrollToRight()
-  },
-  { immediate: true }
-)
+const ensureInitialScroll = async () => {
+  if (initialized || !props.days.length) return
+  const el = scrollEl.value
+  if (!el || el.clientWidth === 0) return
+  initialized = true
+  await nextTick()
+  scrollToRight()
+}
+watch(() => props.days.length, ensureInitialScroll, { immediate: true })
+
+defineExpose({ ensureInitialScroll })
 </script>
