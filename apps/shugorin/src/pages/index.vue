@@ -6,15 +6,16 @@
       <div class="sg-wrap">
         <div class="sg-hero-inner">
           <div class="sg-hero-text">
-            <p class="sg-hero-eyebrow">理屈っぽい人向けカウンセリング / オンライン</p>
+            <p class="sg-hero-eyebrow">親子問題に向き合ってきた40代の男性カウンセラー</p>
             <h1 class="sg-hero-title">
-              理屈っぽい人向けの<br>
-              カウンセリング
+              その生きづらさ<br>
+              親との関係が原因かもしれません
             </h1>
             <p class="sg-hero-sub">
-              通常のカウンセリングでは、理解してもらえなかった。<br />
-              そんな経験をしてきた、理屈っぽいあなたへ。<br>
-              理系出身のエンジニアが、AIを駆使しながら思考を構造化・見える化し、自己受容をサポートします。
+              人の輪にうまく入れない、目上の人に反発してしまう、達成感を感じられない、心から休めない、etc<br>
+              ——そんな生きづらさの根っこには、親子関係があることが少なくありません。<br /><br />
+              私自身、こじれた親子関係を、様々な人に相談することで少しずつ整理してきました。<br /><br />
+              私のカウンセリングでは、AIを使って対話を文字起こし＆分析を行い、思考パターンや自己の生い立ちに対する理解を深めることで、自己理解を深めていきます。
             </p>
             <a
               class="sg-hero-cta"
@@ -37,7 +38,7 @@
                   <circle cx="12" cy="12" r="3"/>
                 </svg>
               </span>
-              <span class="sg-hero-float-label">AIで内面を<br>"見える化"</span>
+              <span class="sg-hero-float-label">親子関係を<br>構造化する</span>
             </div>
             <div class="sg-hero-float sg-hero-float--logic">
               <span class="sg-hero-float-icon" aria-hidden="true">
@@ -72,11 +73,11 @@
                 </li>
                 <li>
                   <span class="sg-for-you-dash">—</span>
-                  女性とうまく話せない。
+                  異性とうまく話せない。
                 </li>
                 <li>
                   <span class="sg-for-you-dash">—</span>
-                  理屈っぽくてつまらない、と言われる。
+                  理屈っぽくて話がつまらない、と言われる。
                 </li>
               </ul>
             </div>
@@ -124,7 +125,7 @@
     <section id="values">
       <div class="sg-wrap">
         <p class="sg-section-label">Values</p>
-        <h2 class="sg-section-title">私が選ばれる理由</h2>
+        <h2 class="sg-section-title">私の強み</h2>
         <div class="sg-strength-list">
           <div class="sg-strength-item">
             <p class="sg-strength-num">01</p>
