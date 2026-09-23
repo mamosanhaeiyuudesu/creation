@@ -1,0 +1,14 @@
+{
+  "name": "nikki",
+  "short_name": "nikki",
+  "description": "その日の手応えを残す日記",
+  "theme_color": "#f7f5ef",
+  "background_color": "#f7f5ef",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/nikki",
+  "scope": "/nikki",
+  "icons": [
+    { "src": "/apple-touch-icon-nikki.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

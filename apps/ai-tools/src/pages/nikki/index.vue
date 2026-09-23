@@ -104,12 +104,15 @@ definePageMeta({ layout: 'nikki' })
 useHead({
   title: 'nikki — その日の手応えを残す日記',
   link: [
-    {
-      key: 'icon',
-      rel: 'icon',
-      type: 'image/svg+xml',
-      href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📔</text></svg>`,
-    },
+    { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: '/icon-nikki.svg' },
+    { rel: 'manifest', href: '/manifest-nikki.json' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon-nikki.png' },
+  ],
+  meta: [
+    { name: 'apple-mobile-web-app-capable', content: 'yes' },
+    { name: 'apple-mobile-web-app-title', content: 'nikki' },
+    { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
+    { name: 'theme-color', content: '#f7f5ef' },
   ],
 })
 

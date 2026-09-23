@@ -5,6 +5,7 @@ const MANIFEST_MAP: Record<string, string> = {
   '/task': '/manifest-task.json',
   '/kiroku': '/manifest-kiroku.json',
   '/kouba': '/manifest-kouba.json',
+  '/nikki': '/manifest-nikki.json',
 }
 
 function getManifestHref(path: string): string | null {
