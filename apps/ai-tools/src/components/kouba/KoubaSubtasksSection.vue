@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
 import type { KoubaSubtask } from '~/types/kouba'
+import { koubaTooltip as vKoubaTooltip } from '~/utils/kouba-tooltip'
 
 /**
  * 板・タスクとは完全に無関係な、名前だけのサブタスク一覧。ドラッグ&ドロップで自由に並べ替えられる
@@ -150,7 +151,7 @@ function onRowDrop(s: KoubaSubtask | null) {
             <input
               type="checkbox"
               class="w-4 h-4 shrink-0 rounded border-white/20 bg-white/[0.06] accent-sky-500 cursor-pointer"
-              title="完了にする"
+              v-kouba-tooltip="'完了にする'"
               @change="emit('toggleDone', { id: s.id, done: true })"
             />
 
@@ -165,25 +166,25 @@ function onRowDrop(s: KoubaSubtask | null) {
               <button
                 type="button"
                 class="w-6 h-6 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
-                title="編集をやめて削除"
+                v-kouba-tooltip="'編集をやめて削除'"
                 @mousedown.prevent="cancelEditAndDelete(s)"
               >✗</button>
             </template>
             <template v-else>
               <span
                 class="flex-1 min-w-0 text-[12.5px] font-semibold text-slate-100 truncate"
-                :title="s.title"
+                v-kouba-tooltip="s.title"
               >{{ s.title }}</span>
               <button
                 type="button"
                 class="w-6 h-6 rounded text-slate-500 hover:text-sky-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
-                title="名前を編集"
+                v-kouba-tooltip="'名前を編集'"
                 @click="startEdit(s)"
               >✏️</button>
               <button
                 type="button"
                 class="w-6 h-6 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
-                title="削除"
+                v-kouba-tooltip="'削除'"
                 @click="emit('delete', s)"
               >🗑</button>
             </template>
@@ -215,14 +216,14 @@ function onRowDrop(s: KoubaSubtask | null) {
               type="checkbox"
               checked
               class="w-4 h-4 shrink-0 rounded border-white/20 bg-white/[0.06] accent-sky-500 cursor-pointer"
-              title="未完了に戻す"
+              v-kouba-tooltip="'未完了に戻す'"
               @change="emit('toggleDone', { id: s.id, done: false })"
             />
-            <span class="flex-1 min-w-0 text-[12.5px] text-slate-500 line-through truncate" :title="s.title">{{ s.title }}</span>
+            <span class="flex-1 min-w-0 text-[12.5px] text-slate-500 line-through truncate" v-kouba-tooltip="s.title">{{ s.title }}</span>
             <button
               type="button"
               class="w-6 h-6 rounded text-slate-500 hover:text-rose-300 hover:bg-white/10 flex items-center justify-center text-xs shrink-0"
-              title="削除"
+              v-kouba-tooltip="'削除'"
               @click="emit('delete', s)"
             >🗑</button>
           </div>

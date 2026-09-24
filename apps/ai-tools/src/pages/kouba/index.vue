@@ -69,6 +69,36 @@ const {
 const mobileTab = ref<'subtasks' | 'jobs' | 'achievements'>('subtasks')
 
 /**
+ * サブタスクのサイドバー幅（PCのみ・右端のハンドルをドラッグして変えられる）。
+ * リロードすれば既定値に戻る＝保存はしない（localStorageにもD1にも持たせない、その場だけの見た目調整）。
+ */
+const KOUBA_SUBTASK_SIDEBAR_MIN_WIDTH = 240
+const KOUBA_SUBTASK_SIDEBAR_MAX_WIDTH = 520
+const subtaskSidebarWidth = ref(308)
+let sidebarResizeStartX = 0
+let sidebarResizeStartWidth = 308
+
+function onSidebarResizeMove(e: MouseEvent) {
+  const next = sidebarResizeStartWidth + (e.clientX - sidebarResizeStartX)
+  subtaskSidebarWidth.value = Math.min(KOUBA_SUBTASK_SIDEBAR_MAX_WIDTH, Math.max(KOUBA_SUBTASK_SIDEBAR_MIN_WIDTH, next))
+}
+function stopSidebarResize() {
+  document.removeEventListener('mousemove', onSidebarResizeMove)
+  document.removeEventListener('mouseup', stopSidebarResize)
+  document.body.style.userSelect = ''
+  document.body.style.cursor = ''
+}
+function startSidebarResize(e: MouseEvent) {
+  e.preventDefault()
+  sidebarResizeStartX = e.clientX
+  sidebarResizeStartWidth = subtaskSidebarWidth.value
+  document.body.style.userSelect = 'none'
+  document.body.style.cursor = 'col-resize'
+  document.addEventListener('mousemove', onSidebarResizeMove)
+  document.addEventListener('mouseup', stopSidebarResize)
+}
+
+/**
  * ジョブ一覧の表示モード。既定はボード（カテゴリの板）、もうひとつが WBS（ジョブとタスクを縦に並べて、
  * かけた時間を横棒で見る）。選んだモードは覚えない＝開くたびにボードから始まる。
  */
@@ -483,6 +513,7 @@ onMounted(() => document.addEventListener('visibilitychange', flushOnHide))
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', flushOnHide)
   void flushPendingHours()
+  stopSidebarResize()
 })
 </script>
 
@@ -584,7 +615,11 @@ onBeforeUnmount(() => {
 
         <div class="flex flex-col sm:flex-row gap-4 sm:items-stretch">
           <!-- サブタスク一覧。PCでは画面左の常設サイドバー、スマホはタブで切り替える -->
-          <aside class="w-full sm:w-[308px] sm:shrink-0 flex flex-col gap-4" :class="mobileTab === 'subtasks' ? '' : 'hidden sm:block'">
+          <aside
+            class="kouba-subtask-aside relative w-full sm:shrink-0 flex flex-col gap-4"
+            :style="{ '--kouba-subtask-w': `${subtaskSidebarWidth}px` }"
+            :class="mobileTab === 'subtasks' ? '' : 'hidden sm:block'"
+          >
             <!-- 今のテーマ。PCではジョブ側に1つだけ出すので、ここではスマホのサブタスクタブでのみ表示する -->
             <KoubaThemeBanner
               class="sm:hidden"
@@ -606,6 +641,13 @@ onBeforeUnmount(() => {
               @reorder="reorderSubtasks"
               @toggle-done="({ id, done }) => toggleSubtaskDone(id, done)"
             />
+            <!-- 右端をドラッグして幅を変える（PCのみ）。リロードすると既定幅に戻る -->
+            <div
+              class="hidden sm:block absolute top-0 right-[-6px] w-3 h-full cursor-col-resize group z-10"
+              @mousedown="startSidebarResize"
+            >
+              <div class="mx-auto w-1 h-full rounded-full bg-transparent group-hover:bg-sky-400/40 transition-colors"></div>
+            </div>
           </aside>
 
           <!-- ジョブ側（今のテーマ・カテゴリの板）とその下の達成したこと。PCでは常に表示、スマホはタブで切り替える -->
@@ -931,3 +973,12 @@ onBeforeUnmount(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* サブタスクのサイドバー幅。PCのみ変数の値を使い、スマホは常に画面幅いっぱい（Tailwindのw-fullのまま）。 */
+@media (min-width: 640px) {
+  .kouba-subtask-aside {
+    width: var(--kouba-subtask-w, 308px);
+  }
+}
+</style>
