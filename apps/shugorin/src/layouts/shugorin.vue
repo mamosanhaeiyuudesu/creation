@@ -6,6 +6,8 @@
           <span class="sg-yinyang">☯</span> しゅごりん
         </NuxtLink> -->
         <nav class="sg-nav">
+          <a href="#values" class="sg-nav-link">私の強み</a>
+          <a href="#services" class="sg-nav-link">サービス内容</a>
           <a href="#voice" class="sg-nav-link">お客様の声</a>
           <a href="#profile" class="sg-nav-link">私について</a>
           <a href="#pricing" class="sg-nav-link">料金体系</a>
@@ -28,6 +30,8 @@
         </button>
       </div>
       <div class="sg-drawer" :class="{ open: menuOpen }" @click="menuOpen = false">
+        <a href="#values" class="sg-drawer-link">私の強み</a>
+        <a href="#services" class="sg-drawer-link">サービス内容</a>
         <a href="#voice" class="sg-drawer-link">お客様の声</a>
         <a href="#profile" class="sg-drawer-link">私について</a>
         <a href="#pricing" class="sg-drawer-link">料金体系</a>

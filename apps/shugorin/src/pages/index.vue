@@ -6,7 +6,7 @@
       <div class="sg-wrap">
         <div class="sg-hero-inner">
           <div class="sg-hero-text">
-            <p class="sg-hero-eyebrow">親子問題に向き合ってきた40代の理系男性カウンセラー</p>
+            <p class="sg-hero-eyebrow">親子問題に向き合ってきた<br />40代の理系男性カウンセラーしゅごりん</p>
             <h1 class="sg-hero-title">
               その生きづらさ、<br>
               親との関係が原因かもしれません
@@ -157,14 +157,14 @@
     <section id="services" class="sg-surface">
       <div class="sg-wrap">
         <p class="sg-section-label">Services</p>
-        <h2 class="sg-section-title">サービスの内容</h2>
+        <h2 class="sg-section-title">サービス内容</h2>
         <div class="sg-service-grid">
           <div class="sg-service-card">
             <!-- <p class="sg-service-type">Service 01</p> -->
             <h3 class="sg-service-name">カウンセリング</h3>
             <p class="sg-service-desc">
               話す内容は自由ですので、ご本人が話したい内容を話してもらいます。<br />
-              文字起こしを許可していただけると、後で振り返ることができ、自己理解を深めやすくなります。<br />
+              文字起こしを許可していただけると、後で様々な角度から振り返ることができ、自己理解を深めやすくなります。<br />
             </p>
             <ul class="sg-service-points">
               <li>傾聴・対話を中心とした60分セッション</li>
