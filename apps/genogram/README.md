@@ -55,12 +55,15 @@ interface Union {
   note?: string
 }
 
-type RelationType = 'conflict' | 'cutoff' | 'enmeshed' | 'close' | 'distant'
+type RelationDistance = 'enmeshed' | 'close' | 'distant' | 'cutoff'
+type DependentDirection = 'from' | 'to' | 'mutual' // 'from'=fromがtoに依存, 'to'=toがfromに依存, 'mutual'=相互に依存
 
 interface Relation {
   from: string
   to: string
-  type: RelationType
+  distance: RelationDistance // 密着度・距離。enmeshed(密着)/close(適度)/distant(疎遠)/cutoff(断絶)
+  conflict?: boolean // 対立を伴うか(距離とは独立な軸。距離の線に赤いジグザグを重ね描きする)
+  dependent?: DependentDirection // 一方または相互の依存を伴うか(距離とは独立な軸。依存されている側の端に矢印を描く)
   label?: string
 }
 
@@ -74,6 +77,7 @@ interface GenogramData {
 図に出す情報はあえて絞っている。人物の記号は上から順に「特徴の要約(職業・note、20文字程度)」→
 「記号本体(中央に年齢。死亡していれば享年、生存なら満年齢。その下に(結婚年齢))」→「名前」→
 「生涯(1950~2020のように)」の並び。婚姻線・感情関係線の種類は線のスタイル(実線/破線/ジグザグ/波線)だけで示し、
+感情関係線は distance の基本線に conflict(赤いジグザグ)・dependent(矢印)を独立に重ね描きして複合的な関係も表す。
 `note`・`label` などの文章はグラフには出さずクリックした詳細パネルでのみ見せる(長い文章でグラフが
 横長・縦長になるのを避けるため)。線にカーソルを合わせるとラベルがツールチップで見られる。
 `birthYear`/`deathYear`/`occupation`/`healthNote` のいずれも入っていない人物には、

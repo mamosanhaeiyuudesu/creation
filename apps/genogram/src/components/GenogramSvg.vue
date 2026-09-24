@@ -77,25 +77,16 @@
         @click="emit('select', { kind: 'relation', relation: rl.relation, index: rl.index })"
       >
         <line :x1="rl.x1" :y1="rl.y1" :x2="rl.x2" :y2="rl.y2" class="genogram-hit-area" />
-        <polyline
-          v-if="rl.relation.type === 'conflict'"
-          :points="zigzagPoints(rl.x1, rl.y1, rl.x2, rl.y2, 8, 4)"
-          class="genogram-relation-conflict"
-        />
+        <!-- 距離(密着度)の基本線 -->
         <path
-          v-else-if="rl.relation.type === 'enmeshed'"
+          v-if="rl.relation.distance === 'enmeshed'"
           :d="wavePath(rl.x1, rl.y1, rl.x2, rl.y2, 8, 5)"
           class="genogram-relation-enmeshed"
         />
-        <template v-else-if="rl.relation.type === 'cutoff'">
+        <template v-else-if="rl.relation.distance === 'cutoff'">
           <line :x1="rl.x1" :y1="rl.y1" :x2="rl.x2" :y2="rl.y2" class="genogram-relation-cutoff" />
           <line v-bind="relationTick(rl, 1 / 3)" class="genogram-relation-cutoff-tick" />
           <line v-bind="relationTick(rl, 2 / 3)" class="genogram-relation-cutoff-tick" />
-        </template>
-        <!-- 共依存は、互いに抜け出せない結びつきとして二重線で表す(良好=実線1本、巻き込み=波線と区別する) -->
-        <template v-else-if="rl.relation.type === 'codependent'">
-          <line v-bind="offsetLine(rl.x1, rl.y1, rl.x2, rl.y2, 3)" class="genogram-relation-codependent" />
-          <line v-bind="offsetLine(rl.x1, rl.y1, rl.x2, rl.y2, -3)" class="genogram-relation-codependent" />
         </template>
         <line
           v-else
@@ -103,7 +94,24 @@
           :y1="rl.y1"
           :x2="rl.x2"
           :y2="rl.y2"
-          :class="rl.relation.type === 'close' ? 'genogram-relation-close' : 'genogram-relation-distant'"
+          :class="rl.relation.distance === 'close' ? 'genogram-relation-close' : 'genogram-relation-distant'"
+        />
+        <!-- 対立の重ね描き(距離とは独立な軸) -->
+        <polyline
+          v-if="rl.relation.conflict"
+          :points="zigzagPoints(rl.x1, rl.y1, rl.x2, rl.y2, 8, 4)"
+          class="genogram-relation-conflict"
+        />
+        <!-- 依存の矢印(矢印の先が依存されている側) -->
+        <polygon
+          v-if="rl.relation.dependent === 'from' || rl.relation.dependent === 'mutual'"
+          :points="relationArrow(rl, 'to')"
+          class="genogram-relation-arrow"
+        />
+        <polygon
+          v-if="rl.relation.dependent === 'to' || rl.relation.dependent === 'mutual'"
+          :points="relationArrow(rl, 'from')"
+          class="genogram-relation-arrow"
         />
         <title v-if="rl.relation.label">{{ rl.relation.label }}</title>
       </g>
@@ -231,9 +239,9 @@
           :class="item.kind === 'union' ? 'genogram-union-conflict' : 'genogram-relation-conflict'"
         />
         <path v-else-if="item.value === 'enmeshed'" :d="wavePath(0, 0, 34, 0, 4, 4)" class="genogram-relation-enmeshed" />
-        <template v-else-if="item.value === 'codependent'">
-          <line x1="0" y1="-3" x2="34" y2="-3" class="genogram-relation-codependent" />
-          <line x1="0" y1="3" x2="34" y2="3" class="genogram-relation-codependent" />
+        <template v-else-if="item.value === 'dependent'">
+          <line x1="0" y1="0" x2="34" y2="0" class="genogram-relation-arrow" />
+          <polygon :points="arrowHeadPoints(0, 0, 34, 0, 24, 8)" class="genogram-relation-arrow" />
         </template>
         <template v-else-if="item.value === 'cutoff'">
           <line x1="0" y1="0" x2="34" y2="0" class="genogram-relation-cutoff" />
@@ -266,7 +274,7 @@
 import { computed, ref } from 'vue'
 import type { GenogramData, Union } from '~/types/genogram'
 import { computeGenogramLayout, type LayoutNode, type LegendItem } from '~/composables/useGenogramLayout'
-import { zigzagPoints, wavePath, diagonalTick, perpendicularTick, offsetLine } from '~/utils/svgLines'
+import { zigzagPoints, wavePath, diagonalTick, perpendicularTick, arrowHeadPoints } from '~/utils/svgLines'
 import {
   isDeceased,
   hasEnrichedInfo,
@@ -348,6 +356,15 @@ function unionTick(ul: LineLike, offset: number) {
 function relationTick(rl: LineLike, ratio: number) {
   const len = Math.hypot(rl.x2 - rl.x1, rl.y2 - rl.y1)
   return perpendicularTick(rl.x1, rl.y1, rl.x2, rl.y2, len * ratio, 11)
+}
+
+/** 依存の矢印。pointAt='to'ならfrom→to方向の矢先をto端点付近に、'from'ならその逆向きに置く */
+function relationArrow(rl: LineLike, pointAt: 'to' | 'from') {
+  const len = Math.hypot(rl.x2 - rl.x1, rl.y2 - rl.y1)
+  const t = len - 10
+  return pointAt === 'to'
+    ? arrowHeadPoints(rl.x1, rl.y1, rl.x2, rl.y2, t, 8)
+    : arrowHeadPoints(rl.x2, rl.y2, rl.x1, rl.y1, t, 8)
 }
 
 function legendTransform(i: number) {
@@ -490,9 +507,10 @@ function legendLineClass(item: LegendItem) {
   stroke-width: 4;
 }
 
-.genogram-relation-codependent {
+.genogram-relation-arrow {
+  fill: #1f2933;
   stroke: #1f2933;
-  stroke-width: 2;
+  stroke-width: 1.5;
 }
 
 .genogram-relation-close {

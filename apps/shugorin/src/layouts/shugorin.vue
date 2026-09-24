@@ -12,7 +12,7 @@
           <a href="#qa" class="sg-nav-link">Q&amp;A</a>
           <a href="https://note.com/parent_child" target="_blank" rel="noopener noreferrer" class="sg-nav-link">ブログ</a>
           <a
-            href="https://docs.google.com/forms/d/e/1FAIpQLSckcLkBNH9xEMSeS3_SuDznoShew41SF6Ja6Du7XHvS6-rwRg/viewform?usp=publish-editor"
+            href="https://docs.google.com/forms/d/e/1FAIpQLSfo_uEJxjxSc9H7Nx24lnfHuOLFLITfatOUzlJJWIxV1t2cPA/viewform?usp=publish-editor"
             target="_blank"
             rel="noopener noreferrer"
             class="sg-nav-link sg-nav-cta"
@@ -34,7 +34,7 @@
         <a href="#qa" class="sg-drawer-link">Q&amp;A</a>
         <a href="https://note.com/parent_child" target="_blank" rel="noopener noreferrer" class="sg-drawer-link">ブログ</a>
         <a
-          href="https://docs.google.com/forms/d/e/1FAIpQLSckcLkBNH9xEMSeS3_SuDznoShew41SF6Ja6Du7XHvS6-rwRg/viewform?usp=publish-editor"
+          href="https://docs.google.com/forms/d/e/1FAIpQLSfo_uEJxjxSc9H7Nx24lnfHuOLFLITfatOUzlJJWIxV1t2cPA/viewform?usp=publish-editor"
           target="_blank"
           rel="noopener noreferrer"
           class="sg-drawer-link"

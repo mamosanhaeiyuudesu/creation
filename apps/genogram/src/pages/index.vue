@@ -53,7 +53,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import type { GenogramData, Person, Union, UnionStatus, RelationType } from '~/types/genogram'
+import type { GenogramData, Person, Union, UnionStatus, RelationDistance, DependentDirection } from '~/types/genogram'
 import type { GenogramSelection } from '~/types/selection'
 import { validateGenogramData } from '~/utils/validateGenogram'
 import { computeGenogramLayout } from '~/composables/useGenogramLayout'
@@ -370,7 +370,7 @@ function handleSaveUnion(index: number, patch: { status: UnionStatus; startYear?
   applyEditedData(data)
 }
 
-function handleSaveRelation(index: number, patch: { type: RelationType; label?: string }) {
+function handleSaveRelation(index: number, patch: { distance: RelationDistance; conflict?: boolean; dependent?: DependentDirection; label?: string }) {
   const data = cloneParsedData()
   if (!data || !data.relations[index]) return
   Object.assign(data.relations[index], patch)

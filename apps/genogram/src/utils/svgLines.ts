@@ -70,15 +70,20 @@ export function perpendicularTick(x1: number, y1: number, x2: number, y2: number
   }
 }
 
-/** 線を法線方向に offset だけ平行移動した座標を返す(共依存の二重線用) */
-export function offsetLine(x1: number, y1: number, x2: number, y2: number, offset: number) {
-  const { px, py } = dir(x1, y1, x2, y2)
-  return {
-    x1: x1 + px * offset,
-    y1: y1 + py * offset,
-    x2: x2 + px * offset,
-    y2: y2 + py * offset,
-  }
+/** 依存の向きを示す矢印(三角形)の頂点列。<polygon>の points に渡す文字列を返す。
+ *  矢先が(x1,y1)→(x2,y2)方向のtの位置に来る(矢印の先=依存されている側)。 */
+export function arrowHeadPoints(x1: number, y1: number, x2: number, y2: number, t: number, size = 8): string {
+  const { ux, uy, px, py } = dir(x1, y1, x2, y2)
+  const tipX = x1 + ux * t
+  const tipY = y1 + uy * t
+  const backX = tipX - ux * size
+  const backY = tipY - uy * size
+  const pts: Point[] = [
+    { x: tipX, y: tipY },
+    { x: backX + px * (size / 2), y: backY + py * (size / 2) },
+    { x: backX - px * (size / 2), y: backY - py * (size / 2) },
+  ]
+  return pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
 }
 
 /** 直線を(clipStart, clipEnd)の分だけ端点から内側に詰めた座標を返す(シンボル境界を避けるため) */

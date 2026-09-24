@@ -753,18 +753,22 @@ export function computeGenogramLayout(data: GenogramData): GenogramLayoutResult 
     distant: '疎遠(夫婦)',
     conflict: '対立(夫婦)',
   }
-  const relationLabels: Record<string, string> = {
-    conflict: '対立',
-    cutoff: '断絶',
-    enmeshed: '巻き込み',
-    codependent: '共依存',
-    close: '良好',
+  const relationDistanceLabels: Record<string, string> = {
+    enmeshed: '密着(巻き込み)',
+    close: '適度な距離',
     distant: '疎遠',
+    cutoff: '断絶',
   }
   const usedUnionStatuses = new Set(unions.map((u) => u.status))
-  const usedRelationTypes = new Set(relations.map((r) => r.type))
+  const usedDistances = new Set(relations.map((r) => r.distance))
   for (const status of usedUnionStatuses) legend.push({ kind: 'union', value: status, label: unionLabels[status] ?? status })
-  for (const type of usedRelationTypes) legend.push({ kind: 'relation', value: type, label: relationLabels[type] ?? type })
+  for (const distance of usedDistances) legend.push({ kind: 'relation', value: distance, label: relationDistanceLabels[distance] ?? distance })
+  if (relations.some((r) => r.conflict)) {
+    legend.push({ kind: 'relation', value: 'conflict', label: '対立を伴う' })
+  }
+  if (relations.some((r) => r.dependent)) {
+    legend.push({ kind: 'relation', value: 'dependent', label: '依存(矢印の先が依存されている側)' })
+  }
   if (people.some((p) => !!p.healthNote)) {
     legend.push({ kind: 'badge', value: 'health', label: '健康メモあり(ホバーで表示)' })
   }

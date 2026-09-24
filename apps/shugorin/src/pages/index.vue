@@ -6,20 +6,21 @@
       <div class="sg-wrap">
         <div class="sg-hero-inner">
           <div class="sg-hero-text">
-            <p class="sg-hero-eyebrow">親子問題に向き合ってきた40代の男性カウンセラー</p>
+            <p class="sg-hero-eyebrow">親子問題に向き合ってきた40代の理系男性カウンセラー</p>
             <h1 class="sg-hero-title">
-              その生きづらさ<br>
+              その生きづらさ、<br>
               親との関係が原因かもしれません
             </h1>
             <p class="sg-hero-sub">
-              人の輪にうまく入れない、目上の人に反発してしまう、達成感を感じられない、心から休めない、etc<br>
-              ——そんな生きづらさの根っこには、親子関係があることが少なくありません。<br /><br />
-              私自身、こじれた親子関係を、様々な人に相談することで少しずつ整理してきました。<br /><br />
-              私のカウンセリングでは、AIを使って対話を文字起こし＆分析を行い、思考パターンや自己の生い立ちに対する理解を深めることで、自己受容を進めていきます。
+              <span>人の輪にうまく入れない、目上の人に反発してしまう、達成感を感じられない、心から休めない、etc</span>
+              <span>——そんな生きづらさの根っこには、親子関係があることが少なくありません。</span>
+              <span>私自身、こじれた親子関係を、様々な人に相談することで少しずつ整理してきました。</span>
+              <span>私のカウンセリングでは、自由な対話の中で、ご自身の思考パターンや生い立ちに対する理解を深めていきます。</span>
+              <span>このようにして、自己受容を繰り返すことで、少しずつ生きづらさを軽くしていくことができます。</span>
             </p>
             <a
               class="sg-hero-cta"
-              href="https://docs.google.com/forms/d/e/1FAIpQLSckcLkBNH9xEMSeS3_SuDznoShew41SF6Ja6Du7XHvS6-rwRg/viewform?usp=publish-editor"
+              href="https://docs.google.com/forms/d/e/1FAIpQLSfo_uEJxjxSc9H7Nx24lnfHuOLFLITfatOUzlJJWIxV1t2cPA/viewform?usp=publish-editor"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -30,24 +31,7 @@
             </a>
           </div>
           <div class="sg-hero-deco">
-            <img src="/images/brain-duality.jpeg" alt="" class="sg-hero-photo">
-            <div class="sg-hero-float sg-hero-float--ai">
-              <span class="sg-hero-float-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                  <circle cx="12" cy="12" r="3"/>
-                </svg>
-              </span>
-              <span class="sg-hero-float-label">親子関係を<br>構造化する</span>
-            </div>
-            <div class="sg-hero-float sg-hero-float--logic">
-              <span class="sg-hero-float-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
-                </svg>
-              </span>
-              <span class="sg-hero-float-label">理屈っぽい話<br>大歓迎</span>
-            </div>
+            <img src="/images/counselor-portrait.jpg" alt="" class="sg-hero-photo">
           </div>
         </div>
       </div>
@@ -58,8 +42,8 @@
       <div class="sg-wrap">
         <p class="sg-section-label">For You</p>
         <h4 class="sg-section-title">こんな悩み、ありませんか？</h4>
-        <div class="sg-for-you-inner">
-          <div class="sg-for-you-col">
+        <div class="sg-for-you-groups">
+          <div class="sg-for-you-card">
             <div class="sg-for-you-group">
               <p class="sg-for-you-group-label">対人関係の悩み</p>
               <ul class="sg-for-you-list">
@@ -81,6 +65,10 @@
                 </li>
               </ul>
             </div>
+            <img src="/images/for-you-lonely.png" alt="" class="sg-for-you-photo">
+          </div>
+          <div class="sg-for-you-card sg-for-you-card--reverse">
+            <img src="/images/for-you-nayami.png" alt="" class="sg-for-you-photo">
             <div class="sg-for-you-group">
               <p class="sg-for-you-group-label">自己評価の悩み</p>
               <ul class="sg-for-you-list">
@@ -98,6 +86,8 @@
                 </li>
               </ul>
             </div>
+          </div>
+          <div class="sg-for-you-card">
             <div class="sg-for-you-group">
               <p class="sg-for-you-group-label">その他の悩み</p>
               <ul class="sg-for-you-list">
@@ -115,8 +105,8 @@
                 </li>
               </ul>
             </div>
+            <img src="/images/shugorin.png" alt="" class="sg-for-you-photo">
           </div>
-          <img src="/images/shugorin.png" alt="" class="sg-for-you-photo">
         </div>
       </div>
     </section>
@@ -129,23 +119,34 @@
         <div class="sg-strength-list">
           <div class="sg-strength-item">
             <p class="sg-strength-num">01</p>
-            <h3 class="sg-strength-title">家族起因の悩みに当事者として向き合ってきたこと</h3>
+            <h3 class="sg-strength-title">家族起因の悩みに、当事者として向き合ってきたこと</h3>
             <p class="sg-strength-body">
               私自身、家族のことで、ずっと悩んできました。<br>
-              わがままで一方的な父、その父を嫌悪して私に依存する母。<br>
-              両親との間にあった、1つ1つの忌まわしい記憶を整理して、手放していくことで、自己受容を進めてきました。<br>
+              高圧的で一方的な父、その父を嫌悪して私に依存する母。<br>
+              両親との間にあった、1つ1つの重たい記憶を整理して、手放していくことで、自己受容を進めてきました。<br>
               このプロセスそのものが、クライアント理解の最も強い武器になっています。
             </p>
           </div>
           <div class="sg-strength-item">
             <p class="sg-strength-num">02</p>
+            <h3 class="sg-strength-title">
+              悩みの重さに動じず、表面から深部まで一緒に伴走できること
+            </h3>
+            <p class="sg-strength-body">
+              クライアントからよく言われるのは、重たい話でも冷静に聴いてくれる、という言葉です。<br />
+              私自身、多くの人に話しにくい、重たい話を相談してきたので、そういった人の話を聴くことができるのだと思います。<br />
+              人が本当の意味で良い方向に変わっていくには、話しにくい話をなるべく多く人に聴いてもらうことが不可欠だと考えています。<br />
+            </p>
+          </div>
+          <div class="sg-strength-item">
+            <p class="sg-strength-num">03</p>
             <h3 class="sg-strength-title">理屈が先行するタイプの人の話をしっかりと聴けること
             </h3>
             <p class="sg-strength-body">
               一般的にカウンセラーには女性が多いと思います。<br>
               私もたくさんの女性カウンセラーにお世話になり、たくさんの共感をしていただき、今でもとても感謝しています。<br>
               一方で、理系の男性であったり、理屈が先行するタイプの人には、共感的な女性カウンセラーであっても、自分の主張が理解されないと感じることも多いかと思います。<br>
-              私はそういった方の話もじっくり聞いて、思考と感情の両面から相互理解を深めることができます。
+              私はそういった方の話をじっくり聞いて、思考と感情の両面から自己理解を深めるお手伝いができます。
             </p>
           </div>
         </div>
@@ -159,30 +160,24 @@
         <h2 class="sg-section-title">サービスの内容</h2>
         <div class="sg-service-grid">
           <div class="sg-service-card">
-            <p class="sg-service-type">Service 01</p>
+            <!-- <p class="sg-service-type">Service 01</p> -->
             <h3 class="sg-service-name">カウンセリング</h3>
             <p class="sg-service-desc">
-              話すことから始めます。対話を「見える形」に構造化しながら、無理なく自分のペースで、長年抱えてきた未消化の感情に近づいていきます。
+              話す内容は自由ですので、ご本人が話したい内容を話してもらいます。<br />
+              文字起こしを許可していただけると、後で振り返ることができ、自己理解を深めやすくなります。<br />
             </p>
-            <ol class="sg-loop-list sg-loop-list--steps">
-              <li>対話（普段通りの会話でOK）</li>
-              <li>文字起こし（話した内容をそのまま言葉として残す）</li>
-              <li>構造化（思考や経験のパターンを見える化）</li>
-              <li>共有・対話（気づきをすり合わせながら、少しずつ次に進む）</li>
-            </ol>
             <ul class="sg-service-points">
               <li>傾聴・対話を中心とした60分セッション</li>
               <li>オンライン（ビデオ通話）対応</li>
-              <li>初回無料相談あり（30分）</li>
-              <li>延長は10分まで</li>
+              <li>延長は15分まで</li>
               <li>頻度は週1回を基本とします</li>
               <li>次回の予定は毎回その場で決めます</li>
             </ul>
             <p class="sg-service-subhead">LINEでのやり取りについて</p>
             <p class="sg-service-desc">
-              セッションの合間の質問やご相談も、LINEでやり取りいただけます。<br>
-              むしろ大切にしている部分です。<br>
-              1日10回までを目安にお願いしており、それ以降のご質問には翌日改めてお答えします。
+              セッション後には色々な考えが思い出されたりします。<br>
+              そのため、セッションの合間の質問やご相談も、LINEでやり取りいただけます。<br>
+              1日10回までを目安にお願いしており、それ以降のご相談には翌日改めてお答えします。
             </p>
           </div>
         </div>
@@ -277,7 +272,7 @@
             <div class="sg-quote-block">
               <p class="sg-quote-text">
                 嫌いな人にも嫌いと言えない、好きな人にも好きと言えない、そんな生き方をずっとしてきたんだなと気づいたとき、<br>
-                なんでそんな仕方をしなきゃいけなかったんだろうって、悲しくなりました。
+                なんでそんな生き方をしなきゃいけなかったんだろうって、悲しくなりました。
               </p>
             </div>
             <p class="sg-story-para">
@@ -286,7 +281,7 @@
               でもその言葉が出てきた瞬間、ずっと張り詰めていたものが緩んだような気がしました。
             </p>
             <p class="sg-story-para">
-              昔の自分だったら、ここまでたどり着けなかったと思います。<br>
+              今までの自分だったら、ここまでたどり着けなかったと思います。<br>
               表面的な出来事の話ばかりして「もう嫌だ」で終わっていた。<br>
               でも今は、怒りや嫉妬という感情を意識できるようになって、その奥にある本当の自分の気持ちまで追えるようになった。
             </p>
@@ -415,7 +410,7 @@
           <div class="sg-cta-buttons">
             <a
               class="sg-btn-primary"
-              href="https://docs.google.com/forms/d/e/1FAIpQLSckcLkBNH9xEMSeS3_SuDznoShew41SF6Ja6Du7XHvS6-rwRg/viewform?usp=publish-editor"
+              href="https://docs.google.com/forms/d/e/1FAIpQLSfo_uEJxjxSc9H7Nx24lnfHuOLFLITfatOUzlJJWIxV1t2cPA/viewform?usp=publish-editor"
               target="_blank"
               rel="noopener noreferrer"
             >

@@ -79,14 +79,24 @@
         <h3 class="genogram-modal-title">{{ fromToNames }}</h3>
 
         <div class="genogram-modal-field">
-          <label>種類</label>
-          <select v-model="relationForm.type">
-            <option value="conflict">対立</option>
-            <option value="cutoff">断絶</option>
-            <option value="enmeshed">巻き込み</option>
-            <option value="codependent">共依存</option>
-            <option value="close">良好</option>
+          <label>距離</label>
+          <select v-model="relationForm.distance">
+            <option value="enmeshed">密着・巻き込み</option>
+            <option value="close">適度な距離</option>
             <option value="distant">疎遠</option>
+            <option value="cutoff">断絶</option>
+          </select>
+        </div>
+        <div class="genogram-modal-field-row">
+          <label class="genogram-modal-checkbox"><input v-model="relationForm.conflict" type="checkbox" /> 対立を伴う</label>
+        </div>
+        <div class="genogram-modal-field">
+          <label>依存</label>
+          <select v-model="relationForm.dependent">
+            <option value="">なし</option>
+            <option value="from">{{ fromName }}が{{ toName }}に依存</option>
+            <option value="to">{{ toName }}が{{ fromName }}に依存</option>
+            <option value="mutual">相互に依存(共依存)</option>
           </select>
         </div>
         <div class="genogram-modal-field">
@@ -114,7 +124,7 @@
 
 <script setup lang="ts">
 import { reactive, watch, computed } from 'vue'
-import type { Person, Gender, UnionStatus, RelationType } from '~/types/genogram'
+import type { Person, Gender, UnionStatus, RelationDistance, DependentDirection } from '~/types/genogram'
 import { RELATION_OPTIONS } from '~/types/genogram'
 import type { GenogramSelection } from '~/types/selection'
 import Modal from '~/components/Modal.vue'
@@ -124,7 +134,7 @@ const emit = defineEmits<{
   close: []
   'save-person': [patch: Pick<Person, 'id' | 'name' | 'gender' | 'deceased' | 'isSelf'> & Partial<Pick<Person, 'birthYear' | 'deathYear' | 'occupation' | 'healthNote' | 'relation' | 'note' | 'generation'>>]
   'save-union': [index: number, patch: { status: UnionStatus; startYear?: number; endYear?: number; note?: string }]
-  'save-relation': [index: number, patch: { type: RelationType; label?: string }]
+  'save-relation': [index: number, patch: { distance: RelationDistance; conflict?: boolean; dependent?: DependentDirection; label?: string }]
   'delete-person': [id: string]
 }>()
 
@@ -151,6 +161,9 @@ const fromToNames = computed(() => {
   if (props.selection.kind !== 'relation') return ''
   return `${personName(props.selection.relation.from)} → ${personName(props.selection.relation.to)}`
 })
+
+const fromName = computed(() => (props.selection.kind === 'relation' ? personName(props.selection.relation.from) : ''))
+const toName = computed(() => (props.selection.kind === 'relation' ? personName(props.selection.relation.to) : ''))
 
 // 標準の選択肢に無い続柄が既に入っている(古いデータ・AI生成の自由記述など)場合は、
 // 見えなくなって黙って消えてしまわないよう、その値も選択肢の先頭に足しておく
@@ -195,8 +208,15 @@ const unionForm = reactive<{ status: UnionStatus; startYear: number | string; en
   note: '',
 })
 
-const relationForm = reactive<{ type: RelationType; label: string }>({
-  type: 'distant',
+const relationForm = reactive<{
+  distance: RelationDistance
+  conflict: boolean
+  dependent: '' | DependentDirection
+  label: string
+}>({
+  distance: 'distant',
+  conflict: false,
+  dependent: '',
   label: '',
 })
 
@@ -226,7 +246,9 @@ watch(
       })
     } else {
       Object.assign(relationForm, {
-        type: sel.relation.type,
+        distance: sel.relation.distance,
+        conflict: sel.relation.conflict ?? false,
+        dependent: sel.relation.dependent ?? '',
         label: sel.relation.label ?? '',
       })
     }
@@ -270,7 +292,9 @@ function save() {
     })
   } else {
     emit('save-relation', props.selection.index, {
-      type: relationForm.type,
+      distance: relationForm.distance,
+      conflict: relationForm.conflict,
+      dependent: relationForm.dependent || undefined,
       label: strOrUndef(relationForm.label),
     })
   }

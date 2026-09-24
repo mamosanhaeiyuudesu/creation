@@ -340,8 +340,16 @@
 .sg-hero-sub {
   font-size: 15px;
   color: var(--c-text-muted);
-  line-height: 2.2;
+  line-height: 1.9;
   margin-bottom: 36px;
+}
+
+.sg-hero-sub span {
+  display: block;
+}
+
+.sg-hero-sub span + span {
+  margin-top: 0.6em;
 }
 
 
@@ -506,18 +514,29 @@
    こんな方へ
    ========================================== */
 
-.sg-for-you-inner {
-  display: grid;
-  grid-template-columns: 1fr 200px;
-  gap: 40px;
-  align-items: start;
+.sg-for-you-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
   margin-top: 32px;
 }
 
-.sg-for-you-col {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+.sg-for-you-card {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  align-items: stretch;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--c-bg-card);
+}
+
+.sg-for-you-card--reverse {
+  grid-template-columns: 320px 1fr;
+}
+
+.sg-for-you-group {
+  padding: 28px 32px;
 }
 
 .sg-for-you-group-label {
@@ -526,37 +545,27 @@
   font-weight: 500;
   letter-spacing: 0.06em;
   color: var(--c-text-dim);
-  margin-bottom: 10px;
-  padding-left: 2px;
+  margin-bottom: 14px;
 }
 
 .sg-for-you-list {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius);
-  overflow: hidden;
 }
 
 .sg-for-you-list li {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 16px 20px;
-  background: var(--c-bg-card);
+  padding: 12px 0;
   border-bottom: 1px solid var(--c-border);
   font-size: 14px;
   color: var(--c-text-muted);
   line-height: 1.75;
-  transition: background 0.15s;
 }
 
 .sg-for-you-list li:last-child {
   border-bottom: none;
-}
-
-.sg-for-you-list li:hover {
-  background: rgba(181, 103, 64, 0.025);
 }
 
 .sg-for-you-dash {
@@ -569,9 +578,13 @@
 }
 
 .sg-for-you-photo {
-  border-radius: var(--radius);
-  opacity: 0.88;
   width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
 }
 
 /* ==========================================
@@ -1419,13 +1432,17 @@
     right: -12%;
   }
 
-  .sg-for-you-inner {
+  .sg-for-you-card,
+  .sg-for-you-card--reverse {
     grid-template-columns: 1fr;
   }
 
   .sg-for-you-photo {
-    max-width: 160px;
-    margin: 0 auto;
+    height: 200px;
+  }
+
+  .sg-for-you-group {
+    padding: 22px 24px;
   }
 }
 

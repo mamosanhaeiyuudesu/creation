@@ -43,12 +43,19 @@ export interface Union {
   note?: string
 }
 
-export type RelationType = 'conflict' | 'cutoff' | 'enmeshed' | 'codependent' | 'close' | 'distant'
+export type RelationDistance = 'enmeshed' | 'close' | 'distant' | 'cutoff'
+/** 'from'=fromがtoに依存, 'to'=toがfromに依存, 'mutual'=相互に依存し合っている(旧共依存) */
+export type DependentDirection = 'from' | 'to' | 'mutual'
 
 export interface Relation {
   from: string
   to: string
-  type: RelationType
+  /** 密着度・距離。enmeshed(密着・巻き込み) / close(適度な距離) / distant(疎遠) / cutoff(断絶) */
+  distance: RelationDistance
+  /** 対立を伴うか。distanceとは独立な軸で、距離の線に赤いジグザグを重ね描きして表す */
+  conflict?: boolean
+  /** 一方または相互の依存を伴うか。distanceとは独立な軸で、依存されている側の端に矢印を重ねて表す */
+  dependent?: DependentDirection
   label?: string
 }
 
@@ -60,7 +67,8 @@ export interface GenogramData {
 
 export const GENDERS: Gender[] = ['M', 'F', 'U']
 export const UNION_STATUSES: UnionStatus[] = ['married', 'divorced', 'separated', 'distant', 'conflict']
-export const RELATION_TYPES: RelationType[] = ['conflict', 'cutoff', 'enmeshed', 'codependent', 'close', 'distant']
+export const RELATION_DISTANCES: RelationDistance[] = ['enmeshed', 'close', 'distant', 'cutoff']
+export const DEPENDENT_DIRECTIONS: DependentDirection[] = ['from', 'to', 'mutual']
 
 /**
  * 本人(isSelf)から見た続柄の選択肢。「祖父(父方)」のような父方/母方の区別は持たない

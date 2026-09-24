@@ -1,4 +1,34 @@
-import { GENDERS, RELATION_TYPES, UNION_STATUSES, type GenogramData } from '~/types/genogram'
+import {
+  GENDERS,
+  RELATION_DISTANCES,
+  DEPENDENT_DIRECTIONS,
+  UNION_STATUSES,
+  type GenogramData,
+  type RelationDistance,
+  type DependentDirection,
+} from '~/types/genogram'
+
+const LEGACY_RELATION_MAP: Record<string, { distance: RelationDistance; conflict?: boolean; dependent?: DependentDirection }> = {
+  conflict: { distance: 'close', conflict: true },
+  cutoff: { distance: 'cutoff' },
+  enmeshed: { distance: 'enmeshed' },
+  codependent: { distance: 'enmeshed', dependent: 'mutual' },
+  close: { distance: 'close' },
+  distant: { distance: 'distant' },
+}
+
+/**
+ * 旧type(単一selectの6分類)のrelationsを、distance/conflict/dependentの3軸へ変換する。
+ * localStorage・共有リンク・貼り付けJSONに残っている可能性がある旧データを読み込み時に移行するためのもの。
+ * "distance"を持たず"type"だけを持つ場合のみ変換対象にする(新型データはそのまま素通りさせる)。
+ */
+function migrateLegacyRelation(raw: Record<string, unknown>): Record<string, unknown> {
+  if (typeof raw.distance === 'string' || typeof raw.type !== 'string') return raw
+  const mapped = LEGACY_RELATION_MAP[raw.type]
+  if (!mapped) return raw
+  const { type: _type, ...rest } = raw
+  return { ...rest, ...mapped }
+}
 
 export interface ValidationResult {
   data: GenogramData | null
@@ -188,12 +218,13 @@ export function validateGenogramData(input: unknown): ValidationResult {
   })
 
   const relations: GenogramData['relations'] = []
-  rawRelations.forEach((raw, i) => {
-    if (!isPlainObject(raw)) {
+  rawRelations.forEach((rawInput, i) => {
+    if (!isPlainObject(rawInput)) {
       errors.push(`relations[${i}]: オブジェクトである必要があります`)
       return
     }
-    const { from, to, type } = raw
+    const raw = migrateLegacyRelation(rawInput)
+    const { from, to, distance, conflict, dependent } = raw
     if (typeof from !== 'string' || !seenIds.has(from)) {
       errors.push(`relations[${i}]: "from" が参照する id "${from}" が people に存在しません`)
       return
@@ -202,14 +233,20 @@ export function validateGenogramData(input: unknown): ValidationResult {
       errors.push(`relations[${i}]: "to" が参照する id "${to}" が people に存在しません`)
       return
     }
-    if (typeof type !== 'string' || !RELATION_TYPES.includes(type as any)) {
-      errors.push(`relations[${i}]: "type" は ${RELATION_TYPES.join(' / ')} のいずれかが必要です`)
+    if (typeof distance !== 'string' || !RELATION_DISTANCES.includes(distance as any)) {
+      errors.push(`relations[${i}]: "distance" は ${RELATION_DISTANCES.join(' / ')} のいずれかが必要です`)
+      return
+    }
+    if (dependent !== undefined && (typeof dependent !== 'string' || !DEPENDENT_DIRECTIONS.includes(dependent as any))) {
+      errors.push(`relations[${i}]: "dependent" は ${DEPENDENT_DIRECTIONS.join(' / ')} のいずれかが必要です`)
       return
     }
     relations.push({
       from,
       to,
-      type: type as GenogramData['relations'][number]['type'],
+      distance: distance as GenogramData['relations'][number]['distance'],
+      conflict: conflict === true,
+      dependent: dependent as GenogramData['relations'][number]['dependent'],
       label: typeof raw.label === 'string' ? raw.label : undefined,
     })
   })
