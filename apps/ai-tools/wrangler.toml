@@ -54,6 +54,8 @@ database_id = "a89cb679-8a17-4d46-9c90-dada3e35691b"
 #   wrangler d1 execute whisper-db --remote --file src/server/db/016_game_records.sql
 # farm-manager テーブル追加:
 #   wrangler d1 execute whisper-db --remote --file src/server/db/063_farm_manager.sql
+# osarai（おさらい）テーブル追加:
+#   wrangler d1 execute whisper-db --remote --file src/server/db/070_osarai.sql
 
 [[d1_databases]]
 binding = "MLB_DB"

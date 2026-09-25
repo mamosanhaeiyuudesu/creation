@@ -48,6 +48,7 @@ export const SECTIONS: Section[] = [
       { path: '/ippon', icon: '✏️', name: 'Sketch2View', desc: '紙のスケッチを撮ると、AIが形を読み解いて3Dビューにする。共有リンクで見せられる。', tags: ['要ログイン', '共有リンク'] },
       { path: '/farm-manager', icon: '🌾', name: '農園の経営', desc: '納品書を撮るとAIが仕訳。畑の中（変動費）と畑の外（固定費）を色で分けて、毎月の利益が5秒で分かる。', tags: ['要ログイン'] },
       { path: '/keiko', icon: '🥋', name: 'けいこ記録', desc: '剣道の稽古をメンバーごとに記録。週・月・年でポイントを集計する。', tags: ['要ログイン'] },
+      { path: '/osarai', icon: '✅', name: 'おさらい', desc: 'テーマを書くとAIが選択式の問題をつくる学び直しドリル。URLで送れば同じ問題を解いてもらえる。', tags: ['ログイン不要', '共有リンク'] },
       { path: '/kiroku', icon: '📝', name: 'kiroku', desc: '感情メモ。開いたらすぐ書ける入力欄ひとつ。AIの分析も採点もしない。', tags: ['端末内に保存'] },
       { path: '/life', icon: '📖', name: '人生のインタビュー', desc: 'ライフステージごとのテーマをAIと対話で深掘り。答えは本人のスプレッドシートへ。', tags: ['要ログイン', 'Google連携'] },
       { path: '/life-analyzer', icon: '🌗', name: '人生の影と光', desc: '自分について書かれた文章から、影と光のコアを図にして読み返す。', tags: ['要ログイン'] },
