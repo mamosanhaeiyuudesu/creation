@@ -6,7 +6,7 @@
       <div class="sg-wrap">
         <div class="sg-hero-inner">
           <div class="sg-hero-text">
-            <p class="sg-hero-eyebrow">親子問題専門の<br />40代理系カウンセラーしゅごりん</p>
+            <p class="sg-hero-eyebrow">親子問題専門の<br />理系カウンセラーしゅごりん</p>
             <h1 class="sg-hero-title">
               その生きづらさ、<br>
               親との関係が原因かもしれません
