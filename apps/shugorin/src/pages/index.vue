@@ -249,7 +249,7 @@
           </div>
 
           <!-- 40代 女性 -->
-          <div class="sg-service-card">
+          <!-- <div class="sg-service-card">
             <p class="sg-service-type">40代 女性</p>
             <h3 class="sg-service-name">「自分を可愛がりたかった」という言葉が、自分の口から出てきた。</h3>
             <p class="sg-story-para">
@@ -294,7 +294,7 @@
             <p class="sg-story-para">
               思ってもみなかったところにたどり着けました、ありがとうございました！<br>
             </p>
-          </div>
+          </div> -->
 
         </div>
       </div>
