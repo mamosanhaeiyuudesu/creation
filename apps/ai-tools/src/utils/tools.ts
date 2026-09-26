@@ -34,7 +34,7 @@ export const SECTIONS: Section[] = [
       { path: '/news', icon: '📰', name: 'AIニュース', desc: 'OpenAI・DeepMind の新着を毎朝7時にAIが日本語で要約。重要度で絞って読める。', tags: ['要ログイン', '毎朝自動更新'] },
       { path: '/office', icon: '🏢', name: '勤怠', desc: '出勤・退勤の打刻と日付ごとの記録。', tags: ['要ログイン'] },
       { path: 'https://genogram.insightlens.jp', icon: '🧬', name: 'ジェノグラム', desc: '家族構成をAIに伝えると、家系図(ジェノグラム)と感情関係図をその場に描画する。', tags: ['別ドメイン'] },
-      { path: '/games', icon: '🎮', name: 'ゲーム', desc: 'パネルでポン・賢くなるパズル。息抜き用のレトロゲーム集。' },
+      { path: '/games', icon: '🎮', name: 'ゲーム', desc: 'パネルでポン・賢くなるパズル・剣道 三本勝負。息抜き用のゲーム集。' },
     ],
   },
   {

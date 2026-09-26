@@ -406,6 +406,7 @@ cronトリガーのFreeプラン上限（5個/アカウント）に当たった�
 | `/office` | 勤怠管理（日付・打刻記録） |
 | `/games` | ゲーム一覧（リンク集） |
 | `/games/panel-de-pon` | SFC版パネルでポン（5ステージ・進捗保存） |
+| `/games/kendo` | 剣道 三本勝負（ローカル2人対戦・Three.js 真横固定視点・Gamepad 2台＋キーボード）。**ロジックは `src/utils/kendo/`（Three/Vue/DOM 非依存の純TS・vitest あり）、描画と入力は `src/utils/kendo-client/`（ブラウザ専用・ページの onMounted で動的import）に分けている**＝描画は `MatchState` を毎フレーム写すだけで判定を持たない。60fps 固定ステップ・時間はフレーム数。打突のフレームデータ・届く距離・間合いのしきい値は `kendo/constants.ts` に集約（一足一刀の距離はフレームデータから自動計算）。ボタン割り当ては8BitDo SN30 Pro X-inputモードの刻印基準（A=1/B=0/Y=2/START=9）が既定で、画面の「ボタン設定」で押し直すと localStorage `kendo:padBindings` に保存。テストは `yarn workspace ai-tools test`、型チェックは `yarn workspace ai-tools typecheck` |
 | `/miyako` | 宮古島市議会議事録 — トップは「直近の傾向」＝最新の定例会のバズ語ワードクラウド（月1回のcronで更新。上のセットアップ節）。語をクリックで回数・前回比・AIの一文、「詳しく見る」で既存のAI解説 |
 | `/miyako/network` | 全体像を見る — 単語の共起ネットワーク＋AI解説パネル（2026-09-18まで `/miyako` のトップだったもの。スマホは年で見るへ転送） |
 
