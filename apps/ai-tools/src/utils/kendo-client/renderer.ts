@@ -6,7 +6,7 @@ import * as THREE from 'three'
 import { STAGE_HALF, START_X, STRIKES } from '../kendo/constants'
 import type { Fighter, MatchState, PlayerId, Technique } from '../kendo/types'
 
-const COLORS = {
+export const COLORS = {
   floor: 0xc8975a,
   floorLine: 0xf5f0e6,
   wall: 0xe8dcc4,
@@ -76,7 +76,7 @@ function poseOf(f: Fighter): Pose {
   return pose
 }
 
-function mesh(geometry: THREE.BufferGeometry, color: number, opts: { shadow?: boolean } = {}) {
+export function mesh(geometry: THREE.BufferGeometry, color: number, opts: { shadow?: boolean } = {}) {
   const m = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color, roughness: 0.75 }))
   if (opts.shadow !== false) m.castShadow = true
   return m
@@ -164,14 +164,23 @@ class RefereeView {
   }
 }
 
-export class KendoRenderer {
-  private readonly renderer: THREE.WebGLRenderer
-  private readonly scene = new THREE.Scene()
+/** 一本・勝負ありのときに審判が上げる旗（第1弾・第2弾共通） */
+export function flagOf(state: { phase: string; points: readonly { by: PlayerId }[]; winner: PlayerId | null }): PlayerId | null {
+  if (state.phase === 'ippon') return state.points[state.points.length - 1]?.by ?? null
+  if (state.phase === 'end') return state.winner
+  return null
+}
+
+/**
+ * 道場・ライト・真横固定カメラ・審判（第1弾・第2弾共通）。剣士は弾ごとのサブクラスが足す。
+ */
+export class DojoStage {
+  protected readonly renderer: THREE.WebGLRenderer
+  protected readonly scene = new THREE.Scene()
   private readonly camera = new THREE.PerspectiveCamera(30, 16 / 9, 0.1, 100)
-  private readonly fighters: [FighterView, FighterView] = [new FighterView(0), new FighterView(1)]
   private readonly referee = new RefereeView()
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, startX: number) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.shadowMap.enabled = true
@@ -182,11 +191,11 @@ export class KendoRenderer {
     this.camera.position.set(0, 1.5, 11.5)
     this.camera.lookAt(0, 1.0, 0)
 
-    this.buildDojo()
-    this.scene.add(this.fighters[0].root, this.fighters[1].root, this.referee.root)
+    this.buildDojo(startX)
+    this.scene.add(this.referee.root)
   }
 
-  private buildDojo() {
+  private buildDojo(startX: number) {
     this.scene.add(new THREE.HemisphereLight(0xfff6e8, 0x8a6a48, 1.4))
     const sun = new THREE.DirectionalLight(0xffffff, 1.6)
     sun.position.set(3, 8, 6)
@@ -213,8 +222,8 @@ export class KendoRenderer {
     }
     line(0.06, 4, -STAGE_HALF - 0.3)
     line(0.06, 4, STAGE_HALF + 0.3)
-    line(0.06, 0.6, -START_X)
-    line(0.06, 0.6, START_X)
+    line(0.06, 0.6, -startX)
+    line(0.06, 0.6, startX)
 
     const wall = new THREE.Mesh(new THREE.PlaneGeometry(40, 8), new THREE.MeshStandardMaterial({ color: COLORS.wall }))
     wall.position.set(0, 3, -3.5)
@@ -238,11 +247,8 @@ export class KendoRenderer {
     this.camera.updateProjectionMatrix()
   }
 
-  render(state: MatchState) {
-    this.fighters[0].sync(state.fighters[0])
-    this.fighters[1].sync(state.fighters[1])
-    const lastPoint = state.points[state.points.length - 1]
-    const flag = state.phase === 'ippon' ? (lastPoint?.by ?? null) : state.phase === 'end' ? state.winner : null
+  /** 剣士を写し終えたあとに呼ぶ */
+  protected draw(flag: PlayerId | null) {
     this.referee.sync(flag)
     this.renderer.render(this.scene, this.camera)
   }
@@ -259,3 +265,17 @@ export class KendoRenderer {
   }
 }
 
+export class KendoRenderer extends DojoStage {
+  private readonly fighters: [FighterView, FighterView] = [new FighterView(0), new FighterView(1)]
+
+  constructor(canvas: HTMLCanvasElement) {
+    super(canvas, START_X)
+    this.scene.add(this.fighters[0].root, this.fighters[1].root)
+  }
+
+  render(state: MatchState) {
+    this.fighters[0].sync(state.fighters[0])
+    this.fighters[1].sync(state.fighters[1])
+    this.draw(flagOf(state))
+  }
+}
