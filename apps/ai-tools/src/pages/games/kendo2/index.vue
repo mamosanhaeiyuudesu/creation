@@ -23,6 +23,9 @@
         >
           {{ guide.speaking.value ? '⏹ とめる' : '🔊 あそびかた' }}
         </button>
+        <button class="text-xs px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08] cursor-pointer" @click="openSetup">
+          👥 あいて
+        </button>
         <button
           class="text-xs px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08] cursor-pointer"
           @click="toggleConfig"
@@ -40,7 +43,7 @@
       <div class="absolute top-3 inset-x-3 flex justify-between pointer-events-none">
         <div v-for="p in PLAYERS" :key="p.id" :class="['flex flex-col gap-1.5', p.id === 1 ? 'items-end' : 'items-start']">
           <div :class="['flex items-center gap-2', p.id === 1 && 'flex-row-reverse']">
-            <div :class="['px-3 py-1 rounded-lg text-sm font-bold shadow', p.badge]">{{ p.label }}</div>
+            <div :class="['px-3 py-1 rounded-lg text-sm font-bold shadow', p.badge]">{{ p.label }}<span v-if="p.id === 1 && setup.vsCom" class="ml-1 text-xs">🤖{{ '★'.repeat(setup.level) }}</span></div>
             <div class="flex gap-1">
               <span
                 v-for="i in POINTS_TO_WIN"
@@ -93,6 +96,8 @@
         <div class="mt-1 text-xs font-normal text-slate-400">{{ guide.current.value + 1 }} / {{ KENDO2_GUIDE.length }}</div>
       </div>
 
+      <KendoSetup v-if="setupOpen && !configOpen" ref="setupEl" :initial="setup" @start="startGame" />
+
       <!-- ボタン設定 -->
       <KendoButtonConfig
         v-if="configOpen"
@@ -130,7 +135,12 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, shallowRef } from 'vue'
 import KendoButtonConfig from '~/components/kendo/KendoButtonConfig.vue'
+import KendoSetup from '~/components/kendo/KendoSetup.vue'
 import { useSpeechGuide } from '~/composables/kendo/useSpeechGuide'
+import { createKendo2Com } from '~/utils/kendo2/com'
+import type { Kendo2Com } from '~/utils/kendo2/com'
+import { copySetup, DEFAULT_SETUP, freshSeed, loadSetup, saveSetup } from '~/utils/kendo-client/setup'
+import type { KendoSetupValue } from '~/utils/kendo-client/setup'
 import { ATTACK_COOLDOWN, DEFAULT_POINTS_TO_WIN, FPS } from '~/utils/kendo2/constants'
 import { effectiveGuard } from '~/utils/kendo2/fighter'
 import { classifyMaai, distanceBetween } from '~/utils/kendo2/maai'
@@ -259,6 +269,7 @@ let hudKey = ''
 
 const callout = computed(() => {
   const h = hud.value
+  if (setupOpen.value) return null
   if (h.phase === 'ready') return { text: '構えて', color: 'text-slate-800', sub: '' }
   if (h.phase === 'fight' && h.phaseFrame < HAJIME_SHOW) {
     const [a, b] = [h.players[0].marks.length, h.players[1].marks.length]
@@ -283,6 +294,28 @@ const callout = computed(() => {
   }
   return null
 })
+
+// ── 試合前の選択（ふたりで／COMと）──
+const SETUP_KEY = 'kendo2:setup'
+const setup = ref<KendoSetupValue>(copySetup(DEFAULT_SETUP))
+const setupOpen = ref(true)
+const setupEl = ref<InstanceType<typeof KendoSetup> | null>(null)
+let com: Kendo2Com | null = null
+
+function openSetup() {
+  guide.stop()
+  setupOpen.value = true
+}
+
+function startGame(value: KendoSetupValue) {
+  setup.value = value
+  saveSetup(SETUP_KEY, value)
+  setupOpen.value = false
+  match = createMatch()
+  resetFlashes()
+  com = value.vsCom ? createKendo2Com(value.level, freshSeed(), 1) : null
+  input?.clearPending()
+}
 
 // ── あそびかた（音声）──
 const guide = useSpeechGuide(KENDO2_GUIDE)
@@ -363,6 +396,11 @@ function frame(now: number) {
     }
     input.clearPending()
     accumulator = 0
+  } else if (setupOpen.value) {
+    // 選択画面: コントローラーの START（キーボードのスペース）で「はじめる」
+    const [a, b] = input.take()
+    if (a.pressed.start || b.pressed.start) setupEl.value?.submit()
+    accumulator = 0
   } else if (guide.speaking.value) {
     // 読み上げ中は止めておく（聞いている間に試合が進まないように）
     input.clearPending()
@@ -370,8 +408,14 @@ function frame(now: number) {
   } else {
     while (accumulator >= STEP_MS) {
       const prevFrame = match.frame
-      match = stepMatch(match, input.take())
-      if (match.frame < prevFrame) resetFlashes() // 再戦でフレーム数が0に戻った
+      const inputs = input.take()
+      if (com) inputs[1] = com.decide(match)
+      match = stepMatch(match, inputs)
+      if (match.frame < prevFrame) {
+        // 再戦でフレーム数が0に戻った: 表示の期限と COM を作り直す
+        resetFlashes()
+        if (com) com = createKendo2Com(setup.value.level, freshSeed(), 1)
+      }
       collectFlashes(match)
       accumulator -= STEP_MS
     }
@@ -392,6 +436,7 @@ function syncHud() {
 }
 
 onMounted(async () => {
+  setup.value = loadSetup(SETUP_KEY)
   // Three.js と Gamepad API はクライアントでだけ読み込む（SSR では動かさない）
   const [{ Kendo2Renderer }, inputModule] = await Promise.all([
     import('~/utils/kendo-client/renderer2'),

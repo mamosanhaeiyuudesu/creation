@@ -1,16 +1,18 @@
 <template>
   <div class="flex flex-col items-center py-6 px-3 min-h-full select-none">
-    <div class="w-full max-w-5xl flex items-end justify-between mb-3">
+    <div class="w-full max-w-5xl flex items-end justify-between mb-3 gap-2">
       <div>
         <h1 class="m-0 text-2xl font-bold bg-gradient-to-br from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-          🥋 剣道 三本勝負 第1弾
+          🥋 剣道 三本勝負 第0弾
         </h1>
         <p class="m-0 mt-1 text-xs text-slate-500">
-          2人対戦・二本先取で勝ち ─
-          <NuxtLink to="/games/kendo2" class="text-slate-400 underline">第2弾（防御・返し技）はこちら</NuxtLink>
+          ボタン1つ・光ったら打つ。幼稚園児から大人まで互角 ─
+          <NuxtLink to="/games/kendo" class="text-slate-400 underline">第1弾</NuxtLink>
+          ・
+          <NuxtLink to="/games/kendo2" class="text-slate-400 underline">第2弾</NuxtLink>
         </p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-2 shrink-0">
         <button
           v-if="guide.supported.value"
           :class="[
@@ -26,10 +28,7 @@
         <button class="text-xs px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08] cursor-pointer" @click="openSetup">
           👥 あいて
         </button>
-        <button
-          class="text-xs px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08] cursor-pointer"
-          @click="toggleConfig"
-        >
+        <button class="text-xs px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08] cursor-pointer" @click="toggleConfig">
           🎮 ボタン設定
         </button>
       </div>
@@ -41,26 +40,30 @@
 
       <!-- スコア -->
       <div class="absolute top-3 inset-x-3 flex justify-between pointer-events-none">
-        <div v-for="p in PLAYERS" :key="p.id" :class="['flex items-center gap-2', p.id === 1 && 'flex-row-reverse']">
-          <div :class="['px-3 py-1 rounded-lg text-sm font-bold shadow', p.badge]">{{ p.label }}<span v-if="p.id === 1 && setup.vsCom" class="ml-1 text-xs">🤖{{ '★'.repeat(setup.level) }}</span></div>
-          <div class="flex gap-1">
-            <span
-              v-for="i in POINTS_TO_WIN"
-              :key="i"
-              class="w-8 h-8 rounded-full border-2 border-slate-700/60 bg-white/80 flex items-center justify-center text-sm font-bold text-slate-800"
-            >
-              {{ hud.marks[p.id][i - 1] ?? '' }}
-            </span>
+        <div v-for="p in PLAYERS" :key="p.id" :class="['flex flex-col gap-1.5', p.id === 1 ? 'items-end' : 'items-start']">
+          <div :class="['flex items-center gap-2', p.id === 1 && 'flex-row-reverse']">
+            <div :class="['px-3 py-1 rounded-lg text-sm font-bold shadow', p.badge]">{{ p.label }}</div>
+            <div class="flex gap-1">
+              <span
+                v-for="i in POINTS_TO_WIN"
+                :key="i"
+                class="w-8 h-8 rounded-full border-2 border-slate-700/60 bg-white/80 flex items-center justify-center text-sm font-bold text-slate-800"
+              >
+                {{ i <= hud.scores[p.id] ? 'メ' : '' }}
+              </span>
+            </div>
           </div>
+          <div class="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-900/60 text-white">{{ sideLabel(p.id) }}</div>
+          <div v-if="hud.whiff[p.id]" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-500/80 text-white">からぶり</div>
         </div>
       </div>
 
-      <!-- 間合い -->
+      <!-- いまだ！ -->
       <div
-        v-if="hud.phase === 'fight' && !guide.speaking.value"
-        :class="['absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold pointer-events-none', MAAI_STYLE[hud.maai]]"
+        v-if="hud.phase === 'fight' && hud.zone && !callout"
+        class="absolute left-1/2 top-[22%] -translate-x-1/2 text-4xl sm:text-6xl font-black text-amber-400 [-webkit-text-stroke:2px_#7c2d12] pointer-events-none animate-pulse"
       >
-        {{ MAAI_LABEL[hud.maai] }}
+        いまだ！
       </div>
 
       <!-- 掛け声・判定 -->
@@ -79,12 +82,11 @@
         class="absolute inset-x-4 bottom-4 bg-slate-950/80 text-white text-lg sm:text-2xl font-bold leading-relaxed rounded-2xl px-5 py-4 text-center"
       >
         {{ guideLine.show }}
-        <div class="mt-1 text-xs font-normal text-slate-400">{{ guide.current.value + 1 }} / {{ KENDO1_GUIDE.length }}</div>
+        <div class="mt-1 text-xs font-normal text-slate-400">{{ guide.current.value + 1 }} / {{ KENDO0_GUIDE.length }}</div>
       </div>
 
-      <KendoSetup v-if="setupOpen && !configOpen" ref="setupEl" :initial="setup" @start="startGame" />
+      <KendoSetup v-if="setupOpen && !configOpen" ref="setupEl" :initial="setup" show-ages @start="startGame" />
 
-      <!-- ボタン設定 -->
       <KendoButtonConfig
         v-if="configOpen"
         :players="PLAYERS"
@@ -107,8 +109,8 @@
             {{ hud.pads[p.id].connected ? '🎮 接続中' : '🎮 未接続（キーボードで操作）' }}
           </span>
         </div>
-        <div>コントローラー: 十字キー左右＝前進・後退 / A＝面 / B＝小手 / Y＝胴 / START＝再戦</div>
-        <div>キーボード: {{ p.keys }} / スペース＝再戦</div>
+        <div>コントローラー: A・B・X・Y のどれでも＝面 / START＝はじめる・再戦</div>
+        <div>キーボード: {{ p.keys }} / スペース＝はじめる・再戦</div>
       </div>
     </div>
   </div>
@@ -116,87 +118,108 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, shallowRef } from 'vue'
-import { DEFAULT_POINTS_TO_WIN, FPS } from '~/utils/kendo/constants'
-import { createMatch, stepMatch } from '~/utils/kendo/match'
-import { classifyMaai, distanceBetween } from '~/utils/kendo/maai'
-import type { Action, Maai, MatchPhase, MatchState, PlayerId, Technique } from '~/utils/kendo/types'
 import KendoButtonConfig from '~/components/kendo/KendoButtonConfig.vue'
 import KendoSetup from '~/components/kendo/KendoSetup.vue'
 import { useSpeechGuide } from '~/composables/kendo/useSpeechGuide'
-import { createKendo1Com } from '~/utils/kendo/com'
-import type { Kendo1Com } from '~/utils/kendo/com'
-import { copySetup, DEFAULT_SETUP, freshSeed, loadSetup, saveSetup } from '~/utils/kendo-client/setup'
-import type { KendoSetupValue } from '~/utils/kendo-client/setup'
-import { KENDO1_GUIDE } from '~/utils/kendo-client/guide'
-import { KENDO1_INPUT } from '~/utils/kendo-client/input'
+import { createKendo0Com } from '~/utils/kendo0/com'
+import type { Kendo0Com } from '~/utils/kendo0/com'
+import { AGE_LABEL, DEFAULT_POINTS_TO_WIN, FPS } from '~/utils/kendo0/constants'
+import { createMatch, inZone, stepMatch } from '~/utils/kendo0/match'
+import type { Action, MatchPhase, MatchState, PlayerId } from '~/utils/kendo0/types'
+import { KENDO0_GUIDE } from '~/utils/kendo-client/guide'
+import { KENDO0_INPUT } from '~/utils/kendo-client/input'
 import type { InputManager, PadBinding, PadStatus } from '~/utils/kendo-client/input'
-import type { KendoRenderer } from '~/utils/kendo-client/renderer'
+import type { Kendo0Renderer } from '~/utils/kendo-client/renderer0'
+import { COM_AGE, copySetup, DEFAULT_SETUP, freshSeed, loadSetup, saveSetup } from '~/utils/kendo-client/setup'
+import type { KendoSetupValue } from '~/utils/kendo-client/setup'
 
 useHead({
-  title: '剣道 三本勝負 第1弾',
+  title: '剣道 三本勝負 第0弾',
   link: [{ key: 'icon', rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥋</text></svg>` }],
 })
 
+const SETUP_KEY = 'kendo0:setup'
 const POINTS_TO_WIN = DEFAULT_POINTS_TO_WIN
 const STEP_MS = 1000 / FPS
-/** 「はじめ！」を出しておくフレーム数 */
 const HAJIME_SHOW = 45
-const AIUCHI_SHOW = 40
-/** 白の文字は明るい床の上で見えにくいので縁取りする */
+const FLASH_SHOW = 40
 const WHITE_TEXT = 'text-white [-webkit-text-stroke:2px_#334155]'
 
 const PLAYERS = [
-  { id: 0 as PlayerId, label: '赤', badge: 'bg-red-600 text-white', keys: 'A/D＝移動・F＝面・G＝小手・H＝胴' },
-  { id: 1 as PlayerId, label: '白', badge: 'bg-white text-slate-900', keys: '←/→＝移動・J＝面・K＝小手・L＝胴' },
+  { id: 0 as PlayerId, label: '赤', badge: 'bg-red-600 text-white', keys: 'F・G・H のどれでも＝面' },
+  { id: 1 as PlayerId, label: '白', badge: 'bg-white text-slate-900', keys: 'J・K・L のどれでも＝面' },
 ]
-const TECHNIQUE_MARK: Record<Technique, string> = { men: 'メ', kote: 'コ', do: 'ド' }
-const TECHNIQUE_CALL: Record<Technique, string> = { men: '面あり！', kote: '小手あり！', do: '胴あり！' }
-const MAAI_LABEL: Record<Maai, string> = { toma: '遠間', issoku: '一足一刀', chikama: '近間' }
-const MAAI_STYLE: Record<Maai, string> = {
-  toma: 'bg-slate-700/70 text-slate-100',
-  issoku: 'bg-amber-400/90 text-slate-900',
-  chikama: 'bg-rose-500/80 text-white',
-}
 const CONFIG_ACTIONS: { key: Action; label: string }[] = [
-  { key: 'men', label: '面' },
-  { key: 'kote', label: '小手' },
-  { key: 'do', label: '胴' },
-  { key: 'start', label: 'スタート（再戦）' },
-  { key: 'left', label: '左' },
-  { key: 'right', label: '右' },
+  { key: 'strike', label: '面（どれでも）' },
+  { key: 'start', label: 'スタート' },
 ]
 
-// ── UI に渡す最小限の状態（Three.js のオブジェクトや MatchState 全体はリアクティブにしない）──
+// ── 試合前の選択 ──
+const setup = ref<KendoSetupValue>(copySetup(DEFAULT_SETUP))
+const setupOpen = ref(true)
+const setupEl = ref<InstanceType<typeof KendoSetup> | null>(null)
+let com: Kendo0Com | null = null
+
+function sideLabel(id: PlayerId) {
+  if (id === 1 && setup.value.vsCom) return `🤖 COM ${'★'.repeat(setup.value.level)}`
+  return AGE_LABEL[setup.value.ages[id]]
+}
+
+function openSetup() {
+  guide.stop()
+  setupOpen.value = true
+}
+
+function startGame(value: KendoSetupValue) {
+  setup.value = value
+  saveSetup(SETUP_KEY, value)
+  setupOpen.value = false
+  const ages: [typeof value.ages[0], typeof value.ages[1]] = [value.ages[0], value.vsCom ? COM_AGE : value.ages[1]]
+  match = createMatch({ pointsToWin: DEFAULT_POINTS_TO_WIN, ages, seed: freshSeed() })
+  com = value.vsCom ? createKendo0Com(value.level, freshSeed(), 1) : null
+  resetFlashes()
+  input?.clearPending()
+}
+
+// ── UI に渡す最小限の状態 ──
 interface Hud {
   phase: MatchPhase
   phaseFrame: number
-  marks: [string[], string[]]
-  lastPoint: { by: PlayerId; technique: Technique } | null
+  scores: [number, number]
+  lastBy: PlayerId | null
   winner: PlayerId | null
-  maai: Maai
+  zone: boolean
   aiuchi: boolean
+  whiff: [boolean, boolean]
   pads: [PadStatus, PadStatus]
 }
 
-function hudOf(s: MatchState, aiuchi: boolean, pads: [PadStatus, PadStatus]): Hud {
-  const marks: [string[], string[]] = [[], []]
-  for (const p of s.points) marks[p.by].push(TECHNIQUE_MARK[p.technique])
+let aiuchiUntil = -1
+const whiffUntil: [number, number] = [-1, -1]
+
+function resetFlashes() {
+  aiuchiUntil = -1
+  whiffUntil[0] = -1
+  whiffUntil[1] = -1
+}
+
+function hudOf(s: MatchState, pads: [PadStatus, PadStatus]): Hud {
   const last = s.points[s.points.length - 1]
   return {
     phase: s.phase,
-    // 表示の切り替えに要るところまでで止め、毎フレームの再描画を避ける
     phaseFrame: Math.min(s.phaseFrame, HAJIME_SHOW),
-    marks,
-    lastPoint: last ? { by: last.by, technique: last.technique } : null,
+    scores: [s.scores[0], s.scores[1]],
+    lastBy: last?.by ?? null,
     winner: s.winner,
-    maai: classifyMaai(distanceBetween(s.fighters[0], s.fighters[1])),
-    aiuchi,
+    zone: inZone(s),
+    aiuchi: s.frame < aiuchiUntil,
+    whiff: [s.frame < whiffUntil[0], s.frame < whiffUntil[1]],
     pads: [{ ...pads[0] }, { ...pads[1] }],
   }
 }
 
 const emptyPads = (): [PadStatus, PadStatus] => [{ connected: false, name: '' }, { connected: false, name: '' }]
-const hud = shallowRef<Hud>(hudOf(createMatch(), false, emptyPads()))
+const hud = shallowRef<Hud>(hudOf(createMatch(), emptyPads()))
 let hudKey = ''
 
 const callout = computed(() => {
@@ -204,16 +227,15 @@ const callout = computed(() => {
   if (setupOpen.value) return null
   if (h.phase === 'ready') return { text: '構えて', color: 'text-slate-800', sub: '' }
   if (h.phase === 'fight' && h.phaseFrame < HAJIME_SHOW) {
-    // 審判の号令: 最初は「はじめ」、一本入った後は「二本目」、一本ずつなら「勝負」
-    const total = h.marks[0].length + h.marks[1].length
-    return { text: total === 0 ? 'はじめ！' : h.marks[0].length === h.marks[1].length ? '勝負！' : '二本目！', color: 'text-slate-800', sub: '' }
+    const [a, b] = h.scores
+    return { text: a + b === 0 ? 'はじめ！' : a === b ? '勝負！' : '二本目！', color: 'text-slate-800', sub: '' }
   }
   if (h.phase === 'fight' && h.aiuchi) return { text: '相打ち', color: 'text-slate-700', sub: '' }
-  if (h.phase === 'ippon' && h.lastPoint) {
+  if (h.phase === 'ippon' && h.lastBy !== null) {
     return {
-      text: TECHNIQUE_CALL[h.lastPoint.technique],
-      color: h.lastPoint.by === 0 ? 'text-red-600' : WHITE_TEXT,
-      sub: h.winner !== null ? '' : `${PLAYERS[h.lastPoint.by]!.label}の一本`,
+      text: '面あり！',
+      color: h.lastBy === 0 ? 'text-red-600' : WHITE_TEXT,
+      sub: h.winner !== null ? '' : `${PLAYERS[h.lastBy]!.label}の一本`,
     }
   }
   if (h.phase === 'end' && h.winner !== null) {
@@ -226,37 +248,15 @@ const callout = computed(() => {
   return null
 })
 
-// ── 試合前の選択（ふたりで／COMと）──
-const SETUP_KEY = 'kendo:setup'
-const setup = ref<KendoSetupValue>(copySetup(DEFAULT_SETUP))
-const setupOpen = ref(true)
-const setupEl = ref<InstanceType<typeof KendoSetup> | null>(null)
-let com: Kendo1Com | null = null
-
-function openSetup() {
-  guide.stop()
-  setupOpen.value = true
-}
-
-function startGame(value: KendoSetupValue) {
-  setup.value = value
-  saveSetup(SETUP_KEY, value)
-  setupOpen.value = false
-  match = createMatch()
-  aiuchiUntil = -1
-  com = value.vsCom ? createKendo1Com(value.level, freshSeed(), 1) : null
-  input?.clearPending()
-}
-
 // ── あそびかた（音声）──
-const guide = useSpeechGuide(KENDO1_GUIDE)
-const guideLine = computed(() => KENDO1_GUIDE[guide.current.value] ?? null)
+const guide = useSpeechGuide(KENDO0_GUIDE)
+const guideLine = computed(() => KENDO0_GUIDE[guide.current.value] ?? null)
 
 // ── ボタン設定 ──
 const configOpen = ref(false)
 const capture = ref<{ slot: PlayerId; action: Action } | null>(null)
 type Binding = PadBinding<Action>
-const bindingView = ref<[Binding, Binding]>([structuredClone(KENDO1_INPUT.defaultPad), structuredClone(KENDO1_INPUT.defaultPad)])
+const bindingView = ref<[Binding, Binding]>([structuredClone(KENDO0_INPUT.defaultPad), structuredClone(KENDO0_INPUT.defaultPad)])
 
 function toggleConfig() {
   guide.stop()
@@ -279,7 +279,7 @@ function applyBindings(next: [Binding, Binding]) {
 }
 
 function resetBindings() {
-  applyBindings([structuredClone(KENDO1_INPUT.defaultPad), structuredClone(KENDO1_INPUT.defaultPad)])
+  applyBindings([structuredClone(KENDO0_INPUT.defaultPad), structuredClone(KENDO0_INPUT.defaultPad)])
   capture.value = null
 }
 
@@ -287,18 +287,16 @@ function resetBindings() {
 const stageEl = ref<HTMLDivElement | null>(null)
 const canvasEl = ref<HTMLCanvasElement | null>(null)
 let match: MatchState = createMatch()
-let renderer: KendoRenderer | null = null
+let renderer: Kendo0Renderer | null = null
 let input: InputManager<Action> | null = null
 let rafId: number | null = null
 let resizeObserver: ResizeObserver | null = null
 let lastTime = 0
 let accumulator = 0
-let aiuchiUntil = -1
 
 function frame(now: number) {
   rafId = requestAnimationFrame(frame)
   if (!renderer || !input) return
-  // タブが裏に回って戻ったときに大量のステップを一気に回さない
   accumulator += Math.min(now - (lastTime || now), 250)
   lastTime = now
 
@@ -320,7 +318,6 @@ function frame(now: number) {
     if (a.pressed.start || b.pressed.start) setupEl.value?.submit()
     accumulator = 0
   } else if (guide.speaking.value) {
-    // 読み上げ中は止めておく（聞いている間に試合が進まないように）
     input.clearPending()
     accumulator = 0
   } else {
@@ -331,21 +328,19 @@ function frame(now: number) {
       match = stepMatch(match, inputs)
       if (match.frame < prevFrame) {
         // 再戦でフレーム数が0に戻った: 表示の期限と COM を作り直す
-        aiuchiUntil = -1
-        if (com) com = createKendo1Com(setup.value.level, freshSeed(), 1)
+        resetFlashes()
+        if (com) com = createKendo0Com(setup.value.level, freshSeed(), 1)
       }
-      if (match.events.some((e) => e.type === 'aiuchi')) aiuchiUntil = match.frame + AIUCHI_SHOW
+      for (const e of match.events) {
+        if (e.type === 'aiuchi') aiuchiUntil = match.frame + FLASH_SHOW
+        if (e.type === 'whiff') whiffUntil[e.by] = match.frame + FLASH_SHOW
+      }
       accumulator -= STEP_MS
     }
   }
 
   renderer.render(match)
-  syncHud()
-}
-
-function syncHud() {
-  if (!input) return
-  const next = hudOf(match, match.frame < aiuchiUntil, input.pads)
+  const next = hudOf(match, input.pads)
   const key = JSON.stringify(next)
   if (key !== hudKey) {
     hudKey = key
@@ -356,18 +351,18 @@ function syncHud() {
 onMounted(async () => {
   setup.value = loadSetup(SETUP_KEY)
   // Three.js と Gamepad API はクライアントでだけ読み込む（SSR では動かさない）
-  const [{ KendoRenderer }, inputModule] = await Promise.all([
-    import('~/utils/kendo-client/renderer'),
+  const [{ Kendo0Renderer }, inputModule] = await Promise.all([
+    import('~/utils/kendo-client/renderer0'),
     import('~/utils/kendo-client/input'),
   ])
   if (!canvasEl.value || !stageEl.value) return
 
-  saveBindings = (b) => inputModule.savePadBindings(KENDO1_INPUT, b)
-  input = new inputModule.InputManager(KENDO1_INPUT, inputModule.loadPadBindings(KENDO1_INPUT))
+  saveBindings = (b) => inputModule.savePadBindings(KENDO0_INPUT, b)
+  input = new inputModule.InputManager(KENDO0_INPUT, inputModule.loadPadBindings(KENDO0_INPUT))
   bindingView.value = structuredClone(input.bindings)
   input.attach()
 
-  renderer = new KendoRenderer(canvasEl.value)
+  renderer = new Kendo0Renderer(canvasEl.value)
   const el = stageEl.value
   renderer.resize(el.clientWidth, el.clientHeight)
   resizeObserver = new ResizeObserver(() => renderer?.resize(el.clientWidth, el.clientHeight))

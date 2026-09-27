@@ -33,7 +33,7 @@ const GEAR = {
 }
 
 /** 手（柄頭）の位置・竹刀の角度・ひねり・体の傾き */
-interface Pose {
+export interface Pose {
   hx: number
   hy: number
   /** 竹刀の角度（0 = 前へ水平、+ = 上） */
@@ -44,20 +44,20 @@ interface Pose {
   lean: number
 }
 
-const CHUDAN: Pose = { hx: 0.28, hy: 0.05, angle: 0.32, twist: 0, lean: 0 }
+export const CHUDAN: Pose = { hx: 0.28, hy: 0.05, angle: 0.32, twist: 0, lean: 0 }
 /** 面の防御: 手元を上げて竹刀を斜めに立て、頭上をかばう */
 const GUARD_MEN: Pose = { hx: 0.26, hy: 0.62, angle: 0.95, twist: 0.35, lean: 0.03 }
 /** 小手の防御: 手元を引いて下げ、剣先を右へ開く */
 const GUARD_KOTE: Pose = { hx: 0.12, hy: -0.06, angle: 0.18, twist: -0.7, lean: 0.03 }
 const KUZURE: Pose = { hx: 0.18, hy: 0.35, angle: 0.8, twist: 0.4, lean: 0.24 }
 
-const RAISED: Record<Technique, Pose> = {
+export const RAISED: Record<Technique, Pose> = {
   men: { hx: 0.14, hy: 0.78, angle: 1.95, twist: 0, lean: 0 },
   kote: { hx: 0.2, hy: 0.55, angle: 1.35, twist: 0, lean: 0 },
   do: { hx: 0.14, hy: 0.78, angle: 2.0, twist: 0.3, lean: 0 },
   tsuki: { hx: 0.12, hy: 0.08, angle: 0.25, twist: 0, lean: 0.02 }, // 突きは振りかぶらず手元を引く
 }
-const STRUCK: Record<Technique, Pose> = {
+export const STRUCK: Record<Technique, Pose> = {
   men: { hx: 0.52, hy: 0.5, angle: 0.08, twist: 0, lean: -0.1 },
   kote: { hx: 0.52, hy: 0.3, angle: -0.1, twist: 0, lean: -0.1 },
   do: { hx: 0.36, hy: 0.22, angle: -0.25, twist: 0.95, lean: -0.08 },
@@ -66,8 +66,8 @@ const STRUCK: Record<Technique, Pose> = {
 const RAISE_PORTION = 0.6
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
-const easeOut = (t: number) => 1 - (1 - t) * (1 - t)
-function lerpPose(a: Pose, b: Pose, t: number): Pose {
+export const easeOut = (t: number) => 1 - (1 - t) * (1 - t)
+export function lerpPose(a: Pose, b: Pose, t: number): Pose {
   return {
     hx: lerp(a.hx, b.hx, t),
     hy: lerp(a.hy, b.hy, t),
@@ -104,7 +104,13 @@ export function poseOf(f: Fighter): Pose {
 }
 
 /** 足さばき（右足前）。送り足・歩きのときは右足が先に出て左足が引きつける */
-function footOffset(f: Fighter): { right: number; left: number; bob: number } {
+export interface Feet {
+  right: number
+  left: number
+  bob: number
+}
+
+function footOffset(f: Fighter): Feet {
   if (f.phase === 'step') {
     const p = f.phaseFrame / STEP_FRAMES
     const dir = f.stepDir
@@ -144,7 +150,8 @@ function elbowOf(shoulder: THREE.Vector3, hand: THREE.Vector3, side: -1 | 1): TH
   return shoulder.clone().addScaledVector(dirN, along).addScaledVector(bend, h)
 }
 
-class Kenshi {
+/** 関節のある剣士。姿勢（Pose・Feet）を渡して動かす（第0弾・第2弾共通） */
+export class Kenshi {
   readonly root = new THREE.Group()
   private readonly torso = new THREE.Group()
   private readonly sword = new THREE.Group()
@@ -268,11 +275,13 @@ class Kenshi {
   }
 
   sync(f: Fighter) {
-    this.root.position.x = f.x
-    this.root.rotation.y = f.facing === 1 ? 0 : Math.PI
+    this.apply(f.x, f.facing, poseOf(f), footOffset(f))
+  }
 
-    const pose = poseOf(f)
-    const feet = footOffset(f)
+  apply(x: number, facing: 1 | -1, pose: Pose, feet: Feet) {
+    this.root.position.x = x
+    this.root.rotation.y = facing === 1 ? 0 : Math.PI
+
     this.rightFoot.position.x = 0.16 + feet.right
     this.leftFoot.position.x = -0.2 + feet.left
     this.torso.position.y = HIP_Y + feet.bob

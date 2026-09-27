@@ -18,7 +18,7 @@
             target="_blank"
             rel="noopener noreferrer"
             class="sg-nav-link sg-nav-cta"
-          >無料相談</a>
+          >初回相談</a>
         </nav>
         <button
           class="sg-menu-btn"
@@ -42,7 +42,7 @@
           target="_blank"
           rel="noopener noreferrer"
           class="sg-drawer-link"
-        >無料相談（初回無料）</a>
+        >初回相談（30分 1,500円）</a>
       </div>
     </header>
     <slot />

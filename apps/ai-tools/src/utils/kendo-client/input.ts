@@ -4,6 +4,7 @@
 //
 // rAF の頻度と固定ステップの頻度はずれる（120Hz の画面なら rAF 2回に1回しかステップしない）ので、
 // update() で読んだ「押した瞬間」は take() で取り出されるまで溜めておく（取りこぼさない）。
+import type { Action as Kendo0Action } from '../kendo0/types'
 import type { Action as Kendo1Action } from '../kendo/types'
 import type { Action as Kendo2Action } from '../kendo2/types'
 
@@ -20,9 +21,9 @@ export interface InputConfig<A extends string> {
   defaultPad: PadBinding<A>
   /** 開発用のキーボード割り当て（KeyboardEvent.code）。P1, P2 の順 */
   keyboard: readonly [Record<A, string[]>, Record<A, string[]>]
-  /** 十字キーがスティック扱いで axes[0] に来るコントローラー向けに、左右として扱うアクション */
-  axisLeft: A
-  axisRight: A
+  /** 十字キーがスティック扱いで axes[0] に来るコントローラー向けに、左右として扱うアクション（左右移動が無い弾は省略） */
+  axisLeft?: A
+  axisRight?: A
   storageKey: string
 }
 
@@ -41,6 +42,17 @@ export const KENDO1_INPUT: InputConfig<Kendo1Action> = {
   axisLeft: 'left',
   axisRight: 'right',
   storageKey: 'kendo:padBindings',
+}
+
+/** 第0弾の割り当て。A・B・X・Y のどれを押しても面（幼稚園児が押すボタンを選ばなくていいように） */
+export const KENDO0_INPUT: InputConfig<Kendo0Action> = {
+  actions: ['strike', 'start'],
+  defaultPad: { strike: [0, 1, 2, 3], start: [9] },
+  keyboard: [
+    { strike: ['KeyF', 'KeyG', 'KeyH'], start: ['Space', 'Enter'] },
+    { strike: ['KeyJ', 'KeyK', 'KeyL'], start: ['Space', 'Enter'] },
+  ],
+  storageKey: 'kendo0:padBindings',
 }
 
 /** 第2弾の割り当て。第1弾に X（上）=突き、L=小手の防御、R=面の防御 を足したもの（保存先も別） */
@@ -184,8 +196,8 @@ export class InputManager<A extends string> {
         const binding = this.bindings[slot]
         for (const a of actions) padHeld[a] = binding[a].some((i) => raw[i] ?? false)
         const axis = pad.axes[0] ?? 0
-        if (axis < -AXIS_THRESHOLD) padHeld[axisLeft] = true
-        if (axis > AXIS_THRESHOLD) padHeld[axisRight] = true
+        if (axisLeft && axis < -AXIS_THRESHOLD) padHeld[axisLeft] = true
+        if (axisRight && axis > AXIS_THRESHOLD) padHeld[axisRight] = true
       } else {
         this.prevRawButtons[slot] = []
       }

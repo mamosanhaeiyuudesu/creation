@@ -24,7 +24,7 @@
               target="_blank"
               rel="noopener noreferrer"
             >
-              無料相談フォームへ
+              初回相談フォームへ
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M5 12h14M12 5l7 7-7 7"/>
               </svg>
@@ -329,11 +329,11 @@
           <div class="sg-price-row sg-price-row--first">
             <div class="sg-price-top">
               <div>
-                <p class="sg-price-name">初回無料相談</p>
+                <p class="sg-price-name">初回相談</p>
                 <p class="sg-price-detail">30分 / オンライン</p>
               </div>
               <div>
-                <p class="sg-price-amount">無料</p>
+                <p class="sg-price-amount">1,500円</p>
                 <span class="sg-price-badge">まずここから</span>
               </div>
             </div>
@@ -411,7 +411,7 @@
               target="_blank"
               rel="noopener noreferrer"
             >
-              無料相談フォームへ
+              初回相談フォームへ
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M5 12h14M12 5l7 7-7 7"/>
               </svg>
@@ -436,7 +436,7 @@ definePageMeta({ layout: 'shugorin' })
 useHead({
   title: '親子問題専門のカウンセリング',
   meta: [
-    { name: 'description', content: '人の輪に入れない、目上の人に反発してしまう、心から休めない——そんな生きづらさの根っこにある親子問題に向き合う、オンラインカウンセリング。自身も親子問題を抱えてきた40代の理系カウンセラーが、自由な対話を通じて思考パターンや生い立ちの理解を深め、自己受容をサポートします。初回30分無料相談あり。' },
+    { name: 'description', content: '人の輪に入れない、目上の人に反発してしまう、心から休めない——そんな生きづらさの根っこにある親子問題に向き合う、オンラインカウンセリング。自身も親子問題を抱えてきた40代の理系カウンセラーが、自由な対話を通じて思考パターンや生い立ちの理解を深め、自己受容をサポートします。初回30分1,500円の相談あり。' },
   ],
   link: [
     { rel: 'icon', type: 'image/jpeg', href: '/images/brain-duality.jpeg' },
@@ -451,7 +451,7 @@ function toggle(i: number) {
 
 const faqs = [
    {
-    q: '初回の無料相談では何をしますか？',
+    q: '初回相談では何をしますか？',
     a: [
       '今どんなことで悩んでいるか、どんなことを変えたいかを自由にお話しいただきます。',
       'こちらからは、どんなサポートができるかをお伝えします。',
@@ -462,7 +462,7 @@ const faqs = [
     a: [
       '個人差がありますが、5〜10回の継続で、何かしらの変化を感じる方が多いです。',
       'ただ個人差もあり、長年のうちに積み重なってきた感情のパターンに向き合うには、時間がかかることもあります。',
-      '初回の無料相談（30分）で、ご自身の状況をお聞きしながら、どんなペースで進めるかを一緒に考えます。',
+      '初回相談（30分・1,500円）で、ご自身の状況をお聞きしながら、どんなペースで進めるかを一緒に考えます。',
     ],
   },
   {

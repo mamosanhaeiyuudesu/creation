@@ -47,6 +47,26 @@
       </NuxtLink>
 
       <NuxtLink
+        to="/games/kendo0"
+        class="group no-underline bg-white/[0.04] border border-white/[0.08] rounded-2xl p-6 flex flex-col gap-3 transition-all duration-200 hover:bg-white/[0.08] hover:border-emerald-400/30 hover:shadow-[0_0_24px_rgba(52,211,153,0.12)]"
+      >
+        <div class="text-4xl">✨</div>
+        <div>
+          <h2 class="m-0 text-lg font-bold text-slate-100 group-hover:text-emerald-400 transition-colors">
+            剣道 三本勝負 第0弾
+          </h2>
+          <p class="m-0 mt-1 text-sm text-slate-500">
+            ボタン1つ、床が光ったら打つだけ。年齢のハンデで幼稚園児もお兄ちゃん・お姉ちゃんと互角。COMとも遊べる。
+          </p>
+        </div>
+        <div class="flex items-center gap-2 mt-auto">
+          <span class="text-xs text-emerald-400/70 font-medium">対戦</span>
+          <span class="text-slate-700">·</span>
+          <span class="text-xs text-slate-500">1〜2人用</span>
+        </div>
+      </NuxtLink>
+
+      <NuxtLink
         to="/games/kendo"
         class="group no-underline bg-white/[0.04] border border-white/[0.08] rounded-2xl p-6 flex flex-col gap-3 transition-all duration-200 hover:bg-white/[0.08] hover:border-emerald-400/30 hover:shadow-[0_0_24px_rgba(52,211,153,0.12)]"
       >
@@ -62,7 +82,7 @@
         <div class="flex items-center gap-2 mt-auto">
           <span class="text-xs text-emerald-400/70 font-medium">対戦</span>
           <span class="text-slate-700">·</span>
-          <span class="text-xs text-slate-500">2人用</span>
+          <span class="text-xs text-slate-500">1〜2人用</span>
         </div>
       </NuxtLink>
 
@@ -82,7 +102,7 @@
         <div class="flex items-center gap-2 mt-auto">
           <span class="text-xs text-emerald-400/70 font-medium">対戦</span>
           <span class="text-slate-700">·</span>
-          <span class="text-xs text-slate-500">2人用</span>
+          <span class="text-xs text-slate-500">1〜2人用</span>
         </div>
       </NuxtLink>
 
