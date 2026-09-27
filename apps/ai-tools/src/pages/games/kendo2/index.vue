@@ -3,12 +3,9 @@
     <div class="w-full max-w-5xl flex items-end justify-between mb-3">
       <div>
         <h1 class="m-0 text-2xl font-bold bg-gradient-to-br from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-          🥋 剣道 三本勝負 第2弾
+          🥋 剣道 三本勝負
         </h1>
-        <p class="m-0 mt-1 text-xs text-slate-500">
-          防御・返し技・突き。2人対戦・二本先取で勝ち ─
-          <NuxtLink to="/games/kendo" class="text-slate-400 underline">第1弾はこちら</NuxtLink>
-        </p>
+        <p class="m-0 mt-1 text-xs text-slate-500">2人対戦・二本先取で勝ち</p>
       </div>
       <div class="flex gap-2">
         <button
@@ -34,6 +31,8 @@
         </button>
       </div>
     </div>
+
+    <KendoTabs />
 
     <!-- ═══ ゲーム画面 ═══ -->
     <div ref="stageEl" class="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden border border-white/[0.08] bg-[#e8dcc4]">
@@ -135,6 +134,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, shallowRef } from 'vue'
 import KendoButtonConfig from '~/components/kendo/KendoButtonConfig.vue'
+import KendoTabs from '~/components/kendo/KendoTabs.vue'
 import KendoSetup from '~/components/kendo/KendoSetup.vue'
 import { useSpeechGuide } from '~/composables/kendo/useSpeechGuide'
 import { createKendo2Com } from '~/utils/kendo2/com'

@@ -3,14 +3,9 @@
     <div class="w-full max-w-5xl flex items-end justify-between mb-3 gap-2">
       <div>
         <h1 class="m-0 text-2xl font-bold bg-gradient-to-br from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-          🥋 剣道 三本勝負 第0弾
+          🥋 剣道 三本勝負
         </h1>
-        <p class="m-0 mt-1 text-xs text-slate-500">
-          ボタン1つ・光ったら打つ。幼稚園児から大人まで互角 ─
-          <NuxtLink to="/games/kendo" class="text-slate-400 underline">第1弾</NuxtLink>
-          ・
-          <NuxtLink to="/games/kendo2" class="text-slate-400 underline">第2弾</NuxtLink>
-        </p>
+        <p class="m-0 mt-1 text-xs text-slate-500">幼稚園児から大人まで互角・二本先取で勝ち</p>
       </div>
       <div class="flex gap-2 shrink-0">
         <button
@@ -33,6 +28,8 @@
         </button>
       </div>
     </div>
+
+    <KendoTabs />
 
     <!-- ═══ ゲーム画面 ═══ -->
     <div ref="stageEl" class="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden border border-white/[0.08] bg-[#e8dcc4]">
@@ -119,6 +116,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, shallowRef } from 'vue'
 import KendoButtonConfig from '~/components/kendo/KendoButtonConfig.vue'
+import KendoTabs from '~/components/kendo/KendoTabs.vue'
 import KendoSetup from '~/components/kendo/KendoSetup.vue'
 import { useSpeechGuide } from '~/composables/kendo/useSpeechGuide'
 import { createKendo0Com } from '~/utils/kendo0/com'
