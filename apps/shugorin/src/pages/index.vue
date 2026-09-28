@@ -169,7 +169,7 @@
             </p>
             <ul class="sg-service-points">
               <li>傾聴・対話を中心とした60分セッション</li>
-              <li>オンライン（ビデオ通話）対応</li>
+              <li>オンライン（ビデオ通話）対応・顔出し無しでもOK</li>
               <li>延長は15分まで</li>
               <li>頻度は週1回を基本とします</li>
               <li>次回の予定は毎回その場で決めます</li>
@@ -313,6 +313,14 @@
             妻と3人の子育てをしている父親でもあり、最近は子どもと一緒に剣道を始めた。<br>
             好きな作家は手塚治虫・宮崎駿・井上雄彦・松本大洋。<br>
           </p>
+          <a
+            class="sg-profile-article-link"
+            href="https://note.com/parent_child/n/nacca5323c031"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            なぜカウンセラーをしているのか →
+          </a>
         </div>
       </div>
     </section>
