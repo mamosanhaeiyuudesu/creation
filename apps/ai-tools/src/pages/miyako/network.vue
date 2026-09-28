@@ -4,6 +4,7 @@ definePageMeta({ ssr: false, layout: 'miyako' })
 useHead({ title: import.meta.dev ? '宮古議事録 (dev)' : '宮古議事録' })
 
 import { CATEGORY_WORDS, CATEGORIES, CATEGORY_SHORT } from '~/utils/miyako/categories'
+import { eraToWestern } from '~/utils/miyako/formatters'
 
 interface Pair {
   source: string
@@ -439,7 +440,7 @@ watch(selectedCategory, () => {
               <div v-for="(topic, i) in aiTopics" :key="i" class="topic-card">
                 <div class="card-period-bar">
                   <span class="font-mono text-[8.5px] tracking-[0.2em] text-[#a5b4fc] uppercase mr-3 shrink-0">Period</span>
-                  <span class="text-[12px] font-semibold tracking-[0.02em]">{{ topic.period || '会期不明' }}</span>
+                  <span class="text-[12px] font-semibold tracking-[0.02em]">{{ eraToWestern(topic.period) || '会期不明' }}</span>
                 </div>
                 <div class="card-body">
                   <div class="card-title">{{ topic.title }}</div>

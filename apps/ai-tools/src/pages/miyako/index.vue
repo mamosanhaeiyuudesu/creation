@@ -4,6 +4,7 @@ definePageMeta({ ssr: false, layout: 'miyako' })
 useHead({ title: import.meta.dev ? '宮古議事録 (dev)' : '宮古議事録' })
 
 import type { MiyakoTrendState, MiyakoTrendTerm } from '~/types/miyako-trends'
+import { eraToWestern } from '~/utils/miyako/formatters'
 
 interface AiTopic {
   title: string
@@ -200,13 +201,13 @@ onMounted(async () => {
             <div class="min-w-0 w-full md:w-auto md:flex-1">
               <span class="font-mono text-[9.5px] tracking-[0.18em] text-[#6878a8] uppercase">Recent trends</span>
               <h2 class="m-0 mt-1 text-[17px] md:text-[20px] font-bold text-[#1c2d5a] leading-snug">
-                {{ current.label }}<span class="text-[#6878a8] font-semibold text-[14px] md:text-[16px]">（{{ period }}）</span>でよく議論された言葉
+                {{ eraToWestern(current.label) }}<span class="text-[#6878a8] font-semibold text-[14px] md:text-[16px]">（{{ period }}）</span>でよく議論された言葉
               </h2>
             </div>
             <label v-if="(state?.sessions.length ?? 0) > 1" class="shrink-0 flex items-center gap-1.5 text-[11.5px] text-[#6878a8]">
               会期
               <select v-model="sessionKey" class="session-select" @change="onSessionChange">
-                <option v-for="s in state?.sessions" :key="s.key" :value="s.key">{{ s.label }}</option>
+                <option v-for="s in state?.sessions" :key="s.key" :value="s.key">{{ eraToWestern(s.label) }}</option>
               </select>
             </label>
           </div>
@@ -217,7 +218,7 @@ onMounted(async () => {
           <div class="mt-2 flex items-center gap-x-4 gap-y-1 flex-wrap text-[11.5px] text-[#44507a]">
             <span class="flex items-center gap-1.5"><span class="legend-dot" :style="{ background: COLOR_NEW }" />新しく出てきた話題</span>
             <span class="flex items-center gap-1.5">
-              <span class="legend-dot" :style="{ background: COLOR_CONTINUING }" />前回<template v-if="current.prevLabel">（{{ current.prevLabel }}）</template>から続く話題
+              <span class="legend-dot" :style="{ background: COLOR_CONTINUING }" />前回<template v-if="current.prevLabel">（{{ eraToWestern(current.prevLabel) }}）</template>から続く話題
             </span>
           </div>
         </div>

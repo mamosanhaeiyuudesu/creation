@@ -3,11 +3,14 @@ definePageMeta({ ssr: false, layout: 'miyako', alias: ['/miyako/keyword'] })
 
 useHead({ title: import.meta.dev ? '宮古議事録 (dev)' : '宮古議事録' })
 
-interface AiTopic {
+const HISTORY_KEY = 'miyako_recent_keywords'
+const CACHE_PREFIX = 'miyako_keyword_evolution:'
+const MAX_HISTORY = 5
+
+interface AiPhase {
+  era: string
   title: string
-  period: string
-  conclusion: string
-  flow: string[]
+  summary: string
 }
 
 const route = useRoute()
@@ -16,72 +19,73 @@ const router = useRouter()
 const keyword = ref('')
 const searchedWord = ref('')
 const loading = ref(false)
-const topics = ref<AiTopic[]>([])
-const resultCount = ref(3)
-const model = ref('gpt-4.1-mini')
+const phases = ref<AiPhase[]>([])
+const recentSearches = ref<string[]>([])
 
-function periodToSortKey(period: string): number {
-  if (/令和元年/.test(period)) return 2019 * 100
-  const reiwa = period.match(/令和(\d+)年/)
-  if (reiwa) return (2018 + parseInt(reiwa[1])) * 100
-  const heisei = period.match(/平成(\d+)年/)
-  if (heisei) return (1988 + parseInt(heisei[1])) * 100
-  return 0
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY)
+    recentSearches.value = raw ? JSON.parse(raw) : []
+  } catch {
+    recentSearches.value = []
+  }
 }
 
-function sortTopicsOldest(list: AiTopic[]): AiTopic[] {
-  return [...list].sort((a, b) => {
-    const diff = periodToSortKey(a.period) - periodToSortKey(b.period)
-    if (diff !== 0) return diff
-    const numA = parseInt(a.period.match(/第(\d+)回/)?.[1] ?? '0')
-    const numB = parseInt(b.period.match(/第(\d+)回/)?.[1] ?? '0')
-    return numA - numB
-  })
+function saveHistory(word: string) {
+  const list = recentSearches.value.filter(w => w !== word)
+  list.unshift(word)
+  recentSearches.value = list.slice(0, MAX_HISTORY)
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(recentSearches.value))
+  } catch {}
 }
 
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Enter' && !e.isComposing) search()
 }
 
-async function search() {
-  const word = keyword.value.trim()
-  if (!word) return
+async function search(word?: string) {
+  const q = (word ?? keyword.value).trim()
+  if (!q) return
 
-  searchedWord.value = word
-  topics.value = []
-  router.replace({ query: { q: word } })
+  keyword.value = q
+  searchedWord.value = q
+  phases.value = []
+  router.replace({ query: { q } })
+  saveHistory(q)
 
-  const cacheKey = `miyako_keyword:${word}:${resultCount.value}:${model.value}`
-  const cached = localStorage.getItem(cacheKey)
-  if (cached) {
-    try {
-      topics.value = JSON.parse(cached)
+  const cacheKey = CACHE_PREFIX + q
+  try {
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) {
+      phases.value = JSON.parse(cached)
       return
-    } catch {
-      localStorage.removeItem(cacheKey)
     }
+  } catch {
+    localStorage.removeItem(cacheKey)
   }
 
   loading.value = true
   try {
-    const data = await $fetch<{ topics: AiTopic[] }>('/api/miyako/keyword', {
+    const data = await $fetch<{ phases: AiPhase[] }>('/api/miyako/keyword', {
       method: 'POST',
-      body: { word, count: resultCount.value, model: model.value },
+      body: { word: q },
     })
-    topics.value = sortTopicsOldest(data.topics)
-    localStorage.setItem(cacheKey, JSON.stringify(data.topics))
+    phases.value = data.phases
+    try { localStorage.setItem(cacheKey, JSON.stringify(data.phases)) } catch {}
   } catch {
-    topics.value = [{ title: 'エラー', period: '', conclusion: '取得に失敗しました。', flow: [] }]
+    phases.value = [{ era: '', title: 'エラー', summary: '取得に失敗しました。' }]
   } finally {
     loading.value = false
   }
 }
 
-onMounted(async () => {
+onMounted(() => {
+  loadHistory()
   const q = (route.query.q as string) ?? ''
   if (q) {
     keyword.value = q
-    await search()
+    search(q)
   }
 })
 </script>
@@ -97,7 +101,7 @@ onMounted(async () => {
       </div>
 
       <!-- 検索バー -->
-      <div class="flex gap-2 mb-7 items-center justify-center">
+      <div class="flex gap-2 mb-3 items-center justify-center">
         <div class="flex rounded-[7px] border border-[#c5cad8] bg-white overflow-hidden shadow-[0_1px_4px_rgba(28,45,90,0.07)] focus-within:border-[#3d5fc4] focus-within:shadow-[0_0_0_3px_rgba(61,95,196,0.1)] transition-all">
           <span class="font-mono text-[11px] text-[#9aa3c0] tracking-[0.1em] flex items-center px-3 border-r border-[#edf0f8] bg-[#fafbff] shrink-0 select-none">検索</span>
           <input
@@ -121,61 +125,72 @@ onMounted(async () => {
         <button
           :disabled="loading || !keyword.trim()"
           class="shrink-0 rounded-[7px] bg-[#1c2d5a] text-white text-[13px] font-semibold px-5 py-2.5 hover:bg-[#2a3f7a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-[0_1px_4px_rgba(28,45,90,0.2)]"
-          @click="search"
+          @click="search()"
         >検索</button>
       </div>
+
+      <!-- 最近の検索 -->
+      <div v-if="recentSearches.length" class="flex items-center gap-2 justify-center flex-wrap mb-6">
+        <span class="font-mono text-[10px] text-[#9aa3c0] tracking-[0.12em] shrink-0">RECENT</span>
+        <button
+          v-for="w in recentSearches"
+          :key="w"
+          class="recent-chip"
+          :class="{ 'recent-chip-active': w === searchedWord }"
+          @click="search(w)"
+        >{{ w }}</button>
+      </div>
+      <div v-else class="mb-6" />
 
       <!-- ローディング -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-4">
         <span class="w-8 h-8 rounded-full border-2 border-[#1A237E]/20 border-t-[#1A237E] animate-spin block" />
-        <p class="text-[12px] text-[#9aa3c0]">「{{ searchedWord }}」を検索中...</p>
+        <p class="text-[12px] text-[#9aa3c0]">「{{ searchedWord }}」の変遷を調べています...</p>
       </div>
 
       <!-- 初期状態 -->
       <div v-else-if="!searchedWord" class="flex flex-col items-center justify-center py-24 gap-3">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-30 text-[#1c2d5a]"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <p class="text-[15px] font-bold text-[#1c2d5a] text-center leading-snug">キーワードを入力して<br>議論の変遷をAI検索</p>
-        <p class="text-[11.5px] text-[#9aa3c0] text-center leading-relaxed">気になる言葉を入力すると、<br>宮古島市議会での議論の歴史をAIが解説します</p>
+        <p class="text-[11.5px] text-[#9aa3c0] text-center leading-relaxed">気になる言葉を入力すると、<br>宮古島市議会でこの20年間でどう議論が変わってきたかをAIが解説します</p>
       </div>
 
-      <!-- 結果 -->
-      <div v-else class="flex flex-col md:flex-row md:items-stretch gap-0">
-        <template v-for="(topic, i) in topics" :key="i">
-          <!-- カード -->
-          <div class="flex-1 min-w-0 bg-white border border-[#dde2ef] rounded-[8px] shadow-[0_2px_8px_rgba(28,45,90,0.07),0_0_0_1px_rgba(28,45,90,0.04)] overflow-hidden flex flex-col">
-            <!-- 会期ヘッダー -->
-            <div class="flex items-center flex-shrink-0 bg-[#1c2d5a] text-white px-3.5 py-2.5" style="border-left: 3px solid #a5b4fc">
-              <span class="font-mono text-[8.5px] tracking-[0.2em] text-[#a5b4fc] uppercase mr-3 shrink-0">Period</span>
-              <span class="text-[12px] font-semibold tracking-[0.02em]">{{ topic.period || '会期不明' }}</span>
-            </div>
+      <!-- 結果：タイムライン -->
+      <div v-else>
+        <!-- 検索ワード見出し -->
+        <div class="flex items-center gap-2 mb-4 justify-center">
+          <span class="font-mono text-[10px] text-[#6878a8] tracking-[0.15em] uppercase">「{{ searchedWord }}」</span>
+          <span class="text-[12px] text-[#9aa3c0]">2005年〜現在の議論の変遷</span>
+        </div>
 
-            <!-- トピック内容 -->
-            <div class="ai-body flex-1">
-              <div class="topic-title">{{ topic.title }}</div>
-              <div class="conclusion">{{ topic.conclusion }}</div>
-              <div v-if="topic.flow?.length" class="flow-list">
-                <template v-for="(step, si) in topic.flow" :key="si">
-                  <div class="flow-step">
-                    <span class="step-num">{{ String(si + 1).padStart(2, '0') }}</span>
-                    <span>{{ step }}</span>
-                  </div>
-                  <div v-if="si < topic.flow.length - 1" class="flow-arrow">↓</div>
-                </template>
+        <!-- タイムライン本体 -->
+        <div class="flex flex-col md:flex-row md:items-stretch gap-0">
+          <template v-for="(phase, i) in phases" :key="i">
+            <!-- フェーズカード -->
+            <div class="phase-card flex-1 min-w-0">
+              <!-- 時代ラベル -->
+              <div class="phase-era">
+                <span class="font-mono text-[8.5px] tracking-[0.18em] text-[#a5b4fc]/70 uppercase mr-2">Era</span>
+                <span class="text-[11px] font-semibold text-[#a5b4fc]">{{ phase.era }}</span>
               </div>
+              <!-- タイトル -->
+              <div class="phase-title">{{ phase.title }}</div>
+              <!-- 概要 -->
+              <div class="phase-summary">{{ phase.summary }}</div>
             </div>
-          </div>
 
-          <!-- カード間の矢印 -->
-          <div v-if="i < topics.length - 1" class="card-arrow">
-            <span class="md:hidden text-[#3d5fc4] opacity-50">↓</span>
-            <span class="hidden md:inline text-[#3d5fc4] opacity-50">→</span>
-          </div>
-        </template>
+            <!-- カード間矢印 -->
+            <div v-if="i < phases.length - 1" class="phase-arrow">
+              <span class="md:hidden">↓</span>
+              <span class="hidden md:inline">→</span>
+            </div>
+          </template>
 
-        <!-- 結果なし -->
-        <div v-if="topics.length === 0" class="flex flex-col items-center justify-center py-16 gap-3 w-full">
-          <span class="font-mono text-[10px] text-[#9aa3c0] tracking-[0.1em]">// no results found</span>
-          <p class="text-[13px] text-[#6878a8]">「{{ searchedWord }}」に関する議論は見つかりませんでした</p>
+          <!-- 結果なし -->
+          <div v-if="phases.length === 0" class="flex flex-col items-center justify-center py-16 gap-3 w-full">
+            <span class="font-mono text-[10px] text-[#9aa3c0] tracking-[0.1em]">// no results found</span>
+            <p class="text-[13px] text-[#6878a8]">「{{ searchedWord }}」に関する議論は見つかりませんでした</p>
+          </div>
         </div>
       </div>
 
@@ -190,77 +205,71 @@ onMounted(async () => {
   background-size: 20px 20px;
 }
 
-.ai-body {
-  font-size: 13px;
-  color: #1c2d5a;
-  padding: 12px 14px;
-  line-height: 1.75;
-}
-
-.topic-title {
-  font-size: 13px;
-  font-weight: 700;
-  margin-bottom: 6px;
-  color: #1c2d5a;
-  border-left: 3px solid #3d5fc4;
-  padding-left: 8px;
-}
-
-.conclusion {
+.recent-chip {
+  padding: 3px 11px;
+  border-radius: 9999px;
   font-size: 12px;
-  color: #3a4a72;
-  background: #f4f6fc;
-  border: 1px solid #e8ecf8;
-  border-radius: 5px;
-  padding: 7px 10px;
-  margin-bottom: 10px;
-  line-height: 1.72;
+  color: #44507a;
+  background: #fff;
+  border: 1px solid #c5cad8;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
-
-.flow-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.flow-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 12px;
+.recent-chip:hover {
+  background: #f0f2f8;
+  border-color: #3d5fc4;
   color: #1c2d5a;
+}
+.recent-chip-active {
+  background: #e8ecf8;
+  border-color: #3d5fc4;
+  color: #1c2d5a;
+  font-weight: 600;
+}
+
+.phase-card {
   background: #fff;
   border: 1px solid #dde2ef;
-  border-radius: 5px;
-  padding: 6px 10px;
-  line-height: 1.65;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(28,45,90,0.07), 0 0 0 1px rgba(28,45,90,0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.step-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  color: #a5b4fc;
-  font-weight: 700;
+.phase-era {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
-  margin-top: 2px;
-  letter-spacing: 0.05em;
+  background: #1c2d5a;
+  padding: 8px 14px;
+  border-left: 3px solid #a5b4fc;
 }
 
-.flow-arrow {
-  text-align: center;
-  color: #3d5fc4;
+.phase-title {
   font-size: 14px;
-  line-height: 1.4;
-  opacity: 0.45;
-  margin: 1px 0;
+  font-weight: 700;
+  color: #1c2d5a;
+  padding: 10px 14px 4px;
+  line-height: 1.55;
 }
 
-.card-arrow {
+.phase-summary {
+  font-size: 12px;
+  color: #3a4a72;
+  padding: 0 14px 12px;
+  line-height: 1.75;
+  flex: 1;
+}
+
+.phase-arrow {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 20px;
-  padding: 8px 6px;
+  font-size: 18px;
+  padding: 6px 5px;
+  color: #3d5fc4;
+  opacity: 0.45;
 }
 </style>

@@ -16,10 +16,10 @@ const base = computed(() => {
 // タブが5つになり、1279px以下ではタブを詰めて短い表記（mobileLabel）にしないと右端がはみ出す（実測: 1024pxでもはみ出した）
 const tabs = computed(() => [
   { page: 'trend' as const, label: '直近の傾向', mobileLabel: '直近の傾向', to: base.value },
+  { page: 'keyword' as const, label: 'キーワードで見る', mobileLabel: 'キーワード', to: `${base.value}/keyword` },
   { page: 'network' as const, label: '全体像を見る', mobileLabel: '', to: `${base.value}/network` },
   { page: 'session' as const, label: '年で見る', mobileLabel: '年で見る', to: `${base.value}/yearly` },
   { page: 'member' as const, label: '議員で見る', mobileLabel: '議員で見る', to: `${base.value}/member` },
-  { page: 'keyword' as const, label: 'キーワードで見る', mobileLabel: 'キーワード', to: `${base.value}/keyword` },
 ])
 const mobileTabs = computed(() => tabs.value.filter(t => t.mobileLabel))
 const isActive = (page: MiyakoPage) => props.activePage === page
