@@ -20,103 +20,37 @@
       <div class="ac-wrap">
         <div class="hero-inner">
           <div class="hero-text">
-            <span class="hero-eyebrow">Your Words &rarr; Working Prototype</span>
+            <span class="hero-eyebrow">大手インターネット企業17年のエンジニア</span>
             <h1 class="hero-catch">
-              使いにくいサービスを<br />
-              <span>シンプルに使いやすく</span>
+             誰もが楽しく使える<br />
+              <span>シンプルでやさしいサービスを</span>
             </h1>
             <div class="hero-sub">
-              <p>ウェブアプリが複雑で使いにくい、既存のやり方だと議事録データが有効活用できない、etc</p>
+              <p>一般のアプリは複雑で使いにくい、議事録などのテキストデータが有効活用できない、etc</p>
               <p>
                 複雑になりすぎて、使いにくくなってしまったシステムや、有効活用されていないデータを、長年の経験に裏付けされたヒアリングと開発力で、シンプルで使いやすい形に変えていきます。
                 </p>
-              <p>
-                まずはお話を聞かせてください。
-              </p>
+                <p>
+                  お話を伺ったら、すぐに動くものを作って、そこからフィードバックをもらって、改善を繰り返していきます。
+                </p>
             </div>
             <a href="#contact" class="hero-cta">
               まずは話を聞かせてください
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </a>
           </div>
-          <div class="hero-viz-deco" aria-hidden="true">
-            <svg viewBox="0 0 380 420" fill="none" xmlns="http://www.w3.org/2000/svg" class="hero-flow-svg">
-              <!-- お客さんの声 -->
-              <text x="8" y="10" font-family="'IBM Plex Mono',monospace" font-size="8" font-weight="500" fill="rgba(27,95,217,0.42)" letter-spacing="0.14em">YOUR WORDS</text>
-              <g class="hero-bubbles">
-                <g class="hero-bubble">
-                  <rect x="6" y="18" width="190" height="46" rx="13" fill="rgba(245,112,10,0.06)" stroke="rgba(245,112,10,0.22)" stroke-width="1"/>
-                  <rect x="22" y="32" width="146" height="6" rx="3" fill="rgba(245,112,10,0.22)"/>
-                  <rect x="22" y="45" width="106" height="6" rx="3" fill="rgba(245,112,10,0.14)"/>
-                </g>
-                <g class="hero-bubble">
-                  <rect x="170" y="72" width="144" height="40" rx="13" fill="rgba(27,95,217,0.07)" stroke="rgba(27,95,217,0.20)" stroke-width="1"/>
-                  <rect x="186" y="85" width="100" height="6" rx="3" fill="rgba(27,95,217,0.20)"/>
-                  <rect x="186" y="97" width="68" height="6" rx="3" fill="rgba(27,95,217,0.13)"/>
-                </g>
-              </g>
-
-              <!-- 共創 -->
-              <g class="hero-flow-arrow">
-                <line x1="110" y1="120" x2="110" y2="134" stroke="rgba(245,112,10,0.5)" stroke-width="1.2" stroke-dasharray="3 3"/>
-                <path d="M106,134 L114,134 L110,141 Z" fill="rgba(245,112,10,0.6)"/>
-                <text x="122" y="136" font-family="'IBM Plex Mono',monospace" font-size="7.5" font-weight="600" fill="#f5700a" letter-spacing="0.12em">CO-CREATION</text>
-              </g>
-
-              <!-- できること -->
-              <text x="8" y="162" font-family="'IBM Plex Mono',monospace" font-size="8" font-weight="500" fill="rgba(27,95,217,0.42)" letter-spacing="0.14em" class="hero-outputs-label">WHAT WE CAN DO</text>
-              <g class="hero-outputs">
-                <g class="hero-out">
-                  <rect x="6" y="172" width="178" height="54" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
-                  <rect x="20" y="186" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
-                  <rect x="26" y="193" width="14" height="12" rx="2" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><line x1="26" y1="196.4" x2="40" y2="196.4" stroke="#1b5fd9" stroke-width="1.2" opacity="0.75"/><rect x="27.4" y="198" width="3.4" height="5.4" rx="0.8" fill="#1b5fd9" opacity="0.35"/><rect x="32" y="198" width="6" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.5"/><rect x="32" y="200.4" width="6" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.35"/><rect x="32" y="202.5" width="3.6" height="1.8" rx="0.9" fill="#f5700a" opacity="0.8"/>
-                  <text x="56" y="197" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">Webサービス</text>
-                  <text x="56" y="211" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">WEB APP</text>
-                </g>
-                <g class="hero-out">
-                  <rect x="196" y="172" width="178" height="54" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
-                  <rect x="210" y="186" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
-                  <rect x="217" y="192" width="12" height="14" rx="1.8" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><rect x="219.4" y="194.4" width="7.2" height="3.6" rx="0.8" fill="#f5700a" opacity="0.7"/><rect x="219.4" y="199.4" width="7.2" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.5"/><rect x="219.4" y="202.1" width="4.6" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.35"/>
-                  <text x="246" y="197" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">ホームページ</text>
-                  <text x="246" y="211" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">WEBSITE</text>
-                </g>
-                <g class="hero-out">
-                  <rect x="6" y="234" width="178" height="54" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
-                  <rect x="20" y="248" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
-                  <rect x="28" y="254" width="10" height="14" rx="2.2" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><rect x="29.8" y="256.6" width="6.4" height="4.6" rx="1.6" fill="#f5700a" opacity="0.75"/><rect x="29.8" y="262.2" width="4.4" height="1.2" rx="0.6" fill="#1b5fd9" opacity="0.4"/><line x1="31.2" y1="265.8" x2="34.8" y2="265.8" stroke="#1b5fd9" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
-                  <text x="56" y="259" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">LINEアプリ</text>
-                  <text x="56" y="273" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">LIFF</text>
-                </g>
-                <g class="hero-out">
-                  <rect x="196" y="234" width="178" height="54" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
-                  <rect x="210" y="248" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
-                  <line x1="217.5" y1="257.5" x2="223.5" y2="262.5" stroke="#1b5fd9" stroke-width="1" opacity="0.45" stroke-linecap="round"/><line x1="228" y1="256.5" x2="223.5" y2="262.5" stroke="#1b5fd9" stroke-width="1" opacity="0.45" stroke-linecap="round"/><line x1="228.5" y1="266" x2="223.5" y2="262.5" stroke="#1b5fd9" stroke-width="1" opacity="0.45" stroke-linecap="round"/><circle cx="223.5" cy="262.5" r="2.8" fill="#1b5fd9" opacity="0.75"/><circle cx="217.5" cy="257.5" r="2.2" fill="#f5700a" opacity="0.85"/><circle cx="228" cy="256.5" r="1.8" fill="#1b5fd9" opacity="0.55"/><circle cx="228.5" cy="266" r="1.8" fill="#1b5fd9" opacity="0.45"/>
-                  <text x="246" y="259" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">データ分析・可視化</text>
-                  <text x="246" y="273" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">DATA VIZ</text>
-                </g>
-                <g class="hero-out">
-                  <rect x="6" y="296" width="178" height="54" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
-                  <rect x="20" y="310" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
-                  <circle cx="29.8" cy="323" r="4.7" stroke="#1b5fd9" stroke-width="1.2" fill="none" opacity="0.7"/><circle cx="36.2" cy="323" r="4.7" stroke="#f5700a" stroke-width="1.2" fill="none" opacity="0.85"/>
-                  <text x="56" y="321" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">Google・LINE連携</text>
-                  <text x="56" y="335" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">INTEGRATION</text>
-                </g>
-                <g class="hero-out">
-                  <rect x="196" y="296" width="178" height="54" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
-                  <rect x="210" y="310" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
-                  <circle cx="223" cy="321.4" r="4.6" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><line x1="223" y1="321.4" x2="223" y2="325.6" stroke="#1b5fd9" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/><rect x="220.9" y="326.2" width="4.2" height="1.5" rx="0.75" fill="#f5700a" opacity="0.85"/><rect x="221.5" y="328.4" width="3" height="1.3" rx="0.65" fill="#1b5fd9" opacity="0.45"/>
-                  <text x="246" y="321" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">ITコンサル</text>
-                  <text x="246" y="335" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">CONSULTING</text>
-                </g>
-                <g class="hero-out">
-                  <rect x="6" y="358" width="368" height="54" rx="10" fill="#f0f4fb" stroke="rgba(27,95,217,0.24)" stroke-width="1.2"/>
-                  <rect x="20" y="372" width="26" height="26" rx="7" fill="rgba(27,95,217,0.07)"/>
-                  <rect x="27" y="375" width="12" height="20" rx="2.4" stroke="#1b5fd9" stroke-width="1.2" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/><rect x="29" y="378" width="8" height="12.5" rx="1" fill="#f5700a" opacity="0.7"/><circle cx="33" cy="392.3" r="1.1" fill="#1b5fd9" opacity="0.55"/>
-                  <text x="56" y="383" font-family="'Noto Sans JP',sans-serif" font-size="11.5" font-weight="700" fill="#1a2136">スマホアプリ</text>
-                  <text x="56" y="397" font-family="'IBM Plex Mono',monospace" font-size="7" font-weight="500" fill="rgba(27,95,217,0.45)" letter-spacing="0.12em">iOS / ANDROID</text>
-                </g>
-              </g>
-            </svg>
+          <div class="hero-photo-wrap">
+            <img src="/images/portrait.jpg" alt="" class="hero-photo">
+            <p class="hero-what-label">できること</p>
+            <div class="hero-what-grid">
+              <span class="hero-what-chip">Webサービス</span>
+              <span class="hero-what-chip">ホームページ</span>
+              <span class="hero-what-chip">LINEアプリ</span>
+              <span class="hero-what-chip">データ分析・可視化</span>
+              <span class="hero-what-chip">Google・LINE連携</span>
+              <span class="hero-what-chip">ITコンサル</span>
+              <span class="hero-what-chip">スマホアプリ</span>
+            </div>
           </div>
         </div>
       </div>
@@ -126,81 +60,33 @@
     <section id="for-you">
       <div class="ac-wrap">
         <p class="section-label">For You</p>
-        <h2 class="section-title">こんなお悩みは、ありませんか</h2>
+        <h2 class="section-title">こんなお悩みは、ありませんか？</h2>
         <ul class="for-you-list">
           <li>
             <span class="check">✓</span>
-            業者に相談したら専門用語ばかりで、話が通じなかった。
+            Salesforce・kintone・Notion などの既成サービスは、うちのやり方には合わない。
           </li>
           <li>
             <span class="check">✓</span>
-            ITは分からないけれど、今のやり方が非効率なのは分かっている。
+            既存の社内システムは、複雑で使いにくく、現場の人が使いこなせていない。
           </li>
           <li>
             <span class="check">✓</span>
-            規模が小さすぎて、どこも引き受けてくれない気がする。
+            ITで効率化したいが、規模が小さすぎて、どこも引き受けてくれない気がする。
           </li>
           <li>
             <span class="check">✓</span>
-            記録やデータは溜まっているのに、使えていない。
+            記録やデータは溜まっているのに、有効活用できていない。
           </li>
           <li>
             <span class="check">✓</span>
-            既製のサービスだと、うちのやり方には合わない。
-          </li>
-          <li>
-            <span class="check">✓</span>
-            そもそも、何から相談すればいいのか分からない。
+            問題意識はあるが、そもそも、何から相談すればいいのか分からない。
           </li>
         </ul>
-        <p class="for-you-note">
+<p class="for-you-note">
           ひとつでも当てはまれば、それで十分です。<br />
-          要件が決まっていなくて大丈夫。むしろその段階から声をかけてください。<br />
-          これまで行政・観光・農業・医療など、業種を問わずご一緒してきました。
-        </p>
-      </div>
-    </section>
-
-    <!-- 3つの道 -->
-    <section id="scope" class="ac-scope">
-      <div class="ac-wrap">
-        <p class="section-label">Scope</p>
-        <h2 class="section-title">できあがった後の、3つの道</h2>
-        <p class="section-body">
-          規模によって、私がどこまで担当するかは変わります。どれになるかは、お話を伺ってから一緒に決めます。
-        </p>
-
-        <div class="exit-grid">
-
-          <div class="exit-card">
-            <span class="exit-num">01</span>
-            <h3 class="exit-title">小さくつくって、使い続ける</h3>
-            <p class="exit-body">
-              規模が大きくなければ、開発から実際の運用まで、そのまま私が担当します。作って終わりにせず、使いながら直していけるのが一番良い形だと思っています。
-            </p>
-          </div>
-
-          <div class="exit-card">
-            <span class="exit-num">02</span>
-            <h3 class="exit-title">設計図まで描いて、渡す</h3>
-            <p class="exit-body">
-              大きな仕組みが必要なときは、私が企画書・設計書まで作り、専門のエンジニアへスムーズに橋渡しします。何を作るかが固まった状態で渡せるので、その後の話が早く進みます。
-            </p>
-          </div>
-
-          <div class="exit-card exit-card-accent">
-            <span class="exit-num">03</span>
-            <h3 class="exit-title">つくらない、という提案</h3>
-            <p class="exit-body">
-              すでにあるサービスの紹介や、その組み合わせで解決するなら、それが一番安く済みます。作らないほうが良いと思ったときは、正直にそう言います。
-            </p>
-          </div>
-
-        </div>
-
-        <p class="exit-note">
-          どこまでご一緒するかは、規模とご予算に合わせてその都度決めていきます。<br />
-          「これは頼めるだろうか」という段階のご相談で構いません。
+          要件が決まっていなくて大丈夫、そのもやっとした段階からお声かけください。<br />
+          これまで行政・農業・医療など、業種を問わずご一緒してきました。
         </p>
       </div>
     </section>
@@ -251,6 +137,50 @@
             </div>
           </li>
         </ol>
+      </div>
+    </section>
+
+    <!-- 3つの道 -->
+    <section id="scope" class="ac-scope">
+      <div class="ac-wrap">
+        <p class="section-label">Scope</p>
+        <h2 class="section-title">できあがった後の、3つの道</h2>
+        <p class="section-body">
+          規模によって、私がどこまで担当するかは変わります。どれになるかは、お話を伺ってから一緒に決めます。
+        </p>
+
+        <div class="exit-grid">
+
+          <div class="exit-card">
+            <span class="exit-num">01</span>
+            <h3 class="exit-title">小さくつくって、使い続ける</h3>
+            <p class="exit-body">
+              規模が大きくなければ、開発から実際の運用まで、そのまま私が担当します。作って終わりにせず、使いながら直していけるのが一番良い形だと思っています。
+            </p>
+          </div>
+
+          <div class="exit-card">
+            <span class="exit-num">02</span>
+            <h3 class="exit-title">設計図まで描いて、渡す</h3>
+            <p class="exit-body">
+              大きな仕組みが必要なときは、私が企画書・設計書まで作り、専門のエンジニアへスムーズに橋渡しします。何を作るかが固まった状態で渡せるので、その後の話が早く進みます。
+            </p>
+          </div>
+
+          <div class="exit-card exit-card-accent">
+            <span class="exit-num">03</span>
+            <h3 class="exit-title">つくらない、という提案</h3>
+            <p class="exit-body">
+              すでにあるサービスの紹介や、その組み合わせで解決するなら、それが一番安く済みます。作らないほうが良いと思ったときは、正直にそう言います。
+            </p>
+          </div>
+
+        </div>
+
+        <p class="exit-note">
+          どこまでご一緒するかは、規模とご予算に合わせてその都度決めていきます。<br />
+          「これは頼めるだろうか」という段階のご相談で構いません。
+        </p>
       </div>
     </section>
 

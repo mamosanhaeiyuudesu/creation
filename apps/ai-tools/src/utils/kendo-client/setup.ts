@@ -1,4 +1,5 @@
-// 試合前の選択（ふたりで／COMと・COMの強さ・年齢）。第0〜2弾で共通。前回の選択は弾ごとに localStorage に残す。
+// 試合前の選択（ふたりで／COMと・COMの強さ・年齢）。第0〜2弾で共通。
+// ページを開いたときは必ず「ふたりで」から始める（親子で遊ぶのが基本のため）。COMの強さと年齢だけ弾ごとに localStorage に残す。
 import type { Age } from '../kendo0/types'
 
 export interface KendoSetupValue {
@@ -28,7 +29,7 @@ export function loadSetup(key: string): KendoSetupValue {
     const v = JSON.parse(raw) as Partial<KendoSetupValue>
     const age = (a: unknown, fallback: Age): Age => (AGES.includes(a as Age) ? (a as Age) : fallback)
     return {
-      vsCom: v.vsCom === true,
+      vsCom: false, // 前回 COM で遊んでいても、開き直したら「ふたりで」から
       level: Number.isInteger(v.level) && v.level! >= 1 && v.level! <= 5 ? v.level! : DEFAULT_SETUP.level,
       ages: [age(v.ages?.[0], DEFAULT_SETUP.ages[0]), age(v.ages?.[1], DEFAULT_SETUP.ages[1])],
     }

@@ -80,7 +80,7 @@ const tools = [
   // { path: '/snapreader', name: 'SnapReader', icon: '📸' },
   // { path: '/whisper', name: 'whisper', icon: '🎙️' },
   { path: '/nikki', name: '日記', icon: '📔' },
-  { path: '/task', name: 'タスクくん', icon: '📋' },
+  { path: '/kouba', name: 'タスクくん', icon: '⏱️' },
   // { path: '/marriage', name: 'marriage', icon: '💑' },
   // { path: '/fitbit', name: 'Fitbit', icon: '⌚️' },
   // { path: '/office', name: 'office', icon: '🏢' },
