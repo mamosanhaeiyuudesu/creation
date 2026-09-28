@@ -301,9 +301,9 @@ async function searchNode(label: string, neighbors: string[]) {
 
   aiLoading.value = true
   try {
-    const data = await $fetch<{ topics: AiTopic[] }>('/api/miyako/keyword', {
+    const data = await $fetch<{ topics: AiTopic[] }>('/api/miyako/topics', {
       method: 'POST',
-      body: { word, count: 3, model: 'gpt-4.1-mini' },
+      body: { word, count: 3 },
     })
     aiTopics.value = [...data.topics].sort((a, b) => periodToSortKey(a.period) - periodToSortKey(b.period))
     localStorage.setItem(cacheKey, JSON.stringify(aiTopics.value))
