@@ -401,9 +401,6 @@
         <div class="sg-cta-inner">
           <p class="sg-section-label">Contact</p>
           <h2 class="sg-cta-title">　かつての私と同じ場所にいるあなたへ</h2>
-          <p class="sg-cta-desc">
-            初回30分は無料で、お話を聞かせてください。
-          </p>
           <div class="sg-cta-buttons">
             <a
               class="sg-btn-primary"

@@ -21,13 +21,14 @@ export default defineEventHandler(async (event) => {
 
 以下のJSON形式のみで回答してください。前置き・説明文・マークダウン記法・JSONブロック以外のテキストは一切出力しないでください。
 
-{"phases":[{"era":"期間（西暦）","title":"このフェーズを表す短いタイトル","summary":"このフェーズの議論の変化を1〜2文で"}]}
+{"phases":[{"era":"期間（西暦）","title":"このフェーズを表す短いタイトル","summary":"議論の変化を1〜2文で（短く）","detail":"このフェーズの具体的な内容・争点・変化の理由を3〜4文で詳しく"}]}
 
 条件：
 - 必ず5フェーズ、古い順（最初が一番古い）に並べること
 - eraは西暦で書くこと（「令和」「平成」は使わない）。例：「2005〜2009年」「2010〜2014年」
 - titleは15字以内で、そのフェーズの議論の「変化・特徴」を表す言葉にすること（例：「問題の表面化」「政策として整備」「取り組みが本格化」「成果と見直し」「新たな局面へ」など）
-- summaryは40〜70字で、議論がどう変わったかの流れが伝わるように書くこと
+- summaryは40〜70字。議論がどう変わったかの流れを簡潔に
+- detailは100〜150字。具体的な議論内容・争点・背景・変化の理由を詳しく書くこと
 - 「${word}」に関する議論が少ない時期はその旨を正直に書いてよい
 - 議会・行政の専門用語は普通の言葉に言い換え、中学生が読んでも意味が通じる平易な文章にすること` as any,
       tools: [{
@@ -40,7 +41,7 @@ export default defineEventHandler(async (event) => {
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw createError({ statusCode: 500, statusMessage: 'AI応答のJSON解析に失敗しました。' })
     const parsed = JSON.parse(jsonMatch[0])
-    return { phases: parsed.phases as { era: string; title: string; summary: string }[] }
+    return { phases: parsed.phases as { era: string; title: string; summary: string; detail: string }[] }
   } catch (e: any) {
     wrapApiError(e, '議事録の検索に失敗しました。')
   }

@@ -31,6 +31,7 @@ const aiLoading = ref(false)
 const isMobile = ref(false) // 767px以下＝文字を小さくする
 const isStacked = ref(false) // 1023px以下＝詳細がワードクラウドの下に回る
 const detailRef = ref<HTMLElement | null>(null)
+const showHint = ref(false)
 
 const current = computed(() => state.value?.current ?? null)
 const terms = computed(() => current.value?.terms ?? [])
@@ -156,6 +157,7 @@ async function fetchAi(word: string) {
 }
 
 onMounted(async () => {
+  document.addEventListener('click', () => { showHint.value = false })
   // 以前のトップ（全体像）を共有したURL（?cat= / ?node=）は全体像のページへ送る
   if (route.query.cat || route.query.node) {
     router.replace({ path: '/miyako/network', query: route.query })
@@ -211,15 +213,30 @@ onMounted(async () => {
               </select>
             </label>
           </div>
-          <p class="m-0 mt-2 text-[12.5px] text-[#44507a] leading-relaxed">
-            文字が大きいほど、いつもより多く話題になった言葉です。
-            <template v-if="current.baseSessions">過去3年の定例会（{{ current.baseSessions }}回分）と比べています。</template>
-          </p>
           <div class="mt-2 flex items-center gap-x-4 gap-y-1 flex-wrap text-[11.5px] text-[#44507a]">
             <span class="flex items-center gap-1.5"><span class="legend-dot" :style="{ background: COLOR_NEW }" />新しく出てきた話題</span>
             <span class="flex items-center gap-1.5">
               <span class="legend-dot" :style="{ background: COLOR_CONTINUING }" />前回<template v-if="current.prevLabel">（{{ eraToWestern(current.prevLabel) }}）</template>から続く話題
             </span>
+            <!-- 説明ポップアップ -->
+            <div class="relative ml-auto shrink-0">
+              <button
+                class="hint-btn"
+                :class="{ 'hint-btn-active': showHint }"
+                @click.stop="showHint = !showHint"
+              >?</button>
+              <div v-if="showHint" class="hint-popup" @click.stop>
+                <button class="hint-popup-close" @click="showHint = false">✕</button>
+                <p class="hint-popup-item">
+                  <span class="hint-popup-label">文字の大きさについて</span>
+                  大きいほど、いつもより多く話題になった言葉です。<template v-if="current.baseSessions">過去3年の定例会（{{ current.baseSessions }}回分）と比べています。</template>
+                </p>
+                <p class="hint-popup-item">
+                  <span class="hint-popup-label">データについて</span>
+                  会議録は閉会から2〜3か月後に市のサイトで公開されます。毎月1日に確認し、新しい会議録を自動で取り込みます。言葉はAIが会議録から選び、回数は本文をそのまま数えています。
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -243,10 +260,6 @@ onMounted(async () => {
               <span :style="{ color: selectedWord === t.term ? undefined : (isNew(t) ? COLOR_NEW : COLOR_CONTINUING) }">{{ t.term }}</span>
             </button>
           </div>
-          <p class="m-0 mt-3 text-[11px] text-[#9aa3c0] leading-relaxed">
-            会議録は閉会から2〜3か月後に市のサイトで公開されるため、これが公開済みで最新の定例会です（毎月1日に確認）。
-            言葉はAIが会議録から選び、回数は会議録の本文をそのまま数えています。
-          </p>
         </div>
       </section>
 
@@ -427,5 +440,69 @@ onMounted(async () => {
 }
 .ai-button:hover {
   background: #283593;
+}
+
+.hint-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #e8ecf8;
+  border: 1px solid #c5cad8;
+  color: #6878a8;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+.hint-btn:hover,
+.hint-btn-active {
+  background: #3d5fc4;
+  border-color: #3d5fc4;
+  color: #fff;
+}
+
+.hint-popup {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 280px;
+  background: #fff;
+  border: 1px solid #dde2ef;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(28,45,90,0.14);
+  padding: 14px 14px 10px;
+  z-index: 50;
+  font-size: 12px;
+  color: #3a4a72;
+  line-height: 1.72;
+}
+.hint-popup-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #9aa3c0;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+.hint-popup-close:hover { color: #1c2d5a; }
+.hint-popup-item {
+  margin: 0 0 8px;
+}
+.hint-popup-item:last-child { margin-bottom: 0; }
+.hint-popup-label {
+  display: block;
+  font-weight: 700;
+  color: #1c2d5a;
+  font-size: 11.5px;
+  margin-bottom: 2px;
 }
 </style>

@@ -11,6 +11,7 @@ interface AiPhase {
   era: string
   title: string
   summary: string
+  detail: string
 }
 
 const route = useRoute()
@@ -21,6 +22,11 @@ const searchedWord = ref('')
 const loading = ref(false)
 const phases = ref<AiPhase[]>([])
 const recentSearches = ref<string[]>([])
+const expandedIndex = ref<number | null>(null)
+
+function toggleDetail(i: number) {
+  expandedIndex.value = expandedIndex.value === i ? null : i
+}
 
 function loadHistory() {
   try {
@@ -51,6 +57,7 @@ async function search(word?: string) {
   keyword.value = q
   searchedWord.value = q
   phases.value = []
+  expandedIndex.value = null
   router.replace({ query: { q } })
   saveHistory(q)
 
@@ -74,7 +81,7 @@ async function search(word?: string) {
     phases.value = data.phases
     try { localStorage.setItem(cacheKey, JSON.stringify(data.phases)) } catch {}
   } catch {
-    phases.value = [{ era: '', title: 'エラー', summary: '取得に失敗しました。' }]
+    phases.value = [{ era: '', title: 'エラー', summary: '取得に失敗しました。', detail: '' }]
   } finally {
     loading.value = false
   }
@@ -167,7 +174,11 @@ onMounted(() => {
         <div class="flex flex-col md:flex-row md:items-stretch gap-0">
           <template v-for="(phase, i) in phases" :key="i">
             <!-- フェーズカード -->
-            <div class="phase-card flex-1 min-w-0">
+            <div
+              class="phase-card flex-1 min-w-0"
+              :class="{ 'phase-card-expanded': expandedIndex === i }"
+              @click="toggleDetail(i)"
+            >
               <!-- 時代ラベル -->
               <div class="phase-era">
                 <span class="font-mono text-[8.5px] tracking-[0.18em] text-[#a5b4fc]/70 uppercase mr-2">Era</span>
@@ -177,6 +188,15 @@ onMounted(() => {
               <div class="phase-title">{{ phase.title }}</div>
               <!-- 概要 -->
               <div class="phase-summary">{{ phase.summary }}</div>
+              <!-- 展開トリガー -->
+              <div class="phase-toggle" :class="{ 'phase-toggle-open': expandedIndex === i }">
+                <span>詳しく見る</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="phase-toggle-chevron"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              <!-- 詳細（展開時のみ） -->
+              <div v-if="expandedIndex === i && phase.detail" class="phase-detail">
+                {{ phase.detail }}
+              </div>
             </div>
 
             <!-- カード間矢印 -->
@@ -235,6 +255,16 @@ onMounted(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.phase-card:hover {
+  border-color: #3d5fc4;
+  box-shadow: 0 4px 14px rgba(61,95,196,0.13), 0 0 0 1px rgba(61,95,196,0.15);
+}
+.phase-card-expanded {
+  border-color: #3d5fc4;
+  box-shadow: 0 4px 14px rgba(61,95,196,0.13), 0 0 0 1px rgba(61,95,196,0.2);
 }
 
 .phase-era {
@@ -260,6 +290,34 @@ onMounted(() => {
   padding: 0 14px 12px;
   line-height: 1.75;
   flex: 1;
+}
+
+.phase-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #6878a8;
+  padding: 5px 14px 9px;
+  margin-top: auto;
+}
+.phase-toggle-open {
+  color: #3d5fc4;
+}
+.phase-toggle-chevron {
+  transition: transform 0.2s;
+}
+.phase-toggle-open .phase-toggle-chevron {
+  transform: rotate(180deg);
+}
+
+.phase-detail {
+  font-size: 12px;
+  color: #1c2d5a;
+  background: #f4f6fc;
+  border-top: 1px solid #dde2ef;
+  padding: 10px 14px 12px;
+  line-height: 1.78;
 }
 
 .phase-arrow {
