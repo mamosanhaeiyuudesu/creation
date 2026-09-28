@@ -113,10 +113,13 @@ watch([sessionKey, selectedWord], () => {
 // ── 語を選ぶ・AI解説 ──────────────────────────────
 
 function selectWord(word: string) {
-  selectedWord.value = selectedWord.value === word ? null : word
-  if (aiWord.value !== selectedWord.value) {
+  if (selectedWord.value === word) {
+    selectedWord.value = null
     aiWord.value = null
     aiTopics.value = []
+  } else {
+    selectedWord.value = word
+    fetchAi(word)
   }
   // 縦並びのときは詳細がワードクラウドの下にあり気づきにくいので、そこまで送る
   if (selectedWord.value && isStacked.value) {
@@ -295,12 +298,6 @@ onMounted(async () => {
                 <dd><span class="stats-approx">約</span>{{ usualCount(selectedTerm) }}<span>回</span></dd>
               </div>
             </dl>
-            <button
-              v-if="aiWord !== selectedTerm.term"
-              type="button"
-              class="ai-button"
-              @click="fetchAi(selectedTerm.term)"
-            >この定例会での議論をAIで詳しく見る</button>
           </div>
         </div>
 
@@ -425,22 +422,6 @@ onMounted(async () => {
   margin: 0 2px 0 0;
 }
 
-.ai-button {
-  margin-top: 14px;
-  width: 100%;
-  padding: 9px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #fff;
-  background: #1A237E;
-  border: 0;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.15s;
-}
-.ai-button:hover {
-  background: #283593;
-}
 
 .hint-btn {
   width: 20px;
