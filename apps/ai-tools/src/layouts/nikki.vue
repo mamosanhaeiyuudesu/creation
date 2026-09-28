@@ -2,12 +2,65 @@
   <div class="nk-root min-h-screen w-full">
     <div class="nk-bg" aria-hidden="true" />
     <div class="relative z-[1]">
+
+      <!-- PC ナビ -->
+      <header class="nk-nav hidden lg:block border-b border-[var(--nk-line)]">
+        <nav class="flex max-w-[960px] mx-auto px-6">
+          <NuxtLink
+            v-for="tool in tools"
+            :key="tool.path"
+            :to="tool.path"
+            :class="[
+              'flex items-center gap-2 px-5 py-4 no-underline text-sm font-medium border-b-2 transition-all duration-200',
+              isActive(tool.path)
+                ? 'text-[var(--nk-indigo)] border-[var(--nk-indigo)]'
+                : 'text-[var(--nk-ink-soft)] border-transparent hover:text-[var(--nk-ink)] hover:border-[var(--nk-line)]'
+            ]"
+          >
+            <span class="text-[17px]" style="font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif">{{ tool.icon }}</span>
+            <span>{{ tool.name }}</span>
+          </NuxtLink>
+        </nav>
+      </header>
+
+      <!-- スマホ ナビ（横スクロール） -->
+      <header class="lg:hidden border-b border-[var(--nk-line)] bg-[var(--nk-paper)]">
+        <nav class="flex overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <NuxtLink
+            v-for="tool in tools"
+            :key="tool.path"
+            :to="tool.path"
+            :class="[
+              'flex items-center gap-1.5 px-4 py-3.5 no-underline text-sm font-medium border-b-2 whitespace-nowrap transition-all duration-200 shrink-0',
+              isActive(tool.path)
+                ? 'text-[var(--nk-indigo)] border-[var(--nk-indigo)]'
+                : 'text-[var(--nk-ink-soft)] border-transparent'
+            ]"
+          >
+            <span class="text-base" style="font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif">{{ tool.icon }}</span>
+            <span>{{ tool.name }}</span>
+          </NuxtLink>
+        </nav>
+      </header>
+
       <slot />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+const route = useRoute()
+
+const tools = [
+  { path: '/', name: 'ホーム', icon: '🏠' },
+  { path: '/nikki', name: '日記', icon: '📔' },
+  { path: '/kouba', name: 'タスクくん', icon: '⏱️' },
+  { path: '/games', name: 'ゲーム', icon: '🎮' },
+]
+
+const isActive = (path: string): boolean =>
+  path === '/' ? route.path === '/' : route.path.startsWith(path)
+
 useHead({
   link: [
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
