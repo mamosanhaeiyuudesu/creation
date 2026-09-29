@@ -101,7 +101,7 @@
           <li class="process-item">
             <span class="process-num">01</span>
             <div class="process-body">
-              <strong>お話を聞く<em>30分〜 / オンライン可</em></strong>
+              <strong>お話を聞く<em>30分 / オンライン可</em></strong>
               まずは現状でのお困りごと、実現したいことなどをお聞かせ下さい。<br />
               業界に特有の事情や、現場の方の使い方など、現状を把握させていただきます。<br />
               背景の知識があると、より適切なご提案ができるので、なるべく詳しくお聞かせいただけると助かります。<br />
@@ -110,7 +110,7 @@
           <li class="process-item">
             <span class="process-num">02</span>
             <div class="process-body">
-              <strong>すぐ作る<em>その場〜1〜3日</em></strong>
+              <strong>すぐ作る<em>その場〜3日</em></strong>
               お話を伺ったら、すぐに動くもの（試作品）を作ります。<br />
               Webアプリ・スマホアプリ・LINEアプリ・ホームページなど、業務にあった最適な形で作ります。<br />
               長年の経験とAIを使った開発で、短期間での試作が可能です。<br />
@@ -119,7 +119,7 @@
           <li class="process-item">
             <span class="process-num">03</span>
             <div class="process-body">
-              <strong>触って、直す<em>何度でも</em></strong>
+              <strong>触って、直す<em>2〜3週間</em></strong>
               作ったものはすぐに使っていただきます。<br  />
               違和感を感じた所があれば、納得が行く形になるまで、何度でも直します。<br />
               なるべくシンプルに、わかりやすい形にするために、実際に使う現場の方の声を聞きながら改善していきます。<br />
@@ -129,7 +129,7 @@
           <li class="process-item">
             <span class="process-num">04</span>
             <div class="process-body">
-              <strong>現場で試していただく<em>数日〜 / ご協力をお願いします</em></strong>
+              <strong>現場で試していただく<em>2〜3週間</em></strong>
               本番で使えるレベルになったら、テストを兼ねて、実際の業務で使っていただきます。<br />
               使いながら、不具合が出ないかや、使い勝手の改善点がないかを、現場の方に確認していただきます。<br />
               

@@ -22,10 +22,10 @@ const searchedWord = ref('')
 const loading = ref(false)
 const phases = ref<AiPhase[]>([])
 const recentSearches = ref<string[]>([])
-const expandedIndex = ref<number | null>(null)
+const allExpanded = ref(false)
 
-function toggleDetail(i: number) {
-  expandedIndex.value = expandedIndex.value === i ? null : i
+function toggleDetail(_i: number) {
+  allExpanded.value = !allExpanded.value
 }
 
 function loadHistory() {
@@ -57,7 +57,7 @@ async function search(word?: string) {
   keyword.value = q
   searchedWord.value = q
   phases.value = []
-  expandedIndex.value = null
+  allExpanded.value = false
   router.replace({ query: { q } })
   saveHistory(q)
 
@@ -176,7 +176,7 @@ onMounted(() => {
             <!-- フェーズカード -->
             <div
               class="phase-card flex-1 min-w-0"
-              :class="{ 'phase-card-expanded': expandedIndex === i }"
+              :class="{ 'phase-card-expanded': allExpanded }"
               @click="toggleDetail(i)"
             >
               <!-- 時代ラベル -->
@@ -189,12 +189,12 @@ onMounted(() => {
               <!-- 概要 -->
               <div class="phase-summary">{{ phase.summary }}</div>
               <!-- 展開トリガー -->
-              <div class="phase-toggle" :class="{ 'phase-toggle-open': expandedIndex === i }">
-                <span>詳しく見る</span>
+              <div class="phase-toggle" :class="{ 'phase-toggle-open': allExpanded }">
+                <span>{{ allExpanded ? '閉じる' : '詳しく見る' }}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="phase-toggle-chevron"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
               <!-- 詳細（展開時のみ） -->
-              <div v-if="expandedIndex === i && phase.detail" class="phase-detail">
+              <div v-if="allExpanded && phase.detail" class="phase-detail">
                 {{ phase.detail }}
               </div>
             </div>

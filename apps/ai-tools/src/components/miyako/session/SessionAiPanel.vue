@@ -8,6 +8,7 @@ interface AiTopic {
 defineProps<{
   selectedWord: string | null
   selectedSession: string | null
+  selectedSpeaker?: string | null
   aiTopics: AiTopic[]
   aiLoading: boolean
   hintMain?: string
@@ -26,7 +27,8 @@ defineProps<{
       <div class="flex items-center flex-shrink-0 bg-[#1c2d5a] text-white px-3.5 py-2.5" style="border-left: 3px solid #a5b4fc">
         <span class="label-badge">分析</span>
         <span class="text-[12.5px] font-semibold tracking-[0.02em] truncate">
-          <template v-if="selectedSession">{{ selectedSession }}年の</template>「{{ selectedWord }}」の議論
+          <template v-if="selectedSpeaker">{{ selectedSpeaker }}議員の</template>
+          <template v-else-if="selectedSession">{{ selectedSession }}年の</template>「{{ selectedWord }}」の議論
         </span>
       </div>
       <div class="overflow-y-auto md:flex-1 md:min-h-0">
