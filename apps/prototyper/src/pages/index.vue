@@ -219,8 +219,8 @@
               </div>
               <div>
                 <dt>したこと</dt>
-                <dd>文章を単語に分解し、つながりの図とヒートマップにしました。<br />
-                  年ごと・議員ごとなど、いくつもの切り口から議論の流れが見えるようになっています</dd>
+                <dd>文章を単語に分解し、よく検索されるキーワードを最近のトレンド、年ごと、議員ごとの切り口で見れるようにしました。<br />
+                  また、キーワードを検索すると、2005年からの議論の流れが見れます。</dd>
               </div>
               <div>
                 <dt>費用</dt>
@@ -384,7 +384,7 @@
           </div>
         </div>
 
-        <div class="portfolio-card">
+        <!-- <div class="portfolio-card">
           <div class="portfolio-card-header">
             <span class="portfolio-tag portfolio-tag-soft">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -461,7 +461,7 @@
               LINEで予約が完結する仕組みは、既製のサービスだと月額5,000円以上かかることが多いのが実情です。今回は一から作っているので、かかるのは開発費用のみ。使っていない月の維持費はかかりません。枠の出し方や表示のルールも、院の運用に合わせて自由に調整できます。
             </p>
           </div>
-        </div>
+        </div> -->
 
         <div class="portfolio-card">
           <div class="portfolio-card-header">

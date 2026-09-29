@@ -4,7 +4,6 @@ definePageMeta({ ssr: false, layout: 'miyako' })
 useHead({ title: import.meta.dev ? '宮古議事録 (dev)' : '宮古議事録' })
 
 import { CATEGORY_WORDS, CATEGORIES, CATEGORY_SHORT } from '~/utils/miyako/categories'
-import { eraToWestern } from '~/utils/miyako/formatters'
 
 interface Pair {
   source: string
@@ -20,14 +19,15 @@ interface TooltipState {
   y: number
 }
 
-interface AiTopic {
+interface AiPhase {
+  era: string
   title: string
-  period: string
-  conclusion: string
-  flow: string[]
+  summary: string
+  detail: string
 }
 
 const MAX_EDGES_PER_NODE = 6
+const CACHE_PREFIX = 'miyako_keyword_evolution:'
 
 const route = useRoute()
 const router = useRouter()
@@ -46,17 +46,18 @@ const selectedCategory = ref<string>(
 )
 const initNodeLabel = ref((route.query.node as string) ?? '')
 
-const selectedNode = ref<{ label: string; neighbors: string[] } | null>(null)
-const aiTopics = ref<AiTopic[]>([])
+const selectedWord = ref<string | null>(null)
+const phases = ref<AiPhase[]>([])
 const aiLoading = ref(false)
+const popupOpen = ref(false)
+const allExpanded = ref(false)
 
 let cy: any = null
 
-// state → URL 同期
-watch([selectedCategory, selectedNode], () => {
+watch([selectedCategory, selectedWord], () => {
   const query: Record<string, string> = {}
   if (selectedCategory.value !== '暮らし・福祉') query.cat = selectedCategory.value
-  if (selectedNode.value) query.node = selectedNode.value.label
+  if (selectedWord.value) query.node = selectedWord.value
   router.replace({ query })
 })
 
@@ -212,19 +213,18 @@ async function renderGraph() {
   } as any)
 
   layout.on('layoutstop', () => {
-    // 接続数の多い上位ノード（密集中心）にズームイン
+    // 接続数上位8ノードの密集エリアにズームイン
     const sorted = cy.nodes().sort((a: any, b: any) => b.connectedEdges().length - a.connectedEdges().length)
-    const focusNodes = sorted.slice(0, Math.min(25, sorted.length))
-    cy.fit(focusNodes, 60)
+    const focusNodes = sorted.slice(0, Math.min(8, sorted.length))
+    cy.fit(focusNodes, 20)
 
     rendering.value = false
 
-    if (initNodeLabel.value && !selectedNode.value && cy) {
+    if (initNodeLabel.value && !selectedWord.value && cy) {
       const node = cy.getElementById(initNodeLabel.value)
       if (node.length > 0) {
         node.addClass('selected')
-        const neighbors: string[] = node.neighborhood('node').map((n: any) => n.data('label'))
-        searchNode(initNodeLabel.value, neighbors)
+        fetchKeyword(initNodeLabel.value)
       }
       initNodeLabel.value = ''
     }
@@ -263,55 +263,49 @@ async function renderGraph() {
     const node = evt.target
     cy!.elements().removeClass('selected')
     node.addClass('selected')
-    const neighbors: string[] = node.neighborhood('node').map((n: any) => n.data('label'))
-    searchNode(node.data('label'), neighbors)
+    fetchKeyword(node.data('label'))
   })
 }
 
-// ── RAG 検索 ────────────────────────────────────────
+// ── キーワード検索（keyword.vue と同じ API・同じキャッシュ） ────
 
-function periodToSortKey(period: string): number {
-  if (/令和元年/.test(period)) return 2019 * 100
-  const reiwa = period.match(/令和(\d+)年/)
-  if (reiwa) return (2018 + parseInt(reiwa[1])) * 100
-  const heisei = period.match(/平成(\d+)年/)
-  if (heisei) return (1988 + parseInt(heisei[1])) * 100
-  return 0
-}
+async function fetchKeyword(word: string) {
+  selectedWord.value = word
+  phases.value = []
+  allExpanded.value = false
+  popupOpen.value = true
 
-async function searchNode(label: string, neighbors: string[]) {
-  selectedNode.value = { label, neighbors }
-  aiTopics.value = []
-
-  const word = neighbors.length > 0
-    ? `${label}（${neighbors.join('、')}）`
-    : label
-
-  const cacheKey = `miyako_network:${word}`
-  const cached = localStorage.getItem(cacheKey)
-  if (cached) {
-    try {
-      const parsed = JSON.parse(cached)
-      aiTopics.value = parsed
+  const cacheKey = CACHE_PREFIX + word
+  try {
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) {
+      phases.value = JSON.parse(cached)
       return
-    } catch {
-      localStorage.removeItem(cacheKey)
     }
+  } catch {
+    localStorage.removeItem(cacheKey)
   }
 
   aiLoading.value = true
   try {
-    const data = await $fetch<{ topics: AiTopic[] }>('/api/miyako/topics', {
+    const data = await $fetch<{ phases: AiPhase[] }>('/api/miyako/keyword', {
       method: 'POST',
-      body: { word, count: 3 },
+      body: { word },
     })
-    aiTopics.value = [...data.topics].sort((a, b) => periodToSortKey(a.period) - periodToSortKey(b.period))
-    localStorage.setItem(cacheKey, JSON.stringify(aiTopics.value))
+    phases.value = data.phases
+    try { localStorage.setItem(cacheKey, JSON.stringify(data.phases)) } catch {}
   } catch {
-    aiTopics.value = [{ title: 'エラー', period: '', conclusion: '取得に失敗しました。', flow: [] }]
+    phases.value = [{ era: '', title: 'エラー', summary: '取得に失敗しました。', detail: '' }]
   } finally {
     aiLoading.value = false
   }
+}
+
+function closePopup() {
+  popupOpen.value = false
+  selectedWord.value = null
+  phases.value = []
+  if (cy) cy.elements().removeClass('selected')
 }
 
 // ── 初期化 ──────────────────────────────────────────
@@ -328,8 +322,8 @@ onMounted(async () => {
 })
 
 watch(selectedCategory, () => {
-  selectedNode.value = null
-  aiTopics.value = []
+  selectedWord.value = null
+  phases.value = []
   renderGraph()
 })
 </script>
@@ -365,100 +359,94 @@ watch(selectedCategory, () => {
         </div>
       </div>
 
-      <!-- Two-column content -->
-      <div class="content-row">
+      <!-- Full-width graph -->
+      <div class="graph-area">
+        <div ref="cyContainer" class="cy-canvas" />
 
-        <!-- Left: graph -->
-        <div class="graph-area">
-          <div ref="cyContainer" class="cy-canvas" />
+        <div v-if="rendering" class="render-overlay">
+          <span class="w-8 h-8 rounded-full border-2 border-[#1A237E]/20 border-t-[#1A237E] animate-spin block" />
+          <span class="font-mono text-[10px] text-[#9aa3c0] tracking-[0.12em] uppercase mt-3">Rendering graph...</span>
+        </div>
 
-          <div v-if="rendering" class="render-overlay">
-            <span class="w-8 h-8 rounded-full border-2 border-[#1A237E]/20 border-t-[#1A237E] animate-spin block" />
-            <span class="font-mono text-[10px] text-[#9aa3c0] tracking-[0.12em] uppercase mt-3">Rendering graph...</span>
+        <div
+          v-if="tooltip"
+          class="node-tooltip"
+          :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
+        >
+          <div class="tooltip-label">{{ tooltip.label }}</div>
+          <div class="tooltip-stat">共起: {{ tooltip.totalCount.toLocaleString() }} 回</div>
+          <div class="tooltip-stat">接続: {{ tooltip.edgeCount }} 語</div>
+        </div>
+
+        <div class="legend">
+          <div class="legend-row">
+            <span class="legend-dot" />
+            <span>単語（大きさ＝出現頻度）</span>
           </div>
-
-          <div
-            v-if="tooltip"
-            class="node-tooltip"
-            :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
-          >
-            <div class="tooltip-label">{{ tooltip.label }}</div>
-            <div class="tooltip-stat">共起: {{ tooltip.totalCount.toLocaleString() }} 回</div>
-            <div class="tooltip-stat">接続: {{ tooltip.edgeCount }} 語</div>
-          </div>
-
-          <div class="legend">
-            <div class="legend-row">
-              <span class="legend-dot" />
-              <span>単語（大きさ＝出現頻度）</span>
-            </div>
-            <div class="legend-row">
-              <span class="legend-line" />
-              <span>共起関係（太さ＝文中の隣接頻度）</span>
-            </div>
-          </div>
-
-          <div class="zoom-hint">
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 opacity-70"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-            スクロール / ピンチで拡大縮小
+          <div class="legend-row">
+            <span class="legend-line" />
+            <span>共起関係（太さ＝文中の隣接頻度）</span>
           </div>
         </div>
 
-        <!-- Right: AI result panel -->
-        <div class="side-panel">
-
-          <!-- Initial state -->
-          <div v-if="!selectedNode && !aiLoading" class="panel-empty">
-            <div class="click-cta">
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-3 opacity-40"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              <p class="click-cta-main">円をクリックで<br>議論の変遷をAI分析</p>
-              <p class="click-cta-sub">単語を選ぶと、宮古島市議会での<br>議論の歴史をAIが解説します</p>
-            </div>
-          </div>
-
-          <!-- Loading -->
-          <div v-else-if="aiLoading" class="panel-empty">
-            <span class="w-8 h-8 rounded-full border-2 border-[#1A237E]/20 border-t-[#1A237E] animate-spin block" />
-            <p class="font-mono text-[10px] text-[#9aa3c0] tracking-[0.12em] uppercase mt-3">
-              Searching "{{ selectedNode?.label }}"...
-            </p>
-          </div>
-
-          <!-- Results -->
-          <template v-else>
-            <!-- Search context header -->
-            <div class="search-header">
-              <span class="font-mono text-[9px] tracking-[0.18em] text-[#a5b4fc] uppercase mr-2 shrink-0">Query</span>
-              <span class="text-[12px] font-semibold text-white truncate">{{ selectedNode?.label }}</span>
-              <span v-if="selectedNode?.neighbors.length" class="text-[10px] text-[#a5b4fc]/70 ml-1 truncate shrink-0">
-                + {{ selectedNode.neighbors.join('・') }}
-              </span>
-            </div>
-
-            <!-- Topic cards (top=oldest, bottom=newest) -->
-            <div class="topics-list">
-              <div v-for="(topic, i) in aiTopics" :key="i" class="topic-card">
-                <div class="card-period-bar">
-                  <span class="font-mono text-[8.5px] tracking-[0.2em] text-[#a5b4fc] uppercase mr-3 shrink-0">Period</span>
-                  <span class="text-[12px] font-semibold tracking-[0.02em]">{{ eraToWestern(topic.period) || '会期不明' }}</span>
-                </div>
-                <div class="card-body">
-                  <div class="card-title">{{ topic.title }}</div>
-                  <div class="card-conclusion">{{ topic.conclusion }}</div>
-                  <div v-if="topic.flow?.length" class="flow-list">
-                    <div v-for="(step, si) in topic.flow" :key="si" class="flow-step">
-                      <span class="step-num">{{ String(si + 1).padStart(2, '0') }}</span>
-                      <span>{{ step }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </template>
-
+        <div class="zoom-hint">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 opacity-70"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          スクロール / ピンチで拡大縮小・円をクリックで議論を分析
         </div>
       </div>
     </template>
+
+    <!-- Keyword popup overlay -->
+    <Teleport to="body">
+      <div v-if="popupOpen" class="popup-overlay" @click.self="closePopup">
+        <div class="popup-box">
+          <!-- Popup header -->
+          <div class="popup-header">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="font-mono text-[10px] text-[#6878a8] tracking-[0.15em] uppercase shrink-0">「{{ selectedWord }}」</span>
+              <span class="text-[12px] text-[#9aa3c0] shrink-0">2005年〜現在の議論の変遷</span>
+            </div>
+            <button class="popup-close" @click="closePopup">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Loading -->
+          <div v-if="aiLoading" class="flex flex-col items-center justify-center py-16 gap-4">
+            <span class="w-8 h-8 rounded-full border-2 border-[#1A237E]/20 border-t-[#1A237E] animate-spin block" />
+            <p class="text-[12px] text-[#9aa3c0]">「{{ selectedWord }}」の変遷を調べています...</p>
+          </div>
+
+          <!-- Phase timeline -->
+          <div v-else class="popup-timeline">
+            <template v-for="(phase, i) in phases" :key="i">
+              <div
+                class="phase-card flex-1 min-w-0"
+                :class="{ 'phase-card-expanded': allExpanded }"
+                @click="allExpanded = !allExpanded"
+              >
+                <div class="phase-era">
+                  <span class="font-mono text-[8.5px] tracking-[0.18em] text-[#a5b4fc]/70 uppercase mr-2">Era</span>
+                  <span class="text-[11px] font-semibold text-[#a5b4fc]">{{ phase.era }}</span>
+                </div>
+                <div class="phase-title">{{ phase.title }}</div>
+                <div class="phase-summary">{{ phase.summary }}</div>
+                <div class="phase-toggle" :class="{ 'phase-toggle-open': allExpanded }">
+                  <span>{{ allExpanded ? '閉じる' : '詳しく見る' }}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="phase-toggle-chevron"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div v-if="allExpanded && phase.detail" class="phase-detail">
+                  {{ phase.detail }}
+                </div>
+              </div>
+              <div v-if="i < phases.length - 1" class="phase-arrow">→</div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -473,19 +461,12 @@ watch(selectedCategory, () => {
   background-size: 20px 20px;
 }
 
-.content-row {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  gap: 0;
-}
-
 /* ── Graph area ─────────────────────────── */
 
 .graph-area {
   position: relative;
   flex: 1;
-  min-width: 0;
+  min-height: 0;
 }
 
 .cy-canvas {
@@ -552,6 +533,7 @@ watch(selectedCategory, () => {
   gap: 8px;
   margin-bottom: 5px;
 }
+.legend-row:last-child { margin-bottom: 0; }
 
 .legend-dot {
   width: 12px;
@@ -568,8 +550,6 @@ watch(selectedCategory, () => {
   background: #5C6BC0;
   flex-shrink: 0;
 }
-
-/* ── Zoom hint ──────────────────────────── */
 
 .zoom-hint {
   position: absolute;
@@ -590,142 +570,153 @@ watch(selectedCategory, () => {
   box-shadow: 0 2px 10px rgba(28, 45, 90, 0.25);
 }
 
-/* ── Side panel ─────────────────────────── */
+/* ── Popup overlay ──────────────────────── */
 
-.side-panel {
-  width: 420px;
-  flex-shrink: 0;
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(28, 45, 90, 0.55);
+  backdrop-filter: blur(3px);
   display: flex;
-  flex-direction: column;
-  border-left: 1px solid #dde2ef;
-  background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(6px);
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.panel-empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px 20px;
+  padding: 24px 20px;
 }
 
-.click-cta {
+.popup-box {
+  background: #f0f2f8;
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(28, 45, 90, 0.35);
+  width: 100%;
+  max-width: 1100px;
+  max-height: calc(100vh - 48px);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.click-cta-main {
-  font-size: 15px;
-  font-weight: 700;
-  color: #1c2d5a;
-  line-height: 1.55;
-  margin-bottom: 10px;
-}
-
-.click-cta-sub {
-  font-size: 11.5px;
-  color: #9aa3c0;
-  line-height: 1.7;
-}
-
-.search-header {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
   overflow: hidden;
-  padding: 10px 14px;
-  background: #1c2d5a;
-  color: white;
-  border-bottom: 1px solid rgba(61, 95, 196, 0.3);
-  flex-shrink: 0;
-  gap: 4px;
 }
 
-.topics-list {
+.popup-header {
   display: flex;
-  flex-direction: column;
-  padding: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: white;
+  border-bottom: 1px solid #dde2ef;
+  flex-shrink: 0;
   gap: 12px;
 }
 
-.topic-card {
-  background: white;
-  border: 1px solid #dde2ef;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(28, 45, 90, 0.07), 0 0 0 1px rgba(28, 45, 90, 0.04);
-  overflow: hidden;
+.popup-close {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #6878a8;
+  transition: background 0.12s, color 0.12s;
+}
+.popup-close:hover {
+  background: #eef1fb;
+  color: #1c2d5a;
 }
 
-.card-period-bar {
+.popup-timeline {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  padding: 16px;
+  overflow-x: auto;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* ── Phase cards (same style as keyword.vue) ── */
+
+.phase-card {
+  background: #fff;
+  border: 1px solid #dde2ef;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(28,45,90,0.07), 0 0 0 1px rgba(28,45,90,0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  min-width: 160px;
+}
+.phase-card:hover {
+  border-color: #3d5fc4;
+  box-shadow: 0 4px 14px rgba(61,95,196,0.13), 0 0 0 1px rgba(61,95,196,0.15);
+}
+.phase-card-expanded {
+  border-color: #3d5fc4;
+  box-shadow: 0 4px 14px rgba(61,95,196,0.13), 0 0 0 1px rgba(61,95,196,0.2);
+}
+
+.phase-era {
   display: flex;
   align-items: center;
   flex-shrink: 0;
   background: #1c2d5a;
-  color: white;
-  padding: 8px 12px;
+  padding: 8px 14px;
   border-left: 3px solid #a5b4fc;
 }
 
-.card-body {
-  padding: 10px 12px;
-  font-size: 13px;
-  color: #1c2d5a;
-  line-height: 1.72;
-}
-
-.card-title {
-  font-size: 12.5px;
+.phase-title {
+  font-size: 14px;
   font-weight: 700;
-  margin-bottom: 6px;
   color: #1c2d5a;
-  border-left: 3px solid #3d5fc4;
-  padding-left: 7px;
+  padding: 10px 14px 4px;
+  line-height: 1.55;
 }
 
-.card-conclusion {
-  font-size: 11.5px;
+.phase-summary {
+  font-size: 12px;
   color: #3a4a72;
-  background: #f4f6fc;
-  border: 1px solid #e8ecf8;
-  border-radius: 5px;
-  padding: 6px 9px;
-  margin-bottom: 8px;
-  line-height: 1.7;
+  padding: 0 14px 12px;
+  line-height: 1.75;
+  flex: 1;
 }
 
-.flow-list {
+.phase-toggle {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #6878a8;
+  padding: 5px 14px 9px;
+  margin-top: auto;
+}
+.phase-toggle-open { color: #3d5fc4; }
+
+.phase-toggle-chevron {
+  transition: transform 0.2s;
+}
+.phase-toggle-open .phase-toggle-chevron {
+  transform: rotate(180deg);
 }
 
-.flow-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
-  font-size: 11.5px;
+.phase-detail {
+  font-size: 12px;
   color: #1c2d5a;
-  background: #fff;
-  border: 1px solid #dde2ef;
-  border-radius: 4px;
-  padding: 5px 8px;
-  line-height: 1.6;
+  background: #f4f6fc;
+  border-top: 1px solid #dde2ef;
+  padding: 10px 14px 12px;
+  line-height: 1.78;
 }
 
-.step-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9.5px;
-  color: #a5b4fc;
-  font-weight: 700;
+.phase-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  margin-top: 2px;
-  letter-spacing: 0.05em;
+  font-size: 18px;
+  padding: 6px 5px;
+  color: #3d5fc4;
+  opacity: 0.45;
 }
-
 </style>
