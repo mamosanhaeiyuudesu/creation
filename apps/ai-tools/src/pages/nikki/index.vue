@@ -85,11 +85,14 @@
         :saving="saving"
         :error="error"
         :saved-tick="savedTick"
+        :prev-date="dayNavPrev"
+        :next-date="dayNavNext"
         @close="closeDay"
         @save="onSave"
         @reextract="reextract"
         @patch-topic="patchTopic"
         @remove-topic="removeTopic"
+        @navigate="openDay"
       />
     </template>
 
@@ -155,6 +158,21 @@ const {
 } = useNikki()
 
 const showAuthModal = computed(() => !isLoggedIn.value && checked.value)
+
+const dayNavPrev = computed(() => {
+  if (!selectedDate.value) return undefined
+  const d = new Date(selectedDate.value + 'T00:00:00')
+  d.setDate(d.getDate() - 1)
+  return d.toISOString().slice(0, 10)
+})
+
+const dayNavNext = computed(() => {
+  if (!selectedDate.value) return undefined
+  const next = new Date(selectedDate.value + 'T00:00:00')
+  next.setDate(next.getDate() + 1)
+  const nextStr = next.toISOString().slice(0, 10)
+  return nextStr <= today.value ? nextStr : undefined
+})
 const showPasswordModal = ref(false)
 const showSetup = ref(false)
 // スマホ用タブ（PCでは使わず常に両方表示）

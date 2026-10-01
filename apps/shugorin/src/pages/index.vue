@@ -61,7 +61,7 @@
                 </li>
                 <li>
                   <span class="sg-for-you-dash">—</span>
-                  理屈っぽくて話がつまらない、と言われる。
+                  話がつまらない、と言われる。
                 </li>
               </ul>
             </div>
@@ -78,7 +78,7 @@
                 </li>
                 <li>
                   <span class="sg-for-you-dash">—</span>
-                  他人の目線を過度に意識して、自分を抑え込んでいる。
+                  他人の目線を過度に意識している。
                 </li>
                 <li>
                   <span class="sg-for-you-dash">—</span>
@@ -93,11 +93,11 @@
               <ul class="sg-for-you-list">
                 <li>
                   <span class="sg-for-you-dash">—</span>
-                  頭でごちゃごちゃ考えすぎて、動けなくなる。
+                  頭で考えすぎて、一歩が踏み出せない。
                 </li>
                 <li>
                   <span class="sg-for-you-dash">—</span>
-                  いつもソワソワしていて、心から休むことができない。
+                  いつも焦っていて、心から休むことができない。
                 </li>
                 <li>
                   <span class="sg-for-you-dash">—</span>
@@ -118,8 +118,10 @@
         <h2 class="sg-section-title">私の強み</h2>
         <div class="sg-strength-list">
           <div class="sg-strength-item">
-            <p class="sg-strength-num">01</p>
-            <h3 class="sg-strength-title">家族起因の悩みに、当事者として向き合ってきたこと</h3>
+            <div class="sg-strength-header">
+              <p class="sg-strength-num">01</p>
+              <h3 class="sg-strength-title">家族起因の悩みに、当事者として向き合ってきたこと</h3>
+            </div>
             <p class="sg-strength-body">
               私自身、家族のことで、ずっと悩んできました。<br>
               高圧的で一方的な父、その父を嫌悪して私に依存する母。<br>
@@ -128,10 +130,10 @@
             </p>
           </div>
           <div class="sg-strength-item">
-            <p class="sg-strength-num">02</p>
-            <h3 class="sg-strength-title">
-              悩みの重さに動じず、表面から深部まで一緒に伴走できること
-            </h3>
+            <div class="sg-strength-header">
+              <p class="sg-strength-num">02</p>
+              <h3 class="sg-strength-title">悩みの重さに動じず、表面から深部まで一緒に伴走できること</h3>
+            </div>
             <p class="sg-strength-body">
               クライアントからよく言われるのは、重たい話でも冷静に聴いてくれる、という言葉です。<br />
               私自身、多くの人に話しにくい、重たい話を相談してきたので、そういった人の話を聴くことができるのだと思います。<br />
@@ -139,9 +141,10 @@
             </p>
           </div>
           <div class="sg-strength-item">
-            <p class="sg-strength-num">03</p>
-            <h3 class="sg-strength-title">理屈が先行するタイプの人の話をしっかりと聴けること
-            </h3>
+            <div class="sg-strength-header">
+              <p class="sg-strength-num">03</p>
+              <h3 class="sg-strength-title">理屈が先行するタイプの人の話をしっかりと聴けること</h3>
+            </div>
             <p class="sg-strength-body">
               一般的にカウンセラーには女性が多いと思います。<br>
               私もたくさんの女性カウンセラーにお世話になり、たくさんの共感をしていただき、今でもとても感謝しています。<br>
@@ -240,7 +243,7 @@
               </p>
             </div>
             <p class="sg-story-para">
-              客観的に第3者が入ってくれることで、感情的に何でもかんでも従わせるのは良くなかったと、改めて整理できました。
+              客観的に第3者が入ってくれることで、感情的になって、何でもかんでも従わせるのは良くなかったと、改めて整理できました。
             </p>
             <p class="sg-story-para">
               今は、距離を取り続けていたところから、もう一歩歩み寄ってみようかなという気持ちになっています。<br>
@@ -308,7 +311,7 @@
           <h3 class="sg-profile-name">しゅごりん</h3>
           <p class="sg-profile-role">Counselor</p>
           <p class="sg-profile-bio">
-            某有名大学情報工学部出身、大手企業で17年目のITエンジニアとして働く。<br>
+            某有名大学情報工学部出身、大手企業でITエンジニアとして働く。<br>
             心理学・セラピー・NLPなどを学び、傾聴をベースにした自己受容のサポートをしている。<br>
             妻と3人の子育てをしている父親でもあり、最近は子どもと一緒に剣道を始めた。<br>
             好きな作家は手塚治虫・宮崎駿・井上雄彦・松本大洋。<br>
@@ -355,7 +358,11 @@
               <p class="sg-price-detail">60分 / オンライン</p>
             </div>
             <div>
-              <p class="sg-price-amount">¥5,000 <span class="sg-price-unit">/ 回</span></p>
+              <p class="sg-price-amount">
+                <span class="sg-price-original">¥8,000</span>
+                ¥5,000 <span class="sg-price-unit">/ 回</span>
+              </p>
+              <span class="sg-price-badge sg-price-badge--campaign">キャンペーン価格</span>
             </div>
           </div>
           <div class="sg-price-row">
@@ -364,8 +371,11 @@
               <p class="sg-price-detail">10回セット（カウンセリング）</p>
             </div>
             <div>
-              <p class="sg-price-amount">¥45,000 <span class="sg-price-unit">/ 10回</span></p>
-              <span class="sg-price-badge">10%お得</span>
+              <p class="sg-price-amount">
+                <span class="sg-price-original">¥72,000</span>
+                ¥45,000 <span class="sg-price-unit">/ 10回</span>
+              </p>
+              <span class="sg-price-badge sg-price-badge--campaign">キャンペーン価格</span>
             </div>
           </div>
         </div>
@@ -382,21 +392,15 @@
             v-for="(item, i) in faqs"
             :key="i"
             class="sg-faq-item"
-            :class="{ open: openIndex === i }"
           >
-            <button class="sg-faq-q" @click="toggle(i)">
-              <span class="sg-faq-q-text">{{ item.q }}</span>
-              <span class="sg-faq-icon">{{ openIndex === i ? '−' : '+' }}</span>
-            </button>
-            <div class="sg-faq-a-wrap">
-              <div class="sg-faq-a">
-                <p
-                  v-for="(para, j) in item.a"
-                  :key="j"
-                  class="sg-story-para"
-                  v-html="para"
-                />
-              </div>
+            <p class="sg-faq-q-text">Q. {{ item.q }}</p>
+            <div class="sg-faq-a">
+              <p
+                v-for="(para, j) in item.a"
+                :key="j"
+                class="sg-story-para"
+                v-html="para"
+              />
             </div>
           </div>
         </div>
@@ -447,12 +451,6 @@ useHead({
     { rel: 'icon', type: 'image/jpeg', href: '/images/brain-duality.jpeg' },
   ],
 })
-
-const openIndex = ref<number | null>(null)
-
-function toggle(i: number) {
-  openIndex.value = openIndex.value === i ? null : i
-}
 
 const faqs = [
    {

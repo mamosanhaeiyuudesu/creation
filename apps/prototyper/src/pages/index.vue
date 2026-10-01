@@ -9,7 +9,8 @@
           <li><a href="#process">進め方</a></li>
           <li><a href="#portfolio">実績</a></li>
           <li><a href="#about">私について</a></li>
-          <li><a href="#terms">ご相談と費用</a></li>
+          <li><a href="#faq">よくある質問</a></li>
+          <li><a href="#fees">費用</a></li>
           <li><a href="#contact">お問い合わせ</a></li>
         </ul>
       </div>
@@ -22,11 +23,11 @@
           <div class="hero-text">
             <span class="hero-eyebrow">大手インターネット企業17年のエンジニア</span>
             <h1 class="hero-catch">
-             誰もが永く・楽しく使える<br />
-              <span>シンプルでやさしいサービスを</span>
+             永く・楽しく使える<br />
+              <span>シンプルでやさしい<br />サービスを</span>
             </h1>
             <div class="hero-sub">
-              <p>一般のアプリは複雑で使いにくい、議事録などのテキストデータが有効活用できない、etc</p>
+              <p>一般のアプリは機能が多くて使いにくい、議事録などのテキストデータが有効活用できない、既存システムが複雑化し過ぎている、etc</p>
               <p>
                 複雑になりすぎて、使いにくくなってしまったシステムや、有効活用されていないデータを、長年の経験に裏付けされたヒアリングと開発力で、シンプルで使いやすい形に変えていきます。
                 </p>
@@ -35,7 +36,7 @@
                 </p>
             </div>
             <a href="#contact" class="hero-cta">
-              まずは話を聞かせてください
+              お問い合せ
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </a>
           </div>
@@ -233,57 +234,70 @@
             </dl>
           </div>
           <div class="portfolio-card-body">
-            <div class="portfolio-features">
+            <div class="portfolio-features portfolio-features-stack">
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>最近の議会で新しく登場・急増した言葉が、大きく浮かび上がる</strong>
+                  最新の議会で初めて出てきた言葉や、以前より多く議論されるようになった単語が大きく表示されます。<br />今、何が議題の中心に上がっているかを、読まずに一目で掴むことができます。
+                  <br>
+                  <a href="https://prototype.insightlens.jp/miyako" class="feature-link" target="_blank">
+                    トレンドを見る
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </a>
+                  <img src="/images/miyako-trend.png" alt="トレンドのスクリーンショット" class="feature-screenshot feature-screenshot-full" @click="openLightbox('/images/miyako-trend.png', 'トレンドのスクリーンショット')" />
+                </div>
+              </div>
               <div class="portfolio-feature">
                 <span class="feature-dot"></span>
                 <div class="feature-text">
                   <strong>つながりの図で、議論の全体像を見る</strong>
-                  どの言葉とどの言葉が一緒に語られているかを図にしました。何がどう結びついているかを、読まずに掴むことができます。
+                  暮らし・医療・子ども・インフラ・農業漁業・観光・防災・財政・基地安保の9カテゴリに分けて、2005年〜2026年に多く議論された単語を円の大きさで、一緒に語られた単語同士の関係を線で表しました。<br />何がどう結びついているかを、読まずに掴むことができます。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako/network" class="feature-link" target="_blank">
                     ネットワーク図を見る
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </a>
-                  <img src="/images/miyako-network.png" alt="ネットワーク図のスクリーンショット" class="feature-screenshot" @click="openLightbox('/images/miyako-network.png', 'ネットワーク図のスクリーンショット')" />
+                  <img src="/images/miyako-network.png" alt="ネットワーク図のスクリーンショット" class="feature-screenshot feature-screenshot-full" @click="openLightbox('/images/miyako-network.png', 'ネットワーク図のスクリーンショット')" />
+                </div>
+              </div>
+              <div class="portfolio-feature">
+                <span class="feature-dot"></span>
+                <div class="feature-text">
+                  <strong>気になる言葉から、2005年以降の議論の流れを追える</strong>
+                  言葉をひとつ入れると、それが語られた会議をAIが時系列でまとめます。<br />いつ何が話され、どう変化してきたかを年代ごとに追いかけられます。
+                  <br>
+                  <a href="https://prototype.insightlens.jp/miyako/keyword" class="feature-link" target="_blank">
+                    キーワード分析を見る
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </a>
+                  <img src="/images/miyako-keyword.png" alt="キーワード分析のスクリーンショット" class="feature-screenshot feature-screenshot-full" @click="openLightbox('/images/miyako-keyword.png', 'キーワード分析のスクリーンショット')" />
                 </div>
               </div>
               <div class="portfolio-feature">
                 <span class="feature-dot"></span>
                 <div class="feature-text">
                   <strong>その年らしい話題が浮かび上がる</strong>
-                  年ごと・会期ごとに、どんなテーマが特徴的だったかを色の濃さで表しました。時代とともに移り変わる関心が一目で分かります。
+                  年ごと・会期ごとに、どんなテーマが特徴的だったかを色の濃さで表しました。<br />時代とともに移り変わる関心が一目で分かります。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako/yearly" class="feature-link" target="_blank">
                     年別ヒートマップを見る
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </a>
-                  <img src="/images/miyako-yearly.png" alt="年別ヒートマップのスクリーンショット" class="feature-screenshot" @click="openLightbox('/images/miyako-yearly.png', '年別ヒートマップのスクリーンショット')" />
+                  <img src="/images/miyako-yearly.png" alt="年別ヒートマップのスクリーンショット" class="feature-screenshot feature-screenshot-full" @click="openLightbox('/images/miyako-yearly.png', '年別ヒートマップのスクリーンショット')" />
                 </div>
               </div>
               <div class="portfolio-feature">
                 <span class="feature-dot"></span>
                 <div class="feature-text">
                   <strong>議員ごとの関心が比べられる</strong>
-                  どの議員が、どんな分野の話を多くしているかを一覧にしました。それぞれの関心領域や特色を並べて見ることができます。
+                  どの議員が、どんな分野の話を多くしているかを一覧にしました。<br />それぞれの関心領域や特色を並べて見ることができます。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako/member" class="feature-link" target="_blank">
                     議員別ヒートマップを見る
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </a>
-                  <img src="/images/miyako-member.png" alt="議員別ヒートマップのスクリーンショット" class="feature-screenshot" @click="openLightbox('/images/miyako-member.png', '議員別ヒートマップのスクリーンショット')" />
-                </div>
-              </div>
-              <div class="portfolio-feature">
-                <span class="feature-dot"></span>
-                <div class="feature-text">
-                  <strong>気になる言葉から、流れを追える</strong>
-                  言葉をひとつ入れると、それが語られた会議をAIが時系列でまとめます。いつ何が話され、どう決まっていったかを追いかけられます。
-                  <br>
-                  <a href="https://prototype.insightlens.jp/miyako/keyword" class="feature-link" target="_blank">
-                    キーワード分析を見る
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  </a>
-                  <img src="/images/miyako-keyword.png" alt="キーワード分析のスクリーンショット" class="feature-screenshot" @click="openLightbox('/images/miyako-keyword.png', 'キーワード分析のスクリーンショット')" />
+                  <img src="/images/miyako-member.png" alt="議員別ヒートマップのスクリーンショット" class="feature-screenshot feature-screenshot-full" @click="openLightbox('/images/miyako-member.png', '議員別ヒートマップのスクリーンショット')" />
                 </div>
               </div>
             </div>
@@ -343,7 +357,7 @@
                 <span class="feature-dot"></span>
                 <div class="feature-text">
                   <strong>院の特徴が、開いてすぐ伝わるトップページ</strong>
-                  「内臓鍼灸×ソフトカイロ矯正」という2つの強みを、施術の写真とあわせて最初の画面で伝えます。LINEでの予約・お問い合わせと、Instagramへの導線もここから。
+                  「内臓鍼灸×ソフトカイロ矯正」という2つの強みを、施術の写真とあわせて最初の画面で伝えます。<br />LINEでの予約・お問い合わせと、Instagramへの導線もここから。
                   <img src="/images/hareruya-top.png" alt="晴レルヤ鍼灸院トップページのスクリーンショット" class="feature-screenshot feature-screenshot-portrait" @click="openLightbox('/images/hareruya-top.png', '晴レルヤ鍼灸院トップページのスクリーンショット')" />
                 </div>
               </div>
@@ -351,7 +365,7 @@
                 <span class="feature-dot"></span>
                 <div class="feature-text">
                   <strong>3つの特徴を、施術風景とともに紹介</strong>
-                  「内臓鍼灸」がどんな施術かを、実際の施術風景と文章でひとつずつ説明。初めての方が抱く不安に、先回りして答える構成にしました。
+                  「内臓鍼灸」がどんな施術かを、実際の施術風景と文章でひとつずつ説明。<br />初めての方が抱く不安に、先回りして答える構成にしました。
                   <img src="/images/hareruya-features.png" alt="晴レルヤ鍼灸院の3つの特徴のスクリーンショット" class="feature-screenshot feature-screenshot-portrait" @click="openLightbox('/images/hareruya-features.png', '晴レルヤ鍼灸院の3つの特徴のスクリーンショット')" />
                 </div>
               </div>
@@ -359,7 +373,7 @@
                 <span class="feature-dot"></span>
                 <div class="feature-text">
                   <strong>写真をめくって辿り着ける、道案内</strong>
-                  ビルの一室にあり地図だけでは分かりにくいため、「エレベーターで一階に降りてください」のように、曲がり角ごとの実写真をめくって進める道案内をつくりました。初めての方の「迷ったらどうしよう」を減らします。
+                  ビルの一室にあり地図だけでは分かりにくいため、「エレベーターで一階に降りてください」のように、曲がり角ごとの実写真をめくって進める道案内をつくりました。<br />初めての方の「迷ったらどうしよう」を減らします。
                   <img src="/images/hareruya-access.png" alt="晴レルヤ鍼灸院のアクセス案内のスクリーンショット" class="feature-screenshot feature-screenshot-portrait" @click="openLightbox('/images/hareruya-access.png', '晴レルヤ鍼灸院のアクセス案内のスクリーンショット')" />
                 </div>
               </div>
@@ -367,7 +381,7 @@
                 <span class="feature-dot"></span>
                 <div class="feature-text">
                   <strong>ほかにも、AIによる質問回答なども組み込めます</strong>
-                  本サイトでは導入していませんが、たとえば鍼灸についてのご質問に対して、あらかじめ用意した院の情報をもとにAIが回答する仕組みも組み込めます。このほかにも、ホームページにはさまざまな機能を追加していくことが可能です。
+                  本サイトでは導入していませんが、たとえば鍼灸についてのご質問に対して、あらかじめ用意した院の情報をもとにAIが回答する仕組みも組み込めます。<br />このほかにも、ホームページにはさまざまな機能を追加していくことが可能です。
                 </div>
               </div>
             </div>
@@ -490,19 +504,19 @@
             </dl>
           </div>
           <div class="portfolio-card-body">
-            <div class="portfolio-features">
+            <div class="portfolio-features portfolio-features-stack">
               <div class="portfolio-feature">
                 <span class="feature-dot"></span>
                 <div class="feature-text">
                   <strong>録音・音声ファイル・テキストから、自動で議事録に</strong>
-                  会議の録音や、文字起こし済みのテキストをアップロードするだけ。AIが文字起こしから構造化まで行い、タイトル・日付・概要・決定事項・検討事項・タスク・予定を一気にまとめます。
+                  会議の録音や、文字起こし済みのテキストをアップロードするだけ。<br />AIが文字起こしから構造化まで行い、タイトル・日付・概要・決定事項・検討事項・タスク・予定を一気にまとめます。
                 </div>
               </div>
               <div class="portfolio-feature">
                 <span class="feature-dot"></span>
                 <div class="feature-text">
                   <strong>内容の確認・修正も、その場でかんたんに</strong>
-                  出来上がった議事録はレビュー画面でそのまま編集できます。画面のいちばん上には、AIが聞き取れなかったところや自信が持てなかったところをAI自身が書き出すので、どこから確かめればいいかがすぐにわかります。「〇〇さんを△△さんに直して」のように指示するだけで、AIが議事録全体を書き直すこともできます。
+                  出来上がった議事録はレビュー画面でそのまま編集できます。<br />画面のいちばん上には、AIが聞き取れなかったところや自信が持てなかったところをAI自身が書き出すので、どこから確かめればいいかがすぐにわかります。<br />「〇〇さんを△△さんに直して」のように指示するだけで、AIが議事録全体を書き直すこともできます。
                   <img src="/images/kikigaki-review.png" alt="議事録のレビュー・編集画面のスクリーンショット" class="feature-screenshot" @click="openLightbox('/images/kikigaki-review.png', '議事録のレビュー・編集画面のスクリーンショット')" />
                 </div>
               </div>
@@ -510,14 +524,14 @@
                 <span class="feature-dot"></span>
                 <div class="feature-text">
                   <strong>決定事項・予定・タスクが一目でわかるPDFに</strong>
-                  会議で何が決まり、次に何をするかが1枚に整理されたPDFを出力できます。内容が多いときは自動で要約され、必ず1ページに収まります。
+                  会議で何が決まり、次に何をするかが1枚に整理されたPDFを出力できます。<br />内容が多いときは自動で要約され、必ず1ページに収まります。
                 </div>
               </div>
               <div class="portfolio-feature">
                 <span class="feature-dot"></span>
                 <div class="feature-text">
                   <strong>指定したGoogleドライブに、そのまま保存</strong>
-                  一度連携すれば、PDFを作るたびに指定したフォルダへ自動でコピーが保存されます。複雑な連携はせず、あとから見返しやすい場所に置いておくだけの、シンプルな仕組みです。
+                  一度連携すれば、PDFを作るたびに指定したフォルダへ自動でコピーが保存されます。<br />複雑な連携はせず、あとから見返しやすい場所に置いておくだけの、シンプルな仕組みです。
                 </div>
               </div>
             </div>
@@ -608,7 +622,7 @@
           <ol class="origin-steps">
             <li><span class="origin-step-num">1</span>その一言を、そのままプロトタイプにしてみた</li>
             <li><span class="origin-step-num">2</span>思いがけず大きな反響があった</li>
-            <li><span class="origin-step-num">3</span>いまは、社外向けサービスの主力ツールになっている</li>
+            <li><span class="origin-step-num">3</span>いまは、<a href="https://ds.yahoo.co.jp/service/insight/basic.html" target="_blank" rel="noopener noreferrer" class="origin-tool-link">DS.INSIGHT Basic</a> として社外向けサービスの主力ツールになっている</li>
           </ol>
 
           <p class="origin-close">
@@ -618,11 +632,11 @@
           </p>
         </div>
 
-        <p class="about-intro">
+        <!-- <p class="about-intro">
           15年以上、データを「誰かの意思決定を動かす形」に変えることを仕事にしてきました。
-        </p>
+        </p> -->
 
-        <div class="about-grid">
+        <!-- <div class="about-grid">
 
           <div class="about-card">
             <div class="about-card-header">
@@ -631,7 +645,7 @@
             </div>
             <div class="about-card-body">
               <p>得意なのは、まだ何も決まっていない段階に飛び込み、現場の声を丁寧に聞きながら、その場でプロトタイプを作ってしまうことです。</p>
-              <p>聞くことと作ることを分けない。話しながら手を動かすので、「言ったことと違うものが出てくる」というズレが起きにくいのが強みです。</p>
+              <p>聞くことと作ることを分けない。<br />話しながら手を動かすので、「言ったことと違うものが出てくる」というズレが起きにくいのが強みです。</p>
             </div>
           </div>
 
@@ -642,7 +656,7 @@
             </div>
             <div class="about-card-body">
               <p>仕様書や企画書を先に作るのではなく、動くものを先に作り、それを叩き台にして話を前に進めます。</p>
-              <p>何十時間も結論が出なかった会議に、動くプロトタイプを持ち込んで「これで決まり」となった経験が何度もあります。言葉を重ねるより、そのほうが速い。</p>
+              <p>何十時間も結論が出なかった会議に、動くプロトタイプを持ち込んで「これで決まり」となった経験が何度もあります。<br />言葉を重ねるより、そのほうが速い。</p>
             </div>
           </div>
 
@@ -652,8 +666,8 @@
               <h3 class="about-card-title">聞くことを、別の仕事にもしている</h3>
             </div>
             <div class="about-card-body">
-              <p>心理カウンセラーとしても活動しています。人の話を、遮らずに、判断せずに聞く訓練を積んできました。</p>
-              <p>ITが苦手な方が「こんなことを言ったら笑われるかもしれない」と思わずに済む場をつくること。それが、良いものが生まれるための最初の条件だと思っています。</p>
+              <p>心理カウンセラーとしても活動しています。<br />人の話を、遮らずに、判断せずに聞く訓練を積んできました。</p>
+              <p>ITが苦手な方が「こんなことを言ったら笑われるかもしれない」と思わずに済む場をつくること。<br />それが、良いものが生まれるための最初の条件だと思っています。</p>
             </div>
           </div>
 
@@ -663,21 +677,21 @@
               <h3 class="about-card-title">これまでの仕事</h3>
             </div>
             <div class="about-card-body">
-              <p>大手インターネット企業に15年勤務し、大規模なデータを扱う分析サービスの企画・開発に従事しました。性別・年齢・地域といった切り口に応じて、ネットワーク図・散布図・ヒートマップなど、目的に合った見せ方を設計してきました。</p>
-              <p>自分のプロトタイプから生まれた機能が、そのまま製品の主力に育っていく過程を、何度か経験しています。</p>
+              <p>大手インターネット企業に15年勤務し、大規模なデータを扱う分析サービスの企画・開発に従事しました。<br />性別・年齢・地域といった切り口に応じて、ネットワーク図・散布図・ヒートマップなど、目的に合った見せ方を設計してきました。</p>
+              <p>自分のプロトタイプから生まれた機能が、そのまま製品の主力に育っていく過程を何度か経験しています。<br />たとえば検索キーワードの共起関係をネットワーク図で可視化する機能は、私の試作から始まり、<a href="https://ds.yahoo.co.jp/service/insight/basic.html" target="_blank" rel="noopener noreferrer" class="about-tool-link">DS.INSIGHT Basic</a> の主力機能のひとつになりました。</p>
             </div>
           </div>
 
-        </div>
+        </div> -->
 
-        <div class="about-belief">
+        <!-- <div class="about-belief">
           <span class="about-belief-label">大切にしていること</span>
           <p>まだ誰も見えていないものを、形にして、人の「できる」を増やすこと。</p>
           <p class="about-belief-sub">
             「これは無理だ」「意味がない」と言われたところから、プロトタイプで可能性を示し、対話しながら実用に育てていく。<br />
             そのプロセスそのものに、一番のやりがいを感じています。
           </p>
-        </div>
+        </div> -->
 
         <div class="about-profile">
           2002年：桐蔭学園理数科卒<br>
@@ -688,57 +702,53 @@
       </div>
     </section>
 
-    <!-- ご相談と費用 -->
-    <section id="terms">
+    <!-- よくある質問 -->
+    <section id="faq">
+      <div class="ac-wrap">
+        <p class="section-label">FAQ</p>
+        <h2 class="section-title">よくある質問</h2>
+        <dl class="faq-list">
+
+          <div class="faq-item">
+            <dt class="faq-q">いきなり全部決めないといけませんか？</dt>
+            <dd class="faq-a">いきなり大きく作りません。<br />最初は必ず、触れるプロトタイプから。<br />そこから育てるか、設計図にして渡すか、作らずに済ませるかを、一緒に決めます。</dd>
+          </div>
+
+          <div class="faq-item">
+            <dt class="faq-q">最終的に何を受け取れますか？</dt>
+            <dd class="faq-a">進む道によって変わります。<br />運用まで担当する場合は、実際に使えるWebアプリ・スマホアプリと、その後の運用。<br />設計図まで担当する場合は、企画書・設計書一式をお渡しします。</dd>
+          </div>
+
+          <div class="faq-item">
+            <dt class="faq-q">途中で変更・修正は頼めますか？</dt>
+            <dd class="faq-a">開発は、ご相談時に合意した内容を対象とします。<br />合意を大きく超える変更・追加は、別途お見積もりになります。<br />方向性の調整はいつでも歓迎です。<br />それがこのやり方の目的でもあります。</dd>
+          </div>
+
+          <div class="faq-item">
+            <dt class="faq-q">著作権はどちらに帰属しますか？</dt>
+            <dd class="faq-a">納品物の著作権は、お客様に完全に譲渡します。<br />ただし制作者は、制作実績として画面・URLを掲載する権利を留保します。<br />掲載を希望されない場合は、遠慮なくお申し付けください。</dd>
+          </div>
+
+          <div class="faq-item">
+            <dt class="faq-q">対応するデバイス・ブラウザはどれですか？</dt>
+            <dd class="faq-a">プロトタイプの段階では、パソコンのChrome最新版を対象とします。<br />そのまま運用まで進む場合は、スマートフォンを含めて対象とする環境をご相談のうえ決めます。</dd>
+          </div>
+
+          <div class="faq-item">
+            <dt class="faq-q">どのような技術を使っていますか？</dt>
+            <dd class="faq-a">Nuxt / TypeScript / Cloudflare Workers・D1 / ECharts・Highcharts（データの可視化）/ OpenAI API・Claude API（AI機能）/ LINE連携 などを中心に使用。<br />案件の内容に応じて最適なものを選びます。</dd>
+          </div>
+
+        </dl>
+      </div>
+    </section>
+
+    <!-- 費用 -->
+    <section id="fees">
       <div class="ac-wrap">
         <p class="section-label">Fees</p>
-        <h2 class="section-title">ご相談と費用</h2>
-        <p class="terms-intro">ご相談の前に、知っておいていただきたいことをまとめています。</p>
-        <div class="terms-grid">
-
-          <div class="terms-card">
-            <div class="terms-icon">🌱</div>
-            <h3 class="terms-card-title">まず、小さく始めます</h3>
-            <p class="terms-card-body">いきなり大きく作りません。最初は必ず、触れるプロトタイプから。<br />そこから育てるか、設計図にして渡すか、作らずに済ませるかを、一緒に決めます。</p>
-          </div>
-
-          <div class="terms-card">
-            <div class="terms-icon">📦</div>
-            <h3 class="terms-card-title">お渡しするもの</h3>
-            <p class="terms-card-body">進む道によって変わります。<br />運用まで担当する場合は、実際に使えるWebアプリ・スマホアプリと、その後の運用。設計図まで担当する場合は、企画書・設計書一式をお渡しします。</p>
-          </div>
-
-          <div class="terms-card">
-            <div class="terms-icon">🔄</div>
-            <h3 class="terms-card-title">修正対応・開発の範囲</h3>
-            <p class="terms-card-body">開発は、ご相談時に合意した内容を対象とします。合意を大きく超える変更・追加は、別途お見積もりになります。<br />方向性の調整はいつでも歓迎です。それがこのやり方の目的でもあります。</p>
-          </div>
-
-          <div class="terms-card">
-            <div class="terms-icon">🔐</div>
-            <h3 class="terms-card-title">著作権</h3>
-            <p class="terms-card-body">納品物の著作権は、お客様に完全に譲渡します。<br />ただし制作者は、制作実績として画面・URLを掲載する権利を留保します。掲載を希望されない場合は、遠慮なくお申し付けください。</p>
-          </div>
-
-          <div class="terms-card">
-            <div class="terms-icon">💻</div>
-            <h3 class="terms-card-title">動作環境</h3>
-            <p class="terms-card-body">プロトタイプの段階では、パソコンのChrome最新版を対象とします。<br />そのまま運用まで進む場合は、スマートフォンを含めて対象とする環境をご相談のうえ決めます。</p>
-          </div>
-
-          <div class="terms-card">
-            <div class="terms-icon">🛠️</div>
-            <h3 class="terms-card-title">使っている技術</h3>
-            <p class="terms-card-body">Nuxt / TypeScript / Cloudflare Workers・D1 / ECharts・Highcharts（データの可視化）/ OpenAI API・Claude API（AI機能）/ LINE連携 などを中心に使用。<br />案件の内容に応じて最適なものを選びます。</p>
-          </div>
-
-        </div>
-
+        <h2 class="section-title">費用</h2>
         <div class="terms-payment">
-          <div class="terms-payment-header">
-            <span class="terms-payment-icon">💳</span>
-            <h3 class="terms-payment-title">費用</h3>
-          </div>
           <div class="terms-payment-body">
             <div class="terms-payment-row">
               <span class="terms-payment-label">ご相談</span>
@@ -746,11 +756,11 @@
             </div>
             <div class="terms-payment-row">
               <span class="terms-payment-label">開発費用</span>
-              <span class="terms-payment-value">規模・内容によるため、ヒアリング後にお見積もり。これまでの金額の例は<a href="#portfolio" class="terms-payment-link">実績</a>に載せています</span>
+              <span class="terms-payment-value">規模・内容によるため、ヒアリング後にお見積もり。<br />これまでの金額の例は<a href="#portfolio" class="terms-payment-link">実績</a>に載せています</span>
             </div>
             <div class="terms-payment-row">
               <span class="terms-payment-label">テスト</span>
-              <span class="terms-payment-value">動作確認は、実際に使う方にご協力いただきます。テスト専任者を立てないぶん、その工数は開発費用に含めません</span>
+              <span class="terms-payment-value">動作確認は、実際に使う方にご協力いただきます。<br />テスト専任者を立てないぶん、その工数は開発費用に含めません</span>
             </div>
             <div class="terms-payment-row">
               <span class="terms-payment-label">運用・保守</span>
@@ -762,7 +772,6 @@
             </div>
           </div>
         </div>
-
       </div>
     </section>
 

@@ -3,16 +3,30 @@
     <div class="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-[3px]" @click.self="emit('close')">
       <div class="nk-sheet w-full sm:max-w-[560px] max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-[0_24px_70px_rgba(34,37,44,0.45)]">
         <!-- 見出し -->
-        <header class="nk-sheet-bar sticky top-0 z-10 flex items-start justify-between gap-3 px-5 pt-4 pb-3">
-          <div>
-            <h2 class="nk-serif m-0 text-[20px] leading-none" :class="date === today ? 'text-[var(--nk-today)]' : ''">
-              {{ formatDateLabel(date) }}
-            </h2>
-            <p class="mt-1.5 mb-0 text-[11px] text-[var(--nk-ink-soft)]">
-              {{ date === today ? '今日' : date.slice(0, 4) + '年' }}
-            </p>
+        <header class="nk-sheet-bar sticky top-0 z-10 flex items-center justify-between gap-3 px-5 pt-4 pb-3">
+          <div class="flex items-center gap-1 min-w-0">
+            <button
+              class="nk-btn-ghost !w-8 !h-8 !px-0 flex items-center justify-center text-[16px] shrink-0"
+              :disabled="!prevDate"
+              :title="prevDate ? formatDateLabel(prevDate) : ''"
+              @click="prevDate && emit('navigate', prevDate)"
+            >‹</button>
+            <div class="min-w-0 px-1">
+              <h2 class="nk-serif m-0 text-[20px] leading-none truncate" :class="date === today ? 'text-[var(--nk-today)]' : ''">
+                {{ formatDateLabel(date) }}
+              </h2>
+              <p class="mt-1.5 mb-0 text-[11px] text-[var(--nk-ink-soft)]">
+                {{ date === today ? '今日' : date.slice(0, 4) + '年' }}
+              </p>
+            </div>
+            <button
+              class="nk-btn-ghost !w-8 !h-8 !px-0 flex items-center justify-center text-[16px] shrink-0"
+              :disabled="!nextDate"
+              :title="nextDate ? formatDateLabel(nextDate) : ''"
+              @click="nextDate && emit('navigate', nextDate)"
+            >›</button>
           </div>
-          <button class="nk-btn-ghost !h-8 !px-3 !text-[12px]" @click="emit('close')">閉じる</button>
+          <button class="nk-btn-ghost !h-8 !px-3 !text-[12px] shrink-0" @click="emit('close')">閉じる</button>
         </header>
 
         <div class="px-5 py-4 flex flex-col gap-5">
@@ -185,6 +199,8 @@ const props = defineProps<{
   error: string
   /** 保存が通った回数。増えたら下書きを空にする（updated_at は秒単位なので同じ秒の連投を拾えない） */
   savedTick: number
+  prevDate?: string
+  nextDate?: string
 }>()
 
 const emit = defineEmits<{
@@ -193,6 +209,7 @@ const emit = defineEmits<{
   reextract: []
   patchTopic: [id: string, patch: { headline: string; detail: string; impact: number }]
   removeTopic: [id: string]
+  navigate: [date: string]
 }>()
 
 const draft = ref('')

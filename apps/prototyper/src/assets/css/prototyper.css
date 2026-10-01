@@ -515,6 +515,19 @@
   font-weight: 700;
 }
 
+.origin-tool-link,
+.about-tool-link {
+  color: var(--c-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(27, 95, 217, 0.4);
+}
+
+.origin-tool-link:hover,
+.about-tool-link:hover {
+  text-decoration-color: var(--c-primary);
+}
+
 .about-intro {
   font-size: 15px;
   color: var(--c-text-muted);
@@ -966,6 +979,12 @@
   margin-bottom: 28px;
 }
 
+.portfolio-features-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
 .portfolio-feature {
   display: flex;
   gap: 12px;
@@ -1034,6 +1053,10 @@
   max-width: 220px;
   margin-left: auto;
   margin-right: auto;
+}
+
+.feature-screenshot-full {
+  max-width: 100%;
 }
 
 .lightbox-overlay {
@@ -1350,8 +1373,57 @@
   line-height: 1.75;
 }
 
+.faq-list {
+  margin-top: 28px;
+}
+
+.faq-item {
+  border-top: 1px solid var(--c-border);
+  padding: 22px 0;
+}
+
+.faq-list .faq-item:last-child {
+  border-bottom: 1px solid var(--c-border);
+}
+
+.faq-q {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--c-text);
+  line-height: 1.5;
+  padding-left: 28px;
+  position: relative;
+}
+
+.faq-q::before {
+  content: 'Q';
+  position: absolute;
+  left: 0;
+  color: var(--c-primary);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.faq-a {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--c-text-muted);
+  line-height: 1.85;
+  padding-left: 28px;
+  position: relative;
+}
+
+.faq-a::before {
+  content: 'A';
+  position: absolute;
+  left: 0;
+  color: var(--c-text-dim);
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .terms-payment {
-  margin-top: 14px;
+  margin-top: 28px;
   background: rgba(27, 95, 217, 0.04);
   border: 1px solid rgba(27, 95, 217, 0.18);
   border-radius: var(--radius);

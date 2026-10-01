@@ -622,13 +622,20 @@
   background: rgba(0, 118, 134, 0.02);
 }
 
+.sg-strength-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
 .sg-strength-num {
   font-family: var(--f-mono);
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.12em;
   color: var(--c-accent);
-  margin-bottom: 8px;
+  flex-shrink: 0;
 }
 
 .sg-strength-title {
@@ -637,7 +644,6 @@
   font-weight: 400;
   line-height: 1.75;
   color: var(--c-text);
-  margin-bottom: 10px;
 }
 
 .sg-strength-body {
@@ -1026,6 +1032,20 @@
   line-height: 1.85;
 }
 
+.sg-price-original {
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--c-text-dim);
+  text-decoration: line-through;
+  margin-right: 6px;
+}
+
+.sg-price-badge--campaign {
+  background: rgba(180, 80, 20, 0.07);
+  border-color: rgba(180, 80, 20, 0.25);
+  color: #b45014;
+}
+
 /* ==========================================
    対応できないケース
    ========================================== */
@@ -1245,75 +1265,24 @@
   display: flex;
   flex-direction: column;
   margin-top: 32px;
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  gap: 24px;
 }
 
 .sg-faq-item {
-  border-bottom: 1px solid var(--c-border);
-}
-
-.sg-faq-item:last-child {
-  border-bottom: none;
-}
-
-.sg-faq-q {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 20px 24px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
   background: var(--c-bg-card);
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.15s;
-  font-family: var(--f-sans);
-}
-
-.sg-faq-q:hover {
-  background: rgba(0, 118, 134, 0.02);
-}
-
-.sg-faq-item.open .sg-faq-q {
-  background: rgba(0, 118, 134, 0.03);
+  padding: 24px;
 }
 
 .sg-faq-q-text {
   font-family: var(--f-serif);
   font-size: 16px;
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1.65;
-  color: var(--c-text);
-}
-
-.sg-faq-icon {
-  font-size: 18px;
   color: var(--c-primary);
-  flex-shrink: 0;
-  font-family: var(--f-mono);
-  font-weight: 300;
-  line-height: 1;
-  width: 20px;
-  text-align: center;
-}
-
-.sg-faq-a-wrap {
-  overflow: hidden;
-  max-height: 0;
-  transition: max-height 0.3s ease;
-}
-
-.sg-faq-item.open .sg-faq-a-wrap {
-  max-height: 700px;
-}
-
-.sg-faq-a {
-  padding: 20px 24px 24px;
-  background: var(--c-bg-card);
-  border-top: 1px solid var(--c-border);
+  margin-bottom: 14px;
 }
 
 .sg-faq-a .sg-story-para {
