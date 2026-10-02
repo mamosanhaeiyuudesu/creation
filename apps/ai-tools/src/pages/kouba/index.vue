@@ -2,23 +2,21 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useKouba, KOUBA_GRID_SIZE } from '~/composables/kouba/useKouba'
 import { useKoubaTheme } from '~/composables/kouba/useKoubaTheme'
-import { useKoubaSubtasks } from '~/composables/kouba/useKoubaSubtasks'
 import { useKoubaAchievements } from '~/composables/kouba/useKoubaAchievements'
 import KoubaJobModal from '~/components/kouba/KoubaJobModal.vue'
 import KoubaWbsChart from '~/components/kouba/KoubaWbsChart.vue'
 import KoubaThemeBanner from '~/components/kouba/KoubaThemeBanner.vue'
 import KoubaThemeHistoryModal from '~/components/kouba/KoubaThemeHistoryModal.vue'
-import KoubaSubtasksSection from '~/components/kouba/KoubaSubtasksSection.vue'
 import KoubaAchievementsSection from '~/components/kouba/KoubaAchievementsSection.vue'
 import KoubaAchievementFormModal from '~/components/kouba/KoubaAchievementFormModal.vue'
 import KoubaIcon from '~/components/kouba/KoubaIcon.vue'
 import KoubaIconEditor from '~/components/kouba/KoubaIconEditor.vue'
 import KoubaConfirmModal from '~/components/kouba/KoubaConfirmModal.vue'
-import type { KoubaCategory, KoubaJob, KoubaTask, KoubaSubtask, KoubaAchievement } from '~/types/kouba'
+import type { KoubaCategory, KoubaJob, KoubaTask, KoubaAchievement } from '~/types/kouba'
 import { KOUBA_DESCRIPTION_MAX } from '~/types/kouba'
 
 useHead({
-  title: import.meta.dev ? '工数 (dev)' : '工数',
+  title: import.meta.dev ? 'タスクくん (dev)' : 'タスクくん',
   link: [
     {
       key: 'icon',
@@ -31,7 +29,7 @@ useHead({
   ],
   meta: [
     { name: 'apple-mobile-web-app-capable', content: 'yes' },
-    { name: 'apple-mobile-web-app-title', content: 'タスク管理' },
+    { name: 'apple-mobile-web-app-title', content: 'タスクくん' },
     { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
     { name: 'theme-color', content: '#0f172a' },
   ],
@@ -57,46 +55,8 @@ const {
 } = useKoubaTheme()
 const showThemeHistory = ref(false)
 
-// ── サブタスク（板・タスクとは無関係な、名前だけのTODOリスト）──────────────────────────────
-// PCでは画面左の常設サイドバー、スマホではタブ切り替えで表示する（mobileTab参照）。
-const {
-  subtasks, loading: subtasksLoading, saving: subtasksSaving, error: subtasksError,
-  load: loadSubtasks, add: addSubtask, rename: renameSubtask, remove: removeSubtaskItem, reorder: reorderSubtasks,
-  toggleDone: toggleSubtaskDone,
-} = useKoubaSubtasks()
-
-/** スマホ（sm未満）だけで使うタブ。PCは常にサイドバー＋ジョブ側＋達成したことの全部を表示するので参照しない。 */
-const mobileTab = ref<'subtasks' | 'jobs' | 'achievements'>('subtasks')
-
-/**
- * サブタスクのサイドバー幅（PCのみ・右端のハンドルをドラッグして変えられる）。
- * リロードすれば既定値に戻る＝保存はしない（localStorageにもD1にも持たせない、その場だけの見た目調整）。
- */
-const KOUBA_SUBTASK_SIDEBAR_MIN_WIDTH = 240
-const KOUBA_SUBTASK_SIDEBAR_MAX_WIDTH = 520
-const subtaskSidebarWidth = ref(308)
-let sidebarResizeStartX = 0
-let sidebarResizeStartWidth = 308
-
-function onSidebarResizeMove(e: MouseEvent) {
-  const next = sidebarResizeStartWidth + (e.clientX - sidebarResizeStartX)
-  subtaskSidebarWidth.value = Math.min(KOUBA_SUBTASK_SIDEBAR_MAX_WIDTH, Math.max(KOUBA_SUBTASK_SIDEBAR_MIN_WIDTH, next))
-}
-function stopSidebarResize() {
-  document.removeEventListener('mousemove', onSidebarResizeMove)
-  document.removeEventListener('mouseup', stopSidebarResize)
-  document.body.style.userSelect = ''
-  document.body.style.cursor = ''
-}
-function startSidebarResize(e: MouseEvent) {
-  e.preventDefault()
-  sidebarResizeStartX = e.clientX
-  sidebarResizeStartWidth = subtaskSidebarWidth.value
-  document.body.style.userSelect = 'none'
-  document.body.style.cursor = 'col-resize'
-  document.addEventListener('mousemove', onSidebarResizeMove)
-  document.addEventListener('mouseup', stopSidebarResize)
-}
+/** スマホ（sm未満）だけで使うタブ。PCは常にジョブ側と達成したことの両方を表示するので参照しない。 */
+const mobileTab = ref<'jobs' | 'achievements'>('jobs')
 
 /**
  * ジョブ一覧の表示モード。既定はボード（カテゴリの板）、もうひとつが WBS（ジョブとタスクを縦に並べて、
@@ -109,14 +69,17 @@ const boardMode = ref<'board' | 'wbs'>('board')
  */
 const wbsShowTasks = ref(false)
 
-// ── 達成したこと（画面下部の一覧）──────────────────────────────
+// ── 達成したこと（右サイドバー）──────────────────────────────
 const {
   achievements, loading: achievementsLoading, saving: achievementsSaving, error: achievementsError,
-  load: loadAchievements, add: addAchievement, remove: removeAchievement,
+  load: loadAchievements, add: addAchievement, update: updateAchievement, remove: removeAchievement,
 } = useKoubaAchievements()
 const showAchievementFormModal = ref(false)
 async function handleAddAchievementSubmit(payload: { text: string; achievedAt: string }): Promise<boolean> {
   return await addAchievement(payload.text, payload.achievedAt)
+}
+async function handleUpdateAchievement(id: string, text: string, achievedAt: string) {
+  await updateAchievement(id, text, achievedAt)
 }
 
 // 日本語入力の変換確定Enterでも @keydown.enter は発火するため、確定中は無視する
@@ -297,12 +260,11 @@ async function handleReorderTasks(taskIds: string[]) {
   if (activeJobId.value) await reorderTasks(activeJobId.value, taskIds)
 }
 
-// ── 削除確認ポップアップ（カテゴリ/ジョブ/タスク/サブタスク/達成したことで共通）──────────────────────────────
+// ── 削除確認ポップアップ（カテゴリ/ジョブ/タスク/達成したことで共通）──────────────────────────────
 type ConfirmTarget =
   | { kind: 'category'; id: string; name: string }
   | { kind: 'job'; id: string; title: string }
   | { kind: 'task'; id: string; title: string }
-  | { kind: 'subtask'; id: string; title: string }
   | { kind: 'achievement'; id: string; text: string }
 const confirmTarget = ref<ConfirmTarget | null>(null)
 const confirmMessage = computed(() => {
@@ -316,7 +278,7 @@ const confirmMessage = computed(() => {
     const preview = t.text.length > 40 ? `${t.text.slice(0, 40)}…` : t.text
     return `「${preview}」を削除しますか？`
   }
-  return `「${t.title}」を削除しますか？`
+  return ''
 })
 
 function askDeleteCategory(cat: KoubaCategory) {
@@ -333,9 +295,6 @@ function askDeleteJob(job: KoubaJob) {
 function askDeleteTask(task: KoubaTask) {
   confirmTarget.value = { kind: 'task', id: task.id, title: task.title }
 }
-function askDeleteSubtask(subtask: KoubaSubtask) {
-  confirmTarget.value = { kind: 'subtask', id: subtask.id, title: subtask.title }
-}
 function askDeleteAchievement(achievement: KoubaAchievement) {
   confirmTarget.value = { kind: 'achievement', id: achievement.id, text: achievement.text }
 }
@@ -350,8 +309,6 @@ async function onConfirmDelete() {
     await deleteJob(target.id)
   } else if (target.kind === 'task') {
     await deleteTask(target.id)
-  } else if (target.kind === 'subtask') {
-    await removeSubtaskItem(target.id)
   } else {
     await removeAchievement(target.id)
   }
@@ -493,7 +450,6 @@ onMounted(async () => {
   if (isLoggedIn.value || isDev) {
     load()
     loadTheme()
-    loadSubtasks()
     loadAchievements()
   } else loading.value = false
 })
@@ -501,7 +457,6 @@ watch(isLoggedIn, (v) => {
   if (!v) return
   load()
   loadTheme()
-  loadSubtasks()
   loadAchievements()
 })
 
@@ -513,7 +468,6 @@ onMounted(() => document.addEventListener('visibilitychange', flushOnHide))
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', flushOnHide)
   void flushPendingHours()
-  stopSidebarResize()
 })
 </script>
 
@@ -570,7 +524,7 @@ onBeforeUnmount(() => {
     <div class="w-full max-w-[1440px] flex flex-col gap-4">
       <!-- ヘッダー -->
       <header class="flex items-center justify-between pt-1">
-        <h1 class="text-lg font-bold bg-gradient-to-br from-amber-300 to-orange-500 bg-clip-text text-transparent">⏱️ 工数</h1>
+        <h1 class="text-lg font-bold bg-gradient-to-br from-amber-300 to-orange-500 bg-clip-text text-transparent">⏱️ タスクくん</h1>
         <div class="relative" @click.stop>
           <button
             class="w-9 h-9 rounded-lg border border-white/10 bg-white/[0.06] text-slate-400 text-base cursor-pointer flex items-center justify-center hover:bg-white/[0.12] hover:text-slate-200 transition-colors"
@@ -591,14 +545,8 @@ onBeforeUnmount(() => {
       </header>
 
       <template v-if="isLoggedIn || isDev">
-        <!-- スマホ（sm未満）だけのタブ切り替え。PCは下のサイドバー＋ジョブ側＋達成したことを常にすべて表示する -->
+        <!-- スマホ（sm未満）だけのタブ切り替え。PCは下のジョブ側と達成したことを常にすべて表示する -->
         <div class="flex sm:hidden rounded-full bg-white/5 border border-white/10 p-1 gap-1">
-          <button
-            type="button"
-            class="flex-1 h-8 rounded-full text-[12px] font-bold transition-colors"
-            :class="mobileTab === 'subtasks' ? 'bg-sky-500 text-white' : 'text-slate-400'"
-            @click="mobileTab = 'subtasks'"
-          >🧩 サブタスク</button>
           <button
             type="button"
             class="flex-1 h-8 rounded-full text-[12px] font-bold transition-colors"
@@ -610,49 +558,12 @@ onBeforeUnmount(() => {
             class="flex-1 h-8 rounded-full text-[12px] font-bold transition-colors"
             :class="mobileTab === 'achievements' ? 'bg-sky-500 text-white' : 'text-slate-400'"
             @click="mobileTab = 'achievements'"
-          >🏆 達成</button>
+          >🏆 達成したこと</button>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-4 sm:items-stretch">
-          <!-- サブタスク一覧。PCでは画面左の常設サイドバー、スマホはタブで切り替える -->
-          <aside
-            class="kouba-subtask-aside relative w-full sm:shrink-0 flex flex-col gap-4"
-            :style="{ '--kouba-subtask-w': `${subtaskSidebarWidth}px` }"
-            :class="mobileTab === 'subtasks' ? '' : 'hidden sm:block'"
-          >
-            <!-- 今のテーマ。PCではジョブ側に1つだけ出すので、ここではスマホのサブタスクタブでのみ表示する -->
-            <KoubaThemeBanner
-              class="sm:hidden"
-              :theme="currentTheme"
-              :history-count="themeHistory.length"
-              :saving="themeSaving"
-              :error="themeError"
-              @save="saveTheme"
-              @open-history="showThemeHistory = true"
-            />
-            <KoubaSubtasksSection
-              :subtasks="subtasks"
-              :loading="subtasksLoading"
-              :saving="subtasksSaving"
-              :error="subtasksError"
-              @add="addSubtask"
-              @rename="({ id, title }) => renameSubtask(id, title)"
-              @delete="askDeleteSubtask"
-              @reorder="reorderSubtasks"
-              @toggle-done="({ id, done }) => toggleSubtaskDone(id, done)"
-            />
-            <!-- 右端をドラッグして幅を変える（PCのみ）。リロードすると既定幅に戻る -->
-            <div
-              class="hidden sm:block absolute top-0 right-[-6px] w-3 h-full cursor-col-resize group z-10"
-              @mousedown="startSidebarResize"
-            >
-              <div class="mx-auto w-1 h-full rounded-full bg-transparent group-hover:bg-sky-400/40 transition-colors"></div>
-            </div>
-          </aside>
-
-          <!-- ジョブ側（今のテーマ・カテゴリの板）とその下の達成したこと。PCでは常に表示、スマホはタブで切り替える -->
-          <div class="w-full min-w-0 flex flex-col gap-4">
-            <div class="flex flex-col gap-4" :class="mobileTab === 'jobs' ? '' : 'hidden sm:flex'">
+          <!-- ジョブ側（今のテーマ・カテゴリの板）。PCでは常に表示、スマホはタブで切り替える -->
+          <div class="w-full min-w-0 flex flex-col gap-4" :class="mobileTab === 'jobs' ? '' : 'hidden sm:flex'">
             <KoubaThemeBanner
               :theme="currentTheme"
               :history-count="themeHistory.length"
@@ -955,30 +866,25 @@ onBeforeUnmount(() => {
               <p v-if="isFull" class="text-center text-slate-500 text-xs">カテゴリは{{ KOUBA_GRID_SIZE }}個までです</p>
               </template>
             </template>
-            </div>
-
-            <!-- 達成したこと（画面下部の一覧）。PCでは常に表示、スマホは「達成」タブでのみ表示 -->
-            <div :class="mobileTab === 'achievements' ? '' : 'hidden sm:block'">
-              <KoubaAchievementsSection
-                :achievements="achievements"
-                :loading="achievementsLoading"
-                :error="achievementsError"
-                @open-add="showAchievementFormModal = true"
-                @delete="askDeleteAchievement"
-              />
-            </div>
           </div>
+
+          <!-- 達成したこと（右サイドバー）。PCでは常に表示、スマホは「達成したこと」タブでのみ表示 -->
+          <aside
+            class="w-full sm:w-[308px] sm:shrink-0 sm:sticky sm:top-4 sm:self-start"
+            :class="mobileTab === 'achievements' ? '' : 'hidden sm:block'"
+          >
+            <KoubaAchievementsSection
+              :achievements="achievements"
+              :loading="achievementsLoading"
+              :saving="achievementsSaving"
+              :error="achievementsError"
+              @open-add="showAchievementFormModal = true"
+              @update="handleUpdateAchievement"
+              @delete="askDeleteAchievement"
+            />
+          </aside>
         </div>
       </template>
     </div>
   </div>
 </template>
-
-<style scoped>
-/* サブタスクのサイドバー幅。PCのみ変数の値を使い、スマホは常に画面幅いっぱい（Tailwindのw-fullのまま）。 */
-@media (min-width: 640px) {
-  .kouba-subtask-aside {
-    width: var(--kouba-subtask-w, 308px);
-  }
-}
-</style>

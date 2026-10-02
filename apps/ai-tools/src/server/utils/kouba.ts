@@ -564,3 +564,7 @@ export async function findOwnedAchievement(db: any, userId: string, id: string):
 export async function deleteAchievement(db: any, id: string): Promise<void> {
   await db.prepare('DELETE FROM kouba_achievements WHERE id = ?').bind(id).run()
 }
+
+export async function updateAchievement(db: any, id: string, text: string, achievedAt: string): Promise<void> {
+  await db.prepare('UPDATE kouba_achievements SET text = ?, achieved_at = ? WHERE id = ?').bind(text, achievedAt, id).run()
+}

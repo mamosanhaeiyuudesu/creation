@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import type { KoubaAchievement } from '~/types/kouba'
 
 /**
- * kouba の「達成したこと」一覧（画面下部）。板（useKouba）・テーマ（useKoubaTheme）とは別に読み書きする。
+ * kouba の「達成したこと」一覧（右サイドバー）。板（useKouba）・テーマ（useKoubaTheme）とは別に読み書きする。
  */
 export function useKoubaAchievements() {
   const achievements = ref<KoubaAchievement[]>([])
@@ -38,6 +38,26 @@ export function useKoubaAchievements() {
     }
   }
 
+  /** 内容・日付を後から修正する。 */
+  async function update(id: string, text: string, achievedAt: string): Promise<boolean> {
+    saving.value = true
+    error.value = ''
+    try {
+      await $fetch(`/api/kouba/achievements/${id}`, { method: 'PATCH', body: { text, achievedAt } })
+      achievements.value = achievements.value
+        .map((a) => (a.id === id ? { ...a, text, achievedAt: achievedAt.includes('T') ? achievedAt : `${achievedAt}T03:00:00.000Z` } : a))
+        .sort((a, b) => b.achievedAt.localeCompare(a.achievedAt))
+      // 保存後にリロードして正確な achievedAt（サーバーが正規化した値）を反映する
+      await load()
+      return true
+    } catch (e: any) {
+      error.value = e?.data?.message || '更新に失敗しました'
+      return false
+    } finally {
+      saving.value = false
+    }
+  }
+
   async function remove(id: string) {
     error.value = ''
     try {
@@ -48,5 +68,5 @@ export function useKoubaAchievements() {
     }
   }
 
-  return { achievements, loading, saving, error, load, add, remove }
+  return { achievements, loading, saving, error, load, add, update, remove }
 }
