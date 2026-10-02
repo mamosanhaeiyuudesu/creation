@@ -82,6 +82,33 @@ async function handleUpdateAchievement(id: string, text: string, achievedAt: str
   await updateAchievement(id, text, achievedAt)
 }
 
+// ── 右サイドバー（達成したこと）のドラッグリサイズ ──────────────────────────────
+const ACHIEVEMENTS_SIDEBAR_MIN = 240
+const ACHIEVEMENTS_SIDEBAR_MAX = 560
+const achievementsSidebarWidth = ref(338)
+let _resizeStartX = 0
+let _resizeStartWidth = 338
+
+function onAchievementsSidebarResizeMove(e: MouseEvent) {
+  const next = _resizeStartWidth - (e.clientX - _resizeStartX)
+  achievementsSidebarWidth.value = Math.min(ACHIEVEMENTS_SIDEBAR_MAX, Math.max(ACHIEVEMENTS_SIDEBAR_MIN, next))
+}
+function stopAchievementsSidebarResize() {
+  document.removeEventListener('mousemove', onAchievementsSidebarResizeMove)
+  document.removeEventListener('mouseup', stopAchievementsSidebarResize)
+  document.body.style.userSelect = ''
+  document.body.style.cursor = ''
+}
+function startAchievementsSidebarResize(e: MouseEvent) {
+  e.preventDefault()
+  _resizeStartX = e.clientX
+  _resizeStartWidth = achievementsSidebarWidth.value
+  document.body.style.userSelect = 'none'
+  document.body.style.cursor = 'col-resize'
+  document.addEventListener('mousemove', onAchievementsSidebarResizeMove)
+  document.addEventListener('mouseup', stopAchievementsSidebarResize)
+}
+
 // 日本語入力の変換確定Enterでも @keydown.enter は発火するため、確定中は無視する
 function isImeEnter(e: KeyboardEvent): boolean {
   return e.isComposing || e.keyCode === 229
@@ -468,6 +495,7 @@ onMounted(() => document.addEventListener('visibilitychange', flushOnHide))
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', flushOnHide)
   void flushPendingHours()
+  stopAchievementsSidebarResize()
 })
 </script>
 
@@ -870,9 +898,15 @@ onBeforeUnmount(() => {
 
           <!-- 達成したこと（右サイドバー）。PCでは常に表示、スマホは「達成したこと」タブでのみ表示 -->
           <aside
-            class="w-full sm:w-[308px] sm:shrink-0 sm:sticky sm:top-4 sm:self-start"
+            class="kouba-achievements-aside w-full sm:shrink-0 sm:sticky sm:top-4 sm:self-start relative"
             :class="mobileTab === 'achievements' ? '' : 'hidden sm:block'"
+            :style="{ '--kouba-achievements-w': `${achievementsSidebarWidth}px` }"
           >
+            <!-- ドラッグリサイズ用ハンドル（左端、sm以上のみ）。左にドラッグ＝幅が広がる -->
+            <div
+              class="hidden sm:block absolute left-[-6px] top-0 bottom-0 w-3 cursor-col-resize z-10"
+              @mousedown="startAchievementsSidebarResize"
+            />
             <KoubaAchievementsSection
               :achievements="achievements"
               :loading="achievementsLoading"
@@ -888,3 +922,11 @@ onBeforeUnmount(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+@media (min-width: 640px) {
+  .kouba-achievements-aside {
+    width: var(--kouba-achievements-w, 338px);
+  }
+}
+</style>
