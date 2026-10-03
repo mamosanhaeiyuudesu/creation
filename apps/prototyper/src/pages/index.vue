@@ -42,6 +42,12 @@
           </div>
           <div class="hero-photo-wrap">
             <img src="/images/portrait.jpg" alt="" class="hero-photo">
+            <p class="hero-what-label">大切にしていること</p>
+            <div class="hero-value-grid">
+              <span class="hero-value-chip">原点思考</span>
+              <span class="hero-value-chip">共創</span>
+              <span class="hero-value-chip">シンプル</span>
+            </div>
             <p class="hero-what-label">できること</p>
             <div class="hero-what-grid">
               <span class="hero-what-chip">Webサービス</span>
@@ -692,6 +698,21 @@
             そのプロセスそのものに、一番のやりがいを感じています。
           </p>
         </div> -->
+
+        <div class="about-values">
+          <div class="about-value-card">
+            <span class="about-value-key">原点思考</span>
+            <p class="about-value-body">常にお客さんが「そもそも何を実現したいのか」に立ち返るように意識しています。</p>
+          </div>
+          <div class="about-value-card">
+            <span class="about-value-key">共創</span>
+            <p class="about-value-body">ヒアリングを重ねながら、お客さんと作っていくことを意識しています。</p>
+          </div>
+          <div class="about-value-card">
+            <span class="about-value-key">シンプル</span>
+            <p class="about-value-body">余計なものを削ぎ落としてシンプルな形にすることを心がけています。</p>
+          </div>
+        </div>
 
         <div class="about-profile">
           2002年：桐蔭学園理数科卒<br>
