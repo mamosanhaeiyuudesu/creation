@@ -14,6 +14,11 @@ defineProps<{
   hintMain?: string
   hintSub?: string
 }>()
+
+function breakAtKuten(text: string): string {
+  if (!text) return ''
+  return text.replace(/。(?!\n)/g, '。\n')
+}
 </script>
 
 <template>
@@ -38,11 +43,11 @@ defineProps<{
         <div v-else class="ai-body">
           <div v-for="(topic, ti) in aiTopics" :key="ti" :class="ti > 0 ? 'mt-4 pt-4 border-t border-[#dde2ef]' : ''">
             <div class="topic-title">{{ topic.title }}</div>
-            <div class="conclusion">{{ topic.conclusion }}</div>
+            <div class="conclusion">{{ breakAtKuten(topic.conclusion) }}</div>
             <div v-if="topic.flow.length" class="flow-list">
               <div v-for="(step, si) in topic.flow" :key="si" class="flow-step">
                 <span class="step-num">{{ String(si + 1).padStart(2, '0') }}</span>
-                <span>{{ step }}</span>
+                <span>{{ breakAtKuten(step) }}</span>
               </div>
             </div>
           </div>
@@ -89,14 +94,14 @@ defineProps<{
 }
 
 .ai-body {
-  font-size: 13px;
+  font-size: 14px;
   color: #1c2d5a;
   padding: 12px 14px;
   line-height: 1.75;
 }
 
 .topic-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   margin-bottom: 6px;
   color: #1c2d5a;
@@ -105,7 +110,7 @@ defineProps<{
 }
 
 .conclusion {
-  font-size: 12px;
+  font-size: 13px;
   color: #3a4a72;
   background: #f4f6fc;
   border: 1px solid #e8ecf8;
@@ -113,6 +118,7 @@ defineProps<{
   padding: 7px 10px;
   margin-bottom: 10px;
   line-height: 1.72;
+  white-space: pre-line;
 }
 
 .flow-list {
@@ -125,13 +131,14 @@ defineProps<{
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 12px;
+  font-size: 13px;
   color: #1c2d5a;
   background: #fff;
   border: 1px solid #dde2ef;
   border-radius: 5px;
   padding: 6px 10px;
   line-height: 1.65;
+  white-space: pre-line;
 }
 
 .step-num {

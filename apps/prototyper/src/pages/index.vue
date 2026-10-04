@@ -165,7 +165,7 @@
               </div>
               <div>
                 <dt>費用</dt>
-                <dd><span class="fee-amount">約30万円</span>（開発費用）</dd>
+                <dd><span class="fee-amount">約30万円</span>（参考価格）</dd>
               </div>
               <div>
                 <dt>いま</dt>
@@ -283,7 +283,7 @@
               </div>
               <div>
                 <dt>費用</dt>
-                <dd><span class="fee-amount">15万円</span>（制作費用）</dd>
+                <dd><span class="fee-amount">15万円</span>（参考価格）</dd>
               </div>
               <div>
                 <dt>いま</dt>
@@ -487,9 +487,9 @@
           </div>
         </div>
 
-        <p class="works-other">
+        <!-- <p class="works-other">
           このほかに、音声の日記から気持ちの動きを見えるようにするツールなども、自分用に作って試しています。
-        </p>
+        </p> -->
       </div>
     </section>
 
@@ -767,10 +767,6 @@
               <span class="terms-payment-value">規模・内容によるため、ヒアリング後にお見積もり。<br />これまでの金額の例は<a href="#portfolio" class="terms-payment-link">実績</a>に載せています</span>
             </div>
             <div class="terms-payment-row">
-              <span class="terms-payment-label">テスト</span>
-              <span class="terms-payment-value">動作確認は、実際に使う方にご協力いただきます。<br />テスト専任者を立てないぶん、その工数は開発費用に含めません</span>
-            </div>
-            <div class="terms-payment-row">
               <span class="terms-payment-label">運用・保守</span>
               <span class="terms-payment-value">続けて担当する場合は、月額でご相談</span>
             </div>
@@ -787,10 +783,11 @@
     <section id="contact" class="ac-cta">
       <div class="ac-wrap">
         <div class="cta-inner">
-          <h2 class="cta-title">「こういうの、できませんか」から始まります。</h2>
+          <h2 class="cta-title">「こういうの、できませんか？」</h2>
           <p class="cta-desc">
-            そのくらいの温度感で十分です。まだ何も決まっていない段階で構いません。<br />
-            ITの言葉が出てこなくても、まったく問題ありません。一緒に考えます。
+            そのくらいの温度感で十分です。<br />
+            まだ何も決まっていない段階で構いません。<br />
+            一緒に考えましょう。
           </p>
           <div class="cta-price">
             <span class="cta-price-label">初回相談</span>

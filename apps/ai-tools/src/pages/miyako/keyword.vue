@@ -28,6 +28,11 @@ function toggleDetail(_i: number) {
   allExpanded.value = !allExpanded.value
 }
 
+function breakAtKuten(text: string): string {
+  if (!text) return ''
+  return text.replace(/。(?!\n)/g, '。\n')
+}
+
 function loadHistory() {
   try {
     const raw = localStorage.getItem(HISTORY_KEY)
@@ -187,7 +192,7 @@ onMounted(() => {
               <!-- タイトル -->
               <div class="phase-title">{{ phase.title }}</div>
               <!-- 概要 -->
-              <div class="phase-summary">{{ phase.summary }}</div>
+              <div class="phase-summary">{{ breakAtKuten(phase.summary) }}</div>
               <!-- 展開トリガー -->
               <div class="phase-toggle" :class="{ 'phase-toggle-open': allExpanded }">
                 <span>{{ allExpanded ? '閉じる' : '詳しく見る' }}</span>
@@ -195,7 +200,7 @@ onMounted(() => {
               </div>
               <!-- 詳細（展開時のみ） -->
               <div v-if="allExpanded && phase.detail" class="phase-detail">
-                {{ phase.detail }}
+                {{ breakAtKuten(phase.detail) }}
               </div>
             </div>
 
@@ -277,7 +282,7 @@ onMounted(() => {
 }
 
 .phase-title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: #1c2d5a;
   padding: 10px 14px 4px;
@@ -285,18 +290,19 @@ onMounted(() => {
 }
 
 .phase-summary {
-  font-size: 12px;
+  font-size: 13px;
   color: #3a4a72;
   padding: 0 14px 12px;
   line-height: 1.75;
   flex: 1;
+  white-space: pre-line;
 }
 
 .phase-toggle {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: 12px;
   color: #6878a8;
   padding: 5px 14px 9px;
   margin-top: auto;
@@ -312,12 +318,13 @@ onMounted(() => {
 }
 
 .phase-detail {
-  font-size: 12px;
+  font-size: 13px;
   color: #1c2d5a;
   background: #f4f6fc;
   border-top: 1px solid #dde2ef;
   padding: 10px 14px 12px;
   line-height: 1.78;
+  white-space: pre-line;
 }
 
 .phase-arrow {

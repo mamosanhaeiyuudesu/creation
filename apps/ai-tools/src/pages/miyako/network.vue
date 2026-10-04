@@ -47,8 +47,11 @@ const selectedCategory = ref<string>(
 const initNodeLabel = ref((route.query.node as string) ?? '')
 
 const selectedWord = ref<string | null>(null)
+const selectedEdge = ref<{ source: string; target: string } | null>(null)
 const phases = ref<AiPhase[]>([])
+const phasesB = ref<AiPhase[]>([])
 const aiLoading = ref(false)
+const aiLoadingB = ref(false)
 const popupOpen = ref(false)
 const allExpanded = ref(false)
 
@@ -60,6 +63,11 @@ watch([selectedCategory, selectedWord], () => {
   if (selectedWord.value) query.node = selectedWord.value
   router.replace({ query })
 })
+
+function breakAtKuten(text: string): string {
+  if (!text) return ''
+  return text.replace(/。(?!\n)/g, '。\n')
+}
 
 // ── グラフ構築 ──────────────────────────────────────
 
@@ -163,6 +171,7 @@ async function renderGraph() {
           'line-color': '#5C6BC0',
           'opacity': 0.5,
           'curve-style': 'bezier',
+          'cursor': 'pointer',
         } as any
       },
       {
@@ -189,6 +198,14 @@ async function renderGraph() {
           'opacity': 1,
           'line-color': '#a5b4fc',
           'z-index': 998,
+        } as any
+      },
+      {
+        selector: 'edge.edge-selected',
+        style: {
+          'opacity': 1,
+          'line-color': '#fbbf24',
+          'z-index': 999,
         } as any
       },
       {
@@ -261,39 +278,52 @@ async function renderGraph() {
 
   cy.on('tap', 'node', (evt: any) => {
     const node = evt.target
-    cy!.elements().removeClass('selected')
+    cy!.elements().removeClass('selected edge-selected')
     node.addClass('selected')
     fetchKeyword(node.data('label'))
+  })
+
+  cy.on('tap', 'edge', (evt: any) => {
+    const edge = evt.target
+    const sourceId = edge.data('source')
+    const targetId = edge.data('target')
+    cy!.elements().removeClass('selected edge-selected')
+    edge.addClass('edge-selected')
+    cy.getElementById(sourceId).addClass('selected')
+    cy.getElementById(targetId).addClass('selected')
+    fetchKeywordPair(sourceId, targetId)
   })
 }
 
 // ── キーワード検索（keyword.vue と同じ API・同じキャッシュ） ────
 
-async function fetchKeyword(word: string) {
-  selectedWord.value = word
-  phases.value = []
-  allExpanded.value = false
-  popupOpen.value = true
-
+async function fetchPhasesFor(word: string): Promise<AiPhase[]> {
   const cacheKey = CACHE_PREFIX + word
   try {
     const cached = localStorage.getItem(cacheKey)
-    if (cached) {
-      phases.value = JSON.parse(cached)
-      return
-    }
+    if (cached) return JSON.parse(cached)
   } catch {
     localStorage.removeItem(cacheKey)
   }
+  const data = await $fetch<{ phases: AiPhase[] }>('/api/miyako/keyword', {
+    method: 'POST',
+    body: { word },
+  })
+  try { localStorage.setItem(cacheKey, JSON.stringify(data.phases)) } catch {}
+  return data.phases
+}
+
+async function fetchKeyword(word: string) {
+  selectedWord.value = word
+  selectedEdge.value = null
+  phases.value = []
+  phasesB.value = []
+  allExpanded.value = false
+  popupOpen.value = true
 
   aiLoading.value = true
   try {
-    const data = await $fetch<{ phases: AiPhase[] }>('/api/miyako/keyword', {
-      method: 'POST',
-      body: { word },
-    })
-    phases.value = data.phases
-    try { localStorage.setItem(cacheKey, JSON.stringify(data.phases)) } catch {}
+    phases.value = await fetchPhasesFor(word)
   } catch {
     phases.value = [{ era: '', title: 'エラー', summary: '取得に失敗しました。', detail: '' }]
   } finally {
@@ -301,11 +331,35 @@ async function fetchKeyword(word: string) {
   }
 }
 
+async function fetchKeywordPair(source: string, target: string) {
+  selectedWord.value = source
+  selectedEdge.value = { source, target }
+  phases.value = []
+  phasesB.value = []
+  allExpanded.value = false
+  popupOpen.value = true
+  aiLoading.value = true
+  aiLoadingB.value = true
+
+  const [resA, resB] = await Promise.allSettled([
+    fetchPhasesFor(source),
+    fetchPhasesFor(target),
+  ])
+
+  phases.value = resA.status === 'fulfilled' ? resA.value : [{ era: '', title: 'エラー', summary: '取得に失敗しました。', detail: '' }]
+  aiLoading.value = false
+
+  phasesB.value = resB.status === 'fulfilled' ? resB.value : [{ era: '', title: 'エラー', summary: '取得に失敗しました。', detail: '' }]
+  aiLoadingB.value = false
+}
+
 function closePopup() {
   popupOpen.value = false
   selectedWord.value = null
+  selectedEdge.value = null
   phases.value = []
-  if (cy) cy.elements().removeClass('selected')
+  phasesB.value = []
+  if (cy) cy.elements().removeClass('selected edge-selected')
 }
 
 // ── 初期化 ──────────────────────────────────────────
@@ -323,7 +377,9 @@ onMounted(async () => {
 
 watch(selectedCategory, () => {
   selectedWord.value = null
+  selectedEdge.value = null
   phases.value = []
+  phasesB.value = []
   renderGraph()
 })
 </script>
@@ -403,8 +459,14 @@ watch(selectedCategory, () => {
           <!-- Popup header -->
           <div class="popup-header">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="font-mono text-[10px] text-[#6878a8] tracking-[0.15em] uppercase shrink-0">「{{ selectedWord }}」</span>
-              <span class="text-[12px] text-[#9aa3c0] shrink-0">2005年〜現在の議論の変遷</span>
+              <template v-if="selectedEdge">
+                <span class="font-mono text-[10px] text-[#6878a8] tracking-[0.15em] uppercase shrink-0">「{{ selectedEdge.source }}」と「{{ selectedEdge.target }}」</span>
+                <span class="text-[12px] text-[#9aa3c0] shrink-0">の議論の変遷（2005年〜現在）</span>
+              </template>
+              <template v-else>
+                <span class="font-mono text-[10px] text-[#6878a8] tracking-[0.15em] uppercase shrink-0">「{{ selectedWord }}」</span>
+                <span class="text-[12px] text-[#9aa3c0] shrink-0">2005年〜現在の議論の変遷</span>
+              </template>
             </div>
             <button class="popup-close" @click="closePopup">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -413,37 +475,112 @@ watch(selectedCategory, () => {
             </button>
           </div>
 
-          <!-- Loading -->
-          <div v-if="aiLoading" class="flex flex-col items-center justify-center py-16 gap-4">
-            <span class="w-8 h-8 rounded-full border-2 border-[#1A237E]/20 border-t-[#1A237E] animate-spin block" />
-            <p class="text-[12px] text-[#9aa3c0]">「{{ selectedWord }}」の変遷を調べています...</p>
-          </div>
+          <!-- 単語1語モード -->
+          <template v-if="!selectedEdge">
+            <!-- Loading -->
+            <div v-if="aiLoading" class="flex flex-col items-center justify-center py-16 gap-4">
+              <span class="w-8 h-8 rounded-full border-2 border-[#1A237E]/20 border-t-[#1A237E] animate-spin block" />
+              <p class="text-[12px] text-[#9aa3c0]">「{{ selectedWord }}」の変遷を調べています...</p>
+            </div>
+            <!-- Phase timeline -->
+            <div v-else class="popup-timeline">
+              <template v-for="(phase, i) in phases" :key="i">
+                <div
+                  class="phase-card flex-1 min-w-0"
+                  :class="{ 'phase-card-expanded': allExpanded }"
+                  @click="allExpanded = !allExpanded"
+                >
+                  <div class="phase-era">
+                    <span class="font-mono text-[8.5px] tracking-[0.18em] text-[#a5b4fc]/70 uppercase mr-2">Era</span>
+                    <span class="text-[11px] font-semibold text-[#a5b4fc]">{{ phase.era }}</span>
+                  </div>
+                  <div class="phase-title">{{ phase.title }}</div>
+                  <div class="phase-summary">{{ breakAtKuten(phase.summary) }}</div>
+                  <div class="phase-toggle" :class="{ 'phase-toggle-open': allExpanded }">
+                    <span>{{ allExpanded ? '閉じる' : '詳しく見る' }}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="phase-toggle-chevron"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                  <div v-if="allExpanded && phase.detail" class="phase-detail">
+                    {{ breakAtKuten(phase.detail) }}
+                  </div>
+                </div>
+                <div v-if="i < phases.length - 1" class="phase-arrow">→</div>
+              </template>
+            </div>
+          </template>
 
-          <!-- Phase timeline -->
-          <div v-else class="popup-timeline">
-            <template v-for="(phase, i) in phases" :key="i">
-              <div
-                class="phase-card flex-1 min-w-0"
-                :class="{ 'phase-card-expanded': allExpanded }"
-                @click="allExpanded = !allExpanded"
-              >
-                <div class="phase-era">
-                  <span class="font-mono text-[8.5px] tracking-[0.18em] text-[#a5b4fc]/70 uppercase mr-2">Era</span>
-                  <span class="text-[11px] font-semibold text-[#a5b4fc]">{{ phase.era }}</span>
+          <!-- 辺クリック（2語）モード -->
+          <template v-else>
+            <div class="popup-two-words">
+              <!-- Word A -->
+              <div class="popup-word-section">
+                <div class="popup-word-heading">「{{ selectedEdge.source }}」の変遷</div>
+                <div v-if="aiLoading" class="flex items-center justify-center py-8 gap-3">
+                  <span class="w-6 h-6 rounded-full border-2 border-[#1A237E]/20 border-t-[#1A237E] animate-spin block" />
+                  <span class="text-[12px] text-[#9aa3c0]">調べています...</span>
                 </div>
-                <div class="phase-title">{{ phase.title }}</div>
-                <div class="phase-summary">{{ phase.summary }}</div>
-                <div class="phase-toggle" :class="{ 'phase-toggle-open': allExpanded }">
-                  <span>{{ allExpanded ? '閉じる' : '詳しく見る' }}</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="phase-toggle-chevron"><polyline points="6 9 12 15 18 9"/></svg>
-                </div>
-                <div v-if="allExpanded && phase.detail" class="phase-detail">
-                  {{ phase.detail }}
+                <div v-else class="popup-timeline">
+                  <template v-for="(phase, i) in phases" :key="'a-' + i">
+                    <div
+                      class="phase-card flex-1 min-w-0"
+                      :class="{ 'phase-card-expanded': allExpanded }"
+                      @click="allExpanded = !allExpanded"
+                    >
+                      <div class="phase-era">
+                        <span class="font-mono text-[8.5px] tracking-[0.18em] text-[#a5b4fc]/70 uppercase mr-2">Era</span>
+                        <span class="text-[11px] font-semibold text-[#a5b4fc]">{{ phase.era }}</span>
+                      </div>
+                      <div class="phase-title">{{ phase.title }}</div>
+                      <div class="phase-summary">{{ breakAtKuten(phase.summary) }}</div>
+                      <div class="phase-toggle" :class="{ 'phase-toggle-open': allExpanded }">
+                        <span>{{ allExpanded ? '閉じる' : '詳しく見る' }}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="phase-toggle-chevron"><polyline points="6 9 12 15 18 9"/></svg>
+                      </div>
+                      <div v-if="allExpanded && phase.detail" class="phase-detail">
+                        {{ breakAtKuten(phase.detail) }}
+                      </div>
+                    </div>
+                    <div v-if="i < phases.length - 1" class="phase-arrow">→</div>
+                  </template>
                 </div>
               </div>
-              <div v-if="i < phases.length - 1" class="phase-arrow">→</div>
-            </template>
-          </div>
+
+              <div class="popup-word-divider" />
+
+              <!-- Word B -->
+              <div class="popup-word-section">
+                <div class="popup-word-heading">「{{ selectedEdge.target }}」の変遷</div>
+                <div v-if="aiLoadingB" class="flex items-center justify-center py-8 gap-3">
+                  <span class="w-6 h-6 rounded-full border-2 border-[#1A237E]/20 border-t-[#1A237E] animate-spin block" />
+                  <span class="text-[12px] text-[#9aa3c0]">調べています...</span>
+                </div>
+                <div v-else class="popup-timeline">
+                  <template v-for="(phase, i) in phasesB" :key="'b-' + i">
+                    <div
+                      class="phase-card flex-1 min-w-0"
+                      :class="{ 'phase-card-expanded': allExpanded }"
+                      @click="allExpanded = !allExpanded"
+                    >
+                      <div class="phase-era">
+                        <span class="font-mono text-[8.5px] tracking-[0.18em] text-[#a5b4fc]/70 uppercase mr-2">Era</span>
+                        <span class="text-[11px] font-semibold text-[#a5b4fc]">{{ phase.era }}</span>
+                      </div>
+                      <div class="phase-title">{{ phase.title }}</div>
+                      <div class="phase-summary">{{ breakAtKuten(phase.summary) }}</div>
+                      <div class="phase-toggle" :class="{ 'phase-toggle-open': allExpanded }">
+                        <span>{{ allExpanded ? '閉じる' : '詳しく見る' }}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="phase-toggle-chevron"><polyline points="6 9 12 15 18 9"/></svg>
+                      </div>
+                      <div v-if="allExpanded && phase.detail" class="phase-detail">
+                        {{ breakAtKuten(phase.detail) }}
+                      </div>
+                    </div>
+                    <div v-if="i < phasesB.length - 1" class="phase-arrow">→</div>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
     </Teleport>
@@ -667,7 +804,7 @@ watch(selectedCategory, () => {
 }
 
 .phase-title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: #1c2d5a;
   padding: 10px 14px 4px;
@@ -675,18 +812,19 @@ watch(selectedCategory, () => {
 }
 
 .phase-summary {
-  font-size: 12px;
+  font-size: 13px;
   color: #3a4a72;
   padding: 0 14px 12px;
   line-height: 1.75;
   flex: 1;
+  white-space: pre-line;
 }
 
 .phase-toggle {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: 12px;
   color: #6878a8;
   padding: 5px 14px 9px;
   margin-top: auto;
@@ -701,12 +839,13 @@ watch(selectedCategory, () => {
 }
 
 .phase-detail {
-  font-size: 12px;
+  font-size: 13px;
   color: #1c2d5a;
   background: #f4f6fc;
   border-top: 1px solid #dde2ef;
   padding: 10px 14px 12px;
   line-height: 1.78;
+  white-space: pre-line;
 }
 
 .phase-arrow {
@@ -718,5 +857,35 @@ watch(selectedCategory, () => {
   padding: 6px 5px;
   color: #3d5fc4;
   opacity: 0.45;
+}
+
+/* ── 2語モード（辺クリック） ─────────────── */
+
+.popup-two-words {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.popup-word-section {
+  padding: 12px 0;
+}
+
+.popup-word-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6878a8;
+  letter-spacing: 0.08em;
+  padding: 0 16px 8px;
+  border-left: 3px solid #3d5fc4;
+  margin-left: 16px;
+}
+
+.popup-word-divider {
+  height: 1px;
+  background: #dde2ef;
+  margin: 0 16px;
 }
 </style>
