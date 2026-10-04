@@ -27,7 +27,7 @@ export function useNikkiBrainWords(days: Ref<NikkiDay[]>) {
     return [...freq.entries()]
       .map(([word, count]) => ({ word, count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 60)
+      .slice(0, 150)
   })
 
   return { words }
