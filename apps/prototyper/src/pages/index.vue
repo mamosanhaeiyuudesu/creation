@@ -6,8 +6,8 @@
       <div class="ac-nav-inner">
         <span class="ac-nav-logo">prototyper</span>
         <ul class="ac-nav-links">
-          <li><a href="#process">進め方</a></li>
           <li><a href="#portfolio">実績</a></li>
+          <li><a href="#process">進め方</a></li>
           <li><a href="#about">私について</a></li>
           <li><a href="#faq">よくある質問</a></li>
           <li><a href="#fees">費用</a></li>
@@ -85,62 +85,6 @@
           要件が決まっていなくて大丈夫、そのもやっとした段階からお声かけください。<br />
           これまで行政・農業・医療など、業種を問わずご一緒してきました。
         </p>
-      </div>
-    </section>
-
-    <!-- 進め方 -->
-    <section id="process" class="ac-process">
-      <div class="ac-wrap">
-        <p class="section-label">Process</p>
-        <h2 class="section-title">進め方</h2>
-
-        <ol class="process-list">
-          <li class="process-item">
-            <span class="process-num">01</span>
-            <div class="process-body">
-              <strong>お話を聞く<em>30分 / オンライン可</em></strong>
-              まずは現状でのお困りごと、実現したいことなどをお聞かせ下さい。<br />
-              業界に特有の事情や、現場の方の使い方など、現状を把握させていただきます。<br />
-              背景の知識があると、より適切なご提案ができるので、なるべく詳しくお聞かせいただけると助かります。<br />
-            </div>
-          </li>
-          <li class="process-item">
-            <span class="process-num">02</span>
-            <div class="process-body">
-              <strong>すぐ作る<em>その場〜3日</em></strong>
-              お話を伺ったら、すぐに動くもの（試作品）を作ります。<br />
-              Webアプリ・スマホアプリ・LINEアプリ・ホームページなど、業務にあった最適な形で作ります。<br />
-              長年の経験とAIを使った開発で、短期間での試作が可能です。<br />
-            </div>
-          </li>
-          <li class="process-item">
-            <span class="process-num">03</span>
-            <div class="process-body">
-              <strong>触って、直す<em>2〜3週間</em></strong>
-              作ったものはすぐに使っていただきます。<br  />
-              違和感を感じた所があれば、納得が行く形になるまで、何度でも直します。<br />
-              なるべくシンプルに、わかりやすい形にするために、実際に使う現場の方の声を聞きながら改善していきます。<br />
-
-            </div>
-          </li>
-          <li class="process-item">
-            <span class="process-num">04</span>
-            <div class="process-body">
-              <strong>現場で試していただく<em>2〜3週間</em></strong>
-              本番で使えるレベルになったら、テストを兼ねて、実際の業務で使っていただきます。<br />
-              使いながら、不具合が出ないかや、使い勝手の改善点がないかを、現場の方に確認していただきます。<br />
-              
-
-            </div>
-          </li>
-          <li class="process-item">
-            <span class="process-num">05</span>
-            <div class="process-body">
-              <strong>今後の方針を決める</strong>
-              形が見えてきたところで、このまま本番運用まで進めるか？、設計図にして専門の開発チームへ渡すか？を一緒に判断します。
-            </div>
-          </li>
-        </ol>
       </div>
     </section>
 
@@ -238,7 +182,7 @@
                   最新の議会で初めて出てきた言葉や、以前より多く議論されるようになった単語が大きく表示されます。<br />今、何が議題の中心に上がっているかを、読まずに一目で掴むことができます。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako" class="feature-link" target="_blank">
-                    トレンドを見る
+                    実際のツールを見る
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </a>
                   <img src="/images/miyako-trend.png" alt="トレンドのスクリーンショット" class="feature-screenshot feature-screenshot-full" @click="openLightbox('/images/miyako-trend.png', 'トレンドのスクリーンショット')" />
@@ -251,7 +195,7 @@
                   暮らし・医療・子ども・インフラ・農業漁業・観光・防災・財政・基地安保の9カテゴリに分けて、2005年〜2026年に多く議論された単語を円の大きさで、一緒に語られた単語同士の関係を線で表しました。<br />何がどう結びついているかを、読まずに掴むことができます。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako/network" class="feature-link" target="_blank">
-                    ネットワーク図を見る
+                    実際のツールを見る
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </a>
                   <img src="/images/miyako-network.png" alt="ネットワーク図のスクリーンショット" class="feature-screenshot feature-screenshot-full" @click="openLightbox('/images/miyako-network.png', 'ネットワーク図のスクリーンショット')" />
@@ -264,7 +208,7 @@
                   言葉をひとつ入れると、それが語られた会議をAIが時系列でまとめます。<br />いつ何が話され、どう変化してきたかを年代ごとに追いかけられます。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako/keyword" class="feature-link" target="_blank">
-                    キーワード分析を見る
+                    実際のツールを見る
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </a>
                   <img src="/images/miyako-keyword.png" alt="キーワード分析のスクリーンショット" class="feature-screenshot feature-screenshot-full" @click="openLightbox('/images/miyako-keyword.png', 'キーワード分析のスクリーンショット')" />
@@ -277,7 +221,7 @@
                   年ごと・会期ごとに、どんなテーマが特徴的だったかを色の濃さで表しました。<br />時代とともに移り変わる関心が一目で分かります。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako/yearly" class="feature-link" target="_blank">
-                    年別ヒートマップを見る
+                    実際のツールを見る
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </a>
                   <img src="/images/miyako-yearly.png" alt="年別ヒートマップのスクリーンショット" class="feature-screenshot feature-screenshot-full" @click="openLightbox('/images/miyako-yearly.png', '年別ヒートマップのスクリーンショット')" />
@@ -290,7 +234,7 @@
                   どの議員が、どんな分野の話を多くしているかを一覧にしました。<br />それぞれの関心領域や特色を並べて見ることができます。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako/member" class="feature-link" target="_blank">
-                    議員別ヒートマップを見る
+                    実際のツールを見る
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </a>
                   <img src="/images/miyako-member.png" alt="議員別ヒートマップのスクリーンショット" class="feature-screenshot feature-screenshot-full" @click="openLightbox('/images/miyako-member.png', '議員別ヒートマップのスクリーンショット')" />
@@ -596,6 +540,59 @@
           </div>
 
         </div>
+      </div>
+    </section>
+
+    <!-- 進め方 -->
+    <section id="process" class="ac-process">
+      <div class="ac-wrap">
+        <p class="section-label">Process</p>
+        <h2 class="section-title">進め方</h2>
+
+        <ol class="process-list">
+          <li class="process-item">
+            <span class="process-num">01</span>
+            <div class="process-body">
+              <strong>お話を聞く<em>30分 / オンライン可</em></strong>
+              まずは現状でのお困りごと、実現したいことなどをお聞かせ下さい。<br />
+              業界に特有の事情や、現場の方の使い方など、現状を把握させていただきます。<br />
+              背景の知識があると、より適切なご提案ができるので、なるべく詳しくお聞かせいただけると助かります。<br />
+            </div>
+          </li>
+          <li class="process-item">
+            <span class="process-num">02</span>
+            <div class="process-body">
+              <strong>すぐ作る<em>その場〜3日</em></strong>
+              お話を伺ったら、すぐに動くもの（試作品）を作ります。<br />
+              Webアプリ・スマホアプリ・LINEアプリ・ホームページなど、業務にあった最適な形で作ります。<br />
+              長年の経験とAIを使った開発で、短期間での試作が可能です。<br />
+            </div>
+          </li>
+          <li class="process-item">
+            <span class="process-num">03</span>
+            <div class="process-body">
+              <strong>触って、直す<em>2〜3週間</em></strong>
+              作ったものはすぐに使っていただきます。<br />
+              違和感を感じた所があれば、納得が行く形になるまで、何度でも直します。<br />
+              なるべくシンプルに、わかりやすい形にするために、実際に使う現場の方の声を聞きながら改善していきます。<br />
+            </div>
+          </li>
+          <li class="process-item">
+            <span class="process-num">04</span>
+            <div class="process-body">
+              <strong>現場で試していただく<em>2〜3週間</em></strong>
+              本番で使えるレベルになったら、テストを兼ねて、実際の業務で使っていただきます。<br />
+              使いながら、不具合が出ないかや、使い勝手の改善点がないかを、現場の方に確認していただきます。<br />
+            </div>
+          </li>
+          <li class="process-item">
+            <span class="process-num">05</span>
+            <div class="process-body">
+              <strong>今後の方針を決める</strong>
+              形が見えてきたところで、このまま本番運用まで進めるか？、設計図にして専門の開発チームへ渡すか？を一緒に判断します。
+            </div>
+          </li>
+        </ol>
       </div>
     </section>
 

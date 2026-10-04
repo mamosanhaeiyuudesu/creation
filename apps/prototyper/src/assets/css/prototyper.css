@@ -525,7 +525,7 @@
 .origin-close {
   padding-top: 20px;
   border-top: 1px solid var(--c-border);
-  font-size: 14px;
+  font-size: 15px;
   color: var(--c-text-muted);
   line-height: 1.9;
 }
@@ -693,7 +693,7 @@
 }
 
 .about-value-body {
-  font-size: 12.5px;
+  font-size: 14px;
   color: var(--c-text-muted);
   line-height: 1.8;
 }
@@ -858,7 +858,7 @@
 }
 
 .process-body {
-  font-size: 13.5px;
+  font-size: 15px;
   color: var(--c-text-muted);
   line-height: 1.85;
   padding-top: 3px;
@@ -987,7 +987,7 @@
 }
 
 .work-ba dd {
-  font-size: 13.5px;
+  font-size: 15px;
   color: var(--c-text-muted);
   line-height: 1.8;
 }
@@ -1007,7 +1007,7 @@
   padding: 16px 20px;
   border: 1px dashed rgba(27, 95, 217, 0.2);
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: 14px;
   color: var(--c-text-dim);
   line-height: 1.85;
 }
@@ -1021,7 +1021,7 @@
 }
 
 .portfolio-card-lead {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--c-text-muted);
   line-height: 1.75;
 }
@@ -1032,7 +1032,7 @@
 
 .portfolio-card-note {
   margin-top: 20px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--c-text-muted);
   line-height: 1.85;
 }
@@ -1067,9 +1067,9 @@
 }
 
 .feature-text {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--c-text-muted);
-  line-height: 1.65;
+  line-height: 1.75;
 }
 
 .feature-text strong {
@@ -1288,7 +1288,7 @@
 }
 
 .testimonial-point p {
-  font-size: 13.5px;
+  font-size: 15px;
   color: var(--c-text-muted);
   line-height: 1.85;
 }
@@ -1433,7 +1433,7 @@
 .terms-card-body {
   display: block;
   margin-top: 7px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--c-text-muted);
   line-height: 1.75;
 }
@@ -1471,7 +1471,7 @@
 
 .faq-a {
   margin-top: 10px;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--c-text-muted);
   line-height: 1.85;
   padding-left: 28px;
@@ -1550,7 +1550,7 @@
 }
 
 .terms-payment-value {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--c-text-muted);
   line-height: 1.65;
 }
