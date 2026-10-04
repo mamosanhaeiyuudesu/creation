@@ -1,9 +1,9 @@
 <template>
-  <div class="max-w-[960px] mx-auto px-4 sm:px-6 pt-6 pb-20">
+  <div class="max-w-[1400px] mx-auto px-4 sm:px-6 pt-6 pb-20">
     <!-- 見出し -->
     <header class="flex items-start justify-between gap-3 mb-5">
       <div>
-        <h1 class="nk-serif m-0 text-[26px] leading-none">nikki</h1>
+        <h1 class="nk-serif m-0 text-[26px] leading-none">日記</h1>
         <p class="hidden sm:block mt-2 mb-0 text-[12.5px] text-[var(--nk-ink-soft)] leading-relaxed">
           カレンダーの日を選んで、話すか書くかするだけ。
           あとで読み返したときに手応えの残ることだけを拾って並べます。
@@ -32,7 +32,7 @@
         />
       </div>
 
-      <!-- スマホは画面が狭いのでタブで切り替え。PCは常に両方並べて表示する -->
+      <!-- スマホは画面が狭いのでタブで切り替え（3タブ）。PCは常に全部並べて表示する -->
       <div class="flex gap-2 mb-4 sm:hidden">
         <button
           class="flex-1"
@@ -44,34 +44,50 @@
           :class="mobileView === 'timeline' ? 'nk-btn' : 'nk-btn-ghost'"
           @click="mobileView = 'timeline'"
         >これまでの日々</button>
+        <button
+          class="flex-1"
+          :class="mobileView === 'brain' ? 'nk-btn' : 'nk-btn-ghost'"
+          @click="mobileView = 'brain'"
+        >頭の中</button>
       </div>
 
-      <div class="flex flex-col gap-6">
-        <div :class="mobileView === 'calendar' ? '' : 'hidden sm:block'">
-          <NikkiMonthCalendar
-            :month="month"
-            :marks="marks"
-            :events="monthEvents"
-            :today="today"
-            :selected="selectedDate"
-            :loading="monthLoading"
-            :has-calendars="status.calendarIds.length > 0"
-            @select="openDay"
-            @shift="shiftMonth"
-            @go-today="month = today.slice(0, 7)"
-          />
+      <!-- PC: 左にカレンダー+タイムライン、右に脳内ワードクラウド -->
+      <div class="flex gap-6 items-start">
+        <div class="flex-1 min-w-0 flex flex-col gap-6">
+          <div :class="mobileView === 'calendar' ? '' : 'hidden sm:block'">
+            <NikkiMonthCalendar
+              :month="month"
+              :marks="marks"
+              :events="monthEvents"
+              :today="today"
+              :selected="selectedDate"
+              :loading="monthLoading"
+              :has-calendars="status.calendarIds.length > 0"
+              @select="openDay"
+              @shift="shiftMonth"
+              @go-today="month = today.slice(0, 7)"
+            />
+          </div>
+
+          <div :class="mobileView === 'timeline' ? '' : 'hidden sm:block'">
+            <NikkiTimeline
+              ref="timelineRef"
+              :days="days"
+              :has-more="hasMore"
+              :loading="timelineLoading"
+              :today="today"
+              :on-load-older="loadOlder"
+              @select="openDay"
+            />
+          </div>
         </div>
 
-        <div :class="mobileView === 'timeline' ? '' : 'hidden sm:block'">
-          <NikkiTimeline
-            ref="timelineRef"
-            :days="days"
-            :has-more="hasMore"
-            :loading="timelineLoading"
-            :today="today"
-            :on-load-older="loadOlder"
-            @select="openDay"
-          />
+        <!-- 右サイドバー：PC は常時表示、スマホは「頭の中」タブで表示 -->
+        <div
+          class="shrink-0 w-[300px]"
+          :class="mobileView === 'brain' ? 'block sm:block' : 'hidden sm:block'"
+        >
+          <NikkiBrainCloud :words="brainWords" />
         </div>
       </div>
 
@@ -103,7 +119,9 @@
 
 <script setup lang="ts">
 import { useNikki } from '~/composables/nikki/useNikki'
+import { useNikkiBrainWords } from '~/composables/nikki/useNikkiBrainWords'
 import NikkiTimeline from '~/components/nikki/NikkiTimeline.vue'
+import NikkiBrainCloud from '~/components/nikki/NikkiBrainCloud.vue'
 
 definePageMeta({ layout: 'nikki' })
 useHead({
@@ -175,8 +193,10 @@ const dayNavNext = computed(() => {
 })
 const showPasswordModal = ref(false)
 const showSetup = ref(false)
-// スマホ用タブ（PCでは使わず常に両方表示）
-const mobileView = ref<'calendar' | 'timeline'>('calendar')
+// スマホ用タブ（PCでは使わず常に全表示）
+const mobileView = ref<'calendar' | 'timeline' | 'brain'>('calendar')
+
+const { words: brainWords } = useNikkiBrainWords(days)
 const timelineRef = ref<InstanceType<typeof NikkiTimeline> | null>(null)
 const dismissedSetup = ref(false)
 const savingSetup = ref(false)

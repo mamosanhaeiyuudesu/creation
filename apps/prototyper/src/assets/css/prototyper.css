@@ -180,8 +180,8 @@
 
 .hero-inner {
   display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 56px;
+  grid-template-columns: 1fr 220px;
+  gap: 32px;
   align-items: center;
 }
 
@@ -1736,6 +1736,16 @@
 /* ==========================================
    レスポンシブ
    ========================================== */
+
+.sp-only {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .sp-only {
+    display: inline;
+  }
+}
 
 @media (max-width: 768px) {
   .hero-inner {

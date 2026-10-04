@@ -23,17 +23,13 @@
           <div class="hero-text">
             <span class="hero-eyebrow">大手インターネット企業17年のエンジニア</span>
             <h1 class="hero-catch">
-             永く・楽しく使える<br />
-              <span>シンプルでやさしい<br />サービスを</span>
+              答えはいつもあなたの中に<br />
+              <span>シンプルで長く使える<br class="sp-only" />サービスを</span>
             </h1>
             <div class="hero-sub">
-              <p>一般のアプリは機能が多くて使いにくい、議事録などのテキストデータが有効活用できない、既存システムが複雑化し過ぎている、etc</p>
-              <p>
-                複雑になりすぎて、使いにくくなってしまったシステムや、有効活用されていないデータを、長年の経験に裏付けされたヒアリングと開発力で、シンプルで使いやすい形に変えていきます。
-                </p>
-                <p>
-                  お話を伺ったら、すぐに動くものを作って、そこからフィードバックをもらって、改善を繰り返していきます。
-                </p>
+              <p>複雑になりすぎて、使いにくくなってしまったシステムや、有効活用されていないデータを、長年の経験に裏付けされたヒアリングと開発力で、シンプルで使いやすい形に変えていきます。</p>
+              <p>お話を伺ったら、すぐに動くものを作って、そこからフィードバックをもらって、改善を繰り返していきます。</p>
+              <p>このやり方で、数百社以上に導入された大手インターネット企業の検索ログ可視化ツールの主力機能など、シンプルでクリエイティブなプロダクトを多数作ってきました。</p>
             </div>
             <a href="#contact" class="hero-cta">
               お問い合せ
@@ -42,12 +38,6 @@
           </div>
           <div class="hero-photo-wrap">
             <img src="/images/portrait.jpg" alt="" class="hero-photo">
-            <p class="hero-what-label">大切にしていること</p>
-            <div class="hero-value-grid">
-              <span class="hero-value-chip">原点思考</span>
-              <span class="hero-value-chip">共創</span>
-              <span class="hero-value-chip">シンプル</span>
-            </div>
             <p class="hero-what-label">できること</p>
             <div class="hero-what-grid">
               <span class="hero-what-chip">Webサービス</span>
