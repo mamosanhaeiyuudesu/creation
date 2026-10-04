@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-[860px] mx-auto px-4 sm:px-6 pt-8 pb-24">
+  <div class="max-w-[1080px] mx-auto px-4 sm:px-6 pt-8 pb-24">
     <div v-if="showSettingsMenu" class="fixed inset-0 z-40" @click="showSettingsMenu = false" />
 
     <header class="flex items-start justify-between gap-3 mb-6">
@@ -147,54 +147,81 @@
       </template>
     </section>
 
-    <!-- 記録一覧（全員で共有） -->
-    <section>
-      <div class="flex items-baseline gap-2 mb-2">
-        <p class="kk-label">みんなの記録</p>
-        <p class="text-[11px] text-[var(--kk-ink-faint)]">誰がアップロードしたものも、全員で見て直せます</p>
-      </div>
+    <!-- 記録一覧 + 頭の中（2カラム） -->
+    <div class="flex flex-col sm:flex-row gap-6 items-start">
+      <!-- 左：みんなの記録 -->
+      <section class="flex-1 min-w-0">
+        <div class="flex items-baseline gap-2 mb-2">
+          <p class="kk-label">みんなの記録</p>
+          <p class="text-[11px] text-[var(--kk-ink-faint)]">誰がアップロードしたものも、全員で見て直せます</p>
+        </div>
 
-      <div v-if="loadingList" class="space-y-2">
-        <div v-for="i in 3" :key="i" class="h-16 rounded-[14px] bg-white/70 animate-pulse" />
-      </div>
+        <div v-if="loadingList" class="space-y-2">
+          <div v-for="i in 3" :key="i" class="h-16 rounded-[14px] bg-white/70 animate-pulse" />
+        </div>
 
-      <p v-else-if="!records.length" class="kk-card px-5 py-8 text-center text-[13px] text-[var(--kk-ink-faint)]">
-        まだ記録がありません。録音ファイルをアップロードしてください。
-      </p>
+        <p v-else-if="!records.length" class="kk-card px-5 py-8 text-center text-[13px] text-[var(--kk-ink-faint)]">
+          まだ記録がありません。録音ファイルをアップロードしてください。
+        </p>
 
-      <ul v-else class="space-y-2">
-        <!--
-          削除ボタンはリンクの中に入れない（button を a で包むのは不正なHTMLで、
-          クリックの取り合いにもなる）。カード全体を li の枠にして、リンクとボタンを横に並べる。
-        -->
-        <li
-          v-for="r in records"
-          :key="r.id"
-          class="kk-card flex items-center pr-1.5 hover:border-[var(--kk-line-strong)] transition-colors"
-        >
-          <NuxtLink :to="`/kikigaki/${r.id}`" class="flex-1 min-w-0 flex items-center gap-3 px-4 py-3">
-            <div class="flex-1 min-w-0">
-              <p class="text-[13.5px] font-bold truncate">{{ r.title || '（タイトル未設定）' }}</p>
-              <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-0.5 truncate">
-                {{ r.date || '日付未設定' }}
-                <span v-if="r.owner"> ・ {{ r.owner }}<span v-if="r.isOwner">（自分）</span></span>
-                <span v-if="r.audioName"> ・ {{ r.audioName }}</span>
-              </p>
-            </div>
-          </NuxtLink>
-          <!-- 記録は全員で共有するが、消せるのはアップロードした本人だけ -->
-          <button
-            v-if="r.isOwner"
-            class="shrink-0 w-8 h-8 rounded-full text-[13px] text-[var(--kk-ink-faint)] hover:text-[var(--kk-danger)] hover:bg-black/[0.04] transition-colors disabled:opacity-40"
-            :disabled="deletingId === r.id"
-            :title="`「${r.title || '（タイトル未設定）'}」を削除`"
-            @click="removeRecord(r)"
+        <ul v-else class="space-y-2">
+          <!--
+            削除ボタンはリンクの中に入れない（button を a で包むのは不正なHTMLで、
+            クリックの取り合いにもなる）。カード全体を li の枠にして、リンクとボタンを横に並べる。
+          -->
+          <li
+            v-for="r in records"
+            :key="r.id"
+            class="kk-card flex items-center pr-1.5 hover:border-[var(--kk-line-strong)] transition-colors"
           >
-            ✕
-          </button>
-        </li>
-      </ul>
-    </section>
+            <NuxtLink :to="`/kikigaki/${r.id}`" class="flex-1 min-w-0 flex items-center gap-3 px-4 py-3">
+              <div class="flex-1 min-w-0">
+                <p class="text-[13.5px] font-bold truncate">{{ r.title || '（タイトル未設定）' }}</p>
+                <p class="text-[11.5px] text-[var(--kk-ink-faint)] mt-0.5 truncate">
+                  {{ r.date || '日付未設定' }}
+                  <span v-if="r.owner"> ・ {{ r.owner }}<span v-if="r.isOwner">（自分）</span></span>
+                  <span v-if="r.audioName"> ・ {{ r.audioName }}</span>
+                </p>
+              </div>
+            </NuxtLink>
+            <!-- 記録は全員で共有するが、消せるのはアップロードした本人だけ -->
+            <button
+              v-if="r.isOwner"
+              class="shrink-0 w-8 h-8 rounded-full text-[13px] text-[var(--kk-ink-faint)] hover:text-[var(--kk-danger)] hover:bg-black/[0.04] transition-colors disabled:opacity-40"
+              :disabled="deletingId === r.id"
+              :title="`「${r.title || '（タイトル未設定）'}」を削除`"
+              @click="removeRecord(r)"
+            >
+              ✕
+            </button>
+          </li>
+        </ul>
+      </section>
+
+      <!-- 右：頭の中 -->
+      <div v-if="isLoggedIn" class="w-full sm:w-[320px] shrink-0">
+        <div class="flex items-baseline gap-2 mb-2">
+          <p class="kk-label">頭の中</p>
+          <p class="text-[11px] text-[var(--kk-ink-faint)]">議事録のタイトルによく出る言葉</p>
+        </div>
+        <!-- 利用者の切り替え -->
+        <div v-if="owners.length > 1" class="flex flex-wrap gap-1.5 mb-3">
+          <button
+            class="kk-btn-ghost !h-7 !px-2.5 !text-[11.5px]"
+            :class="{ 'kk-mode-active': selectedOwner === '' }"
+            @click="selectedOwner = ''"
+          >すべて</button>
+          <button
+            v-for="owner in owners"
+            :key="owner"
+            class="kk-btn-ghost !h-7 !px-2.5 !text-[11.5px]"
+            :class="{ 'kk-mode-active': selectedOwner === owner }"
+            @click="selectedOwner = owner"
+          >{{ owner }}</button>
+        </div>
+        <KikigakiBrainCloud :words="brainWords" />
+      </div>
+    </div>
 
     <AuthModal v-if="showAuthModal" accent="orange" />
     <PasswordModal v-model:show="showPasswordModal" accent="orange" />
@@ -209,7 +236,10 @@ import { useAuth } from '~/composables/useAuth'
 import AuthModal from '~/components/AuthModal.vue'
 import PasswordModal from '~/components/PasswordModal.vue'
 import GoogleDriveSettingsModal from '~/components/kikigaki/GoogleDriveSettingsModal.vue'
+import KikigakiBrainCloud from '~/components/kikigaki/KikigakiBrainCloud.vue'
+import type { BrainWord } from '~/components/kikigaki/KikigakiBrainCloud.vue'
 import { splitAndTranscribeBlob } from '~/composables/useAudioRecorder'
+import { tokenize } from '~/utils/hagemashi/tokenize'
 import type { KikigakiRecordSummary } from '~/types/kikigaki'
 
 definePageMeta({ layout: 'kikigaki' })
@@ -227,6 +257,35 @@ const errorMessage = ref('')
 const records = ref<KikigakiRecordSummary[]>([])
 const loadingList = ref(true)
 const deletingId = ref('')
+
+const selectedOwner = ref('')
+
+const owners = computed(() => {
+  const set = new Set<string>()
+  for (const r of records.value) {
+    if (r.owner) set.add(r.owner)
+  }
+  return [...set].sort()
+})
+
+const brainWords = computed<BrainWord[]>(() => {
+  const filtered = selectedOwner.value
+    ? records.value.filter(r => r.owner === selectedOwner.value)
+    : records.value
+  const freq = new Map<string, number>()
+  for (const r of filtered) {
+    if (!r.title) continue
+    const tokens = tokenize(r.title)
+    for (const t of tokens) {
+      if ([...t].length > 5) continue
+      freq.set(t, (freq.get(t) ?? 0) + 1)
+    }
+  }
+  return [...freq.entries()]
+    .map(([word, count]) => ({ word, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 60)
+})
 
 type UploadMode = 'audio' | 'transcript'
 const uploadMode = ref<UploadMode>('audio')
