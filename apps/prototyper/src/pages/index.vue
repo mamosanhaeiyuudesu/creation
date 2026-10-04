@@ -182,7 +182,7 @@
                   最新の議会で初めて出てきた言葉や、以前より多く議論されるようになった単語が大きく表示されます。<br />今、何が議題の中心に上がっているかを、読まずに一目で掴むことができます。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako" class="feature-link" target="_blank">
-                    実際のツールを見る
+                    実際に触ってみる
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </a>
                   <img src="/images/miyako-trend.png" alt="トレンドのスクリーンショット" class="feature-screenshot feature-screenshot-full" @click="openLightbox('/images/miyako-trend.png', 'トレンドのスクリーンショット')" />
@@ -195,7 +195,7 @@
                   暮らし・医療・子ども・インフラ・農業漁業・観光・防災・財政・基地安保の9カテゴリに分けて、2005年〜2026年に多く議論された単語を円の大きさで、一緒に語られた単語同士の関係を線で表しました。<br />何がどう結びついているかを、読まずに掴むことができます。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako/network" class="feature-link" target="_blank">
-                    実際のツールを見る
+                    実際に触ってみる
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </a>
                   <img src="/images/miyako-network.png" alt="ネットワーク図のスクリーンショット" class="feature-screenshot feature-screenshot-full" @click="openLightbox('/images/miyako-network.png', 'ネットワーク図のスクリーンショット')" />
@@ -208,7 +208,7 @@
                   言葉をひとつ入れると、それが語られた会議をAIが時系列でまとめます。<br />いつ何が話され、どう変化してきたかを年代ごとに追いかけられます。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako/keyword" class="feature-link" target="_blank">
-                    実際のツールを見る
+                    実際に触ってみる
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </a>
                   <img src="/images/miyako-keyword.png" alt="キーワード分析のスクリーンショット" class="feature-screenshot feature-screenshot-full" @click="openLightbox('/images/miyako-keyword.png', 'キーワード分析のスクリーンショット')" />
@@ -221,7 +221,7 @@
                   年ごと・会期ごとに、どんなテーマが特徴的だったかを色の濃さで表しました。<br />時代とともに移り変わる関心が一目で分かります。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako/yearly" class="feature-link" target="_blank">
-                    実際のツールを見る
+                    実際に触ってみる
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </a>
                   <img src="/images/miyako-yearly.png" alt="年別ヒートマップのスクリーンショット" class="feature-screenshot feature-screenshot-full" @click="openLightbox('/images/miyako-yearly.png', '年別ヒートマップのスクリーンショット')" />
@@ -234,7 +234,7 @@
                   どの議員が、どんな分野の話を多くしているかを一覧にしました。<br />それぞれの関心領域や特色を並べて見ることができます。
                   <br>
                   <a href="https://prototype.insightlens.jp/miyako/member" class="feature-link" target="_blank">
-                    実際のツールを見る
+                    実際に触ってみる
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </a>
                   <img src="/images/miyako-member.png" alt="議員別ヒートマップのスクリーンショット" class="feature-screenshot feature-screenshot-full" @click="openLightbox('/images/miyako-member.png', '議員別ヒートマップのスクリーンショット')" />
@@ -254,10 +254,6 @@
               <span class="tech-badge">TypeScript</span>
             </div>
 
-            <a href="https://prototype.insightlens.jp/miyako" class="portfolio-link" target="_blank">
-              実際に触ってみる
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </a>
           </div>
         </div>
 

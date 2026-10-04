@@ -1008,7 +1008,7 @@
   border: 1px dashed rgba(27, 95, 217, 0.2);
   border-radius: var(--radius);
   font-size: 14px;
-  color: var(--c-text-dim);
+  color: var(--c-text);
   line-height: 1.85;
 }
 
@@ -1083,17 +1083,19 @@
 .feature-link {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   margin-top: 6px;
   font-family: var(--f-mono);
   font-size: 11px;
-  font-weight: 500;
-  color: var(--c-primary);
+  font-weight: 600;
+  color: var(--c-text);
+  letter-spacing: 0.06em;
+  transition: gap 0.2s;
   text-decoration: none;
 }
 
 .feature-link:hover {
-  text-decoration: underline;
+  gap: 10px;
 }
 
 .feature-screenshot {
