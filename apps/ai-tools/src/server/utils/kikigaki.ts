@@ -213,10 +213,20 @@ interface RecordRow {
 // user_id は所有者（アップロードした人）の記録として残し、表示と削除の可否にだけ使う。
 const SUMMARY_COLS =
   'r.id, r.user_id, u.username AS owner, r.status, r.title, r.meeting_date, r.audio_name, r.doc_url, r.created_at'
+// 一覧では r.minutes を加えて summary を抽出する（FULL_COLS と重複しないよう別定数）
+const LIST_COLS = `${SUMMARY_COLS}, r.minutes`
 const FULL_COLS = `${SUMMARY_COLS}, r.transcript, r.minutes, r.sent_tasks, r.sent_events, r.sheet_appended, r.warnings, r.approved_at, r.updated_at`
 const FROM_RECORDS = 'FROM kikigaki_records r LEFT JOIN users u ON u.id = r.user_id'
 
 async function toSummary(event: any, row: RecordRow, viewerId: string): Promise<KikigakiRecordSummary> {
+  let summary = ''
+  if (row.minutes) {
+    try {
+      const json = await decryptComment(event, row.minutes)
+      const parsed = JSON.parse(json)
+      summary = str(parsed?.summary)
+    } catch {}
+  }
   return {
     id: row.id,
     status: (row.status === 'approved' ? 'approved' : 'draft') as KikigakiStatus,
@@ -227,6 +237,7 @@ async function toSummary(event: any, row: RecordRow, viewerId: string): Promise<
     createdAt: row.created_at ?? '',
     owner: row.owner ?? '',
     isOwner: row.user_id === viewerId,
+    summary,
   }
 }
 
@@ -264,7 +275,7 @@ export async function listRecords(event: any, viewerId: string): Promise<Kikigak
   const db = requireKikigakiDb(event)
   await ensureKikigakiTables(db)
   const res = await db
-    .prepare(`SELECT ${SUMMARY_COLS} ${FROM_RECORDS} ORDER BY r.created_at DESC LIMIT 200`)
+    .prepare(`SELECT ${LIST_COLS} ${FROM_RECORDS} ORDER BY r.created_at DESC LIMIT 200`)
     .all()
   const rows: RecordRow[] = res?.results ?? []
   return Promise.all(rows.map((r) => toSummary(event, r, viewerId)))

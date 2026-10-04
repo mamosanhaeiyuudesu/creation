@@ -268,16 +268,21 @@ const owners = computed(() => {
   return [...set].sort()
 })
 
+// ひらがなで始まり漢字を含む語は助詞句・接続詞句（に関する/に伴う 等）
+const RE_HIRAGANA_START = /^[ぁ-ゟ]/
+const RE_HAS_KANJI = /[㐀-䶿一-鿿豈-﫿]/
+
 const brainWords = computed<BrainWord[]>(() => {
   const filtered = selectedOwner.value
     ? records.value.filter(r => r.owner === selectedOwner.value)
     : records.value
   const freq = new Map<string, number>()
   for (const r of filtered) {
-    if (!r.title) continue
-    const tokens = tokenize(r.title)
+    if (!r.summary) continue
+    const tokens = tokenize(r.summary)
     for (const t of tokens) {
       if ([...t].length > 5) continue
+      if (RE_HIRAGANA_START.test(t) && RE_HAS_KANJI.test(t)) continue
       freq.set(t, (freq.get(t) ?? 0) + 1)
     }
   }

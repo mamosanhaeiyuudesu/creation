@@ -74,6 +74,8 @@ export interface KikigakiRecordSummary {
   owner: string
   /** 自分がアップロードした記録か（削除できるのは本人だけ） */
   isOwner: boolean
+  /** 議事録の概要テキスト（頭の中ワードクラウド用）。空の場合あり */
+  summary: string
 }
 
 /** レビュー画面が扱う1件ぶんの全体 */
