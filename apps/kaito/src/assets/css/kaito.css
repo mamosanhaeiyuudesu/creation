@@ -978,6 +978,131 @@ body.home h6 {
   text-decoration: underline;
 }
 
+.footer-law-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  color: #3d5858;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-law-btn:hover,
+.footer-law-btn:focus-visible {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+/* ===== 特定商取引法モーダル ===== */
+
+.law-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(20, 50, 50, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.law-modal {
+  position: relative;
+  background: #fff;
+  border-radius: var(--radius-large);
+  padding: 40px 36px 36px;
+  max-width: 640px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 32px 64px rgba(20, 60, 60, 0.22);
+}
+
+.law-close {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #888;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.law-close:hover,
+.law-close:focus-visible {
+  color: #333;
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.law-title {
+  font-size: 1.18rem;
+  font-weight: 500;
+  color: #1d4040;
+  margin: 0 0 28px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(56, 163, 165, 0.18);
+  letter-spacing: 0.03em;
+}
+
+.law-list {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+
+.law-row {
+  display: grid;
+  grid-template-columns: 11em 1fr;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(56, 163, 165, 0.1);
+  align-items: baseline;
+}
+
+.law-row:last-child {
+  border-bottom: none;
+}
+
+.law-row dt {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--color-primary-dark);
+  letter-spacing: 0.02em;
+  line-height: 1.7;
+}
+
+.law-row dd {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #3d5252;
+  line-height: 1.85;
+}
+
+@media (max-width: 560px) {
+  .law-modal {
+    padding: 32px 20px 28px;
+  }
+
+  .law-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .law-row dt {
+    font-size: 0.83rem;
+  }
+}
+
 /* ナビ（7項目）とロゴ・お問い合わせが1行に収まるのは約1044px以上。それより狭いときはメニューを畳む */
 @media (max-width: 1059px) {
   .nav-container {

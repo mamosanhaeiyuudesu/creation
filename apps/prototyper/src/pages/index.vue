@@ -4,7 +4,7 @@
     <!-- ナビゲーション -->
     <nav class="ac-nav">
       <div class="ac-nav-inner">
-        <span class="ac-nav-logo">prototyper</span>
+        <img src="/images/prototyper-nav-logo.png" alt="prototyper" class="ac-nav-logo-img">
         <ul class="ac-nav-links">
           <li><a href="#portfolio">実績</a></li>
           <li><a href="#process">進め方</a></li>
@@ -32,7 +32,7 @@
               <p>このやり方で、数百社以上に導入された大手インターネット企業の検索ログ可視化ツールの主力機能など、シンプルでクリエイティブなプロダクトを多数作ってきました。</p>
             </div>
             <a href="#contact" class="hero-cta">
-              お問い合せ
+              お問い合わせ
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </a>
           </div>
@@ -434,6 +434,10 @@
                 <dd>音声やテキストから議事録をAIが自動でつくり、決定事項・予定・タスクが一目でわかるPDFにまとめ、指定したGoogleドライブのフォルダへそのまま保存されるようにしました</dd>
               </div>
               <div>
+                <dt>費用</dt>
+                <dd><span class="fee-amount">10万円</span>（参考価格）</dd>
+              </div>
+              <div>
                 <dt>いま</dt>
                 <dd>実証実験として、無償で進めています</dd>
               </div>
@@ -534,6 +538,28 @@
               <p>このことは、私が大切にしていることそのものです。<br />お客様との対話を通じて本当に必要なものだけを見極め、それだけを無駄なく実装する。<br />機能を詰め込まないことが、かえって使われやすいツールを生む。<br />そして開発コストも時間も抑えられる。<br />このプロセスを、これからも一貫して大切にしていきたいと思っています。</p>
             </div>
           </div>
+
+          <!-- <div class="testimonial-card">
+            <div class="testimonial-header">
+              <span class="testimonial-tool">宮古島市議会 議事録の可視化</span>
+              <span class="testimonial-person">Aさん</span>
+            </div>
+
+            <div class="testimonial-point">
+              <h3 class="testimonial-point-title">誰も読まない議事録に、入り口ができた</h3>
+              <p>誰も読まない議事録を、年・議員・キーワードの3軸で見られるようにした点がよかった。市民は情報量が多いと触りたくなくなるが、切り口があれば入り口になる。</p>
+            </div>
+
+            <div class="testimonial-point">
+              <h3 class="testimonial-point-title">クリックすると要約が出る。長い議事録でも読める</h3>
+              <p>キーワードをクリックすると、右の画面に要約が出る点も助かる。実際の議事録は長くて冗長なので、要約で読めるのはありがたい。</p>
+            </div>
+
+            <div class="testimonial-point">
+              <h3 class="testimonial-point-title">ネットワーク図で全体をつかめ、探索できる</h3>
+              <p>全体図でつながり（ネットワーク）が見え、「ここをクリックしてみよう」と探索できる点がいい。議員ごとの発言の偏りも見えるので、どの議員が何に関心を持っているかが分かる。</p>
+            </div>
+          </div> -->
 
         </div>
       </div>
@@ -682,6 +708,7 @@
           </p>
         </div> -->
 
+        <p class="section-label" style="margin-top: 32px;">3つのこだわり</p>
         <div class="about-values">
           <div class="about-value-card">
             <span class="about-value-key">原点思考</span>
@@ -713,29 +740,15 @@
         <h2 class="section-title">よくある質問</h2>
         <dl class="faq-list">
 
-          <div class="faq-item">
-            <dt class="faq-q">いきなり全部決めないといけませんか？</dt>
-            <dd class="faq-a">いきなり大きく作りません。<br />最初は必ず、触れるプロトタイプから。<br />そこから育てるか、設計図にして渡すか、作らずに済ませるかを、一緒に決めます。</dd>
-          </div>
 
           <div class="faq-item">
-            <dt class="faq-q">最終的に何を受け取れますか？</dt>
-            <dd class="faq-a">進む道によって変わります。<br />運用まで担当する場合は、実際に使えるWebアプリ・スマホアプリと、その後の運用。<br />設計図まで担当する場合は、企画書・設計書一式をお渡しします。</dd>
+            <dt class="faq-q">最終的な成果物はなんですか？</dt>
+            <dd class="faq-a">プロトタイプを磨き込んで、そのまま運用まで担当する場合は、実際に使えるWebアプリ・スマホアプリなど。<br />プロトタイプが大規模になり、他社に引き継ぐ場合は、プロトタイプ・企画書・設計書一式をお渡しします。</dd>
           </div>
 
           <div class="faq-item">
             <dt class="faq-q">途中で変更・修正は頼めますか？</dt>
-            <dd class="faq-a">開発は、ご相談時に合意した内容を対象とします。<br />合意を大きく超える変更・追加は、別途お見積もりになります。<br />方向性の調整はいつでも歓迎です。<br />それがこのやり方の目的でもあります。</dd>
-          </div>
-
-          <div class="faq-item">
-            <dt class="faq-q">著作権はどちらに帰属しますか？</dt>
-            <dd class="faq-a">納品物の著作権は、お客様に完全に譲渡します。<br />ただし制作者は、制作実績として画面・URLを掲載する権利を留保します。<br />掲載を希望されない場合は、遠慮なくお申し付けください。</dd>
-          </div>
-
-          <div class="faq-item">
-            <dt class="faq-q">対応するデバイス・ブラウザはどれですか？</dt>
-            <dd class="faq-a">プロトタイプの段階では、パソコンのChrome最新版を対象とします。<br />そのまま運用まで進む場合は、スマートフォンを含めて対象とする環境をご相談のうえ決めます。</dd>
+            <dd class="faq-a">開発は、ご相談時に合意した内容を対象とします。<br />合意を大きく超える変更・追加は、別途お見積もりになります。</dd>
           </div>
 
           <div class="faq-item">
@@ -846,7 +859,7 @@ useHead({
     { property: 'og:title', content: 'prototyper | 答えは、いつもあなたの中にある。' },
     { property: 'og:description', content: 'あなたの中にすでにある答えを、触れる形にして一緒に育てる。ITが苦手な方でも安心して話せる、ヒアリングとプロトタイピングの相談窓口です。' },
   ],
-  link: [{ rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤝</text></svg>` }],
+  link: [{ rel: 'icon', type: 'image/png', href: '/images/prototyper-icon.png' }],
 })
 </script>
 

@@ -125,7 +125,7 @@ import NikkiBrainCloud from '~/components/nikki/NikkiBrainCloud.vue'
 
 definePageMeta({ layout: 'nikki' })
 useHead({
-  title: 'nikki — その日の手応えを残す日記',
+  title: '日記 — その日の手応えを残す',
   link: [
     { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: '/icon-nikki.svg' },
     { rel: 'manifest', href: '/manifest-nikki.json' },
@@ -133,7 +133,7 @@ useHead({
   ],
   meta: [
     { name: 'apple-mobile-web-app-capable', content: 'yes' },
-    { name: 'apple-mobile-web-app-title', content: 'nikki' },
+    { name: 'apple-mobile-web-app-title', content: '日記' },
     { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
     { name: 'theme-color', content: '#f7f5ef' },
   ],
