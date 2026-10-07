@@ -1,0 +1,48 @@
+name = "kikigaki"
+main = ".output/server/index.mjs"
+compatibility_date = "2026-03-12"
+
+# カスタムドメイン（insightlens.jp は同一 Cloudflare アカウントの Zone である必要あり）
+# デプロイ時に DNS レコードと SSL 証明書が自動作成される
+routes = [
+  { pattern = "kikigaki.insightlens.jp", custom_domain = true }
+]
+
+[vars]
+# モニター期間のフラグ。コードを変えずに有料化へ切り替えるためここに置く
+# （既定値は src/config/service.ts。"false" にすると契約状態で利用可否を判定するようになる）
+NUXT_PUBLIC_MONITOR_MODE = "true"
+
+# Firebase のウェブ設定（公開前提の値。秘密ではないので vars でよい）
+# NUXT_PUBLIC_FIREBASE_API_KEY = "..."
+# NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN = "..."
+# NUXT_PUBLIC_FIREBASE_PROJECT_ID = "..."
+
+# 秘密の値は secret で登録する:
+#   wrangler secret put NUXT_OPENAI_API_KEY        ← 文字起こし（gpt-4o-transcribe）
+#   wrangler secret put NUXT_ANTHROPIC_API_KEY     ← 議事録の構造化（Claude）
+#   wrangler secret put NUXT_ENCRYPTION_KEY        ← 議事録・文字起こしの暗号化（32文字以上。ai-tools とは別の鍵）
+#   wrangler secret put NUXT_STRIPE_SECRET_KEY
+#   wrangler secret put NUXT_STRIPE_WEBHOOK_SECRET
+#   wrangler secret put NUXT_STRIPE_PRICE_ID       ← 月額1プランのみ
+
+[[d1_databases]]
+binding = "KIKIGAKI_DB"
+database_name = "kikigaki-db"
+database_id = "" # wrangler d1 create kikigaki-db で発行されたIDを入れる
+# 初回セットアップ:
+#   wrangler d1 create kikigaki-db
+#   wrangler d1 execute kikigaki-db --remote --file src/server/db/001_init.sql
+#
+# ※ ai-tools の whisper-db には相乗りしない（個人用ツールのデータと本番サービスのデータを混ぜない）
+
+# Cron Trigger は使わない。
+# Cloudflare Workers の Free プランは cron トリガーがアカウント全体で5個までで、
+# ai-tools の既存5個で既に使い切っている（apps/ai-tools/wrangler.toml 参照）。
+# 定期処理が必要になったら、まず既存を間引けないか検討すること。
+
+[build]
+command = "yarn build"
+
+[assets]
+directory = ".output/public"

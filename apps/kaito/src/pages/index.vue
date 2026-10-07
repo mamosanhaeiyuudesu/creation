@@ -425,6 +425,10 @@
         <div class="section-inner">
           <h2><TherapistKaitoIcon name="sun" />月ノ瀬 直について</h2>
 
+          <figure class="about-photo about-photo-top">
+            <img src="/images/about-nao-portrait.jpg" alt="海を背にほほえむ月ノ瀬 直" />
+          </figure>
+
           <!-- 見出しを持たない導入。この div があることで、次の about-block に区切り線が入る -->
           <div class="about-intro">
             <p class="hero-quote">「もっと自分らしく生きてもいい」</p>
@@ -634,6 +638,10 @@
               必要なタイミングで、必要な方と出会えますように。
             </p>
           </div>
+
+          <figure class="about-photo about-photo-bottom">
+            <img src="/images/about-nao-cat.jpg" alt="愛猫と寄り添う月ノ瀬 直" />
+          </figure>
         </div>
       </section>
 

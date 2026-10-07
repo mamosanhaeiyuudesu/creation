@@ -782,6 +782,25 @@ body.home h6 {
   text-align: center;
 }
 
+/* プロフィール本人写真。冒頭と末尾、文章の流れを切らないよう控えめな角丸 1 枚ものに留める */
+.about-photo {
+  margin: 0 auto 36px;
+  max-width: 280px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 14px 32px rgba(56, 163, 165, 0.14);
+}
+
+.about-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.about-photo-bottom {
+  margin: 44px auto 0;
+}
+
 .hero-quote {
   font-family: var(--f-serif);
   font-size: 1.08rem !important;

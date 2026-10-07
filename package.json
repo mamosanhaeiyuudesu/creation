@@ -2,7 +2,8 @@
   "name": "ai-tools-monorepo",
   "private": true,
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "apps/production/*"
   ],
   "scripts": {
     "dev": "yarn workspace ai-tools dev",
@@ -16,6 +17,7 @@
     "dev:sakubun": "yarn workspace sakubun dev --port 3006",
     "dev:hareruya": "yarn workspace hareruya dev --port 3007",
     "dev:genogram": "yarn workspace genogram dev --port 3008",
+    "dev:kikigaki": "yarn workspace kikigaki dev --port 3009",
     "build:tools": "yarn workspace ai-tools build",
     "build:homepages": "yarn workspace homepages build",
     "build:prototyper": "yarn workspace prototyper build",
@@ -24,7 +26,8 @@
     "build:ai-consultant": "yarn workspace ai-consultant build",
     "build:sakubun": "yarn workspace sakubun build",
     "build:hareruya": "yarn workspace hareruya build",
-    "build:genogram": "yarn workspace genogram build"
+    "build:genogram": "yarn workspace genogram build",
+    "build:kikigaki": "yarn workspace kikigaki build"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

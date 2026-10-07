@@ -16,8 +16,14 @@ apps/
 ├── ai-consultant/
 ├── sakubun/
 ├── hareruya/
-└── genogram/       # ジェノグラム作成ツール（Cloudflare Workers。AIテキスト解釈の1APIルートのみ持つ）
+├── genogram/       # ジェノグラム作成ツール（Cloudflare Workers。AIテキスト解釈の1APIルートのみ持つ）
+└── production/     # 一般ユーザー向けの本番サービス（認証・課金を持つ）
+    └── kikigaki/   # キキガキ本番版（Firebase Auth + Stripe + D1。Cloudflare Workers）
 ```
+
+`apps/production/` 配下も yarn workspaces の対象（ルート `package.json` の `workspaces` に
+`apps/production/*` を足してある）。ここに置くのは**一般ユーザーが自分で登録して使うサービス**で、
+個人用ツール群（ai-tools）とは D1 もデプロイ先も分ける。
 
 各ホームページは独立した Nuxt ワークスペースで、Tailwind は使わず
 `src/assets/css/<name>.css` にページ固有のクラス接頭辞でスコープした素の CSS を書く方式。
@@ -27,6 +33,12 @@ apps/
 `apps/ai-tools/` → キーワード: **miyako・whisper・hagemashi・task・kouba・deepheart・mlb・office・kaki・momo・ippon・guesthouse・life-analyzer・kiroku・keiko・kikigaki・news・farm-manager・nikki・ai-tools 全般**
 
 各ホームページ → 下表のキーワードのディレクトリ
+
+`apps/production/kikigaki/` → キーワード: **キキガキ本番版・kikigaki.insightlens.jp・課金・Stripe・ログイン(Firebase)**
+
+⚠️ **「キキガキ」には2つある**。身内向けの `apps/ai-tools`（`/kikigaki`）と、一般ユーザー向けの
+`apps/production/kikigaki`（本番サービス）。**どちらの話かを必ず確かめること**。本番版の作業で
+ai-tools 側を変更しないこと（コピー元として扱う）。
 
 ### ホームページ一覧
 
@@ -41,6 +53,12 @@ apps/
 | hareruya | 3007 | 晴レルヤ鍼灸院（内臓鍼灸・ソフトカイロ矯正／横浜市旭区若葉台） |
 | genogram | 3008 | ジェノグラム作成ツール（家族構成をAIに伝えるとJSONを作成・更新しSVG描画。AI解釈のみCloudflare Workers上のAPIルートを使う） |
 
+### 本番サービス一覧
+
+| キーワード | ポート | 概要 |
+|---|---|---|
+| kikigaki（本番） | 3009 | キキガキ本番版（`apps/production/kikigaki`）。会議の録音→議事録→PDF。Firebase Auth（Google／メールのリンク）＋ Stripe の月額1プラン。**当面はモニター期間として無料で提供**（`src/config/service.ts` の `monitorMode`、環境変数 `NUXT_PUBLIC_MONITOR_MODE=false` で有料化）。詳細は `apps/production/kikigaki/README.md` |
+
 **hareruya の注意点**: 未確定の掲載情報（料金・LINE URL・詳細住所・地図）は
 `src/config/site.ts` に集約している。値が空/仮のときはページ側が自動で案内文
 （「LINEにてご案内」など）に切り替わるため、文言を直接書き換えるのではなくこのファイルを更新すること。
@@ -54,8 +72,10 @@ yarn dev              # ai-tools（:3000）のみ起動
 yarn dev:all          # 全アプリを同時起動
 yarn dev:tools        # ai-tools のみ起動
 yarn dev:<name>       # 個別のホームページを起動（例: yarn dev:hareruya → :3007）
+yarn dev:kikigaki     # キキガキ本番版を起動（:3009。apps/production/kikigaki）
 yarn build:tools      # ai-tools をビルド（Cloudflare Workers向け）
 yarn build:<name>     # 個別のホームページをビルド（静的生成）
+yarn build:kikigaki   # キキガキ本番版をビルド（Cloudflare Workers向け）
 ```
 
 ### ⚠️ dev 起動中に build を実行しないこと
