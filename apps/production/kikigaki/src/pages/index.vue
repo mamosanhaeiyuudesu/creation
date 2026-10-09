@@ -73,8 +73,18 @@
     <template v-else>
       <p v-if="errorMessage" class="kk-notice kk-notice--error mb-5">{{ errorMessage }}</p>
 
-      <!-- 次にすることは1つだけ見せる -->
-      <NuxtLink to="/new" class="kk-btn mt-2">録音から議事録をつくる</NuxtLink>
+      <!--
+        どちらも同じくらい使われる想定の入口なので、音声/テキストで優劣を付けず同じ大きさで並べる
+        （このアプリの「1画面の主役は色で1つだけ」という原則は、この2つを対等な入口として見せる
+        意図でここだけ例外にしている）。押しても画面は変わらず、下のシートで入力する。
+      -->
+      <div class="grid grid-cols-2 gap-3 mt-2">
+        <button class="kk-btn kk-btn--pair" @click="showRecordSheet = true">音声から作る</button>
+        <button class="kk-btn kk-btn--pair" @click="showTextSheet = true">文章から作る</button>
+      </div>
+
+      <MinutesRecordSheet v-model="showRecordSheet" />
+      <MinutesTextSheet v-model="showTextSheet" />
 
       <h2 class="kk-h2 mt-10">これまでの議事録</h2>
 
@@ -82,7 +92,7 @@
 
       <p v-else-if="!records.length" class="kk-card px-5 py-8 mt-4 kk-lead text-center">
         まだ議事録はありません。<br>
-        上のボタンから、録音した音声をえらんでください。
+        上のボタンから、録音した音声か文章をえらんでください。
       </p>
 
       <ul v-else class="list-none p-0 mt-4 flex flex-col gap-3">
@@ -99,8 +109,6 @@
           </NuxtLink>
         </li>
       </ul>
-
-      <NuxtLink to="/settings" class="kk-btn-sub mt-10">設定</NuxtLink>
     </template>
   </div>
 </template>
@@ -123,6 +131,9 @@ const linkSentTo = ref('')
 
 const records = ref<(RecordSummary & { dateLabel: string })[]>([])
 const loadingRecords = ref(false)
+
+const showRecordSheet = ref(false)
+const showTextSheet = ref(false)
 
 async function loginWithGoogle() {
   errorMessage.value = ''

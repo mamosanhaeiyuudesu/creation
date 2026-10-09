@@ -193,6 +193,94 @@ body {
   margin-bottom: 0.4rem;
 }
 
+/* 録音/テキストのように対等な入口を2つ並べるときだけの横幅調整。
+   kk-btn の padding(1.5rem) のままだと2カラムでは短い文言でも窮屈なため、ここだけ狭める。 */
+.kk-btn--pair {
+  padding: 0 0.75rem;
+}
+
+/* ── 右上の設定アイコン ────────────────────────────── */
+
+/*
+ * ヘッダーの限られた縦幅に収めるため、タップ領域56px以上の原則はここだけ例外にしている
+ * （アイコンボタンは44px前後が一般的＝Apple HIGは44pt・Materialは48dp）。
+ */
+.kk-settings-btn {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 22px;
+  color: var(--kk-ink-soft);
+  text-decoration: none;
+  transition: background-color 0.15s, color 0.15s;
+}
+.kk-settings-btn:hover { background: var(--kk-accent-soft); color: var(--kk-ink); }
+
+/* ── ポップアップ（ボトムシート） ──────────────────── */
+
+.kk-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(40, 44, 52, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 200;
+}
+
+.kk-sheet-panel {
+  background: var(--kk-panel);
+  width: 100%;
+  max-width: 720px;
+  max-height: 88vh;
+  overflow-y: auto;
+  border-radius: 20px 20px 0 0;
+  padding: 0.5rem 1.25rem 2rem;
+  box-shadow: 0 -8px 30px rgba(40, 44, 52, 0.18);
+}
+
+.kk-sheet-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--kk-line-strong);
+  margin: 0.5rem auto 0.75rem;
+}
+
+.kk-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.kk-sheet-close {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  font-size: 18px;
+  color: var(--kk-ink-soft);
+  cursor: pointer;
+}
+.kk-sheet-close:hover { background: var(--kk-accent-soft); color: var(--kk-ink); }
+
+.kk-sheet-backdrop-t-enter-active, .kk-sheet-backdrop-t-leave-active { transition: opacity 0.2s; }
+.kk-sheet-backdrop-t-enter-from, .kk-sheet-backdrop-t-leave-to { opacity: 0; }
+
+.kk-sheet-panel-t-enter-active { transition: transform 0.25s ease-out; }
+.kk-sheet-panel-t-leave-active { transition: transform 0.2s ease-in; }
+.kk-sheet-panel-t-enter-from, .kk-sheet-panel-t-leave-to { transform: translateY(100%); }
+
 /* ── キーボード操作の可視化（アクセシビリティ） ────────── */
 
 :focus-visible {
