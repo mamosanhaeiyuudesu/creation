@@ -13,10 +13,10 @@ routes = [
 # （既定値は src/config/service.ts。"false" にすると契約状態で利用可否を判定するようになる）
 NUXT_PUBLIC_MONITOR_MODE = "true"
 
-# Firebase のウェブ設定（公開前提の値。秘密ではないので vars でよい）
-# NUXT_PUBLIC_FIREBASE_API_KEY = "..."
-# NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN = "..."
-# NUXT_PUBLIC_FIREBASE_PROJECT_ID = "..."
+# Firebase のウェブ設定（公開前提の値＝ブラウザに出るものなので、秘密扱いにしない）
+NUXT_PUBLIC_FIREBASE_API_KEY = "AIzaSyDRgUbxwkBSP4alI-Kk3M22P-gSWXsjRQ8"
+NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN = "production-d9ad2.firebaseapp.com"
+NUXT_PUBLIC_FIREBASE_PROJECT_ID = "production-d9ad2"
 
 # 秘密の値は secret で登録する:
 #   wrangler secret put NUXT_OPENAI_API_KEY        ← 文字起こし（gpt-4o-transcribe）
@@ -29,7 +29,7 @@ NUXT_PUBLIC_MONITOR_MODE = "true"
 [[d1_databases]]
 binding = "KIKIGAKI_DB"
 database_name = "kikigaki-db"
-database_id = "" # wrangler d1 create kikigaki-db で発行されたIDを入れる
+database_id = "a7388a1c-f537-4c74-a623-55d78036131c"
 # 初回セットアップ:
 #   wrangler d1 create kikigaki-db
 #   wrangler d1 execute kikigaki-db --remote --file src/server/db/001_init.sql

@@ -12,9 +12,25 @@ const importKey = async (encryptionKey: string): Promise<CryptoKey | null> => {
   return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
 }
 
-const getKey = async (event: H3Event): Promise<CryptoKey | null> => {
+/**
+ * 鍵を取り出す。**鍵が未設定なら黙って素通しせず、ここで止める。**
+ *
+ * 以前は鍵が無いと平文のまま保存する作りだった（ai-tools から引き継いだ挙動）。
+ * 身内の道具ならそれでも気づけるが、本番サービスでは
+ * 「secret の設定を忘れたまま運用し、他人の会議の中身が平文でDBに溜まる」事故になる。
+ * 画面には利用者向けの文言を出し、原因はログに残す。
+ */
+const getKey = async (event: H3Event): Promise<CryptoKey> => {
   const { encryptionKey } = useRuntimeConfig(event)
-  return importKey((encryptionKey as string) ?? '')
+  const key = await importKey((encryptionKey as string) ?? '')
+  if (!key) {
+    console.error('[kikigaki] NUXT_ENCRYPTION_KEY が未設定です。暗号化できないため処理を中止しました')
+    throw createError({
+      statusCode: 503,
+      message: 'ただいまシステムの準備が整っていません。少し時間をおいてから、もう一度お試しください。',
+    })
+  }
+  return key
 }
 
 // String.fromCharCode(...bytes) は引数が数万個になるとスタックを超えて落ちるため、
@@ -28,16 +44,15 @@ const toBase64 = (bytes: Uint8Array): string => {
   return btoa(binary)
 }
 
-const encryptWith = async (key: CryptoKey | null, text: string): Promise<string> => {
-  if (!text || !key) return text
+const encryptWith = async (key: CryptoKey, text: string): Promise<string> => {
+  if (!text) return text
   const iv = crypto.getRandomValues(new Uint8Array(12))
   const encoded = new TextEncoder().encode(text)
   const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded)
   return `enc:${toBase64(iv)}:${toBase64(new Uint8Array(ciphertext))}`
 }
 
-const decryptWith = async (key: CryptoKey | null, text: string): Promise<string> => {
-  if (!key) return text
+const decryptWith = async (key: CryptoKey, text: string): Promise<string> => {
   try {
     const [, ivB64, ctB64] = text.split(':')
     // 形が崩れている値（手で書き換えた行など）は復号を諦めてそのまま返す
