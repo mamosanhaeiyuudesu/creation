@@ -28,12 +28,12 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: boolean
   title: string
   /** まとめの処理中など、誤って閉じられると困るときに false にする */
   closable?: boolean
-}>()
+}>(), { closable: true })
 const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
 
 function requestClose() {

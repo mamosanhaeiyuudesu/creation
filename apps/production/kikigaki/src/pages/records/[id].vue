@@ -1,167 +1,186 @@
 <template>
-  <div>
+  <div class="kk-review">
     <p v-if="loading" class="kk-lead py-10 text-center">読み込んでいます…</p>
 
     <template v-else-if="record">
-      <h1 class="kk-h1 mt-2">内容をたしかめる</h1>
-      <p class="kk-lead mt-3">
-        AIがまとめた内容です。ちがうところは直せます。できたら「PDFにする」を押してください。
-      </p>
-
-      <p v-if="errorMessage" class="kk-notice kk-notice--error mt-5">{{ errorMessage }}</p>
-      <p v-if="savedMessage" class="kk-notice kk-notice--info mt-5">{{ savedMessage }}</p>
-
-      <!-- AIが聞き取れなかったところ。直す場所の見当がつくよう先頭に出す -->
-      <section v-if="minutes.unclearPoints.length" class="kk-notice kk-notice--warn mt-5">
-        <p class="font-bold">AIが聞き取れなかったところ</p>
-        <ul class="mt-2 pl-5">
-          <li v-for="(p, i) in minutes.unclearPoints" :key="i">{{ p }}</li>
-        </ul>
-        <p class="mt-2">このあたりは、ご自分の記憶とあわせて確かめてください。</p>
-      </section>
-
-      <!-- 会議の名前と日 -->
-      <section class="kk-card px-5 py-5 mt-6">
-        <label class="kk-field-label" for="minutes-title">会議の名前</label>
-        <input id="minutes-title" v-model="minutes.title" class="kk-input" placeholder="れい: 青年部の定例会">
-
-        <label class="kk-field-label mt-5" for="minutes-date">会議をした日</label>
-        <input id="minutes-date" v-model="minutes.date" type="date" class="kk-input">
-      </section>
-
-      <!-- まとめ -->
-      <section class="kk-card px-5 py-5 mt-5">
-        <h2 class="kk-h2">会議のまとめ</h2>
-        <p class="kk-note mt-1">どんな話だったかの全体の流れです。</p>
-        <AutoTextarea v-model="minutes.summary" placeholder="会議の流れのまとめ" class="mt-3" />
-      </section>
-
-      <!-- 決まったこと・話し合ったこと（同じ形なので部品で回す） -->
-      <section v-for="group in pointGroups" :key="group.key" class="kk-card px-5 py-5 mt-5">
-        <h2 class="kk-h2">{{ group.label }}</h2>
-        <p class="kk-note mt-1">{{ group.hint }}</p>
-
-        <p v-if="!group.items.length" class="kk-lead mt-3">見つかりませんでした。</p>
-        <ul v-else class="list-none p-0 mt-3 flex flex-col gap-4">
-          <li v-for="(item, i) in group.items" :key="i">
-            <div class="flex items-start gap-2">
-              <span class="kk-num">{{ i + 1 }}</span>
-              <AutoTextarea v-model="item.content" :placeholder="group.placeholder" class="flex-1 font-bold" />
-            </div>
-            <div class="kk-sub">
-              <span class="kk-sub-label">ひとこと補足</span>
-              <AutoTextarea v-model="item.note" placeholder="なくても構いません" class="flex-1" />
-            </div>
-            <button class="kk-btn-text" @click="group.items.splice(i, 1)">この行を消す</button>
-          </li>
-        </ul>
-
-        <button class="kk-btn-sub mt-4" @click="group.items.push({ content: '', note: '' })">行を足す</button>
-      </section>
-
-      <!-- やること -->
-      <section class="kk-card px-5 py-5 mt-5">
-        <h2 class="kk-h2">やること</h2>
-        <p class="kk-note mt-1">だれが何をするか。期限が決まっていれば入れてください。</p>
-
-        <p v-if="!minutes.taskCandidates.length" class="kk-lead mt-3">見つかりませんでした。</p>
-        <ul v-else class="list-none p-0 mt-3 flex flex-col gap-5">
-          <li v-for="(task, i) in minutes.taskCandidates" :key="i">
-            <div class="flex items-start gap-2">
-              <span class="kk-num">{{ i + 1 }}</span>
-              <AutoTextarea v-model="task.task" placeholder="やること" class="flex-1 font-bold" />
-            </div>
-            <div class="mt-2 pl-8 flex flex-col gap-2">
-              <div>
-                <label class="kk-field-label">だれが</label>
-                <input v-model="task.assignee" class="kk-input" placeholder="れい: 田中さん">
-              </div>
-              <div>
-                <label class="kk-field-label">いつまでに</label>
-                <input v-model="task.dueDate" type="date" class="kk-input">
-                <p v-if="task.due" class="kk-note mt-1">会議では「{{ task.due }}」と話していました。</p>
-              </div>
-            </div>
-            <button class="kk-btn-text mt-1" @click="minutes.taskCandidates.splice(i, 1)">この行を消す</button>
-          </li>
-        </ul>
-
-        <button class="kk-btn-sub mt-4" @click="addTask">行を足す</button>
-      </section>
-
-      <!-- つぎの予定 -->
-      <section class="kk-card px-5 py-5 mt-5">
-        <h2 class="kk-h2">つぎの予定</h2>
-        <p class="kk-note mt-1">次に集まる日や行事です。</p>
-
-        <p v-if="!minutes.eventCandidates.length" class="kk-lead mt-3">見つかりませんでした。</p>
-        <ul v-else class="list-none p-0 mt-3 flex flex-col gap-5">
-          <li v-for="(ev, i) in minutes.eventCandidates" :key="i">
-            <div class="flex items-start gap-2">
-              <span class="kk-num">{{ i + 1 }}</span>
-              <AutoTextarea v-model="ev.title" placeholder="予定の名前" class="flex-1 font-bold" />
-            </div>
-            <div class="mt-2 pl-8 flex flex-col gap-2">
-              <div>
-                <label class="kk-field-label">日にちと時間</label>
-                <input v-model="ev.start" type="datetime-local" class="kk-input">
-                <p v-if="ev.datetime" class="kk-note mt-1">会議では「{{ ev.datetime }}」と話していました。</p>
-              </div>
-              <div>
-                <label class="kk-field-label">場所</label>
-                <input v-model="ev.location" class="kk-input" placeholder="れい: 公民館">
-              </div>
-            </div>
-            <button class="kk-btn-text mt-1" @click="minutes.eventCandidates.splice(i, 1)">この行を消す</button>
-          </li>
-        </ul>
-
-        <button class="kk-btn-sub mt-4" @click="addEvent">行を足す</button>
-      </section>
-
-      <!-- AIに直してもらう -->
-      <section class="kk-card px-5 py-5 mt-5">
-        <h2 class="kk-h2">AIに直してもらう</h2>
-        <p class="kk-note mt-1">
-          直したいことを書いて押すと、AIが全体を書き直します。
-          （れい: 「阪中さんを坂中さんに直して」）
-        </p>
-        <input
-          v-model="reviseInstruction"
-          class="kk-input mt-3"
-          placeholder="直してほしいことを書いてください"
-          @keyup.enter="runRevise"
-        >
-        <button class="kk-btn-sub mt-3" :disabled="revising || !reviseInstruction.trim()" @click="runRevise">
-          {{ revising ? 'AIが直しています…' : 'AIに直してもらう' }}
-        </button>
-      </section>
-
-      <!-- 仕上げ -->
-      <div class="mt-8 flex flex-col gap-3">
-        <button class="kk-btn" :disabled="generatingPdf || saving" @click="downloadPdf">
-          {{ generatingPdf ? 'PDFをつくっています…' : 'PDFにする' }}
-        </button>
-        <button class="kk-btn-sub" :disabled="saving || generatingPdf" @click="save">
-          {{ saving ? '保存しています…' : 'いったん保存する' }}
-        </button>
-        <NuxtLink to="/" class="kk-btn-text mx-auto">一覧にもどる</NuxtLink>
-      </div>
-
-      <!-- 削除。間違って押せない位置に置き、必ず確認を取る -->
-      <div class="mt-12 pt-6 border-t border-[var(--kk-line)]">
-        <button v-if="!confirmingDelete" class="kk-btn-text" @click="confirmingDelete = true">
-          この議事録を消す
-        </button>
-        <div v-else class="kk-notice kk-notice--error">
-          <p class="font-bold">この議事録を消しますか？</p>
-          <p class="mt-1">いちど消すと元には戻せません。</p>
-          <div class="mt-3 flex flex-col gap-2">
-            <button class="kk-btn-sub" :disabled="deleting" @click="remove">はい、消します</button>
-            <button class="kk-btn-text" :disabled="deleting" @click="confirmingDelete = false">やめる</button>
-          </div>
+      <!-- 見出しと状況。PDFのように左右に並べて、スクロールせず全体が見えるようにする -->
+      <div class="kk-review-head">
+        <div class="min-w-0">
+          <h1 class="kk-h1 mt-0">内容をたしかめる</h1>
+          <p class="kk-note mt-1">AIがまとめた内容です。ちがうところは直して、できたら「PDFにする」を押してください。</p>
+        </div>
+        <div class="kk-head-actions">
+          <NuxtLink to="/" class="kk-icon-btn" title="一覧へ">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+            一覧へ
+          </NuxtLink>
+          <button type="button" class="kk-icon-btn kk-icon-btn--danger" title="削除する" @click="confirmingDelete = true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+            削除する
+          </button>
+          <button type="button" class="kk-icon-btn" :disabled="saving || generatingPdf" title="保存" @click="save">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6" /></svg>
+            {{ saving ? '保存中…' : '保存' }}
+          </button>
+          <button type="button" class="kk-icon-btn kk-icon-btn--primary" :disabled="generatingPdf || saving" title="PDFのダウンロード" @click="downloadPdf">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg>
+            {{ generatingPdf ? 'PDF作成中…' : 'PDFのダウンロード' }}
+          </button>
         </div>
       </div>
+
+      <div v-if="minutes.unclearPoints.length" class="mt-2">
+        <button type="button" class="kk-unclear-btn" @click="showUnclear = true">
+          AIが聞き取れなかったところ（{{ minutes.unclearPoints.length }}件）
+        </button>
+      </div>
+
+      <p v-if="errorMessage" class="kk-notice kk-notice--error kk-msg mt-2">
+        <span>{{ errorMessage }}</span>
+        <button type="button" class="kk-msg-close" aria-label="閉じる" @click="errorMessage = ''">✕</button>
+      </p>
+      <p v-if="savedMessage" class="kk-notice kk-notice--info kk-msg mt-2">
+        <span>{{ savedMessage }}</span>
+        <button type="button" class="kk-msg-close" aria-label="閉じる" @click="savedMessage = ''">✕</button>
+      </p>
+
+      <div class="kk-review-grid">
+        <div v-for="col in ['left', 'right']" :key="col" class="kk-review-col">
+          <!-- 左だけ: 会議の名前・日・まとめ -->
+          <template v-if="col === 'left'">
+            <section class="kk-card kk-review-card">
+              <label class="kk-field-label" for="minutes-title">会議の名前</label>
+              <input id="minutes-title" v-model="minutes.title" class="kk-input" placeholder="れい: 青年部の定例会">
+
+              <label class="kk-field-label mt-3" for="minutes-date">会議をした日</label>
+              <input id="minutes-date" v-model="minutes.date" type="date" class="kk-input">
+            </section>
+
+            <section class="kk-card kk-review-card">
+              <h2 class="kk-h2">会議のまとめ</h2>
+              <AutoTextarea v-model="minutes.summary" placeholder="会議の流れのまとめ" class="mt-2" />
+            </section>
+          </template>
+
+          <!-- 決まったこと・話し合ったこと（同じ形なので部品で回す。左＝話し合い、右＝決定） -->
+          <section v-for="group in pointGroups.filter((g) => g.col === col)" :key="group.key" class="kk-card kk-review-card">
+            <h2 class="kk-h2">{{ group.label }}</h2>
+            <p class="kk-note mt-1">{{ group.hint }}</p>
+
+            <p v-if="!group.items.length" class="kk-lead mt-2">見つかりませんでした。</p>
+            <ul v-else class="list-none p-0 mt-2 flex flex-col gap-3">
+              <li v-for="(item, i) in group.items" :key="i">
+                <div class="flex items-start gap-2">
+                  <span class="kk-num">{{ i + 1 }}</span>
+                  <AutoTextarea v-model="item.content" :placeholder="group.placeholder" class="flex-1 font-bold" />
+                </div>
+                <div class="kk-sub">
+                  <span class="kk-sub-label">補足</span>
+                  <AutoTextarea v-model="item.note" placeholder="なくても構いません" class="flex-1" />
+                </div>
+                <button class="kk-btn-text" @click="group.items.splice(i, 1)"><svg class="kk-mini-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>削除する</button>
+              </li>
+            </ul>
+
+            <button class="kk-btn-sub mt-3" @click="group.items.push({ content: '', note: '' })"><svg class="kk-mini-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>追加する</button>
+          </section>
+
+          <!-- 右だけ: つぎの予定・やること -->
+          <template v-if="col === 'right'">
+            <section class="kk-card kk-review-card">
+              <h2 class="kk-h2">つぎの予定</h2>
+              <p class="kk-note mt-1">次に集まる日や行事です。</p>
+
+              <p v-if="!minutes.eventCandidates.length" class="kk-lead mt-2">見つかりませんでした。</p>
+              <ul v-else class="list-none p-0 mt-2 flex flex-col gap-4">
+                <li v-for="(ev, i) in minutes.eventCandidates" :key="i">
+                  <div class="flex items-start gap-2">
+                    <span class="kk-num">{{ i + 1 }}</span>
+                    <AutoTextarea v-model="ev.title" placeholder="予定の名前" class="flex-1 font-bold" />
+                  </div>
+                  <div class="mt-2 pl-8 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label class="kk-field-label">日にちと時間</label>
+                      <input v-model="ev.start" type="datetime-local" class="kk-input">
+                      <p v-if="ev.datetime" class="kk-note mt-1">会議では「{{ ev.datetime }}」と話していました。</p>
+                    </div>
+                    <div>
+                      <label class="kk-field-label">場所</label>
+                      <input v-model="ev.location" class="kk-input" placeholder="れい: 公民館">
+                    </div>
+                  </div>
+                  <button class="kk-btn-text mt-1" @click="minutes.eventCandidates.splice(i, 1)"><svg class="kk-mini-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>削除する</button>
+                </li>
+              </ul>
+
+              <button class="kk-btn-sub mt-3" @click="addEvent"><svg class="kk-mini-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>追加する</button>
+            </section>
+
+            <section class="kk-card kk-review-card">
+              <h2 class="kk-h2">やること</h2>
+              <p class="kk-note mt-1">だれが何をするか。期限が決まっていれば入れてください。</p>
+
+              <p v-if="!minutes.taskCandidates.length" class="kk-lead mt-2">見つかりませんでした。</p>
+              <ul v-else class="list-none p-0 mt-2 flex flex-col gap-4">
+                <li v-for="(task, i) in minutes.taskCandidates" :key="i">
+                  <div class="flex items-start gap-2">
+                    <span class="kk-num">{{ i + 1 }}</span>
+                    <AutoTextarea v-model="task.task" placeholder="やること" class="flex-1 font-bold" />
+                  </div>
+                  <div class="mt-2 pl-8 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label class="kk-field-label">だれが</label>
+                      <input v-model="task.assignee" class="kk-input" placeholder="れい: 田中さん">
+                    </div>
+                    <div>
+                      <label class="kk-field-label">いつまでに</label>
+                      <input v-model="task.dueDate" type="date" class="kk-input">
+                      <p v-if="task.due" class="kk-note mt-1">会議では「{{ task.due }}」と話していました。</p>
+                    </div>
+                  </div>
+                  <button class="kk-btn-text mt-1" @click="minutes.taskCandidates.splice(i, 1)"><svg class="kk-mini-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>削除する</button>
+                </li>
+              </ul>
+
+              <button class="kk-btn-sub mt-3" @click="addTask"><svg class="kk-mini-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>追加する</button>
+            </section>
+          </template>
+        </div>
+      </div>
+
+      <!-- 下の操作バー: AIに直してもらう・PDF・保存・削除 -->
+      <div class="kk-review-bar">
+        <div class="kk-review-revise">
+          <input
+            v-model="reviseInstruction"
+            class="kk-input"
+            placeholder="AIに直してほしいこと（れい: 阪中さんを坂中さんに直して）"
+            aria-label="AIに直してほしいこと"
+            @keyup.enter="runRevise"
+          >
+          <button class="kk-btn-sub kk-bar-btn" :disabled="revising || !reviseInstruction.trim()" @click="runRevise">
+            {{ revising ? 'AIが直しています…' : 'AIに直してもらう' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- 削除の確認。外をクリックすれば閉じる -->
+      <BottomSheet v-model="confirmingDelete" title="この議事録を消しますか？" :closable="!deleting">
+        <p class="kk-lead">いちど消すと元には戻せません。</p>
+        <div class="mt-4 flex flex-col gap-2">
+          <button class="kk-btn-sub" :disabled="deleting" @click="remove">はい、消します</button>
+          <button class="kk-btn-text" :disabled="deleting" @click="confirmingDelete = false">やめる</button>
+        </div>
+      </BottomSheet>
+
+      <!-- AIが聞き取れなかったところ。長いのでボタンから開いて読む -->
+      <BottomSheet v-model="showUnclear" title="AIが聞き取れなかったところ">
+        <ul class="mt-1 pl-5 flex flex-col gap-2">
+          <li v-for="(p, i) in minutes.unclearPoints" :key="i">{{ p }}</li>
+        </ul>
+        <p class="kk-note mt-4">このあたりは、ご自分の記憶とあわせて確かめてください。</p>
+        <button class="kk-btn-sub mt-4" @click="showUnclear = false">閉じる</button>
+      </BottomSheet>
     </template>
 
     <!-- PDF専用のレイアウト。画面には出さず、html2canvas で撮ってPDFにする -->
@@ -238,6 +257,8 @@ import { emptyMinutes } from '~/types/minutes'
 import type { EventItem, Minutes, MinutesRecord } from '~/types/minutes'
 
 useHead({ title: `内容をたしかめる — ${SERVICE.name}` })
+// PDFのように左右に並べるので、レイアウト側で横幅を広げ画面の高さに収める
+definePageMeta({ wide: true })
 
 const route = useRoute()
 const router = useRouter()
@@ -255,6 +276,7 @@ const reviseInstruction = ref('')
 const confirmingDelete = ref(false)
 const deleting = ref(false)
 const printRoot = ref<HTMLElement | null>(null)
+const showUnclear = ref(false)
 
 /** 画面で編集している議事録。保存・PDFともこれをもとに行う */
 const minutes = reactive<Minutes>(emptyMinutes())
@@ -263,6 +285,7 @@ const minutes = reactive<Minutes>(emptyMinutes())
 const pointGroups = computed(() => [
   {
     key: 'decisions',
+    col: 'right',
     label: 'この会で決まったこと',
     hint: 'はっきり決まったことだけが入ります。',
     placeholder: '決まったこと',
@@ -270,6 +293,7 @@ const pointGroups = computed(() => [
   },
   {
     key: 'discussions',
+    col: 'left',
     label: '話し合ったこと',
     hint: 'まだ決まっていない話です。',
     placeholder: '話し合ったこと',
@@ -655,5 +679,149 @@ onMounted(async () => {
   font-size: 11px;
   color: #9aa1ab;
   margin: 0;
+}
+
+/* ── 確認画面: PDFと同じく左右2列。広い画面では高さを画面に収め、列の中だけ動かす ── */
+.kk-review-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+.kk-unclear-btn {
+  flex-shrink: 0;
+  padding: 0.55rem 0.9rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--kk-accent);
+  background: var(--kk-accent-soft);
+  color: var(--kk-accent-strong);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kk-review-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+.kk-review-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+.kk-review-card {
+  padding: 0.9rem 1rem;
+}
+.kk-review-bar {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--kk-line);
+}
+.kk-review-revise {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.kk-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+}
+.kk-bar-btn {
+  width: auto;
+  padding-left: 1.1rem;
+  padding-right: 1.1rem;
+  white-space: nowrap;
+}
+.kk-review-actions .kk-bar-btn:first-of-type {
+  margin-left: auto;
+}
+
+@media (min-width: 1024px) {
+  .kk-review {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .kk-review-grid {
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: 1fr 1fr;
+  }
+  .kk-review-col {
+    overflow-y: auto;
+    padding-right: 0.25rem;
+  }
+}
+
+.kk-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+.kk-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--kk-line);
+  background: #fff;
+  color: var(--kk-ink);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.kk-icon-btn svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.kk-icon-btn:hover:not(:disabled) { border-color: var(--kk-accent); background: var(--kk-accent-soft); }
+.kk-icon-btn:disabled { opacity: 0.45; cursor: default; }
+.kk-icon-btn--danger { color: #b3261e; }
+.kk-icon-btn--primary { background: var(--kk-accent); border-color: var(--kk-accent); color: #fff; }
+.kk-icon-btn--primary:hover:not(:disabled) { background: var(--kk-accent-strong); }
+.kk-msg {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.kk-msg-close {
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+}
+.kk-mini-icon {
+  width: 1em;
+  height: 1em;
+  margin-right: 0.3em;
+  vertical-align: -0.12em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 </style>

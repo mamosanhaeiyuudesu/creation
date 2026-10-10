@@ -1,10 +1,11 @@
 import { ref } from 'vue'
+import { clearRun } from '~/composables/manabi/useManabiRun'
 
 /**
  * 作った・開いた問題セットの控え（端末内だけ）。ログインが無いので、トップから
  * 「さっきの問題」に戻れる手がかりはこれしかない。問題そのものはサーバーにあるので id と表示用の文字だけ持つ。
  */
-export interface OsaraiRecent {
+export interface ManabiRecent {
   id: string
   title: string
   count: number
@@ -13,12 +14,12 @@ export interface OsaraiRecent {
   openedAt: number
 }
 
-const KEY = 'osarai-recent-v1'
+const KEY = 'manabi-recent-v1'
 const MAX = 8
 
-const items = ref<OsaraiRecent[]>([])
+const items = ref<ManabiRecent[]>([])
 
-function read(): OsaraiRecent[] {
+function read(): ManabiRecent[] {
   try {
     const raw = localStorage.getItem(KEY)
     const parsed = raw ? JSON.parse(raw) : []
@@ -28,7 +29,7 @@ function read(): OsaraiRecent[] {
   }
 }
 
-function write(list: OsaraiRecent[]) {
+function write(list: ManabiRecent[]) {
   items.value = list
   try {
     localStorage.setItem(KEY, JSON.stringify(list))
@@ -37,7 +38,7 @@ function write(list: OsaraiRecent[]) {
   }
 }
 
-export function useOsaraiRecent() {
+export function useManabiRecent() {
   const load = () => {
     items.value = read()
   }
@@ -46,8 +47,11 @@ export function useOsaraiRecent() {
   const touch = (entry: { id: string; title: string; count: number }) => {
     const list = read()
     const prev = list.find((r) => r.id === entry.id)
-    const next: OsaraiRecent = { ...entry, lastScore: prev?.lastScore ?? null, openedAt: Date.now() }
-    write([next, ...list.filter((r) => r.id !== entry.id)].slice(0, MAX))
+    const next: ManabiRecent = { ...entry, lastScore: prev?.lastScore ?? null, openedAt: Date.now() }
+    const merged = [next, ...list.filter((r) => r.id !== entry.id)]
+    // 「最近」から落ちた問題の途中経過も一緒に消す（端末に溜め続けない）
+    for (const dropped of merged.slice(MAX)) clearRun(dropped.id)
+    write(merged.slice(0, MAX))
   }
 
   const recordScore = (id: string, score: number) => {

@@ -1,4 +1,4 @@
--- osarai（おさらい）: テーマを入れるとAIが選択式の問題セットを作り、URLで共有して同じ問題を解ける。
+-- osarai（のちに manabi に改名。テーブル名は osarai_sets のまま）: テーマを入れるとAIが選択式の問題セットを作り、URLで共有して同じ問題を解ける。
 -- ログインは要らない（共有された人がLINEから開いてすぐ解けるように）。解答・点数はサーバーに残さない。
 
 CREATE TABLE IF NOT EXISTS osarai_sets (

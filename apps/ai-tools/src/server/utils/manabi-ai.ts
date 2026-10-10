@@ -1,4 +1,4 @@
-// osarai の Claude 呼び出し（テーマ → 選択式の問題セット）を集約する。
+// manabi の Claude 呼び出し（テーマ → 選択式の問題セット）を集約する。
 // 出題の「匙加減」（レベルの読み取り方・正解が1つに定まる条件・解説の長さ）は全部ここのプロンプトにある。
 //
 // 生成は2段にしている:
@@ -8,7 +8,7 @@
 // 呼び出し数は 1 + ceil(30/5) = 7（書き直しが全部に起きても13）で、Workers の subrequest 上限（50）には十分遠い。
 
 import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
-import type { OsaraiQuestion } from '~/types/osarai'
+import type { ManabiQuestion } from '~/types/manabi'
 
 const BATCH_SIZE = 5
 
@@ -130,7 +130,7 @@ function pickDistractors(correct: string, candidates: string[]): string[] {
 }
 
 /** 正解＋誤りの候補を受け取り、選択肢4つを並びをシャッフルして作る。形が崩れていたら null。 */
-function shapeQuestion(raw: RawQuestion): OsaraiQuestion | null {
+function shapeQuestion(raw: RawQuestion): ManabiQuestion | null {
   const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
   const q = str(raw.q)
   const correct = str(raw.correct)
@@ -148,7 +148,7 @@ function shapeQuestion(raw: RawQuestion): OsaraiQuestion | null {
   return { q, choices, answer: choices.indexOf(correct), explanation: str(raw.explanation) }
 }
 
-async function writeBatch(apiKey: string, theme: string, level: string, points: string[]): Promise<OsaraiQuestion[]> {
+async function writeBatch(apiKey: string, theme: string, level: string, points: string[]): Promise<ManabiQuestion[]> {
   const list = points.map((p, i) => `${i + 1}. ${p}`).join('\n')
   const out = await callClaudeText(apiKey, {
     system: WRITE_SYSTEM,
@@ -157,7 +157,7 @@ async function writeBatch(apiKey: string, theme: string, level: string, points: 
   })
   const parsed = parseJsonLoose<{ questions?: RawQuestion[] }>(out)
   const raws = Array.isArray(parsed?.questions) ? parsed!.questions : []
-  return raws.map(shapeQuestion).filter((q): q is OsaraiQuestion => q !== null)
+  return raws.map(shapeQuestion).filter((q): q is ManabiQuestion => q !== null)
 }
 
 /**
@@ -165,12 +165,12 @@ async function writeBatch(apiKey: string, theme: string, level: string, points: 
  * JSONが崩れる・選択肢が足りない問題を落とす、で20問が15問になることがあった（実測）。
  * 書き直しても足りなければ多いほうを採る（問題数が少し欠けても、出題できるほうを優先する）。
  */
-async function writeBatchWithRetry(apiKey: string, theme: string, level: string, points: string[]): Promise<OsaraiQuestion[]> {
-  const first = await writeBatch(apiKey, theme, level, points).catch(() => [] as OsaraiQuestion[])
+async function writeBatchWithRetry(apiKey: string, theme: string, level: string, points: string[]): Promise<ManabiQuestion[]> {
+  const first = await writeBatch(apiKey, theme, level, points).catch(() => [] as ManabiQuestion[])
   if (first.length >= points.length) return first
   const second = await writeBatch(apiKey, theme, level, points).catch((e) => {
     if (first.length === 0) throw e
-    return [] as OsaraiQuestion[]
+    return [] as ManabiQuestion[]
   })
   return second.length > first.length ? second : first
 }
@@ -178,7 +178,7 @@ async function writeBatchWithRetry(apiKey: string, theme: string, level: string,
 export interface GeneratedSet {
   title: string
   level: string
-  questions: OsaraiQuestion[]
+  questions: ManabiQuestion[]
 }
 
 export async function generateSet(apiKey: string, theme: string, count: number): Promise<GeneratedSet> {
@@ -196,4 +196,41 @@ export async function generateSet(apiKey: string, theme: string, count: number):
     throw createError({ statusCode: 502, message: '問題の作成に失敗しました。もう一度お試しください。' })
   }
   return { title: plan.title, level: plan.level, questions }
+}
+
+// ── 深掘りの提案 ──────────────────────────────
+
+const DEEPEN_SYSTEM = `あなたは学びの次の一歩を提案する案内役です。
+ユーザーが解き終えた選択式ドリルの「テーマ」「対象と水準」「出題した問題」を渡します。
+その学びをさらに掘り下げるための、次のテーマを3つ提案してください。
+
+【提案の条件】
+- 3つは方向を変える。例: ①ひとつの論点をさらに詳しく ②実際の場面での使い方・判断 ③つまずきやすい点・よくある間違い
+- 元のテーマの言い換えや、元の問題と同じ範囲のものは出さない。一段深いか、隣の応用に進むこと。
+- そのまま「テーマ入力欄」に書いて問題を作れる、具体的な名詞句にする（25字以内・文章にしない・末尾に句点を付けない）。
+- 元のテーマの対象者・水準に合わせる（入門向けなら、いきなり専門家向けにしない）。
+- 日本語で書く。
+
+【出力形式】
+JSONのみを出力すること。前置き・説明文・コードフェンスは付けない。
+{ "themes": ["テーマ1", "テーマ2", "テーマ3"] }`
+
+/** 解き終えた人向けに、掘り下げたテーマを提案する。失敗したら空配列（提案が無くても学びは終わっているので止めない）。 */
+export async function suggestDeeperThemes(
+  apiKey: string,
+  set: { theme: string; title: string; level: string; questions: ManabiQuestion[] }
+): Promise<string[]> {
+  const stems = set.questions.slice(0, 30).map((q, i) => `${i + 1}. ${q.q}`).join('\n')
+  const out = await callClaudeText(apiKey, {
+    system: DEEPEN_SYSTEM,
+    maxTokens: 400,
+    messages: [{ role: 'user', content: `テーマ: ${set.theme}\n題: ${set.title}\n対象と水準: ${set.level || '（指定なし）'}\n\n出題した問題:\n${stems}` }],
+  }).catch(() => '')
+  const parsed = parseJsonLoose<{ themes?: unknown }>(out)
+  const themes = Array.isArray(parsed?.themes) ? parsed!.themes : []
+  const cleaned = themes
+    .filter((t): t is string => typeof t === 'string')
+    .map((t) => t.trim().replace(/[。.]$/, '').slice(0, 40))
+    .filter((t) => t && t !== set.theme.trim())
+  return [...new Set(cleaned)].slice(0, 3)
 }

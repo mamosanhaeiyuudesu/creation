@@ -82,6 +82,11 @@ gtag('config', 'G-JRBVTJYCEH');`,
       isCustomElement: (tag) => tag === 'model-viewer',
     },
   },
+  routeRules: {
+    // 改名前（osarai）のURLはLINEなどに共有済みなので、そのまま開けるようにする
+    '/osarai': { redirect: { to: '/manabi', statusCode: 301 } },
+    '/osarai/**': { redirect: { to: '/manabi/**', statusCode: 301 } },
+  },
   nitro: {
     preset: 'cloudflare_module',
     experimental: {

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-[100dvh] flex flex-col">
+  <div class="min-h-[100dvh] flex flex-col" :class="{ 'kk-wide-root': wide }">
     <!-- モニター期間のお知らせ。常時表示。文言と時期は src/config/service.ts で変える -->
     <p v-if="monitorMode" class="m-0 px-4 py-3 text-center text-[15px] leading-relaxed bg-[var(--kk-accent-soft)] text-[var(--kk-accent-strong)]">
       {{ monitorText }}
@@ -15,7 +15,10 @@
       <NuxtLink v-if="isLoggedIn" to="/settings" aria-label="設定" class="kk-settings-btn shrink-0">⚙</NuxtLink>
     </header>
 
-    <main class="flex-1 w-full max-w-[720px] mx-auto px-4 sm:px-6 pt-4 pb-16">
+    <main
+      class="flex-1 w-full mx-auto px-4 sm:px-6 pt-4"
+      :class="wide ? 'kk-wide-main max-w-[1280px] pb-4' : 'max-w-[720px] pb-16'"
+    >
       <slot />
     </main>
 
@@ -40,4 +43,23 @@ const monitorMode = computed(() => parseMonitorMode(config.monitorMode))
 const monitorText = monitorNotice()
 const serviceName = SERVICE.name
 const { isLoggedIn } = useAuth()
+const route = useRoute()
+// ページが definePageMeta({ wide: true }) したときは、横幅を広げ、広い画面では高さを画面に収める
+const wide = computed(() => route.meta.wide === true)
 </script>
+
+<style scoped>
+@media (min-width: 1024px) {
+  .kk-wide-root {
+    height: 100dvh;
+  }
+  .kk-wide-main {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .kk-wide-root footer {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+</style>

@@ -46,7 +46,10 @@ export async function callClaudeText(apiKey: string, opts: CallOptions): Promise
     body: JSON.stringify({
       model: opts.model ?? DEFAULT_MODEL,
       max_tokens: opts.maxTokens,
-      thinking: { type: 'disabled' },
+      // Sonnet 5.5 は {type:"disabled"} を受け付けず400になる。
+      // ツール呼び出しをしないこのアプリでは between_tools でも thinking トークンは発生しない
+      // （実測で usage.output_tokens_details.thinking_tokens: 0 を確認済み）ので disabled 相当として使う。
+      thinking: { type: 'between_tools' },
       system: opts.system,
       messages: opts.messages,
     }),
