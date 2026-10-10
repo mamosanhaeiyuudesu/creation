@@ -12,7 +12,7 @@
       </NuxtLink>
       <!-- 設定は一覧の下ではなく常に見える右上へ（他ツール＝ai-tools側kikigaki/whisper等の
            「⚙→設定」配置に合わせている）。ログイン前は設定自体が無いので出さない -->
-      <NuxtLink v-if="isLoggedIn" to="/settings" aria-label="設定" class="kk-settings-btn shrink-0">⚙</NuxtLink>
+      <button v-if="isLoggedIn" type="button" aria-label="設定" class="kk-settings-btn shrink-0" @click="settingsOpen = true">⚙</button>
     </header>
 
     <main
@@ -21,6 +21,8 @@
     >
       <slot />
     </main>
+
+    <SettingsSheet v-if="isLoggedIn" v-model="settingsOpen" />
 
     <footer class="border-t border-[var(--kk-line)] px-4 sm:px-6 py-6">
       <nav class="max-w-[720px] mx-auto flex flex-wrap gap-x-5 gap-y-2">
@@ -44,6 +46,7 @@ const monitorText = monitorNotice()
 const serviceName = SERVICE.name
 const { isLoggedIn } = useAuth()
 const route = useRoute()
+const settingsOpen = useState<boolean>('kk-settings-open', () => false)
 // ページが definePageMeta({ wide: true }) したときは、横幅を広げ、広い画面では高さを画面に収める
 const wide = computed(() => route.meta.wide === true)
 </script>

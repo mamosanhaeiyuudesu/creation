@@ -48,6 +48,8 @@ export default defineNuxtConfig({
       firebaseApiKey: '',
       firebaseAuthDomain: '',
       firebaseProjectId: '',
+      // Googleドライブ連携用の OAuth クライアントID（ウェブ）。公開前提の値。空だと連携ボタンは設定未了と案内する
+      googleClientId: '',
       // モニター期間のフラグ。既定は src/config/service.ts の値で、
       // NUXT_PUBLIC_MONITOR_MODE=false で有料モードへ切り替わる（コード変更なしで有料化できる）
       monitorMode: SERVICE.monitorMode,

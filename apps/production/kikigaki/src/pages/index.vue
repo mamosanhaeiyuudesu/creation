@@ -73,6 +73,15 @@
     <template v-else>
       <p v-if="errorMessage" class="kk-notice kk-notice--error mb-5">{{ errorMessage }}</p>
 
+      <!-- ドライブにつながっていないと、PDFをドライブに残せない。気づかれないと困るので目立たせる -->
+      <section v-if="!driveConnected" class="kk-drive-banner mb-5" role="alert">
+        <p class="kk-drive-banner-title">Googleドライブとつながっていません</p>
+        <p class="mt-1">つなぐと、つくったPDFが自動でドライブの「キキガキ議事録」フォルダに保存されます。</p>
+        <button class="kk-btn mt-3" :disabled="driveBusy" @click="connectDrive">
+          {{ driveBusy ? '画面をひらいています…' : 'Googleドライブとつなぐ' }}
+        </button>
+      </section>
+
       <!--
         どちらも同じくらい使われる想定の入口なので、音声/テキストで優劣を付けず同じ大きさで並べる
         （このアプリの「1画面の主役は色で1つだけ」という原則は、この2つを対等な入口として見せる
@@ -129,6 +138,20 @@ const showEmailForm = ref(false)
 const email = ref('')
 const linkSentTo = ref('')
 
+const { connected: driveConnected, refresh: refreshDrive, connect: connectDriveNow } = useDrive()
+const driveBusy = ref(false)
+
+async function connectDrive() {
+  errorMessage.value = ''
+  driveBusy.value = true
+  try {
+    await connectDriveNow()
+  } catch (e) {
+    errorMessage.value = apiMessage(e)
+  }
+  driveBusy.value = false
+}
+
 const records = ref<(RecordSummary & { dateLabel: string })[]>([])
 const loadingRecords = ref(false)
 
@@ -184,8 +207,25 @@ watch(isLoggedIn, async (v) => {
 })
 
 onMounted(async () => {
+  refreshDrive()
   const redirectError = await catchRedirectError()
   if (redirectError) errorMessage.value = redirectError
   if (isLoggedIn.value) await loadRecords()
 })
 </script>
+
+<style scoped>
+.kk-drive-banner {
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  border: 2px solid #d9822b;
+  background: #fff4e5;
+  color: #5c3a0c;
+  font-size: 16px;
+  line-height: 1.7;
+}
+.kk-drive-banner-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+</style>

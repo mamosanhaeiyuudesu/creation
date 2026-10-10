@@ -14,9 +14,9 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
             一覧へ
           </NuxtLink>
-          <button type="button" class="kk-icon-btn kk-icon-btn--danger" title="削除する" @click="confirmingDelete = true">
+          <button type="button" class="kk-icon-btn kk-icon-btn--danger" title="削除" @click="confirmingDelete = true">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
-            削除する
+            削除
           </button>
           <button type="button" class="kk-icon-btn" :disabled="saving || generatingPdf" title="保存" @click="save">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6" /></svg>
@@ -78,11 +78,11 @@
                   <span class="kk-sub-label">補足</span>
                   <AutoTextarea v-model="item.note" placeholder="なくても構いません" class="flex-1" />
                 </div>
-                <button class="kk-btn-text" @click="group.items.splice(i, 1)"><svg class="kk-mini-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>削除する</button>
+                <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(group.items, i)">✕</button>
               </li>
             </ul>
 
-            <button class="kk-btn-sub mt-3" @click="group.items.push({ content: '', note: '' })"><svg class="kk-mini-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>追加する</button>
+            <button class="kk-btn-sub mt-3" @click="group.items.push({ content: '', note: '' })"><svg class="kk-mini-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>追加</button>
           </section>
 
           <!-- 右だけ: つぎの予定・やること -->
@@ -109,11 +109,11 @@
                       <input v-model="ev.location" class="kk-input" placeholder="れい: 公民館">
                     </div>
                   </div>
-                  <button class="kk-btn-text mt-1" @click="minutes.eventCandidates.splice(i, 1)"><svg class="kk-mini-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>削除する</button>
+                  <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(minutes.eventCandidates, i)">✕</button>
                 </li>
               </ul>
 
-              <button class="kk-btn-sub mt-3" @click="addEvent"><svg class="kk-mini-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>追加する</button>
+              <button class="kk-btn-sub mt-3" @click="addEvent"><svg class="kk-mini-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>追加</button>
             </section>
 
             <section class="kk-card kk-review-card">
@@ -138,11 +138,11 @@
                       <p v-if="task.due" class="kk-note mt-1">会議では「{{ task.due }}」と話していました。</p>
                     </div>
                   </div>
-                  <button class="kk-btn-text mt-1" @click="minutes.taskCandidates.splice(i, 1)"><svg class="kk-mini-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>削除する</button>
+                  <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(minutes.taskCandidates, i)">✕</button>
                 </li>
               </ul>
 
-              <button class="kk-btn-sub mt-3" @click="addTask"><svg class="kk-mini-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>追加する</button>
+              <button class="kk-btn-sub mt-3" @click="addTask"><svg class="kk-mini-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>追加</button>
             </section>
           </template>
         </div>
@@ -163,6 +163,15 @@
           </button>
         </div>
       </div>
+
+      <!-- 行を消す前の確認 -->
+      <BottomSheet :model-value="!!pendingRow" title="この行を削除しますか？" @update:model-value="pendingRow = null">
+        <p class="kk-lead">いちど消すと元には戻せません。</p>
+        <div class="mt-4 flex flex-col gap-2">
+          <button class="kk-btn-sub" @click="confirmRemoveRow">はい、削除します</button>
+          <button class="kk-btn-text" @click="pendingRow = null">やめる</button>
+        </div>
+      </BottomSheet>
 
       <!-- 削除の確認。外をクリックすれば閉じる -->
       <BottomSheet v-model="confirmingDelete" title="この議事録を消しますか？" :closable="!deleting">
@@ -263,6 +272,7 @@ definePageMeta({ wide: true })
 const route = useRoute()
 const router = useRouter()
 const { isLoggedIn, authedFetch, waitReady } = useAuth()
+const { connected: driveConnected, refresh: refreshDrive, uploadPdf } = useDrive()
 
 const id = computed(() => String(route.params.id ?? ''))
 const record = ref<MinutesRecord | null>(null)
@@ -277,6 +287,18 @@ const confirmingDelete = ref(false)
 const deleting = ref(false)
 const printRoot = ref<HTMLElement | null>(null)
 const showUnclear = ref(false)
+/** 消す確認待ちの行。はいで splice する */
+const pendingRow = ref<{ list: unknown[]; index: number } | null>(null)
+
+function askRemoveRow(list: unknown[], index: number) {
+  pendingRow.value = { list, index }
+}
+
+function confirmRemoveRow() {
+  const p = pendingRow.value
+  if (p) p.list.splice(p.index, 1)
+  pendingRow.value = null
+}
 
 /** 画面で編集している議事録。保存・PDFともこれをもとに行う */
 const minutes = reactive<Minutes>(emptyMinutes())
@@ -521,8 +543,19 @@ async function downloadPdf() {
     pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, w, h)
 
     const safeTitle = (minutes.title || '議事録').replace(/[\\/:*?"<>|]/g, '_')
-    pdf.save(minutes.date ? `${safeTitle}_${minutes.date}.pdf` : `${safeTitle}.pdf`)
+    const fileName = minutes.date ? `${safeTitle}_${minutes.date}.pdf` : `${safeTitle}.pdf`
+    pdf.save(fileName)
     savedMessage.value = 'PDFを保存しました。スマホの「ファイル」や「ダウンロード」から開けます。'
+
+    // ドライブとつながっていれば、同じPDFをドライブにも置く。失敗してもダウンロードは済んでいる
+    if (driveConnected.value) {
+      try {
+        await uploadPdf(pdf.output('blob'), fileName)
+        savedMessage.value = 'PDFを保存しました。Googleドライブの「キキガキ議事録」フォルダにも入れました。'
+      } catch (e) {
+        errorMessage.value = `${apiMessage(e, 'ドライブに保存できませんでした。')}（PDFのダウンロードは済んでいます。設定からドライブとつなぎ直してみてください）`
+      }
+    }
   } catch (e) {
     errorMessage.value = apiMessage(e, 'PDFをつくれませんでした。もう一度お試しください。')
   }
@@ -534,6 +567,7 @@ watch(isLoggedIn, async (v) => {
 })
 
 onMounted(async () => {
+  refreshDrive()
   await waitReady()
   if (!isLoggedIn.value) {
     await router.replace('/')
@@ -824,4 +858,19 @@ onMounted(async () => {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+.kk-row-del {
+  display: block;
+  margin: 0.25rem 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #b3261e;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.kk-row-del:hover { background: #fdecea; }
 </style>

@@ -37,7 +37,7 @@
 | `/` | 未ログイン＝ログイン（Google／メールのリンク）。ログイン後＝大ボタン1つ＋これまでの議事録 |
 | `/new` | 録音をえらぶ → まとめ中 → できたら `/records/[id]` へ |
 | `/records/[id]` | 内容の確認・修正・PDF・削除 |
-| `/settings` | よく出る名前・今月つかった分・お支払い・ログアウト |
+| `/settings` | 設定はポップアップ（`components/SettingsSheet.vue`）。このURLは開くとトップへ戻して設定を開く（Stripeの戻り先） |
 | `/auth/finish` | メールのリンクから戻ってくる場所 |
 | `/terms` `/privacy` `/legal` | 法務ページ（雛形。`/privacy` のURLは OAuth 同意画面から参照されるので変えない） |
 
@@ -52,7 +52,9 @@
 - **議事録は必ず `user_id` で絞る**。ai-tools 版は身内で共有する前提で絞っていないので、
   あちらのSQLをそのまま持ってこないこと。
 - **PDFはサーバーに保存しない**。保存するのは議事録のデータ（暗号化）だけで、
-  PDFは開くたびにブラウザで作る。Googleドライブ連携もR2も持たない。
+  PDFは開くたびにブラウザで作る。R2は持たない。
+  Googleドライブ連携は **ブラウザから直接**（`composables/useDrive.ts`。権限は `drive.file` のみ、
+  トークンはサーバーに渡さない・保存しない）。使うには `NUXT_PUBLIC_GOOGLE_CLIENT_ID` が要る。
 - **モニター期間フラグ**は `src/config/service.ts` の `monitorMode` が既定値で、
   環境変数 `NUXT_PUBLIC_MONITOR_MODE=false` で有料モードへ切り替わる。
   判定は `src/utils/entitlement.ts`（純粋関数・テストあり）→ `src/server/utils/entitlement.ts`。

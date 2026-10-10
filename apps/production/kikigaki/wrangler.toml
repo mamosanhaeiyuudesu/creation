@@ -18,6 +18,9 @@ NUXT_PUBLIC_FIREBASE_API_KEY = "AIzaSyDRgUbxwkBSP4alI-Kk3M22P-gSWXsjRQ8"
 NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN = "production-d9ad2.firebaseapp.com"
 NUXT_PUBLIC_FIREBASE_PROJECT_ID = "production-d9ad2"
 
+# Googleドライブ連携の OAuth クライアントID（公開前提。空のままだと連携ボタンは「設定が済んでいません」と案内する）
+NUXT_PUBLIC_GOOGLE_CLIENT_ID = ""
+
 # 秘密の値は secret で登録する:
 #   wrangler secret put NUXT_OPENAI_API_KEY        ← 文字起こし（gpt-4o-transcribe）
 #   wrangler secret put NUXT_ANTHROPIC_API_KEY     ← 議事録の構造化（Claude）
