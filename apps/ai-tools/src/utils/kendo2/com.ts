@@ -2,7 +2,7 @@
 // 相手の振りかぶりが見えたら、確率で正しい防御を選び、防げたら確率で返し技を打つ。
 // 攻めるときは（強いほど）相手の構えに入る技を選ぶ。
 import { Rng } from '../kendo-shared/rng'
-import { CHIKAMA_DISTANCE, ISSOKU_DISTANCE, OPENINGS, PART_OFFSET, STRIKES } from './constants'
+import { CHIKAMA_DISTANCE, ISSOKU_DISTANCE, KAESHI_WINDOW, OPENINGS, PART_OFFSET, STRIKES } from './constants'
 import { effectiveGuard } from './fighter'
 import { NO_ACTIONS, NO_INPUT } from './match'
 import type { Action, Guard, MatchState, PlayerId, PlayerInput, Technique } from './types'
@@ -33,7 +33,7 @@ export const COM2_LEVELS: readonly Com2Params[] = [
   { reaction: 12, jitter: 2, guardAccuracy: 0.9, kaeshi: 0.95, aggression: 0.6, readStance: true, farAttack: 0, anticipate: 0.24, think: 4 }, // ★5 0.2秒
 ]
 
-const TECHNIQUES: readonly Technique[] = ['men', 'kote', 'do', 'tsuki']
+const TECHNIQUES: readonly Technique[] = ['men', 'kote', 'do']
 const FAR_ATTACK_MARGIN = 0.6
 /** 読みで守るとき、防御を続ける長さ */
 const ANTICIPATE_FRAMES = 30
@@ -92,7 +92,7 @@ export class Kendo2Com {
 
     // 返し技: 防げた瞬間に打つか決め、少し（反応の半分）遅れて打つ
     if (me.kaeshiWindow > 0) {
-      const blockedAt = s.frame - (30 - me.kaeshiWindow)
+      const blockedAt = s.frame - (KAESHI_WINDOW - me.kaeshiWindow)
       if (this.kaeshiDecidedFor !== blockedAt) {
         this.kaeshiDecidedFor = blockedAt
         this.kaeshiAt = this.rng.chance(this.params.kaeshi) ? s.frame + Math.round(this.params.reaction / 2) : -1

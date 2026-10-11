@@ -14,6 +14,9 @@ import {
   KAESHI_WINDOW,
   KAESHI_RECOVERY,
   KAESHI_WINDUP,
+  EVADE_BACK_FRAMES,
+  EVADE_KUZURE_FRAMES,
+  EVADE_WINDOW,
   KUZURE_FRAMES,
   STEP_DISTANCE,
   STEP_FRAMES,
@@ -40,7 +43,12 @@ export function createFighter(id: PlayerId, x: number, facing: Facing): Fighter 
     attackCooldown: 0,
     kaeshiWindow: 0,
     kaeshiFrom: null,
+    kaeshiEvade: false,
     strikeKaeshiFrom: null,
+    nukiOk: false,
+    strikeEvade: false,
+    backFrames: 0,
+    kuzureFrames: KUZURE_FRAMES,
   }
 }
 
@@ -55,7 +63,7 @@ export function pressedTechnique(input: PlayerInput): Technique | null {
   if (input.pressed.men) return 'men'
   if (input.pressed.kote) return 'kote'
   if (input.pressed.do) return 'do'
-  if (input.pressed.tsuki) return 'tsuki'
+  // 突きは無し（型・データは残してあるがボタンは受け付けない）
   return null
 }
 
@@ -95,6 +103,7 @@ function tick(f: Fighter): Fighter {
     stepCooldown: Math.max(0, f.stepCooldown - 1),
     kaeshiWindow,
     kaeshiFrom: kaeshiWindow > 0 ? f.kaeshiFrom : null,
+    kaeshiEvade: kaeshiWindow > 0 ? f.kaeshiEvade : false,
   }
 }
 
@@ -105,8 +114,10 @@ function startStrike(f: Fighter, technique: Technique): Fighter {
     hasHit: false,
     attackCooldown: ATTACK_COOLDOWN,
     strikeKaeshiFrom: kaeshi ? f.kaeshiFrom : null,
+    strikeEvade: kaeshi && f.kaeshiEvade,
     kaeshiWindow: 0,
     kaeshiFrom: null,
+    kaeshiEvade: false,
   })
 }
 
@@ -143,7 +154,15 @@ function stepNeutral(f: Fighter, input: PlayerInput): Fighter {
   return f.phase === 'move' ? next(moved) : enter(moved, 'move')
 }
 
+/** 1フレーム進める。下がった動きを覚えておく（相手の打突をかわす「抜き」の判定に使う） */
 export function stepFighter(prev: Fighter, input: PlayerInput): Fighter {
+  const next = stepCore(prev, input)
+  const movable = next.phase === 'idle' || next.phase === 'move' || next.phase === 'step' || next.phase === 'guard'
+  const backed = movable && (next.x - prev.x) * prev.facing < 0
+  return { ...next, backFrames: backed ? EVADE_BACK_FRAMES : Math.max(0, prev.backFrames - 1) }
+}
+
+function stepCore(prev: Fighter, input: PlayerInput): Fighter {
   const f = tick(prev)
   switch (f.phase) {
     case 'idle':
@@ -162,24 +181,31 @@ export function stepFighter(prev: Fighter, input: PlayerInput): Fighter {
     case 'active':
       return f.phaseFrame + 1 >= STRIKES[f.technique!].active ? enter(f, 'recovery') : next(f)
     case 'recovery':
-      return f.phaseFrame + 1 >= strikeRecovery(f) ? enter(f, 'idle', { technique: null, strikeKaeshiFrom: null }) : next(f)
+      return f.phaseFrame + 1 >= strikeRecovery(f) ? enter(f, 'idle', { technique: null, strikeKaeshiFrom: null, strikeEvade: false }) : next(f)
     case 'kuzure':
-      return f.phaseFrame + 1 >= KUZURE_FRAMES ? enter(f, 'idle', { technique: null, strikeKaeshiFrom: null }) : next(f)
+      return f.phaseFrame + 1 >= f.kuzureFrames ? enter(f, 'idle', { technique: null, strikeKaeshiFrom: null, strikeEvade: false }) : next(f)
     case 'hit':
       return next(f)
   }
 }
 
 /** 打突を防がれて崩れる */
-export function markKuzure(f: Fighter): Fighter {
-  return enter(f, 'kuzure', { hasHit: true })
+export function markKuzure(f: Fighter, frames: number = KUZURE_FRAMES): Fighter {
+  return enter(f, 'kuzure', { hasHit: true, kuzureFrames: frames })
 }
+
+/** 相手の打突を下がってかわした（抜いた）。抜き技の受付を開く */
+export function markEvaded(f: Fighter, from: Technique): Fighter {
+  return { ...f, kaeshiWindow: EVADE_WINDOW, kaeshiFrom: from, kaeshiEvade: true }
+}
+
+export { EVADE_KUZURE_FRAMES }
 
 /** 相手の打突を防いだ。返し技の受付を開く */
 export function markBlocked(f: Fighter, from: Technique): Fighter {
-  return { ...f, kaeshiWindow: KAESHI_WINDOW, kaeshiFrom: from }
+  return { ...f, kaeshiWindow: KAESHI_WINDOW, kaeshiFrom: from, kaeshiEvade: false }
 }
 
 export function markHit(f: Fighter): Fighter {
-  return enter(f, 'hit', { technique: null, strikeKaeshiFrom: null, kaeshiWindow: 0, kaeshiFrom: null })
+  return enter(f, 'hit', { technique: null, strikeKaeshiFrom: null, strikeEvade: false, kaeshiWindow: 0, kaeshiFrom: null, kaeshiEvade: false })
 }

@@ -76,6 +76,19 @@ export const KENDO2_INPUT: InputConfig<Kendo2Action> = {
 
 const AXIS_THRESHOLD = 0.5
 
+/**
+ * 十字キーがボタンではなくハットスイッチ（axes[9]）で届くコントローラー向け。
+ * 値は 上=-1, 右上=-0.71, 右=-0.43, 右下=-0.14, 下=0.14, 左下=0.43, 左=0.71, 左上=1、何も押していない=1.29。
+ * 戻り値は -1=左 / 1=右 / 0=なし。
+ */
+function hatDirection(v: number | undefined): -1 | 0 | 1 {
+  if (v === undefined || v > 1.1 || v < -1.1) return 0
+  if (v >= 0.3) return -1 // 左下・左・左上
+  if (v >= -0.3 && v <= -0.05) return 1 // 右下
+  if (v < -0.3 && v > -0.9) return 1 // 右・右上
+  return 0
+}
+
 function emptySet<A extends string>(actions: readonly A[]): Record<A, boolean> {
   return Object.fromEntries(actions.map((a) => [a, false])) as Record<A, boolean>
 }
@@ -195,9 +208,11 @@ export class InputManager<A extends string> {
 
         const binding = this.bindings[slot]
         for (const a of actions) padHeld[a] = binding[a].some((i) => raw[i] ?? false)
+        // 左スティック（axes[0]）と、ハットスイッチ扱いの十字キー（axes[9]）の両方を左右として使う
+        const hat = hatDirection(pad.axes[9])
         const axis = pad.axes[0] ?? 0
-        if (axisLeft && axis < -AXIS_THRESHOLD) padHeld[axisLeft] = true
-        if (axisRight && axis > AXIS_THRESHOLD) padHeld[axisRight] = true
+        if (axisLeft && (axis < -AXIS_THRESHOLD || hat < 0)) padHeld[axisLeft] = true
+        if (axisRight && (axis > AXIS_THRESHOLD || hat > 0)) padHeld[axisRight] = true
       } else {
         this.prevRawButtons[slot] = []
       }

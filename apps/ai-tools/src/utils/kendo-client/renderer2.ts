@@ -4,7 +4,7 @@
 //
 // 剣士のローカル座標: +x = 前（相手の方）、y = 上、原点 = 腰（床から HIP_Y）。
 import * as THREE from 'three'
-import { START_X, STEP_FRAMES } from '../kendo2/constants'
+import { EVADE_BACK_FRAMES, KAESHI_WINDOW, START_X, STEP_FRAMES } from '../kendo2/constants'
 import { strikeRecovery, strikeWindup } from '../kendo2/fighter'
 import type { Fighter, MatchState, PlayerId, Technique } from '../kendo2/types'
 import { COLORS, DojoStage, flagOf, mesh } from './renderer'
@@ -52,8 +52,8 @@ const GUARD_KOTE: Pose = { hx: 0.12, hy: -0.06, angle: 0.18, twist: -0.7, lean: 
 const KUZURE: Pose = { hx: 0.18, hy: 0.35, angle: 0.8, twist: 0.4, lean: 0.24 }
 
 export const RAISED: Record<Technique, Pose> = {
-  men: { hx: 0.14, hy: 0.78, angle: 1.95, twist: 0, lean: 0 },
-  kote: { hx: 0.2, hy: 0.55, angle: 1.35, twist: 0, lean: 0 },
+  men: { hx: 0.18, hy: 0.66, angle: 1.5, twist: 0, lean: 0 }, // 面の振りかぶりは小さめ
+  kote: { hx: 0.22, hy: 0.32, angle: 0.8, twist: 0, lean: 0 }, // 小手は振りかぶりを小さく
   do: { hx: 0.14, hy: 0.78, angle: 2.0, twist: 0.3, lean: 0 },
   tsuki: { hx: 0.12, hy: 0.08, angle: 0.25, twist: 0, lean: 0.02 }, // 突きは振りかぶらず手元を引く
 }
@@ -79,6 +79,12 @@ export function lerpPose(a: Pose, b: Pose, t: number): Pose {
 
 export function poseOf(f: Fighter): Pose {
   const t = f.technique
+  // 構えのまま自動で防いだ瞬間は、受けた技に合わせて竹刀を動かして受け止める（受付の0.2秒のあいだ）
+  if (f.kaeshiWindow > 0 && f.kaeshiFrom && !f.kaeshiEvade && (f.phase === 'idle' || f.phase === 'move' || f.phase === 'step')) {
+    const elapsed = KAESHI_WINDOW - f.kaeshiWindow
+    const w = Math.min(1, (elapsed + 1) / 3) * Math.min(1, f.kaeshiWindow / 5)
+    return lerpPose(CHUDAN, f.kaeshiFrom === 'men' ? GUARD_MEN : GUARD_KOTE, easeOut(w))
+  }
   switch (f.phase) {
     case 'guard':
       return lerpPose(CHUDAN, f.guard === 'men' ? GUARD_MEN : GUARD_KOTE, easeOut(Math.min(1, (f.phaseFrame + 1) / 4)))
@@ -110,15 +116,26 @@ export interface Feet {
   bob: number
 }
 
+/**
+ * すり足: 足は床から上げず、進む側の足が先に滑り出て、もう一方が引きつける。体は上下に揺らさない。
+ * u は 0〜1 の一周。前半で足の間隔が開き、後半で閉じる。dir は進む向き（+1 前 / -1 後ろ）。
+ */
+function suriashi(u: number, dir: number, reach: number): Feet {
+  const ease = (t: number) => t * t * (3 - 2 * t)
+  const spread = u < 0.5 ? ease(u * 2) : 1 - ease((u - 0.5) * 2)
+  // 前進は右足が先、後退は左足が先に動く
+  return dir >= 0
+    ? { right: reach * spread, left: -reach * 0.15 * spread, bob: 0 }
+    : { right: reach * 0.15 * spread, left: -reach * spread, bob: 0 }
+}
+
 function footOffset(f: Fighter): Feet {
   if (f.phase === 'step') {
-    const p = f.phaseFrame / STEP_FRAMES
-    const dir = f.stepDir
-    return { right: dir * 0.12 * Math.sin(p * Math.PI), left: -dir * 0.06 * Math.sin(p * Math.PI), bob: 0.03 * Math.sin(p * Math.PI) }
+    return suriashi(f.phaseFrame / STEP_FRAMES, f.stepDir, 0.16)
   }
   if (f.phase === 'move') {
-    const s = Math.sin(f.phaseFrame * 0.3)
-    return { right: 0.05 * s, left: -0.05 * s, bob: Math.abs(s) * 0.015 }
+    const dir = f.backFrames >= EVADE_BACK_FRAMES - 1 ? -1 : 1
+    return suriashi((f.phaseFrame * 0.045) % 1, dir, 0.14)
   }
   if (f.phase === 'windup' || f.phase === 'active') {
     // 踏み込み: 右足を大きく出す
@@ -164,12 +181,14 @@ export class Kenshi {
     // ── 下半身: 裾の広がった袴と足（右足前）──
     const hips = new THREE.Group()
     hips.position.y = HIP_Y
-    const hakama = mesh(new THREE.CylinderGeometry(0.2, 0.37, HIP_Y - 0.04, 24), GEAR.hakama)
-    hakama.position.y = -(HIP_Y - 0.04) / 2
+    // 裾は足首の上まで（足さばきが見えるように床から少し浮かせる）
+    const HEM = 0.13
+    const hakama = mesh(new THREE.CylinderGeometry(0.2, 0.36, HIP_Y - HEM, 24), GEAR.hakama)
+    hakama.position.y = -(HIP_Y - HEM) / 2
     // 袴のひだ（前後に数本の線）
     for (const z of [-0.12, 0, 0.12]) {
-      const pleat = mesh(new THREE.BoxGeometry(0.01, HIP_Y - 0.1, 0.012), 0x141a2a, { shadow: false })
-      pleat.position.set(0.3, -(HIP_Y - 0.1) / 2 - 0.02, z)
+      const pleat = mesh(new THREE.BoxGeometry(0.01, HIP_Y - 0.25, 0.012), 0x141a2a, { shadow: false })
+      pleat.position.set(0.3, -(HIP_Y - 0.1) / 2 - 0.05, z)
       pleat.rotation.z = -0.18
       hips.add(pleat)
     }

@@ -47,7 +47,7 @@
       </NuxtLink>
 
       <NuxtLink
-        to="/games/kendo0"
+        to="/games/kendo2"
         class="group no-underline bg-white/[0.04] border border-white/[0.08] rounded-2xl p-6 flex flex-col gap-3 transition-all duration-200 hover:bg-white/[0.08] hover:border-emerald-400/30 hover:shadow-[0_0_24px_rgba(52,211,153,0.12)]"
       >
         <div class="text-4xl">🥋</div>
@@ -56,7 +56,7 @@
             剣道 三本勝負
           </h2>
           <p class="m-0 mt-1 text-sm text-slate-500">
-            ようちえん・小学生（低学年）・小学生（高学年）の3つのレベルをタブで切り替え。親子対戦もCOM対戦もできる。
+            親子対戦もCOM対戦もできる。
           </p>
         </div>
         <div class="flex items-center gap-2 mt-auto">

@@ -46,14 +46,14 @@ describe('防御と返し技', () => {
     expect(s.points[0]).toMatchObject({ by: 0, technique: 'do', kaeshiFrom: 'men' })
   })
 
-  it('受付を過ぎてから打つと返し技にならない（相手の崩れも解けて、胴は外れる）', () => {
+  it('受付を過ぎてから打つと返し技にならない（相手の崩れも解けて、構えに自動で防がれる）', () => {
     let s = whiteStrikesGuardedRed('men')
     s = run(s, KAESHI_WINDOW, [hold('guardMen'), NO_INPUT])
     s = stepMatch(s, [press('do'), NO_INPUT])
     expect(s.fighters[0].strikeKaeshiFrom).toBeNull()
     s = run(s, STRIKES.do.windup)
     expect(s.phase).toBe('fight')
-    expect(s.events).toContainEqual({ type: 'miss', by: 0, technique: 'do' })
+    expect(s.events).toContainEqual({ type: 'blocked', by: 1, technique: 'do' })
   })
 
   it('面の防御をしている相手には小手が入る', () => {
@@ -62,12 +62,12 @@ describe('防御と返し技', () => {
     expect(s.points[0]).toMatchObject({ by: 1, technique: 'kote', kaeshiFrom: null })
   })
 
-  it('構えている相手に胴を打つと外れる（崩れない・点も入らない）', () => {
+  it('構えているだけの相手に打つと自動で防がれる（打った側が崩れ、点も入らない）', () => {
     let s = fightingAt(1.6)
     s = stepMatch(s, [NO_INPUT, press('do')])
     s = run(s, STRIKES.do.windup)
-    expect(s.events).toContainEqual({ type: 'miss', by: 1, technique: 'do' })
-    expect(s.fighters[1].phase).toBe('active')
+    expect(s.events).toContainEqual({ type: 'blocked', by: 0, technique: 'do' })
+    expect(s.fighters[1].phase).toBe('kuzure')
     expect(s.scores).toEqual([0, 0])
   })
 
@@ -77,6 +77,37 @@ describe('防御と返し技', () => {
     s = stepMatch(s, [hold('guardKote'), press('men')])
     s = run(s, STRIKES.men.windup, [hold('guardKote'), NO_INPUT])
     expect(s.points[0]).toMatchObject({ by: 1, technique: 'men' })
+  })
+})
+
+describe('抜き（下がってかわす）', () => {
+  /** 赤が面を打ち、白が打たれる瞬間に下がる。かわされるところまで進める */
+  function whiteBacksAway(): MatchState {
+    let s = fightingAt(2.4)
+    s = stepMatch(s, [press('men'), press('right')]) // 打ってきた瞬間に送り足で1歩下がる
+    return run(s, STRIKES.men.windup)
+  }
+
+  it('打突の瞬間に下がると技を抜かれ、打った側が崩れ、抜いた側に受付が開く', () => {
+    const s = whiteBacksAway()
+    expect(s.events).toContainEqual({ type: 'evaded', by: 1, technique: 'men' })
+    expect(s.fighters[0].phase).toBe('kuzure')
+    expect(s.fighters[1].kaeshiEvade).toBe(true)
+  })
+
+  it('受付の間に打つと抜き技（面抜き面）になる', () => {
+    let s = whiteBacksAway()
+    s = stepMatch(s, [NO_INPUT, press('men')])
+    s = run(s, 12)
+    expect(s.phase).toBe('ippon')
+    expect(s.points[0]).toMatchObject({ by: 1, technique: 'men', kaeshiFrom: 'men', evade: true })
+  })
+
+  it('下がっていなければ、遠くて届かないだけで何も起きない', () => {
+    let s = fightingAt(2.6)
+    s = stepMatch(s, [press('men'), NO_INPUT])
+    s = run(s, STRIKES.men.windup)
+    expect(s.fighters[0].phase).not.toBe('kuzure')
   })
 })
 
@@ -92,8 +123,9 @@ describe('試合進行', () => {
   it('二本先取で勝負あり、スタートで再戦', () => {
     const takeMen = (s: MatchState) => {
       s = fightingAt(1.6, s)
-      s = stepMatch(s, [press('men'), NO_INPUT])
-      return run(s, STRIKES.men.windup)
+      // 相手が下がっている（構えのままではない）ところへ面を打つ
+      s = stepMatch(s, [press('men'), hold('right')])
+      return run(s, STRIKES.men.windup, [NO_INPUT, hold('right')])
     }
     let s = run(takeMen(createMatch()), IPPON_FRAMES)
     expect(s.phase).toBe('ready')

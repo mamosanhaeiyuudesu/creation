@@ -65,8 +65,18 @@ export interface Fighter {
   kaeshiWindow: number
   /** 防いだ相手の技（「面返し胴」の「面」） */
   kaeshiFrom: Technique | null
+  /** その受付が「抜き」（下がってかわした）によるものか */
+  kaeshiEvade: boolean
   /** 今出している打突が返し技なら、その元になった技 */
   strikeKaeshiFrom: Technique | null
+  /** 今出している胴が抜き胴として入る回に当たったか（打突を始めた瞬間に決まる） */
+  nukiOk: boolean
+  /** 今出している返し技が抜き技（面抜き面など）か */
+  strikeEvade: boolean
+  /** 直近で下がった（相手と逆へ動いた）残りフレーム。抜きの判定に使う */
+  backFrames: number
+  /** kuzure でいる長さ（防がれたときと抜かれたときで違う） */
+  kuzureFrames: number
 }
 
 export type Maai = 'toma' | 'issoku' | 'chikama'
@@ -78,14 +88,19 @@ export interface Point {
   technique: Technique
   /** 返し技なら元になった技 */
   kaeshiFrom: Technique | null
+  /** 抜き胴で取った一本 */
+  nuki: boolean
+  /** 抜き技（面抜き面など）で取った一本 */
+  evade: boolean
   frame: number
 }
 
 export type MatchEvent =
   | { type: 'strike'; by: PlayerId; technique: Technique; kaeshi: boolean }
-  | { type: 'ippon'; by: PlayerId; technique: Technique; kaeshiFrom: Technique | null }
+  | { type: 'ippon'; by: PlayerId; technique: Technique; kaeshiFrom: Technique | null; nuki: boolean; evade: boolean }
   | { type: 'blocked'; by: PlayerId; technique: Technique }
   | { type: 'miss'; by: PlayerId; technique: Technique }
+  | { type: 'evaded'; by: PlayerId; technique: Technique }
   | { type: 'aiuchi' }
   | { type: 'hajime' }
   | { type: 'shobuari'; winner: PlayerId }

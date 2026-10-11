@@ -16,11 +16,14 @@ export interface StrikeData {
 
 // 届く距離（体の中心どうし＝reach + lunge + 部位の前寄り）は 小手 2.5 > 突き 2.4 > 面 2.3 > 胴 2.0
 export const STRIKES: Readonly<Record<Technique, StrikeData>> = {
-  kote: { windup: 15, active: 4, recovery: 18, reach: 1.8, lunge: 0.4 },  // 0.25秒 / 0.30秒
+  kote: { windup: 12, active: 4, recovery: 18, reach: 1.8, lunge: 0.4 },  // 0.20秒 / 0.30秒（小手は振りかぶりが小さく、面より速い）
   tsuki: { windup: 17, active: 4, recovery: 30, reach: 1.9, lunge: 0.5 }, // 0.28秒 / 0.50秒（外すと隙が大きい）
   men: { windup: 18, active: 4, recovery: 21, reach: 1.8, lunge: 0.5 },   // 0.30秒 / 0.35秒
   do: { windup: 21, active: 5, recovery: 24, reach: 1.55, lunge: 0.45 },  // 0.35秒 / 0.40秒
 }
+
+/** 抜き胴: 相手が面を打ってくるところへ胴を打つと、この確率（約5回に1回）で入る */
+export const NUKI_DO_RATE = 0.2
 
 /** 返し技: 振りかぶりが速い（届く距離・判定は元の技のまま） */
 export const KAESHI_WINDUP = 9 // 0.15秒
@@ -40,7 +43,7 @@ export const PART_OFFSET: Readonly<Record<Technique, number>> = {
  */
 export type Stance = 'normal' | Guard
 export const OPENINGS: Readonly<Record<Stance, Readonly<Record<Technique, boolean>>>> = {
-  normal: { men: true, kote: false, do: false, tsuki: true },
+  normal: { men: true, kote: false, do: false, tsuki: false },
   men: { men: false, kote: true, do: true, tsuki: false },
   kote: { men: true, kote: false, do: false, tsuki: false },
 }
@@ -48,9 +51,17 @@ export const OPENINGS: Readonly<Record<Stance, Readonly<Record<Technique, boolea
 /** 防御ボタンを押してから効き始めるまで */
 export const GUARD_STARTUP = 3 // 0.05秒
 /** 防がれた側が崩れている時間（返し技の受付＋返し技の振りかぶりより長くする） */
-export const KUZURE_FRAMES = 45 // 0.75秒
+export const KUZURE_FRAMES = 22 // 0.37秒（受付0.2秒＋返し技の振りかぶり0.15秒の直後まで。受付を過ぎて打っても崩れは解けている）
+/** 抜き（相手の打突の瞬間に下がってかわす）: 下がってから何フレーム以内の打突を「抜いた」とみなすか */
+export const EVADE_BACK_FRAMES = 15 // 0.25秒
+/** 抜き: 下がらなければ届いていたとみなす余裕（届く距離にこの分を足す） */
+export const EVADE_SLACK = 0.8
+/** 抜いたあと、抜き技（面抜き面など）を出せる時間 */
+export const EVADE_WINDOW = 18 // 0.3秒
+/** 抜かれた側が崩れている時間（抜き技の受付＋返し技の振りかぶりより長くする） */
+export const EVADE_KUZURE_FRAMES = 30 // 0.5秒
 /** 防いだ瞬間から返し技を出せる時間 */
-export const KAESHI_WINDOW = 30 // 0.5秒
+export const KAESHI_WINDOW = 12 // 0.2秒（構えのままの自動防御で止めたあと、すぐ打ち返す）
 /** 打突を始めてから次に打てるまで（返し技はこの間でも打てる） */
 export const ATTACK_COOLDOWN = 90 // 1.5秒
 

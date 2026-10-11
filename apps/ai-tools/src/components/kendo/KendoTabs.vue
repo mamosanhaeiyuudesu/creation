@@ -1,5 +1,5 @@
 <template>
-  <nav class="w-full max-w-5xl grid grid-cols-3 gap-2 mb-4" aria-label="剣道ゲームのレベル">
+  <nav v-if="KENDO_TABS.length > 1" class="w-full max-w-5xl grid grid-cols-3 gap-2 mb-4" aria-label="剣道ゲームのレベル">
     <NuxtLink
       v-for="tab in KENDO_TABS"
       :key="tab.path"
@@ -13,9 +13,9 @@
       ]"
     >
       <span :class="['text-sm sm:text-base font-bold', route.path === tab.path ? 'text-emerald-300' : 'text-slate-300']">
-        {{ tab.icon }} {{ tab.target }}
+        {{ tab.icon }} {{ tab.target || tab.name }}
       </span>
-      <span class="text-[11px] text-slate-500">{{ tab.name }}・{{ tab.lead }}</span>
+      <span class="text-[11px] text-slate-500">{{ tab.target ? tab.name + '・' : '' }}{{ tab.lead }}</span>
     </NuxtLink>
   </nav>
 </template>
@@ -27,8 +27,9 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 
 const KENDO_TABS = [
-  { path: '/games/kendo0', icon: '🌱', target: 'ようちえん', name: '第0弾', lead: 'ボタン1つ・光ったら打つ' },
-  { path: '/games/kendo', icon: '🎒', target: '小学生（低学年）', name: '第1弾', lead: '間合い・面／小手／胴' },
-  { path: '/games/kendo2', icon: '🛡️', target: '小学生（高学年）', name: '第2弾', lead: '防御・返し技・突き' },
+  // 幼稚園・低学年は画面上では非表示（ページ自体は残してある）
+  // { path: '/games/kendo0', icon: '🌱', target: 'ようちえん', name: '第0弾', lead: 'ボタン1つ・光ったら打つ' },
+  // { path: '/games/kendo', icon: '🎒', target: '小学生（低学年）', name: '第1弾', lead: '間合い・面／小手／胴' },
+  { path: '/games/kendo2', icon: '🛡️', target: '', name: '第2弾', lead: '防御・返し技' },
 ] as const
 </script>

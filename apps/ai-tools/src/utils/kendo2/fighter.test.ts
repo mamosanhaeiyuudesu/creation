@@ -34,7 +34,7 @@ function phases(f: Fighter, first: PlayerInput, n: number): FighterPhase[] {
 const p1 = () => createFighter(0, 0, 1)
 
 describe('打突のフレーム進行', () => {
-  for (const t of ['men', 'kote', 'do', 'tsuki'] as Technique[]) {
+  for (const t of ['men', 'kote', 'do'] as Technique[]) {
     it(`${t}: windup → active → recovery → idle がフレームデータどおり`, () => {
       const d = STRIKES[t]
       const list = phases(p1(), press(t), d.windup + d.active + d.recovery + 1)

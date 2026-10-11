@@ -4,11 +4,12 @@ import { createFighter } from './fighter'
 import { inReach, judgeStrike } from './hit'
 import type { Fighter, Guard, Technique } from './types'
 
-type DefenderKind = 'normal' | Guard | 'kuzure' | 'hit'
+type DefenderKind = 'normal' | 'idle' | Guard | 'kuzure' | 'hit'
 
 function defender(kind: DefenderKind, x = 1): Fighter {
   const base = createFighter(1, x, -1)
-  if (kind === 'normal') return base
+  if (kind === 'normal') return { ...base, phase: 'move' } // 動いている（構えのままではない）
+  if (kind === 'idle') return base // 何もしていない構え＝どの技も自動で防ぐ
   if (kind === 'kuzure') return { ...base, phase: 'kuzure' }
   if (kind === 'hit') return { ...base, phase: 'hit' }
   return { ...base, phase: 'guard', guard: kind, phaseFrame: GUARD_STARTUP }
@@ -24,7 +25,7 @@ describe('相手の構えで入るかどうか', () => {
     men: { normal: 'hit', men: 'blocked', kote: 'hit' },
     kote: { normal: 'miss', men: 'hit', kote: 'blocked' },
     do: { normal: 'miss', men: 'hit', kote: 'blocked' },
-    tsuki: { normal: 'hit', men: 'blocked', kote: 'blocked' },
+    tsuki: { normal: 'miss', men: 'blocked', kote: 'blocked' }, // 突きは無し（ボタン無効）
   }
   for (const t of Object.keys(table) as Technique[]) {
     for (const d of ['normal', 'men', 'kote'] as const) {
@@ -74,5 +75,26 @@ describe('届く距離', () => {
   it('小手は部位が前にあるぶん、体の中心から遠くても届く', () => {
     const d = defender('men', STRIKES.kote.reach + PART_OFFSET.kote - 0.01)
     expect(judgeStrike(attacker('kote'), d)).toBe('hit')
+  })
+})
+
+describe('構えのまま何もしていない相手', () => {
+  for (const t of ['men', 'kote', 'do'] as Technique[]) {
+    it(`${t} は自動で防がれる`, () => {
+      expect(judgeStrike(attacker(t), defender('idle'))).toBe('blocked')
+    })
+  }
+})
+
+describe('抜き胴', () => {
+  const striking = { ...defender('normal'), phase: 'windup' as const, technique: 'men' as const }
+  it('相手が面を打ってくる最中に、当たりの回の胴は入る', () => {
+    expect(judgeStrike({ ...attacker('do'), nukiOk: true }, striking)).toBe('hit')
+  })
+  it('外れの回の胴は入らない', () => {
+    expect(judgeStrike({ ...attacker('do'), nukiOk: false }, striking)).toBe('miss')
+  })
+  it('相手が面を打ってきていなければ、当たりの回でも入らない', () => {
+    expect(judgeStrike({ ...attacker('do'), nukiOk: true }, defender('normal'))).toBe('miss')
   })
 })

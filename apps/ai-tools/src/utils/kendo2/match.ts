@@ -2,9 +2,9 @@
 //
 //   ready ─(READY_FRAMES)→ fight ─(有効打突)→ ippon ─(IPPON_FRAMES)→ ready …
 //                                                   └(規定本数に達した)→ end ─(スタート)→ 新しい試合
-import { DEFAULT_POINTS_TO_WIN, IPPON_FRAMES, READY_FRAMES, START_X } from './constants'
-import { createFighter, markBlocked, markHit, markKuzure, stepFighter } from './fighter'
-import { judgeStrike } from './hit'
+import { DEFAULT_POINTS_TO_WIN, IPPON_FRAMES, NUKI_DO_RATE, READY_FRAMES, START_X } from './constants'
+import { createFighter, EVADE_KUZURE_FRAMES, markBlocked, markEvaded, markHit, markKuzure, stepFighter } from './fighter'
+import { isNuki, judgeStrike } from './hit'
 import type { StrikeOutcome } from './hit'
 import { separate } from './maai'
 import type { Action, ActionSet, Fighter, MatchEvent, MatchPhase, MatchRules, MatchState, PlayerInput } from './types'
@@ -24,6 +24,14 @@ export const NO_ACTIONS: ActionSet = {
 }
 
 export const NO_INPUT: PlayerInput = { held: NO_ACTIONS, pressed: NO_ACTIONS }
+
+/** 抜き胴の当たり回か。フレーム番号と選手から決まる擬似乱数（同じ試合なら同じ結果） */
+function nukiRoll(frame: number, id: number): boolean {
+  let h = (Math.imul(frame + 1, 2654435761) ^ Math.imul(id + 7, 40503)) >>> 0
+  h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0
+  h = Math.imul(h ^ (h >>> 13), 3266489917) >>> 0
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296 < NUKI_DO_RATE
+}
 
 function startingFighters(): [Fighter, Fighter] {
   return [createFighter(0, -START_X, 1), createFighter(1, START_X, -1)]
@@ -67,6 +75,10 @@ function applyNonHit(
     out[by] = markKuzure(attacker)
     out[other] = markBlocked(fighters[other], technique)
     events.push({ type: 'blocked', by: fighters[other].id, technique })
+  } else if (outcome === 'evaded') {
+    out[by] = markKuzure(attacker, EVADE_KUZURE_FRAMES)
+    out[other] = markEvaded(fighters[other], technique)
+    events.push({ type: 'evaded', by: fighters[other].id, technique })
   } else if (outcome === 'miss') {
     out[by] = { ...attacker, hasHit: true }
     events.push({ type: 'miss', by: attacker.id, technique })
@@ -88,15 +100,23 @@ export function stepMatch(prev: MatchState, inputs: readonly [PlayerInput, Playe
     }
 
     case 'fight': {
-      const stepped = [stepFighter(s.fighters[0], inputs[0]), stepFighter(s.fighters[1], inputs[1])] as const
+      const stepped: [Fighter, Fighter] = [stepFighter(s.fighters[0], inputs[0]), stepFighter(s.fighters[1], inputs[1])]
       for (const f of stepped) {
         const before = s.fighters[f.id]
         if (f.phase === 'windup' && before.phase !== 'windup') {
+          // 抜き胴の当たり外れは打ち始めの1回だけ決める（フレーム番号から決まるので乱数は使わない）
+          stepped[f.id] = { ...f, nukiOk: f.technique === 'do' && nukiRoll(s.frame, f.id) }
           events.push({ type: 'strike', by: f.id, technique: f.technique!, kaeshi: f.strikeKaeshiFrom !== null })
         }
       }
       let fighters = separate(stepped[0], stepped[1])
-      const outcomes = [judgeStrike(fighters[0], fighters[1]), judgeStrike(fighters[1], fighters[0])] as const
+      let outcomes: [StrikeOutcome, StrikeOutcome] = [judgeStrike(fighters[0], fighters[1]), judgeStrike(fighters[1], fighters[0])]
+
+      // 相打ちでも、抜き胴が決まった側が一本（面は抜かれている）
+      const nuki0 = outcomes[0] === 'hit' && isNuki(fighters[0], fighters[1])
+      const nuki1 = outcomes[1] === 'hit' && isNuki(fighters[1], fighters[0])
+      if (nuki0) outcomes = ['hit', 'none']
+      else if (nuki1) outcomes = ['none', 'hit']
 
       if (outcomes[0] === 'hit' && outcomes[1] === 'hit') {
         fighters = [{ ...fighters[0], hasHit: true }, { ...fighters[1], hasHit: true }]
@@ -111,20 +131,22 @@ export function stepMatch(prev: MatchState, inputs: readonly [PlayerInput, Playe
         const attacker = fighters[scorer]
         const technique = attacker.technique!
         const kaeshiFrom = attacker.strikeKaeshiFrom
+        const nuki = scorer === 0 ? nuki0 : nuki1
+        const evade = attacker.strikeEvade
         const next: [Fighter, Fighter] = [fighters[0], fighters[1]]
         next[scorer] = { ...attacker, hasHit: true }
         next[loser] = markHit(next[loser])
         const scores: [number, number] = [s.scores[0], s.scores[1]]
         scores[scorer] += 1
         const winner = scores[scorer] >= s.rules.pointsToWin ? scorer : null
-        events.push({ type: 'ippon', by: scorer, technique, kaeshiFrom })
+        events.push({ type: 'ippon', by: scorer, technique, kaeshiFrom, nuki, evade })
         s = toPhase(
           {
             ...s,
             fighters: next,
             scores,
             winner,
-            points: [...s.points, { by: scorer, technique, kaeshiFrom, frame: s.frame }],
+            points: [...s.points, { by: scorer, technique, kaeshiFrom, nuki, evade, frame: s.frame }],
           },
           'ippon',
         )

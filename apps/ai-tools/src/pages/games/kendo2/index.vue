@@ -34,8 +34,10 @@
 
     <KendoTabs />
 
+    <div class="w-full max-w-[1280px] flex flex-col lg:flex-row gap-4 items-start">
+    <div class="w-full min-w-0 flex-1">
     <!-- ═══ ゲーム画面 ═══ -->
-    <div ref="stageEl" class="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden border border-white/[0.08] bg-[#e8dcc4]">
+    <div ref="stageEl" class="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/[0.08] bg-[#e8dcc4]">
       <canvas ref="canvasEl" class="block w-full h-full" />
 
       <!-- スコア・状態・打てるまでのゲージ -->
@@ -59,21 +61,7 @@
               :style="{ width: `${hud.players[p.id].charge * 10}%` }"
             />
           </div>
-          <div
-            v-if="STATUS_LABEL[hud.players[p.id].status]"
-            :class="['px-2.5 py-0.5 rounded-full text-xs font-bold', STATUS_STYLE[hud.players[p.id].status]]"
-          >
-            {{ STATUS_LABEL[hud.players[p.id].status] }}
-          </div>
         </div>
-      </div>
-
-      <!-- 間合い -->
-      <div
-        v-if="hud.phase === 'fight' && !guide.speaking.value"
-        :class="['absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold pointer-events-none', MAAI_STYLE[hud.maai]]"
-      >
-        {{ MAAI_LABEL[hud.maai] }}
       </div>
 
       <!-- 掛け声・判定 -->
@@ -95,6 +83,12 @@
         <div class="mt-1 text-xs font-normal text-slate-400">{{ guide.current.value + 1 }} / {{ KENDO2_GUIDE.length }}</div>
       </div>
 
+      <!-- 一時停止 -->
+      <div v-if="paused" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 pointer-events-none">
+        <div class="text-5xl sm:text-7xl font-black tracking-widest text-white">一時停止</div>
+        <div class="mt-3 text-sm sm:text-base font-bold text-slate-200">START（スペース）でつづき</div>
+      </div>
+
       <KendoSetup v-if="setupOpen && !configOpen" ref="setupEl" :initial="setup" @start="startGame" />
 
       <!-- ボタン設定 -->
@@ -112,7 +106,7 @@
     </div>
 
     <!-- ═══ 操作説明 ═══ -->
-    <div class="w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 text-xs text-slate-400">
+    <div class="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 text-xs text-slate-400">
       <div v-for="p in PLAYERS" :key="p.id" class="bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3">
         <div class="flex items-center gap-2 mb-1.5">
           <span :class="['px-2 py-0.5 rounded font-bold', p.badge]">{{ p.label }}</span>
@@ -120,14 +114,25 @@
             {{ hud.pads[p.id].connected ? '🎮 接続中' : '🎮 未接続（キーボードで操作）' }}
           </span>
         </div>
-        <div>コントローラー: 十字キー左右＝歩く（連打で送り足）/ A＝面 / B＝小手 / Y＝胴 / X＝突き / L＝小手を守る / R＝面を守る / START＝再戦</div>
-        <div>キーボード: {{ p.keys }} / スペース＝再戦</div>
+        <div>コントローラー: 十字キー左右＝歩く（連打で送り足）<br />A＝面 / B＝小手 / Y＝胴 / L＝小手を守る / R＝面を守る / START＝一時停止（決着後は再戦）</div>
       </div>
     </div>
-    <p class="w-full max-w-5xl mt-3 text-xs text-slate-500 leading-relaxed">
-      構えている相手には 面・突き、面を守っている相手には 小手・胴、小手を守っている相手には 面 が入ります。
-      相手の打突を防いだら、0.5秒以内に打つと返し技（相手は崩れているので必ず入る）。
-    </p>
+    </div>
+
+    <!-- ═══ ゲームルール（右サイドバー） ═══ -->
+    <aside class="w-full lg:w-72 shrink-0 bg-white/[0.04] border border-white/[0.08] rounded-2xl px-5 py-4 text-[14px] sm:text-base font-bold text-slate-200 leading-loose">
+      <div class="text-sm text-emerald-400 mb-2">🥋 ルール</div>
+      <p class="m-0">じっと構えている相手は、どんな技も自動で防ぎます。</p>
+      <p class="m-0 mt-3">防いだら、すぐに打ち返そう。</p>
+      <p class="m-0 mt-3">相手が打ってきた瞬間にサッと下がると、技をかわせます。</p>
+      <p class="m-0 mt-3">相手はよろけるので、すぐに打とう。</p>
+      <p class="m-0 mt-3">動いている相手には、面が入ります。</p>
+      <p class="m-0 mt-3">面を守っている相手には、小手・胴が入ります。</p>
+      <p class="m-0 mt-3">小手を守っている相手には、面が入ります。</p>
+      <p class="m-0 mt-3">小手は面より遠くから届いて、打つのも速いよ。</p>
+      <p class="m-0 mt-3">相手が面を打ってくるところへ胴を打つと、たまに抜き胴が入ります。</p>
+    </aside>
+    </div>
   </div>
 </template>
 
@@ -164,8 +169,8 @@ const FLASH_SHOW = 40
 const WHITE_TEXT = 'text-white [-webkit-text-stroke:2px_#334155]'
 
 const PLAYERS = [
-  { id: 0 as PlayerId, label: '赤', badge: 'bg-red-600 text-white', keys: 'A/D＝移動・F＝面・G＝小手・H＝胴・T＝突き・Q＝小手を守る・E＝面を守る' },
-  { id: 1 as PlayerId, label: '白', badge: 'bg-white text-slate-900', keys: '←/→＝移動・J＝面・K＝小手・L＝胴・I＝突き・U＝小手を守る・O＝面を守る' },
+  { id: 0 as PlayerId, label: '赤', badge: 'bg-red-600 text-white', keys: 'A/D＝移動・F＝面・G＝小手・H＝胴・Q＝小手を守る・E＝面を守る' },
+  { id: 1 as PlayerId, label: '白', badge: 'bg-white text-slate-900', keys: '←/→＝移動・J＝面・K＝小手・L＝胴・U＝小手を守る・O＝面を守る' },
 ]
 const TECHNIQUE_NAME: Record<Technique, string> = { men: '面', kote: '小手', do: '胴', tsuki: '突き' }
 const TECHNIQUE_MARK: Record<Technique, string> = { men: 'メ', kote: 'コ', do: 'ド', tsuki: 'ツ' }
@@ -181,10 +186,10 @@ const STATUS_LABEL: Record<Status, string> = {
   none: '',
   guardMen: '🛡 面を守る',
   guardKote: '🛡 小手を守る',
-  kuzure: '💫 崩れた！',
+  kuzure: '',
   kaeshi: '⚡ 返せ！',
-  blocked: '✋ 防いだ！',
-  miss: 'はずれ',
+  blocked: '',
+  miss: '',
 }
 const STATUS_STYLE: Record<Status, string> = {
   none: '',
@@ -200,7 +205,6 @@ const CONFIG_ACTIONS: { key: Action; label: string }[] = [
   { key: 'men', label: '面' },
   { key: 'kote', label: '小手' },
   { key: 'do', label: '胴' },
-  { key: 'tsuki', label: '突き' },
   { key: 'guardKote', label: '小手を守る' },
   { key: 'guardMen', label: '面を守る' },
   { key: 'start', label: 'スタート（再戦）' },
@@ -221,7 +225,7 @@ interface Hud {
   phase: MatchPhase
   phaseFrame: number
   players: [PlayerHud, PlayerHud]
-  lastPoint: { by: PlayerId; technique: Technique; kaeshiFrom: Technique | null } | null
+  lastPoint: { by: PlayerId; technique: Technique; kaeshiFrom: Technique | null; nuki: boolean; evade: boolean } | null
   winner: PlayerId | null
   maai: Maai
   aiuchi: boolean
@@ -255,7 +259,7 @@ function hudOf(s: MatchState, aiuchi: boolean, pads: [PadStatus, PadStatus]): Hu
     phase: s.phase,
     phaseFrame: Math.min(s.phaseFrame, HAJIME_SHOW),
     players: [player(s.fighters[0]), player(s.fighters[1])],
-    lastPoint: last ? { by: last.by, technique: last.technique, kaeshiFrom: last.kaeshiFrom } : null,
+    lastPoint: last ? { by: last.by, technique: last.technique, kaeshiFrom: last.kaeshiFrom, nuki: last.nuki, evade: last.evade } : null,
     winner: s.winner,
     maai: classifyMaai(distanceBetween(s.fighters[0], s.fighters[1])),
     aiuchi,
@@ -277,8 +281,8 @@ const callout = computed(() => {
   }
   if (h.phase === 'fight' && h.aiuchi) return { text: '相打ち', color: 'text-slate-700', sub: '' }
   if (h.phase === 'ippon' && h.lastPoint) {
-    const { by, technique, kaeshiFrom } = h.lastPoint
-    const name = kaeshiFrom ? `${TECHNIQUE_NAME[kaeshiFrom]}返し${TECHNIQUE_NAME[technique]}` : TECHNIQUE_NAME[technique]
+    const { by, technique, kaeshiFrom, nuki, evade } = h.lastPoint
+    const name = nuki ? '抜き胴' : kaeshiFrom ? `${TECHNIQUE_NAME[kaeshiFrom]}${evade ? '抜き' : '返し'}${TECHNIQUE_NAME[technique]}` : TECHNIQUE_NAME[technique]
     return {
       text: `${name}あり！`,
       color: by === 0 ? 'text-red-600' : WHITE_TEXT,
@@ -302,8 +306,11 @@ const setupOpen = ref(true)
 const setupEl = ref<InstanceType<typeof KendoSetup> | null>(null)
 let com: Kendo2Com | null = null
 
+const paused = ref(false)
+
 function openSetup() {
   guide.stop()
+  paused.value = false
   setupOpen.value = true
 }
 
@@ -311,6 +318,7 @@ function startGame(value: KendoSetupValue) {
   setup.value = value
   saveSetup(SETUP_KEY, value)
   setupOpen.value = false
+  paused.value = false
   match = createMatch()
   resetFlashes()
   com = value.vsCom ? createKendo2Com(value.level, freshSeed(), 1) : null
@@ -405,10 +413,21 @@ function frame(now: number) {
     // 読み上げ中は止めておく（聞いている間に試合が進まないように）
     input.clearPending()
     accumulator = 0
+  } else if (paused.value) {
+    // 一時停止中: START でつづき
+    const [a, b] = input.take()
+    if (a.pressed.start || b.pressed.start) paused.value = false
+    accumulator = 0
   } else {
     while (accumulator >= STEP_MS) {
       const prevFrame = match.frame
       const inputs = input.take()
+      // 試合中の START で一時停止（決着後の START は再戦なのでそのまま渡す）
+      if (match.phase !== 'end' && (inputs[0].pressed.start || inputs[1].pressed.start)) {
+        paused.value = true
+        accumulator = 0
+        break
+      }
       if (com) inputs[1] = com.decide(match)
       match = stepMatch(match, inputs)
       if (match.frame < prevFrame) {
