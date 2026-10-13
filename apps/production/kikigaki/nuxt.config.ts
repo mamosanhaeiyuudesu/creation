@@ -33,9 +33,8 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     // ── サーバー専用（クライアントへは絶対に出さない） ──
-    openaiApiKey: '',
     anthropicApiKey: '',
-    // 議事録・文字起こしの暗号化鍵（32文字以上）。ai-tools とは別の鍵を使う
+    // 議事録・元の文章の暗号化鍵（32文字以上）。ai-tools とは別の鍵を使う
     encryptionKey: '',
     // Stripe（Phase 3）
     stripeSecretKey: '',
@@ -59,10 +58,6 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: 'cloudflare_module',
-    devServer: {
-      // @ts-ignore — Nitro の型定義に maxBodySize は無いが h3 の dev server では有効
-      maxBodySize: 100 * 1024 * 1024, // 100MB（分割した音声チャンクの並列アップロード）
-    },
   },
   devServer: {
     port: 3009,

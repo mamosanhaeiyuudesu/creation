@@ -1,14 +1,13 @@
-// 文字起こし → AIが議事録の形に整えて保存する。
+// 会議の文章 → AIが議事録の形に整えて保存する。
 // ここまで来たら必ず1件の議事録ができる（下書きという状態は持たない）。
 
 import { requireUser } from '~/server/utils/auth'
 import { requireEntitlement } from '~/server/utils/entitlement'
 import { createRecord } from '~/server/utils/minutes'
 import { structureTranscript } from '~/server/utils/minutes-ai'
-import { loadGlossaryTerms } from '~/server/utils/glossary-store'
 import { addUsage, requireRecordAllowance } from '~/server/utils/usage'
 
-/** 1回の会議として受け付ける文字起こしの長さの上限（約8時間ぶんの会話を想定した安全弁） */
+/** 1回の会議として受け付ける文章の長さの上限（約8時間ぶんの会話を想定した安全弁） */
 const MAX_TRANSCRIPT_CHARS = 150_000
 
 export default defineEventHandler(async (event) => {
@@ -23,19 +22,17 @@ export default defineEventHandler(async (event) => {
   if (!transcript) {
     throw createError({
       statusCode: 400,
-      message:
-        '声が聞き取れませんでした。スマホを話す人の近くに置いて録音し直すか、別のファイルをお試しください。',
+      message: '文章が空でした。中身のあるファイルか、貼り付けた文章でお試しください。',
     })
   }
   if (transcript.length > MAX_TRANSCRIPT_CHARS) {
     throw createError({
       statusCode: 413,
-      message: '録音が長すぎて一度にまとめられません。会議を前半・後半に分けてお試しください。',
+      message: '文章が長すぎて一度にまとめられません。会議を前半・後半に分けてお試しください。',
     })
   }
 
-  const terms = await loadGlossaryTerms(event, user.id)
-  const minutes = await structureTranscript(event, transcript, terms)
+  const minutes = await structureTranscript(event, transcript)
   const id = await createRecord(event, user.id, (body?.audioName ?? '').slice(0, 200), transcript, minutes)
   await addUsage(event, user.id, { records: 1 })
 

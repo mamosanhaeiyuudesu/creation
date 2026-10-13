@@ -55,11 +55,6 @@ export async function ensureTables(db: any): Promise<void> {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
     `CREATE INDEX IF NOT EXISTS idx_records_user ON records (user_id, created_at DESC)`,
-    `CREATE TABLE IF NOT EXISTS glossary (
-      user_id TEXT PRIMARY KEY,
-      body TEXT NOT NULL DEFAULT '',
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )`,
     `CREATE TABLE IF NOT EXISTS subscriptions (
       user_id TEXT PRIMARY KEY,
       stripe_customer_id TEXT NOT NULL DEFAULT '',

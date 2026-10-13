@@ -1,6 +1,6 @@
 # キキガキ（本番版）
 
-会議の録音から議事録をつくるサービス。 https://kikigaki.insightlens.jp/
+会議の文章（テキスト）から議事録をつくるサービス。音声の文字起こしは扱わない（2026-10-13 にやめた）。 https://kikigaki.insightlens.jp/
 
 `apps/ai-tools` の `/kikigaki`（身内向けの道具）を、一般ユーザーが自分で登録して使える形に作り直したもの。
 **ai-tools 側の `/kikigaki` はコピー元として扱い、変更しない。**
@@ -15,16 +15,13 @@
 - 1画面に置く操作は原則1つ。主役の色（緑）は1画面に1つだけ
 
 専門用語（連携・スコープ・構造化・ステータス・トークン）は画面に出さない。
-エラーは原因ではなく**次にすべきこと**を書く（「音が小さくて聞き取れませんでした。
-スマホを話す人の近くに置いて、もう一度録音してください」）。
+エラーは原因ではなく**次にすべきこと**を書く（「文章が長すぎて一度にまとめられません。
+前半・後半に分けてお試しください」）。
 
 ## 処理の流れ
 
 ```
-録音ファイルをえらぶ
-  → （ブラウザ）長い会議は10分ごと・16kHzモノラルWAVに分割、同時3本まで
-  → POST /api/transcribe   OpenAI gpt-4o-transcribe ＋ よく出る名前（辞書）
-  → cleanTranscript()      無音の幻覚・繰り返しループ・プロンプト漏れを落とす
+文章のファイル(.txt)をえらぶ／文章を貼り付ける
   → POST /api/minutes      Claude が構造化して D1 に保存（暗号化）
   → /records/[id] で確認・修正（「AIで直す」もここ）
   → PDF（ブラウザで生成してダウンロード。サーバーにPDFは置かない）
@@ -35,7 +32,7 @@
 | ルート | 内容 |
 |---|---|
 | `/` | 未ログイン＝ログイン（Google／メールのリンク）。ログイン後＝大ボタン1つ＋これまでの議事録 |
-| `/new` | 録音をえらぶ → まとめ中 → できたら `/records/[id]` へ |
+| `/new` | 文章をえらぶ・貼り付け → まとめ中 → できたら `/records/[id]` へ |
 | `/records/[id]` | 内容の確認・修正・PDF・削除 |
 | `/settings` | 設定はポップアップ（`components/SettingsSheet.vue`）。このURLは開くとトップへ戻して設定を開く（Stripeの戻り先） |
 | `/auth/finish` | メールのリンクから戻ってくる場所 |
@@ -61,13 +58,8 @@
 - **契約状態を書き込むのは Stripe の webhook だけ**。画面の操作では書き換えない。
   webhook は署名を検証し、イベントIDを `stripe_events` に記録して二重処理を防ぐ。
   失敗したら記録を消してから500を返す（消さないと再送が「処理済み」と判定されて永久に取りこぼす）。
-- **利用上限**は `SERVICE.limits`。文字起こしの長さは **WAVのヘッダーから数える**ので
-  ブラウザの申告に依存しない（圧縮音声のときだけ申告値を使い、サイズから見てありえない短さは丸める。
-  `src/utils/audioLength.ts`）。
-- **文字起こしの prompt は文章の形のまま渡すこと**。語の羅列にすると辞書がまったく効かない
-  （ai-tools で実測済み）。漏れ対策は `stripPromptEcho()` 側で行う。
-- 音声分割の数値（10分・16kHz・同時3本・20字/分）は ai-tools で事故を出して決めた値。
-  軽い気持ちで変えないこと（`src/composables/useTranscribe.ts` の冒頭コメント参照）。
+- **利用上限**は `SERVICE.limits`（月の議事録の件数）。音声の文字起こしをやめたので分数の上限は無い。
+  D1 の `usage_monthly.seconds` と `records.audio_name` 列は残しているが使っていない（マイグレーション回避）。
 - Cron は使わない（Freeプランのcronはアカウント全体で5個までで、ai-tools が使い切っている）。
 
 ## ローカルで動かす
@@ -126,7 +118,6 @@ stripe listen --forward-to localhost:3009/api/stripe/webhook   # 表示される
 ### 4. シークレット
 
 ```bash
-wrangler secret put NUXT_OPENAI_API_KEY
 wrangler secret put NUXT_ANTHROPIC_API_KEY
 wrangler secret put NUXT_ENCRYPTION_KEY       # 32文字以上。ai-tools とは別の鍵
 wrangler secret put NUXT_STRIPE_SECRET_KEY

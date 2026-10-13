@@ -1,4 +1,4 @@
-// 会議の中身（タイトル・文字起こし・議事録JSON・よく出る名前）の暗号化。
+// 会議の中身（タイトル・元の文章・議事録JSON）の暗号化。
 // apps/ai-tools/src/server/utils/encrypt.ts からの移植（Cron 用の引数版は使わないので省いた）。
 //
 // 会議には個人名も、まだ公にできない話も普通に含まれる。DBを直接覗いても読めない状態にしておく。
@@ -34,7 +34,7 @@ const getKey = async (event: H3Event): Promise<CryptoKey> => {
 }
 
 // String.fromCharCode(...bytes) は引数が数万個になるとスタックを超えて落ちるため、
-// 長い文字起こしでも安全なように分割して変換する。
+// 長い文章でも安全なように分割して変換する。
 const toBase64 = (bytes: Uint8Array): string => {
   let binary = ''
   const CHUNK = 8192

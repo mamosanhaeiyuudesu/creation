@@ -6,7 +6,7 @@
 //   モニター期間中は契約状態を一切見ない＝全ユーザーが課金なしで全機能を使える。
 //
 // 判定そのものは src/utils/entitlement.ts の純粋関数にあり、テストもそちらに書いてある。
-// AI を呼ぶ口（/api/transcribe・/api/minutes・/api/minutes/*）の先頭で必ず通すこと。
+// AI を呼ぶ口（/api/minutes・/api/minutes/*）の先頭で必ず通すこと。
 
 import type { H3Event } from 'h3'
 import { loadSubscription } from '~/server/utils/stripe'

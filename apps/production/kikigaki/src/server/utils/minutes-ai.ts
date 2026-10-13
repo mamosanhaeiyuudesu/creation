@@ -1,35 +1,16 @@
 // 議事録づくりの Claude 呼び出しを集約する。
 // apps/ai-tools/src/server/utils/kikigaki-ai.ts からの移植。
 //
-// ★構造化の「匙加減」＝創作の禁止・決定と検討の切り分け・用語補正・日付を確定してよい条件は
+// ★構造化の「匙加減」＝創作の禁止・決定と検討の切り分け・日付を確定してよい条件は
 //   全部このファイルのシステムプロンプトに置いてある。精度やトーンを変えるときはここだけ触る。
-//
-// ★ai-tools 版との違いは用語集だけ。あちらは全ユーザー共通のハードコード辞書を埋め込んでいたが、
-//   本番版は利用者ごとの「よく出る名前」（語の配列）を受け取り、登録が無ければ用語集の節ごと省く。
 
 import type { H3Event } from 'h3'
 import { callClaudeText, getAnthropicKey, parseJsonLoose } from '~/server/utils/anthropic'
 import { normalizeMinutes } from '~/server/utils/minutes'
-import { glossaryForPrompt } from '~/utils/glossary'
 import { jstToday } from '~/utils/formatDate'
 import type { Minutes, MinutesPoint } from '~/types/minutes'
 
 const MAX_TOKENS = 8000
-
-/** 用語集の節。登録が無ければ空文字（「用語集(なし)」と書くとAIが辞書を探して迷うため節ごと落とす） */
-function glossarySection(terms: string[]): string {
-  const list = glossaryForPrompt(terms)
-  if (!list) return ''
-  return `
-【用語の補正】
-- 以下は利用者が登録した、この会議でよく出てくる人名・地名・専門用語の「正しい表記」である。
-  文字起こしに表記ゆれ（読みのひらがな・誤変換）があれば、この表記に補正すること。
-- 用語集にない固有名詞は、文字起こしの表記をそのまま尊重すること(勝手に変換しない)。
-
-用語集:
-${list}
-`
-}
 
 /**
  * 構造化のシステムプロンプト。
@@ -38,7 +19,7 @@ ${list}
  * 確定した日時を別々に持つための欄。原文側は必ずそのまま残す
  * （カレンダー登録の機能は持っていないが、PDFで確定日時を優先表示するのに使う）。
  */
-function buildSystemPrompt(today: string, terms: string[]): string {
+function buildSystemPrompt(today: string): string {
   return `あなたは会議・打ち合わせなどの記録を構造化するアシスタントです。
 地域の会合に限らず、社内会議・商談・打ち合わせなど、あらゆる種類の会議・活動の記録が対象です。
 以下のルールを厳守してください。
@@ -47,7 +28,6 @@ function buildSystemPrompt(today: string, terms: string[]): string {
 - 文字起こしに書かれていない情報を絶対に追加しないこと。
 - 聞き取れない・意味が不明瞭な箇所は、無理に補完せず「[不明瞭]」と記載すること。
 - 推測や一般論で穴埋めしないこと。書かれている内容だけを根拠にすること。
-${glossarySection(terms)}
 【概要(summary)の書き方】
 - この会議・打ち合わせが何だったのか全体の流れを把握できるように、
   【背景】【話し合いの流れ】【結論・まとめ】のような見出しを立てて章立てした文章にすること
@@ -66,7 +46,7 @@ ${glossarySection(terms)}
   曖昧な時期表現(「来月中に」など)は日付を確定させず、原文の表現をそのまま残す。
 
 【日付の確定について】
-- この録音を取り込んだ日は ${today}（日本時間）である。
+- この文章を取り込んだ日は ${today}（日本時間）である。
 - 「来週の火曜日」のように、この日を基準にすれば一意に定まる表現に限り、
   due_date / start / end を YYYY-MM-DD、YYYY-MM-DDTHH:mm 形式で埋めてよい。
 - 少しでも曖昧な場合（「来月中に」「そのうち」「都合のいい日に」など）は、
@@ -96,10 +76,10 @@ ${glossarySection(terms)}
 /**
  * 「AIで直す」用のシステムプロンプト。
  * ゼロベースの構造化ではなく、すでにある議事録を人間の指示（名前の言い間違いの直しなど）に沿って
- * 部分的に書き換えるのが目的。創作禁止・用語補正は構造化と揃え、
+ * 部分的に書き換えるのが目的。創作禁止は構造化と揃え、
  * 「指示にない項目は変えない」ことだけ足している。
  */
-function buildReviseSystemPrompt(today: string, terms: string[]): string {
+function buildReviseSystemPrompt(today: string): string {
   return `あなたは会議・打ち合わせなどの議事録を、人間からの指示にもとづいて修正するアシスタントです。
 地域の会合に限らず、社内会議・商談・打ち合わせなど、あらゆる種類の会議・活動の記録が対象です。
 以下のルールを厳守してください。
@@ -108,7 +88,6 @@ function buildReviseSystemPrompt(today: string, terms: string[]): string {
 - 文字起こしにも指示にも書かれていない情報を絶対に追加しないこと。
 - 指示された範囲外の内容は、たとえ改善できそうに見えても変更せず元のまま維持すること。
 - 推測や一般論で穴埋めしないこと。
-${glossarySection(terms)}
 【概要(summary)について】
 - summaryは【見出し】形式で章立てされ、全角・半角問わず1000文字以内に収まっているはずである。
   指示がsummaryの内容に関わるものであっても、この章立てと文字数の制約は維持すること
@@ -117,7 +96,7 @@ ${glossarySection(terms)}
 【参考情報】
 - 文字起こし全文（照合用）と、現在の議事録JSONを渡す。指示の実行にあたって事実確認が必要な場合は
   文字起こしを根拠にすること。
-- この録音を取り込んだ日は ${today}（日本時間）である。
+- この文章を取り込んだ日は ${today}（日本時間）である。
 
 【出力形式】
 現在の議事録と同じ構造のJSONのみを出力すること。前置きや説明文、Markdownのコードフェンスは一切含めないこと。
@@ -143,9 +122,9 @@ function jsonError(): never {
 }
 
 /** 文字起こし全文を議事録の構造にする */
-export async function structureTranscript(event: H3Event, transcript: string, terms: string[]): Promise<Minutes> {
+export async function structureTranscript(event: H3Event, transcript: string): Promise<Minutes> {
   const raw = await callClaudeText(getAnthropicKey(event), {
-    system: buildSystemPrompt(jstToday(), terms),
+    system: buildSystemPrompt(jstToday()),
     messages: [{ role: 'user', content: `以下は会議の文字起こし全文です。\n\n${transcript}` }],
     maxTokens: MAX_TOKENS,
   })
@@ -163,8 +142,7 @@ export async function reviseMinutes(
   event: H3Event,
   minutes: Minutes,
   transcript: string,
-  instruction: string,
-  terms: string[]
+  instruction: string
 ): Promise<Minutes> {
   const currentJson = JSON.stringify({
     title: minutes.title,
@@ -178,7 +156,7 @@ export async function reviseMinutes(
   })
 
   const raw = await callClaudeText(getAnthropicKey(event), {
-    system: buildReviseSystemPrompt(jstToday(), terms),
+    system: buildReviseSystemPrompt(jstToday()),
     messages: [
       {
         role: 'user',

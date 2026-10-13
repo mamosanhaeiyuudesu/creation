@@ -8,7 +8,7 @@
     <header class="px-4 sm:px-6 pt-5 pb-1 flex items-center justify-between gap-2">
       <NuxtLink to="/" class="inline-flex items-baseline gap-2 no-underline text-[var(--kk-ink)] min-w-0">
         <span class="kk-h2 truncate">{{ serviceName }}</span>
-        <span class="kk-note truncate">会議の録音から議事録を</span>
+        <span class="kk-note truncate">会議の文章から議事録を</span>
       </NuxtLink>
       <!-- 設定は一覧の下ではなく常に見える右上へ（他ツール＝ai-tools側kikigaki/whisper等の
            「⚙→設定」配置に合わせている）。ログイン前は設定自体が無いので出さない -->

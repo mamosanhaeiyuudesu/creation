@@ -119,7 +119,7 @@ async function runFromText() {
   errorMessage.value = ''
   try {
     const file = textFile.value
-    // 読み込みの待ち時間が出るので、音声と同じ「まとめています」の画面に切り替えてから読む
+    // 読み込みの待ち時間が出るので、先に「まとめています」の画面に切り替えてから読む
     stage.value = 'structuring'
     const text = file ? (await readTextFile(file)).trim() : pastedText.value.trim()
     if (!text) {

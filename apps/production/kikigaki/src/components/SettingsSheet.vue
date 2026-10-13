@@ -9,32 +9,12 @@
       <button type="button" class="kk-msg-close" aria-label="閉じる" @click="savedMessage = ''">✕</button>
     </p>
 
-    <!-- よく出る名前（用語辞書） -->
-    <section class="kk-card px-5 py-5 mt-4">
-      <h2 class="kk-h2">よく出る名前</h2>
-      <p class="kk-note mt-1">
-        会議によく出てくる人の名前や地名を、1行に1つずつ書いてください。
-        書いておくと、聞き取りの文字が正しくなります。
-      </p>
-      <textarea
-        v-model="glossaryBody"
-        rows="8"
-        placeholder="阪中さん&#10;葛城町&#10;青年部"
-        class="kk-input mt-3 resize-y"
-      />
-      <p class="kk-note mt-2">{{ glossaryBody.split('\n').filter((l) => l.trim()).length }} 件（{{ maxTerms }}件まで）</p>
-      <button class="kk-btn-sub mt-4" :disabled="savingGlossary" @click="saveGlossary">
-        {{ savingGlossary ? '保存しています…' : '保存する' }}
-      </button>
-    </section>
-
     <!-- 今月の使用ぶん -->
-    <section class="kk-card px-5 py-5 mt-5">
+    <section class="kk-card px-5 py-5 mt-4">
       <h2 class="kk-h2">今月つかった分</h2>
       <p v-if="!usage" class="kk-lead mt-2">読み込んでいます…</p>
       <template v-else>
         <p class="kk-lead mt-2">
-          録音: {{ Math.ceil(usage.seconds / 60) }}分 / {{ usage.limitMinutes }}分<br>
           議事録: {{ usage.records }}件 / {{ usage.limitRecords }}件
         </p>
         <p class="kk-note mt-2">毎月1日にリセットされます。</p>
@@ -105,7 +85,6 @@
 <script setup lang="ts">
 import { SERVICE, monitorNotice } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
-import { GLOSSARY_MAX_TERMS } from '~/utils/glossary'
 import { parseMonitorMode } from '~/utils/entitlement'
 import type { BillingStatus } from '~/types/billing'
 
@@ -122,24 +101,17 @@ const config = useRuntimeConfig().public
 const monitorMode = computed(() => parseMonitorMode(config.monitorMode))
 const monitorText = monitorNotice()
 const priceLabel = SERVICE.priceLabel
-const maxTerms = GLOSSARY_MAX_TERMS
 
 const errorMessage = ref('')
 const savedMessage = ref('')
-const glossaryBody = ref('')
-const savingGlossary = ref(false)
-const usage = ref<{ seconds: number; records: number; limitMinutes: number; limitRecords: number } | null>(null)
+const usage = ref<{ records: number; limitRecords: number } | null>(null)
 const billing = ref<BillingStatus | null>(null)
 const billingBusy = ref(false)
 
 async function load() {
   try {
-    const [me, glossary] = await Promise.all([
-      authedFetch<{ usage: typeof usage.value }>('/api/me'),
-      authedFetch<{ body: string }>('/api/glossary'),
-    ])
+    const me = await authedFetch<{ usage: typeof usage.value }>('/api/me')
     usage.value = me.usage
-    glossaryBody.value = glossary.body
   } catch (e) {
     errorMessage.value = apiMessage(e, '設定を読み込めませんでした。画面を開き直してみてください。')
   }
@@ -151,24 +123,6 @@ async function load() {
   } catch (e) {
     errorMessage.value = apiMessage(e, 'お支払いの状態を読み込めませんでした。少し時間をおいてお試しください。')
   }
-}
-
-async function saveGlossary() {
-  errorMessage.value = ''
-  savedMessage.value = ''
-  savingGlossary.value = true
-  try {
-    const res = await authedFetch<{ body: string }>('/api/glossary', {
-      method: 'PUT',
-      body: { body: glossaryBody.value },
-    })
-    // 保存の時点で整えた結果を入力欄へ戻す（捨てられた行が残ると、効いていると誤解させる）
-    glossaryBody.value = res.body
-    savedMessage.value = '保存しました。次に議事録をつくるときから使われます。'
-  } catch (e) {
-    errorMessage.value = apiMessage(e, '保存できませんでした。もう一度お試しください。')
-  }
-  savingGlossary.value = false
 }
 
 /** Stripe の支払い画面へ送る（自前で決済画面は作らない） */

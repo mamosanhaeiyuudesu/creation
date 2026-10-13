@@ -7,7 +7,6 @@ import { requireUser } from '~/server/utils/auth'
 import { requireEntitlement } from '~/server/utils/entitlement'
 import { getRecord } from '~/server/utils/minutes'
 import { reviseMinutes } from '~/server/utils/minutes-ai'
-import { loadGlossaryTerms } from '~/server/utils/glossary-store'
 import { normalizeMinutes } from '~/server/utils/minutes'
 import type { Minutes } from '~/types/minutes'
 
@@ -30,8 +29,7 @@ export default defineEventHandler(async (event) => {
 
   // 画面で編集中の内容を土台にする（保存前の直しも反映させるため）
   const current = body?.minutes ? normalizeMinutes(body.minutes) : record.minutes
-  const terms = await loadGlossaryTerms(event, user.id)
-  const revised = await reviseMinutes(event, current, record.transcript, instruction, terms)
+  const revised = await reviseMinutes(event, current, record.transcript, instruction)
   // PDFの文字数設定は指示の対象外。AIは触っていないのでそのまま引き継ぐ
   revised.printSettings = current.printSettings
 

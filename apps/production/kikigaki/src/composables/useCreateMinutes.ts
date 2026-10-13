@@ -1,5 +1,5 @@
 // 文字起こし済みの文章を議事録に構造化し、確認画面へ進む共通処理。
-// 録音からの経路・テキストからの経路の両方から呼ばれる。
+// テキスト入力（ファイル・貼り付け）から呼ばれる。
 
 export function useCreateMinutes() {
   const router = useRouter()

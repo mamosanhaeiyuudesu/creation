@@ -41,13 +41,6 @@ CREATE TABLE IF NOT EXISTS records (
 
 CREATE INDEX IF NOT EXISTS idx_records_user ON records (user_id, created_at DESC);
 
--- よく出る名前（用語辞書）。1ユーザー1行で、本文は「1行1語」のテキストをそのまま暗号化して持つ。
-CREATE TABLE IF NOT EXISTS glossary (
-  user_id TEXT PRIMARY KEY,
-  body TEXT NOT NULL DEFAULT '',
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
 -- 契約状態。Stripe の webhook が唯一の書き込み元（画面からは書かない）。
 CREATE TABLE IF NOT EXISTS subscriptions (
   user_id TEXT PRIMARY KEY,

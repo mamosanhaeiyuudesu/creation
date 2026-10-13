@@ -7,7 +7,7 @@
 - [x] Firebase プロジェクト（`production-d9ad2`）／Google・メールリンクの有効化／承認済みドメインに本番ドメイン追加
 - [x] D1 `kikigaki-db` 作成（`a7388a1c-f537-4c74-a623-55d78036131c`）＋ `001_init.sql` 適用（6テーブル）
 - [x] Cloudflare Workers へデプロイ（GitHub Actions）。https://kikigaki.insightlens.jp/ が応答
-- [x] シークレット登録: `NUXT_OPENAI_API_KEY` / `NUXT_ANTHROPIC_API_KEY` / `NUXT_ENCRYPTION_KEY`
+- [x] シークレット登録: `NUXT_ANTHROPIC_API_KEY` / `NUXT_ENCRYPTION_KEY`
 - [x] 暗号化鍵の控え（本人が保管済み。**失うと本番の議事録が復号できない**）
 
 ---
@@ -19,7 +19,7 @@
 - [ ] Googleログインが通る
 - [ ] いったんログアウトし、**同じメールアドレス**でメールのリンクからログインできる
 - [ ] 両方でログインしたとき、議事録の一覧が同じに見える（＝同一ユーザーとして扱われている）
-- [ ] 短い録音（1〜2分）から議事録ができる
+- [ ] 短い文章（貼り付け）から議事録ができる
 - [ ] 確認画面で直せる／「AIに直してもらう」が効く
 - [ ] PDFがダウンロードできる
 
