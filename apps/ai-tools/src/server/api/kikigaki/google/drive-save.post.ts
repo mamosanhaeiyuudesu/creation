@@ -28,7 +28,13 @@ export default defineEventHandler(async (event) => {
     const uploaded = await uploadPdfToDrive(event, user.id, status.driveFolderId, fileName, pdfBase64)
     return { saved: true, fileUrl: uploaded.url }
   } catch (e: any) {
-    const detail = e?.data?.error?.message || e?.statusMessage || e?.message || String(e)
+    const d = e?.data
+    const detail =
+      (typeof d?.error === 'string' ? d.error : d?.error?.message) ||
+      (typeof d === 'string' ? d.slice(0, 300) : '') ||
+      e?.statusMessage ||
+      e?.message ||
+      String(e)
     throw createError({ statusCode: 502, message: `Googleドライブへの保存に失敗しました: ${detail}` })
   }
 })

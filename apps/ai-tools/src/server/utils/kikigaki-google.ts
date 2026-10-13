@@ -115,16 +115,24 @@ export async function exchangeKikigakiCode(event: H3Event, code: string, verifie
 async function refreshAccessToken(event: H3Event, refresh: string): Promise<string> {
   const cfg = getConfig(event)
   if (!cfg) throw new Error('Google OAuth未設定')
-  const tok = await $fetch<TokenResponse>(TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: cfg.clientId,
-      client_secret: cfg.clientSecret,
-      grant_type: 'refresh_token',
-      refresh_token: refresh,
-    }).toString(),
-  })
+  let tok: TokenResponse
+  try {
+    tok = await $fetch<TokenResponse>(TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: cfg.clientId,
+        client_secret: cfg.clientSecret,
+        grant_type: 'refresh_token',
+        refresh_token: refresh,
+      }).toString(),
+    })
+  } catch (e: any) {
+    // Googleの理由（invalid_grant＝連携の失効 / invalid_client＝秘密鍵の不一致 など）を隠さない。
+    const d = e?.data
+    const reason = [d?.error, d?.error_description].filter(Boolean).join(': ') || e?.message
+    throw createError({ statusCode: 502, message: `Googleのトークン更新に失敗しました（${reason}）` })
+  }
   return tok.access_token
 }
 
