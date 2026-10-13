@@ -10,6 +10,11 @@ export default defineEventHandler(async (event) => {
   // PDFは base64 のJSONではなくバイナリのまま受け取る（巨大な文字列を作らずメモリを抑えるため）。
   const pdf = await readRawBody(event, false)
   if (!pdf || !pdf.length) throw createError({ statusCode: 400, message: 'PDFデータがありません' })
+  // 旧形式（base64のJSON）を送ってくる古い画面だと、JSONの文字列がそのままPDFとして保存されてしまうので弾く。
+  const head = new TextDecoder().decode(pdf.subarray(0, 5))
+  if (head !== '%PDF-') {
+    throw createError({ statusCode: 400, message: '画面が古いため保存できません。ページを再読み込みしてからもう一度お試しください' })
+  }
   let fileName = 'キキガキ議事録.pdf'
   try {
     fileName = decodeURIComponent(getHeader(event, 'x-file-name') || '') || fileName
