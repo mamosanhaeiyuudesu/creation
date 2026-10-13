@@ -6,6 +6,7 @@
 import { requireUser } from '~/server/utils/auth'
 import { requireEntitlement } from '~/server/utils/entitlement'
 import { getRecord } from '~/server/utils/minutes'
+import { consumeRevision } from '~/server/utils/usage'
 import { reviseMinutes } from '~/server/utils/minutes-ai'
 import { normalizeMinutes } from '~/server/utils/minutes'
 import type { Minutes } from '~/types/minutes'
@@ -26,6 +27,8 @@ export default defineEventHandler(async (event) => {
   if (!record) {
     throw createError({ statusCode: 404, message: 'この議事録は見つかりませんでした。一覧からお選びください。' })
   }
+
+  await consumeRevision(event, user.id, record.id)
 
   // 画面で編集中の内容を土台にする（保存前の直しも反映させるため）
   const current = body?.minutes ? normalizeMinutes(body.minutes) : record.minutes

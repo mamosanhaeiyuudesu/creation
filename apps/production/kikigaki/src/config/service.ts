@@ -35,6 +35,8 @@ export interface ServiceConfig {
   limits: {
     /** 議事録を作れる回数 */
     monthlyRecords: number
+    /** 「AIで直す」を1件の議事録につき何回まで使えるか */
+    revisionsPerRecord: number
   }
 
   /**
@@ -79,9 +81,13 @@ export const SERVICE: ServiceConfig = {
   priceLabel: '月額 300円（税込）',
 
   // 【この数字の根拠】音声の文字起こしをやめたので、AI代は議事録づくり（Claude）だけ。
-  // 1時間ぶんの会議で約14円（以前の実測）。**値段を変えるときは必ずこの上限も一緒に見直すこと。**
+  // 1時間ぶんの会議で約14円（以前の実測）。50件が全部1時間ぶんだと約700円で、月額300円を超える。
+  // 実際は短い会議が多い前提で50件にしている（2026-10-13）。
+  // **値段を変えるときは必ずこの上限も一緒に見直すこと。**
   limits: {
-    monthlyRecords: 15,
+    monthlyRecords: 50,
+    /** 「AIで直す」を1件の議事録につき何回まで使えるか（直すたびに会議の全文をAIへ送るため） */
+    revisionsPerRecord: 10,
   },
 
   legalDraft: true,

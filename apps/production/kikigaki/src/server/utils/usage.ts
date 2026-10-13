@@ -77,3 +77,31 @@ export async function requireRecordAllowance(event: H3Event, userId: string): Pr
   const status = await loadUsageStatus(event, userId)
   if (status.remainingRecords <= 0) limitReached('つくれる議事録')
 }
+
+/**
+ * 「AIで直す」を使ってよいか。使ってよければ回数を1つ進める（AIを呼ぶ前に数える＝失敗しても戻さない）。
+ * 数え方は議事録1件につき通算（月で戻さない）。
+ */
+export async function consumeRevision(event: H3Event, userId: string, recordId: string): Promise<void> {
+  const db = requireDb(event)
+  await ensureTables(db)
+  const max = SERVICE.limits.revisionsPerRecord
+  const row = (await db
+    .prepare('SELECT count FROM record_revisions WHERE record_id = ? AND user_id = ?')
+    .bind(recordId, userId)
+    .first()) as { count: number } | null
+  if ((row?.count ?? 0) >= max) {
+    throw createError({
+      statusCode: 429,
+      message: `この議事録で「AIに直してもらう」を使えるのは${max}回までです。あとは画面で直接なおしてください。`,
+    })
+  }
+  await db
+    .prepare(
+      `INSERT INTO record_revisions (record_id, user_id, count, updated_at)
+       VALUES (?, ?, 1, datetime('now'))
+       ON CONFLICT (record_id) DO UPDATE SET count = count + 1, updated_at = datetime('now')`
+    )
+    .bind(recordId, userId)
+    .run()
+}

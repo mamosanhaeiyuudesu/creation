@@ -7,8 +7,8 @@ import { createRecord } from '~/server/utils/minutes'
 import { structureTranscript } from '~/server/utils/minutes-ai'
 import { addUsage, requireRecordAllowance } from '~/server/utils/usage'
 
-/** 1回の会議として受け付ける文章の長さの上限（約8時間ぶんの会話を想定した安全弁） */
-const MAX_TRANSCRIPT_CHARS = 150_000
+/** 1回の会議として受け付ける文章の長さの上限（約2時間ぶんの会話。AI代が膨らむのを防ぐ） */
+const MAX_TRANSCRIPT_CHARS = 50_000
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)

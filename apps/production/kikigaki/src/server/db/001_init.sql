@@ -41,6 +41,14 @@ CREATE TABLE IF NOT EXISTS records (
 
 CREATE INDEX IF NOT EXISTS idx_records_user ON records (user_id, created_at DESC);
 
+-- 「AIで直す」を使った回数（議事録1件ごと）。直すたびに会議の全文をAIへ送るので上限を設けている。
+CREATE TABLE IF NOT EXISTS record_revisions (
+  record_id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- 契約状態。Stripe の webhook が唯一の書き込み元（画面からは書かない）。
 CREATE TABLE IF NOT EXISTS subscriptions (
   user_id TEXT PRIMARY KEY,
