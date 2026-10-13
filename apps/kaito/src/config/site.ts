@@ -12,7 +12,10 @@ export const site = {
    * お問い合わせ欄のボタンは出さない（リンク切れを作らないため）。
    * URL を入れた瞬間に、ヘッダーとお問い合わせ欄の両方がフォームへのリンクに切り替わる。
    */
-  contactFormUrl: '',
+  contactFormUrl: 'https://forms.gle/yGDcTJ9Xxao3mi8S9',
+
+  /** お申し込み用 Googleフォームの URL。ヘッダーとお問い合わせ欄の「お問い合わせ」の右に並べる。空文字なら出さない。 */
+  applyFormUrl: 'https://forms.gle/HaSANKgebkWDdaNm7',
 
   /**
    * note のアカウント。ヘッダーのナビから別タブで開く。

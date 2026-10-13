@@ -1211,12 +1211,12 @@ body.home h6 {
 
   .logo {
     font-size: 1rem;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
   }
 
   .cta-link {
-    padding: 9px 12px;
-    font-size: 0.82rem;
+    padding: 8px 10px;
+    font-size: 0.76rem;
   }
 
   /* 価格名と金額が横に収まらない幅なので、どちらも価格名の下に金額を置いてそろえる */

@@ -40,6 +40,14 @@
         :rel="site.contactFormUrl ? 'noopener noreferrer' : undefined"
         @click="closeNav"
       >お問い合わせ</a>
+      <a
+        v-if="site.applyFormUrl"
+        class="cta-link"
+        :href="site.applyFormUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        @click="closeNav"
+      >お申し込み</a>
     </div>
   </header>
 </template>

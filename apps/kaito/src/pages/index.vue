@@ -151,10 +151,10 @@
               </thead>
               <tbody>
                 <tr>
-                  <td>単発</td>
+                  <td>60分/回</td>
                   <td>
                     <span class="price-regular">通常 <s>30,000円（60分/回）</s></span>
-                    <span class="price-now"><span class="price-label">キャンペーン価格</span>8,000円（60分/回）</span>
+                    <span class="price-now"><span class="price-label">キャンペーン価格</span>18,000円</span>
                     <span class="price-now"><span class="price-label">初回モニター価格</span>5,000円</span>
                   </td>
                 </tr>
@@ -192,7 +192,7 @@
               </thead>
               <tbody>
                 <tr>
-                  <td>単発</td>
+                  <td>60分/回</td>
                   <td>
                     <span class="price-regular">通常 <s>30,000円（60分/回）</s></span>
                     <span class="price-now"><span class="price-label">キャンペーン価格</span>18,000円（60分/回）</span>
@@ -225,9 +225,9 @@
           </div>
 
           <div class="service-block service-block--compact">
-            <h3>ブロック解放</h3>
+            <h3>ブロック解放セラピー</h3>
             <p class="compact-lead">
-              「ブロック解放」とは、潜在意識にある無自覚な「思い込み（観念）」をリセットし、悩みや制限から自分を自由にするメソッドです。
+              「ブロック解放セラピー」とは、潜在意識にある無自覚な「思い込み（観念）」をリセットし、悩みや制限から自分を自由にするメソッドです。
             </p>
 
             <p>
@@ -236,6 +236,9 @@
             </p>
             <p>
               この心のブレーキを紐解いて浄化することで、不安や過去の縛りから解放され、本来の輝きや自分らしい人生へとシフトできます。
+            </p>
+            <p>
+              幼い頃にダウンロードした古い価値観や思い込みをアップデートしていきましょう。
             </p>
 
             <h4>料金</h4>
@@ -248,7 +251,7 @@
               </thead>
               <tbody>
                 <tr>
-                  <td>単発</td>
+                  <td>60~90分/回</td>
                   <td>
                     <span class="price-regular">通常 <s>30,000円（60分/回）</s></span>
                     <span class="price-now"><span class="price-label">キャンペーン価格</span>18,000円（60分/回）</span>
@@ -260,12 +263,95 @@
           </div>
 
           <div class="service-block service-block--compact">
-            <h3>受ける前に知っておいていただきたいこと</h3>
-            <ul class="flow-list">
-              <li>対面・オンライン（Zoom等）のどちらでも受けていただけます</li>
-              <li>話したくないことを無理に聞き出すことはありません</li>
-              <li>涙が出る方は多いですが、引き出しているのではなく、ご自身のペースで出てきたものです</li>
-            </ul>
+            <h3>セラピーの先にある、あなたらしい未来へ</h3>
+            <p>
+              セラピーを受けることは、<br />
+              「何かを変えなければ」と頑張ることではありません。
+            </p>
+            <p>
+              今まで気づかなかった心の声に耳を傾け、<br />
+              本当の自分の気持ちを知り、<br />
+              自分自身をもっと大切にする時間です。
+            </p>
+            <p>
+              少しずつ心が軽くなったとき、<br />
+              「本当はこうしたかったんだ」<br />
+              「私はこれでいいんだ」<br />
+              そんな自分の内側からの声に気づけるようになっていきます。
+            </p>
+            <p>
+              そして、以前よりも自分に優しくなれたり、<br />
+              笑顔が増えたり、<br />
+              自分の選択を自分で信じられるようになったり。
+            </p>
+            <p>
+              あなたの中にある答えや可能性を思い出しながら、<br />
+              安心して、自分らしい一歩を踏み出していきませんか？
+            </p>
+            <p>
+              <strong>
+                癒しの先にあるのは、<br />
+                もっと自分を好きになり、<br />
+                自分らしく笑顔で過ごせる毎日。
+              </strong>
+            </p>
+            <p>
+              その未来への一歩を、<br />
+              心を込めてサポートします🌿
+            </p>
+          </div>
+
+          <div class="service-block service-block--compact">
+            <h3>お得な継続コース</h3>
+            <p class="compact-lead">
+              どのメニューを選んでいただいても大丈夫です。
+            </p>
+            <table class="pricing-table">
+              <thead>
+                <tr>
+                  <th scope="col">コース</th>
+                  <th scope="col">料金（税込）</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>3回 / 2ヶ月</td>
+                  <td>
+                    <span class="price-regular">通常価格 <s>90,000円</s></span>
+                    <span class="price-regular">通常継続割引 75,000円</span>
+                    <span class="price-now"><span class="price-label">キャンペーン継続割引</span>49,800円</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>6回 / 4ヶ月</td>
+                  <td>
+                    <span class="price-regular">通常価格 <s>180,000円</s></span>
+                    <span class="price-regular">通常継続割引 138,000円</span>
+                    <span class="price-now"><span class="price-label">キャンペーン継続割引</span>96,800円</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>9回 / 6ヶ月</td>
+                  <td>
+                    <span class="price-regular">通常価格 <s>270,000円</s></span>
+                    <span class="price-regular">通常継続割引 198,000円</span>
+                    <span class="price-now"><span class="price-label">キャンペーン継続割引</span>138,000円</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>15回 / 12ヶ月</td>
+                  <td>
+                    <span class="price-regular">通常価格 <s>450,000円</s></span>
+                    <span class="price-regular">通常継続割引 300,000円</span>
+                    <span class="price-now"><span class="price-label">キャンペーン継続割引</span>225,000円</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p>
+              その時のあなたの状態に合わせて、お好きなメニューをお選びください。<br />
+              <strong>一番お得なコースです。</strong>
+            </p>
           </div>
         </div>
       </section>
@@ -282,7 +368,7 @@
             <article class="testimonial-card">
               <h3 class="testimonial-name">
                 <TherapistKaitoAvatar :variant="1" />
-                <span>おしゃべりカウンセリング・40代女性Sさん</span>
+                <span>おしゃべりカウンセリング・神奈川県在住40代女性Sさん</span>
               </h3>
               <p>
                 「以前ブロック解放セラピーを受けました。<br />
@@ -294,7 +380,7 @@
             <article class="testimonial-card">
               <h3 class="testimonial-name">
                 <TherapistKaitoAvatar :variant="2" />
-                <span>ブロック解放セラピー・50代女性</span>
+                <span>ブロック解放セラピー・京都市在住50代女性</span>
               </h3>
               <p>
                 「初めて受けたのですが最後に先程感じていた感情は思い出せますか？と聞かれ思い出そうとするけど、出来事は思い出せても感情が出て来ず『何これー!?』ってなりました。<br />
@@ -306,7 +392,7 @@
             <article class="testimonial-card">
               <h3 class="testimonial-name">
                 <TherapistKaitoAvatar :variant="3" />
-                <span>レムリアンヒーリング・50代女性Mさん</span>
+                <span>レムリアンヒーリング・長野県在住50代女性Mさん</span>
               </h3>
               <p>
                 <span class="flow-label">なおが受け取ったビジョン</span>
@@ -316,14 +402,16 @@
                 <span class="flow-label">Mさんのその後</span>
                 「時間になると体に痙攣が起こり、その合間にエネルギーのようなものが体の中を行き来しているのを感じました。<br />
                 いつの間にか眠ってしまい、目が覚める時には体の中も頭の中も軽くなっていて、朝には前日より気持ちが楽になっていました。<br />
-                しんどい時に、あの景色を思い浮かべると今も楽になります。肩の力が抜けて、価値観が書き変わってきているのを感じています。」
+                元々自然が大好きで、森の妖精になって、森の中に住んでいたぐらいなので、しんどい時に、なおさんに伝えてもらったあの景色を思い浮かべると今も楽になります。<br />
+                肩の力が抜けて、価値観が書き変わってきているのを感じています。<br />
+                なおさんにヒーリングをお願いして良かったです。」
               </p>
             </article>
 
             <article class="testimonial-card">
               <h3 class="testimonial-name">
                 <TherapistKaitoAvatar :variant="4" />
-                <span>ブロック解放セラピー・50代Jさん</span>
+                <span>ブロック解放セラピー・埼玉県在住50代Jさん</span>
               </h3>
               <p class="testimonial-title">「安心して、ありのままを話せる場所でした」</p>
               <p>
@@ -349,7 +437,7 @@
             <article class="testimonial-card">
               <h3 class="testimonial-name">
                 <TherapistKaitoAvatar :variant="5" />
-                <span>ブロック解放セラピー・40代男性Uさん</span>
+                <span>ブロック解放セラピー・横浜市在住40代男性Uさん</span>
               </h3>
               <p>
                 <span class="flow-label">なおの記録</span>
@@ -371,7 +459,7 @@
             <article class="testimonial-card">
               <h3 class="testimonial-name">
                 <TherapistKaitoAvatar :variant="6" />
-                <span>ヒーリング・40代男性Aさん</span>
+                <span>ヒーリング・宮古島市在住40代男性Aさん</span>
               </h3>
               <p>
                 友人が私の病状のことをナオさんに相談してくれて、こうして感謝をお伝えできたことが、本当によかったです。遠隔からもエネルギーを送ってくださったとのことで、その思いにお礼を言いたかったのです。
@@ -398,7 +486,7 @@
 
           <div class="faq-list">
             <div class="faq-item">
-              <h3>Q. どんな服装で行けばいいですか？</h3>
+              <h3>Q. ヒーリングはどんな格好で受けたらいいですか？</h3>
               <p>
                 リラックスできる服装であれば大丈夫です。ヒーリングの際は横になることもありますので、締め付けの少ない楽な服装がおすすめです。
               </p>
@@ -681,6 +769,13 @@
               target="_blank"
               rel="noopener noreferrer"
             >お問い合わせフォームへ</a>
+            <a
+              v-if="site.applyFormUrl"
+              class="cta-link"
+              :href="site.applyFormUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >お申し込みフォームへ</a>
           </div>
         </div>
       </section>
