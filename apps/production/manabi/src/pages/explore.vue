@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-[100dvh] flex flex-col">
     <header class="shrink-0 flex items-center gap-2 px-3 sm:px-5 h-14">
-      <NuxtLink to="/manabi" class="mb-icon-btn" aria-label="まなびのトップへ">
+      <NuxtLink to="/" class="mb-icon-btn" aria-label="まなびのトップへ">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M15 6l-6 6 6 6" />
         </svg>
@@ -38,7 +38,7 @@
 
       <ul v-else class="mt-5 flex flex-col gap-2.5">
         <li v-for="it in items" :key="it.id">
-          <NuxtLink :to="`/manabi/${it.id}`" class="mb-card mb-deepen !items-start">
+          <NuxtLink :to="`/${it.id}`" class="mb-card mb-deepen !items-start">
             <span class="flex-1 min-w-0">
               <span class="block text-[15px] font-bold leading-snug">{{ it.title }}</span>
               <span class="mt-1 block text-[12.5px] leading-relaxed text-[var(--mb-ink-soft)] line-clamp-2">{{ it.theme }}</span>
@@ -71,7 +71,7 @@ useHead({
 // 検索語は Enter で確定したものだけを送る（打つたびに D1 を引かない）
 const q = ref('')
 const applied = ref('')
-const { data, pending, error } = await useFetch<ManabiListItem[]>('/api/manabi/sets', {
+const { data, pending, error } = await useFetch<ManabiListItem[]>('/api/sets', {
   key: 'manabi-explore',
   query: computed(() => ({ limit: 50, q: applied.value })),
   default: () => [],

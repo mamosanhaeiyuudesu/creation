@@ -9070,6 +9070,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"manabi@workspace:apps/production/manabi":
+  version: 0.0.0-use.local
+  resolution: "manabi@workspace:apps/production/manabi"
+  dependencies:
+    "@nuxtjs/tailwindcss": "npm:^6.14.0"
+    nuxt: "npm:^4.5.2"
+    typescript: "npm:~5.9"
+    vue-tsc: "npm:^3.3.11"
+    wrangler: "npm:^4.75.0"
+  languageName: unknown
+  linkType: soft
+
 "marked@npm:*, marked@npm:^17.0.4":
   version: 17.0.4
   resolution: "marked@npm:17.0.4"

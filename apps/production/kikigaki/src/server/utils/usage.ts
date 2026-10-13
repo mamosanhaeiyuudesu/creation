@@ -1,107 +1,102 @@
-// 月間の利用上限。想定外の高額請求（AI代）を防ぐための歯止め。
+// 月間の利用量（AI代）のメーター。想定外の高額請求を防ぐための歯止め。
 //
-// 上限値は src/config/service.ts の SERVICE.limits で変える。
-// 数えているのは1つ:
-//   議事録をつくった回数 … Claude の請求に直結する
+// 件数や回数ではなく、実際に使ったトークン量（＝AI代）で数える。
+// 5万字の議事録も500字の議事録も1件、という数え方だと費用と食い違うため。
 //
-// 月の区切りは JST（利用者の感覚に合わせる）。超過したら処理を**始める前に**断る
+//   - Claude を呼ぶたびに、応答に付いてくる使用トークン数から費用を求めて足す（callClaudeText）
+//   - 上限は src/config/service.ts の SERVICE.limits.monthlyBudgetUsd
+//   - 利用者には金額を見せず、割合（％）だけ見せる
+//
+// 月の区切りは JST。超過していたら処理を**始める前に**断る
 // （途中まで動かしてから断ると、API代だけ払って結果が出ない）。
+// 1回の呼び出しで上限を少し超えるのは許す（その1回の費用は数十円まで）。
 
 import type { H3Event } from 'h3'
 import { requireDb, ensureTables } from '~/server/utils/db'
 import { SERVICE } from '~/config/service'
 import { jstYearMonth } from '~/utils/formatDate'
 
-export interface UsageTotals {
-  /** 今月つくった議事録の件数 */
-  records: number
+/**
+ * 単価（USD / 100万トークン）。Sonnet 5.5 の価格（2026-10 時点）。モデルや価格を変えたらここも直す。
+ * 内部では整数で持つため、1単位 = 0.1マイクロドル（= 10^-7 USD）にしている。
+ */
+const PRICE_PER_MTOK = { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 }
+const UNITS_PER_USD = 10_000_000
+
+export interface TokenUsage {
+  input_tokens?: number
+  output_tokens?: number
+  cache_read_input_tokens?: number
+  cache_creation_input_tokens?: number
 }
 
-export interface UsageStatus extends UsageTotals {
-  limitRecords: number
-  remainingRecords: number
+/** 使用トークン数 → 費用の単位数 */
+export function costUnits(u: TokenUsage): number {
+  // 単価（USD/MTok）× トークン数 ÷ 100万 × UNITS_PER_USD = 単価 × トークン数 × 10
+  const per = UNITS_PER_USD / 1_000_000
+  const cost =
+    (u.input_tokens ?? 0) * PRICE_PER_MTOK.input * per +
+    (u.output_tokens ?? 0) * PRICE_PER_MTOK.output * per +
+    (u.cache_read_input_tokens ?? 0) * PRICE_PER_MTOK.cacheRead * per +
+    (u.cache_creation_input_tokens ?? 0) * PRICE_PER_MTOK.cacheWrite * per
+  return Math.max(0, Math.round(cost))
 }
 
-export async function loadUsage(event: H3Event, userId: string): Promise<UsageTotals> {
+export interface UsageStatus {
+  /** 今月の使用量（上限に対する割合。0〜100の整数、100で頭打ち） */
+  usedPercent: number
+  /** 上限に達しているか */
+  exhausted: boolean
+}
+
+export function budgetUnits(): number {
+  return Math.round(SERVICE.limits.monthlyBudgetUsd * UNITS_PER_USD)
+}
+
+/** 割合の計算（純粋関数。テスト用に切り出している） */
+export function toStatus(usedUnits: number, budget = budgetUnits()): UsageStatus {
+  const ratio = budget > 0 ? usedUnits / budget : 1
+  return { usedPercent: Math.min(100, Math.floor(ratio * 100)), exhausted: usedUnits >= budget }
+}
+
+async function loadUsedUnits(event: H3Event, userId: string): Promise<number> {
   const db = requireDb(event)
   await ensureTables(db)
   const row = (await db
-    .prepare('SELECT records FROM usage_monthly WHERE user_id = ? AND ym = ?')
+    .prepare('SELECT cost_units FROM ai_usage_monthly WHERE user_id = ? AND ym = ?')
     .bind(userId, jstYearMonth())
-    .first()) as { records: number } | null
-  return { records: row?.records ?? 0 }
+    .first()) as { cost_units: number } | null
+  return row?.cost_units ?? 0
 }
 
 export async function loadUsageStatus(event: H3Event, userId: string): Promise<UsageStatus> {
-  const totals = await loadUsage(event, userId)
-  const { monthlyRecords } = SERVICE.limits
-  return {
-    ...totals,
-    limitRecords: monthlyRecords,
-    remainingRecords: Math.max(0, monthlyRecords - totals.records),
+  return toStatus(await loadUsedUnits(event, userId))
+}
+
+/** AIを呼んでよいか。上限に達していたら 429 */
+export async function requireAiAllowance(event: H3Event, userId: string): Promise<void> {
+  if ((await loadUsageStatus(event, userId)).exhausted) {
+    throw createError({
+      statusCode: 429,
+      message: '今月のご利用ぶんを使い切りました。来月1日から、またお使いいただけます。',
+    })
   }
 }
 
 /** 使ったぶんを足す。行が無ければ作る */
-export async function addUsage(
-  event: H3Event,
-  userId: string,
-  add: { records?: number }
-): Promise<void> {
+export async function addAiUsage(event: H3Event, userId: string, usage: TokenUsage): Promise<void> {
+  const units = costUnits(usage)
+  if (!units) return
   const db = requireDb(event)
   await ensureTables(db)
-  const records = Math.max(0, Math.round(add.records ?? 0))
-  if (!records) return
   await db
     .prepare(
-      `INSERT INTO usage_monthly (user_id, ym, records, updated_at)
+      `INSERT INTO ai_usage_monthly (user_id, ym, cost_units, updated_at)
        VALUES (?, ?, ?, datetime('now'))
        ON CONFLICT (user_id, ym) DO UPDATE SET
-         records = records + excluded.records,
+         cost_units = cost_units + excluded.cost_units,
          updated_at = datetime('now')`
     )
-    .bind(userId, jstYearMonth(), records)
-    .run()
-}
-
-/** 上限に達したときの文言。原因ではなく「いつまた使えるか」を書く */
-function limitReached(what: string): never {
-  throw createError({
-    statusCode: 429,
-    message: `今月${what}のご利用ぶんを使い切りました。来月1日から、またお使いいただけます。`,
-  })
-}
-
-/** 議事録をつくってよいか */
-export async function requireRecordAllowance(event: H3Event, userId: string): Promise<void> {
-  const status = await loadUsageStatus(event, userId)
-  if (status.remainingRecords <= 0) limitReached('つくれる議事録')
-}
-
-/**
- * 「AIで直す」を使ってよいか。使ってよければ回数を1つ進める（AIを呼ぶ前に数える＝失敗しても戻さない）。
- * 数え方は議事録1件につき通算（月で戻さない）。
- */
-export async function consumeRevision(event: H3Event, userId: string, recordId: string): Promise<void> {
-  const db = requireDb(event)
-  await ensureTables(db)
-  const max = SERVICE.limits.revisionsPerRecord
-  const row = (await db
-    .prepare('SELECT count FROM record_revisions WHERE record_id = ? AND user_id = ?')
-    .bind(recordId, userId)
-    .first()) as { count: number } | null
-  if ((row?.count ?? 0) >= max) {
-    throw createError({
-      statusCode: 429,
-      message: `この議事録で「AIに直してもらう」を使えるのは${max}回までです。あとは画面で直接なおしてください。`,
-    })
-  }
-  await db
-    .prepare(
-      `INSERT INTO record_revisions (record_id, user_id, count, updated_at)
-       VALUES (?, ?, 1, datetime('now'))
-       ON CONFLICT (record_id) DO UPDATE SET count = count + 1, updated_at = datetime('now')`
-    )
-    .bind(recordId, userId)
+    .bind(userId, jstYearMonth(), units)
     .run()
 }

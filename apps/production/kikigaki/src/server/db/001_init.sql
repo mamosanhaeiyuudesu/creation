@@ -70,12 +70,12 @@ CREATE TABLE IF NOT EXISTS stripe_events (
   received_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- 月間の利用量。ym は JST の YYYY-MM（月の区切りを日本時間に合わせるため）。
-CREATE TABLE IF NOT EXISTS usage_monthly (
+-- 月間のAI利用量。ym は JST の YYYY-MM（月の区切りを日本時間に合わせるため）。
+-- cost_units はAI代（1単位 = 10^-7 USD。単価は utils/usage.ts）。
+CREATE TABLE IF NOT EXISTS ai_usage_monthly (
   user_id TEXT NOT NULL,
   ym TEXT NOT NULL,
-  seconds INTEGER NOT NULL DEFAULT 0,
-  records INTEGER NOT NULL DEFAULT 0,
+  cost_units INTEGER NOT NULL DEFAULT 0,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (user_id, ym)
 );

@@ -14,10 +14,15 @@
       <h2 class="kk-h2">今月つかった分</h2>
       <p v-if="!usage" class="kk-lead mt-2">読み込んでいます…</p>
       <template v-else>
-        <p class="kk-lead mt-2">
-          議事録: {{ usage.records }}件 / {{ usage.limitRecords }}件
+        <p class="kk-lead mt-2">{{ usage.usedPercent }}% つかいました</p>
+        <div class="kk-meter mt-2" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="usage.usedPercent">
+          <div class="kk-meter-fill" :class="{ 'kk-meter-fill--warn': usage.usedPercent >= 80 }" :style="{ width: usage.usedPercent + '%' }" />
+        </div>
+        <p v-if="usage.exhausted" class="kk-notice kk-notice--warn mt-3">
+          今月のぶんを使い切りました。来月1日から、またお使いいただけます。
         </p>
-        <p class="kk-note mt-2">毎月1日にリセットされます。</p>
+        <p v-else-if="usage.usedPercent >= 80" class="kk-note mt-2">もうすぐ今月のぶんを使い切ります。</p>
+        <p class="kk-note mt-2">議事録づくりと「AIに直してもらう」の合計です。毎月1日にリセットされます。</p>
       </template>
     </section>
 
@@ -104,7 +109,7 @@ const priceLabel = SERVICE.priceLabel
 
 const errorMessage = ref('')
 const savedMessage = ref('')
-const usage = ref<{ records: number; limitRecords: number } | null>(null)
+const usage = ref<{ usedPercent: number; exhausted: boolean } | null>(null)
 const billing = ref<BillingStatus | null>(null)
 const billingBusy = ref(false)
 
@@ -198,4 +203,7 @@ watch(
 <style scoped>
 .kk-msg { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
 .kk-msg-close { flex-shrink: 0; border: 0; background: transparent; color: inherit; font-size: 18px; line-height: 1; cursor: pointer; padding: 0.1rem 0.3rem; }
+.kk-meter { height: 12px; border-radius: 999px; background: var(--kk-accent-soft); overflow: hidden; }
+.kk-meter-fill { height: 100%; border-radius: 999px; background: var(--kk-accent); }
+.kk-meter-fill--warn { background: #d9822b; }
 </style>

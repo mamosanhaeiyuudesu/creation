@@ -18,6 +18,7 @@
     "dev:hareruya": "yarn workspace hareruya dev --port 3007",
     "dev:genogram": "yarn workspace genogram dev --port 3008",
     "dev:kikigaki": "yarn workspace kikigaki dev --port 3009",
+    "dev:manabi": "yarn workspace manabi dev --port 3010",
     "build:tools": "yarn workspace ai-tools build",
     "build:homepages": "yarn workspace homepages build",
     "build:prototyper": "yarn workspace prototyper build",
@@ -27,7 +28,8 @@
     "build:sakubun": "yarn workspace sakubun build",
     "build:hareruya": "yarn workspace hareruya build",
     "build:genogram": "yarn workspace genogram build",
-    "build:kikigaki": "yarn workspace kikigaki build"
+    "build:kikigaki": "yarn workspace kikigaki build",
+    "build:manabi": "yarn workspace manabi build"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

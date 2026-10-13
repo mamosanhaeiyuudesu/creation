@@ -5,7 +5,6 @@ import { requireUser } from '~/server/utils/auth'
 import { requireEntitlement } from '~/server/utils/entitlement'
 import { createRecord } from '~/server/utils/minutes'
 import { structureTranscript } from '~/server/utils/minutes-ai'
-import { addUsage, requireRecordAllowance } from '~/server/utils/usage'
 
 /** 1回の会議として受け付ける文章の長さの上限（約2時間ぶんの会話。AI代が膨らむのを防ぐ） */
 const MAX_TRANSCRIPT_CHARS = 50_000
@@ -14,7 +13,6 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   // モニター期間中は無条件で通り、有料モードでは契約が無いと断る
   await requireEntitlement(event, user.id)
-  await requireRecordAllowance(event, user.id)
 
   const body = await readBody<{ transcript?: string; audioName?: string }>(event)
   const transcript = (body?.transcript ?? '').trim()
@@ -34,7 +32,6 @@ export default defineEventHandler(async (event) => {
 
   const minutes = await structureTranscript(event, transcript)
   const id = await createRecord(event, user.id, (body?.audioName ?? '').slice(0, 200), transcript, minutes)
-  await addUsage(event, user.id, { records: 1 })
 
   return { id }
 })

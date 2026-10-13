@@ -5,7 +5,7 @@
 //   全部このファイルのシステムプロンプトに置いてある。精度やトーンを変えるときはここだけ触る。
 
 import type { H3Event } from 'h3'
-import { callClaudeText, getAnthropicKey, parseJsonLoose } from '~/server/utils/anthropic'
+import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
 import { normalizeMinutes } from '~/server/utils/minutes'
 import { jstToday } from '~/utils/formatDate'
 import type { Minutes, MinutesPoint } from '~/types/minutes'
@@ -123,7 +123,7 @@ function jsonError(): never {
 
 /** 文字起こし全文を議事録の構造にする */
 export async function structureTranscript(event: H3Event, transcript: string): Promise<Minutes> {
-  const raw = await callClaudeText(getAnthropicKey(event), {
+  const raw = await callClaudeText(event, {
     system: buildSystemPrompt(jstToday()),
     messages: [{ role: 'user', content: `以下は会議の文字起こし全文です。\n\n${transcript}` }],
     maxTokens: MAX_TOKENS,
@@ -155,7 +155,7 @@ export async function reviseMinutes(
     unclear_points: minutes.unclearPoints,
   })
 
-  const raw = await callClaudeText(getAnthropicKey(event), {
+  const raw = await callClaudeText(event, {
     system: buildReviseSystemPrompt(jstToday()),
     messages: [
       {
@@ -203,7 +203,7 @@ export async function condensePrintLeft(
     input.discussions.map((d) => ({ main: d.content, note: d.note }))
   )}`
 
-  const raw = await callClaudeText(getAnthropicKey(event), {
+  const raw = await callClaudeText(event, {
     system,
     messages: [{ role: 'user', content: userText }],
     maxTokens: 2000,
@@ -235,7 +235,7 @@ export async function condensePrintRight(
     input.events
   )}\n\nタスク:\n${formatPrintLines(input.tasks)}`
 
-  const raw = await callClaudeText(getAnthropicKey(event), {
+  const raw = await callClaudeText(event, {
     system,
     messages: [{ role: 'user', content: userText }],
     maxTokens: 2000,

@@ -10,7 +10,7 @@
 import { requireDb, ensureTables } from '~/server/utils/db'
 
 /** 覗けるテーブルは決め打ちにする（任意のSQLを撃てる口にしない） */
-const VIEWABLE = ['users', 'records', 'subscriptions', 'stripe_events', 'usage_monthly']
+const VIEWABLE = ['users', 'records', 'subscriptions', 'stripe_events', 'ai_usage_monthly']
 
 export default defineEventHandler(async (event) => {
   if (!import.meta.dev) throw createError({ statusCode: 404, message: 'Not Found' })

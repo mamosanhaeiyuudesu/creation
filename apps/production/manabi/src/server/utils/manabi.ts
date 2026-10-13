@@ -1,7 +1,5 @@
 // manabi（まなび）のサーバー共通処理。問題セットの保存・読み出しと、生成回数の上限判定。
-// ログイン不要のツールなので、AI代の暴走を防ぐ歯止めは「IPごとの1日あたり生成回数」だけに置いている。
-// テーブル名は改名前の osarai_sets のまま（本番に実データがあり、改名しても得るものが無いため）。
-import { getAppDb } from '~/server/utils/auth'
+// ログイン不要のサービスなので、AI代の暴走を防ぐ歯止めは「IPごとの1日あたり生成回数」だけに置いている。
 import type { ManabiListItem, ManabiQuestion, ManabiSet } from '~/types/manabi'
 
 /** 1つのIPが1日（UTC）に作れる問題セットの数 */
@@ -15,25 +13,22 @@ let ensured: Promise<void> | null = null
 /**
  * テーブルを（無ければ）用意する。dev/未マイグレーション環境向けの保険。
  * D1 の exec() は改行で文を区切るので複数行の CREATE TABLE が静かに失敗する。prepare().run() で流す。
- * 後から足した列（is_public・deepen）は既存テーブルには ALTER で足す。2回目以降は「列が既にある」で
- * 失敗するだけなので握りつぶし、isolate につき1回しか流さない（毎リクエストの subrequest を増やさないため）。
+ * isolate につき1回しか流さない（毎リクエストの subrequest を増やさないため）。
  */
 export function ensureManabiTables(db: any): Promise<void> {
   ensured ??= (async () => {
     await db.prepare(
-      `CREATE TABLE IF NOT EXISTS osarai_sets (
+      `CREATE TABLE IF NOT EXISTS manabi_sets (
         id TEXT PRIMARY KEY, theme TEXT NOT NULL, title TEXT NOT NULL DEFAULT '', level TEXT NOT NULL DEFAULT '',
         questions TEXT NOT NULL, ip_hash TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')),
         is_public INTEGER NOT NULL DEFAULT 0, deepen TEXT
       )`
     ).run().catch(() => {})
     await db.prepare(
-      'CREATE INDEX IF NOT EXISTS idx_osarai_sets_ip_created ON osarai_sets (ip_hash, created_at)'
+      'CREATE INDEX IF NOT EXISTS idx_manabi_sets_ip_created ON manabi_sets (ip_hash, created_at)'
     ).run().catch(() => {})
-    await db.prepare('ALTER TABLE osarai_sets ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0').run().catch(() => {})
-    await db.prepare('ALTER TABLE osarai_sets ADD COLUMN deepen TEXT').run().catch(() => {})
     await db.prepare(
-      'CREATE INDEX IF NOT EXISTS idx_osarai_sets_public_created ON osarai_sets (is_public, created_at)'
+      'CREATE INDEX IF NOT EXISTS idx_manabi_sets_public_created ON manabi_sets (is_public, created_at)'
     ).run().catch(() => {})
   })().catch((e) => {
     ensured = null
@@ -53,7 +48,7 @@ interface DevEntry {
 const devStore: Map<string, DevEntry> = ((globalThis as any).__manabiDevStore ??= new Map())
 
 export function getManabiDb(event: any): any | null {
-  return getAppDb(event)
+  return (event.context as any).cloudflare?.env?.MANABI_DB ?? null
 }
 
 /** 共有URLに出すID。紛らわしい 0/O/1/l/I を抜いた英数10文字。 */
@@ -73,7 +68,7 @@ export async function saveSet(db: any | null, set: ManabiSet, ipHash: string): P
     return
   }
   await db
-    .prepare('INSERT INTO osarai_sets (id, theme, title, level, questions, ip_hash, is_public) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .prepare('INSERT INTO manabi_sets (id, theme, title, level, questions, ip_hash, is_public) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .bind(set.id, set.theme, set.title, set.level, JSON.stringify(set.questions), ipHash, set.isPublic ? 1 : 0)
     .run()
 }
@@ -81,7 +76,7 @@ export async function saveSet(db: any | null, set: ManabiSet, ipHash: string): P
 export async function loadSet(db: any | null, id: string): Promise<ManabiSet | null> {
   if (!db) return devStore.get(id)?.set ?? null
   const row = await db
-    .prepare('SELECT id, theme, title, level, questions, created_at, is_public FROM osarai_sets WHERE id = ?')
+    .prepare('SELECT id, theme, title, level, questions, created_at, is_public FROM manabi_sets WHERE id = ?')
     .bind(id)
     .first()
   if (!row) return null
@@ -128,7 +123,7 @@ export async function listPublicSets(db: any | null, opts: { limit: number; q?: 
   const { results } = await db
     .prepare(
       `SELECT id, theme, title, level, created_at, json_array_length(questions) AS n
-       FROM osarai_sets WHERE is_public = 1 ${where} ORDER BY created_at DESC LIMIT ?`
+       FROM manabi_sets WHERE is_public = 1 ${where} ORDER BY created_at DESC LIMIT ?`
     )
     .bind(...binds)
     .all()
@@ -146,7 +141,7 @@ export async function listPublicSets(db: any | null, opts: { limit: number; q?: 
 
 export async function loadDeepen(db: any | null, id: string): Promise<string[] | null> {
   if (!db) return devStore.get(id)?.deepen ?? null
-  const row = await db.prepare('SELECT deepen FROM osarai_sets WHERE id = ?').bind(id).first()
+  const row = await db.prepare('SELECT deepen FROM manabi_sets WHERE id = ?').bind(id).first()
   if (!row?.deepen) return null
   try {
     const parsed = JSON.parse(row.deepen)
@@ -162,7 +157,7 @@ export async function saveDeepen(db: any | null, id: string, themes: string[]): 
     if (e) e.deepen = themes
     return
   }
-  await db.prepare('UPDATE osarai_sets SET deepen = ? WHERE id = ?').bind(JSON.stringify(themes), id).run()
+  await db.prepare('UPDATE manabi_sets SET deepen = ? WHERE id = ?').bind(JSON.stringify(themes), id).run()
 }
 
 // ── 生成回数の上限 ──────────────────────────────
@@ -170,7 +165,7 @@ export async function saveDeepen(db: any | null, id: string, themes: string[]): 
 /** 接続元IPのハッシュ。生のIPは保存しない。 */
 export async function clientIpHash(event: any): Promise<string> {
   const ip = getRequestHeader(event, 'cf-connecting-ip') || getRequestIP(event, { xForwardedFor: true }) || 'unknown'
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`osarai:${ip}`))
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`manabi:${ip}`))
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('').slice(0, 32)
 }
 
@@ -178,7 +173,7 @@ export async function clientIpHash(event: any): Promise<string> {
 export async function assertUnderDailyLimit(db: any | null, ipHash: string): Promise<void> {
   if (!db) return
   const row = await db
-    .prepare("SELECT COUNT(*) AS n FROM osarai_sets WHERE ip_hash = ? AND created_at >= date('now')")
+    .prepare("SELECT COUNT(*) AS n FROM manabi_sets WHERE ip_hash = ? AND created_at >= date('now')")
     .bind(ipHash)
     .first()
   if ((row?.n ?? 0) >= MANABI_DAILY_LIMIT) {

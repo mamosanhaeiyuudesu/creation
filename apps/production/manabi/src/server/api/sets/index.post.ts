@@ -11,7 +11,7 @@ import { generateSet } from '~/server/utils/manabi-ai'
 import { MANABI_COUNTS, type ManabiSet } from '~/types/manabi'
 
 // テーマと問題数を受け取り、AIで問題セットを作って保存する。ログイン不要。
-// 返すのは id だけ（ページは /manabi/<id> に移って、共有された人と同じ経路で読み込む）。
+// 返すのは id だけ（ページは /<id> に移って、共有された人と同じ経路で読み込む）。
 export default defineEventHandler(async (event) => {
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) throw createError({ statusCode: 500, message: 'Anthropic API key is not configured.' })

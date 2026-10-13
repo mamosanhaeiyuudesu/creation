@@ -82,7 +82,7 @@
         </div>
 
         <div class="pb-6 text-center">
-          <NuxtLink to="/manabi/explore" class="mb-link">みんなの問題を見る</NuxtLink>
+          <NuxtLink to="/explore" class="mb-link">みんなの問題を見る</NuxtLink>
         </div>
 
         <section v-if="recent.length" class="pt-2">
@@ -90,7 +90,7 @@
           <ul class="mb-card divide-y divide-[var(--mb-line)] overflow-hidden">
             <li v-for="r in recent" :key="r.id">
               <NuxtLink
-                :to="`/manabi/${r.id}`"
+                :to="`/${r.id}`"
                 class="flex items-center gap-3 px-4 py-3 hover:bg-[rgba(128,128,128,0.05)] transition-colors"
               >
                 <span class="flex-1 min-w-0 truncate text-[14.5px]">{{ r.title }}</span>
@@ -121,7 +121,7 @@
  * - ログインは求めない（共有されたURLをLINEから開いた人が、そのまま解けるように）
  */
 import { MANABI_COUNTS, type ManabiCount } from '~/types/manabi'
-import { useManabiRecent } from '~/composables/manabi/useManabiRecent'
+import { useManabiRecent } from '~/composables/useManabiRecent'
 
 definePageMeta({ layout: 'manabi' })
 useHead({
@@ -188,13 +188,13 @@ const submit = async () => {
   elapsed.value = 0
   tick = setInterval(() => elapsed.value++, 1000)
   try {
-    const { id } = await $fetch<{ id: string }>('/api/manabi/sets', {
+    const { id } = await $fetch<{ id: string }>('/api/sets', {
       method: 'POST',
       body: { theme: theme.value.trim(), count: count.value, isPublic: isPublic.value },
       // ふつうは20〜40秒。応答が返らないまま待たせ続けないよう上限を置く
       timeout: 120_000,
     })
-    await router.push(`/manabi/${id}`)
+    await router.push(`/${id}`)
   } catch (e: any) {
     error.value = e?.data?.message || e?.statusMessage || '問題をつくれませんでした。もう一度お試しください。'
     generating.value = false

@@ -58,8 +58,12 @@
 - **契約状態を書き込むのは Stripe の webhook だけ**。画面の操作では書き換えない。
   webhook は署名を検証し、イベントIDを `stripe_events` に記録して二重処理を防ぐ。
   失敗したら記録を消してから500を返す（消さないと再送が「処理済み」と判定されて永久に取りこぼす）。
-- **利用上限**は `SERVICE.limits`（月の議事録の件数）。音声の文字起こしをやめたので分数の上限は無い。
-  D1 の `usage_monthly.seconds` と `records.audio_name` 列は残しているが使っていない（マイグレーション回避）。
+- **利用上限はAI代のメーター**（`utils/usage.ts`）。件数ではなく、Claude の応答に付く使用トークン数から
+  費用を求めて `ai_usage_monthly` に足す。上限は `SERVICE.limits.monthlyBudgetUsd`、画面には金額を出さず％だけ出す。
+  Claude を呼ぶ口は `callClaudeText(event, …)` に一本化していて、呼ぶ前に上限を確かめ、呼んだあとに数える
+  （**呼ぶ前に必ず `requireUser()` を通すこと**。通さないとエラーにして未計測のAI呼び出しを防ぐ）。
+  モデルや単価を変えたら `PRICE_PER_MTOK` と上限も見直す。1件あたりの文章は5万字まで。
+  D1 の古い `usage_monthly` / `record_revisions` / `glossary` テーブルと `records.audio_name` 列は残っていても使っていない。
 - Cron は使わない（Freeプランのcronはアカウント全体で5個までで、ai-tools が使い切っている）。
 
 ## ローカルで動かす

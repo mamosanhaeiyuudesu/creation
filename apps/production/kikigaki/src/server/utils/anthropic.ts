@@ -3,6 +3,7 @@
 // （画像入力・Web検索）は持ってきていない。
 
 import type { H3Event } from 'h3'
+import { addAiUsage, requireAiAllowance } from '~/server/utils/usage'
 
 const MESSAGES_URL = 'https://api.anthropic.com/v1/messages'
 
@@ -38,8 +39,17 @@ export function getAnthropicKey(event: H3Event): string {
   return anthropicApiKey as string
 }
 
-/** Claude を1回呼び出し、応答のテキストブロックを連結して返す（thinkingは無効） */
-export async function callClaudeText(apiKey: string, opts: CallOptions): Promise<string> {
+/**
+ * Claude を1回呼び出し、応答のテキストブロックを連結して返す（thinkingは無効）。
+ * 呼ぶ前に今月の上限を確かめ、呼んだあとに使ったトークン量を利用量へ足す。
+ * 利用量は requireUser() が控えたユーザーに付く（AIを呼ぶ口は必ず requireUser を通すこと）。
+ */
+export async function callClaudeText(event: H3Event, opts: CallOptions): Promise<string> {
+  const userId = (event.context as any).kkUserId as string | undefined
+  if (!userId) throw new Error('callClaudeText は requireUser() のあとで呼ぶこと（利用量を数えられない）')
+  await requireAiAllowance(event, userId)
+  const apiKey = getAnthropicKey(event)
+
   const response = await fetch(MESSAGES_URL, {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
@@ -66,6 +76,8 @@ export async function callClaudeText(apiKey: string, opts: CallOptions): Promise
   }
 
   const data = await response.json()
+  // 結果をそのあとの処理が捨てても、AI代はかかっているので先に数える
+  await addAiUsage(event, userId, data?.usage ?? {})
   const blocks: any[] = Array.isArray(data?.content) ? data.content : []
   return blocks
     .filter((b) => b?.type === 'text' && typeof b.text === 'string')

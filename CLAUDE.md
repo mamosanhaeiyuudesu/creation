@@ -17,8 +17,9 @@ apps/
 ├── sakubun/
 ├── hareruya/
 ├── genogram/       # ジェノグラム作成ツール（Cloudflare Workers。AIテキスト解釈の1APIルートのみ持つ）
-└── production/     # 一般ユーザー向けの本番サービス（認証・課金を持つ）
-    └── kikigaki/   # キキガキ本番版（Firebase Auth + Stripe + D1。Cloudflare Workers）
+└── production/     # 一般ユーザー向けの本番サービス（専用D1・専用ドメイン）
+    ├── kikigaki/   # キキガキ本番版（Firebase Auth + Stripe + D1。Cloudflare Workers）
+    └── manabi/     # まなび本番版（ログイン・課金なし。専用D1。Cloudflare Workers）
 ```
 
 `apps/production/` 配下も yarn workspaces の対象（ルート `package.json` の `workspaces` に
@@ -33,6 +34,8 @@ apps/
 `apps/ai-tools/` → キーワード: **miyako・whisper・hagemashi・task・kouba・deepheart・mlb・office・kaki・momo・ippon・guesthouse・life-analyzer・kiroku・keiko・kikigaki・news・farm-manager・nikki・ai-tools 全般**
 
 各ホームページ → 下表のキーワードのディレクトリ
+
+`apps/production/manabi/` → キーワード: **まなび・manabi・manabi.insightlens.jp・学びドリル・osarai**（ai-tools の `/manabi` は撤去済み）
 
 `apps/production/kikigaki/` → キーワード: **キキガキ本番版・kikigaki.insightlens.jp・課金・Stripe・ログイン(Firebase)**
 
@@ -58,6 +61,7 @@ ai-tools 側を変更しないこと（コピー元として扱う）。
 | キーワード | ポート | 概要 |
 |---|---|---|
 | kikigaki（本番） | 3009 | キキガキ本番版（`apps/production/kikigaki`）。会議の録音→議事録→PDF。Firebase Auth（Google／メールのリンク）＋ Stripe の月額1プラン。**当面はモニター期間として無料で提供**（`src/config/service.ts` の `monitorMode`、環境変数 `NUXT_PUBLIC_MONITOR_MODE=false` で有料化）。詳細は `apps/production/kikigaki/README.md` |
+| manabi | 3010 | まなび本番版（`apps/production/manabi`）。テーマ→AIが4択問題→URL共有。ログイン・課金なし。詳細は `apps/production/manabi/README.md` |
 
 **hareruya の注意点**: 未確定の掲載情報（料金・LINE URL・詳細住所・地図）は
 `src/config/site.ts` に集約している。値が空/仮のときはページ側が自動で案内文
@@ -76,6 +80,7 @@ yarn dev:kikigaki     # キキガキ本番版を起動（:3009。apps/production
 yarn build:tools      # ai-tools をビルド（Cloudflare Workers向け）
 yarn build:<name>     # 個別のホームページをビルド（静的生成）
 yarn build:kikigaki   # キキガキ本番版をビルド（Cloudflare Workers向け）
+yarn dev:manabi       # まなび本番版を起動（:3010）／ yarn build:manabi でビルド
 ```
 
 ### ⚠️ dev 起動中に build を実行しないこと

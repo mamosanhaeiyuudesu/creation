@@ -54,9 +54,7 @@ database_id = "a89cb679-8a17-4d46-9c90-dada3e35691b"
 #   wrangler d1 execute whisper-db --remote --file src/server/db/016_game_records.sql
 # farm-manager テーブル追加:
 #   wrangler d1 execute whisper-db --remote --file src/server/db/063_farm_manager.sql
-# manabi（旧 osarai。テーブル名は osarai_sets のまま）テーブル追加:
-#   wrangler d1 execute whisper-db --remote --file src/server/db/070_osarai.sql
-#   wrangler d1 execute whisper-db --remote --file src/server/db/071_manabi_public_deepen.sql  # 公開フラグ・深掘りキャッシュ（ALTER含むので再実行不可）
+# manabi は本番サービスへ移した（apps/production/manabi・専用D1 manabi-db）。whisper-db の osarai_sets は移行元として残してある
 
 [[d1_databases]]
 binding = "MLB_DB"

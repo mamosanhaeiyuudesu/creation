@@ -133,5 +133,8 @@ export async function requireUser(event: H3Event): Promise<AuthUser> {
   const token = readBearer(event)
   if (!token) unauthorized()
   const claims = await verifyIdToken(event, token)
-  return await ensureUser(event, claims)
+  const user = await ensureUser(event, claims)
+  // AIの利用量をこの人に付けるため（utils/anthropic.ts の callClaudeText が読む）
+  ;(event.context as any).kkUserId = user.id
+  return user
 }

@@ -83,9 +83,12 @@ gtag('config', 'G-JRBVTJYCEH');`,
     },
   },
   routeRules: {
-    // 改名前（osarai）のURLはLINEなどに共有済みなので、そのまま開けるようにする
-    '/osarai': { redirect: { to: '/manabi', statusCode: 301 } },
-    '/osarai/**': { redirect: { to: '/manabi/**', statusCode: 301 } },
+    // manabi は本番サービスに移った（apps/production/manabi）。LINEなどに共有済みのURLは、
+    // 旧名（osarai）のものも含めて新しいドメインの同じIDへ送る
+    '/manabi': { redirect: { to: 'https://manabi.insightlens.jp/', statusCode: 301 } },
+    '/manabi/**': { redirect: { to: 'https://manabi.insightlens.jp/**', statusCode: 301 } },
+    '/osarai': { redirect: { to: 'https://manabi.insightlens.jp/', statusCode: 301 } },
+    '/osarai/**': { redirect: { to: 'https://manabi.insightlens.jp/**', statusCode: 301 } },
   },
   nitro: {
     preset: 'cloudflare_module',

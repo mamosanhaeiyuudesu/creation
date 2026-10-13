@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-[100dvh] flex flex-col">
     <header class="shrink-0 flex items-center gap-2 px-3 sm:px-5 h-14">
-      <NuxtLink to="/manabi" class="mb-icon-btn" aria-label="まなびのトップへ">
+      <NuxtLink to="/" class="mb-icon-btn" aria-label="まなびのトップへ">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M15 6l-6 6 6 6" />
         </svg>
@@ -26,7 +26,7 @@
       <div v-else-if="!set" class="flex-1 flex flex-col items-center justify-center text-center">
         <p class="text-[15px]">この問題は見つかりませんでした</p>
         <p class="mt-2 text-[13px] text-[var(--mb-ink-soft)]">リンクがまちがっているかもしれません</p>
-        <NuxtLink to="/manabi" class="mb-btn mt-8 inline-flex items-center">自分で問題をつくる</NuxtLink>
+        <NuxtLink to="/" class="mb-btn mt-8 inline-flex items-center">自分で問題をつくる</NuxtLink>
       </div>
 
       <template v-else>
@@ -48,7 +48,7 @@
             </button>
           </div>
           <p class="mt-8 text-center">
-            <NuxtLink :to="`/manabi/print/${id}`" class="mb-link">A4の問題集として印刷・PDFにする（授業用）</NuxtLink>
+            <NuxtLink :to="`/print/${id}`" class="mb-link">A4の問題集として印刷・PDFにする（授業用）</NuxtLink>
           </p>
         </div>
 
@@ -178,7 +178,7 @@
             </div>
             <ul v-else class="flex flex-col gap-2.5">
               <li v-for="t in deepenThemes" :key="t">
-                <NuxtLink :to="{ path: '/manabi', query: { theme: t } }" class="mb-card mb-deepen">
+                <NuxtLink :to="{ path: '/', query: { theme: t } }" class="mb-card mb-deepen">
                   <span class="flex-1 min-w-0 text-[14.5px] font-medium">{{ t }}</span>
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-[var(--mb-accent)]">
                     <path d="M5 12h14M13 6l6 6-6 6" />
@@ -189,11 +189,11 @@
           </section>
 
           <p class="mt-10 text-center">
-            <NuxtLink :to="`/manabi/print/${id}`" class="mb-link">A4の問題集として印刷・PDFにする（授業用）</NuxtLink>
+            <NuxtLink :to="`/print/${id}`" class="mb-link">A4の問題集として印刷・PDFにする（授業用）</NuxtLink>
           </p>
 
           <div class="mt-6 flex justify-center">
-            <NuxtLink to="/manabi" class="text-[13.5px] text-[var(--mb-accent-deep)] underline underline-offset-4">
+            <NuxtLink to="/" class="text-[13.5px] text-[var(--mb-accent-deep)] underline underline-offset-4">
               別のテーマで問題をつくる
             </NuxtLink>
           </div>
@@ -213,8 +213,8 @@
 
 <script setup lang="ts">
 import type { ManabiSet } from '~/types/manabi'
-import { useManabiRecent } from '~/composables/manabi/useManabiRecent'
-import { readRun, writeRun, type ManabiPhase, type ManabiRun } from '~/composables/manabi/useManabiRun'
+import { useManabiRecent } from '~/composables/useManabiRecent'
+import { readRun, writeRun, type ManabiPhase, type ManabiRun } from '~/composables/useManabiRun'
 
 definePageMeta({ layout: 'manabi' })
 
@@ -222,7 +222,7 @@ const LABELS = ['A', 'B', 'C', 'D']
 
 const route = useRoute()
 const id = String(route.params.id || '')
-const { data: set, pending } = await useFetch<ManabiSet>(`/api/manabi/sets/${id}`, { key: `manabi-set-${id}` })
+const { data: set, pending } = await useFetch<ManabiSet>(`/api/sets/${id}`, { key: `manabi-set-${id}` })
 
 // LINE などに貼ったときのプレビューに題が出るように、サーバー側で描画する時点で入れておく
 useHead(() => ({
@@ -403,7 +403,7 @@ watch(phase, async (p) => {
   deepenFetched = true
   deepenLoading.value = true
   try {
-    const res = await $fetch<{ themes: string[] }>(`/api/manabi/sets/${id}/deepen`, { method: 'POST', timeout: 60_000 })
+    const res = await $fetch<{ themes: string[] }>(`/api/sets/${id}/deepen`, { method: 'POST', timeout: 60_000 })
     deepenThemes.value = res.themes
   } catch {
     deepenThemes.value = []
@@ -418,7 +418,7 @@ watch(phase, async (p) => {
 // origin はブラウザでしか分からないので、描画後に入れる（SSRとの食い違いを出さない）
 const origin = ref('')
 onMounted(() => (origin.value = location.origin))
-const shareUrl = () => `${origin.value}/manabi/${id}`
+const shareUrl = () => `${origin.value}/${id}`
 const shareText = computed(() => (set.value ? `「${set.value.title}」${set.value.questions.length}問、解いてみて！` : ''))
 const lineUrl = computed(() => `https://line.me/R/share?text=${encodeURIComponent(`${shareText.value}\n${shareUrl()}`)}`)
 

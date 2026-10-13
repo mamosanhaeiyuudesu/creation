@@ -4,7 +4,7 @@
     <div class="pr-bar pr-noprint">
       <div class="pr-bar__inner">
         <div class="flex items-center gap-2">
-          <NuxtLink :to="`/manabi/${id}`" class="pr-back" aria-label="問題にもどる">
+          <NuxtLink :to="`/${id}`" class="pr-back" aria-label="問題にもどる">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M15 6l-6 6 6 6" />
             </svg>
@@ -109,7 +109,7 @@ definePageMeta({ layout: 'manabi-print' })
 
 const route = useRoute()
 const id = String(route.params.id || '')
-const { data: set, pending } = await useFetch<ManabiSet>(`/api/manabi/sets/${id}`, { key: `manabi-set-${id}` })
+const { data: set, pending } = await useFetch<ManabiSet>(`/api/sets/${id}`, { key: `manabi-set-${id}` })
 
 const MARKS = {
   circle: ['①', '②', '③', '④'],

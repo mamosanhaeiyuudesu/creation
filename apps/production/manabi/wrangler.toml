@@ -1,0 +1,31 @@
+name = "manabi"
+main = ".output/server/index.mjs"
+compatibility_date = "2026-03-12"
+
+# カスタムドメイン（insightlens.jp は同一 Cloudflare アカウントの Zone である必要あり）
+# デプロイ時に DNS レコードと SSL 証明書が自動作成される
+routes = [
+  { pattern = "manabi.insightlens.jp", custom_domain = true }
+]
+
+# 秘密の値は secret で登録する:
+#   wrangler secret put NUXT_ANTHROPIC_API_KEY     ← 問題づくり・深掘り提案（Claude）
+
+[[d1_databases]]
+binding = "MANABI_DB"
+database_name = "manabi-db"
+database_id = "ef799f26-90d0-4886-a878-133adfa5053a"
+# 初回セットアップ:
+#   wrangler d1 create manabi-db
+#   wrangler d1 execute manabi-db --remote --file src/server/db/001_init.sql
+#   （既存データの移行は README の「データ移行」）
+#
+# ※ ai-tools の whisper-db には相乗りしない
+
+# Cron Trigger は使わない（Freeプランはアカウント全体で5個までで、ai-tools が使い切っている）。
+
+[build]
+command = "yarn build"
+
+[assets]
+directory = ".output/public"

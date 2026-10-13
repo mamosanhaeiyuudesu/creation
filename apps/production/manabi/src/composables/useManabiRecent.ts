@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { clearRun } from '~/composables/manabi/useManabiRun'
+import { clearRun } from '~/composables/useManabiRun'
 
 /**
  * 作った・開いた問題セットの控え（端末内だけ）。ログインが無いので、トップから
