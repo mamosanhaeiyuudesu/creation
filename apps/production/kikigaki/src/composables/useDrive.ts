@@ -179,5 +179,9 @@ export function useDrive() {
     return await send(true)
   }
 
-  return { connected, refresh, connect, disconnect, uploadPdf, configured: !!clientId }
+  /**
+   * 保存ボタンを押した直後に呼ぶこと。Googleの許可画面（ポップアップ）は、ボタンを押した直後でないと
+   * ブラウザに止められる。PDF作りのあとで開こうとすると「画面が閉じられました」になる。
+   */
+  return { connected, refresh, connect, disconnect, uploadPdf, ensureToken: accessToken, configured: !!clientId }
 }

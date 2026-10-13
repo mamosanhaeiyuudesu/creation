@@ -22,7 +22,18 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6" /></svg>
             {{ saving ? '保存中…' : '保存' }}
           </button>
-          <button type="button" class="kk-icon-btn kk-icon-btn--primary" :disabled="generatingPdf || saving" title="PDFのダウンロード" @click="downloadPdf">
+          <button
+            v-if="driveConnected"
+            type="button"
+            class="kk-icon-btn"
+            :disabled="generatingPdf || saving || driveSaving"
+            title="Googleドライブに保存"
+            @click="saveToDrive"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17 8.5a4.75 4.75 0 0 1 0 9.5M12 11v8M9 14l3-3 3 3" /></svg>
+            {{ driveSaving ? '保存中…' : 'Googleドライブに保存' }}
+          </button>
+          <button type="button" class="kk-icon-btn kk-icon-btn--primary" :disabled="generatingPdf || saving || driveSaving" title="PDFのダウンロード" @click="downloadPdf">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg>
             {{ generatingPdf ? 'PDF作成中…' : 'PDFのダウンロード' }}
           </button>
@@ -272,7 +283,8 @@ definePageMeta({ wide: true })
 const route = useRoute()
 const router = useRouter()
 const { isLoggedIn, authedFetch, waitReady } = useAuth()
-const { connected: driveConnected, refresh: refreshDrive, uploadPdf } = useDrive()
+const { connected: driveConnected, refresh: refreshDrive, uploadPdf, ensureToken } = useDrive()
+const driveSaving = ref(false)
 
 const id = computed(() => String(route.params.id ?? ''))
 const record = ref<MinutesRecord | null>(null)
@@ -510,56 +522,75 @@ async function buildPrintContent() {
   }
 }
 
+/** 議事録からPDFを組み立てる（ダウンロードとドライブ保存で共通） */
+async function createPdf(): Promise<{ pdf: InstanceType<Awaited<typeof import('jspdf')>['jsPDF']>; fileName: string }> {
+  // 先に保存する（保存し忘れた直しがPDFに出ないように）
+  await saveMinutes()
+  await buildPrintContent()
+  await nextTick()
+
+  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')])
+  const el = printRoot.value
+  if (!el) throw new Error('PDFの中身を用意できませんでした。画面を開き直してお試しください。')
+
+  // 画像にしてから貼るのは、日本語フォントをPDFへ埋め込む手間を避けるため。
+  // A4横1ページに、縦横比を保ったまま収まるよう縮小して配置する。
+  const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' })
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+  const pageW = 297
+  const pageH = 210
+  let w = pageW
+  let h = (canvas.height / canvas.width) * pageW
+  let x = 0
+  let y = (pageH - h) / 2
+  if (h > pageH) {
+    h = pageH
+    w = (canvas.width / canvas.height) * pageH
+    x = (pageW - w) / 2
+    y = 0
+  }
+  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, w, h)
+
+  const safeTitle = (minutes.title || '議事録').replace(/[\\/:*?"<>|]/g, '_')
+  const fileName = minutes.date ? `${safeTitle}_${minutes.date}.pdf` : `${safeTitle}.pdf`
+  return { pdf, fileName }
+}
+
 async function downloadPdf() {
   errorMessage.value = ''
   savedMessage.value = ''
   generatingPdf.value = true
   try {
-    // 先に保存する（保存し忘れた直しがPDFに出ないように）
-    await saveMinutes()
-    await buildPrintContent()
-    await nextTick()
-
-    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')])
-    const el = printRoot.value
-    if (!el) throw new Error('PDFの中身を用意できませんでした。画面を開き直してお試しください。')
-
-    // 画像にしてから貼るのは、日本語フォントをPDFへ埋め込む手間を避けるため。
-    // A4横1ページに、縦横比を保ったまま収まるよう縮小して配置する。
-    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' })
-    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-    const pageW = 297
-    const pageH = 210
-    let w = pageW
-    let h = (canvas.height / canvas.width) * pageW
-    let x = 0
-    let y = (pageH - h) / 2
-    if (h > pageH) {
-      h = pageH
-      w = (canvas.width / canvas.height) * pageH
-      x = (pageW - w) / 2
-      y = 0
-    }
-    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, w, h)
-
-    const safeTitle = (minutes.title || '議事録').replace(/[\\/:*?"<>|]/g, '_')
-    const fileName = minutes.date ? `${safeTitle}_${minutes.date}.pdf` : `${safeTitle}.pdf`
+    const { pdf, fileName } = await createPdf()
     pdf.save(fileName)
     savedMessage.value = 'PDFを保存しました。スマホの「ファイル」や「ダウンロード」から開けます。'
-
-    // ドライブとつながっていれば、同じPDFをドライブにも置く。失敗してもダウンロードは済んでいる
-    if (driveConnected.value) {
-      try {
-        await uploadPdf(pdf.output('blob'), fileName)
-        savedMessage.value = 'PDFを保存しました。Googleドライブの「キキガキ議事録」フォルダにも入れました。'
-      } catch (e) {
-        errorMessage.value = `${apiMessage(e, 'ドライブに保存できませんでした。')}（PDFのダウンロードは済んでいます。設定からドライブとつなぎ直してみてください）`
-      }
-    }
   } catch (e) {
     errorMessage.value = apiMessage(e, 'PDFをつくれませんでした。もう一度お試しください。')
   }
   generatingPdf.value = false
+}
+
+/** PDFをGoogleドライブの「キキガキ議事録」フォルダへ保存する（ダウンロードはしない） */
+async function saveToDrive() {
+  errorMessage.value = ''
+  savedMessage.value = ''
+  driveSaving.value = true
+  try {
+    // 許可の画面はボタンを押した直後でないとブラウザに止められるので、PDF作りより先に権限を取る
+    await ensureToken()
+  } catch (e) {
+    errorMessage.value = apiMessage(e, 'Googleドライブとつなげませんでした。もう一度お試しください。')
+    driveSaving.value = false
+    return
+  }
+  try {
+    const { pdf, fileName } = await createPdf()
+    await uploadPdf(pdf.output('blob'), fileName)
+    savedMessage.value = 'Googleドライブの「キキガキ議事録」フォルダに保存しました。'
+  } catch (e) {
+    errorMessage.value = apiMessage(e, 'ドライブに保存できませんでした。もう一度お試しください。')
+  }
+  driveSaving.value = false
 }
 
 watch(isLoggedIn, async (v) => {
