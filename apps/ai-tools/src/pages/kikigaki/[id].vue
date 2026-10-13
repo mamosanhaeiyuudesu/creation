@@ -607,10 +607,11 @@ async function saveToDrive() {
   savingToDrive.value = true
   try {
     const { pdf, fileName } = await renderPdf()
-    const pdfBase64 = pdf.output('datauristring').split(',')[1] ?? ''
+    // base64のJSONにするとWorker側で文字列のコピーが何重にもなりメモリを食うので、PDFはバイナリのまま送る
     const res = await $fetch<{ saved: boolean }>('/api/kikigaki/google/drive-save', {
       method: 'POST',
-      body: { fileName, pdfBase64 },
+      headers: { 'Content-Type': 'application/pdf', 'X-File-Name': encodeURIComponent(fileName) },
+      body: pdf.output('blob'),
     })
     if (res.saved) {
       driveSaveMessage.value = 'Googleドライブに保存しました'

@@ -7,10 +7,16 @@ import { getKikigakiGoogleStatus, uploadPdfToDrive } from '~/server/utils/kikiga
 
 export default defineEventHandler(async (event) => {
   const user = await requireKikigakiUser(event)
-  const body = await readBody<{ fileName?: string; pdfBase64?: string }>(event)
-  const pdfBase64 = body?.pdfBase64 ?? ''
-  if (!pdfBase64) throw createError({ statusCode: 400, message: 'PDFデータがありません' })
-  const fileName = (body?.fileName || 'キキガキ議事録.pdf').slice(0, 200)
+  // PDFは base64 のJSONではなくバイナリのまま受け取る（巨大な文字列を作らずメモリを抑えるため）。
+  const pdf = await readRawBody(event, false)
+  if (!pdf || !pdf.length) throw createError({ statusCode: 400, message: 'PDFデータがありません' })
+  let fileName = 'キキガキ議事録.pdf'
+  try {
+    fileName = decodeURIComponent(getHeader(event, 'x-file-name') || '') || fileName
+  } catch {
+    /* 壊れたヘッダーは既定名のまま */
+  }
+  fileName = fileName.slice(0, 200)
 
   const status = await getKikigakiGoogleStatus(event, user.id)
   if (!status.connected || !status.driveFolderId) {
@@ -25,7 +31,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const uploaded = await uploadPdfToDrive(event, user.id, status.driveFolderId, fileName, pdfBase64)
+    const uploaded = await uploadPdfToDrive(event, user.id, status.driveFolderId, fileName, new Uint8Array(pdf))
     return { saved: true, fileUrl: uploaded.url }
   } catch (e: any) {
     const d = e?.data

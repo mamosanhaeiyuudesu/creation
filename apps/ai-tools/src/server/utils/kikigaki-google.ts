@@ -327,26 +327,21 @@ export async function uploadPdfToDrive(
   userId: string,
   folderId: string,
   fileName: string,
-  pdfBase64: string
+  pdf: Uint8Array
 ): Promise<{ id: string; url: string }> {
   const token = await getAccessToken(event, userId)
   const boundary = `kikigaki-${crypto.randomUUID()}`
   const metadata = JSON.stringify({ name: fileName, parents: [folderId], mimeType: 'application/pdf' })
-  // base64のまま Content-Transfer-Encoding で送ると Drive v3 が理由なしの 400 を返すことがあるため、
-  // PDFはバイナリに戻して multipart を組み立てる。
-  const enc = new TextEncoder()
-  const head = enc.encode(
+  // PDFはバイナリのまま multipart に挟む（base64＋Content-Transfer-Encoding だと Drive v3 が400を返すことがある）。
+  // Blob でつなぐので本体のコピーは作らない。
+  const body = new Blob([
     `--${boundary}\r\n` +
       `Content-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
       `--${boundary}\r\n` +
-      `Content-Type: application/pdf\r\n\r\n`
-  )
-  const pdfBytes = Uint8Array.from(atob(pdfBase64), (c) => c.charCodeAt(0))
-  const tail = enc.encode(`\r\n--${boundary}--`)
-  const body = new Uint8Array(head.length + pdfBytes.length + tail.length)
-  body.set(head, 0)
-  body.set(pdfBytes, head.length)
-  body.set(tail, head.length + pdfBytes.length)
+      `Content-Type: application/pdf\r\n\r\n`,
+    pdf as BlobPart,
+    `\r\n--${boundary}--`,
+  ])
 
   const res: any = await withRetry('PDFのGoogleドライブ保存', () =>
     $fetch<unknown>(DRIVE_UPLOAD_API, {
