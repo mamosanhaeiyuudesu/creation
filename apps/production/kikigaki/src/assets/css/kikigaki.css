@@ -40,7 +40,7 @@ body {
   color: var(--kk-ink);
   background: var(--kk-bg);
   font-family: 'Zen Kaku Gothic New', 'Hiragino Sans', system-ui, sans-serif;
-  font-size: 17px;
+  font-size: 15px;
   line-height: 1.8;
   -webkit-font-smoothing: antialiased;
 }
@@ -48,27 +48,27 @@ body {
 /* ── 文字 ───────────────────────────────────────────── */
 
 .kk-h1 {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   line-height: 1.4;
   letter-spacing: 0.02em;
 }
 
 .kk-h2 {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   line-height: 1.5;
 }
 
 .kk-lead {
-  font-size: 17px;
+  font-size: 15px;
   color: var(--kk-ink-soft);
   line-height: 1.9;
 }
 
 /* 注記。本文より小さくしてよい唯一の場所 */
 .kk-note {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--kk-ink-faint);
   line-height: 1.8;
 }
@@ -84,7 +84,7 @@ body {
 .kk-notice {
   border-radius: 14px;
   padding: 0.9rem 1.1rem;
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1.8;
 }
 
@@ -116,7 +116,7 @@ body {
   border: none;
   border-radius: 999px;
   font-family: inherit;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #fff;
   background: var(--kk-accent);
@@ -139,7 +139,7 @@ body {
   border: 1.5px solid var(--kk-line-strong);
   border-radius: 999px;
   font-family: inherit;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--kk-ink);
   background: var(--kk-panel);
@@ -161,7 +161,7 @@ body {
   border: none;
   background: transparent;
   font-family: inherit;
-  font-size: 16px;
+  font-size: 14px;
   color: var(--kk-ink-soft);
   text-decoration: underline;
   cursor: pointer;
@@ -177,7 +177,7 @@ body {
   border-radius: 12px;
   padding: 0.8rem 0.9rem;
   font-family: inherit;
-  font-size: 17px; /* 16px未満にするとiOSが勝手にズームする */
+  font-size: 16px; /* 16px未満にするとiOSが勝手にズームする */
   line-height: 1.7;
   color: var(--kk-ink);
   transition: border-color 0.15s;
@@ -187,7 +187,7 @@ body {
 
 .kk-field-label {
   display: block;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--kk-ink-soft);
   margin-bottom: 0.4rem;
@@ -206,7 +206,7 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  font-size: 22px;
+  font-size: 20px;
   color: var(--kk-ink-soft);
   text-decoration: none;
   transition: background-color 0.15s, color 0.15s;
@@ -262,7 +262,7 @@ body {
   border: none;
   background: transparent;
   border-radius: 999px;
-  font-size: 18px;
+  font-size: 16px;
   color: var(--kk-ink-soft);
   cursor: pointer;
 }

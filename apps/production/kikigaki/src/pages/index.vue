@@ -212,11 +212,11 @@ onMounted(async () => {
   border: 2px solid #d9822b;
   background: #fff4e5;
   color: #5c3a0c;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.7;
 }
 .kk-drive-banner-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
 }
 </style>

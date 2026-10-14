@@ -619,7 +619,7 @@ onMounted(async () => {
   border-radius: 999px;
   background: var(--kk-accent-soft);
   color: var(--kk-accent-strong);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -639,7 +639,7 @@ onMounted(async () => {
 .kk-sub-label {
   flex-shrink: 0;
   margin-top: 0.75rem;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--kk-ink-faint);
 }
@@ -761,7 +761,7 @@ onMounted(async () => {
   border: 1.5px solid var(--kk-accent);
   background: var(--kk-accent-soft);
   color: var(--kk-accent-strong);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -842,7 +842,7 @@ onMounted(async () => {
   border: 1.5px solid var(--kk-line);
   background: #fff;
   color: var(--kk-ink);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
@@ -873,7 +873,7 @@ onMounted(async () => {
   border: 0;
   background: transparent;
   color: inherit;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1;
   cursor: pointer;
   padding: 0.1rem 0.3rem;
@@ -898,7 +898,7 @@ onMounted(async () => {
   border-radius: 999px;
   background: transparent;
   color: #b3261e;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;

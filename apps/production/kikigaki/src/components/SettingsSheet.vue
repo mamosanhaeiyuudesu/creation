@@ -202,7 +202,7 @@ watch(
 
 <style scoped>
 .kk-msg { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
-.kk-msg-close { flex-shrink: 0; border: 0; background: transparent; color: inherit; font-size: 18px; line-height: 1; cursor: pointer; padding: 0.1rem 0.3rem; }
+.kk-msg-close { flex-shrink: 0; border: 0; background: transparent; color: inherit; font-size: 16px; line-height: 1; cursor: pointer; padding: 0.1rem 0.3rem; }
 .kk-meter { height: 12px; border-radius: 999px; background: var(--kk-accent-soft); overflow: hidden; }
 .kk-meter-fill { height: 100%; border-radius: 999px; background: var(--kk-accent); }
 .kk-meter-fill--warn { background: #d9822b; }
