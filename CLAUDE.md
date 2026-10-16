@@ -16,6 +16,7 @@ apps/
 ├── ai-consultant/
 ├── sakubun/
 ├── hareruya/
+├── data-vis/       # データ可視化の受託制作LP（data-vis.insightlens.jp。miyako を事例に紹介）
 ├── genogram/       # ジェノグラム作成ツール（Cloudflare Workers。AIテキスト解釈の1APIルートのみ持つ）
 └── production/     # 一般ユーザー向けの本番サービス（専用D1・専用ドメイン）
     ├── kikigaki/   # キキガキ本番版（Firebase Auth + Stripe + D1。Cloudflare Workers）
@@ -54,6 +55,7 @@ ai-tools 側を変更しないこと（コピー元として扱う）。
 | ai-consultant | 3005 | AIと人間の協調をテーマにしたコンサルタントページ |
 | sakubun | 3006 | 「心の作文」 |
 | hareruya | 3007 | 晴レルヤ鍼灸院（内臓鍼灸・ソフトカイロ矯正／横浜市旭区若葉台） |
+| data-vis | 3011 | データ可視化の受託制作LP（data-vis.insightlens.jp）。参考サイトは trust-bank.net。料金・問い合わせ先は `src/config/site.ts` に集約 |
 | genogram | 3008 | ジェノグラム作成ツール（家族構成をAIに伝えるとJSONを作成・更新しSVG描画。AI解釈のみCloudflare Workers上のAPIルートを使う） |
 
 ### 本番サービス一覧

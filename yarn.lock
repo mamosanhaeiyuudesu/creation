@@ -6176,6 +6176,14 @@ __metadata:
   languageName: node
   linkType: hard
 
+"data-vis@workspace:apps/data-vis":
+  version: 0.0.0-use.local
+  resolution: "data-vis@workspace:apps/data-vis"
+  dependencies:
+    nuxt: "npm:^4.5.2"
+  languageName: unknown
+  linkType: soft
+
 "db0@npm:^0.3.4":
   version: 0.3.4
   resolution: "db0@npm:0.3.4"

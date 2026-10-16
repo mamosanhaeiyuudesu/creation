@@ -769,7 +769,7 @@
           <div class="terms-payment-body">
             <div class="terms-payment-row">
               <span class="terms-payment-label">ご相談</span>
-              <span class="terms-payment-value">¥5,000 / 時間</span>
+              <span class="terms-payment-value">30分 無料</span>
             </div>
             <div class="terms-payment-row">
               <span class="terms-payment-label">開発費用</span>
@@ -799,8 +799,8 @@
             一緒に考えましょう。
           </p>
           <div class="cta-price">
-            <span class="cta-price-label">初回相談</span>
-            <span class="cta-price-value">60分 / ¥5,000</span>
+            <span class="cta-price-label">ご相談</span>
+            <span class="cta-price-value">30分 / 無料</span>
           </div>
           <div class="cta-buttons">
             <a href="https://docs.google.com/forms/d/e/1FAIpQLSdBsT7TiFTC_zl8B7saQxM60-WcjHTpv7pz-ere34aQ_1YWsw/viewform?usp=publish-editor" class="btn-primary" target="_blank" rel="noopener noreferrer">
@@ -816,6 +816,7 @@
     <footer class="ac-footer">
       <div class="ac-footer-inner">
         <span class="ac-footer-copy">&copy; 2026 prototyper</span>
+        <NuxtLink to="/legal" class="ac-footer-link">特定商取引法に基づく表記</NuxtLink>
         <a href="https://prototype.insightlens.jp/miyako" class="ac-footer-link">実績: 宮古島市議会 議事録の可視化 →</a>
       </div>
     </footer>
