@@ -1,0 +1,1249 @@
+/*
+ * shimano-papa.insightlens.jp（人生のインタビュー）
+ * 構成は data-vis を下敷きにしている。色帯のヒーロー・白いカード・角丸の CTA
+ * 色: メイン＝黄緑／アクセント＝黄色／文字と濃い帯＝深緑
+ * 黄色は白地の文字には使わない（読めない）。ボタン・マーカー・バッジの背景にだけ使い、上に深緑の文字を載せる
+ */
+
+.pp-page {
+  --pp-main: #8cc63f;
+  --pp-main-dark: #5f8f22;
+  --pp-deep: #2e4a32;
+  --pp-deep-dark: #223826;
+  --pp-accent: #f5c518;
+  --pp-accent-dark: #e0ab00;
+  --pp-base: #f5f9ec;
+  --pp-cream: #fdfaea;
+  --pp-line: #dfe7cf;
+  --pp-text: #2b3a2e;
+  --pp-text-sub: #55635a;
+  --pp-radius: 10px;
+  --pp-shadow: 0 4px 18px rgba(46, 74, 50, 0.1);
+  --pp-font: 'Noto Sans JP', 'メイリオ', sans-serif;
+  --pp-font-head: 'Shippori Mincho', 'Noto Serif JP', serif;
+  --pp-font-num: 'Cormorant Garamond', 'Shippori Mincho', serif;
+
+  font-family: var(--pp-font);
+  color: var(--pp-text);
+  background: #fff;
+  font-size: 16px;
+  line-height: 1.8;
+  -webkit-font-smoothing: antialiased;
+}
+
+.pp-page *,
+.pp-page *::before,
+.pp-page *::after {
+  box-sizing: border-box;
+}
+
+/* リセットは :where() で詳細度を 0 にする。.pp-page p のままだと .pp-lead などの margin を打ち消してしまう */
+:where(.pp-page) :where(h1, h2, h3, p, ul, ol, dl, dd, figure) {
+  margin: 0;
+  padding: 0;
+}
+
+:where(.pp-page) :where(ul, ol) {
+  list-style: none;
+}
+
+.pp-page a {
+  color: inherit;
+  text-decoration: none;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
+.pp-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.pp-wrap-narrow {
+  max-width: 920px;
+}
+
+.pp-num {
+  font-family: var(--pp-font-num);
+}
+
+.pp-sp {
+  display: none;
+}
+
+.pp-nb {
+  display: inline-block;
+}
+
+.pp-marker {
+  background: linear-gradient(transparent 58%, rgba(245, 197, 24, 0.7) 58%);
+}
+
+/* ---------- ボタン ---------- */
+
+.pp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 26px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.4;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.pp-btn:hover {
+  transform: translateY(-2px);
+}
+
+.pp-page .pp-btn-accent {
+  background: var(--pp-accent);
+  color: var(--pp-deep-dark);
+  box-shadow: 0 4px 14px rgba(224, 171, 0, 0.35);
+}
+
+.pp-btn-accent:hover {
+  background: #ffd43a;
+}
+
+.pp-btn-lg {
+  padding: 18px 40px;
+  font-size: 19px;
+}
+
+.pp-btn-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--pp-deep);
+  color: var(--pp-accent);
+  font-size: 15px;
+}
+
+.pp-page .pp-text-link {
+  display: inline-block;
+  margin-top: 14px;
+  color: var(--pp-main-dark);
+  font-weight: 700;
+  border-bottom: 2px solid rgba(140, 198, 63, 0.4);
+}
+
+.pp-text-link:hover {
+  border-bottom-color: var(--pp-main-dark);
+}
+
+/* ---------- 上部の帯・ヘッダー ---------- */
+
+.pp-topbar {
+  background: var(--pp-deep);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.pp-topbar-inner {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.pp-topbar a {
+  color: var(--pp-accent);
+  font-weight: 700;
+}
+
+.pp-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: #fff;
+  box-shadow: 0 1px 0 var(--pp-line);
+}
+
+.pp-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+  gap: 24px;
+}
+
+.pp-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pp-logo-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.pp-logo-name {
+  font-family: var(--pp-font-head);
+  font-weight: 800;
+  font-size: 21px;
+  color: var(--pp-deep);
+}
+
+.pp-logo-sub {
+  font-family: var(--pp-font-num);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--pp-main-dark);
+}
+
+.pp-nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.pp-nav a:not(.pp-btn):hover {
+  color: var(--pp-main-dark);
+}
+
+.pp-menu-btn {
+  display: none;
+}
+
+/* ---------- ヒーロー ---------- */
+
+.pp-hero {
+  background:
+    radial-gradient(circle at 88% 18%, rgba(245, 197, 24, 0.22) 0, transparent 38%),
+    radial-gradient(circle at 8% 90%, rgba(140, 198, 63, 0.22) 0, transparent 42%),
+    var(--pp-cream);
+  padding: 56px 0 120px;
+  overflow: hidden;
+}
+
+.pp-hero-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+.pp-hero-tag {
+  display: inline-block;
+  background: var(--pp-main);
+  color: var(--pp-deep-dark);
+  font-weight: 700;
+  font-size: 17px;
+  padding: 4px 16px;
+  margin-bottom: 18px;
+}
+
+.pp-hero-catch {
+  font-family: var(--pp-font-head);
+  font-size: clamp(30px, 3.6vw, 50px);
+  font-weight: 800;
+  line-height: 1.45;
+  letter-spacing: 0.03em;
+  color: var(--pp-deep);
+}
+
+.pp-hero-catch-em {
+  background: linear-gradient(transparent 62%, rgba(245, 197, 24, 0.75) 62%);
+}
+
+.pp-hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 24px 0 18px;
+}
+
+.pp-hero-chips li {
+  border: 2px solid var(--pp-main);
+  background: #fff;
+  color: var(--pp-deep);
+  padding: 1px 12px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.pp-hero-sub {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.9;
+  color: var(--pp-text-sub);
+  margin-bottom: 30px;
+}
+
+.pp-hero-visual {
+  position: relative;
+  padding: 20px 0 30px;
+}
+
+.pp-cover {
+  position: absolute;
+  right: 0;
+  bottom: 14px;
+  width: 28%;
+  aspect-ratio: 7 / 10;
+  background: linear-gradient(160deg, var(--pp-deep), var(--pp-deep-dark));
+  border-radius: 3px 8px 8px 3px;
+  box-shadow: 0 18px 36px rgba(20, 40, 24, 0.35);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px 0 22px;
+  overflow: hidden;
+}
+
+.pp-cover-spine {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  background: var(--pp-main);
+}
+
+.pp-cover-sub {
+  font-family: var(--pp-font-head);
+  font-size: clamp(10px, 1vw, 13px);
+  color: var(--pp-accent);
+  letter-spacing: 0.1em;
+}
+
+.pp-cover-title {
+  font-family: var(--pp-font-head);
+  font-weight: 800;
+  font-size: clamp(20px, 2.3vw, 32px);
+  line-height: 1.4;
+  text-align: center;
+  margin: 8px 0 14px;
+}
+
+.pp-cover-foot {
+  position: absolute;
+  bottom: 12px;
+  left: 22px;
+  right: 10px;
+  text-align: center;
+  font-family: var(--pp-font-num);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.pp-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: var(--pp-accent);
+  color: var(--pp-deep-dark);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.25;
+  font-weight: 700;
+  box-shadow: 0 8px 20px rgba(120, 90, 0, 0.25);
+}
+
+.pp-badge-small {
+  font-size: 11px;
+}
+
+.pp-badge-mid {
+  font-size: 14px;
+}
+
+.pp-badge-num {
+  font-family: var(--pp-font-num);
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.pp-badge-num small {
+  font-family: var(--pp-font);
+  font-size: 15px;
+  margin-left: 2px;
+}
+
+/* ヒーローの下端に重なる2枚のカード */
+.pp-hero-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  max-width: 900px;
+  margin-top: -76px;
+  position: relative;
+  z-index: 2;
+}
+
+.pp-hero-card {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  background: #fff;
+  padding: 16px 20px;
+  box-shadow: var(--pp-shadow);
+  border-top: 5px solid var(--pp-main);
+}
+
+.pp-hero-card + .pp-hero-card {
+  border-top-color: var(--pp-accent);
+}
+
+.pp-hero-card-icon {
+  flex: none;
+  width: 96px;
+  height: 96px;
+  background: var(--pp-base);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--pp-deep);
+}
+
+.pp-hero-card-body {
+  flex: 1;
+  text-align: center;
+}
+
+.pp-hero-card-lead {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--pp-main-dark);
+}
+
+.pp-hero-card-big {
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--pp-deep);
+  line-height: 1.2;
+}
+
+.pp-hero-card-big .pp-num {
+  font-size: 50px;
+  font-weight: 700;
+  margin-right: 2px;
+}
+
+.pp-hero-card-note {
+  font-size: 12px;
+  color: var(--pp-text-sub);
+  font-weight: 500;
+}
+
+/* ---------- セクション共通 ---------- */
+
+.pp-section {
+  padding: 96px 0;
+}
+
+.pp-section-tint {
+  background: var(--pp-base);
+}
+
+.pp-label {
+  font-family: var(--pp-font-num);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.22em;
+  color: var(--pp-main-dark);
+  text-align: center;
+}
+
+.pp-title {
+  text-align: center;
+  font-family: var(--pp-font-head);
+  font-size: clamp(26px, 3.2vw, 36px);
+  font-weight: 800;
+  line-height: 1.5;
+  color: var(--pp-deep);
+  margin: 4px 0 20px;
+}
+
+.pp-lead {
+  text-align: center;
+  font-weight: 500;
+  color: var(--pp-text-sub);
+  margin-bottom: 44px;
+}
+
+.pp-note-inline {
+  font-size: 14px;
+  color: var(--pp-main-dark);
+  font-weight: 700;
+}
+
+/* ---------- こんな方へ ---------- */
+
+.pp-for-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 36px;
+}
+
+.pp-for {
+  background: #fff;
+  border: 2px solid var(--pp-line);
+  border-top: 6px solid var(--pp-main);
+  padding: 26px 26px 28px;
+}
+
+.pp-for-who {
+  display: inline-block;
+  background: var(--pp-accent);
+  color: var(--pp-deep-dark);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 1px 12px;
+  border-radius: 999px;
+}
+
+.pp-for-title {
+  font-family: var(--pp-font-head);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--pp-deep);
+  margin: 12px 0 8px;
+  line-height: 1.5;
+}
+
+.pp-for p {
+  font-weight: 500;
+  color: var(--pp-text-sub);
+  font-size: 15px;
+}
+
+/* ---------- 特徴 ---------- */
+
+.pp-about-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.pp-about {
+  background: #fff;
+  border-radius: var(--pp-radius);
+  padding: 28px 26px;
+  box-shadow: var(--pp-shadow);
+}
+
+.pp-about-num {
+  display: block;
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--pp-main);
+}
+
+.pp-about h3 {
+  font-family: var(--pp-font-head);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--pp-deep);
+  margin: 10px 0 8px;
+}
+
+.pp-about p {
+  font-weight: 500;
+  color: var(--pp-text-sub);
+  font-size: 15px;
+}
+
+/* ---------- 本の中身 ---------- */
+
+.pp-book-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.pp-book {
+  background: var(--pp-base);
+  border-radius: var(--pp-radius);
+  padding: 16px;
+}
+
+.pp-book figcaption {
+  margin-top: 14px;
+}
+
+.pp-book h3 {
+  font-family: var(--pp-font-head);
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--pp-deep);
+}
+
+.pp-book p {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pp-text-sub);
+  margin-top: 2px;
+}
+
+.pp-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.pp-svg-head {
+  font-family: var(--pp-font-head);
+  font-size: 15px;
+  font-weight: 800;
+  fill: var(--pp-deep);
+}
+
+.pp-svg-chapter {
+  font-family: var(--pp-font-head);
+  font-size: 10.5px;
+  font-weight: 700;
+  fill: var(--pp-main-dark);
+}
+
+.pp-svg-text {
+  font-family: var(--pp-font-head);
+  font-size: 11.5px;
+  font-weight: 600;
+  fill: var(--pp-text);
+}
+
+.pp-svg-year {
+  font-family: var(--pp-font-num);
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--pp-main-dark);
+}
+
+.pp-spec {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 40px;
+}
+
+.pp-spec li {
+  background: var(--pp-deep);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 6px 22px;
+  border-radius: 999px;
+}
+
+.pp-spec .pp-num {
+  font-size: 22px;
+  color: var(--pp-accent);
+  margin: 0 3px;
+}
+
+.pp-spec-note {
+  text-align: center;
+  font-size: 13px;
+  color: var(--pp-text-sub);
+  margin-top: 8px;
+}
+
+/* ---------- 体験者の声 ---------- */
+
+.pp-voice {
+  background: #fff;
+  border: 3px solid var(--pp-main);
+  border-radius: var(--pp-radius);
+  padding: 32px;
+  margin-top: 36px;
+}
+
+.pp-voice-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.pp-voice-icon {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--pp-main);
+  color: #fff;
+  font-family: Georgia, serif;
+  font-size: 48px;
+  line-height: 76px;
+  text-align: center;
+}
+
+.pp-voice-label {
+  font-family: var(--pp-font-head);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--pp-deep);
+}
+
+.pp-voice-person {
+  font-size: 14px;
+  color: var(--pp-text-sub);
+  font-weight: 500;
+}
+
+.pp-voice-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.pp-voice-point {
+  background: var(--pp-base);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.pp-voice-point h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--pp-main-dark);
+  margin-bottom: 6px;
+}
+
+.pp-voice-point p {
+  font-size: 14px;
+  color: var(--pp-text);
+  font-weight: 500;
+}
+
+.pp-voice-close {
+  margin-top: 28px;
+  text-align: center;
+  font-family: var(--pp-font-head);
+  font-size: clamp(22px, 2.6vw, 30px);
+  font-weight: 800;
+  color: var(--pp-deep);
+}
+
+/* 補足：メインの訴求ではないので、控えめな枠にする */
+.pp-aside {
+  max-width: 680px;
+  margin: 36px auto 0;
+  border: 1px dashed var(--pp-main);
+  border-radius: var(--pp-radius);
+  padding: 20px 24px;
+  font-size: 14px;
+  color: var(--pp-text-sub);
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.pp-aside-label {
+  font-weight: 700;
+  color: var(--pp-deep);
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.pp-aside ul {
+  margin-top: 6px;
+}
+
+.pp-aside li {
+  position: relative;
+  padding-left: 18px;
+}
+
+.pp-aside li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.75em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pp-main);
+}
+
+.pp-aside-note {
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+/* ---------- 聞き手 ---------- */
+
+.pp-maker {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 36px;
+  margin-top: 36px;
+  align-items: start;
+}
+
+.pp-maker-name {
+  text-align: center;
+}
+
+.pp-maker-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: var(--pp-base);
+  border: 4px solid var(--pp-main);
+  color: var(--pp-deep);
+}
+
+.pp-maker-name p {
+  font-family: var(--pp-font-head);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--pp-deep);
+  margin-top: 10px;
+}
+
+.pp-maker-body p {
+  font-weight: 500;
+  color: var(--pp-text-sub);
+}
+
+.pp-maker-body p + p {
+  margin-top: 14px;
+}
+
+/* ---------- 料金 ---------- */
+
+.pp-price-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-top: 36px;
+}
+
+.pp-price {
+  border: 2px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  padding: 28px 26px;
+  background: #fff;
+}
+
+.pp-price.is-main {
+  border-color: var(--pp-main);
+  box-shadow: 0 8px 24px rgba(95, 143, 34, 0.15);
+}
+
+.pp-price-name {
+  text-align: center;
+  font-family: var(--pp-font-head);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--pp-deep);
+}
+
+.pp-price-amount {
+  text-align: center;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--pp-deep);
+  margin: 6px 0 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed var(--pp-line);
+}
+
+.pp-price-amount .pp-num {
+  font-size: 56px;
+  line-height: 1.1;
+  margin-right: 2px;
+}
+
+.pp-price-amount small {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pp-text-sub);
+}
+
+.pp-price li {
+  position: relative;
+  padding-left: 20px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--pp-text-sub);
+  margin-top: 8px;
+}
+
+.pp-price li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.7em;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pp-main);
+}
+
+.pp-price-note {
+  text-align: center;
+  font-size: 14px;
+  color: var(--pp-text-sub);
+  margin-top: 18px;
+}
+
+/* ---------- 流れ ---------- */
+
+.pp-flow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 36px;
+}
+
+.pp-flow li {
+  background: #fff;
+  border-radius: var(--pp-radius);
+  padding: 26px 24px;
+  box-shadow: var(--pp-shadow);
+  border-top: 5px solid var(--pp-main);
+}
+
+.pp-flow li:nth-child(3) {
+  border-top-color: var(--pp-accent);
+}
+
+.pp-flow-num {
+  font-family: var(--pp-font-num);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  color: var(--pp-main-dark);
+}
+
+.pp-flow-num .pp-num {
+  font-size: 30px;
+}
+
+.pp-flow h3 {
+  font-family: var(--pp-font-head);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--pp-deep);
+  margin: 2px 0 8px;
+}
+
+.pp-flow p {
+  font-size: 15px;
+  color: var(--pp-text-sub);
+  font-weight: 500;
+}
+
+/* ---------- FAQ ---------- */
+
+.pp-faq {
+  margin-top: 32px;
+}
+
+.pp-faq-item {
+  border-bottom: 1px solid var(--pp-line);
+  padding: 22px 0;
+}
+
+.pp-faq-item:first-child {
+  border-top: 1px solid var(--pp-line);
+}
+
+.pp-faq dt,
+.pp-faq dd {
+  position: relative;
+  padding-left: 44px;
+}
+
+.pp-faq dt {
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--pp-deep);
+}
+
+.pp-faq dd {
+  margin-top: 10px;
+  color: var(--pp-text-sub);
+  font-weight: 500;
+}
+
+.pp-faq dt::before,
+.pp-faq dd::before {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-family: var(--pp-font-num);
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 30px;
+  text-align: center;
+}
+
+.pp-faq dt::before {
+  content: 'Q';
+  background: var(--pp-main);
+  color: #fff;
+}
+
+.pp-faq dd::before {
+  content: 'A';
+  background: var(--pp-accent);
+  color: var(--pp-deep-dark);
+}
+
+/* ---------- 最後の CTA・フッター ---------- */
+
+.pp-cta {
+  background:
+    radial-gradient(circle at 15% 80%, rgba(140, 198, 63, 0.25) 0, transparent 40%),
+    linear-gradient(135deg, var(--pp-deep) 0%, var(--pp-deep-dark) 100%);
+  color: #fff;
+  padding: 80px 0;
+  text-align: center;
+}
+
+.pp-cta-sub {
+  font-weight: 700;
+  color: var(--pp-accent);
+}
+
+.pp-cta-title {
+  font-family: var(--pp-font-head);
+  font-size: clamp(26px, 3.4vw, 38px);
+  font-weight: 800;
+  line-height: 1.5;
+  margin: 8px 0 14px;
+}
+
+.pp-cta-note {
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 30px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.pp-footer {
+  background: var(--pp-deep-dark);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  padding: 22px 0;
+}
+
+.pp-footer-inner {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pp-footer a:hover {
+  color: #fff;
+}
+
+/* ---------- タブレット ---------- */
+
+@media (max-width: 1040px) {
+  .pp-nav {
+    gap: 18px;
+    font-size: 14px;
+  }
+
+  .pp-hero-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .pp-hero-visual {
+    max-width: 600px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .pp-voice-grid,
+  .pp-book-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ---------- スマホ ---------- */
+
+@media (max-width: 760px) {
+  .pp-pc {
+    display: none;
+  }
+
+  .pp-sp {
+    display: inline;
+  }
+
+  .pp-wrap {
+    padding: 0 16px;
+  }
+
+  .pp-topbar {
+    display: none;
+  }
+
+  .pp-header-inner {
+    height: 62px;
+  }
+
+  .pp-logo-name {
+    font-size: 18px;
+  }
+
+  .pp-menu-btn {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    border: none;
+    background: none;
+    cursor: pointer;
+  }
+
+  .pp-menu-btn span {
+    display: block;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--pp-deep);
+  }
+
+  .pp-nav {
+    display: none;
+    position: absolute;
+    top: 62px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 0;
+    background: #fff;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    padding: 8px 16px 20px;
+  }
+
+  .pp-nav.is-open {
+    display: flex;
+  }
+
+  .pp-nav a:not(.pp-btn) {
+    width: 100%;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--pp-line);
+  }
+
+  .pp-nav-cta {
+    margin-top: 16px;
+  }
+
+  .pp-hero {
+    padding: 36px 0 110px;
+  }
+
+  .pp-hero-tag {
+    font-size: 14px;
+  }
+
+  .pp-hero-chips li {
+    font-size: 13px;
+  }
+
+  .pp-hero-sub {
+    font-size: 15px;
+  }
+
+  .pp-btn-lg {
+    width: 100%;
+    font-size: 17px;
+    padding: 16px 20px;
+  }
+
+  .pp-badge {
+    width: 100px;
+    height: 100px;
+    top: -4px;
+    right: -4px;
+  }
+
+  .pp-badge-num {
+    font-size: 30px;
+  }
+
+  .pp-badge-mid {
+    font-size: 11px;
+  }
+
+  .pp-badge-small {
+    font-size: 8px;
+  }
+
+  .pp-hero-cards {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-top: -80px;
+  }
+
+  .pp-hero-card-icon {
+    width: 72px;
+    height: 72px;
+    font-size: 12px;
+  }
+
+  .pp-hero-card-big .pp-num {
+    font-size: 40px;
+  }
+
+  .pp-section {
+    padding: 64px 0;
+  }
+
+  .pp-for-grid,
+  .pp-about-list,
+  .pp-book-grid,
+  .pp-voice-grid,
+  .pp-maker,
+  .pp-price-grid,
+  .pp-flow {
+    grid-template-columns: 1fr;
+  }
+
+  .pp-voice {
+    padding: 22px 18px;
+  }
+
+  .pp-maker {
+    gap: 16px;
+  }
+}

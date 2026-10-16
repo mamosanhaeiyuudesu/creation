@@ -11670,6 +11670,14 @@ __metadata:
   languageName: node
   linkType: hard
 
+"shimano-papa@workspace:apps/shimano-papa":
+  version: 0.0.0-use.local
+  resolution: "shimano-papa@workspace:apps/shimano-papa"
+  dependencies:
+    nuxt: "npm:^4.5.2"
+  languageName: unknown
+  linkType: soft
+
 "shugorin@workspace:apps/shugorin":
   version: 0.0.0-use.local
   resolution: "shugorin@workspace:apps/shugorin"
