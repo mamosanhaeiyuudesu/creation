@@ -30,8 +30,6 @@ export default defineEventHandler(async (event) => {
   // 画面で編集中の内容を土台にする（保存前の直しも反映させるため）
   const current = body?.minutes ? normalizeMinutes(body.minutes) : record.minutes
   const revised = await reviseMinutes(event, current, record.transcript, instruction)
-  // PDFの文字数設定は指示の対象外。AIは触っていないのでそのまま引き継ぐ
-  revised.printSettings = current.printSettings
 
   return { minutes: revised }
 })

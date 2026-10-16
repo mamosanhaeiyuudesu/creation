@@ -7,19 +7,12 @@
 import type { H3Event } from 'h3'
 import { requireDb, ensureTables } from '~/server/utils/db'
 import { encryptText, decryptText } from '~/server/utils/encrypt'
-import {
-  emptyMinutes,
-  DEFAULT_SUMMARY_MAX_CHARS,
-  DEFAULT_RIGHT_MAX_CHARS,
-  PRINT_MAX_CHARS_MIN,
-  PRINT_MAX_CHARS_MAX,
-} from '~/types/minutes'
+import { emptyMinutes } from '~/types/minutes'
 import type {
   EventItem,
   Minutes,
   MinutesPoint,
   MinutesRecord,
-  PrintSettings,
   RecordSummary,
   TaskItem,
 } from '~/types/minutes'
@@ -77,19 +70,14 @@ function normalizeEvents(v: unknown): EventItem[] {
     .filter((e) => e.title || e.datetime)
 }
 
-/** 100〜3000の整数に丸める。数値でなければ既定値（PDFの要約が延々と走らないための保険） */
-function clampMaxChars(v: unknown, fallback: number): number {
-  const n = Number(v)
-  if (!Number.isFinite(n)) return fallback
-  return Math.min(PRINT_MAX_CHARS_MAX, Math.max(PRINT_MAX_CHARS_MIN, Math.round(n)))
-}
-
-function normalizePrintSettings(v: unknown): PrintSettings {
-  const src = v && typeof v === 'object' ? (v as any) : {}
-  return {
-    summaryMaxChars: clampMaxChars(src.summaryMaxChars, DEFAULT_SUMMARY_MAX_CHARS),
-    rightMaxChars: clampMaxChars(src.rightMaxChars, DEFAULT_RIGHT_MAX_CHARS),
-  }
+/**
+ * 参加者は1人1要素の配列で持つ。AIが「田中さん、佐藤さん」と1行で返してきても区切って受け取る。
+ * 空欄は落とす（画面の末尾の入力欄が空のまま保存されても、空の参加者が増えないように）。
+ * 参加者を足す前に作った議事録は undefined なので空配列になる。
+ */
+function normalizeParticipants(v: unknown): string[] {
+  const list = Array.isArray(v) ? v.map(str) : str(v).split(/[、,，\n]/)
+  return list.map((p) => p.trim()).filter(Boolean)
 }
 
 /** 構造化JSONを画面・DBで扱う形に揃える。欠けたキーは空で埋める（落とさない） */
@@ -98,13 +86,13 @@ export function normalizeMinutes(raw: any): Minutes {
   return {
     title: str(raw.title),
     date: normalizeDate(raw.date),
+    participants: normalizeParticipants(raw.participants),
     summary: str(raw.summary),
     decisions: normalizePoints(raw.decisions),
     discussions: normalizePoints(raw.discussions),
     taskCandidates: normalizeTasks(raw.taskCandidates ?? raw.task_candidates),
     eventCandidates: normalizeEvents(raw.eventCandidates ?? raw.event_candidates),
     unclearPoints: arr(raw.unclearPoints ?? raw.unclear_points).map(str).filter(Boolean),
-    printSettings: normalizePrintSettings(raw.printSettings ?? raw.print_settings),
   }
 }
 

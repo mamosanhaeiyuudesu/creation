@@ -1,10 +1,10 @@
 // PDFの枠に入り切らないときだけ呼ばれる要約。
-// 目安文字数（記録ごとの printSettings）に収まっているならクライアントはここを呼ばない。
+// 目安文字数（アカウント全体の設定。types/settings.ts）に収まっているならクライアントはここを呼ばない。
 
 import { requireUser } from '~/server/utils/auth'
 import { requireEntitlement } from '~/server/utils/entitlement'
 import { condensePrintLeft, condensePrintRight, type PrintLineInput } from '~/server/utils/minutes-ai'
-import { PRINT_MAX_CHARS_MAX, PRINT_MAX_CHARS_MIN } from '~/types/minutes'
+import { PRINT_MAX_CHARS_MAX, PRINT_MAX_CHARS_MIN } from '~/types/settings'
 import type { MinutesPoint } from '~/types/minutes'
 
 function clampMaxChars(v: unknown): number {

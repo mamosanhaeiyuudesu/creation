@@ -150,24 +150,51 @@ export function useDrive() {
     return id
   }
 
-  /** PDFをドライブの「キキガキ議事録」フォルダへ保存する。成功したらドライブ上のリンクを返す */
+  /**
+   * フォルダの中から同じ名前のPDFを探す（上書き用）。drive.file の権限ではキキガキが作ったファイルしか
+   * 見えないので、本人が手で置いた同名のファイルを上書きすることはない。見つからなければ空文字。
+   */
+  async function findSameName(tok: string, folderId: string, fileName: string): Promise<string> {
+    const esc = (v: string) => v.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+    const q = encodeURIComponent(
+      `name='${esc(fileName)}' and '${esc(folderId)}' in parents and mimeType='application/pdf' and trashed=false`
+    )
+    const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)&pageSize=1`, tok)
+    if (!res.ok) return ''
+    return String((await res.json()).files?.[0]?.id ?? '')
+  }
+
+  /**
+   * PDFをドライブの「キキガキ議事録」フォルダへ保存する。成功したらドライブ上のリンクを返す。
+   * **同じ名前のPDFがあれば上書きする**（直して保存し直すたびに同名ファイルが増えていかないように）。
+   * ファイル名は「会議の名前_日付.pdf」なので、名前か日付を変えると別のファイルとして増える。
+   */
   async function uploadPdf(blob: Blob, fileName: string): Promise<string> {
     const send = async (retry: boolean): Promise<string> => {
       const tok = await accessToken()
       const folderId = await ensureFolder(tok)
+      const existingId = await findSameName(tok, folderId, fileName)
       const boundary = `kk${Date.now().toString(36)}`
-      const meta = JSON.stringify({ name: fileName, mimeType: 'application/pdf', parents: [folderId] })
+      // 上書き（PATCH）では parents を送れない（送ると400）。新規のときだけフォルダを指定する
+      const meta = JSON.stringify(
+        existingId
+          ? { name: fileName, mimeType: 'application/pdf' }
+          : { name: fileName, mimeType: 'application/pdf', parents: [folderId] }
+      )
       const body = new Blob([
         `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n`,
         `--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`,
         blob,
         `\r\n--${boundary}--`,
       ])
-      const res = await driveFetch(
-        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=webViewLink',
-        tok,
-        { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body }
-      )
+      const url = existingId
+        ? `https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=multipart&fields=webViewLink`
+        : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=webViewLink'
+      const res = await driveFetch(url, tok, {
+        method: existingId ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+        body,
+      })
       if (res.ok) return String((await res.json()).webViewLink ?? '')
       // フォルダを消された（キャッシュが古い）／トークンが切れていた → 1度だけやり直す
       if (retry && (res.status === 404 || res.status === 401)) {

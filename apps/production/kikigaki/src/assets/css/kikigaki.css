@@ -1,37 +1,40 @@
 /*
  * キキガキ本番版の見た目の土台。
  *
- * 色は既存 /kikigaki（apps/ai-tools/src/layouts/kikigaki.vue）の「公民館の机の上」トーンを引き継ぐが、
- * 文字とボタンの寸法は作り直している。想定している使い手は、スマホを主に使う個人事業主（主に農家）で
- * 既存の議事録アプリを使いこなせていない層。そのため:
- *   - 本文は 17px から。小さい字（11〜13px）は注記にだけ使う
- *   - 押せるものは高さ 56px 以上（手袋・濡れた指・老眼を想定）
- *   - 1画面に置く操作は原則1つ。色で主役を1つだけ示す
- * 見た目を変えるときもこの3つは崩さないこと。
+ * 2026-10-16 に「一目でたくさん見える」ことを優先して詰めた作りに変えた（参考: Notta の管理画面）。
+ * 色は data-vis（apps/data-vis）に合わせ、青を基調・オレンジを主役ボタンだけに使う。
+ *   - 本文は 14px。小さい字（11〜12px）は注記にだけ使う
+ *   - 入力欄はスマホでは 16px のまま（16px未満にすると iOS が勝手にズームする）。PC だけ 14px に詰める
+ *   - 色で主役を1つだけ示す（オレンジのボタンは1画面に1つ）
  *
  * モーダルを <Teleport to="body"> で出す場合に備えて、変数は :root に置く
  * （スコープしたクラスに置くと継承されず、ポップアップだけ色が抜ける。nikki で実際に起きた不具合）。
  */
 
 :root {
-  --kk-bg: #f4f2ed;
+  --kk-bg: #f1f6fc;
   --kk-panel: #ffffff;
-  --kk-line: rgba(40, 44, 52, 0.14);
-  --kk-line-strong: rgba(40, 44, 52, 0.3);
-  --kk-ink: #2b3038;
-  --kk-ink-soft: #5c636e;
-  --kk-ink-faint: #8b929c;
-  --kk-accent: #2f6f5e;
-  --kk-accent-strong: #255a4b;
-  --kk-accent-soft: #dcebe5;
+  --kk-line: #dbe4ef;
+  --kk-line-strong: #b9c8da;
+  --kk-ink: #1f2a37;
+  --kk-ink-soft: #4b5868;
+  --kk-ink-faint: #8593a3;
+  /* 基調の青（data-vis の --dv-main 系） */
+  --kk-accent: #1d6fd6;
+  --kk-accent-strong: #134c9c;
+  --kk-accent-soft: #e6f0fb;
+  /* 主役ボタンのオレンジ（data-vis の --dv-accent 系） */
+  --kk-cta: #f08c1e;
+  --kk-cta-strong: #d97606;
+  --kk-cta-soft: #fff4e5;
   --kk-warn: #9a5b00;
-  --kk-warn-soft: #fdf3e3;
-  --kk-danger: #b3261e;
+  --kk-warn-soft: #fff4e5;
+  --kk-danger: #c62828;
   --kk-danger-soft: #fdf1f1;
+  --kk-shadow: 0 2px 10px rgba(20, 60, 120, 0.06);
 }
 
 html {
-  /* iOS で入力欄にフォーカスしたときの自動ズームを防ぐ（16px以上であること） */
   -webkit-text-size-adjust: 100%;
 }
 
@@ -39,38 +42,38 @@ body {
   margin: 0;
   color: var(--kk-ink);
   background: var(--kk-bg);
-  font-family: 'Zen Kaku Gothic New', 'Hiragino Sans', system-ui, sans-serif;
-  font-size: 15px;
-  line-height: 1.8;
+  font-family: 'Noto Sans JP', 'Hiragino Sans', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
   -webkit-font-smoothing: antialiased;
 }
 
 /* ── 文字 ───────────────────────────────────────────── */
 
 .kk-h1 {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.4;
   letter-spacing: 0.02em;
 }
 
 .kk-h2 {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
   line-height: 1.5;
 }
 
 .kk-lead {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--kk-ink-soft);
-  line-height: 1.9;
+  line-height: 1.8;
 }
 
 /* 注記。本文より小さくしてよい唯一の場所 */
 .kk-note {
   font-size: 12px;
   color: var(--kk-ink-faint);
-  line-height: 1.8;
+  line-height: 1.7;
 }
 
 /* ── 面 ─────────────────────────────────────────────── */
@@ -78,19 +81,20 @@ body {
 .kk-card {
   background: var(--kk-panel);
   border: 1px solid var(--kk-line);
-  border-radius: 16px;
+  border-radius: 10px;
+  box-shadow: var(--kk-shadow);
 }
 
 .kk-notice {
-  border-radius: 14px;
-  padding: 0.9rem 1.1rem;
+  border-radius: 8px;
+  padding: 0.55rem 0.8rem;
   font-size: 13px;
-  line-height: 1.8;
+  line-height: 1.7;
 }
 
 .kk-notice--warn {
   background: var(--kk-warn-soft);
-  border: 1px solid #f0dcb4;
+  border: 1px solid #f5d6ad;
   color: var(--kk-warn);
 }
 
@@ -102,24 +106,24 @@ body {
 
 .kk-notice--info {
   background: var(--kk-accent-soft);
-  border: 1px solid #c3dcd3;
+  border: 1px solid #c5dbf5;
   color: var(--kk-accent-strong);
 }
 
 /* ── 押せるもの ─────────────────────────────────────── */
 
-/* 主役のボタン。1画面に1つだけ置く */
+/* 主役のボタン（オレンジ）。1画面に1つだけ置く */
 .kk-btn {
   width: 100%;
-  min-height: 60px;
-  padding: 0 1.5rem;
+  min-height: 44px;
+  padding: 0 1.25rem;
   border: none;
   border-radius: 999px;
   font-family: inherit;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: #fff;
-  background: var(--kk-accent);
+  background: var(--kk-cta);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -128,40 +132,40 @@ body {
   cursor: pointer;
   transition: background-color 0.15s;
 }
-.kk-btn:hover:not(:disabled) { background: var(--kk-accent-strong); }
+.kk-btn:hover:not(:disabled) { background: var(--kk-cta-strong); }
 .kk-btn:disabled { opacity: 0.45; cursor: default; }
 
 /* 脇役。主役と並べても迷わない見た目にする */
 .kk-btn-sub {
   width: 100%;
-  min-height: 56px;
-  padding: 0 1.25rem;
-  border: 1.5px solid var(--kk-line-strong);
+  min-height: 40px;
+  padding: 0 1rem;
+  border: 1px solid var(--kk-line-strong);
   border-radius: 999px;
   font-family: inherit;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--kk-ink);
   background: var(--kk-panel);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   text-decoration: none;
   cursor: pointer;
-  transition: border-color 0.15s, background-color 0.15s;
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
 }
-.kk-btn-sub:hover:not(:disabled) { border-color: var(--kk-accent); background: var(--kk-accent-soft); }
+.kk-btn-sub:hover:not(:disabled) { border-color: var(--kk-accent); background: var(--kk-accent-soft); color: var(--kk-accent-strong); }
 .kk-btn-sub:disabled { opacity: 0.45; cursor: default; }
 
 /* 文字リンク相当の小さな操作（取り消し・戻るなど） */
 .kk-btn-text {
-  min-height: 48px;
+  min-height: 36px;
   padding: 0 0.75rem;
   border: none;
   background: transparent;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--kk-ink-soft);
   text-decoration: underline;
   cursor: pointer;
@@ -173,45 +177,28 @@ body {
 .kk-input {
   width: 100%;
   background: #fff;
-  border: 1.5px solid var(--kk-line);
-  border-radius: 12px;
-  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--kk-line);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
   font-family: inherit;
-  font-size: 16px; /* 16px未満にするとiOSが勝手にズームする */
-  line-height: 1.7;
+  font-size: 16px; /* 16px未満にするとiOSが勝手にズームする（PCだけ下で詰める） */
+  line-height: 1.6;
   color: var(--kk-ink);
   transition: border-color 0.15s;
 }
 .kk-input::placeholder { color: var(--kk-ink-faint); }
-.kk-input:focus { outline: none; border-color: var(--kk-accent); }
+.kk-input:focus { outline: none; border-color: var(--kk-accent); box-shadow: 0 0 0 3px var(--kk-accent-soft); }
+@media (min-width: 768px) {
+  .kk-input { font-size: 14px; }
+}
 
 .kk-field-label {
   display: block;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--kk-ink-soft);
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.2rem;
 }
-
-/* ── 右上の設定アイコン ────────────────────────────── */
-
-/*
- * ヘッダーの限られた縦幅に収めるため、タップ領域56px以上の原則はここだけ例外にしている
- * （アイコンボタンは44px前後が一般的＝Apple HIGは44pt・Materialは48dp）。
- */
-.kk-settings-btn {
-  width: 44px;
-  height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  font-size: 20px;
-  color: var(--kk-ink-soft);
-  text-decoration: none;
-  transition: background-color 0.15s, color 0.15s;
-}
-.kk-settings-btn:hover { background: var(--kk-accent-soft); color: var(--kk-ink); }
 
 /* ── ポップアップ（ボトムシート） ──────────────────── */
 
@@ -231,8 +218,8 @@ body {
   max-width: 720px;
   max-height: 88vh;
   overflow-y: auto;
-  border-radius: 20px 20px 0 0;
-  padding: 0.5rem 1.25rem 2rem;
+  border-radius: 14px 14px 0 0;
+  padding: 0.25rem 1.1rem 1.5rem;
   box-shadow: 0 -8px 30px rgba(40, 44, 52, 0.18);
 }
 
@@ -241,7 +228,7 @@ body {
   height: 4px;
   border-radius: 999px;
   background: var(--kk-line-strong);
-  margin: 0.5rem auto 0.75rem;
+  margin: 0.4rem auto 0.5rem;
 }
 
 .kk-sheet-head {
@@ -249,12 +236,12 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.6rem;
 }
 
 .kk-sheet-close {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -278,6 +265,6 @@ body {
 /* ── キーボード操作の可視化（アクセシビリティ） ────────── */
 
 :focus-visible {
-  outline: 3px solid var(--kk-accent);
+  outline: 2px solid var(--kk-accent);
   outline-offset: 2px;
 }

@@ -59,6 +59,7 @@ function buildSystemPrompt(today: string): string {
 {
   "title": "",
   "date": "",
+  "participants": [""],
   "summary": "",
   "decisions": [{ "content": "", "note": "" }],
   "discussions": [{ "content": "", "note": "" }],
@@ -69,6 +70,8 @@ function buildSystemPrompt(today: string): string {
 
 - date は会議が開かれた日（YYYY-MM-DD）。文字起こしから分からなければ空文字にすること。
 - title は内容が一目で分かる短い日本語にすること（例:「秋祭りの打ち合わせ」）。
+- participants は会議に出席していた人の名前の配列で、1人1要素にすること（例: ["田中さん", "佐藤さん"]）。
+  文字起こしで発言している・出席が分かる人だけを入れ、話題に出ただけの人は入れないこと。分からなければ空配列。
 - unclear_points は、聞き取れなかった箇所・判断に自信が持てなかった箇所を必ず自己申告する欄。
   人間が優先的に確認するために使うので、無いと言い切れる場合を除き省略しないこと。`
 }
@@ -104,6 +107,7 @@ function buildReviseSystemPrompt(today: string): string {
 {
   "title": "",
   "date": "",
+  "participants": [""],
   "summary": "",
   "decisions": [{ "content": "", "note": "" }],
   "discussions": [{ "content": "", "note": "" }],
@@ -136,7 +140,6 @@ export async function structureTranscript(event: H3Event, transcript: string): P
 
 /**
  * 指示1つで議事録全体をAIに書き換えさせる（「阪中さんを坂中さんに直して」のような使い方）。
- * printSettings（PDFの目安文字数）は指示の対象外なので、呼び出し側で元の値を引き継ぐこと。
  */
 export async function reviseMinutes(
   event: H3Event,
@@ -147,6 +150,7 @@ export async function reviseMinutes(
   const currentJson = JSON.stringify({
     title: minutes.title,
     date: minutes.date,
+    participants: minutes.participants,
     summary: minutes.summary,
     decisions: minutes.decisions,
     discussions: minutes.discussions,

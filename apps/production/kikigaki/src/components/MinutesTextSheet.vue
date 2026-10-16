@@ -13,22 +13,22 @@
         文章のファイルをえらぶか、文章を貼り付けてください。
       </p>
 
-      <label class="kk-field-label mt-5" for="transcript-file">文章のファイルをえらぶ</label>
+      <label class="kk-field-label mt-3" for="transcript-file">文章のファイルをえらぶ</label>
       <input
         id="transcript-file"
         ref="textFileInput"
         type="file"
         accept=".txt,text/plain"
-        class="block w-full text-[17px] file:mr-3 file:py-3 file:px-5 file:rounded-full file:border-0 file:text-[16px] file:font-bold file:bg-[var(--kk-accent-soft)] file:text-[var(--kk-accent-strong)] file:cursor-pointer"
+        class="block w-full text-[14px] file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[13px] file:font-bold file:bg-[var(--kk-accent-soft)] file:text-[var(--kk-accent-strong)] file:cursor-pointer"
         @change="onPickText"
       >
       <p class="kk-note mt-2">文字だけのファイル（.txt）が使えます。</p>
 
-      <p class="kk-field-label mt-6">または、文章を貼り付ける</p>
+      <p class="kk-field-label mt-4">または、文章を貼り付ける</p>
       <textarea
         id="transcript-text"
         v-model="pastedText"
-        rows="10"
+        rows="8"
         placeholder="会議の内容を書き写した文章を、ここに貼り付けてください"
         class="kk-input resize-y"
         @input="clearTextFile"

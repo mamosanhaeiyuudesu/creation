@@ -3,16 +3,14 @@
 </template>
 
 <script setup lang="ts">
-// 設定はポップアップになった（components/SettingsSheet.vue）。
-// Stripe の戻り先など、古い /settings の URL から来た人をトップへ送り、設定を開く。
+// 設定は左メニューに常に出ている（components/SettingsPanel.vue）。
+// Stripe の戻り先など、古い /settings の URL から来た人をトップへ送る。
 const route = useRoute()
 const router = useRouter()
-const open = useState<boolean>('kk-settings-open', () => false)
 const paid = useState<boolean>('kk-settings-paid', () => false)
 
 onMounted(async () => {
   paid.value = !!route.query.paid
-  open.value = true
   await router.replace('/')
 })
 </script>

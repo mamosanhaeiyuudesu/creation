@@ -70,6 +70,12 @@ export async function ensureTables(db: any): Promise<void> {
       type TEXT NOT NULL DEFAULT '',
       received_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
+    `CREATE TABLE IF NOT EXISTS user_settings (
+      user_id TEXT PRIMARY KEY,
+      pdf_left_max_chars INTEGER NOT NULL DEFAULT 1000,
+      pdf_right_max_chars INTEGER NOT NULL DEFAULT 1000,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
     `CREATE TABLE IF NOT EXISTS ai_usage_monthly (
       user_id TEXT NOT NULL,
       ym TEXT NOT NULL,

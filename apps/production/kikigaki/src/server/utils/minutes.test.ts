@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { normalizeMinutes } from '~/server/utils/minutes'
-import { DEFAULT_SUMMARY_MAX_CHARS, PRINT_MAX_CHARS_MAX, PRINT_MAX_CHARS_MIN } from '~/types/minutes'
 
 // AIの出力も画面からの編集も、必ずこの関数を通してから保存する。
 // 「変な値が静かに入って、あとで日付欄やPDFが壊れる」のを防ぐのが役目。
@@ -9,6 +8,14 @@ describe('normalizeMinutes', () => {
   it('オブジェクトでなければ空の議事録を返す', () => {
     expect(normalizeMinutes(null).title).toBe('')
     expect(normalizeMinutes('こわれた応答').decisions).toEqual([])
+  })
+
+  it('参加者は1人1要素の配列で持ち、空欄は落とす', () => {
+    expect(normalizeMinutes({ participants: ['田中さん', ' ', '佐藤さん '] }).participants).toEqual(['田中さん', '佐藤さん'])
+    // AIが1行で返してきたとき
+    expect(normalizeMinutes({ participants: '田中さん、佐藤さん' }).participants).toEqual(['田中さん', '佐藤さん'])
+    // 参加者を足す前に作った議事録
+    expect(normalizeMinutes({ title: '会合' }).participants).toEqual([])
   })
 
   it('AIのスネークケースと画面のキャメルケースの両方を読む', () => {
@@ -51,18 +58,6 @@ describe('normalizeMinutes', () => {
     })
     expect(m.decisions).toHaveLength(1)
     expect(m.taskCandidates).toHaveLength(0)
-  })
-
-  it('PDFの目安文字数は範囲内に丸め、数値でなければ既定値にする', () => {
-    expect(normalizeMinutes({ printSettings: { summaryMaxChars: 10 } }).printSettings.summaryMaxChars).toBe(
-      PRINT_MAX_CHARS_MIN
-    )
-    expect(normalizeMinutes({ printSettings: { summaryMaxChars: 99999 } }).printSettings.summaryMaxChars).toBe(
-      PRINT_MAX_CHARS_MAX
-    )
-    expect(normalizeMinutes({ printSettings: { summaryMaxChars: 'たくさん' } }).printSettings.summaryMaxChars).toBe(
-      DEFAULT_SUMMARY_MAX_CHARS
-    )
   })
 
   it('配列でないものが来ても落ちない', () => {

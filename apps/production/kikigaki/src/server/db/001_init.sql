@@ -70,6 +70,16 @@ CREATE TABLE IF NOT EXISTS stripe_events (
   received_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- 利用者ごとの設定（左メニューの設定欄で変える）。行が無い人は既定値（utils/userSettings.ts）を使う。
+-- 2026-10-16 に追加。CREATE TABLE IF NOT EXISTS なので、このファイルを流し直しても既存の表は壊れない
+-- （本番の D1 には、ログイン時の ensureTables() でも作られる）。
+CREATE TABLE IF NOT EXISTS user_settings (
+  user_id TEXT PRIMARY KEY,
+  pdf_left_max_chars INTEGER NOT NULL DEFAULT 1000,
+  pdf_right_max_chars INTEGER NOT NULL DEFAULT 1000,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- 月間のAI利用量。ym は JST の YYYY-MM（月の区切りを日本時間に合わせるため）。
 -- cost_units はAI代（1単位 = 10^-7 USD。単価は utils/usage.ts）。
 CREATE TABLE IF NOT EXISTS ai_usage_monthly (
