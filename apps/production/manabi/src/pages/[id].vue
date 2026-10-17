@@ -1,23 +1,19 @@
 <template>
   <div class="min-h-[100dvh] flex flex-col">
-    <header class="shrink-0 flex items-center gap-2 px-3 sm:px-5 h-14">
-      <NuxtLink to="/" class="mb-back" aria-label="まなびのトップへ戻る">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M15 6l-6 6 6 6" />
-        </svg>
-        <span>トップへ</span>
-      </NuxtLink>
+    <ManabiHeader>
       <div v-if="set && phase === 'quiz'" class="flex-1 min-w-0 flex items-center gap-3">
         <div class="mb-progress flex-1"><span :style="{ width: `${progressPct}%` }" /></div>
         <span class="shrink-0 text-[13px] tabular-nums text-[var(--mb-ink-soft)]">{{ pos + 1 }} / {{ order.length }}</span>
       </div>
       <span v-else class="flex-1 min-w-0 truncate mb-display text-[14px] font-bold text-[var(--mb-accent-deep)]">まなび</span>
-      <button v-if="set" class="mb-icon-btn" aria-label="この問題を共有する" @click="share">
-        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3v12M7.5 7.5L12 3l4.5 4.5M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6" />
-        </svg>
-      </button>
-    </header>
+      <template #right>
+        <button v-if="set" class="mb-icon-btn" aria-label="この問題を共有する" @click="share">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v12M7.5 7.5L12 3l4.5 4.5M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6" />
+          </svg>
+        </button>
+      </template>
+    </ManabiHeader>
 
     <main class="flex-1 w-full max-w-[600px] mx-auto px-4 sm:px-6 pb-10 flex flex-col">
       <!-- 読み込み中・見つからない -->

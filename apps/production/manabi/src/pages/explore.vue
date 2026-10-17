@@ -1,13 +1,8 @@
 <template>
   <div class="min-h-[100dvh] flex flex-col">
-    <header class="shrink-0 flex items-center gap-2 px-3 sm:px-5 h-14">
-      <NuxtLink to="/" class="mb-icon-btn" aria-label="まなびのトップへ">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M15 6l-6 6 6 6" />
-        </svg>
-      </NuxtLink>
+    <ManabiHeader>
       <span class="flex-1 min-w-0 truncate mb-display text-[14px] font-bold text-[var(--mb-accent-deep)]">みんなの問題</span>
-    </header>
+    </ManabiHeader>
 
     <main class="flex-1 w-full max-w-[600px] mx-auto px-4 sm:px-6 pb-10">
       <p class="text-[13px] text-[var(--mb-ink-soft)] px-1">
