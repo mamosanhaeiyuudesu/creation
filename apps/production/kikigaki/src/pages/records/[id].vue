@@ -10,8 +10,12 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
           </NuxtLink>
           <div class="min-w-0">
-            <h1 class="kk-review-h1">内容をたしかめる</h1>
-            <p class="kk-note m-0 truncate">AIがまとめた内容です。ちがうところは直して、できたら「PDFのダウンロード」を押してください。</p>
+            <h1 class="kk-review-h1">
+              内容をたしかめる
+              <!-- 自動保存の状態。直してから少し待つと自動で保存される -->
+              <span class="kk-autosave" :class="`is-${autoState}`" role="status" aria-live="polite">{{ autoLabel }}</span>
+            </h1>
+            <p class="kk-note m-0 truncate">AIがまとめた内容です。直した内容は自動で保存されます。できたら「PDFのダウンロード」を押してください。</p>
           </div>
         </div>
 
@@ -437,6 +441,8 @@ async function load() {
     record.value = res.record
     applyMinutes(res.record.minutes)
     savedTags.value = [...res.record.minutes.tags]
+    markSaved()
+    lastSavedAt.value = ''
   } catch (e) {
     errorMessage.value = apiMessage(e, 'この議事録を開けませんでした。一覧からもう一度お試しください。')
     record.value = null
@@ -444,22 +450,141 @@ async function load() {
   loading.value = false
 }
 
-/** 保存。PDF化の前にも呼ぶ（保存し忘れた直しがPDFに出ないように） */
+/** タグが保存で増減したら、左メニューの件数と入力の候補を合わせる */
+function syncSavedTags(tags: string[]) {
+  if (tags.join('\n') === savedTags.value.join('\n')) return
+  savedTags.value = [...tags]
+  touchTags()
+}
+
+/** 保存（「保存」ボタン・PDF化の前）。PDF化の前にも呼ぶ（保存し忘れた直しがPDFに出ないように） */
 async function saveMinutes(): Promise<void> {
+  clearTimeout(autoTimer)
   // 末尾の空欄に打ちかけの名前があれば、それも参加者として保存する
   commitNewPerson()
   const res = await authedFetch<{ minutes: Minutes }>(`/api/records/${id.value}`, {
     method: 'PATCH',
     body: { minutes: toRaw(minutes) },
   })
-  // サーバーが正規化した結果（日付の形など）を画面へ返す
-  const tagsChanged = res.minutes.tags.join('\n') !== savedTags.value.join('\n')
+  // サーバーが正規化した結果（日付の形・空の行を落とすなど）を画面へ返す。
+  // ボタンを押したときだけ返す（自動保存では返さない＝入力中の画面を書き換えない）
   applyMinutes(res.minutes)
-  // タグが増減したら、左メニューの件数と入力の候補を合わせる
-  if (tagsChanged) {
-    savedTags.value = [...res.minutes.tags]
-    touchTags()
+  markSaved()
+  syncSavedTags(res.minutes.tags)
+}
+
+// ── 自動保存 ───────────────────────────────────────────
+// 直してから AUTOSAVE_DELAY_MS 何も触らなかったら保存する。
+// ★自動保存ではサーバーの正規化結果を画面に返さない。返すと「＋追加」で出したばかりの空の行が
+//   消えたり、入力中の欄が書き換わったりするため。整えた形は「保存」ボタン・PDF化・開き直しで揃う。
+// ★参加者の打ちかけ（末尾の空欄）も確定させない（打っている途中の名前を横取りしないため）。
+
+const AUTOSAVE_DELAY_MS = 2000
+const AUTOSAVE_RETRY_MS = 10_000
+type AutoState = 'saved' | 'dirty' | 'saving' | 'error'
+const autoState = ref<AutoState>('saved')
+const lastSavedAt = ref('')
+/** 最後に保存した中身（これと違えば未保存） */
+let lastSavedJson = ''
+let autoTimer: ReturnType<typeof setTimeout> | undefined
+
+const autoLabel = computed(() => {
+  switch (autoState.value) {
+    case 'saving':
+      return '保存中…'
+    case 'dirty':
+      return '未保存の変更があります'
+    case 'error':
+      return '保存できませんでした（自動でやり直します）'
+    default:
+      return lastSavedAt.value ? `保存しました ${lastSavedAt.value}` : '保存済み'
   }
+})
+
+function snapshot(): string {
+  return JSON.stringify(minutes)
+}
+
+function nowLabel(): string {
+  const d = new Date()
+  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+/** いまの画面の中身を「保存済み」として覚える（読み込み・保存のあとに呼ぶ） */
+function markSaved() {
+  lastSavedJson = snapshot()
+  lastSavedAt.value = nowLabel()
+  autoState.value = 'saved'
+}
+
+function scheduleAutoSave(delay = AUTOSAVE_DELAY_MS) {
+  clearTimeout(autoTimer)
+  autoTimer = setTimeout(autoSave, delay)
+}
+
+async function autoSave(): Promise<boolean> {
+  if (deleting.value || !record.value) return true
+  // ボタンでの保存・PDF作り・AIの直しの最中は、それが終わってからにする
+  if (saving.value || generatingPdf.value || driveSaving.value || revising.value || autoState.value === 'saving') {
+    scheduleAutoSave()
+    return false
+  }
+  const json = snapshot()
+  if (json === lastSavedJson) {
+    autoState.value = 'saved'
+    return true
+  }
+  autoState.value = 'saving'
+  try {
+    const res = await authedFetch<{ minutes: Minutes }>(`/api/records/${id.value}`, {
+      method: 'PATCH',
+      body: { minutes: JSON.parse(json) },
+    })
+    lastSavedJson = json
+    lastSavedAt.value = nowLabel()
+    syncSavedTags(res.minutes.tags)
+    // 保存している間にまた直していたら、もう一度
+    if (snapshot() !== json) {
+      autoState.value = 'dirty'
+      scheduleAutoSave()
+    } else {
+      autoState.value = 'saved'
+    }
+    return true
+  } catch {
+    autoState.value = 'error'
+    scheduleAutoSave(AUTOSAVE_RETRY_MS)
+    return false
+  }
+}
+
+watch(
+  minutes,
+  () => {
+    if (loading.value || !record.value) return
+    if (snapshot() === lastSavedJson) {
+      if (autoState.value === 'dirty') autoState.value = 'saved'
+      return
+    }
+    if (autoState.value !== 'saving') autoState.value = 'dirty'
+    scheduleAutoSave()
+  },
+  { deep: true }
+)
+
+// 一覧へ戻るときは、残っている直しを保存してから移る。保存できなければ確かめる
+onBeforeRouteLeave(async () => {
+  if (deleting.value || !record.value || snapshot() === lastSavedJson) return true
+  clearTimeout(autoTimer)
+  if (await autoSave()) return true
+  return window.confirm('保存できていない変更があります。このまま移動しますか？')
+})
+
+// タブを閉じる・再読み込みするときに未保存なら、ブラウザの「このページを離れますか？」を出す
+function onBeforeUnload(e: BeforeUnloadEvent) {
+  if (!record.value || deleting.value || snapshot() === lastSavedJson) return
+  e.preventDefault()
+  e.returnValue = ''
 }
 
 async function save() {
@@ -489,7 +614,8 @@ async function runRevise() {
     applyMinutes(res.minutes)
     reviseInstruction.value = ''
     openPop.value = null
-    savedMessage.value = 'AIが直しました。内容を見て、よければ保存してください。'
+    // 直した結果は自動保存で保存される（watch が拾う）
+    savedMessage.value = 'AIが直しました。内容を確かめてください（自動で保存されます）。'
   } catch (e) {
     errorMessage.value = apiMessage(e, 'AIが直せませんでした。もう一度お試しください。')
   }
@@ -497,6 +623,7 @@ async function runRevise() {
 }
 
 async function remove() {
+  clearTimeout(autoTimer)
   deleting.value = true
   errorMessage.value = ''
   try {
@@ -577,6 +704,7 @@ watch(isLoggedIn, async (v) => {
 })
 
 onMounted(async () => {
+  window.addEventListener('beforeunload', onBeforeUnload)
   document.addEventListener('pointerdown', onDocPointerDown)
   document.addEventListener('keydown', onDocKeydown)
   refreshDrive()
@@ -590,6 +718,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  clearTimeout(autoTimer)
+  window.removeEventListener('beforeunload', onBeforeUnload)
   document.removeEventListener('pointerdown', onDocPointerDown)
   document.removeEventListener('keydown', onDocKeydown)
 })
@@ -645,6 +775,24 @@ onUnmounted(() => {
   gap: 0.4rem;
   min-width: 0;
   flex: 1 1 260px;
+}
+.kk-autosave {
+  margin-left: 0.5rem;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--kk-ink-faint);
+  vertical-align: 0.1em;
+}
+.kk-autosave.is-saving,
+.kk-autosave.is-dirty {
+  color: var(--kk-accent-strong);
+}
+.kk-autosave.is-error {
+  color: var(--kk-danger);
+  font-weight: 700;
+}
+.kk-autosave.is-saved::before {
+  content: '✓ ';
 }
 .kk-review-h1 {
   margin: 0;
