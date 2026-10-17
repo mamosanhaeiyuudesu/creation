@@ -161,6 +161,25 @@ export function useAuth() {
     await signOut(auth)
   }
 
+  /**
+   * 退会。サーバーで本人のデータをすべて消したあと、Firebase のアカウントも消す。
+   * Firebase は「最近ログインしていない」と削除を断る（auth/requires-recent-login）。そのときは
+   * データはもう消えているので、ログアウトだけして終える（次にログインしても空の状態から始まる）。
+   */
+  async function deleteAccount(): Promise<void> {
+    await authedFetch('/api/account', { method: 'DELETE', body: { confirm: 'DELETE' } })
+    const auth = getFbAuth()
+    const current = auth?.currentUser
+    if (current) {
+      try {
+        const { deleteUser } = await import('firebase/auth')
+        await deleteUser(current)
+      } catch {
+        await logout()
+      }
+    }
+  }
+
   /** いまの ID トークン。期限が近ければ Firebase が自動で更新する */
   async function idToken(forceRefresh = false): Promise<string> {
     await waitReady()
@@ -205,5 +224,6 @@ export function useAuth() {
     logout,
     idToken,
     authedFetch,
+    deleteAccount,
   }
 }

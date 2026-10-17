@@ -6,41 +6,135 @@
     <!--
       ★このページのURL（/privacy）は変えないこと。
         Google の OAuth 同意画面がこのURLを参照するため、変えると同意画面側の設定も壊れる。
-      本文は後から差し込むが、章立ては「何を預かり、どこへ渡すか」が分かる構成にしてある。
+      ★本文は実際の作りに合わせて書いてある（2026-10-17）。預けるもの・送り先・保存のしかた・管理画面で
+        見えるものを変えたら、ここも直すこと（書いてあることと作りが食い違うのがいちばん困る）。
     -->
-    <section v-for="s in sections" :key="s.title" class="mt-8">
+    <p class="kk-lead mt-5">
+      {{ operatorName }}（以下「運営者」）は、「{{ serviceName }}」（以下「本サービス」）で預かる利用者の情報を、
+      次のとおり取り扱います。
+    </p>
+
+    <section v-for="s in sections" :key="s.title" class="mt-7">
       <h2 class="kk-h2">{{ s.title }}</h2>
-      <p class="kk-lead mt-2">{{ s.body }}</p>
-      <ul v-if="s.items" class="mt-2 pl-5 kk-lead">
-        <li v-for="item in s.items" :key="item">{{ item }}</li>
+      <p v-for="(p, i) in s.paragraphs" :key="i" class="kk-lead mt-2">{{ p }}</p>
+      <ul v-if="s.items" class="kk-lead mt-2 pl-5 list-disc kk-pp-list">
+        <li v-for="item in s.items" :key="item.label">
+          <strong>{{ item.label }}</strong>
+          <span v-if="item.text">：{{ item.text }}</span>
+        </li>
       </ul>
     </section>
 
-    <p class="kk-note mt-10">制定日: （後日記載）</p>
+    <section class="mt-7">
+      <h2 class="kk-h2">お問い合わせ窓口</h2>
+      <p class="kk-lead mt-2">
+        この方針や、ご自身の情報の開示・訂正・削除のご依頼は、次の窓口までご連絡ください。ご本人であることを確認したうえで対応します。
+      </p>
+      <p class="kk-lead mt-2">
+        {{ operatorName }}<br>
+        メール: {{ contactEmail }}
+      </p>
+    </section>
+
+    <p class="kk-note mt-10">制定日: {{ enacted }}</p>
   </div>
 </template>
 
 <script setup lang="ts">
-import { SERVICE } from '~/config/service'
+import { SERVICE, LEGAL_UNFILLED } from '~/config/service'
 
 useHead({ title: `プライバシーポリシー — ${SERVICE.name}` })
 
-const sections: { title: string; body: string; items?: string[] }[] = [
-  { title: '取得する情報', body: '（後日記載）' },
-  { title: '利用目的', body: '（後日記載）' },
+const serviceName = SERVICE.name
+const operatorName = SERVICE.legal.operator.trim() || '運営者' + LEGAL_UNFILLED
+const contactEmail = SERVICE.legal.email.trim() || LEGAL_UNFILLED
+const enacted = SERVICE.legalEnactedLabel
+
+const sections: { title: string; paragraphs: string[]; items?: { label: string; text?: string }[] }[] = [
   {
-    title: '外部サービスへの送信',
-    body: '（後日記載）本サービスは、次の事業者のサービスを利用しています。',
+    title: '1. 取得する情報',
+    paragraphs: ['本サービスでは、次の情報を取得・保存します。'],
     items: [
-      'Google（ログイン・本人確認）',
-      'Anthropic（議事録の作成）',
-      'Stripe（お支払いの処理）',
-      'Cloudflare（サービスの配信とデータの保管）',
+      { label: 'ログインの情報', text: 'メールアドレス、Googleアカウントの表示名（Googleでログインした場合）、登録日時と最後にログインした日時' },
+      { label: '会議の文章と議事録', text: '貼り付けた文章、選んだファイルの中身、そこから作成した議事録、ファイルの名前、会議の日付' },
+      { label: '設定と利用の状況', text: 'PDFの文字数などの設定、AIの利用量（月ごと）' },
+      { label: 'お支払いの状況', text: '契約の有無・状態、次回のお支払い日。カード番号などのお支払いの情報は決済会社が扱い、運営者のサーバーには届きません' },
     ],
   },
-  { title: '会議の文章・議事録の保存', body: '（後日記載）' },
-  { title: '保存期間と削除', body: '（後日記載）' },
-  { title: '第三者提供', body: '（後日記載）' },
-  { title: 'お問い合わせ窓口', body: '（後日記載）' },
+  {
+    title: '2. 利用目的',
+    paragraphs: ['取得した情報は、次の目的のためだけに使います。'],
+    items: [
+      { label: '本サービスの提供', text: 'ログイン、議事録の作成・保存・表示、PDFの作成' },
+      { label: '料金の請求と契約の管理' },
+      { label: '利用の上限の管理と、不正な利用の防止' },
+      { label: 'お問い合わせへの対応、重要なお知らせの連絡' },
+      { label: '本サービスの改善', text: '利用者数や議事録の件数などの集計に限ります。議事録の中身を改善のために読むことはありません' },
+    ],
+  },
+  {
+    title: '3. 外部の事業者への送信',
+    paragraphs: [
+      '本サービスは、次の事業者のサービスを使って提供しています。それぞれ、表に書いた目的に必要な範囲の情報だけを送ります。これらの事業者は米国の事業者で、情報は米国を含む日本国外で取り扱われることがあります。',
+    ],
+    items: [
+      { label: 'Google（Firebase Authentication）', text: 'ログインと本人確認。メールアドレス。メールでログインする場合のログイン用メールの送信' },
+      {
+        label: 'Anthropic（AI）',
+        text: '議事録の作成と「AIに直してもらう」。会議の文章と議事録の内容を送ります。Anthropicの商用サービスの規約では、送った内容がAIの学習に使われないこととされています',
+      },
+      { label: 'Stripe（決済）', text: 'お支払いの処理。メールアドレス、契約の状態（有料化のあとにお申し込みいただいた場合のみ）' },
+      { label: 'Cloudflare（配信・保管）', text: '本サービスの配信と、データの保管' },
+      {
+        label: 'Googleドライブ（連携した場合のみ）',
+        text: '作成したPDFを、ご本人のGoogleドライブの「キキガキ議事録」フォルダに保存します。本サービスが扱えるのは、本サービスが作成したファイルだけです。連携の許可はお使いのブラウザの中だけで使い、運営者のサーバーには保存しません',
+      },
+    ],
+  },
+  {
+    title: '4. 会議の文章・議事録の保存と、運営者が見られる範囲',
+    paragraphs: [
+      '会議の名前・議事録の本文・元の文章は、暗号化して保存しています。ファイルの名前と会議の日付は暗号化していません。',
+      '運営者は、議事録の中身を読みません。ただし、利用者からのご依頼で不具合を調べる場合（ご本人の同意を得たうえで行います）と、法令にもとづく場合は除きます。',
+      '運営者が管理画面で見られるのは、メールアドレス・表示名・登録日時・最後にログインした日時・議事録の件数・AIの利用量・契約の状態に限られます。',
+    ],
+  },
+  {
+    title: '5. ブラウザに保存する情報',
+    paragraphs: [
+      'ログインの状態を保つため、Firebase がお使いのブラウザに情報を保存します。また、左メニューの幅やGoogleドライブとの連携の有無など、画面の使い勝手のための情報をブラウザに保存します。広告や行動の分析のためのCookieは使っていません。',
+    ],
+  },
+  {
+    title: '6. 保存期間と削除',
+    paragraphs: [
+      '議事録は、利用者ご自身が削除するまで保存します。議事録は1件ずつ削除できます。',
+      '左メニューの「アカウントを削除する」から退会すると、議事録・元の文章・設定など、本サービスに保存している利用者の情報をすべて削除します。削除したデータは、障害に備えた控えの中に最大30日間残ることがありますが、その期間が過ぎると消えます。',
+      'お支払いの記録は、法令にもとづき、決済会社（Stripe）に一定期間保存されます。',
+    ],
+  },
+  {
+    title: '7. 第三者への提供',
+    paragraphs: [
+      '運営者は、次の場合を除き、利用者の情報を第三者に提供しません。上の「3. 外部の事業者への送信」は、本サービスを提供するための委託であり、ここでいう第三者への提供には当たりません。',
+    ],
+    items: [{ label: 'ご本人の同意がある場合' }, { label: '法令にもとづく場合' }, { label: '人の生命・身体・財産を守るために必要で、ご本人の同意を得ることが難しい場合' }],
+  },
+  {
+    title: '8. 安全のための取り組み',
+    paragraphs: [
+      '通信はすべて暗号化（HTTPS）しています。議事録は、ご本人のアカウントでログインしたときだけ読めるようにしており、ほかの利用者からは見えません。',
+    ],
+  },
+  {
+    title: '9. この方針の変更',
+    paragraphs: ['この方針を変更する場合は、変更の内容を本サービスの画面でお知らせします。'],
+  },
 ]
 </script>
+
+<style scoped>
+.kk-pp-list li + li {
+  margin-top: 0.35rem;
+}
+</style>

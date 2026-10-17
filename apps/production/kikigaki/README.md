@@ -54,6 +54,7 @@
   トークンはサーバーに渡さない・保存しない）。使うには `NUXT_PUBLIC_GOOGLE_CLIENT_ID` が要る。
 - **モニター期間フラグ**は `src/config/service.ts` の `monitorMode` が既定値で、
   環境変数 `NUXT_PUBLIC_MONITOR_MODE=false` で有料モードへ切り替わる。
+  **有料化の手順（Stripe の準備・事前のお知らせ・切り替えの日の作業）は `TODO.md` の「3」「4」にまとめてある。**
   判定は `src/utils/entitlement.ts`（純粋関数・テストあり）→ `src/server/utils/entitlement.ts`。
 - **契約状態を書き込むのは Stripe の webhook だけ**。画面の操作では書き換えない。
   webhook は署名を検証し、イベントIDを `stripe_events` に記録して二重処理を防ぐ。

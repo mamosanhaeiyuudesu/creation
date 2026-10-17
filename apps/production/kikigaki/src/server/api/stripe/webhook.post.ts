@@ -14,6 +14,7 @@
 //   守りは署名検証だけなので、requireUser を足さないこと。
 
 import type Stripe from 'stripe'
+import { userExists } from '~/server/utils/account'
 import {
   createStripe,
   findUserIdByCustomer,
@@ -53,6 +54,11 @@ async function applySubscription(event: any, sub: Stripe.Subscription): Promise<
     // 手でStripeの画面から作った契約など、こちらに紐付けようのないもの。
     // 投げ返すと再送がループするだけなので、ログに残して成功として扱う。
     console.warn('[kikigaki] 利用者が特定できない契約を受け取りました', { customerId, subscriptionId: sub.id })
+    return
+  }
+  // 退会した人の契約の通知（退会時の即時解約で届く deleted など）。行を作り直さない
+  if (!(await userExists(event, userId))) {
+    console.warn('[kikigaki] 退会済みの利用者の契約の通知を受け取りました', { customerId, subscriptionId: sub.id })
     return
   }
 

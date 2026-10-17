@@ -23,13 +23,15 @@ const legal = SERVICE.legal
 
 const rows = [
   { label: '販売事業者', value: fill(legal.operator) },
+  // 代表者・所在地・電話番号は「上記のお問い合わせ先へ請求があれば開示」と書くので、お問い合わせを先に置く
+  { label: 'お問い合わせ', value: fill(legal.email) },
   { label: '代表者', value: fill(legal.representative) },
   { label: '所在地', value: fill(legal.address) },
-  { label: 'お問い合わせ', value: fill(legal.email) },
   { label: '電話番号', value: fill(legal.tel) },
   { label: '販売価格', value: fill(legal.price || SERVICE.priceLabel) },
   { label: '代金の支払時期・方法', value: fill(legal.payment) },
   { label: 'サービスの提供時期', value: fill(legal.delivery) },
   { label: '返品・キャンセルについて', value: fill(legal.refund) },
+  { label: '動作環境', value: 'スマートフォン・パソコンの新しいブラウザ（Safari・Google Chrome・Microsoft Edge など）' },
 ]
 </script>

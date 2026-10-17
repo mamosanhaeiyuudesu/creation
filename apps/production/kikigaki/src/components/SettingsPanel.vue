@@ -144,7 +144,37 @@
       <h2 class="kk-set-title">ログインしている人</h2>
       <p class="kk-set-text kk-set-email" :title="user?.email || ''">{{ user?.email || '（メールアドレスなし）' }}</p>
       <button class="kk-set-btn" @click="doLogout">ログアウトする</button>
+      <button type="button" class="kk-set-danger-link" @click="openDelete">アカウントを削除する</button>
     </section>
+
+    <!-- 退会の確認。元に戻せないので、何が消えるかを並べ、確認のチェックを入れないと押せないようにする -->
+    <BottomSheet v-model="deleteOpen" title="アカウントを削除しますか？" :closable="!deleting">
+      <p class="kk-lead m-0">
+        <strong>{{ user?.email }}</strong> のアカウントを削除します。次のものがすべて消え、<strong>元には戻せません</strong>。
+      </p>
+      <ul class="kk-lead mt-2 mb-0 pl-5 list-disc">
+        <li>これまでの議事録と、元の文章（{{ recordCountLabel }}）</li>
+        <li>PDFの文字数などの設定</li>
+      </ul>
+      <p v-if="billing?.status && !['canceled', 'incomplete_expired'].includes(billing.status)" class="kk-notice kk-notice--warn mt-3">
+        お支払いの契約は、削除と同時に解約されます。お支払い済みの期間の返金はありません。
+      </p>
+      <p class="kk-note mt-2 mb-0">
+        Googleドライブに保存したPDFや、ダウンロードしたPDFは消えません（ご自身の端末・ドライブにあるため）。
+        お支払いの記録は、法令にもとづき決済会社（Stripe）に一定期間残ります。
+      </p>
+      <label class="kk-set-confirm mt-3">
+        <input v-model="deleteAgree" type="checkbox">
+        <span>議事録がすべて消え、元に戻せないことを理解しました</span>
+      </label>
+      <div class="mt-3 flex flex-col gap-2">
+        <button class="kk-set-delete-btn" :disabled="!deleteAgree || deleting" @click="doDelete">
+          {{ deleting ? '削除しています…' : 'アカウントを削除する' }}
+        </button>
+        <button class="kk-btn-text" :disabled="deleting" @click="deleteOpen = false">やめる</button>
+      </div>
+      <p v-if="deleteError" class="kk-notice kk-notice--error mt-3">{{ deleteError }}</p>
+    </BottomSheet>
   </div>
 </template>
 
@@ -158,7 +188,7 @@ import { defaultUserSettings, normalizeUserSettings } from '~/utils/userSettings
 
 const router = useRouter()
 const route = useRoute()
-const { user, isLoggedIn, authedFetch, logout } = useAuth()
+const { user, isLoggedIn, authedFetch, logout, deleteAccount } = useAuth()
 const { connected: driveConnected, refresh: refreshDrive, connect, disconnect } = useDrive()
 const driveBusy = ref(false)
 const paidFlag = useState<boolean>('kk-settings-paid', () => false)
@@ -291,6 +321,50 @@ async function disconnectDrive() {
   driveBusy.value = false
 }
 
+// ── 退会 ──
+const deleteOpen = ref(false)
+const deleteAgree = ref(false)
+const deleting = ref(false)
+const deleteError = ref('')
+const recordCount = ref<number | null>(null)
+const recordCountLabel = computed(() => (recordCount.value === null ? '全件' : `${recordCount.value}件`))
+
+async function openDelete() {
+  deleteAgree.value = false
+  deleteError.value = ''
+  deleteOpen.value = true
+  // 何件消えるかを見せる（読めなくても削除はできる）
+  try {
+    recordCount.value = (await authedFetch<{ records: unknown[] }>('/api/records')).records.length
+  } catch {
+    recordCount.value = null
+  }
+  // モニター期間中は契約状態を読んでいないので、解約の注意を出すために読む
+  if (!billing.value) {
+    try {
+      billing.value = await authedFetch<BillingStatus>('/api/billing/status')
+    } catch {
+      // 読めなくても、サーバー側で契約があれば必ず解約してから消す
+    }
+  }
+}
+
+async function doDelete() {
+  deleteError.value = ''
+  deleting.value = true
+  try {
+    await deleteAccount()
+    // この端末に残っている目印も消す（ドライブの連携・PDFの設定など）
+    await disconnect()
+    isAdmin.value = false
+    deleteOpen.value = false
+    await router.push('/')
+  } catch (e) {
+    deleteError.value = apiMessage(e, '削除できませんでした。少し時間をおいてから、もう一度お試しください。')
+  }
+  deleting.value = false
+}
+
 async function doLogout() {
   isAdmin.value = false
   await logout()
@@ -388,6 +462,50 @@ watch(() => route.path, refreshAll)
   .kk-set-admin {
     display: none;
   }
+}
+.kk-set-danger-link {
+  display: block;
+  margin: 0.5rem auto 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 11.5px;
+  color: var(--kk-ink-faint);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.kk-set-danger-link:hover {
+  color: var(--kk-danger);
+}
+.kk-set-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kk-set-confirm input {
+  margin-top: 0.25rem;
+  width: 17px;
+  height: 17px;
+  accent-color: var(--kk-danger);
+}
+.kk-set-delete-btn {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--kk-danger);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kk-set-delete-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .kk-set-pdf {
   margin-top: 0.35rem;
