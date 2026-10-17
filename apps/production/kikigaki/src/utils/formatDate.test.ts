@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDateLabel, formatMeetingDate, jstToday, jstYearMonth } from './formatDate'
+import { formatDateLabel, formatMeetingDate, jstToday, jstYearMonth, utcToJstLabel } from './formatDate'
 
 describe('formatDateLabel', () => {
   it('曜日を付けて日本語にする', () => {
@@ -38,5 +38,15 @@ describe('jstToday', () => {
   it('JST の日付を返す', () => {
     expect(jstToday(new Date('2026-10-07T15:30:00Z'))).toBe('2026-10-08')
     expect(jstToday(new Date('2026-10-07T14:30:00Z'))).toBe('2026-10-07')
+  })
+})
+
+describe('utcToJstLabel', () => {
+  it('D1 の UTC 日時を日本時間にする（日付をまたぐ）', () => {
+    expect(utcToJstLabel('2026-10-16 15:30:00')).toBe('2026-10-17 00:30')
+  })
+  it('空・読めない値はそのまま', () => {
+    expect(utcToJstLabel('')).toBe('')
+    expect(utcToJstLabel('こわれた')).toBe('こわれた')
   })
 })

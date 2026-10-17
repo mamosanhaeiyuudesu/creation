@@ -34,6 +34,14 @@
 - [ ] 特定商取引法に基づく表記 → 値は `src/config/service.ts` の `legal`（事業者名・代表者・所在地・連絡先・返品等）
 - [ ] 本文を入れ終えたら `src/config/service.ts` の `legalDraft` を `false` に
 
+## 2.5 管理画面（/admin）を本番で使えるようにする（2026-10-16 追加）
+
+- [ ] 自分の users.id を調べる（最初にログインしたときの Firebase UID。メールで探す）:
+      `npx wrangler d1 execute kikigaki-db --remote --command "SELECT id, email FROM users WHERE email = '自分のアドレス'"`
+- [ ] `npx wrangler secret put NUXT_ADMIN_UIDS` にその id を入れる（複数ならカンマ区切り）。リポジトリには載せない
+- [ ] 本番で左メニューに「管理画面」が出て、/admin が開けることを確かめる
+      （管理者でない人には 404。表 `user_grants` / `admin_audit` はログイン時に自動で作られる）
+
 ## 3. Stripe（有料化の前まで。モニター期間中は不要）
 
 - [ ] 商品と月額の価格を1つ作る（金額は `src/config/service.ts` の `priceLabel` と揃える）
@@ -42,6 +50,12 @@
       `checkout.session.completed` / `customer.subscription.created|updated|deleted` / `invoice.payment_failed` を購読
 - [ ] シークレット3つを登録:
       `wrangler secret put NUXT_STRIPE_SECRET_KEY` / `NUXT_STRIPE_WEBHOOK_SECRET` / `NUXT_STRIPE_PRICE_ID`
+- [ ] **引き落としに失敗したときの設定**（2026-10-16 決定: 請求し直している間＝past_due は使えるままにする）
+      Billing → Revenue recovery → Retries で自動の再請求（Smart Retries）を有効にし、
+      「すべて失敗したら」を **サブスクリプションをキャンセル** にする（ここで canceled になり使えなくなる）
+- [ ] **本人へのメール**: Billing → Customer emails で「支払いの失敗」「カードの期限切れが近い」
+      「無料期間がもうすぐ終わる」のメールを有効にする（画面の案内とは別に、気づいてもらうため）
+- [ ] 無料期間は `src/config/service.ts` の `trialDays`（30日）。初めて契約する人だけに付く（2回目以降は付かない）
 - [ ] テストモードで 課金 → webhook受信 → 契約状態の反映 → 解約 まで一周
       （ローカルなら `stripe listen --forward-to localhost:3009/api/stripe/webhook`）
 

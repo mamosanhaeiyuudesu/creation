@@ -35,3 +35,13 @@ export function jstToday(now: Date = new Date()): string {
   const d = String(jst.getUTCDate()).padStart(2, '0')
   return `${jst.getUTCFullYear()}-${m}-${d}`
 }
+
+/** D1 の datetime('now')（UTC の「YYYY-MM-DD HH:MM:SS」）→ JST の「YYYY-MM-DD HH:MM」。読めなければそのまま返す */
+export function utcToJstLabel(utc: string): string {
+  if (!utc) return ''
+  const d = new Date(`${utc.replace(' ', 'T')}Z`)
+  if (Number.isNaN(d.getTime())) return utc
+  const j = new Date(d.getTime() + 9 * 60 * 60 * 1000)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${j.getUTCFullYear()}-${p(j.getUTCMonth() + 1)}-${p(j.getUTCDate())} ${p(j.getUTCHours())}:${p(j.getUTCMinutes())}`
+}

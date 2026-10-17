@@ -80,6 +80,28 @@ CREATE TABLE IF NOT EXISTS user_settings (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- 運営者が個別に付ける扱い（管理画面から変える）。いまは「支払い不要」だけ。
+-- 管理者（環境変数 NUXT_ADMIN_UIDS）はここに行が無くても支払い不要として扱う。
+CREATE TABLE IF NOT EXISTS user_grants (
+  user_id TEXT PRIMARY KEY,
+  free_access INTEGER NOT NULL DEFAULT 0,
+  note TEXT NOT NULL DEFAULT '',
+  updated_by TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 管理画面での操作の記録（いつ・誰が・誰に・何をしたか）。消さずに溜める。
+CREATE TABLE IF NOT EXISTS admin_audit (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  admin_id TEXT NOT NULL,
+  action TEXT NOT NULL,
+  target_user_id TEXT NOT NULL DEFAULT '',
+  detail TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit (created_at DESC);
+
 -- 月間のAI利用量。ym は JST の YYYY-MM（月の区切りを日本時間に合わせるため）。
 -- cost_units はAI代（1単位 = 10^-7 USD。単価は utils/usage.ts）。
 CREATE TABLE IF NOT EXISTS ai_usage_monthly (

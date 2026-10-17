@@ -10,7 +10,9 @@
 import type { H3Event } from 'h3'
 import Stripe from 'stripe'
 import { requireDb, ensureTables } from '~/server/utils/db'
-import { isActiveStatus, type BillingStatus } from '~/types/billing'
+import { isPaymentProblem, type BillingStatus } from '~/types/billing'
+import { canUseFeatures, isTrialEligible } from '~/utils/entitlement'
+import { hasFreeAccess } from '~/server/utils/admin'
 import { SERVICE } from '~/config/service'
 
 export interface StripeConfig {
@@ -177,12 +179,17 @@ export function toJstDate(unixSeconds: number | null | undefined): string {
 export async function buildBillingStatus(event: H3Event, userId: string, monitorMode: boolean): Promise<BillingStatus> {
   const row = await loadSubscription(event, userId)
   const status = row?.status ?? ''
+  const freeAccess = await hasFreeAccess(event, userId)
   return {
     monitorMode,
-    active: monitorMode || isActiveStatus(status),
+    active: canUseFeatures({ monitorMode, status, freeAccess }),
     status,
     currentPeriodEnd: row?.current_period_end ?? '',
     cancelAtPeriodEnd: !!row?.cancel_at_period_end,
+    freeAccess,
+    paymentProblem: isPaymentProblem(status),
+    trialEligible: isTrialEligible({ trialDays: SERVICE.trialDays, subscriptionId: row?.stripe_subscription_id ?? '' }),
+    trialDays: SERVICE.trialDays,
   }
 }
 

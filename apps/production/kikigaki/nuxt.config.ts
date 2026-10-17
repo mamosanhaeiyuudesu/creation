@@ -36,6 +36,9 @@ export default defineNuxtConfig({
     anthropicApiKey: '',
     // 議事録・元の文章の暗号化鍵（32文字以上）。ai-tools とは別の鍵を使う
     encryptionKey: '',
+    // 管理者の users.id（＝最初にログインしたときの Firebase UID）。カンマ区切り。
+    // 管理画面（/admin）を開けて、支払いなしで使える。空なら管理者はいない
+    adminUids: '',
     // Stripe（Phase 3）
     stripeSecretKey: '',
     stripeWebhookSecret: '',

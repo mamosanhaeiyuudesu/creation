@@ -2,6 +2,8 @@
 // 決済画面は自前で作らない＝カード番号がこちらのサーバーを通らない。
 
 import { requireUser } from '~/server/utils/auth'
+import { SERVICE } from '~/config/service'
+import { isTrialEligible } from '~/utils/entitlement'
 import {
   createStripe,
   getStripeConfig,
@@ -37,8 +39,15 @@ export default defineEventHandler(async (event) => {
     // 戻り先。手続きが済んだことが分かるよう設定画面へ返す
     success_url: `${origin}/settings?paid=1`,
     cancel_url: `${origin}/settings`,
-    // Checkout 経由の契約にも利用者を書いておく（webhook の取りこぼし対策）
-    subscription_data: { metadata: { userId: user.id } },
+    // Checkout 経由の契約にも利用者を書いておく（webhook の取りこぼし対策）。
+    // 初めての契約なら無料期間を付ける。カードはこの画面で登録してもらい、期間が終わると自動で引き落とす
+    // （trial_period_days を付けても、mode=subscription の Checkout は既定でカードを集める）
+    subscription_data: {
+      metadata: { userId: user.id },
+      ...(isTrialEligible({ trialDays: SERVICE.trialDays, subscriptionId: existing?.stripe_subscription_id ?? '' })
+        ? { trial_period_days: SERVICE.trialDays }
+        : {}),
+    },
     locale: 'ja',
   })
 

@@ -10,6 +10,7 @@
 
 import type { H3Event } from 'h3'
 import { loadSubscription } from '~/server/utils/stripe'
+import { hasFreeAccess } from '~/server/utils/admin'
 import { canUseFeatures, parseMonitorMode } from '~/utils/entitlement'
 
 /** モニター期間中か */
@@ -24,6 +25,9 @@ export function isMonitorMode(event: H3Event): boolean {
 export async function requireEntitlement(event: H3Event, userId: string): Promise<void> {
   const monitorMode = isMonitorMode(event)
   if (monitorMode) return
+
+  // 管理者・運営者が支払い不要にした人は、契約を見ずに通す
+  if (await hasFreeAccess(event, userId)) return
 
   const row = await loadSubscription(event, userId)
   if (canUseFeatures({ monitorMode, status: row?.status ?? '' })) return

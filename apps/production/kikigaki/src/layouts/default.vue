@@ -39,6 +39,10 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" /></svg>
             ホーム
           </NuxtLink>
+          <NuxtLink v-if="isAdmin" to="/admin" class="kk-side-link" :class="{ 'is-active': route.path.startsWith('/admin') }">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" /><path d="M9 12l2 2 4-4" /></svg>
+            管理画面
+          </NuxtLink>
         </nav>
 
         <!-- 設定は開くボタンを置かず、ここに常に出す（スマホではページの下に回る） -->
@@ -93,6 +97,8 @@ const monitorMode = computed(() => parseMonitorMode(config.monitorMode))
 const monitorText = monitorNotice()
 const serviceName = SERVICE.name
 const { isLoggedIn } = useAuth()
+// 管理者かどうかは SettingsPanel が /api/me から入れる（表示だけ。守りはサーバー側）
+const isAdmin = useState<boolean>('kk-is-admin', () => false)
 const route = useRoute()
 // ── 左メニューの幅 ──
 // 幅はこのブラウザだけの好みなので localStorage に置く（使えない環境では毎回既定の幅になるだけ）

@@ -11,6 +11,9 @@
       <button type="button" class="kk-msg-close" aria-label="閉じる" @click="savedMessage = ''">✕</button>
     </p>
 
+    <!-- スマホには左メニューの「管理画面」が無いので、管理者にだけここに出す -->
+    <NuxtLink v-if="isAdmin" to="/admin" class="kk-set-admin">管理画面をひらく →</NuxtLink>
+
     <!-- 今月の使用ぶん -->
     <section class="kk-set-sec">
       <h2 class="kk-set-title">今月つかった分</h2>
@@ -67,11 +70,29 @@
         <p class="kk-set-text">モニター期間中のため、いまはお支払いの手続きは必要ありません。</p>
       </template>
 
+      <!-- 管理者・運営者が支払い不要にした人。契約が残っていれば解約できるようポータルは出す -->
+      <template v-else-if="billing?.freeAccess">
+        <p class="kk-set-text">運営者の設定により、お支払いなしでお使いいただけます。</p>
+        <button v-if="billing.status" class="kk-set-btn" :disabled="billingBusy" @click="openPortal">
+          {{ billingBusy ? '画面をひらいています…' : 'お支払い方法の変更・解約' }}
+        </button>
+      </template>
+
       <template v-else-if="billing">
-        <p class="kk-set-text">
-          <template v-if="billing.active">
+        <!-- 引き落としに失敗している。Stripe が請求し直している間は使えるが、カードの更新をお願いする -->
+        <p v-if="billing.paymentProblem" class="kk-notice kk-notice--warn">
+          お支払いが確認できていません。カードの期限切れなどが考えられます。下のボタンからカードを更新してください。
+        </p>
+        <p class="kk-set-text" :class="{ 'mt-2': billing.paymentProblem }">
+          <template v-if="billing.status === 'trialing'">
+            無料期間中です。<template v-if="billing.currentPeriodEnd">{{ billing.currentPeriodEnd }} から{{ priceLabel }}のお支払いが始まります。</template>
+          </template>
+          <template v-else-if="billing.active">
             ご利用中です（{{ priceLabel }}）。
-            <template v-if="billing.currentPeriodEnd">次回のお支払いは {{ billing.currentPeriodEnd }} です。</template>
+            <template v-if="billing.currentPeriodEnd && !billing.paymentProblem">次回のお支払いは {{ billing.currentPeriodEnd }} です。</template>
+          </template>
+          <template v-else-if="billing.trialEligible">
+            最初の{{ trialLabel(billing.trialDays) }}は無料です。そのあと{{ priceLabel }}で、毎月自動でお支払いになります。いつでも解約できます。
           </template>
           <template v-else>
             お支払いの手続きがまだです。手続きをすると、すべての機能が使えます（{{ priceLabel }}）。
@@ -82,10 +103,16 @@
         </p>
 
         <button v-if="!billing.active" class="kk-set-btn kk-set-btn--cta" :disabled="billingBusy" @click="startCheckout">
-          {{ billingBusy ? '画面をひらいています…' : 'お支払いの手続きをする' }}
+          {{ billingBusy ? '画面をひらいています…' : billing.trialEligible ? `${trialLabel(billing.trialDays)}無料ではじめる` : 'お支払いの手続きをする' }}
         </button>
-        <button v-else class="kk-set-btn" :disabled="billingBusy" @click="openPortal">
-          {{ billingBusy ? '画面をひらいています…' : 'お支払い方法の変更・解約' }}
+        <button
+          v-else
+          class="kk-set-btn"
+          :class="{ 'kk-set-btn--cta': billing.paymentProblem }"
+          :disabled="billingBusy"
+          @click="openPortal"
+        >
+          {{ billingBusy ? '画面をひらいています…' : billing.paymentProblem ? 'カードを更新する' : 'お支払い方法の変更・解約' }}
         </button>
         <p class="kk-set-note">お支払いの画面は Stripe（決済の会社）のページがひらきます。</p>
       </template>
@@ -145,6 +172,13 @@ const savedMessage = ref('')
 const usage = ref<{ usedPercent: number; exhausted: boolean } | null>(null)
 const billing = ref<BillingStatus | null>(null)
 const billingBusy = ref(false)
+/** 左メニューに「管理画面」を出すか（表示だけ。守りは /api/admin/* の入口で行う） */
+const isAdmin = useState<boolean>('kk-is-admin', () => false)
+
+/** 30日 → 「1か月」。それ以外は「◯日間」 */
+function trialLabel(days: number): string {
+  return days === 30 ? '1か月' : `${days}日間`
+}
 
 // ── PDFの文字数 ──
 const { settings: userSettings, load: loadUserSettings, save: saveUserSettings } = useUserSettings()
@@ -197,8 +231,9 @@ async function load() {
     errorMessage.value = apiMessage(e, '設定を読み込めませんでした。画面を開き直してみてください。')
   }
   try {
-    const me = await authedFetch<{ usage: typeof usage.value }>('/api/me')
+    const me = await authedFetch<{ usage: typeof usage.value; isAdmin: boolean }>('/api/me')
     usage.value = me.usage
+    isAdmin.value = !!me.isAdmin
   } catch (e) {
     errorMessage.value = apiMessage(e, '設定を読み込めませんでした。画面を開き直してみてください。')
   }
@@ -257,6 +292,7 @@ async function disconnectDrive() {
 }
 
 async function doLogout() {
+  isAdmin.value = false
   await logout()
   await router.push('/')
 }
@@ -335,6 +371,23 @@ watch(() => route.path, refreshAll)
   font-size: 11px;
   line-height: 1.55;
   color: var(--kk-ink-faint);
+}
+.kk-set-admin {
+  display: block;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #d9cdf3;
+  border-radius: 10px;
+  background: #f6f2fd;
+  color: #5b3fa8;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+}
+/* PCでは左メニューの「管理画面」があるので出さない */
+@media (min-width: 1024px) {
+  .kk-set-admin {
+    display: none;
+  }
 }
 .kk-set-pdf {
   margin-top: 0.35rem;

@@ -176,7 +176,7 @@
                 <div class="kk-item-main">
                   <span class="kk-num">{{ i + 1 }}</span>
                   <AutoTextarea v-model="item.content" :placeholder="group.placeholder" class="flex-1 font-bold" />
-                  <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(group.items, i)">✕</button>
+                  <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(group.items, i)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg></button>
                 </div>
                 <div class="kk-sub">
                   <span class="kk-sub-label">補足</span>
@@ -201,7 +201,7 @@
                   <div class="kk-item-main">
                     <span class="kk-num">{{ i + 1 }}</span>
                     <AutoTextarea v-model="ev.title" placeholder="予定の名前" class="flex-1 font-bold" />
-                    <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(minutes.eventCandidates, i)">✕</button>
+                    <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(minutes.eventCandidates, i)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg></button>
                   </div>
                   <div class="kk-fields">
                     <div>
@@ -231,7 +231,7 @@
                   <div class="kk-item-main">
                     <span class="kk-num">{{ i + 1 }}</span>
                     <AutoTextarea v-model="task.task" placeholder="やること" class="flex-1 font-bold" />
-                    <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(minutes.taskCandidates, i)">✕</button>
+                    <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(minutes.taskCandidates, i)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg></button>
                   </div>
                   <div class="kk-fields">
                     <div>
@@ -1007,19 +1007,47 @@ onUnmounted(() => {
   cursor: pointer;
   padding: 0.1rem 0.3rem;
 }
+/* 行の削除はゴミ箱アイコン（一覧・見出しの「削除」とそろえる）。
+   PCではその項目に乗せたとき・入力中のときだけ出し、並んだ項目の邪魔をしない。
+   スマホは乗せる操作が無いので、常に薄く出しておく */
 .kk-row-del {
   flex: none;
-  width: 1.5rem;
-  height: 1.5rem;
-  margin-top: 0.3rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-top: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
-  border-radius: 999px;
+  border-radius: 6px;
   background: transparent;
   color: var(--kk-ink-faint);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
   cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s, background-color 0.15s, color 0.15s;
 }
-.kk-row-del:hover { background: var(--kk-danger-soft); color: var(--kk-danger); }
+.kk-row-del svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+@media (hover: hover) {
+  .kk-row-del {
+    opacity: 0;
+  }
+  .kk-item:hover .kk-row-del,
+  .kk-item:focus-within .kk-row-del {
+    opacity: 0.7;
+  }
+}
+.kk-row-del:hover,
+.kk-row-del:focus-visible {
+  opacity: 1 !important;
+  background: var(--kk-danger-soft);
+  color: var(--kk-danger);
+}
 </style>

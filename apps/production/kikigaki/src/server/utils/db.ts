@@ -76,6 +76,22 @@ export async function ensureTables(db: any): Promise<void> {
       pdf_right_max_chars INTEGER NOT NULL DEFAULT 1000,
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
+    `CREATE TABLE IF NOT EXISTS user_grants (
+      user_id TEXT PRIMARY KEY,
+      free_access INTEGER NOT NULL DEFAULT 0,
+      note TEXT NOT NULL DEFAULT '',
+      updated_by TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
+    `CREATE TABLE IF NOT EXISTS admin_audit (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      admin_id TEXT NOT NULL,
+      action TEXT NOT NULL,
+      target_user_id TEXT NOT NULL DEFAULT '',
+      detail TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit (created_at DESC)`,
     `CREATE TABLE IF NOT EXISTS ai_usage_monthly (
       user_id TEXT NOT NULL,
       ym TEXT NOT NULL,
