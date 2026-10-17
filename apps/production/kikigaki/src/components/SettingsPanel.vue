@@ -54,8 +54,19 @@
             <button type="button" class="kk-set-tag-icon" :disabled="tagBusy" aria-label="やめる" @click="editingTag = ''">✕</button>
           </template>
           <template v-else>
-            <span class="kk-set-tag-name">#{{ t.tag }}</span>
-            <span class="kk-set-tag-count">{{ t.count }}</span>
+            <!-- 名前と件数を押すと、そのタグで絞り込んだ一覧を開く（もう一度押すと「すべて」に戻る）。
+                 押せる範囲は名前と件数だけにして、右の変更・削除のアイコンとは間をあける -->
+            <NuxtLink
+              :to="tagLink(t.tag)"
+              class="kk-set-tag-link"
+              :class="{ 'is-on': isActiveTag(t.tag) }"
+              :aria-current="isActiveTag(t.tag) ? 'true' : undefined"
+              :title="isActiveTag(t.tag) ? '絞り込みを外す' : `「${t.tag}」で絞り込む`"
+              @click="scrollToTop"
+            >
+              <span class="kk-set-tag-name">#{{ t.tag }}</span>
+              <span class="kk-set-tag-count">{{ t.count }}</span>
+            </NuxtLink>
             <button type="button" class="kk-set-tag-icon" :aria-label="`タグ「${t.tag}」の名前を変える`" title="名前を変える" @click="startTagEdit(t.tag)">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16zM13 7l4 4" /></svg>
             </button>
@@ -384,6 +395,22 @@ const tagMergeTarget = computed(() => {
   return to && to !== editingTag.value && allTags.value.some((t) => t.tag === to) ? to : ''
 })
 
+/** いま一覧をこのタグで絞り込んでいるか */
+function isActiveTag(tag: string): boolean {
+  return route.path === '/' && route.query.tag === tag
+}
+
+/** 一覧をそのタグで絞り込むリンク。絞り込み中なら外す。並び順（?sort=）は引き継ぐ */
+function tagLink(tag: string) {
+  const sort = route.path === '/' ? route.query.sort : undefined
+  return { path: '/', query: { ...(sort ? { sort } : {}), ...(isActiveTag(tag) ? {} : { tag }) } }
+}
+
+/** スマホでは左メニューがページの下にあるので、押したら一覧の先頭へ戻す */
+function scrollToTop() {
+  window.scrollTo({ top: 0 })
+}
+
 function startTagEdit(tag: string) {
   editingTag.value = tag
   tagDraft.value = tag
@@ -647,6 +674,27 @@ watch(() => route.path, refreshAll)
 }
 .kk-set-tag:first-child {
   border-top: 0;
+}
+.kk-set-tag-link {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-right: 0.35rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  text-decoration: none;
+}
+.kk-set-tag-link:hover {
+  background: var(--kk-accent-soft);
+}
+.kk-set-tag-link.is-on {
+  background: var(--kk-accent);
+}
+.kk-set-tag-link.is-on .kk-set-tag-name,
+.kk-set-tag-link.is-on .kk-set-tag-count {
+  color: #fff;
 }
 .kk-set-tag-name {
   flex: 1;
