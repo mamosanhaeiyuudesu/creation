@@ -67,15 +67,16 @@
                 <th>最後のログイン</th>
                 <th class="text-right">議事録</th>
                 <th class="text-right">今月のAI</th>
+                <th v-if="summary?.approvalRequired">承認</th>
                 <th>契約</th>
                 <th>支払い不要</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!filtered.length">
-                <td colspan="7" class="kk-adm-empty">当てはまる利用者はいません。</td>
+                <td :colspan="summary?.approvalRequired ? 8 : 7" class="kk-adm-empty">当てはまる利用者はいません。</td>
               </tr>
-              <tr v-for="u in filtered" :key="u.id" :class="{ 'is-blocked': !u.canUse }">
+              <tr v-for="u in filtered" :key="u.id" :class="{ 'is-blocked': !u.canUse, 'is-pending': !u.approved }">
                 <td>
                   <span class="kk-adm-email">{{ u.email || '（メールなし）' }}</span>
                   <span v-if="u.displayName" class="kk-adm-sub">{{ u.displayName }}</span>
@@ -87,6 +88,21 @@
                 <td class="text-right">
                   <span :class="{ 'kk-adm-warn': u.usedPercent >= 80 }">{{ u.usedPercent }}%</span>
                   <span class="kk-adm-sub">約{{ u.costYen }}円</span>
+                </td>
+                <td v-if="summary?.approvalRequired">
+                  <span v-if="u.isAdmin" class="kk-adm-sub">—</span>
+                  <button
+                    v-else-if="!u.approved"
+                    type="button"
+                    class="kk-adm-approve"
+                    :disabled="approvingId === u.id"
+                    @click="setApproval(u, true)"
+                  >
+                    {{ approvingId === u.id ? '承認中…' : '承認する' }}
+                  </button>
+                  <button v-else type="button" class="kk-adm-approved" title="押すと承認を取り消せます" @click="unapproveTarget = u">
+                    承認済み
+                  </button>
                 </td>
                 <td>
                   <span class="kk-adm-badge" :class="statusTone(u.status)">{{ statusLabel(u.status) }}</span>
@@ -128,6 +144,25 @@
           </li>
         </ul>
       </details>
+
+      <!-- 承認の取り消し（押し間違いで、使っている人を止めないよう確認を挟む） -->
+      <BottomSheet
+        :model-value="!!unapproveTarget"
+        title="承認を取り消しますか？"
+        :closable="!approvingId"
+        @update:model-value="unapproveTarget = null"
+      >
+        <template v-if="unapproveTarget">
+          <p class="kk-lead m-0"><strong>{{ unapproveTarget.email }}</strong></p>
+          <p class="kk-lead mt-1">取り消すと、この人は議事録づくりとAIの直しが使えなくなります（議事録の閲覧とPDFは使えます）。</p>
+          <div class="mt-4 flex flex-col gap-2">
+            <button class="kk-btn-sub" :disabled="!!approvingId" @click="setApproval(unapproveTarget, false)">
+              {{ approvingId ? '取り消しています…' : 'はい、取り消します' }}
+            </button>
+            <button class="kk-btn-text" :disabled="!!approvingId" @click="unapproveTarget = null">やめる</button>
+          </div>
+        </template>
+      </BottomSheet>
 
       <!-- 支払い不要の切り替え -->
       <BottomSheet :model-value="!!editing" title="支払い不要の設定" :closable="!saving" @update:model-value="editing = null">
@@ -194,6 +229,9 @@ const stats = computed(() => {
   const s = summary.value
   if (!s) return []
   return [
+    ...(s.approvalRequired
+      ? [{ label: '承認待ち', value: `${s.pendingCount}人`, sub: '承認すると使えるようになります', tone: s.pendingCount ? 'is-warn' : '' }]
+      : []),
     { label: '登録者', value: `${s.userCount}人`, sub: '', tone: '' },
     { label: '契約中', value: `${s.payingCount}人`, sub: s.trialingCount ? `うち無料期間 ${s.trialingCount}人` : '', tone: '' },
     { label: '支払い遅れ', value: `${s.paymentProblemCount}人`, sub: 'カードの更新待ち', tone: s.paymentProblemCount ? 'is-warn' : '' },
@@ -204,14 +242,15 @@ const stats = computed(() => {
 })
 
 // ── 絞り込み ──
-type FilterKey = 'all' | 'paying' | 'free' | 'none' | 'problem'
-const filters: { key: FilterKey; label: string }[] = [
+type FilterKey = 'all' | 'pending' | 'paying' | 'free' | 'none' | 'problem'
+const filters = computed<{ key: FilterKey; label: string }[]>(() => [
   { key: 'all', label: 'すべて' },
+  ...(summary.value?.approvalRequired ? [{ key: 'pending' as const, label: '承認待ち' }] : []),
   { key: 'paying', label: '契約中' },
   { key: 'free', label: '支払い不要' },
   { key: 'none', label: '未契約' },
   { key: 'problem', label: '支払い遅れ' },
-]
+])
 const filter = ref<FilterKey>('all')
 const query = ref('')
 
@@ -220,6 +259,8 @@ const filtered = computed(() => {
   return users.value.filter((u) => {
     if (q && !`${u.email} ${u.displayName} ${u.id}`.toLowerCase().includes(q)) return false
     switch (filter.value) {
+      case 'pending':
+        return !u.approved
       case 'paying':
         return isActiveStatus(u.status)
       case 'free':
@@ -253,6 +294,29 @@ function statusTone(status: string): string {
   if (status === 'trialing') return 'is-trial'
   if (isActiveStatus(status)) return 'is-ok'
   return ''
+}
+
+// ── 承認 ──
+const approvingId = ref('')
+const unapproveTarget = ref<AdminUserRow | null>(null)
+
+async function setApproval(u: AdminUserRow, approved: boolean) {
+  errorMessage.value = ''
+  savedMessage.value = ''
+  approvingId.value = u.id
+  try {
+    await authedFetch(`/api/admin/users/${encodeURIComponent(u.id)}/approval`, {
+      method: 'PUT',
+      body: { approved },
+    })
+    savedMessage.value = approved ? `${u.email} を承認しました。` : `${u.email} の承認を取り消しました。`
+    unapproveTarget.value = null
+    await load()
+    if (auditOpen.value) await loadAudit()
+  } catch (e) {
+    errorMessage.value = apiMessage(e, '保存できませんでした。もう一度お試しください。')
+  }
+  approvingId.value = ''
 }
 
 // ── 支払い不要の切り替え ──
@@ -313,6 +377,8 @@ function onAuditToggle(e: Event) {
 function actionLabel(action: string): string {
   if (action === 'grant_free_access') return '支払い不要にしました'
   if (action === 'revoke_free_access') return '支払い不要から外しました'
+  if (action === 'approve') return '承認しました'
+  if (action === 'unapprove') return '承認を取り消しました'
   return `操作しました（${action}）`
 }
 
@@ -459,6 +525,46 @@ onMounted(async () => {
 /* いま使えない人（有料モードで未契約など）は薄くする */
 .kk-adm-table tr.is-blocked .kk-adm-email {
   color: var(--kk-ink-faint);
+}
+/* 承認待ちの行は目立たせる（新しく来た人に気づけるように） */
+.kk-adm-table tr.is-pending td {
+  background: #fffaf2;
+}
+.kk-adm-approve {
+  height: 26px;
+  padding: 0 0.7rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--kk-cta);
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.kk-adm-approve:hover:not(:disabled) {
+  background: var(--kk-cta-strong);
+}
+.kk-adm-approve:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.kk-adm-approved {
+  padding: 0 0.45rem;
+  border: 0;
+  border-radius: 999px;
+  background: #e8f6ee;
+  color: #1e7a45;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.kk-adm-approved:hover {
+  background: var(--kk-danger-soft);
+  color: var(--kk-danger);
 }
 .kk-adm-empty {
   text-align: center;

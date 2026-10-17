@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canUseFeatures, isTrialEligible, parseAdminIds, parseMonitorMode } from './entitlement'
+import { canUseFeatures, isPendingApproval, isTrialEligible, parseAdminIds, parseMonitorMode } from './entitlement'
 
 describe('parseMonitorMode', () => {
   it('"false" のときだけ有料モードになる', () => {
@@ -40,6 +40,18 @@ describe('canUseFeatures', () => {
     expect(canUseFeatures({ monitorMode: false, status: '', freeAccess: true })).toBe(true)
     expect(canUseFeatures({ monitorMode: false, status: 'canceled', freeAccess: true })).toBe(true)
     expect(canUseFeatures({ monitorMode: false, status: '', freeAccess: false })).toBe(false)
+  })
+})
+
+describe('isPendingApproval', () => {
+  it('承認制の間は、管理者でも承認済みでもない人だけが承認待ち', () => {
+    expect(isPendingApproval({ approvalRequired: true, isAdmin: false, approved: false })).toBe(true)
+    expect(isPendingApproval({ approvalRequired: true, isAdmin: false, approved: true })).toBe(false)
+    expect(isPendingApproval({ approvalRequired: true, isAdmin: true, approved: false })).toBe(false)
+  })
+
+  it('承認制を外したら、誰も承認待ちにならない', () => {
+    expect(isPendingApproval({ approvalRequired: false, isAdmin: false, approved: false })).toBe(false)
   })
 })
 

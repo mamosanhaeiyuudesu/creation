@@ -10,7 +10,7 @@
 
 import type { H3Event } from 'h3'
 import { loadSubscription } from '~/server/utils/stripe'
-import { hasFreeAccess } from '~/server/utils/admin'
+import { hasFreeAccess, isPending } from '~/server/utils/admin'
 import { canUseFeatures, parseMonitorMode } from '~/utils/entitlement'
 
 /** モニター期間中か */
@@ -23,6 +23,14 @@ export function isMonitorMode(event: H3Event): boolean {
  * モニター期間中は契約状態を読みに行かない（D1へのアクセスを1回節約できる）。
  */
 export async function requireEntitlement(event: H3Event, userId: string): Promise<void> {
+  // 承認制の間は、承認されるまで止める（モニター期間中でも。URLを知っていれば誰でも登録できるため）
+  if (await isPending(event, userId)) {
+    throw createError({
+      statusCode: 403,
+      message: 'ただいま利用の準備中です。準備ができしだい、お使いいただけるようになります。',
+    })
+  }
+
   const monitorMode = isMonitorMode(event)
   if (monitorMode) return
 

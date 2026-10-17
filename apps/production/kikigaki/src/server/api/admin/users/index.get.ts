@@ -5,7 +5,8 @@ import { requireDb, ensureTables } from '~/server/utils/db'
 import { adminOf, isAdminId } from '~/server/utils/admin'
 import { isMonitorMode } from '~/server/utils/entitlement'
 import { toStatus } from '~/server/utils/usage'
-import { canUseFeatures } from '~/utils/entitlement'
+import { canUseFeatures, isPendingApproval } from '~/utils/entitlement'
+import { SERVICE } from '~/config/service'
 import { jstYearMonth, utcToJstLabel } from '~/utils/formatDate'
 import { isActiveStatus, isPaymentProblem } from '~/types/billing'
 import type { AdminSummary, AdminUserRow } from '~/types/admin'
@@ -32,10 +33,12 @@ export default defineEventHandler(async (event) => {
          COALESCE(s.current_period_end, '') AS current_period_end,
          COALESCE(s.cancel_at_period_end, 0) AS cancel_at_period_end,
          COALESCE(g.free_access, 0) AS free_access,
-         COALESCE(g.note, '') AS note
+         COALESCE(g.note, '') AS note,
+         CASE WHEN ap.user_id IS NULL THEN 0 ELSE 1 END AS approved
        FROM users u
        LEFT JOIN subscriptions s ON s.user_id = u.id
        LEFT JOIN user_grants g ON g.user_id = u.id
+       LEFT JOIN user_approvals ap ON ap.user_id = u.id
        ORDER BY u.created_at DESC
        LIMIT 1000`
     )
@@ -47,6 +50,7 @@ export default defineEventHandler(async (event) => {
     const isAdmin = isAdminId(event, r.id)
     const freeAccess = !!r.free_access
     const units = Number(r.cost_units) || 0
+    const pending = isPendingApproval({ approvalRequired: SERVICE.approvalRequired, isAdmin, approved: !!r.approved })
     return {
       id: r.id,
       email: r.email ?? '',
@@ -60,14 +64,17 @@ export default defineEventHandler(async (event) => {
       currentPeriodEnd: r.current_period_end ?? '',
       cancelAtPeriodEnd: !!r.cancel_at_period_end,
       isAdmin,
+      approved: !pending,
       freeAccess,
       note: r.note ?? '',
-      canUse: canUseFeatures({ monitorMode, status: r.status ?? '', freeAccess: freeAccess || isAdmin }),
+      canUse: !pending && canUseFeatures({ monitorMode, status: r.status ?? '', freeAccess: freeAccess || isAdmin }),
     }
   })
 
   const summary: AdminSummary = {
     userCount: users.length,
+    pendingCount: users.filter((u) => !u.approved).length,
+    approvalRequired: SERVICE.approvalRequired,
     payingCount: users.filter((u) => isActiveStatus(u.status)).length,
     trialingCount: users.filter((u) => u.status === 'trialing').length,
     paymentProblemCount: users.filter((u) => isPaymentProblem(u.status)).length,

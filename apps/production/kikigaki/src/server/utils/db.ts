@@ -83,6 +83,11 @@ export async function ensureTables(db: any): Promise<void> {
       updated_by TEXT NOT NULL DEFAULT '',
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
+    `CREATE TABLE IF NOT EXISTS user_approvals (
+      user_id TEXT PRIMARY KEY,
+      approved_by TEXT NOT NULL DEFAULT '',
+      approved_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
     `CREATE TABLE IF NOT EXISTS admin_audit (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       admin_id TEXT NOT NULL,

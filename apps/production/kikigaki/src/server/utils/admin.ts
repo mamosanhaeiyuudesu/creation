@@ -9,7 +9,8 @@
 import type { H3Event } from 'h3'
 import { requireDb, ensureTables } from '~/server/utils/db'
 import { requireUser, type AuthUser } from '~/server/utils/auth'
-import { parseAdminIds } from '~/utils/entitlement'
+import { isPendingApproval, parseAdminIds } from '~/utils/entitlement'
+import { SERVICE } from '~/config/service'
 
 export function isAdminId(event: H3Event, userId: string): boolean {
   if (!userId) return false
@@ -38,6 +39,41 @@ export function adminOf(event: H3Event): AuthUser {
   const admin = (event.context as any).kkAdmin as AuthUser | undefined
   if (!admin) notFound()
   return admin
+}
+
+// ── 承認制 ─────────────────────────────────────────────
+
+/** 承認待ちか（承認制を外していれば常に false） */
+export async function isPending(event: H3Event, userId: string): Promise<boolean> {
+  if (!SERVICE.approvalRequired) return false
+  const isAdmin = isAdminId(event, userId)
+  if (isAdmin) return false
+  const db = requireDb(event)
+  await ensureTables(db)
+  const row = await db.prepare('SELECT user_id FROM user_approvals WHERE user_id = ?').bind(userId).first()
+  return isPendingApproval({ approvalRequired: true, isAdmin, approved: !!row })
+}
+
+/** 承認する／取り消す。操作の記録も同時に残す */
+export async function saveApproval(event: H3Event, adminId: string, userId: string, approved: boolean): Promise<void> {
+  const db = requireDb(event)
+  await ensureTables(db)
+  const exists = await db.prepare('SELECT id FROM users WHERE id = ?').bind(userId).first()
+  if (!exists) throw createError({ statusCode: 404, message: 'その利用者は見つかりませんでした。' })
+
+  await db.batch([
+    approved
+      ? db
+          .prepare(
+            `INSERT INTO user_approvals (user_id, approved_by, approved_at) VALUES (?, ?, datetime('now'))
+             ON CONFLICT (user_id) DO NOTHING`
+          )
+          .bind(userId, adminId)
+      : db.prepare('DELETE FROM user_approvals WHERE user_id = ?').bind(userId),
+    db
+      .prepare('INSERT INTO admin_audit (admin_id, action, target_user_id, detail) VALUES (?, ?, ?, ?)')
+      .bind(adminId, approved ? 'approve' : 'unapprove', userId, ''),
+  ])
 }
 
 // ── 支払い不要の指定 ─────────────────────────────────────

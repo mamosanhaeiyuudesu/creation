@@ -1,6 +1,6 @@
 // アカウントの削除（退会）。本人が左メニューから行う。
 //
-// 消すもの: 議事録（元の文章を含む）・設定・支払い不要の指定・月の利用量・契約の控え・利用者の行。
+// 消すもの: 議事録（元の文章を含む）・設定・支払い不要の指定・承認・月の利用量・契約の控え・利用者の行。
 // （001_init.sql の record_revisions はコードから一度も書き込まれておらず、ensureTables にも無いので対象外。
 //   ローカルには表自体が無く、含めると batch ごと失敗する）
 // 消さないもの:
@@ -50,7 +50,7 @@ export async function deleteAccount(event: H3Event, userId: string): Promise<voi
   const db = requireDb(event)
   await ensureTables(db)
   // 1回のまとまり（batch）で消す＝途中で失敗して半分だけ消えた状態を残さない
-  const tables = ['records', 'user_settings', 'user_grants', 'ai_usage_monthly', 'subscriptions']
+  const tables = ['records', 'user_settings', 'user_grants', 'user_approvals', 'ai_usage_monthly', 'subscriptions']
   await db.batch([
     ...tables.map((t) => db.prepare(`DELETE FROM ${t} WHERE user_id = ?`).bind(userId)),
     db.prepare('DELETE FROM users WHERE id = ?').bind(userId),

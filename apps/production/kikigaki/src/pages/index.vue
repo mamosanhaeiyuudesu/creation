@@ -92,9 +92,15 @@
       <h1 class="kk-h1 m-0">議事録</h1>
       <p class="kk-note m-0">会議の文章をえらぶか貼り付けると、AIが1枚の議事録にまとめます。</p>
 
+      <!-- 承認制で、まだ承認されていない人。押しても AI を呼ばないよう、はじめる操作を止める -->
+      <p v-if="pendingApproval" class="kk-notice kk-notice--info mt-3 mb-0">
+        <strong>ただいま利用の準備中です。</strong>
+        準備ができしだい、議事録をつくれるようになります。しばらくお待ちください。
+      </p>
+
       <!-- はじめる操作。押しても画面は変わらず、下のシートで入力する -->
       <div class="kk-actions mt-3">
-        <button type="button" class="kk-action kk-action--main" @click="showTextSheet = true">
+        <button type="button" class="kk-action kk-action--main" :disabled="pendingApproval" @click="showTextSheet = true">
           <span class="kk-action-icon">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
           </span>
@@ -240,6 +246,7 @@ const records = ref<(RecordSummary & { dateLabel: string; createdLabel: string }
 const loadingRecords = ref(false)
 
 const showTextSheet = ref(false)
+const pendingApproval = useState<boolean>('kk-pending-approval', () => false)
 
 // ── 一覧から開かずにPDF・ドライブ保存 ──
 const savedMessage = ref('')
@@ -435,7 +442,12 @@ onMounted(async () => {
   cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.kk-action:hover {
+.kk-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+  box-shadow: none;
+}
+.kk-action:hover:not(:disabled) {
   border-color: var(--kk-accent);
   box-shadow: 0 4px 16px rgba(29, 111, 214, 0.14);
 }

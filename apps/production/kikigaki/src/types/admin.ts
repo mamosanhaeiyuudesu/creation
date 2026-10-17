@@ -19,15 +19,21 @@ export interface AdminUserRow {
   cancelAtPeriodEnd: boolean
   /** 管理者（環境変数で指定）か */
   isAdmin: boolean
+  /** 承認済みか（管理者は常に true）。承認制を外しているときも true */
+  approved: boolean
   /** 支払い不要の指定 */
   freeAccess: boolean
   note: string
-  /** いま使えるか（モニター期間・管理者・支払い不要・契約を合わせた結果） */
+  /** いま使えるか（承認・モニター期間・管理者・支払い不要・契約を合わせた結果） */
   canUse: boolean
 }
 
 export interface AdminSummary {
   userCount: number
+  /** 承認待ちの人（承認制のときだけ数える） */
+  pendingCount: number
+  /** 承認制か */
+  approvalRequired: boolean
   /** 契約が有効な人（無料期間・支払い遅れを含む） */
   payingCount: number
   trialingCount: number

@@ -90,6 +90,14 @@ CREATE TABLE IF NOT EXISTS user_grants (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- 承認制（SERVICE.approvalRequired）での承認済みの利用者。行があれば承認済み。管理画面から付け外しする。
+-- 管理者は行が無くても承認済みとして扱う。
+CREATE TABLE IF NOT EXISTS user_approvals (
+  user_id TEXT PRIMARY KEY,
+  approved_by TEXT NOT NULL DEFAULT '',
+  approved_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- 管理画面での操作の記録（いつ・誰が・誰に・何をしたか）。消さずに溜める。
 CREATE TABLE IF NOT EXISTS admin_audit (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

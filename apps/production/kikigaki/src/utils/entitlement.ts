@@ -25,6 +25,15 @@ export function canUseFeatures(opts: { monitorMode: boolean; status: string; fre
 }
 
 /**
+ * 承認待ちか。承認制の間、管理者でも承認済みでもない人は AI を使う機能を止める。
+ * ★モニター期間かどうかとは関係なく効く（モニター期間中こそ、誰でも無料で使えてしまうのを止めるため）。
+ */
+export function isPendingApproval(opts: { approvalRequired: boolean; isAdmin: boolean; approved: boolean }): boolean {
+  if (!opts.approvalRequired) return false
+  return !opts.isAdmin && !opts.approved
+}
+
+/**
  * 管理者の一覧（環境変数 NUXT_ADMIN_UIDS。カンマ区切り）を読む。
  * 空・未設定なら管理者はいない（＝管理画面は誰にも開けない側へ倒す）。
  */

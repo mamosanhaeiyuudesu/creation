@@ -204,6 +204,8 @@ const billing = ref<BillingStatus | null>(null)
 const billingBusy = ref(false)
 /** 左メニューに「管理画面」を出すか（表示だけ。守りは /api/admin/* の入口で行う） */
 const isAdmin = useState<boolean>('kk-is-admin', () => false)
+/** 承認待ちか（トップに「準備中」の案内を出すため。止めるのはサーバー側） */
+const pendingApproval = useState<boolean>('kk-pending-approval', () => false)
 
 /** 30日 → 「1か月」。それ以外は「◯日間」 */
 function trialLabel(days: number): string {
@@ -261,9 +263,10 @@ async function load() {
     errorMessage.value = apiMessage(e, '設定を読み込めませんでした。画面を開き直してみてください。')
   }
   try {
-    const me = await authedFetch<{ usage: typeof usage.value; isAdmin: boolean }>('/api/me')
+    const me = await authedFetch<{ usage: typeof usage.value; isAdmin: boolean; pendingApproval: boolean }>('/api/me')
     usage.value = me.usage
     isAdmin.value = !!me.isAdmin
+    pendingApproval.value = !!me.pendingApproval
   } catch (e) {
     errorMessage.value = apiMessage(e, '設定を読み込めませんでした。画面を開き直してみてください。')
   }
@@ -367,6 +370,7 @@ async function doDelete() {
 
 async function doLogout() {
   isAdmin.value = false
+  pendingApproval.value = false
   await logout()
   await router.push('/')
 }
