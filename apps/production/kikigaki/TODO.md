@@ -50,9 +50,12 @@
 
 ## 2.5 管理画面（/admin）を本番で使えるようにする（2026-10-16 追加）
 
-- [ ] 自分の users.id を調べる（最初にログインしたときの Firebase UID。メールで探す）:
+- [x] `NUXT_ADMIN_UIDS` を本番に登録（2026-10-17。`trUDGvWEhFdCo0P4jmrYPB9OYid2`＝ローカルと同じ ID。
+      本番の D1 で確かめようとしたが wrangler の認証が 7403 で通らず、確認を飛ばして登録した。
+      本番で /admin が 404 になったら ID が違うので、下のコマンドで調べ直して登録し直す）
+- [ ] （ID が違ったときだけ）自分の users.id を調べる（最初にログインしたときの Firebase UID。メールで探す）:
       `npx wrangler d1 execute kikigaki-db --remote --command "SELECT id, email FROM users WHERE email = '自分のアドレス'"`
-- [ ] `npx wrangler secret put NUXT_ADMIN_UIDS` にその id を入れる（複数ならカンマ区切り）。リポジトリには載せない
+- [ ] （同上）`npx wrangler secret put NUXT_ADMIN_UIDS` にその id を入れる（複数ならカンマ区切り）。リポジトリには載せない
 - [ ] 本番で左メニューに「管理画面」が出て、/admin が開けることを確かめる
       （管理者でない人には 404。表 `user_grants` / `admin_audit` はログイン時に自動で作られる）
 
