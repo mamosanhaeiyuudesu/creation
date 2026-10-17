@@ -15,12 +15,24 @@
               <!-- 自動保存の状態。直してから少し待つと自動で保存される -->
               <span class="kk-autosave" :class="`is-${autoState}`" role="status" aria-live="polite">{{ autoLabel }}</span>
             </h1>
-            <p class="kk-note m-0 truncate">AIがまとめた内容です。直した内容は自動で保存されます。できたら「PDFのダウンロード」を押してください。</p>
           </div>
         </div>
 
         <div ref="toolsRoot" class="kk-head-actions">
           <!-- 聞き取れなかったところ・AIに直してもらう は普段は小さく畳み、押したときだけ下に開く -->
+          <!-- 元の文章（取り込んだ全文）。右からせり出す欄で、左の列を直しながら見比べられる -->
+          <button
+            type="button"
+            class="kk-icon-btn"
+            :class="{ 'is-open': sourceOpen }"
+            :aria-expanded="sourceOpen"
+            title="取り込んだ元の文章を見る"
+            @click="toggleSource"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 10h16M4 15h10M4 20h7" /></svg>
+            元の文章
+          </button>
+
           <div v-if="minutes.unclearPoints.length" class="kk-pop-wrap">
             <button
               type="button"
@@ -285,6 +297,38 @@
 
     </template>
 
+    <!-- 元の文章の欄。背景を暗くしない（左の列を直しながら読めるように）。読むだけで、ここでは直せない -->
+    <Transition name="kk-source-t">
+      <aside v-if="sourceOpen && record" class="kk-source" role="complementary" aria-label="元の文章">
+        <div class="kk-source-head">
+          <p class="kk-source-title">
+            元の文章
+            <span class="kk-note">{{ transcriptLength.toLocaleString() }}字<template v-if="record.audioName"> ・ {{ record.audioName }}</template></span>
+          </p>
+          <button type="button" class="kk-source-close" aria-label="閉じる" @click="sourceOpen = false">✕</button>
+        </div>
+        <div class="kk-source-tools">
+          <input
+            ref="sourceSearchInput"
+            v-model="sourceQuery"
+            class="kk-input kk-source-search"
+            placeholder="この中を探す（れい: 田中）"
+            aria-label="元の文章の中を探す"
+            @keydown.enter.prevent="onSourceEnter"
+          >
+          <span v-if="sourceQuery.trim()" class="kk-source-count">{{ matchCount ? `${matchIndex + 1} / ${matchCount}` : '0件' }}</span>
+          <button type="button" class="kk-source-btn" :disabled="!matchCount" aria-label="前の当たり" @click="gotoMatch(-1)">↑</button>
+          <button type="button" class="kk-source-btn" :disabled="!matchCount" aria-label="次の当たり" @click="gotoMatch(1)">↓</button>
+          <button type="button" class="kk-source-btn kk-source-copy" @click="copyTranscript">{{ copied ? 'コピーしました' : 'コピー' }}</button>
+        </div>
+        <div ref="sourceBody" class="kk-source-body">
+          <p v-if="!record.transcript" class="kk-note m-0">元の文章は保存されていません。</p>
+          <!-- v-html は使わない（元の文章は利用者が入れたものなので、そのまま文字として出す） -->
+          <p v-else class="kk-source-text"><template v-for="(seg, i) in sourceSegments" :key="i"><mark v-if="seg.hit" class="kk-source-mark" :class="{ 'is-current': seg.hitIndex === matchIndex }" :data-hit="seg.hitIndex">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></p>
+        </div>
+      </aside>
+    </Transition>
+
     <!-- PDFは部品で作る（一覧画面と共通） -->
     <MinutesPdfMaker ref="pdfMaker" />
   </div>
@@ -340,7 +384,82 @@ function onDocPointerDown(e: PointerEvent) {
 }
 
 function onDocKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') openPop.value = null
+  if (e.key !== 'Escape') return
+  if (openPop.value) openPop.value = null
+  else if (sourceOpen.value) sourceOpen.value = false
+}
+
+// ── 元の文章 ──
+const sourceOpen = ref(false)
+const sourceQuery = ref('')
+const matchIndex = ref(0)
+const copied = ref(false)
+const sourceBody = ref<HTMLElement | null>(null)
+const sourceSearchInput = ref<HTMLInputElement | null>(null)
+
+const transcriptLength = computed(() => record.value?.transcript.length ?? 0)
+
+function toggleSource() {
+  sourceOpen.value = !sourceOpen.value
+  openPop.value = null
+  if (sourceOpen.value) nextTick(() => sourceSearchInput.value?.focus())
+}
+
+/** 元の文章を、当たった語とそれ以外に切り分ける（色付けのため。大文字小文字は区別しない） */
+const sourceSegments = computed(() => {
+  const text = record.value?.transcript ?? ''
+  const q = sourceQuery.value.trim()
+  if (!q) return [{ text, hit: false, hitIndex: -1 }]
+  const lower = text.toLowerCase()
+  const needle = q.toLowerCase()
+  const segs: { text: string; hit: boolean; hitIndex: number }[] = []
+  let pos = 0
+  let n = 0
+  for (;;) {
+    const at = lower.indexOf(needle, pos)
+    if (at < 0) break
+    if (at > pos) segs.push({ text: text.slice(pos, at), hit: false, hitIndex: -1 })
+    segs.push({ text: text.slice(at, at + q.length), hit: true, hitIndex: n++ })
+    pos = at + q.length
+  }
+  if (pos < text.length) segs.push({ text: text.slice(pos), hit: false, hitIndex: -1 })
+  return segs
+})
+const matchCount = computed(() => sourceSegments.value.filter((s) => s.hit).length)
+
+function scrollToMatch() {
+  nextTick(() => {
+    const el = sourceBody.value?.querySelector(`[data-hit="${matchIndex.value}"]`)
+    el?.scrollIntoView({ block: 'center' })
+  })
+}
+
+function gotoMatch(step: number) {
+  if (!matchCount.value) return
+  matchIndex.value = (matchIndex.value + step + matchCount.value) % matchCount.value
+  scrollToMatch()
+}
+
+/** Enter で次の当たりへ（IMEの変換確定のEnterでは動かない） */
+function onSourceEnter(e: KeyboardEvent) {
+  if (e.isComposing || e.keyCode === 229) return
+  gotoMatch(e.shiftKey ? -1 : 1)
+}
+
+// 探す語を変えたら、最初の当たりへ
+watch(sourceQuery, () => {
+  matchIndex.value = 0
+  if (matchCount.value) scrollToMatch()
+})
+
+async function copyTranscript() {
+  try {
+    await navigator.clipboard.writeText(record.value?.transcript ?? '')
+    copied.value = true
+    setTimeout(() => (copied.value = false), 2000)
+  } catch {
+    errorMessage.value = 'コピーできませんでした。文章を選んでコピーしてください。'
+  }
 }
 
 /** Enter で送る。IMEの変換確定のEnterでは送らない（日本語入力で二重に走るのを防ぐ） */
@@ -775,6 +894,127 @@ onUnmounted(() => {
   gap: 0.4rem;
   min-width: 0;
   flex: 1 1 260px;
+}
+/* 元の文章の欄（右からせり出す。背景は暗くしない） */
+.kk-source {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 70;
+  width: min(520px, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--kk-panel);
+  border-left: 1px solid var(--kk-line);
+  box-shadow: -10px 0 30px rgba(20, 60, 120, 0.14);
+}
+.kk-source-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem 0.4rem;
+}
+.kk-source-title {
+  margin: 0;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kk-source-title .kk-note {
+  margin-left: 0.4rem;
+  font-weight: 400;
+}
+.kk-source-close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--kk-ink-soft);
+  cursor: pointer;
+}
+.kk-source-close:hover {
+  background: var(--kk-accent-soft);
+}
+.kk-source-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0 0.9rem 0.6rem;
+  border-bottom: 1px solid var(--kk-line);
+}
+.kk-source-search {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.6rem;
+}
+.kk-source-count {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--kk-ink-faint);
+  min-width: 3.2rem;
+  text-align: center;
+}
+.kk-source-btn {
+  flex: none;
+  height: 30px;
+  min-width: 30px;
+  padding: 0 0.45rem;
+  border: 1px solid var(--kk-line);
+  border-radius: 7px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--kk-ink-soft);
+  cursor: pointer;
+}
+.kk-source-btn:hover:not(:disabled) {
+  border-color: var(--kk-accent);
+  color: var(--kk-accent-strong);
+}
+.kk-source-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.kk-source-copy {
+  min-width: 4.5rem;
+}
+.kk-source-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.8rem 0.9rem 1.5rem;
+}
+.kk-source-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.9;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--kk-ink);
+}
+.kk-source-mark {
+  background: #fff1b8;
+  color: inherit;
+  border-radius: 2px;
+}
+.kk-source-mark.is-current {
+  background: var(--kk-cta);
+  color: #fff;
+}
+.kk-source-t-enter-active,
+.kk-source-t-leave-active {
+  transition: transform 0.2s ease-out;
+}
+.kk-source-t-enter-from,
+.kk-source-t-leave-to {
+  transform: translateX(100%);
 }
 .kk-autosave {
   margin-left: 0.5rem;

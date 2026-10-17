@@ -158,7 +158,9 @@ export async function createRecord(
       userId,
       await encryptText(event, minutes.title),
       minutes.date,
-      audioName,
+      // ファイル名にも会議の中身が出うる（「◯◯さん面談.txt」など）ので暗号化する（2026-10-17〜。
+      // それより前の行は平文のまま残っているが、decryptText は平文をそのまま返すので読める）
+      await encryptText(event, audioName),
       await encryptText(event, transcript),
       await encryptText(event, JSON.stringify(minutes))
     )
@@ -185,7 +187,7 @@ export async function listRecords(event: H3Event, userId: string): Promise<Recor
       id: row.id,
       title: await decryptText(event, row.title ?? ''),
       date: row.meeting_date ?? '',
-      audioName: row.audio_name ?? '',
+      audioName: await decryptText(event, row.audio_name ?? ''),
       createdAt: row.created_at ?? '',
       tags: await decryptTags(event, row.tags),
     }))
@@ -215,7 +217,7 @@ export async function getRecord(event: H3Event, userId: string, id: string): Pro
     id: row.id,
     title: await decryptText(event, row.title ?? ''),
     date: row.meeting_date ?? '',
-    audioName: row.audio_name ?? '',
+    audioName: await decryptText(event, row.audio_name ?? ''),
     createdAt: row.created_at ?? '',
     updatedAt: row.updated_at ?? '',
     tags: minutes.tags,

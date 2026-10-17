@@ -159,7 +159,6 @@ async function renderGraph() {
           'min-zoomed-font-size': 7,
           'text-outline-width': 1.5,
           'text-outline-color': '#1d6fd6',
-          'cursor': 'pointer',
         } as any
       },
       {
@@ -169,7 +168,6 @@ async function renderGraph() {
           'line-color': '#6aa3e6',
           'opacity': 0.5,
           'curve-style': 'bezier',
-          'cursor': 'pointer',
         } as any
       },
       {
@@ -263,16 +261,34 @@ async function renderGraph() {
       x: pos.x,
       y: pos.y,
     }
-    const neighborhood = node.neighborhood().add(node)
+    // 円のみハイライト（隣接する円・線は巻き込まない）
     cy!.elements().not('.selected').addClass('dimmed')
-    neighborhood.removeClass('dimmed').addClass('highlighted')
-    neighborhood.edges().addClass('highlighted')
+    node.removeClass('dimmed').addClass('highlighted')
   })
 
   cy.on('mouseout', 'node', () => {
     tooltip.value = null
     cy!.elements().removeClass('dimmed highlighted')
   })
+
+  // 線は両端の円ごとハイライト
+  cy.on('mouseover', 'edge', (evt: any) => {
+    const edge = evt.target
+    const group = edge.connectedNodes().add(edge)
+    cy!.elements().not('.selected, .edge-selected').addClass('dimmed')
+    group.removeClass('dimmed').addClass('highlighted')
+  })
+
+  cy.on('mouseout', 'edge', () => {
+    cy!.elements().removeClass('dimmed highlighted')
+  })
+
+  // Cytoscape のスタイルに cursor は無いので、コンテナ側で切り替える
+  const setCursor = (value: string) => {
+    if (cyContainer.value) cyContainer.value.style.cursor = value
+  }
+  cy.on('mouseover', 'node, edge', () => setCursor('pointer'))
+  cy.on('mouseout', 'node, edge', () => setCursor(''))
 
   cy.on('tap', 'node', (evt: any) => {
     const node = evt.target
