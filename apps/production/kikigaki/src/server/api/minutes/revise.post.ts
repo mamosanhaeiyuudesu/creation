@@ -30,6 +30,8 @@ export default defineEventHandler(async (event) => {
   // 画面で編集中の内容を土台にする（保存前の直しも反映させるため）
   const current = body?.minutes ? normalizeMinutes(body.minutes) : record.minutes
   const revised = await reviseMinutes(event, current, record.transcript, instruction)
+  // タグは AI に渡していない（整理の印で、指示の対象外）。直した結果に元のタグを引き継ぐ
+  revised.tags = current.tags
 
   return { minutes: revised }
 })

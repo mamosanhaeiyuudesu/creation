@@ -41,6 +41,17 @@ CREATE TABLE IF NOT EXISTS records (
 
 CREATE INDEX IF NOT EXISTS idx_records_user ON records (user_id, created_at DESC);
 
+-- 議事録のタグ（一覧の表示と絞り込み用）。議事録本体の minutes にも同じものが入っているが、
+-- 一覧のたびに minutes 全体を復号しなくて済むよう、ここに短く持つ。tags は暗号化した JSON 配列。
+-- records に列を足す（ALTER）と本番で一度しか流せず扱いにくいので、表を分けた（2026-10-17）。
+CREATE TABLE IF NOT EXISTS record_tags (
+  record_id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  tags TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS idx_record_tags_user ON record_tags (user_id);
+
 -- 「AIで直す」を使った回数（議事録1件ごと）。直すたびに会議の全文をAIへ送るので上限を設けている。
 CREATE TABLE IF NOT EXISTS record_revisions (
   record_id TEXT PRIMARY KEY,

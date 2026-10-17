@@ -134,7 +134,27 @@
       <section class="kk-card kk-list mt-4">
         <div class="kk-list-head">
           <h2 class="kk-h2 m-0">これまでの議事録</h2>
-          <span v-if="records.length" class="kk-note">{{ records.length }}件</span>
+          <span v-if="records.length" class="kk-note">
+            {{ activeTag ? `${filteredRecords.length} / ${records.length}件` : `${records.length}件` }}
+          </span>
+        </div>
+
+        <!-- タグで絞り込む（1つだけ選ぶ。既定は「すべて」）。多い順に並べ、入りきらなければ横にスクロール。
+             選んだタグは URL（?tag=）に残す＝議事録を開いて戻っても絞り込んだまま -->
+        <div v-if="tagCounts.length" class="kk-tagbar" role="group" aria-label="タグで絞り込む">
+          <button type="button" class="kk-tagbar-chip" :class="{ 'is-on': !activeTag }" @click="setTag('')">
+            すべて<span class="kk-tagbar-count">{{ records.length }}</span>
+          </button>
+          <button
+            v-for="t in tagCounts"
+            :key="t.tag"
+            type="button"
+            class="kk-tagbar-chip"
+            :class="{ 'is-on': activeTag === t.tag }"
+            @click="setTag(t.tag)"
+          >
+            #{{ t.tag }}<span class="kk-tagbar-count">{{ t.count }}</span>
+          </button>
         </div>
 
         <p v-if="loadingRecords" class="kk-lead px-4 py-6 m-0">読み込んでいます…</p>
@@ -154,12 +174,26 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="r in records" :key="r.id" @click="router.push(`/records/${r.id}`)">
+            <tr v-for="r in filteredRecords" :key="r.id" @click="router.push(`/records/${r.id}`)">
               <td>
-                <NuxtLink :to="`/records/${r.id}`" class="kk-row-title" @click.stop>
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l3 3v13H6z" /><path d="M9 11h6M9 15h6" /></svg>
-                  <span class="truncate">{{ r.title || '（名前のない議事録）' }}</span>
-                </NuxtLink>
+                <div class="kk-row-head">
+                  <NuxtLink :to="`/records/${r.id}`" class="kk-row-title" @click.stop>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l3 3v13H6z" /><path d="M9 11h6M9 15h6" /></svg>
+                    <span class="truncate">{{ r.title || '（名前のない議事録）' }}</span>
+                  </NuxtLink>
+                  <!-- 行のタグを押しても、そのタグで絞り込める -->
+                  <button
+                    v-for="t in r.tags"
+                    :key="t"
+                    type="button"
+                    class="kk-row-tag"
+                    :class="{ 'is-on': activeTag === t }"
+                    :title="`「${t}」で絞り込む`"
+                    @click.stop="setTag(t)"
+                  >
+                    #{{ t }}
+                  </button>
+                </div>
                 <span class="kk-row-sub">{{ r.dateLabel }}</span>
               </td>
               <td class="kk-col-date">{{ r.date ? formatDateLabel(r.date) : '—' }}</td>
@@ -214,12 +248,14 @@
 import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
 import { formatDateLabel, formatMeetingDate } from '~/utils/formatDate'
+import { countTags } from '~/utils/tags'
 import type { MinutesRecord, RecordSummary } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
 
 useHead({ title: `${SERVICE.name} — 会議の文章から議事録を` })
 
 const router = useRouter()
+const route = useRoute()
 const { isLoggedIn, checked, signInWithGoogle, sendLoginLink, catchRedirectError, authedFetch } = useAuth()
 
 const errorMessage = ref('')
@@ -246,6 +282,28 @@ const records = ref<(RecordSummary & { dateLabel: string; createdLabel: string }
 const loadingRecords = ref(false)
 
 const showTextSheet = ref(false)
+
+// ── タグで絞り込む ──
+const { version: tagsVersion, load: loadTags } = useTags()
+const tagCounts = computed(() => countTags(records.value))
+/** 選んでいるタグ（URL の ?tag=）。いまの一覧に無いタグ（消した・名前を変えた）なら「すべて」扱い */
+const activeTag = computed(() => {
+  const t = String(route.query.tag ?? '')
+  return tagCounts.value.some((c) => c.tag === t) ? t : ''
+})
+const filteredRecords = computed(() =>
+  activeTag.value ? records.value.filter((r) => r.tags.includes(activeTag.value)) : records.value
+)
+
+function setTag(tag: string) {
+  // 履歴を増やさない（戻るボタンで絞り込みを1つずつ遡らないように）
+  router.replace({ query: tag ? { ...route.query, tag } : { ...route.query, tag: undefined } })
+}
+
+// 左メニューでタグの名前を変えた・消したら読み直す
+watch(tagsVersion, () => {
+  if (isLoggedIn.value) loadRecords()
+})
 const pendingApproval = useState<boolean>('kk-pending-approval', () => false)
 
 // ── 一覧から開かずにPDF・ドライブ保存 ──
@@ -274,6 +332,8 @@ async function removeRow() {
   try {
     await authedFetch(`/api/records/${r.id}`, { method: 'DELETE' })
     records.value = records.value.filter((x) => x.id !== r.id)
+    // 左メニューのタグの件数を合わせる
+    loadTags().catch(() => {})
     savedMessage.value = `「${r.title || '議事録'}」を消しました。`
     pendingDelete.value = null
   } catch (e) {
@@ -493,6 +553,75 @@ onMounted(async () => {
   padding: 0.65rem 1rem;
   border-bottom: 1px solid var(--kk-line);
 }
+/* タグの絞り込み */
+.kk-tagbar {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--kk-line);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.kk-tagbar-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 28px;
+  padding: 0 0.7rem;
+  border: 1px solid var(--kk-line);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--kk-ink-soft);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.kk-tagbar-chip:hover {
+  border-color: var(--kk-accent);
+}
+.kk-tagbar-chip.is-on {
+  border-color: var(--kk-accent);
+  background: var(--kk-accent);
+  color: #fff;
+  font-weight: 700;
+}
+.kk-tagbar-count {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* 行の中のタグ（会議の名前の横） */
+.kk-row-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.4rem;
+  min-width: 0;
+}
+.kk-row-head .kk-row-title {
+  max-width: 100%;
+}
+.kk-row-tag {
+  flex: none;
+  height: 20px;
+  padding: 0 0.45rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--kk-accent-soft);
+  color: var(--kk-accent-strong);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kk-row-tag:hover,
+.kk-row-tag.is-on {
+  background: var(--kk-accent);
+  color: #fff;
+}
+
 .kk-table {
   width: 100%;
   border-collapse: collapse;

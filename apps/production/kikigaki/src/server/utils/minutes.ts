@@ -8,6 +8,7 @@ import type { H3Event } from 'h3'
 import { requireDb, ensureTables } from '~/server/utils/db'
 import { encryptText, decryptText } from '~/server/utils/encrypt'
 import { emptyMinutes } from '~/types/minutes'
+import { normalizeTags } from '~/utils/tags'
 import type {
   EventItem,
   Minutes,
@@ -93,6 +94,7 @@ export function normalizeMinutes(raw: any): Minutes {
     taskCandidates: normalizeTasks(raw.taskCandidates ?? raw.task_candidates),
     eventCandidates: normalizeEvents(raw.eventCandidates ?? raw.event_candidates),
     unclearPoints: arr(raw.unclearPoints ?? raw.unclear_points).map(str).filter(Boolean),
+    tags: normalizeTags(raw.tags),
   }
 }
 
@@ -108,6 +110,27 @@ interface RecordRow {
   minutes: string
   created_at: string
   updated_at: string
+}
+
+/** record_tags の暗号文 → タグの並び。空・壊れていれば空 */
+export async function decryptTags(event: H3Event, enc: string): Promise<string[]> {
+  if (!enc) return []
+  try {
+    return normalizeTags(JSON.parse(await decryptText(event, enc)))
+  } catch {
+    return []
+  }
+}
+
+/** 一覧用のタグの行を書く文（batch に入れて使う）。タグが空なら行ごと消す */
+export async function tagsStatement(db: any, event: H3Event, userId: string, recordId: string, tags: string[]) {
+  if (!tags.length) return db.prepare('DELETE FROM record_tags WHERE record_id = ? AND user_id = ?').bind(recordId, userId)
+  return db
+    .prepare(
+      `INSERT INTO record_tags (record_id, user_id, tags) VALUES (?, ?, ?)
+       ON CONFLICT (record_id) DO UPDATE SET tags = excluded.tags`
+    )
+    .bind(recordId, userId, await encryptText(event, JSON.stringify(tags)))
 }
 
 /** 一覧に出す行だけ（文字起こし・議事録本文は読まない＝復号の手間を省く） */
@@ -147,11 +170,16 @@ export async function createRecord(
 export async function listRecords(event: H3Event, userId: string): Promise<RecordSummary[]> {
   const db = requireDb(event)
   await ensureTables(db)
+  // タグは一覧のために別の表（record_tags）に持っている。議事録本体（minutes）を復号しなくて済むように
   const res = await db
-    .prepare(`SELECT ${LIST_COLS} FROM records WHERE user_id = ? ORDER BY created_at DESC LIMIT 200`)
+    .prepare(
+      `SELECT r.id, r.title, r.meeting_date, r.audio_name, r.created_at, COALESCE(t.tags, '') AS tags
+       FROM records r LEFT JOIN record_tags t ON t.record_id = r.id
+       WHERE r.user_id = ? ORDER BY r.created_at DESC LIMIT 200`
+    )
     .bind(userId)
     .all()
-  const rows: RecordRow[] = res?.results ?? []
+  const rows: (RecordRow & { tags: string })[] = res?.results ?? []
   return await Promise.all(
     rows.map(async (row) => ({
       id: row.id,
@@ -159,6 +187,7 @@ export async function listRecords(event: H3Event, userId: string): Promise<Recor
       date: row.meeting_date ?? '',
       audioName: row.audio_name ?? '',
       createdAt: row.created_at ?? '',
+      tags: await decryptTags(event, row.tags),
     }))
   )
 }
@@ -181,6 +210,7 @@ export async function getRecord(event: H3Event, userId: string, id: string): Pro
     parsed = null
   }
 
+  const minutes = normalizeMinutes(parsed)
   return {
     id: row.id,
     title: await decryptText(event, row.title ?? ''),
@@ -188,8 +218,9 @@ export async function getRecord(event: H3Event, userId: string, id: string): Pro
     audioName: row.audio_name ?? '',
     createdAt: row.created_at ?? '',
     updatedAt: row.updated_at ?? '',
+    tags: minutes.tags,
     transcript: await decryptText(event, row.transcript ?? ''),
-    minutes: normalizeMinutes(parsed),
+    minutes,
   }
 }
 
@@ -201,6 +232,7 @@ export async function updateRecordMinutes(
   minutes: Minutes
 ): Promise<boolean> {
   const db = requireDb(event)
+  await ensureTables(db)
   const res = await db
     .prepare(
       `UPDATE records
@@ -215,12 +247,19 @@ export async function updateRecordMinutes(
       userId
     )
     .run()
-  return (res?.meta?.changes ?? 0) > 0
+  const saved = (res?.meta?.changes ?? 0) > 0
+  // 本人の議事録が書き換えられたときだけ、一覧用のタグも揃える（他人のIDでタグの行を作らない）
+  if (saved) await (await tagsStatement(db, event, userId, id, minutes.tags)).run()
+  return saved
 }
 
 /** 削除。本人の行だけ */
 export async function deleteRecord(event: H3Event, userId: string, id: string): Promise<boolean> {
   const db = requireDb(event)
-  const res = await db.prepare('DELETE FROM records WHERE id = ? AND user_id = ?').bind(id, userId).run()
+  await ensureTables(db)
+  const [res] = await db.batch([
+    db.prepare('DELETE FROM records WHERE id = ? AND user_id = ?').bind(id, userId),
+    db.prepare('DELETE FROM record_tags WHERE record_id = ? AND user_id = ?').bind(id, userId),
+  ])
   return (res?.meta?.changes ?? 0) > 0
 }

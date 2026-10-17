@@ -1,7 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="キキガキ">
-  <rect width="64" height="64" rx="14" fill="#2f6f5e"/>
-  <rect x="26" y="12" width="12" height="22" rx="6" fill="#ffffff"/>
-  <path d="M20 30a12 12 0 0 0 24 0" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
-  <path d="M32 42v6" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
-  <path d="M20 54h24" fill="none" stroke="#dcebe5" stroke-width="4" stroke-linecap="round"/>
+  <!-- 画面左上のロゴ（layouts/default.vue の .kk-logo-mark）と同じ形。色は基調の青（#1d6fd6）、角丸と中の線の比率も合わせてある。※コメントにハイフン2つを書くとSVGが壊れる -->
+  <rect width="64" height="64" rx="17" fill="#1d6fd6"/>
+  <g transform="translate(11.1 11.1) scale(1.744)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 4h9l3 3v13H6z"/>
+    <path d="M9 11h6M9 15h6M9 7h3"/>
+  </g>
 </svg>

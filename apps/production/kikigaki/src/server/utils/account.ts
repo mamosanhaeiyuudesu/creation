@@ -50,7 +50,7 @@ export async function deleteAccount(event: H3Event, userId: string): Promise<voi
   const db = requireDb(event)
   await ensureTables(db)
   // 1回のまとまり（batch）で消す＝途中で失敗して半分だけ消えた状態を残さない
-  const tables = ['records', 'user_settings', 'user_grants', 'user_approvals', 'ai_usage_monthly', 'subscriptions']
+  const tables = ['records', 'record_tags', 'user_settings', 'user_grants', 'user_approvals', 'ai_usage_monthly', 'subscriptions']
   await db.batch([
     ...tables.map((t) => db.prepare(`DELETE FROM ${t} WHERE user_id = ?`).bind(userId)),
     db.prepare('DELETE FROM users WHERE id = ?').bind(userId),

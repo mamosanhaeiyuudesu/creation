@@ -34,6 +34,51 @@
       </template>
     </section>
 
+    <!-- タグの管理。名前の変更（既にあるタグにすると1つにまとまる）と削除（全部の議事録から外す） -->
+    <section class="kk-set-sec">
+      <h2 class="kk-set-title">タグ<span v-if="allTags.length" class="kk-set-tag-total">{{ allTags.length }}</span></h2>
+      <p v-if="!allTags.length" class="kk-set-text">まだタグはありません。議事録の確認画面で付けられます。</p>
+      <ul v-else class="kk-set-tags">
+        <li v-for="t in allTags" :key="t.tag" class="kk-set-tag">
+          <template v-if="editingTag === t.tag">
+            <input
+              ref="tagEditInput"
+              v-model="tagDraft"
+              class="kk-input kk-set-tag-input"
+              :maxlength="MAX_TAG_LENGTH"
+              aria-label="新しいタグの名前"
+              @keydown.enter="onTagEditEnter"
+              @keydown.esc="editingTag = ''"
+            >
+            <button type="button" class="kk-set-tag-ok" :disabled="tagBusy" @click="saveTagRename">保存</button>
+            <button type="button" class="kk-set-tag-icon" :disabled="tagBusy" aria-label="やめる" @click="editingTag = ''">✕</button>
+          </template>
+          <template v-else>
+            <span class="kk-set-tag-name">#{{ t.tag }}</span>
+            <span class="kk-set-tag-count">{{ t.count }}</span>
+            <button type="button" class="kk-set-tag-icon" :aria-label="`タグ「${t.tag}」の名前を変える`" title="名前を変える" @click="startTagEdit(t.tag)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16zM13 7l4 4" /></svg>
+            </button>
+            <button type="button" class="kk-set-tag-icon is-danger" :aria-label="`タグ「${t.tag}」を消す`" title="消す" @click="deletingTag = t.tag">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+            </button>
+          </template>
+        </li>
+      </ul>
+      <p v-if="editingTag && tagMergeTarget" class="kk-set-note">「{{ tagMergeTarget }}」は既にあるので、1つのタグにまとまります。</p>
+    </section>
+
+    <!-- タグの削除の確認 -->
+    <BottomSheet :model-value="!!deletingTag" title="タグを消しますか？" :closable="!tagBusy" @update:model-value="deletingTag = ''">
+      <p class="kk-lead m-0">
+        <strong>#{{ deletingTag }}</strong> を、付いている議事録（{{ allTags.find((t) => t.tag === deletingTag)?.count ?? 0 }}件）から外します。議事録そのものは消えません。
+      </p>
+      <div class="mt-4 flex flex-col gap-2">
+        <button class="kk-btn-sub" :disabled="tagBusy" @click="confirmTagDelete">{{ tagBusy ? '消しています…' : 'はい、消します' }}</button>
+        <button class="kk-btn-text" :disabled="tagBusy" @click="deletingTag = ''">やめる</button>
+      </div>
+    </BottomSheet>
+
     <!-- PDFの文字数（アカウント全体。すべての議事録のPDFに効く） -->
     <section class="kk-set-sec">
       <h2 class="kk-set-title">PDFの文字数</h2>
@@ -185,6 +230,7 @@ import { parseMonitorMode } from '~/utils/entitlement'
 import type { BillingStatus } from '~/types/billing'
 import { PRINT_MAX_CHARS_MAX, PRINT_MAX_CHARS_MIN } from '~/types/settings'
 import { defaultUserSettings, normalizeUserSettings } from '~/utils/userSettings'
+import { MAX_TAG_LENGTH, normalizeTag } from '~/utils/tags'
 
 const router = useRouter()
 const route = useRoute()
@@ -256,6 +302,7 @@ async function resetPdf() {
 }
 
 async function load() {
+  loadTags().catch(() => {})
   try {
     await loadUserSettings()
     syncPdfDraft()
@@ -322,6 +369,70 @@ async function disconnectDrive() {
   driveBusy.value = true
   await disconnect()
   driveBusy.value = false
+}
+
+// ── タグの管理 ──
+const { tags: allTags, load: loadTags, rename: renameTag, remove: removeTag } = useTags()
+const editingTag = ref('')
+const tagDraft = ref('')
+const deletingTag = ref('')
+const tagBusy = ref(false)
+const tagEditInput = ref<HTMLInputElement[] | HTMLInputElement | null>(null)
+/** 変えた先が既にあるタグなら、その名前（まとまることを知らせる） */
+const tagMergeTarget = computed(() => {
+  const to = normalizeTag(tagDraft.value)
+  return to && to !== editingTag.value && allTags.value.some((t) => t.tag === to) ? to : ''
+})
+
+function startTagEdit(tag: string) {
+  editingTag.value = tag
+  tagDraft.value = tag
+  nextTick(() => {
+    const el = Array.isArray(tagEditInput.value) ? tagEditInput.value[0] : tagEditInput.value
+    el?.focus()
+    el?.select()
+  })
+}
+
+function onTagEditEnter(e: KeyboardEvent) {
+  if (e.isComposing || e.keyCode === 229) return
+  e.preventDefault()
+  saveTagRename()
+}
+
+async function saveTagRename() {
+  const from = editingTag.value
+  const to = normalizeTag(tagDraft.value)
+  if (!to || to === from) {
+    editingTag.value = ''
+    return
+  }
+  errorMessage.value = ''
+  savedMessage.value = ''
+  tagBusy.value = true
+  try {
+    const n = await renameTag(from, to)
+    savedMessage.value = `タグ「${from}」を「${to}」に変えました（${n}件）。`
+    editingTag.value = ''
+  } catch (e) {
+    errorMessage.value = apiMessage(e, 'タグの名前を変えられませんでした。もう一度お試しください。')
+  }
+  tagBusy.value = false
+}
+
+async function confirmTagDelete() {
+  const tag = deletingTag.value
+  errorMessage.value = ''
+  savedMessage.value = ''
+  tagBusy.value = true
+  try {
+    const n = await removeTag(tag)
+    savedMessage.value = `タグ「${tag}」を消しました（${n}件の議事録から外しました）。`
+  } catch (e) {
+    errorMessage.value = apiMessage(e, 'タグを消せませんでした。もう一度お試しください。')
+  }
+  deletingTag.value = ''
+  tagBusy.value = false
 }
 
 // ── 退会 ──
@@ -510,6 +621,99 @@ watch(() => route.path, refreshAll)
 .kk-set-delete-btn:disabled {
   opacity: 0.4;
   cursor: default;
+}
+.kk-set-tag-total {
+  margin-right: auto;
+  margin-left: 0.3rem;
+  font-size: 10.5px;
+  color: var(--kk-accent-strong);
+  background: var(--kk-accent-soft);
+  border-radius: 999px;
+  padding: 0 0.4rem;
+}
+.kk-set-tags {
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+.kk-set-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  min-height: 30px;
+  border-top: 1px dashed var(--kk-line);
+}
+.kk-set-tag:first-child {
+  border-top: 0;
+}
+.kk-set-tag-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--kk-accent-strong);
+}
+.kk-set-tag-count {
+  font-size: 11px;
+  color: var(--kk-ink-faint);
+  margin-right: 0.15rem;
+}
+.kk-set-tag-icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--kk-ink-faint);
+  font-size: 11px;
+  cursor: pointer;
+}
+.kk-set-tag-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.kk-set-tag-icon:hover {
+  background: var(--kk-accent-soft);
+  color: var(--kk-accent-strong);
+}
+.kk-set-tag-icon.is-danger:hover {
+  background: var(--kk-danger-soft);
+  color: var(--kk-danger);
+}
+.kk-set-tag-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.15rem 0.4rem;
+}
+.kk-set-tag-ok {
+  flex: none;
+  height: 26px;
+  padding: 0 0.55rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--kk-accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kk-set-tag-ok:disabled {
+  opacity: 0.5;
 }
 .kk-set-pdf {
   margin-top: 0.35rem;

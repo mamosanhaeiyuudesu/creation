@@ -51,6 +51,8 @@ export interface Minutes {
   eventCandidates: EventItem[]
   /** AIが自信を持てなかった箇所の自己申告。確認画面の先頭に出す */
   unclearPoints: string[]
+  /** 利用者が付けるタグ（整理の印。AIは付けない・PDFには載せない）。utils/tags.ts で整える */
+  tags: string[]
 }
 
 /** 一覧用の軽い行（文字起こし・本文を含まない） */
@@ -61,6 +63,8 @@ export interface RecordSummary {
   date: string
   audioName: string
   createdAt: string
+  /** タグ（一覧の表示と絞り込み用） */
+  tags: string[]
 }
 
 /** 確認画面が扱う1件ぶんの全体 */
@@ -81,5 +85,6 @@ export function emptyMinutes(): Minutes {
     taskCandidates: [],
     eventCandidates: [],
     unclearPoints: [],
+    tags: [],
   }
 }

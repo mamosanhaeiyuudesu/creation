@@ -128,6 +128,9 @@
                   <input id="minutes-date" v-model="minutes.date" type="date" class="kk-input">
                 </div>
               </div>
+              <!-- 参加者とタグは横に並べる（幅が足りなければ縦に積む） -->
+              <div class="kk-meta-pair">
+              <div class="min-w-0">
               <!-- 参加者は1人1欄。末尾の空欄に入れて Enter（または欄を離れる）と確定し、次の空欄が出る -->
               <p class="kk-field-label mt-2">会議の参加者<span class="kk-sec-count ml-1">{{ minutes.participants.length }}</span></p>
               <ul class="kk-people">
@@ -152,6 +155,13 @@
                   >
                 </li>
               </ul>
+              </div>
+              <div class="min-w-0">
+                <p class="kk-field-label mt-2">タグ<span class="kk-sec-count ml-1">{{ minutes.tags.length }}</span></p>
+                <TagInput v-model="minutes.tags" :suggestions="tagSuggestions" />
+                <p class="kk-note m-0 mt-1">一覧での絞り込みに使います。PDFには載りません。</p>
+              </div>
+              </div>
             </section>
 
             <section class="kk-card kk-review-card">
@@ -292,6 +302,11 @@ const router = useRouter()
 const { isLoggedIn, authedFetch, waitReady } = useAuth()
 const { connected: driveConnected, refresh: refreshDrive, uploadPdf, ensureToken } = useDrive()
 const driveSaving = ref(false)
+// タグの入力の候補（これまで使ったタグ。多い順）
+const { tags: allTags, version: tagsVersion, load: loadTags, touched: touchTags } = useTags()
+const tagSuggestions = computed(() => allTags.value.map((t) => t.tag))
+/** 最後に保存したときのタグ（保存でタグが変わったかを見るため） */
+const savedTags = ref<string[]>([])
 
 const id = computed(() => String(route.params.id ?? ''))
 const record = ref<MinutesRecord | null>(null)
@@ -370,6 +385,7 @@ function applyMinutes(src: Minutes) {
   minutes.title = src.title
   minutes.date = src.date
   minutes.participants = [...src.participants]
+  minutes.tags = [...src.tags]
   minutes.summary = src.summary
   minutes.decisions = src.decisions.map((d) => ({ ...d }))
   minutes.discussions = src.discussions.map((d) => ({ ...d }))
@@ -420,6 +436,7 @@ async function load() {
     const res = await authedFetch<{ record: MinutesRecord }>(`/api/records/${id.value}`)
     record.value = res.record
     applyMinutes(res.record.minutes)
+    savedTags.value = [...res.record.minutes.tags]
   } catch (e) {
     errorMessage.value = apiMessage(e, 'この議事録を開けませんでした。一覧からもう一度お試しください。')
     record.value = null
@@ -436,7 +453,13 @@ async function saveMinutes(): Promise<void> {
     body: { minutes: toRaw(minutes) },
   })
   // サーバーが正規化した結果（日付の形など）を画面へ返す
+  const tagsChanged = res.minutes.tags.join('\n') !== savedTags.value.join('\n')
   applyMinutes(res.minutes)
+  // タグが増減したら、左メニューの件数と入力の候補を合わせる
+  if (tagsChanged) {
+    savedTags.value = [...res.minutes.tags]
+    touchTags()
+  }
 }
 
 async function save() {
@@ -535,6 +558,20 @@ async function saveToDrive() {
   driveSaving.value = false
 }
 
+// 左メニューでタグの名前を変えた・消したときは、開いている議事録のタグも読み直す
+// （古いタグのまま保存すると、変更・削除したタグが元に戻ってしまうため）
+watch(tagsVersion, async () => {
+  try {
+    const res = await authedFetch<{ record: MinutesRecord }>(`/api/records/${id.value}`)
+    if (res.record.minutes.tags.join('\n') !== savedTags.value.join('\n')) {
+      minutes.tags = [...res.record.minutes.tags]
+      savedTags.value = [...res.record.minutes.tags]
+    }
+  } catch {
+    // 読めなければそのまま（次に開き直したときに揃う）
+  }
+})
+
 watch(isLoggedIn, async (v) => {
   if (v) await load()
 })
@@ -549,6 +586,7 @@ onMounted(async () => {
     return
   }
   await load()
+  loadTags().catch(() => {})
 })
 
 onUnmounted(() => {
@@ -837,6 +875,11 @@ onUnmounted(() => {
 }
 .kk-meta-date {
   flex: 0 0 170px;
+}
+.kk-meta-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0 1rem;
 }
 
 /* 参加者: 名前ごとの小さな欄を横に並べ、入りきらなければ折り返す */
