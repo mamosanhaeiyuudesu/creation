@@ -711,8 +711,8 @@ async function save() {
   savedMessage.value = ''
   saving.value = true
   try {
+    // 「保存しました」は見出しの横の自動保存の表示（✓ 保存しました 時刻）に出るので、お知らせは出さない
     await saveMinutes()
-    savedMessage.value = '保存しました。'
   } catch (e) {
     errorMessage.value = apiMessage(e, '保存できませんでした。もう一度お試しください。')
   }
