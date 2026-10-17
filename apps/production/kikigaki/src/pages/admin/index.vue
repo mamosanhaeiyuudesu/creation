@@ -37,6 +37,25 @@
         </div>
       </div>
 
+      <!-- 保存容量（D1）の目安 -->
+      <section v-if="summary" class="kk-card kk-adm-storage mt-3">
+        <div class="kk-adm-storage-head">
+          <h2 class="kk-h2 m-0">保存容量（D1）</h2>
+          <span class="kk-adm-storage-num">
+            {{ formatBytes(summary.storage.dbBytes) }} / {{ formatBytes(summary.storage.limitBytes) }}
+            <span class="kk-note">（{{ storagePercent }}%）</span>
+          </span>
+        </div>
+        <div class="kk-adm-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="storagePercent">
+          <div class="kk-adm-meter-fill" :class="{ 'is-warn': storagePercent >= 70 }" :style="{ width: `${Math.max(1, storagePercent)}%` }" />
+        </div>
+        <p class="kk-note mt-1 mb-0">
+          議事録1件あたり平均 {{ formatBytes(summary.storage.avgRecordBytes) }}。
+          このままの平均で、あと約 <strong>{{ summary.storage.remainingRecords.toLocaleString() }}件</strong> 入ります。
+          上限は Workers の無料プランの1データベースあたりの値です（有料プランなら 10GB）。
+        </p>
+      </section>
+
       <!-- 利用者の一覧 -->
       <section class="kk-card kk-adm-list mt-4">
         <div class="kk-adm-list-head">
@@ -296,6 +315,20 @@ function statusTone(status: string): string {
   return ''
 }
 
+// ── 保存容量 ──
+const storagePercent = computed(() => {
+  const st = summary.value?.storage
+  if (!st || !st.limitBytes) return 0
+  return Math.min(100, Math.round((st.dbBytes / st.limitBytes) * 1000) / 10)
+})
+
+function formatBytes(n: number): string {
+  if (n >= 1024 * 1024 * 1024) return `${(n / 1024 / 1024 / 1024).toFixed(1)}GB`
+  if (n >= 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)}MB`
+  if (n >= 1024) return `${Math.round(n / 1024)}KB`
+  return `${n}B`
+}
+
 // ── 承認 ──
 const approvingId = ref('')
 const unapproveTarget = ref<AdminUserRow | null>(null)
@@ -445,6 +478,36 @@ onMounted(async () => {
   color: var(--kk-ink-faint);
 }
 
+.kk-adm-storage {
+  padding: 0.7rem 0.9rem;
+}
+.kk-adm-storage-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.3rem;
+}
+.kk-adm-storage-num {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--kk-accent-strong);
+}
+.kk-adm-meter {
+  margin-top: 0.4rem;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--kk-accent-soft);
+  overflow: hidden;
+}
+.kk-adm-meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--kk-accent);
+}
+.kk-adm-meter-fill.is-warn {
+  background: var(--kk-cta);
+}
 .kk-adm-list {
   overflow: hidden;
 }

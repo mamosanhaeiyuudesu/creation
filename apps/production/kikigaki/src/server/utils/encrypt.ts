@@ -44,23 +44,55 @@ const toBase64 = (bytes: Uint8Array): string => {
   return btoa(binary)
 }
 
-const encryptWith = async (key: CryptoKey, text: string): Promise<string> => {
-  if (!text) return text
-  const iv = crypto.getRandomValues(new Uint8Array(12))
-  const encoded = new TextEncoder().encode(text)
-  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded)
-  return `enc:${toBase64(iv)}:${toBase64(new Uint8Array(ciphertext))}`
+// ── 圧縮（2026-10-17〜） ──
+// 長い文章は gzip で縮めてから暗号化する（日本語の文章は2〜3分の1になる。D1 の容量対策）。
+// 形式: 圧縮なし `enc:<iv>:<暗号文>` ／ 圧縮あり `encz:<iv>:<暗号文>`。読むときは頭の印で見分けるので、
+// 圧縮を入れる前の行（enc:）もそのまま読める。短い文字列は縮まないので圧縮しない。
+// ★それより前の行を圧縮し直す機能は作らない（本人の判断。鍵は本番のサーバーにしか無く、
+//   手元のコマンドではできないため。古い行は圧縮されないまま読める）
+const COMPRESS_MIN_LENGTH = 256
+
+const gzip = async (text: string): Promise<Uint8Array> => {
+  const stream = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'))
+  return new Uint8Array(await new Response(stream).arrayBuffer())
 }
 
-const decryptWith = async (key: CryptoKey, text: string): Promise<string> => {
+const gunzip = async (bytes: Uint8Array): Promise<string> => {
+  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream('gzip'))
+  return await new Response(stream).text()
+}
+
+const fromBase64 = (b64: string): Uint8Array => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
+
+/** 暗号化する（テストのため鍵を引数で受け取る形にしてある） */
+export const encryptWith = async (key: CryptoKey, text: string): Promise<string> => {
+  if (!text) return text
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const compress = text.length >= COMPRESS_MIN_LENGTH
+  const plain = compress ? await gzip(text) : new TextEncoder().encode(text)
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plain as BufferSource)
+  return `${compress ? 'encz' : 'enc'}:${toBase64(iv)}:${toBase64(new Uint8Array(ciphertext))}`
+}
+
+/** 暗号文か（enc: / encz: で始まるか） */
+export const isEncrypted = (text: string): boolean => text?.startsWith('enc:') || text?.startsWith('encz:')
+
+/** 復号する。**失敗したら例外を投げる**（テストと decryptWith から使う） */
+export const decryptStrict = async (key: CryptoKey, text: string): Promise<string> => {
+  const [prefix, ivB64, ctB64] = text.split(':')
+  if ((prefix !== 'enc' && prefix !== 'encz') || !ivB64 || !ctB64) throw new Error('暗号文の形ではありません')
+  const decoded = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: fromBase64(ivB64) as BufferSource },
+    key,
+    fromBase64(ctB64) as BufferSource
+  )
+  return prefix === 'encz' ? await gunzip(new Uint8Array(decoded)) : new TextDecoder().decode(decoded)
+}
+
+/** 復号する。形が崩れている値（手で書き換えた行など）は復号を諦めてそのまま返す（画面に出すとき用） */
+export const decryptWith = async (key: CryptoKey, text: string): Promise<string> => {
   try {
-    const [, ivB64, ctB64] = text.split(':')
-    // 形が崩れている値（手で書き換えた行など）は復号を諦めてそのまま返す
-    if (!ivB64 || !ctB64) return text
-    const iv = Uint8Array.from(atob(ivB64), (c) => c.charCodeAt(0))
-    const ciphertext = Uint8Array.from(atob(ctB64), (c) => c.charCodeAt(0))
-    const decoded = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext)
-    return new TextDecoder().decode(decoded)
+    return await decryptStrict(key, text)
   } catch {
     return text
   }
@@ -72,6 +104,9 @@ export const encryptText = async (event: H3Event, text: string): Promise<string>
 }
 
 export const decryptText = async (event: H3Event, text: string): Promise<string> => {
-  if (!text?.startsWith('enc:')) return text
+  if (!isEncrypted(text)) return text
   return decryptWith(await getKey(event), text)
 }
+
+/** テスト用: 文字列から鍵を作る（本番の鍵の作り方と同じ） */
+export const importKeyForTest = importKey

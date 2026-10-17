@@ -45,6 +45,19 @@ export interface AdminSummary {
   /** 今月のAI代の合計（円・おおよそ） */
   monthCostYen: number
   monitorMode: boolean
+  storage: AdminStorage
+}
+
+/** D1 の使用量の目安 */
+export interface AdminStorage {
+  /** D1 の大きさ（D1 が返す値。空いた領域も含む） */
+  dbBytes: number
+  /** 上限（Workers の無料プランの1データベースあたり） */
+  limitBytes: number
+  /** 議事録1件あたりの平均（元の文章＋議事録本体の暗号文の長さ） */
+  avgRecordBytes: number
+  /** このままの平均で、あと何件入るか（おおよそ） */
+  remainingRecords: number
 }
 
 export interface AdminAuditRow {

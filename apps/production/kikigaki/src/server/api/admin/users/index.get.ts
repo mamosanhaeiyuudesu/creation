@@ -11,6 +11,12 @@ import { jstYearMonth, utcToJstLabel } from '~/utils/formatDate'
 import { isActiveStatus, isPaymentProblem } from '~/types/billing'
 import type { AdminSummary, AdminUserRow } from '~/types/admin'
 
+/**
+ * D1 の上限。Workers の無料プランでは1データベースあたり 500MB（2026-10 時点。有料プランなら 10GB）。
+ * プランを変えたらここも直す。
+ */
+const D1_LIMIT_BYTES = 500 * 1024 * 1024
+
 /** 管理画面で円に直すときのレート（おおよそ。service.ts の上限の根拠と同じ 1ドル=160円） */
 const JPY_PER_USD = 160
 const UNITS_PER_USD = 10_000_000
@@ -45,6 +51,19 @@ export default defineEventHandler(async (event) => {
     .bind(ym)
     .all()
   const rows = (res?.results ?? []) as any[]
+
+  // 容量の目安。D1 は問い合わせの結果に、いまのデータベースの大きさ（meta.size_after）を付けて返す
+  const stat = await db
+    .prepare(
+      `SELECT COUNT(*) AS n,
+         COALESCE(SUM(length(transcript) + length(minutes)), 0) AS bytes
+       FROM records`
+    )
+    .all()
+  const s0 = ((stat?.results ?? [])[0] ?? {}) as { n?: number; bytes?: number }
+  const dbBytes = Number(stat?.meta?.size_after ?? res?.meta?.size_after ?? 0)
+  const recordCount = Number(s0.n) || 0
+  const avgRecordBytes = recordCount ? Math.round((Number(s0.bytes) || 0) / recordCount) : 0
 
   const users: AdminUserRow[] = rows.map((r) => {
     const isAdmin = isAdminId(event, r.id)
@@ -83,6 +102,13 @@ export default defineEventHandler(async (event) => {
     recentRecordCount: rows.reduce((sum, r) => sum + (Number(r.recent_count) || 0), 0),
     monthCostYen: users.reduce((sum, u) => sum + u.costYen, 0),
     monitorMode,
+    storage: {
+      dbBytes,
+      limitBytes: D1_LIMIT_BYTES,
+      avgRecordBytes,
+      // 平均がまだ出ないとき（議事録0件）は、1時間の会議1件＝約70KB（圧縮後の目安）で見積もる
+      remainingRecords: Math.max(0, Math.floor((D1_LIMIT_BYTES - dbBytes) / (avgRecordBytes || 70 * 1024))),
+    },
   }
 
   return { users, summary }
