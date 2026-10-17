@@ -38,7 +38,7 @@ const text = computed(() => TEXT[props.kind])
   align-items: center;
   gap: 5px;
   font-size: 11px;
-  color: #6878a8;
+  color: #6b7888;
   white-space: nowrap;
   cursor: help;
 }

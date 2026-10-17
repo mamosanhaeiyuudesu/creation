@@ -167,7 +167,7 @@ function layoutWordcloud() {
 }
 
 .wc-word:focus-visible {
-  outline: 2px solid #a5b4fc;
+  outline: 2px solid #1d6fd6;
   outline-offset: 2px;
 }
 
@@ -177,6 +177,6 @@ function layoutWordcloud() {
 
 .wc-selected {
   opacity: 1;
-  background-color: rgba(165, 180, 252, 0.22);
+  background-color: rgba(29,111,214, 0.22);
 }
 </style>

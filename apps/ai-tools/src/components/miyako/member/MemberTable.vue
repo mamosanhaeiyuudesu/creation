@@ -45,14 +45,14 @@ const displayNames = computed(() => {
 </script>
 
 <template>
-  <div class="bg-white border border-[#dde2ef] rounded-[10px] shadow-[0_1px_4px_rgba(28,45,90,0.07),0_0_0_1px_rgba(28,45,90,0.06)] overflow-hidden">
-    <div class="flex items-center gap-1.5 px-4 py-2.5 border-b border-[#dde2ef] bg-[#fafbff]">
+  <div class="bg-white border border-[#dbe4ef] rounded-[10px] shadow-[0_1px_4px_rgba(20,60,120,0.07),0_0_0_1px_rgba(20,60,120,0.06)] overflow-hidden">
+    <div class="flex items-center gap-1.5 px-4 py-2.5 border-b border-[#dbe4ef] bg-[#f5f8fc]">
       <template v-for="(opt, i) in termOptions" :key="opt.term">
-        <span v-if="i > 0" class="text-[#c8d4e8] text-[11px]">/</span>
+        <span v-if="i > 0" class="text-[#c5dbf5] text-[11px]">/</span>
         <button
           :class="[
             'text-[11.5px] font-semibold transition-colors',
-            opt.term === filterTerm ? 'text-[#1c2d5a]' : 'text-[#9aaac8] hover:text-[#4f6ac0]',
+            opt.term === filterTerm ? 'text-[#1f2a37]' : 'text-[#8593a3] hover:text-[#1d6fd6]',
           ]"
           @click="emit('update:filterTerm', opt.term)"
         >{{ opt.term }}期<span class="text-[10.5px] font-normal">（{{ opt.count }}人）</span></button>
@@ -78,12 +78,12 @@ const displayNames = computed(() => {
               :title="catMap[s.id]?.[cat] ? `上位語: ${catMap[s.id][cat].top_words}` : ''"
               :style="catMap[s.id]?.[cat]
                 ? { backgroundColor: heatColor(catMap[s.id][cat].score, catRange.min, catRange.max).bg }
-                : { backgroundColor: '#f8f9fe' }"
+                : { backgroundColor: '#f5f8fc' }"
             >
               <span
                 v-if="catMap[s.id]?.[cat]"
                 class="text-[10px]"
-                :style="{ color: heatColor(catMap[s.id][cat].score, catRange.min, catRange.max).light ? '#6878a8' : '#fff' }"
+                :style="{ color: heatColor(catMap[s.id][cat].score, catRange.min, catRange.max).light ? '#6b7888' : '#fff' }"
               >{{ catMap[s.id][cat].score.toFixed(2) }}</span>
             </td>
           </tr>
@@ -104,32 +104,32 @@ const displayNames = computed(() => {
   position: sticky;
   left: 0;
   z-index: 2;
-  background: #fafbff;
-  border-right: 2px solid #dde2ef;
-  border-bottom: 2px solid #dde2ef;
+  background: #f5f8fc;
+  border-right: 2px solid #dbe4ef;
+  border-bottom: 2px solid #dbe4ef;
   padding: 6px 14px;
   text-align: left;
   font-size: 10px;
-  color: #9aaac8;
+  color: #8593a3;
   font-weight: 600;
   min-width: 140px;
 }
 
 .tbl-col-head {
-  border-bottom: 2px solid #dde2ef;
-  border-right: 1px solid #eef0f8;
+  border-bottom: 2px solid #dbe4ef;
+  border-right: 1px solid #e6f0fb;
   padding: 5px 4px 4px;
   text-align: center;
   min-width: 60px;
   max-width: 68px;
-  background: #fafbff;
+  background: #f5f8fc;
   vertical-align: bottom;
 }
 
 .tbl-name {
   font-size: 11px;
   font-weight: 600;
-  color: #1c2d5a;
+  color: #1f2a37;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 60px;
@@ -139,18 +139,18 @@ const displayNames = computed(() => {
   position: sticky;
   left: 0;
   z-index: 1;
-  background: #fafbff;
-  border-right: 2px solid #dde2ef;
-  border-bottom: 1px solid #eef0f8;
+  background: #f5f8fc;
+  border-right: 2px solid #dbe4ef;
+  border-bottom: 1px solid #e6f0fb;
   padding: 5px 14px;
   font-size: 11px;
-  color: #3a4a72;
+  color: #4b5868;
   font-weight: 500;
 }
 
 .tbl-cell {
-  border-right: 1px solid rgba(180,195,225,0.25);
-  border-bottom: 1px solid rgba(180,195,225,0.25);
+  border-right: 1px solid rgba(185,200,218,0.25);
+  border-bottom: 1px solid rgba(185,200,218,0.25);
   padding: 0 3px;
   text-align: center;
   height: 26px;

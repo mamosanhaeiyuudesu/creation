@@ -26,165 +26,168 @@ const isActive = (page: MiyakoPage) => props.activePage === page
 </script>
 
 <template>
-  <header class="bg-gradient-to-r from-[#0d1728] via-[#121d3e] to-[#1a2a52] border-b border-[#3d5fc4]/25 relative overflow-hidden" style="box-shadow: 0 1px 0 rgba(61,95,196,0.18), inset 0 -1px 0 rgba(61,95,196,0.12)">
-    <!-- Subtle horizontal scan-line texture -->
-    <div class="absolute inset-0 pointer-events-none" style="background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(165,180,252,0.018) 2px, rgba(165,180,252,0.018) 3px)" />
+  <header class="miyako-head">
+    <div class="max-w-[1600px] mx-auto px-3 md:px-4">
+      <div class="flex items-center gap-3 min-h-[56px]">
+        <!-- ロゴ（キキガキ本番版と同じ、青い角丸のマーク＋青い文字） -->
+        <NuxtLink :to="base" class="miyako-logo">
+          <span class="miyako-logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 20h16" /><path d="M7 20v-7M12 20V8M17 20v-4" /><path d="M4 9l8-5 8 5" /></svg>
+          </span>
+          <span class="truncate">宮古島市議会・議事録データ分析</span>
+        </NuxtLink>
 
-    <div class="max-w-[1600px] mx-auto relative px-4">
-      <!-- Desktop: single row -->
-      <div class="flex items-stretch min-h-[69px]">
-        <!-- Title block -->
-        <div class="flex items-center gap-3 pr-5 border-r border-white/[0.07] shrink-0 py-2">
-          <div class="flex flex-col gap-[2px]">
-            <span class="font-mono text-[11px] tracking-[0.22em] text-[#a5b4fc]/45 uppercase leading-none hidden sm:block">Miyakojima · Council Data</span>
-            <h1 class="m-0 text-[clamp(15px,2.1vw,20px)] font-bold text-white tracking-[0.04em] leading-tight whitespace-nowrap">
-              宮古島市議会・議事録データ分析
-            </h1>
-          </div>
-        </div>
-
-        <!-- Desktop tabs (underline style) -->
-        <div class="hidden md:flex items-stretch ml-1">
-          <template v-for="(tab, i) in tabs" :key="tab.page">
-            <span v-if="isActive(tab.page)" class="tab-active" :class="{ 'border-l border-white/[0.06]': i > 0 }">
+        <!-- PC のタブ -->
+        <nav class="hidden md:flex items-center gap-0.5 ml-2">
+          <template v-for="tab in tabs" :key="tab.page">
+            <span v-if="isActive(tab.page)" class="miyako-tab is-active" aria-current="page">
               <span class="hidden xl:inline">{{ tab.label }}</span>
               <span class="xl:hidden">{{ tab.mobileLabel || tab.label }}</span>
-              <span class="tab-bar opacity-100" />
             </span>
-            <NuxtLink v-else :to="tab.to" class="tab-inactive group" :class="{ 'border-l border-white/[0.06]': i > 0 }">
+            <NuxtLink v-else :to="tab.to" class="miyako-tab">
               <span class="hidden xl:inline">{{ tab.label }}</span>
               <span class="xl:hidden">{{ tab.mobileLabel || tab.label }}</span>
-              <span class="tab-bar group-hover:opacity-50" />
             </NuxtLink>
           </template>
-        </div>
+        </nav>
 
-        <!-- Mobile: feedback icon only -->
-        <div class="flex md:hidden items-center ml-auto pr-1">
+        <div class="flex items-center flex-wrap gap-y-1.5 gap-x-4 ml-auto shrink-0">
           <a
             href="https://docs.google.com/forms/d/e/1FAIpQLSe9bfl-DXIf9VWKvbsq3WuWYC72N2PSJUMeAo83jG6UE_7YFw/viewform"
             target="_blank"
             rel="noopener noreferrer"
             class="feedback-link"
+            aria-label="ご意見・お問い合わせ"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          </a>
-        </div>
-
-        <!-- Right slot -->
-        <div class="hidden md:flex items-center flex-wrap gap-y-1.5 gap-x-4 ml-auto">
-          <a
-            href="https://docs.google.com/forms/d/e/1FAIpQLSe9bfl-DXIf9VWKvbsq3WuWYC72N2PSJUMeAo83jG6UE_7YFw/viewform"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="feedback-link"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             <span class="hidden xl:inline">ご意見・お問い合わせ</span>
           </a>
-          <slot />
+          <span class="hidden md:contents"><slot /></span>
         </div>
       </div>
-
-      <!-- Mobile tabs (second row) -->
-      <div class="flex md:hidden border-t border-white/[0.07]">
-        <template v-for="(tab, i) in mobileTabs" :key="tab.page">
-          <span v-if="isActive(tab.page)" class="mobile-tab mobile-tab-active" :class="{ 'border-l border-white/[0.07]': i > 0 }">{{ tab.mobileLabel }}</span>
-          <NuxtLink v-else :to="tab.to" class="mobile-tab" :class="{ 'border-l border-white/[0.07]': i > 0 }">{{ tab.mobileLabel }}</NuxtLink>
-        </template>
-      </div>
     </div>
+
+    <!-- スマホのタブ（2段目） -->
+    <nav class="flex md:hidden miyako-mobile-tabs">
+      <template v-for="tab in mobileTabs" :key="tab.page">
+        <span v-if="isActive(tab.page)" class="mobile-tab is-active" aria-current="page">{{ tab.mobileLabel }}</span>
+        <NuxtLink v-else :to="tab.to" class="mobile-tab">{{ tab.mobileLabel }}</NuxtLink>
+      </template>
+    </nav>
   </header>
 </template>
 
 <style scoped>
-.tab-inactive {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0 16px;
-  font-size: 15px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.48);
-  text-decoration: none;
-  white-space: nowrap;
-  position: relative;
-  transition: color 0.15s;
-}
-.tab-inactive:hover {
-  color: rgba(255, 255, 255, 0.82);
+/* キキガキ本番版のヘッダー（白い帯＋細い罫線）に合わせている */
+.miyako-head {
+  background: #fff;
+  border-bottom: 1px solid #dbe4ef;
 }
 
-.tab-active {
-  display: flex;
-  flex-direction: column;
+.miyako-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  font-size: clamp(14px, 1.6vw, 17px);
+  font-weight: 700;
+  color: #1d6fd6;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.miyako-logo-mark {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 7px;
+  background: #1d6fd6;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 16px;
-  font-size: 15px;
-  font-weight: 600;
-  color: #a5b4fc;
+}
+.miyako-logo-mark svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* タブはキキガキの左メニューの項目と同じ見た目（選択中は薄い青の面＋太字） */
+.miyako-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #4b5868;
+  text-decoration: none;
   white-space: nowrap;
-  position: relative;
+  transition: background-color 0.15s, color 0.15s;
+}
+.miyako-tab:hover {
+  background: #f1f6fc;
+  color: #1f2a37;
+}
+.miyako-tab.is-active {
+  background: #e6f0fb;
+  color: #134c9c;
+  font-weight: 700;
   cursor: default;
 }
 
-.tab-bar {
-  position: absolute;
-  bottom: 0;
-  left: 12px;
-  right: 12px;
-  height: 2px;
-  background: #a5b4fc;
-  border-radius: 2px 2px 0 0;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
 @media (max-width: 1279px) {
-  .tab-inactive,
-  .tab-active {
-    padding: 0 10px;
+  .miyako-tab {
+    padding: 0.4rem 0.55rem;
     font-size: 13.5px;
   }
 }
 
+.miyako-mobile-tabs {
+  border-top: 1px solid #dbe4ef;
+}
 .mobile-tab {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 7px 4px;
-  font-size: 14px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.48);
+  padding: 8px 4px;
+  font-size: 13.5px;
+  color: #4b5868;
   text-decoration: none;
   white-space: nowrap;
+  border-bottom: 2px solid transparent;
   transition: color 0.15s;
 }
-.mobile-tab-active {
-  color: #a5b4fc;
-  font-weight: 600;
+.mobile-tab.is-active {
+  color: #134c9c;
+  font-weight: 700;
+  border-bottom-color: #1d6fd6;
 }
 
+/* キキガキの脇役ボタン（.kk-btn-sub）と同じ */
 .feedback-link {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1f2a37;
+  background: #fff;
+  border: 1px solid #b9c8da;
   border-radius: 9999px;
   text-decoration: none;
   white-space: nowrap;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .feedback-link:hover {
-  color: rgba(255, 255, 255, 0.85);
-  border-color: rgba(165, 180, 252, 0.45);
-  background: rgba(165, 180, 252, 0.07);
+  color: #134c9c;
+  border-color: #1d6fd6;
+  background: #e6f0fb;
 }
 </style>

@@ -111,13 +111,13 @@ function layoutWordcloud() {
 </script>
 
 <template>
-  <div class="bg-white border border-[#dde2ef] rounded-[8px] shadow-[0_2px_8px_rgba(28,45,90,0.07),0_0_0_1px_rgba(28,45,90,0.04)] overflow-hidden">
+  <div class="bg-white border border-[#dbe4ef] rounded-[10px] shadow-[0_2px_10px_rgba(20,60,120,0.06)] overflow-hidden">
     <template v-if="speakerName && category">
-      <div class="flex items-center gap-2 px-3.5 py-2 bg-white border-b border-[#dde2ef]" style="border-left: 3px solid #a5b4fc">
-        <span class="font-mono text-[8.5px] tracking-[0.18em] text-[#a5b4fc] uppercase shrink-0">Profile</span>
-        <span class="text-[10px] text-[#dde2ef] shrink-0">|</span>
-        <span class="text-[11.5px] font-semibold text-[#1c2d5a] tracking-[0.01em] truncate min-w-0">{{ speakerName }}（{{ category ? (CATEGORY_SHORT[category] ?? category) : '' }}）</span>
-        <span class="ml-auto shrink-0 text-[9.5px] text-[#a5b4fc] font-medium whitespace-nowrap">単語をクリックでAI分析</span>
+      <div class="flex items-center gap-2 px-3.5 py-2 bg-white border-b border-[#dbe4ef]" style="border-left: 3px solid #1d6fd6">
+        <span class="text-[11px] font-bold text-white bg-[#1d6fd6] rounded-full px-2 py-[1px] shrink-0">議員</span>
+        <span class="text-[10px] text-[#dbe4ef] shrink-0">|</span>
+        <span class="text-[11.5px] font-semibold text-[#1f2a37] tracking-[0.01em] truncate min-w-0">{{ speakerName }}（{{ category ? (CATEGORY_SHORT[category] ?? category) : '' }}）</span>
+        <span class="ml-auto shrink-0 text-[11px] text-[#8593a3] whitespace-nowrap">単語をクリックでAI分析</span>
       </div>
       <div class="p-0">
         <div ref="wcContainerRef" class="wordcloud-container">
@@ -140,9 +140,9 @@ function layoutWordcloud() {
     </template>
 
     <div v-else class="flex flex-col items-center justify-center min-h-[200px] gap-3 p-8 text-center">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-30 text-[#1c2d5a]"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-      <p class="m-0 text-[14px] font-bold text-[#1c2d5a] leading-snug">ヒートマップのセルをクリックで<br>関連する単語を表示</p>
-      <p class="m-0 text-[11.5px] text-[#9aa3c0] leading-relaxed">議員×テーマのセルを選ぶと、<br>そのカテゴリに含まれる単語が表示されます</p>
+      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-30 text-[#1f2a37]"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      <p class="m-0 text-[14px] font-bold text-[#1f2a37] leading-snug">ヒートマップのセルをクリックで<br>関連する単語を表示</p>
+      <p class="m-0 text-[11.5px] text-[#8593a3] leading-relaxed">議員×テーマのセルを選ぶと、<br>そのカテゴリに含まれる単語が表示されます</p>
     </div>
   </div>
 </template>

@@ -172,7 +172,7 @@ const print = () => window.print()
   font-size: 14px;
   font-weight: 700;
   color: #fff;
-  background: #2f5f3f;
+  background: #252c3a;
 }
 .pr-print:disabled {
   opacity: 0.4;

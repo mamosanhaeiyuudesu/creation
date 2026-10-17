@@ -5,7 +5,7 @@ useHead({
   link: [
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap' },
+    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap' },
     { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏝️</text></svg>` },
   ],
   meta: [
@@ -31,7 +31,23 @@ useHead({
 </template>
 
 <style>
+/*
+ * 見た目はキキガキ本番版（apps/production/kikigaki/src/assets/css/kikigaki.css）に合わせている。
+ * 白い面＋青（#1d6fd6）を基調にし、オレンジは目立たせたい1か所（新しく出てきた話題・選んだ語）だけに使う。
+ */
+.miyako-app {
+  color: #1f2a37;
+  background: #f1f6fc;
+  font-family: 'Noto Sans JP', 'Hiragino Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+/* 数字の桁がそろうように、等幅の代わりに等幅数字にする */
 .miyako-app .font-mono {
-  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.miyako-app :focus-visible {
+  outline: 2px solid #1d6fd6;
+  outline-offset: 2px;
 }
 </style>

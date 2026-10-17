@@ -29,7 +29,7 @@
               type="text"
               enterkeyhint="go"
               :maxlength="THEME_MAX"
-              placeholder="例：肥料の基礎知識"
+              placeholder="例：肥料の基礎知識、小学4年生の漢字"
               aria-label="学びたいテーマ"
               autocomplete="off"
               @keydown.enter="onEnter"
@@ -65,46 +65,32 @@
 
           <p v-if="error" class="mt-5 text-center text-[13.5px] text-[var(--mb-bad)]">{{ error }}</p>
 
-          <!-- 何を書けばいいか迷ったときの手がかり。押すと入力欄に入るだけで、すぐには作らない -->
-          <div class="mt-10">
-            <p class="text-center text-[12px] text-[var(--mb-ink-faint)]">たとえば</p>
-            <div class="mt-3 flex flex-wrap justify-center gap-2">
-              <button
-                v-for="ex in EXAMPLES"
-                :key="ex"
-                class="text-[13px] px-3 py-1.5 rounded-full text-[var(--mb-ink-soft)] hover:text-[var(--mb-ink)] hover:bg-[rgba(128,128,128,0.08)] transition-colors"
-                @click="pickExample(ex)"
-              >
-                {{ ex }}
-              </button>
-            </div>
-          </div>
+          <!-- これまでにやった問題。押すとその問題にもう一度挑戦できる -->
+          <section v-if="recent.length" class="mt-8">
+            <h2 class="text-[12px] text-[var(--mb-ink-faint)] mb-2 px-1">これまでの問題</h2>
+            <ul class="mb-card divide-y divide-[var(--mb-line)] overflow-hidden">
+              <li v-for="r in recent" :key="r.id">
+                <NuxtLink
+                  :to="`/${r.id}`"
+                  class="flex items-center gap-3 px-4 py-3 hover:bg-[rgba(128,128,128,0.05)] transition-colors"
+                >
+                  <span class="flex-1 min-w-0 truncate text-[14.5px]">{{ r.title }}</span>
+                  <span class="shrink-0 text-[12px] text-[var(--mb-ink-faint)]">{{ r.count }}問</span>
+                  <span
+                    class="shrink-0 w-12 text-right text-[13px] font-bold tabular-nums"
+                    :class="r.lastScore === null ? 'text-[var(--mb-ink-faint)] font-normal' : 'text-[var(--mb-accent-deep)]'"
+                  >
+                    {{ r.lastScore === null ? '未回答' : `${r.lastScore}%` }}
+                  </span>
+                </NuxtLink>
+              </li>
+            </ul>
+          </section>
         </div>
 
         <div class="pb-6 text-center">
           <NuxtLink to="/explore" class="mb-link">みんなの問題を見る</NuxtLink>
         </div>
-
-        <section v-if="recent.length" class="pt-2">
-          <h2 class="text-[12px] text-[var(--mb-ink-faint)] mb-2 px-1">最近の問題</h2>
-          <ul class="mb-card divide-y divide-[var(--mb-line)] overflow-hidden">
-            <li v-for="r in recent" :key="r.id">
-              <NuxtLink
-                :to="`/${r.id}`"
-                class="flex items-center gap-3 px-4 py-3 hover:bg-[rgba(128,128,128,0.05)] transition-colors"
-              >
-                <span class="flex-1 min-w-0 truncate text-[14.5px]">{{ r.title }}</span>
-                <span class="shrink-0 text-[12px] text-[var(--mb-ink-faint)]">{{ r.count }}問</span>
-                <span
-                  class="shrink-0 w-12 text-right text-[13px] font-bold tabular-nums"
-                  :class="r.lastScore === null ? 'text-[var(--mb-ink-faint)] font-normal' : 'text-[var(--mb-accent-deep)]'"
-                >
-                  {{ r.lastScore === null ? '未回答' : `${r.lastScore}%` }}
-                </span>
-              </NuxtLink>
-            </li>
-          </ul>
-        </section>
       </template>
     </main>
   </div>
@@ -128,13 +114,11 @@ useHead({
   title: 'まなび',
   meta: [
     { name: 'description', content: 'テーマを書くと、AIが選択式の問題をつくる学びのドリル。' },
-    { name: 'theme-color', content: '#f7f6f1', media: '(prefers-color-scheme: light)' },
-    { name: 'theme-color', content: '#141715', media: '(prefers-color-scheme: dark)' },
+    { name: 'theme-color', content: '#f7f5ef' },
   ],
 })
 
 const THEME_MAX = 200
-const EXAMPLES = ['肥料の基礎知識', '農薬の安全な使い方', '桃の栽培の基本', '小学4年生で習う漢字']
 
 const router = useRouter()
 const route = useRoute()
@@ -174,11 +158,6 @@ const onEnter = (e: KeyboardEvent) => {
   if (e.isComposing || e.keyCode === 229) return
   e.preventDefault()
   submit()
-}
-
-const pickExample = (ex: string) => {
-  theme.value = ex
-  inputEl.value?.focus()
 }
 
 const submit = async () => {

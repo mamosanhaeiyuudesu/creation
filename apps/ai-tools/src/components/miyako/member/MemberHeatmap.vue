@@ -76,7 +76,7 @@ function render() {
       type: 'category',
       data: (categories as string[]).map(c => CATEGORY_SHORT[c] ?? c),
       inverse: true,
-      axisLabel: { fontSize: 11, color: '#3a4a72' },
+      axisLabel: { fontSize: 11, color: '#4b5868' },
       splitLine: { show: true, lineStyle: { color: 'rgba(0,0,0,0.08)' } },
       axisTick: { show: false },
       axisLine: { show: false },
@@ -85,8 +85,8 @@ function render() {
       show: false,
       min: catRange.min,
       max: catRange.max,
-      inRange: { color: ['#EEF0FF', '#7986CB', '#1A237E'] },
-      outOfRange: { color: '#f0f1f8' },
+      inRange: { color: ['#e6f0fb', '#6aa3e6', '#134c9c'] },
+      outOfRange: { color: '#e6f0fb' },
     },
     tooltip: {
       trigger: 'item',
@@ -127,17 +127,17 @@ defineExpose({ render })
 </script>
 
 <template>
-  <div class="bg-white border border-[#dde2ef] rounded-[8px] shadow-[0_2px_8px_rgba(28,45,90,0.07),0_0_0_1px_rgba(28,45,90,0.04)] overflow-hidden w-full min-w-0">
-    <div class="flex items-center flex-wrap gap-2 px-3.5 py-2 border-b border-[#dde2ef] bg-white">
-      <span class="font-mono text-[8.5px] tracking-[0.2em] text-[#9aa3c0] uppercase shrink-0 pr-2.5 border-r border-[#e8ecf5]">Term</span>
+  <div class="bg-white border border-[#dbe4ef] rounded-[10px] shadow-[0_2px_10px_rgba(20,60,120,0.06)] overflow-hidden w-full min-w-0">
+    <div class="flex items-center flex-wrap gap-2 px-3.5 py-2 border-b border-[#dbe4ef] bg-white">
+      <span class="text-[12px] font-bold text-[#4b5868] shrink-0 pr-2.5 border-r border-[#dbe4ef]">単語</span>
       <div class="flex items-center gap-1 flex-wrap">
         <button
           v-for="opt in termOptions"
           :key="opt.term"
           class="text-[10.5px] font-medium px-2 py-[2px] rounded-[3px] transition-all leading-5"
           :class="opt.term === filterTerm
-            ? 'bg-[#1A237E] text-white shadow-[0_1px_4px_rgba(26,35,126,0.3)]'
-            : 'text-[#6878a8] hover:text-[#1c2d5a] hover:bg-[#eef1fb]'"
+            ? 'bg-[#1d6fd6] text-white shadow-[0_1px_4px_rgba(29,111,214,0.3)]'
+            : 'text-[#6b7888] hover:text-[#1f2a37] hover:bg-[#e6f0fb]'"
           @click="emit('update:filterTerm', opt.term)"
         >{{ opt.term }}期<span class="text-[9.5px] font-normal opacity-70">（{{ opt.count }}）</span></button>
       </div>
@@ -146,8 +146,8 @@ defineExpose({ render })
     <div class="w-full overflow-x-auto overflow-y-auto max-h-[45vh] md:max-h-[600px] p-0.5 md:p-1.5" style="-webkit-overflow-scrolling: touch">
       <div ref="heatmapRef" class="inline-block" style="min-width: min-content" />
     </div>
-    <div class="flex md:hidden items-center justify-end px-3 py-1 border-t border-[#dde2ef]">
-      <span class="font-mono text-[9px] text-[#b0b8cc] tracking-[0.08em]">← scroll</span>
+    <div class="flex md:hidden items-center justify-end px-3 py-1 border-t border-[#dbe4ef]">
+      <span class="text-[11px] text-[#8593a3]">← 横にスクロール</span>
     </div>
   </div>
 </template>

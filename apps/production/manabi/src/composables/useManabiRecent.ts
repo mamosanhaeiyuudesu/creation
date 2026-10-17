@@ -15,7 +15,7 @@ export interface ManabiRecent {
 }
 
 const KEY = 'manabi-recent-v1'
-const MAX = 8
+const MAX = 30
 
 const items = ref<ManabiRecent[]>([])
 

@@ -22,7 +22,6 @@
           placeholder="テーマで探す"
           aria-label="テーマで探す"
           autocomplete="off"
-          @keydown.enter="onEnter"
         />
       </div>
 
@@ -32,12 +31,12 @@
 
       <p v-else-if="error" class="mt-12 text-center text-[13.5px] text-[var(--mb-bad)]">問題の一覧を読み込めませんでした</p>
 
-      <p v-else-if="!items.length" class="mt-12 text-center text-[14px] text-[var(--mb-ink-soft)]">
-        {{ applied ? '見つかりませんでした' : 'まだ公開された問題はありません' }}
+      <p v-else-if="!shown.length" class="mt-12 text-center text-[14px] text-[var(--mb-ink-soft)]">
+        {{ keyword ? '見つかりませんでした' : 'まだ公開された問題はありません' }}
       </p>
 
       <ul v-else class="mt-5 flex flex-col gap-2.5">
-        <li v-for="it in items" :key="it.id">
+        <li v-for="it in shown" :key="it.id">
           <NuxtLink :to="`/${it.id}`" class="mb-card mb-deepen !items-start">
             <span class="flex-1 min-w-0">
               <span class="block text-[15px] font-bold leading-snug">{{ it.title }}</span>
@@ -63,26 +62,31 @@ definePageMeta({ layout: 'manabi' })
 useHead({
   title: 'みんなの問題｜まなび',
   meta: [
-    { name: 'theme-color', content: '#f7f6f1', media: '(prefers-color-scheme: light)' },
-    { name: 'theme-color', content: '#141715', media: '(prefers-color-scheme: dark)' },
+    { name: 'theme-color', content: '#f7f5ef' },
   ],
 })
 
-// 検索語は Enter で確定したものだけを送る（打つたびに D1 を引かない）
+// 公開された問題を全件読み込み、打つたびにその場で絞り込む（空なら全部出す）。
+// 一覧は題・テーマ等の表示用の文字だけで問題の中身は含まないので、全件でも軽い
 const q = ref('')
-const applied = ref('')
 const { data, pending, error } = await useFetch<ManabiListItem[]>('/api/sets', {
   key: 'manabi-explore',
-  query: computed(() => ({ limit: 50, q: applied.value })),
+  query: { limit: 1000 },
   default: () => [],
 })
 const items = computed(() => data.value ?? [])
 
-const onEnter = (e: KeyboardEvent) => {
-  // 日本語入力の変換確定の Enter では検索しない
-  if (e.isComposing || e.keyCode === 229) return
-  applied.value = q.value.trim()
-}
+// 全角・半角や大文字小文字の違いで取りこぼさないよう正規化する。空白区切りは AND
+const norm = (v: string) => v.normalize('NFKC').toLowerCase()
+const keyword = computed(() => q.value.trim())
+const shown = computed(() => {
+  const words = norm(keyword.value).split(/\s+/).filter(Boolean)
+  if (!words.length) return items.value
+  return items.value.filter((it) => {
+    const hay = norm(`${it.title} ${it.theme} ${it.level ?? ''}`)
+    return words.every((w) => hay.includes(w))
+  })
+})
 
 // created_at は D1 では "YYYY-MM-DD HH:MM:SS"（UTC）、dev では ISO8601。どちらも UTC として読む
 const dateLabel = (v: string) => {

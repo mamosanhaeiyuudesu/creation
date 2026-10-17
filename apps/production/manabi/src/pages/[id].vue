@@ -1,10 +1,11 @@
 <template>
   <div class="min-h-[100dvh] flex flex-col">
     <header class="shrink-0 flex items-center gap-2 px-3 sm:px-5 h-14">
-      <NuxtLink to="/" class="mb-icon-btn" aria-label="まなびのトップへ">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <NuxtLink to="/" class="mb-back" aria-label="まなびのトップへ戻る">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M15 6l-6 6 6 6" />
         </svg>
+        <span>トップへ</span>
       </NuxtLink>
       <div v-if="set && phase === 'quiz'" class="flex-1 min-w-0 flex items-center gap-3">
         <div class="mb-progress flex-1"><span :style="{ width: `${progressPct}%` }" /></div>
@@ -80,11 +81,14 @@
                 {{ current.explanation }}
               </p>
             </div>
-            <div class="mt-5 flex justify-center">
-              <button ref="nextEl" class="mb-btn min-w-[220px]" @click="next">
-                {{ pos + 1 < order.length ? '次へ' : '結果を見る' }}
-              </button>
-            </div>
+          </div>
+
+          <!-- 前へ・次へ。まだ答えていない問題には進めない（前の問題には、答えたあとなら戻れる） -->
+          <div class="mt-6 flex items-center justify-center gap-2.5">
+            <button class="mb-btn-ghost" :disabled="pos === 0" @click="prev">← 前の問題</button>
+            <button ref="nextEl" class="mb-btn" :disabled="picked === null" @click="next">
+              {{ pos + 1 < order.length ? '次の問題 →' : '結果を見る' }}
+            </button>
           </div>
         </div>
 
@@ -103,6 +107,9 @@
               間違えた{{ wrongIndexes.length }}問を解き直す
             </button>
             <button class="mb-btn-ghost" @click="start(allIndexes)">最初からもう一度</button>
+          </div>
+          <div class="mt-2.5 flex justify-center">
+            <NuxtLink to="/" class="mb-btn-ghost inline-flex items-center justify-center">トップに戻る</NuxtLink>
           </div>
 
           <div class="mt-5 flex gap-2 justify-center">
@@ -230,8 +237,7 @@ useHead(() => ({
   meta: [
     { property: 'og:title', content: set.value ? `${set.value.title}（${set.value.questions.length}問）` : 'まなび' },
     { property: 'og:description', content: '選択式の問題で学ぶ。タップしてすぐ解けます。' },
-    { name: 'theme-color', content: '#f7f6f1', media: '(prefers-color-scheme: light)' },
-    { name: 'theme-color', content: '#141715', media: '(prefers-color-scheme: dark)' },
+    { name: 'theme-color', content: '#f7f5ef' },
   ],
 }))
 
@@ -363,6 +369,13 @@ const next = () => {
   if (set.value && !reviewOnly.value) recordScore(set.value.id, score.value)
 }
 
+const prev = () => {
+  if (pos.value === 0) return
+  pos.value--
+  persist()
+  window.scrollTo({ top: 0 })
+}
+
 // PCでは 1〜4 / A〜D で選び、Enter で次へ
 const onKey = (e: KeyboardEvent) => {
   if (phase.value !== 'quiz' || e.metaKey || e.ctrlKey || e.altKey) return
@@ -374,6 +387,7 @@ const onKey = (e: KeyboardEvent) => {
     e.preventDefault()
     next()
   }
+  if (e.key === 'ArrowLeft') prev()
 }
 
 const choiceMark = (i: number) => {

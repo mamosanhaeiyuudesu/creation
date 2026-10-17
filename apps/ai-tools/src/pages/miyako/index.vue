@@ -15,7 +15,7 @@ interface AiTopic {
 /** 前回の定例会でこの回数未満なら「新しく出てきた話題」として色を変える。 */
 const NEW_TOPIC_BELOW = 3
 const COLOR_NEW = '#c2410c'
-const COLOR_CONTINUING = '#1c2d5a'
+const COLOR_CONTINUING = '#134c9c'
 
 const route = useRoute()
 const router = useRouter()
@@ -185,12 +185,12 @@ onMounted(async () => {
 
     <!-- Loading -->
     <div v-if="loading" class="flex flex-col justify-center items-center py-[72px] px-6 gap-3">
-      <span class="w-8 h-8 rounded-full border-2 border-[#1A237E]/20 border-t-[#1A237E] animate-spin block" />
-      <span class="font-mono text-[10px] text-[#9aa3c0] tracking-[0.12em] uppercase">Loading data...</span>
+      <span class="w-8 h-8 rounded-full border-2 border-[#1d6fd6]/20 border-t-[#1d6fd6] animate-spin block" />
+      <span class="text-[12px] text-[#8593a3]">読み込み中…</span>
     </div>
 
     <div v-else-if="loadError || !current" class="max-w-[640px] mx-auto px-4 py-16 text-center">
-      <p class="text-[14px] text-[#44507a] leading-relaxed m-0">
+      <p class="text-[14px] text-[#4b5868] leading-relaxed m-0">
         {{ loadError || 'まだ分析された定例会がありません。市のサイトで会議録が公開されると、毎月1日に自動で取り込みます。' }}
       </p>
     </div>
@@ -201,22 +201,22 @@ onMounted(async () => {
 
       <!-- Word cloud -->
       <section class="card w-full lg:flex-1 min-w-0">
-        <div class="px-4 md:px-5 pt-4 pb-3 border-b border-[#dde2ef]">
+        <div class="px-4 md:px-5 pt-4 pb-3 border-b border-[#dbe4ef]">
           <div class="flex items-start gap-x-3 gap-y-2 flex-wrap">
             <div class="min-w-0 w-full md:w-auto md:flex-1">
-              <span class="font-mono text-[9.5px] tracking-[0.18em] text-[#6878a8] uppercase">Recent trends</span>
-              <h2 class="m-0 mt-1 text-[17px] md:text-[20px] font-bold text-[#1c2d5a] leading-snug">
-                {{ eraToWestern(current.label) }}<span class="text-[#6878a8] font-semibold text-[14px] md:text-[16px]">（{{ period }}）</span>でよく議論された言葉
+              <span class="text-[12px] font-bold text-[#4b5868]">直近の傾向</span>
+              <h2 class="m-0 mt-1 text-[17px] md:text-[20px] font-bold text-[#1f2a37] leading-snug">
+                {{ eraToWestern(current.label) }}<span class="text-[#6b7888] font-semibold text-[14px] md:text-[16px]">（{{ period }}）</span>でよく議論された言葉
               </h2>
             </div>
-            <label v-if="(state?.sessions.length ?? 0) > 1" class="shrink-0 flex items-center gap-1.5 text-[11.5px] text-[#6878a8]">
+            <label v-if="(state?.sessions.length ?? 0) > 1" class="shrink-0 flex items-center gap-1.5 text-[11.5px] text-[#6b7888]">
               会期
               <select v-model="sessionKey" class="session-select" @change="onSessionChange">
                 <option v-for="s in state?.sessions" :key="s.key" :value="s.key">{{ eraToWestern(s.label) }}</option>
               </select>
             </label>
           </div>
-          <div class="mt-2 flex items-center gap-x-4 gap-y-1 flex-wrap text-[11.5px] text-[#44507a]">
+          <div class="mt-2 flex items-center gap-x-4 gap-y-1 flex-wrap text-[11.5px] text-[#4b5868]">
             <span class="flex items-center gap-1.5"><span class="legend-dot" :style="{ background: COLOR_NEW }" />新しく出てきた話題</span>
             <span class="flex items-center gap-1.5">
               <span class="legend-dot" :style="{ background: COLOR_CONTINUING }" />前回<template v-if="current.prevLabel">（{{ eraToWestern(current.prevLabel) }}）</template>から続く話題
@@ -248,8 +248,8 @@ onMounted(async () => {
         </div>
 
         <!-- 順位（ワードクラウドに入りきらない語や、スマホで押しにくい小さい語もここから選べる） -->
-        <div class="px-4 md:px-5 py-3 border-t border-[#dde2ef]">
-          <div class="font-mono text-[9.5px] tracking-[0.18em] text-[#6878a8] uppercase mb-2">Ranking</div>
+        <div class="px-4 md:px-5 py-3 border-t border-[#dbe4ef]">
+          <div class="text-[12px] font-bold text-[#4b5868] mb-2">順位</div>
           <div class="flex flex-wrap gap-1.5">
             <button
               v-for="t in terms"
@@ -259,7 +259,7 @@ onMounted(async () => {
               :class="{ 'rank-chip-active': selectedWord === t.term }"
               @click="selectWord(t.term)"
             >
-              <span class="font-mono text-[10px] text-[#9aa3c0]">{{ t.rank }}</span>
+              <span class="font-mono text-[11px] text-[#8593a3]">{{ t.rank }}</span>
               <span :style="{ color: selectedWord === t.term ? undefined : (isNew(t) ? COLOR_NEW : COLOR_CONTINUING) }">{{ t.term }}</span>
             </button>
           </div>
@@ -275,15 +275,15 @@ onMounted(async () => {
         </div>
 
         <div v-else class="card overflow-hidden">
-          <div class="flex items-center gap-2 bg-[#1c2d5a] text-white px-3.5 py-2.5" style="border-left: 3px solid #a5b4fc">
+          <div class="flex items-center gap-2 bg-[#e6f0fb] text-[#134c9c] px-3.5 py-2.5 border-b border-[#c5dbf5]" style="border-left: 3px solid #1d6fd6">
             <span class="text-[15px] font-bold tracking-[0.02em] truncate">「{{ selectedTerm.term }}」</span>
             <span
-              class="ml-auto shrink-0 text-[10.5px] font-semibold px-2 py-[2px] rounded-[3px]"
-              :style="{ background: isNew(selectedTerm) ? COLOR_NEW : '#3d5fc4' }"
+              class="ml-auto shrink-0 text-[11px] font-bold text-white px-2 py-[2px] rounded-full"
+              :style="{ background: isNew(selectedTerm) ? COLOR_NEW : '#1d6fd6' }"
             >{{ isNew(selectedTerm) ? '新しく出てきた話題' : '前回から続く話題' }}</span>
           </div>
           <div class="px-4 py-3.5">
-            <p v-if="selectedTerm.note" class="m-0 mb-3.5 text-[13.5px] text-[#1c2d5a] leading-relaxed">{{ selectedTerm.note }}</p>
+            <p v-if="selectedTerm.note" class="m-0 mb-3.5 text-[13.5px] text-[#1f2a37] leading-relaxed">{{ selectedTerm.note }}</p>
             <dl class="stats">
               <div>
                 <dt>今回</dt>
@@ -315,22 +315,20 @@ onMounted(async () => {
 
 <style scoped>
 .page-bg {
-  background-color: #f0f2f8;
-  background-image: radial-gradient(circle, rgba(100,120,168,0.12) 1px, transparent 1px);
-  background-size: 20px 20px;
+  background-color: #f1f6fc;
 }
 
 .card {
   background: #fff;
-  border: 1px solid #dde2ef;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(28,45,90,0.07), 0 0 0 1px rgba(28,45,90,0.04);
+  border: 1px solid #dbe4ef;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(20,60,120,0.06);
 }
 
 .session-select {
   font-size: 12px;
-  color: #1c2d5a;
-  border: 1px solid #dde2ef;
+  color: #1f2a37;
+  border: 1px solid #dbe4ef;
   border-radius: 4px;
   padding: 3px 6px;
   background: #fff;
@@ -350,23 +348,23 @@ onMounted(async () => {
   padding: 3px 9px;
   font-size: 12.5px;
   font-weight: 600;
-  border: 1px solid #dde2ef;
+  border: 1px solid #dbe4ef;
   border-radius: 9999px;
   background: #fff;
   cursor: pointer;
   transition: background-color 0.15s, border-color 0.15s;
 }
 .rank-chip:hover {
-  background: #eef1fb;
+  background: #e6f0fb;
 }
 .rank-chip-active,
 .rank-chip-active:hover {
-  background: #1c2d5a;
-  border-color: #1c2d5a;
+  background: #1d6fd6;
+  border-color: #1d6fd6;
   color: #fff;
 }
 .rank-chip-active .font-mono {
-  color: #a5b4fc;
+  color: #e6f0fb;
 }
 
 .hint-area {
@@ -376,19 +374,19 @@ onMounted(async () => {
   justify-content: center;
   text-align: center;
   padding: 36px 24px;
-  color: #6878a8;
+  color: #6b7888;
 }
 .hint-main {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
-  color: #44507a;
+  color: #4b5868;
 }
 .hint-sub {
   margin: 6px 0 0;
   font-size: 12px;
   line-height: 1.7;
-  color: #9aa3c0;
+  color: #8593a3;
 }
 
 .stats {
@@ -398,19 +396,19 @@ onMounted(async () => {
   gap: 8px;
 }
 .stats > div {
-  background: #f5f7fc;
+  background: #f5f8fc;
   border-radius: 6px;
   padding: 8px 10px;
 }
 .stats dt {
   font-size: 10.5px;
-  color: #6878a8;
+  color: #6b7888;
 }
 .stats dd {
   margin: 2px 0 0;
   font-size: 20px;
   font-weight: 700;
-  color: #1c2d5a;
+  color: #1f2a37;
   line-height: 1.2;
 }
 .stats dd span {
@@ -427,9 +425,9 @@ onMounted(async () => {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #e8ecf8;
-  border: 1px solid #c5cad8;
-  color: #6878a8;
+  background: #e6f0fb;
+  border: 1px solid #b9c8da;
+  color: #6b7888;
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
@@ -442,8 +440,8 @@ onMounted(async () => {
 }
 .hint-btn:hover,
 .hint-btn-active {
-  background: #3d5fc4;
-  border-color: #3d5fc4;
+  background: #1d6fd6;
+  border-color: #1d6fd6;
   color: #fff;
 }
 
@@ -453,13 +451,13 @@ onMounted(async () => {
   top: calc(100% + 8px);
   width: 280px;
   background: #fff;
-  border: 1px solid #dde2ef;
-  border-radius: 8px;
-  box-shadow: 0 6px 24px rgba(28,45,90,0.14);
+  border: 1px solid #dbe4ef;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(20,60,120,0.14);
   padding: 14px 14px 10px;
   z-index: 50;
   font-size: 12px;
-  color: #3a4a72;
+  color: #4b5868;
   line-height: 1.72;
 }
 .hint-popup-close {
@@ -468,13 +466,13 @@ onMounted(async () => {
   right: 10px;
   background: none;
   border: none;
-  color: #9aa3c0;
+  color: #8593a3;
   font-size: 12px;
   cursor: pointer;
   padding: 0;
   line-height: 1;
 }
-.hint-popup-close:hover { color: #1c2d5a; }
+.hint-popup-close:hover { color: #1f2a37; }
 .hint-popup-item {
   margin: 0 0 8px;
 }
@@ -482,7 +480,7 @@ onMounted(async () => {
 .hint-popup-label {
   display: block;
   font-weight: 700;
-  color: #1c2d5a;
+  color: #1f2a37;
   font-size: 11.5px;
   margin-bottom: 2px;
 }

@@ -114,18 +114,18 @@ onMounted(() => {
 
       <!-- 検索バー -->
       <div class="flex gap-2 mb-3 items-center justify-center">
-        <div class="flex rounded-[7px] border border-[#c5cad8] bg-white overflow-hidden shadow-[0_1px_4px_rgba(28,45,90,0.07)] focus-within:border-[#3d5fc4] focus-within:shadow-[0_0_0_3px_rgba(61,95,196,0.1)] transition-all">
-          <span class="font-mono text-[11px] text-[#9aa3c0] tracking-[0.1em] flex items-center px-3 border-r border-[#edf0f8] bg-[#fafbff] shrink-0 select-none">検索</span>
+        <div class="flex rounded-full border border-[#b9c8da] bg-white overflow-hidden shadow-[0_1px_4px_rgba(20,60,120,0.07)] focus-within:border-[#1d6fd6] focus-within:shadow-[0_0_0_3px_rgba(29,111,214,0.1)] transition-all">
+          <span class="text-[12px] font-bold text-[#4b5868] flex items-center px-3 border-r border-[#e6f0fb] bg-[#f5f8fc] shrink-0 select-none">検索</span>
           <input
             v-model="keyword"
             type="text"
             placeholder="ex）サッカー, サトウキビなど"
-            class="px-3 py-2.5 text-[13.5px] text-[#1c2d5a] placeholder:text-[#b8c2d8] outline-none w-[220px] bg-transparent"
+            class="px-3 py-2.5 text-[16px] md:text-[14px] text-[#1f2a37] placeholder:text-[#a3afbd] outline-none w-[220px] bg-transparent"
             @keydown="handleKeydown"
           />
           <button
             v-if="keyword"
-            class="flex items-center justify-center px-2.5 text-[#b0b8cc] hover:text-[#6878a8] transition-colors shrink-0"
+            class="flex items-center justify-center px-2.5 text-[#a3afbd] hover:text-[#6b7888] transition-colors shrink-0"
             tabindex="-1"
             @click="keyword = ''"
           >
@@ -136,14 +136,14 @@ onMounted(() => {
         </div>
         <button
           :disabled="loading || !keyword.trim()"
-          class="shrink-0 rounded-[7px] bg-[#1c2d5a] text-white text-[13px] font-semibold px-5 py-2.5 hover:bg-[#2a3f7a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-[0_1px_4px_rgba(28,45,90,0.2)]"
+          class="shrink-0 rounded-full bg-[#f08c1e] text-white text-[14px] font-bold px-6 py-2.5 hover:bg-[#d97606] disabled:opacity-45 disabled:cursor-not-allowed transition-colors"
           @click="search()"
         >検索</button>
       </div>
 
       <!-- 最近の検索 -->
       <div v-if="recentSearches.length" class="flex items-center gap-2 justify-center flex-wrap mb-6">
-        <span class="font-mono text-[10px] text-[#9aa3c0] tracking-[0.12em] shrink-0">RECENT</span>
+        <span class="text-[12px] font-bold text-[#4b5868] shrink-0">最近の検索</span>
         <button
           v-for="w in recentSearches"
           :key="w"
@@ -156,23 +156,23 @@ onMounted(() => {
 
       <!-- ローディング -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-20 gap-4">
-        <span class="w-8 h-8 rounded-full border-2 border-[#1A237E]/20 border-t-[#1A237E] animate-spin block" />
-        <p class="text-[12px] text-[#9aa3c0]">「{{ searchedWord }}」の変遷を調べています...</p>
+        <span class="w-8 h-8 rounded-full border-2 border-[#1d6fd6]/20 border-t-[#1d6fd6] animate-spin block" />
+        <p class="text-[12px] text-[#8593a3]">「{{ searchedWord }}」の変遷を調べています...</p>
       </div>
 
       <!-- 初期状態 -->
       <div v-else-if="!searchedWord" class="flex flex-col items-center justify-center py-24 gap-3">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-30 text-[#1c2d5a]"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <p class="text-[15px] font-bold text-[#1c2d5a] text-center leading-snug">キーワードを入力して<br>議論の変遷をAI検索</p>
-        <p class="text-[11.5px] text-[#9aa3c0] text-center leading-relaxed">気になる言葉を入力すると、<br>宮古島市議会でこの20年間でどう議論が変わってきたかをAIが解説します</p>
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-30 text-[#1f2a37]"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <p class="text-[15px] font-bold text-[#1f2a37] text-center leading-snug">キーワードを入力して<br>議論の変遷をAI検索</p>
+        <p class="text-[11.5px] text-[#8593a3] text-center leading-relaxed">気になる言葉を入力すると、<br>宮古島市議会でこの20年間でどう議論が変わってきたかをAIが解説します</p>
       </div>
 
       <!-- 結果：タイムライン -->
       <div v-else>
         <!-- 検索ワード見出し -->
         <div class="flex items-center gap-2 mb-4 justify-center">
-          <span class="font-mono text-[10px] text-[#6878a8] tracking-[0.15em] uppercase">「{{ searchedWord }}」</span>
-          <span class="text-[12px] text-[#9aa3c0]">2005年〜現在の議論の変遷</span>
+          <span class="text-[14px] font-bold text-[#1f2a37]">「{{ searchedWord }}」</span>
+          <span class="text-[12px] text-[#8593a3]">2005年〜現在の議論の変遷</span>
         </div>
 
         <!-- タイムライン本体 -->
@@ -186,8 +186,7 @@ onMounted(() => {
             >
               <!-- 時代ラベル -->
               <div class="phase-era">
-                <span class="font-mono text-[8.5px] tracking-[0.18em] text-[#a5b4fc]/70 uppercase mr-2">Era</span>
-                <span class="text-[11px] font-semibold text-[#a5b4fc]">{{ phase.era }}</span>
+                <span class="text-[12px] font-bold text-[#134c9c]">{{ phase.era }}</span>
               </div>
               <!-- タイトル -->
               <div class="phase-title">{{ phase.title }}</div>
@@ -213,8 +212,7 @@ onMounted(() => {
 
           <!-- 結果なし -->
           <div v-if="phases.length === 0" class="flex flex-col items-center justify-center py-16 gap-3 w-full">
-            <span class="font-mono text-[10px] text-[#9aa3c0] tracking-[0.1em]">// no results found</span>
-            <p class="text-[13px] text-[#6878a8]">「{{ searchedWord }}」に関する議論は見つかりませんでした</p>
+                        <p class="text-[13px] text-[#6b7888]">「{{ searchedWord }}」に関する議論は見つかりませんでした</p>
           </div>
         </div>
       </div>
@@ -225,38 +223,36 @@ onMounted(() => {
 
 <style scoped>
 .page-bg {
-  background-color: #f0f2f8;
-  background-image: radial-gradient(circle, rgba(100,120,168,0.12) 1px, transparent 1px);
-  background-size: 20px 20px;
+  background-color: #f1f6fc;
 }
 
 .recent-chip {
   padding: 3px 11px;
   border-radius: 9999px;
   font-size: 12px;
-  color: #44507a;
+  color: #4b5868;
   background: #fff;
-  border: 1px solid #c5cad8;
+  border: 1px solid #b9c8da;
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 .recent-chip:hover {
-  background: #f0f2f8;
-  border-color: #3d5fc4;
-  color: #1c2d5a;
+  background: #f1f6fc;
+  border-color: #1d6fd6;
+  color: #1f2a37;
 }
 .recent-chip-active {
-  background: #e8ecf8;
-  border-color: #3d5fc4;
-  color: #1c2d5a;
+  background: #e6f0fb;
+  border-color: #1d6fd6;
+  color: #1f2a37;
   font-weight: 600;
 }
 
 .phase-card {
   background: #fff;
-  border: 1px solid #dde2ef;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(28,45,90,0.07), 0 0 0 1px rgba(28,45,90,0.04);
+  border: 1px solid #dbe4ef;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(20,60,120,0.06);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -264,34 +260,35 @@ onMounted(() => {
   transition: box-shadow 0.15s, border-color 0.15s;
 }
 .phase-card:hover {
-  border-color: #3d5fc4;
-  box-shadow: 0 4px 14px rgba(61,95,196,0.13), 0 0 0 1px rgba(61,95,196,0.15);
+  border-color: #1d6fd6;
+  box-shadow: 0 4px 14px rgba(29,111,214,0.13), 0 0 0 1px rgba(29,111,214,0.15);
 }
 .phase-card-expanded {
-  border-color: #3d5fc4;
-  box-shadow: 0 4px 14px rgba(61,95,196,0.13), 0 0 0 1px rgba(61,95,196,0.2);
+  border-color: #1d6fd6;
+  box-shadow: 0 4px 14px rgba(29,111,214,0.13), 0 0 0 1px rgba(29,111,214,0.2);
 }
 
 .phase-era {
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  background: #1c2d5a;
-  padding: 8px 14px;
-  border-left: 3px solid #a5b4fc;
+  background: #e6f0fb;
+  padding: 7px 14px;
+  border-left: 3px solid #1d6fd6;
+  border-bottom: 1px solid #c5dbf5;
 }
 
 .phase-title {
   font-size: 15px;
   font-weight: 700;
-  color: #1c2d5a;
+  color: #1f2a37;
   padding: 10px 14px 4px;
   line-height: 1.55;
 }
 
 .phase-summary {
   font-size: 13px;
-  color: #3a4a72;
+  color: #4b5868;
   padding: 0 14px 12px;
   line-height: 1.75;
   flex: 1;
@@ -303,12 +300,12 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #6878a8;
+  color: #6b7888;
   padding: 5px 14px 9px;
   margin-top: auto;
 }
 .phase-toggle-open {
-  color: #3d5fc4;
+  color: #1d6fd6;
 }
 .phase-toggle-chevron {
   transition: transform 0.2s;
@@ -319,9 +316,9 @@ onMounted(() => {
 
 .phase-detail {
   font-size: 13px;
-  color: #1c2d5a;
-  background: #f4f6fc;
-  border-top: 1px solid #dde2ef;
+  color: #1f2a37;
+  background: #f5f8fc;
+  border-top: 1px solid #dbe4ef;
   padding: 10px 14px 12px;
   line-height: 1.78;
   white-space: pre-line;
@@ -334,7 +331,7 @@ onMounted(() => {
   flex-shrink: 0;
   font-size: 18px;
   padding: 6px 5px;
-  color: #3d5fc4;
+  color: #1d6fd6;
   opacity: 0.45;
 }
 </style>

@@ -145,20 +145,20 @@ async function renderGraph() {
       {
         selector: 'node',
         style: {
-          'background-color': '#1A237E',
+          'background-color': '#1d6fd6',
           'border-width': 2,
-          'border-color': '#3d5fc4',
+          'border-color': '#8fbaee',
           'label': 'data(label)',
           'color': '#ffffff',
           'font-size': '12px',
-          'font-family': '"Hiragino Sans", "Noto Sans JP", system-ui, sans-serif',
+          'font-family': '"Noto Sans JP", "Hiragino Sans", system-ui, sans-serif',
           'text-valign': 'center',
           'text-halign': 'center',
           'width': 'data(size)',
           'height': 'data(size)',
           'min-zoomed-font-size': 7,
           'text-outline-width': 1.5,
-          'text-outline-color': '#1A237E',
+          'text-outline-color': '#1d6fd6',
           'cursor': 'pointer',
         } as any
       },
@@ -166,7 +166,7 @@ async function renderGraph() {
         selector: 'edge',
         style: {
           'width': 'data(width)',
-          'line-color': '#5C6BC0',
+          'line-color': '#6aa3e6',
           'opacity': 0.5,
           'curve-style': 'bezier',
           'cursor': 'pointer',
@@ -175,8 +175,8 @@ async function renderGraph() {
       {
         selector: 'node.selected',
         style: {
-          'background-color': '#b45309',
-          'border-color': '#fbbf24',
+          'background-color': '#d97606',
+          'border-color': '#f5a54a',
           'border-width': 3,
           'z-index': 1000,
         } as any
@@ -184,8 +184,8 @@ async function renderGraph() {
       {
         selector: 'node.highlighted',
         style: {
-          'background-color': '#3d5fc4',
-          'border-color': '#a5b4fc',
+          'background-color': '#134c9c',
+          'border-color': '#c5dbf5',
           'border-width': 3,
           'z-index': 999,
         } as any
@@ -194,7 +194,7 @@ async function renderGraph() {
         selector: 'edge.highlighted',
         style: {
           'opacity': 1,
-          'line-color': '#a5b4fc',
+          'line-color': '#134c9c',
           'z-index': 998,
         } as any
       },
@@ -202,7 +202,7 @@ async function renderGraph() {
         selector: 'edge.edge-selected',
         style: {
           'opacity': 1,
-          'line-color': '#fbbf24',
+          'line-color': '#f5a54a',
           'z-index': 999,
         } as any
       },
@@ -396,26 +396,26 @@ watch(selectedCategory, () => {
 
     <!-- Loading state -->
     <div v-if="loading" class="flex flex-col justify-center items-center py-[72px] px-6 gap-3">
-      <span class="w-8 h-8 rounded-full border-2 border-[#1A237E]/20 border-t-[#1A237E] animate-spin block" />
-      <span class="font-mono text-[10px] text-[#9aa3c0] tracking-[0.12em] uppercase">Loading data...</span>
+      <span class="w-8 h-8 rounded-full border-2 border-[#1d6fd6]/20 border-t-[#1d6fd6] animate-spin block" />
+      <span class="text-[12px] text-[#8593a3]">読み込み中…</span>
     </div>
 
     <template v-else>
       <!-- Controls bar -->
-      <div class="flex items-center gap-x-1.5 gap-y-1 flex-wrap px-4 py-2 bg-white/60 border-b border-[#e0e5f0] shrink-0">
+      <div class="flex items-center gap-x-1.5 gap-y-1 flex-wrap px-4 py-2 bg-white/60 border-b border-[#dbe4ef] shrink-0">
         <button
           v-for="cat in CATEGORY_OPTIONS"
           :key="cat"
           class="text-[10.5px] font-medium px-2 py-[2px] rounded-[3px] transition-all leading-5"
           :class="selectedCategory === cat
-            ? 'bg-[#1A237E] text-white shadow-[0_1px_4px_rgba(26,35,126,0.3)]'
-            : 'text-[#6878a8] hover:text-[#1c2d5a] hover:bg-[#eef1fb]'"
+            ? 'bg-[#1d6fd6] text-white shadow-[0_1px_4px_rgba(29,111,214,0.3)]'
+            : 'text-[#6b7888] hover:text-[#1f2a37] hover:bg-[#e6f0fb]'"
           @click="selectedCategory = cat"
         >{{ CATEGORY_SHORT[cat] ?? cat }}</button>
 
         <div class="ml-auto flex items-center gap-3 shrink-0">
           <MiyakoDataPeriod kind="static" />
-          <span class="font-mono text-[9.5px] text-[#9aa3c0] tracking-[0.1em]">
+          <span class="font-mono text-[11px] text-[#8593a3]">
             {{ graphStats.nodes }} 語 · {{ graphStats.edges }} 接続
           </span>
         </div>
@@ -426,8 +426,8 @@ watch(selectedCategory, () => {
         <div ref="cyContainer" class="cy-canvas" />
 
         <div v-if="rendering" class="render-overlay">
-          <span class="w-8 h-8 rounded-full border-2 border-[#1A237E]/20 border-t-[#1A237E] animate-spin block" />
-          <span class="font-mono text-[10px] text-[#9aa3c0] tracking-[0.12em] uppercase mt-3">Rendering graph...</span>
+          <span class="w-8 h-8 rounded-full border-2 border-[#1d6fd6]/20 border-t-[#1d6fd6] animate-spin block" />
+          <span class="text-[12px] text-[#8593a3] mt-3">図を描いています…</span>
         </div>
 
         <div
@@ -466,12 +466,12 @@ watch(selectedCategory, () => {
           <div class="popup-header">
             <div class="flex items-center gap-2 min-w-0">
               <template v-if="selectedEdge">
-                <span class="font-mono text-[10px] text-[#6878a8] tracking-[0.15em] uppercase shrink-0">「{{ selectedEdge.source }}」と「{{ selectedEdge.target }}」</span>
-                <span class="text-[12px] text-[#9aa3c0] shrink-0">の議論の変遷（2005年〜現在）</span>
+                <span class="text-[14px] font-bold text-[#1f2a37] shrink-0">「{{ selectedEdge.source }}」と「{{ selectedEdge.target }}」</span>
+                <span class="text-[12px] text-[#8593a3] shrink-0">の議論の変遷（2005年〜現在）</span>
               </template>
               <template v-else>
-                <span class="font-mono text-[10px] text-[#6878a8] tracking-[0.15em] uppercase shrink-0">「{{ selectedWord }}」</span>
-                <span class="text-[12px] text-[#9aa3c0] shrink-0">2005年〜現在の議論の変遷</span>
+                <span class="text-[14px] font-bold text-[#1f2a37] shrink-0">「{{ selectedWord }}」</span>
+                <span class="text-[12px] text-[#8593a3] shrink-0">2005年〜現在の議論の変遷</span>
               </template>
             </div>
             <button class="popup-close" @click="closePopup">
@@ -483,8 +483,8 @@ watch(selectedCategory, () => {
 
           <!-- Loading -->
           <div v-if="aiLoading" class="flex flex-col items-center justify-center py-16 gap-4">
-            <span class="w-8 h-8 rounded-full border-2 border-[#1A237E]/20 border-t-[#1A237E] animate-spin block" />
-            <p class="text-[12px] text-[#9aa3c0]">
+            <span class="w-8 h-8 rounded-full border-2 border-[#1d6fd6]/20 border-t-[#1d6fd6] animate-spin block" />
+            <p class="text-[12px] text-[#8593a3]">
               <template v-if="selectedEdge">「{{ selectedEdge.source }}」と「{{ selectedEdge.target }}」の変遷を調べています...</template>
               <template v-else>「{{ selectedWord }}」の変遷を調べています...</template>
             </p>
@@ -499,8 +499,7 @@ watch(selectedCategory, () => {
                 @click="allExpanded = !allExpanded"
               >
                 <div class="phase-era">
-                  <span class="font-mono text-[8.5px] tracking-[0.18em] text-[#a5b4fc]/70 uppercase mr-2">Era</span>
-                  <span class="text-[11px] font-semibold text-[#a5b4fc]">{{ phase.era }}</span>
+                  <span class="text-[12px] font-bold text-[#134c9c]">{{ phase.era }}</span>
                 </div>
                 <div class="phase-title">{{ phase.title }}</div>
                 <div class="phase-summary">{{ breakAtKuten(phase.summary) }}</div>
@@ -527,9 +526,7 @@ watch(selectedCategory, () => {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background-color: #f0f2f8;
-  background-image: radial-gradient(circle, rgba(100,120,168,0.12) 1px, transparent 1px);
-  background-size: 20px 20px;
+  background-color: #f1f6fc;
 }
 
 /* ── Graph area ─────────────────────────── */
@@ -552,7 +549,7 @@ watch(selectedCategory, () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(240, 242, 248, 0.75);
+  background: rgba(241,246,252, 0.75);
   backdrop-filter: blur(2px);
   z-index: 10;
 }
@@ -561,12 +558,12 @@ watch(selectedCategory, () => {
   position: absolute;
   z-index: 20;
   pointer-events: none;
-  background: rgba(28, 45, 90, 0.92);
+  background: rgba(31, 42, 55, 0.94);
   backdrop-filter: blur(4px);
   color: #fff;
   border-radius: 7px;
   padding: 8px 12px;
-  box-shadow: 0 4px 16px rgba(28, 45, 90, 0.35);
+  box-shadow: 0 4px 16px rgba(20,60,120, 0.35);
   transform: translate(-50%, calc(-100% - 14px));
   white-space: nowrap;
 }
@@ -578,9 +575,9 @@ watch(selectedCategory, () => {
 }
 
 .tooltip-stat {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  color: #a5b4fc;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: #c5dbf5;
   line-height: 1.6;
 }
 
@@ -591,11 +588,11 @@ watch(selectedCategory, () => {
   z-index: 10;
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(4px);
-  border: 1px solid #dde2ef;
-  border-radius: 8px;
+  border: 1px solid #dbe4ef;
+  border-radius: 10px;
   padding: 10px 12px;
   font-size: 10.5px;
-  color: #6878a8;
+  color: #6b7888;
 }
 
 .legend-row {
@@ -610,15 +607,15 @@ watch(selectedCategory, () => {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #1A237E;
-  border: 1.5px solid #3d5fc4;
+  background: #1d6fd6;
+  border: 1.5px solid #8fbaee;
   flex-shrink: 0;
 }
 
 .legend-line {
   width: 24px;
   height: 2px;
-  background: #5C6BC0;
+  background: #6aa3e6;
   flex-shrink: 0;
 }
 
@@ -630,15 +627,16 @@ watch(selectedCategory, () => {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(28, 45, 90, 0.82);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(4px);
-  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid #dbe4ef;
+  color: #4b5868;
   font-size: 11.5px;
   font-weight: 500;
   padding: 7px 12px;
   border-radius: 20px;
   letter-spacing: 0.01em;
-  box-shadow: 0 2px 10px rgba(28, 45, 90, 0.25);
+  box-shadow: 0 2px 10px rgba(20,60,120, 0.25);
 }
 
 /* ── Popup overlay ──────────────────────── */
@@ -647,8 +645,7 @@ watch(selectedCategory, () => {
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: rgba(28, 45, 90, 0.55);
-  backdrop-filter: blur(3px);
+  background: rgba(40, 44, 52, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -656,9 +653,9 @@ watch(selectedCategory, () => {
 }
 
 .popup-box {
-  background: #f0f2f8;
+  background: #f1f6fc;
   border-radius: 12px;
-  box-shadow: 0 8px 40px rgba(28, 45, 90, 0.35);
+  box-shadow: 0 8px 40px rgba(20,60,120, 0.35);
   width: 100%;
   max-width: 1100px;
   max-height: calc(100vh - 48px);
@@ -673,7 +670,7 @@ watch(selectedCategory, () => {
   justify-content: space-between;
   padding: 12px 16px;
   background: white;
-  border-bottom: 1px solid #dde2ef;
+  border-bottom: 1px solid #dbe4ef;
   flex-shrink: 0;
   gap: 12px;
 }
@@ -686,12 +683,12 @@ watch(selectedCategory, () => {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: #6878a8;
+  color: #6b7888;
   transition: background 0.12s, color 0.12s;
 }
 .popup-close:hover {
-  background: #eef1fb;
-  color: #1c2d5a;
+  background: #e6f0fb;
+  color: #1f2a37;
 }
 
 .popup-timeline {
@@ -709,9 +706,9 @@ watch(selectedCategory, () => {
 
 .phase-card {
   background: #fff;
-  border: 1px solid #dde2ef;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(28,45,90,0.07), 0 0 0 1px rgba(28,45,90,0.04);
+  border: 1px solid #dbe4ef;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(20,60,120,0.06);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -720,34 +717,35 @@ watch(selectedCategory, () => {
   min-width: 160px;
 }
 .phase-card:hover {
-  border-color: #3d5fc4;
-  box-shadow: 0 4px 14px rgba(61,95,196,0.13), 0 0 0 1px rgba(61,95,196,0.15);
+  border-color: #1d6fd6;
+  box-shadow: 0 4px 14px rgba(29,111,214,0.13), 0 0 0 1px rgba(29,111,214,0.15);
 }
 .phase-card-expanded {
-  border-color: #3d5fc4;
-  box-shadow: 0 4px 14px rgba(61,95,196,0.13), 0 0 0 1px rgba(61,95,196,0.2);
+  border-color: #1d6fd6;
+  box-shadow: 0 4px 14px rgba(29,111,214,0.13), 0 0 0 1px rgba(29,111,214,0.2);
 }
 
 .phase-era {
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  background: #1c2d5a;
-  padding: 8px 14px;
-  border-left: 3px solid #a5b4fc;
+  background: #e6f0fb;
+  padding: 7px 14px;
+  border-left: 3px solid #1d6fd6;
+  border-bottom: 1px solid #c5dbf5;
 }
 
 .phase-title {
   font-size: 15px;
   font-weight: 700;
-  color: #1c2d5a;
+  color: #1f2a37;
   padding: 10px 14px 4px;
   line-height: 1.55;
 }
 
 .phase-summary {
   font-size: 13px;
-  color: #3a4a72;
+  color: #4b5868;
   padding: 0 14px 12px;
   line-height: 1.75;
   flex: 1;
@@ -759,11 +757,11 @@ watch(selectedCategory, () => {
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #6878a8;
+  color: #6b7888;
   padding: 5px 14px 9px;
   margin-top: auto;
 }
-.phase-toggle-open { color: #3d5fc4; }
+.phase-toggle-open { color: #1d6fd6; }
 
 .phase-toggle-chevron {
   transition: transform 0.2s;
@@ -774,9 +772,9 @@ watch(selectedCategory, () => {
 
 .phase-detail {
   font-size: 13px;
-  color: #1c2d5a;
-  background: #f4f6fc;
-  border-top: 1px solid #dde2ef;
+  color: #1f2a37;
+  background: #f5f8fc;
+  border-top: 1px solid #dbe4ef;
   padding: 10px 14px 12px;
   line-height: 1.78;
   white-space: pre-line;
@@ -789,7 +787,7 @@ watch(selectedCategory, () => {
   flex-shrink: 0;
   font-size: 18px;
   padding: 6px 5px;
-  color: #3d5fc4;
+  color: #1d6fd6;
   opacity: 0.45;
 }
 

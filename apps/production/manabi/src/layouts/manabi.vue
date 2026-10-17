@@ -14,60 +14,47 @@ useHead({
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
     {
       rel: 'stylesheet',
-      href: 'https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@500;700&display=swap',
+      href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap',
     },
   ],
 })
 </script>
 
 <style>
-/* 方眼ノートと若葉色。問題を解く場所なので、色は正解・不正解の合図に取っておく。 */
+/*
+ * クイズ番組のポスター（生成りの紙・濃紺・朱赤）の配色。
+ * 濃紺を基調にし、朱赤は「押すボタン」と「正解」にだけ使う。
+ * 正解＝赤丸・不正解＝濃紺の×（採点の赤ペンと同じ感覚）。◯✕の記号も必ず添えるので色だけに頼らない。
+ * ダークモードは持たない（端末が暗くても背景は常に明るい紙色）。
+ * フォントはキキガキ本番版にそろえて Noto Sans JP。
+ */
 .mb-root {
-  --mb-paper: #f7f6f1;
+  --mb-paper: #f7f5ef;
   --mb-card: #ffffff;
-  --mb-ink: #262a27;
-  --mb-ink-soft: #676d68;
-  --mb-ink-faint: #a3a8a3;
-  --mb-line: #e3e3da;
-  --mb-line-strong: #cfd0c5;
-  --mb-grid: rgba(90, 120, 95, 0.07);
-  --mb-accent: #3f7a52;
-  --mb-accent-deep: #2f5f3f;
-  --mb-accent-soft: #e2eee4;
+  --mb-ink: #252c3a;
+  --mb-ink-soft: #5a6272;
+  --mb-ink-faint: #9aa0ab;
+  --mb-line: #e2e0d8;
+  --mb-line-strong: #c9c8c0;
+  --mb-grid: rgba(37, 44, 58, 0.05);
+  --mb-accent: #e2463a;
+  --mb-accent-deep: #c23328;
+  --mb-accent-soft: #fde8e5;
   --mb-on-accent: #ffffff;
-  --mb-good: #2f8a55;
-  --mb-good-soft: #e3f3e8;
-  --mb-bad: #c9523f;
-  --mb-bad-soft: #fbe7e2;
-  --mb-shadow: 0 1px 2px rgba(40, 50, 40, 0.05), 0 6px 18px -10px rgba(40, 50, 40, 0.18);
+  --mb-navy: #252c3a;
+  --mb-navy-soft: #e7e9ee;
+  --mb-good: #e2463a;
+  --mb-good-soft: #fde8e5;
+  --mb-bad: #3b4558;
+  --mb-bad-soft: #e7e9ee;
+  --mb-shadow: 0 1px 2px rgba(37, 44, 58, 0.05), 0 6px 18px -10px rgba(37, 44, 58, 0.2);
 
   position: relative;
+  color-scheme: light;
   color: var(--mb-ink);
   background: var(--mb-paper);
-  font-family: 'Zen Kaku Gothic New', 'Hiragino Sans', system-ui, sans-serif;
+  font-family: 'Noto Sans JP', 'Hiragino Sans', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-}
-
-@media (prefers-color-scheme: dark) {
-  .mb-root {
-    --mb-paper: #141715;
-    --mb-card: #1c201d;
-    --mb-ink: #e6e8e4;
-    --mb-ink-soft: #a3a9a4;
-    --mb-ink-faint: #6e746f;
-    --mb-line: #2a2f2b;
-    --mb-line-strong: #3a403b;
-    --mb-grid: rgba(160, 200, 170, 0.045);
-    --mb-accent: #7fbf92;
-    --mb-accent-deep: #9fd3ad;
-    --mb-accent-soft: #233328;
-    --mb-on-accent: #10160f;
-    --mb-good: #6fcf93;
-    --mb-good-soft: #1d3325;
-    --mb-bad: #f08a76;
-    --mb-bad-soft: #3a211c;
-    --mb-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  }
 }
 
 .mb-bg {
@@ -83,7 +70,7 @@ useHead({
 }
 
 .mb-display {
-  font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', sans-serif;
+  font-weight: 900;
   letter-spacing: 0.04em;
 }
 
@@ -160,9 +147,9 @@ useHead({
   color: var(--mb-ink);
 }
 .mb-chip--on {
-  color: var(--mb-accent-deep);
-  border-color: var(--mb-accent);
-  background: var(--mb-accent-soft);
+  color: var(--mb-navy);
+  border-color: var(--mb-navy);
+  background: var(--mb-navy-soft);
   font-weight: 700;
 }
 
@@ -196,11 +183,32 @@ useHead({
   background: var(--mb-card);
   transition: border-color 0.2s, transform 0.15s;
 }
-.mb-btn-ghost:hover {
+.mb-btn-ghost:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.mb-btn-ghost:hover:not(:disabled) {
   border-color: var(--mb-ink-faint);
 }
 .mb-btn-ghost:active {
   transform: scale(0.98);
+}
+
+.mb-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  height: 2.5rem;
+  padding: 0 0.8rem 0 0.45rem;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--mb-ink-soft);
+  transition: background 0.2s, color 0.2s;
+}
+.mb-back:hover {
+  background: rgba(128, 128, 128, 0.1);
+  color: var(--mb-ink);
 }
 
 .mb-icon-btn {
@@ -260,7 +268,7 @@ useHead({
   background: var(--mb-good-soft);
 }
 .mb-choice--good .mb-choice__mark {
-  color: #fff;
+  color: var(--mb-card);
   background: var(--mb-good);
 }
 .mb-choice--bad {
@@ -268,7 +276,7 @@ useHead({
   background: var(--mb-bad-soft);
 }
 .mb-choice--bad .mb-choice__mark {
-  color: #fff;
+  color: var(--mb-card);
   background: var(--mb-bad);
 }
 .mb-choice--dim {
@@ -304,8 +312,8 @@ useHead({
   padding: 0 0.5rem;
   border-radius: 999px;
   font-size: 11px;
-  color: var(--mb-accent-deep);
-  background: var(--mb-accent-soft);
+  color: var(--mb-navy);
+  background: var(--mb-navy-soft);
 }
 .mb-theme__text {
   min-width: 0;
@@ -355,7 +363,7 @@ useHead({
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
-  color: #fff;
+  color: var(--mb-card);
 }
 .mb-review-mark--good {
   background: var(--mb-good);
