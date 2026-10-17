@@ -137,6 +137,12 @@
           <span v-if="records.length" class="kk-note">
             {{ activeTag ? `${filteredRecords.length} / ${records.length}件` : `${records.length}件` }}
           </span>
+          <!-- 並び順（新しい順）。選んだものは URL（?sort=）に残す。列の見出しを押しても切り替わる -->
+          <div v-if="records.length" class="kk-sort" role="group" aria-label="並び順">
+            <span class="kk-sort-label">並び</span>
+            <button type="button" class="kk-sort-btn" :class="{ 'is-on': sortKey === 'date' }" @click="setSort('date')">会議の日</button>
+            <button type="button" class="kk-sort-btn" :class="{ 'is-on': sortKey === 'created' }" @click="setSort('created')">つくった日</button>
+          </div>
         </div>
 
         <!-- タグで絞り込む（1つだけ選ぶ。既定は「すべて」）。多い順に並べ、入りきらなければ横にスクロール。
@@ -168,15 +174,37 @@
           <thead>
             <tr>
               <th>会議の名前</th>
-              <th class="kk-col-date">会議の日</th>
-              <th class="kk-col-created">つくった日</th>
+              <th class="kk-col-date">
+                <button type="button" class="kk-th-sort" :class="{ 'is-on': sortKey === 'date' }" @click="setSort('date')">
+                  会議の日<span v-if="sortKey === 'date'" aria-hidden="true"> ↓</span>
+                </button>
+              </th>
+              <th class="kk-col-created">
+                <button type="button" class="kk-th-sort" :class="{ 'is-on': sortKey === 'created' }" @click="setSort('created')">
+                  つくった日<span v-if="sortKey === 'created'" aria-hidden="true"> ↓</span>
+                </button>
+              </th>
               <th class="kk-col-actions"><span class="sr-only">操作</span></th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="r in filteredRecords" :key="r.id" @click="router.push(`/records/${r.id}`)">
+            <tr v-for="r in sortedRecords" :key="r.id" @click="openRow(r.id)">
               <td>
-                <div class="kk-row-head">
+                <!-- 名前を変えている行は入力欄にする（Enter・欄を離れると保存、Esc でやめる） -->
+                <div v-if="editingId === r.id" class="kk-row-edit" @click.stop>
+                  <input
+                    ref="titleInput"
+                    v-model="titleDraft"
+                    class="kk-input kk-row-edit-input"
+                    :maxlength="MAX_TITLE_LENGTH"
+                    aria-label="会議の名前"
+                    :disabled="titleSaving"
+                    @keydown.enter="onTitleEnter"
+                    @keydown.esc="cancelTitle"
+                    @blur="saveTitle"
+                  >
+                </div>
+                <div v-else class="kk-row-head">
                   <NuxtLink :to="`/records/${r.id}`" class="kk-row-title" @click.stop>
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l3 3v13H6z" /><path d="M9 11h6M9 15h6" /></svg>
                     <span class="truncate">{{ r.title || '（名前のない議事録）' }}</span>
@@ -201,6 +229,16 @@
               <!-- 開かずにPDF・ドライブ保存。行を押すと開くので、ここだけ伝わらないよう止める -->
               <td class="kk-col-actions" @click.stop>
                 <div class="kk-row-actions">
+                  <button
+                    type="button"
+                    class="kk-row-icon"
+                    :disabled="!!rowBusy || editingId === r.id"
+                    :aria-label="`${r.title || '議事録'}の名前を変える`"
+                    title="名前を変える"
+                    @click="startTitle(r)"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16zM13 7l4 4" /></svg>
+                  </button>
                   <button
                     v-if="driveConnected"
                     type="button"
@@ -249,6 +287,10 @@ import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
 import { formatDateLabel, formatMeetingDate } from '~/utils/formatDate'
 import { countTags } from '~/utils/tags'
+import { parseSortKey, sortRecords, type RecordSortKey } from '~/utils/sortRecords'
+
+/** 会議の名前の上限（サーバーの MAX_TITLE_LENGTH と同じ） */
+const MAX_TITLE_LENGTH = 100
 import type { MinutesRecord, RecordSummary } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
 
@@ -294,6 +336,69 @@ const activeTag = computed(() => {
 const filteredRecords = computed(() =>
   activeTag.value ? records.value.filter((r) => r.tags.includes(activeTag.value)) : records.value
 )
+
+// ── 並び順（既定は会議の日の新しい順） ──
+const sortKey = computed<RecordSortKey>(() => parseSortKey(route.query.sort))
+const sortedRecords = computed(() => sortRecords(filteredRecords.value, sortKey.value))
+
+function setSort(key: RecordSortKey) {
+  router.replace({ query: { ...route.query, sort: key === 'date' ? undefined : key } })
+}
+
+// ── 一覧から会議の名前を変える ──
+const editingId = ref('')
+const titleDraft = ref('')
+const titleSaving = ref(false)
+const titleInput = ref<HTMLInputElement[] | HTMLInputElement | null>(null)
+
+function openRow(id: string) {
+  // 名前を変えている最中は、行を押しても開かない
+  if (editingId.value) return
+  router.push(`/records/${id}`)
+}
+
+function startTitle(r: RecordSummary) {
+  editingId.value = r.id
+  titleDraft.value = r.title
+  nextTick(() => {
+    const el = Array.isArray(titleInput.value) ? titleInput.value[0] : titleInput.value
+    el?.focus()
+    el?.select()
+  })
+}
+
+function cancelTitle() {
+  editingId.value = ''
+}
+
+/** Enter で保存（IMEの変換確定のEnterでは保存しない） */
+function onTitleEnter(e: KeyboardEvent) {
+  if (e.isComposing || e.keyCode === 229) return
+  e.preventDefault()
+  saveTitle()
+}
+
+async function saveTitle() {
+  const id = editingId.value
+  if (!id || titleSaving.value) return
+  const row = records.value.find((r) => r.id === id)
+  const next = titleDraft.value.replace(/\s+/g, ' ').trim()
+  // 変わっていなければ閉じるだけ
+  if (!row || next === row.title) {
+    editingId.value = ''
+    return
+  }
+  errorMessage.value = ''
+  titleSaving.value = true
+  try {
+    const res = await authedFetch<{ title: string }>(`/api/records/${id}/title`, { method: 'PATCH', body: { title: next } })
+    row.title = res.title
+    editingId.value = ''
+  } catch (e) {
+    errorMessage.value = apiMessage(e, '会議の名前を変えられませんでした。もう一度お試しください。')
+  }
+  titleSaving.value = false
+}
 
 function setTag(tag: string) {
   // 履歴を増やさない（戻るボタンで絞り込みを1つずつ遡らないように）
@@ -548,7 +653,8 @@ onMounted(async () => {
 }
 .kk-list-head {
   display: flex;
-  align-items: baseline;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
   padding: 0.65rem 1rem;
   border-bottom: 1px solid var(--kk-line);
@@ -590,6 +696,58 @@ onMounted(async () => {
 .kk-tagbar-count {
   font-size: 11px;
   opacity: 0.7;
+}
+
+/* 並び順の切り替え */
+.kk-sort {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+.kk-sort-label {
+  font-size: 11.5px;
+  color: var(--kk-ink-faint);
+  margin-right: 0.15rem;
+}
+.kk-sort-btn {
+  height: 26px;
+  padding: 0 0.6rem;
+  border: 1px solid var(--kk-line);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--kk-ink-soft);
+  cursor: pointer;
+}
+.kk-sort-btn.is-on {
+  border-color: var(--kk-accent);
+  background: var(--kk-accent-soft);
+  color: var(--kk-accent-strong);
+  font-weight: 700;
+}
+.kk-th-sort {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.kk-th-sort:hover,
+.kk-th-sort.is-on {
+  color: var(--kk-accent-strong);
+}
+.kk-th-sort.is-on {
+  font-weight: 700;
+}
+
+/* 一覧で名前を変えるときの入力欄 */
+.kk-row-edit-input {
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  font-weight: 700;
 }
 
 /* 行の中のタグ（会議の名前の横） */
@@ -675,7 +833,7 @@ onMounted(async () => {
 }
 /* 行の右端の操作（アイコンのみ） */
 .kk-col-actions {
-  width: 116px;
+  width: 150px;
   padding-left: 0.25rem !important;
   padding-right: 0.6rem !important;
 }

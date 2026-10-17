@@ -255,6 +255,49 @@ export async function updateRecordMinutes(
   return saved
 }
 
+/** 会議の名前の上限（一覧から変えるとき。長すぎる名前で表示が崩れないように） */
+export const MAX_TITLE_LENGTH = 100
+
+/**
+ * 会議の名前だけを変える（一覧から）。議事録本体（minutes）の title と、一覧用の title 列の両方を書き換える。
+ * 議事録全体を画面から送り直す方式にしないのは、確認画面を別のタブで開いていたときに、
+ * 古い中身で上書きしてしまわないため。戻り値は保存した名前（本人の行が無ければ null）。
+ */
+export async function updateRecordTitle(
+  event: H3Event,
+  userId: string,
+  id: string,
+  rawTitle: string
+): Promise<string | null> {
+  const title = rawTitle.replace(/\s+/g, ' ').trim().slice(0, MAX_TITLE_LENGTH)
+  const db = requireDb(event)
+  await ensureTables(db)
+  const row = (await db
+    .prepare('SELECT minutes FROM records WHERE id = ? AND user_id = ?')
+    .bind(id, userId)
+    .first()) as { minutes: string } | null
+  if (!row) return null
+
+  let parsed: any = null
+  try {
+    parsed = JSON.parse(await decryptText(event, row.minutes ?? ''))
+  } catch {
+    parsed = null
+  }
+  // 議事録本体が読めないものは触らない（壊れた中身を空の議事録で上書きしないため）
+  if (!parsed) throw createError({ statusCode: 500, message: 'この議事録は読み込めなかったため、名前を変えられませんでした。' })
+  const minutes = normalizeMinutes(parsed)
+  minutes.title = title
+
+  await db
+    .prepare(
+      `UPDATE records SET title = ?, minutes = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?`
+    )
+    .bind(await encryptText(event, title), await encryptText(event, JSON.stringify(minutes)), id, userId)
+    .run()
+  return title
+}
+
 /** 削除。本人の行だけ */
 export async function deleteRecord(event: H3Event, userId: string, id: string): Promise<boolean> {
   const db = requireDb(event)

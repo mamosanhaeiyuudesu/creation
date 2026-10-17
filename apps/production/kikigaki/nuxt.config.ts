@@ -1,6 +1,8 @@
 import { defineNuxtConfig } from 'nuxt/config';
 import { SERVICE } from './src/config/service';
 
+const OG_DESCRIPTION = '会議の文字起こしを貼り付けるだけ。AIが議事録にまとめ、その場で直して、PDFで配れます。'
+
 export default defineNuxtConfig({
   srcDir: 'src',
   // Nuxt 4 から dir.public / serverDir は rootDir 相対で解決される。
@@ -28,6 +30,18 @@ export default defineNuxtConfig({
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         { name: 'format-detection', content: 'telephone=no' },
+        // リンクを共有したときの見え方（OGP）。画像の元は design/og.html。画像のURLは絶対URLにすること
+        { name: 'description', content: OG_DESCRIPTION },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:site_name', content: SERVICE.name },
+        { property: 'og:title', content: `${SERVICE.name} — 会議の文章から議事録を` },
+        { property: 'og:description', content: OG_DESCRIPTION },
+        { property: 'og:url', content: SERVICE.siteUrl },
+        { property: 'og:image', content: `${SERVICE.siteUrl}/og.png` },
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
+        { property: 'og:locale', content: 'ja_JP' },
+        { name: 'twitter:card', content: 'summary_large_image' },
       ],
     },
   },

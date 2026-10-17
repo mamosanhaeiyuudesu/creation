@@ -1,0 +1,131 @@
+<!doctype html>
+<!--
+  リンクを共有したときのサムネイル画像（src/public/og.png、1200x630）の元。中身は架空のサンプル。
+  直したら、次のコマンドで画像を作り直す（Noto Sans JP をネットから読むので、つながった状態で）:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
+      --force-device-scale-factor=1 --window-size=1200,630 --virtual-time-budget=8000 \
+      --screenshot=src/public/og.png "file://$PWD/design/og.html"
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=block" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    font-family: 'Noto Sans JP', 'Hiragino Sans', sans-serif;
+    color: #1f2a37;
+    background: linear-gradient(135deg, #1d6fd6 0%, #134c9c 100%);
+    position: relative;
+  }
+  /* 背景の薄い模様 */
+  .dots {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.10) 1.5px, transparent 1.5px);
+    background-size: 26px 26px;
+  }
+  .wrap { position: relative; display: flex; height: 100%; padding: 56px 60px; gap: 44px; }
+
+  .left { width: 470px; color: #fff; display: flex; flex-direction: column; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .mark {
+    width: 58px; height: 58px; border-radius: 16px; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  }
+  .mark svg { width: 38px; height: 38px; fill: none; stroke: #1d6fd6; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .brand-name { font-size: 40px; font-weight: 900; letter-spacing: 0.06em; }
+  .headline { margin-top: 54px; font-size: 50px; font-weight: 900; line-height: 1.32; letter-spacing: 0.01em; }
+  .headline em { font-style: normal; color: #ffd28a; }
+  .lead { margin-top: 22px; font-size: 21px; line-height: 1.75; color: rgba(255,255,255,0.88); font-weight: 500; }
+  .steps { margin-top: auto; display: flex; gap: 10px; }
+  .step {
+    padding: 9px 16px; border-radius: 999px; font-size: 17px; font-weight: 700;
+    background: rgba(255,255,255,0.14); border: 1.5px solid rgba(255,255,255,0.35);
+  }
+  .step.cta { background: #f08c1e; border-color: #f08c1e; }
+
+  /* 右: 議事録のサンプル（架空） */
+  .card {
+    flex: 1; background: #fff; border-radius: 18px; padding: 26px 28px;
+    box-shadow: 0 20px 50px rgba(8, 30, 70, 0.35);
+    display: flex; flex-direction: column; gap: 14px;
+    transform: rotate(-1.2deg); margin-top: 6px;
+  }
+  .card-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .title { font-size: 25px; font-weight: 700; }
+  .date { font-size: 15px; color: #8593a3; white-space: nowrap; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip { font-size: 13.5px; padding: 3px 11px; border-radius: 999px; background: #eef2f7; color: #4b5868; font-weight: 500; }
+  .tag { background: #e6f0fb; color: #134c9c; font-weight: 700; }
+  .sec { border-top: 1px dashed #dbe4ef; padding-top: 12px; }
+  .sec-title {
+    font-size: 15.5px; font-weight: 700; padding-left: 9px; border-left: 4px solid #1d6fd6; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .count { font-size: 12px; background: #e6f0fb; color: #134c9c; border-radius: 999px; padding: 0 8px; }
+  .item { display: flex; gap: 9px; font-size: 15.5px; line-height: 1.55; margin-bottom: 7px; font-weight: 500; }
+  .num {
+    flex: none; width: 22px; height: 22px; border-radius: 999px; background: #e6f0fb; color: #134c9c;
+    font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .who { color: #8593a3; font-size: 13px; font-weight: 400; margin-left: 4px; }
+  .pdf {
+    position: absolute; right: 52px; bottom: 40px;
+    background: #f08c1e; color: #fff; font-weight: 700; font-size: 18px;
+    padding: 12px 22px; border-radius: 999px; box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .pdf svg { width: 20px; height: 20px; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+  <div class="dots"></div>
+  <div class="wrap">
+    <div class="left">
+      <div class="brand">
+        <div class="mark"><svg viewBox="0 0 24 24"><path d="M6 4h9l3 3v13H6z"/><path d="M9 11h6M9 15h6M9 7h3"/></svg></div>
+        <div class="brand-name">キキガキ</div>
+      </div>
+      <p class="headline">会議の文章から、<br><em>1枚の議事録</em>に。</p>
+      <p class="lead">文字起こしを貼り付けるだけ。<br>AIがまとめて、直して、PDFで配れます。</p>
+      <div class="steps">
+        <span class="step">貼り付け</span>
+        <span class="step">AIがまとめる</span>
+        <span class="step cta">PDFで配る</span>
+      </div>
+    </div>
+
+    <!-- サンプル（架空の会議） -->
+    <div class="card">
+      <div class="card-top">
+        <p class="title">青年部 定例会（10月）</p>
+        <p class="date">2026年10月12日(月)</p>
+      </div>
+      <div class="chips">
+        <span class="chip">田中さん</span><span class="chip">佐藤さん</span><span class="chip">鈴木さん</span><span class="chip">高橋さん</span>
+        <span class="chip tag">#定例会</span><span class="chip tag">#秋祭り</span>
+      </div>
+      <div class="sec">
+        <p class="sec-title">この会で決まったこと <span class="count">3</span></p>
+        <div class="item"><span class="num">1</span>秋祭りは11月3日（祝）に公民館前の広場で開く</div>
+        <div class="item"><span class="num">2</span>屋台は昨年と同じ5店。予算は12万円まで</div>
+        <div class="item"><span class="num">3</span>雨天の場合は体育館に会場を移す</div>
+      </div>
+      <div class="sec">
+        <p class="sec-title">やること <span class="count">2</span></p>
+        <div class="item"><span class="num">1</span>テントと机の借用を役場に申し込む<span class="who">田中さん・10/20まで</span></div>
+        <div class="item"><span class="num">2</span>回覧板でのお知らせ文をつくる<span class="who">佐藤さん・10/25まで</span></div>
+      </div>
+      <div class="sec">
+        <p class="sec-title">つぎの予定 <span class="count">1</span></p>
+        <div class="item"><span class="num">1</span>次回の定例会<span class="who">11月9日(月) 19:00・公民館</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="pdf"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>PDFのダウンロード</div>
+</body>
+</html>

@@ -1,5 +1,6 @@
 <template>
-  <div class="kk-review">
+  <!-- 欄からカーソルを外したとき・1行の欄で Enter を押したときは、待たずにすぐ保存する -->
+  <div class="kk-review" @focusout="flushSave" @keydown.enter="onEnterSave">
     <p v-if="loading" class="kk-lead py-10 text-center">読み込んでいます…</p>
 
     <template v-else-if="record">
@@ -675,6 +676,22 @@ async function autoSave(): Promise<boolean> {
     scheduleAutoSave(AUTOSAVE_RETRY_MS)
     return false
   }
+}
+
+/** 未保存の直しがあれば、待たずにすぐ保存する（欄を離れたとき・Enter のとき） */
+function flushSave() {
+  if (loading.value || !record.value || snapshot() === lastSavedJson) return
+  clearTimeout(autoTimer)
+  // 押したキーの処理（参加者の確定など）が画面に反映されてから保存する
+  nextTick(() => autoSave())
+}
+
+/** 1行の入力欄で Enter を押したら保存する。複数行の欄（textarea）の Enter は改行なので保存しない */
+function onEnterSave(e: KeyboardEvent) {
+  if (e.isComposing || e.keyCode === 229) return
+  const el = e.target as HTMLElement | null
+  if (el?.tagName !== 'INPUT') return
+  flushSave()
 }
 
 watch(
