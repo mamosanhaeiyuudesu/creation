@@ -263,7 +263,7 @@ function jsonError(): never {
 
 /**
  * 文字起こし全文を議事録の構造にする。
- * 新しく作るときと、確認画面の「つくり直す」（まとめ方を変えて原文からやり直す）の両方で使う。
+ * 新しく作るときと、確認画面の「種類を変える」（まとめ方を変えて原文からまとめ直す）の両方で使う。
  */
 export async function structureTranscript(
   event: H3Event,

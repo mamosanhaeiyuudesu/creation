@@ -11,9 +11,6 @@
       <button type="button" class="kk-msg-close" aria-label="閉じる" @click="savedMessage = ''">✕</button>
     </p>
 
-    <!-- スマホには左メニューの「管理画面」が無いので、管理者にだけここに出す -->
-    <NuxtLink v-if="isAdmin" to="/admin" class="kk-set-admin">管理画面をひらく →</NuxtLink>
-
     <!-- 今月の使用ぶん -->
     <section class="kk-set-sec">
       <h2 class="kk-set-title">今月つかった分</h2>
@@ -30,7 +27,7 @@
           今月のぶんを使い切りました。来月1日から、またお使いいただけます。
         </p>
         <p v-else-if="usage.usedPercent >= 80" class="kk-set-note">もうすぐ今月のぶんを使い切ります。</p>
-        <p class="kk-set-note">議事録づくりと「つくり直す」の合計。毎月1日にリセットされます。</p>
+        <p class="kk-set-note">議事録づくりと「まとめ直す」の合計。毎月1日にリセットされます。</p>
       </template>
     </section>
 
@@ -90,31 +87,21 @@
       </div>
     </BottomSheet>
 
-    <!-- PDFの文字数（アカウント全体。すべての議事録のPDFに効く） -->
+    <!-- PDFの文字数（アカウント全体。すべての議事録のPDFに効く）。
+         選んだらすぐ保存し、次にPDFをつくるときから使われる（PDFは保存しておらず毎回つくるので、作り直しは要らない） -->
     <section class="kk-set-sec">
-      <h2 class="kk-set-title">PDFの文字数</h2>
-      <p class="kk-set-text">A4横1枚の左右2列。目安を超えた列だけ、PDFをつくるときにAIが要約し直します。</p>
-      <div class="kk-set-pdf">
-        <label v-for="side in pdfSides" :key="side.key" class="kk-set-pdf-row">
-          <span class="kk-set-pdf-label">{{ side.label }}<span class="kk-set-pdf-sub">{{ side.sub }}</span></span>
-          <input
-            v-model="pdfDraft[side.key]"
-            type="number"
-            inputmode="numeric"
-            :min="PRINT_MAX_CHARS_MIN"
-            :max="PRINT_MAX_CHARS_MAX"
-            step="100"
-            class="kk-input kk-set-pdf-input"
-          >
-          <span class="kk-set-pdf-unit">字</span>
-        </label>
-      </div>
-      <p class="kk-set-note">合計 {{ pdfTotal.toLocaleString() }}字（1列 {{ PRINT_MAX_CHARS_MIN }}〜{{ PRINT_MAX_CHARS_MAX.toLocaleString() }}字）</p>
-      <div class="flex gap-1.5">
-        <button class="kk-set-btn kk-set-btn--accent" :disabled="pdfBusy || !pdfDirty" @click="savePdf">
-          {{ pdfBusy ? '保存中…' : '保存' }}
-        </button>
-        <button class="kk-set-btn" :disabled="pdfBusy || pdfIsDefault" @click="resetPdf">元に戻す</button>
+      <div class="kk-set-pdf-row">
+        <label class="kk-set-title m-0" for="pdf-max-chars">PDFの文字数</label>
+        <span v-if="pdfSaved" class="kk-set-pdf-saved" role="status">✓ 保存しました</span>
+        <select
+          id="pdf-max-chars"
+          :value="userSettings.pdfMaxChars"
+          class="kk-input kk-set-pdf-select"
+          :disabled="pdfBusy"
+          @change="onPdfChange"
+        >
+          <option v-for="n in pdfOptions" :key="n" :value="n">{{ n.toLocaleString() }}字</option>
+        </select>
       </div>
     </section>
 
@@ -239,8 +226,8 @@ import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
 import { parseMonitorMode } from '~/utils/entitlement'
 import type { BillingStatus } from '~/types/billing'
-import { PRINT_MAX_CHARS_MAX, PRINT_MAX_CHARS_MIN } from '~/types/settings'
-import { defaultUserSettings, normalizeUserSettings } from '~/utils/userSettings'
+import { PDF_MAX_CHARS_MAX, PDF_MAX_CHARS_MIN } from '~/types/settings'
+import { normalizeUserSettings } from '~/utils/userSettings'
 import { MAX_TAG_LENGTH, normalizeTag } from '~/utils/tags'
 
 const router = useRouter()
@@ -259,7 +246,7 @@ const savedMessage = ref('')
 const usage = ref<{ usedPercent: number; exhausted: boolean } | null>(null)
 const billing = ref<BillingStatus | null>(null)
 const billingBusy = ref(false)
-/** 左メニューに「管理画面」を出すか（表示だけ。守りは /api/admin/* の入口で行う） */
+/** 左メニュー（スマホは上の帯）に「管理画面」を出すか（表示だけ。守りは /api/admin/* の入口で行う） */
 const isAdmin = useState<boolean>('kk-is-admin', () => false)
 /** 承認待ちか（トップに「準備中」の案内を出すため。止めるのはサーバー側） */
 const pendingApproval = useState<boolean>('kk-pending-approval', () => false)
@@ -271,52 +258,41 @@ function trialLabel(days: number): string {
 
 // ── PDFの文字数 ──
 const { settings: userSettings, load: loadUserSettings, save: saveUserSettings } = useUserSettings()
-type PdfKey = 'pdfLeftMaxChars' | 'pdfRightMaxChars'
-const pdfSides: { key: PdfKey; label: string; sub: string }[] = [
-  { key: 'pdfLeftMaxChars', label: '左', sub: 'まとめ・話し合ったこと' },
-  { key: 'pdfRightMaxChars', label: '右', sub: '決まったこと・予定・やること' },
-]
-/** 入力中の値。保存を押すまでは userSettings に反映しない（数字欄は打ちかけで '' や小さい数になるため） */
-const pdfDraft = reactive<Record<PdfKey, number | string>>({ ...defaultUserSettings() })
 const pdfBusy = ref(false)
-const pdfTotal = computed(() => (Number(pdfDraft.pdfLeftMaxChars) || 0) + (Number(pdfDraft.pdfRightMaxChars) || 0))
-const pdfDirty = computed(() =>
-  pdfSides.some((s) => Number(pdfDraft[s.key]) !== userSettings.value[s.key] || pdfDraft[s.key] === '')
-)
-const pdfIsDefault = computed(() => {
-  const d = defaultUserSettings()
-  return pdfSides.every((s) => Number(pdfDraft[s.key]) === d[s.key])
+/** 選んだ直後だけ「✓ 保存しました」を出す（何も出ないと、変わったのか分からないため） */
+const pdfSaved = ref(false)
+let pdfSavedTimer: ReturnType<typeof setTimeout> | undefined
+
+/** 選べる文字数（500字刻み）。左右別々に設定していたころの半端な値（合計1700字など）は、それも選択肢に残す */
+const pdfOptions = computed(() => {
+  const list: number[] = []
+  for (let n = PDF_MAX_CHARS_MIN; n <= PDF_MAX_CHARS_MAX; n += 500) list.push(n)
+  const current = userSettings.value.pdfMaxChars
+  if (!list.includes(current)) list.push(current)
+  return list.sort((a, b) => a - b)
 })
 
-function syncPdfDraft() {
-  pdfDraft.pdfLeftMaxChars = userSettings.value.pdfLeftMaxChars
-  pdfDraft.pdfRightMaxChars = userSettings.value.pdfRightMaxChars
-}
-
-async function savePdf() {
+async function onPdfChange(e: Event) {
+  const select = e.target as HTMLSelectElement
   errorMessage.value = ''
-  savedMessage.value = ''
   pdfBusy.value = true
   try {
-    await saveUserSettings(normalizeUserSettings({ ...pdfDraft }))
-    syncPdfDraft()
-    savedMessage.value = 'PDFの文字数を保存しました。次につくるPDFから使われます。'
+    await saveUserSettings(normalizeUserSettings({ pdfMaxChars: select.value }))
+    pdfSaved.value = true
+    clearTimeout(pdfSavedTimer)
+    pdfSavedTimer = setTimeout(() => (pdfSaved.value = false), 2000)
   } catch (e) {
+    // 保存できなければ、選択を保存済みの値に戻す
+    select.value = String(userSettings.value.pdfMaxChars)
     errorMessage.value = apiMessage(e, 'PDFの文字数を保存できませんでした。もう一度お試しください。')
   }
   pdfBusy.value = false
-}
-
-async function resetPdf() {
-  Object.assign(pdfDraft, defaultUserSettings())
-  await savePdf()
 }
 
 async function load() {
   loadTags().catch(() => {})
   try {
     await loadUserSettings()
-    syncPdfDraft()
   } catch (e) {
     errorMessage.value = apiMessage(e, '設定を読み込めませんでした。画面を開き直してみてください。')
   }
@@ -588,23 +564,6 @@ watch(() => route.path, refreshAll)
   line-height: 1.55;
   color: var(--kk-ink-faint);
 }
-.kk-set-admin {
-  display: block;
-  padding: 0.5rem 0.7rem;
-  border: 1px solid #d9cdf3;
-  border-radius: 10px;
-  background: #f6f2fd;
-  color: #5b3fa8;
-  font-size: 12.5px;
-  font-weight: 700;
-  text-decoration: none;
-}
-/* PCでは左メニューの「管理画面」があるので出さない */
-@media (min-width: 1024px) {
-  .kk-set-admin {
-    display: none;
-  }
-}
 .kk-set-danger-link {
   display: block;
   margin: 0.5rem auto 0;
@@ -763,38 +722,24 @@ watch(() => route.path, refreshAll)
 .kk-set-tag-ok:disabled {
   opacity: 0.5;
 }
-.kk-set-pdf {
-  margin-top: 0.35rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
 .kk-set-pdf-row {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
-.kk-set-pdf-label {
-  flex: 1;
-  min-width: 0;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.3;
+.kk-set-pdf-saved {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--kk-accent-strong);
+  white-space: nowrap;
 }
-.kk-set-pdf-sub {
-  display: block;
-  font-size: 10.5px;
-  font-weight: 400;
-  color: var(--kk-ink-faint);
-}
-.kk-set-pdf-input {
-  width: 5.2rem;
+.kk-set-pdf-select {
+  width: auto;
+  margin-left: auto;
   padding: 0.2rem 0.4rem;
-  text-align: right;
 }
-.kk-set-pdf-unit {
-  font-size: 11.5px;
-  color: var(--kk-ink-soft);
+.kk-set-pdf-saved + .kk-set-pdf-select {
+  margin-left: 0;
 }
 .kk-set-btn {
   margin-top: 0.45rem;

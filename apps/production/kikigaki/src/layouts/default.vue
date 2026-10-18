@@ -64,6 +64,11 @@
             {{ serviceName }}
             <span class="kk-note font-normal hidden sm:inline">会議の文章から議事録を</span>
           </NuxtLink>
+          <!-- スマホでは左メニューが出ないので、管理画面への入口はこの帯の右端に置く（管理者だけ） -->
+          <NuxtLink v-if="isAdmin" to="/admin" class="kk-head-admin" :class="{ 'is-active': route.path.startsWith('/admin') }">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" /><path d="M9 12l2 2 4-4" /></svg>
+            管理画面
+          </NuxtLink>
         </header>
 
         <main
@@ -232,6 +237,33 @@ const wide = computed(() => route.meta.wide === true)
   gap: 0.5rem;
   background: var(--kk-panel);
   border-bottom: 1px solid var(--kk-line);
+}
+.kk-head-admin {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 30px;
+  padding: 0 0.65rem;
+  border: 1px solid var(--kk-line-strong);
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--kk-ink-soft);
+  text-decoration: none;
+}
+.kk-head-admin.is-active {
+  border-color: var(--kk-accent);
+  background: var(--kk-accent-soft);
+  color: var(--kk-accent-strong);
+}
+.kk-head-admin svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .kk-foot {
   border-top: 1px solid var(--kk-line);

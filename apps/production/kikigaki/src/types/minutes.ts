@@ -57,7 +57,7 @@ export interface EventItem {
 
 /** AIが文字起こしから組み立てる議事録の構造。確認画面で人が直す対象そのもの */
 export interface Minutes {
-  /** まとめ方。作るときに選び、あとから「つくり直す」で変えられる */
+  /** まとめ方。作るときに選び、あとから「種類を変える」で変えられる */
   mode: MinutesMode
   title: string
   /** 会議の日付（YYYY-MM-DD）。文字起こしから分からなければ空文字 */

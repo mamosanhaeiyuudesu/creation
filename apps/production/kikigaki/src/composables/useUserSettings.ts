@@ -21,7 +21,7 @@ export function useUserSettings() {
       method: 'PUT',
       body: { settings: next },
     })
-    // サーバーが丸めた値（100〜3000）を画面へ返す
+    // サーバーが丸めた値（500〜4000）を画面へ返す
     settings.value = res.settings
     loaded.value = true
     return res.settings

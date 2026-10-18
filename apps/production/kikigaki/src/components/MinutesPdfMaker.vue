@@ -69,6 +69,7 @@
 
 <script setup lang="ts">
 import { formatDateLabel } from '~/utils/formatDate'
+import { splitPrintBudget } from '~/utils/printBudget'
 import { emptyMinutes } from '~/types/minutes'
 import type { EventItem, Minutes } from '~/types/minutes'
 
@@ -142,7 +143,9 @@ async function buildPrintContent() {
   // 別のタブで設定を変えたときも最新の値で作るよう、PDFをつくるたびに読み直す
   // （読めなければ手元の値で続ける。PDFが作れなくなるほどのことではない）
   const settings = await loadUserSettings().catch(() => userSettings.value)
-  const summaryMax = settings.pdfLeftMaxChars
+  // 全体の目安文字数を左右に振り分ける（片方が短ければ、余りをもう片方に回す）
+  const budget = splitPrintBudget(leftChars, rightChars, settings.pdfMaxChars)
+  const summaryMax = budget.left
 
   if (leftChars <= summaryMax) {
     printSummaryMain.value = doc.value.summary
@@ -167,7 +170,7 @@ async function buildPrintContent() {
     }
   }
 
-  const rightMax = settings.pdfRightMaxChars
+  const rightMax = budget.right
 
   if (rightChars <= rightMax) {
     printDecisionLines.value = decisionLines

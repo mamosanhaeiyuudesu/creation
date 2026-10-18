@@ -4,13 +4,19 @@
 import { requireUser } from '~/server/utils/auth'
 import { requireEntitlement } from '~/server/utils/entitlement'
 import { condensePrintLeft, condensePrintRight, type PrintLineInput } from '~/server/utils/minutes-ai'
-import { PRINT_MAX_CHARS_MAX, PRINT_MAX_CHARS_MIN } from '~/types/settings'
+import { PDF_MAX_CHARS_MAX } from '~/types/settings'
+
+/**
+ * 1列あたりの文字数の下限。全体の目安（500字〜）を左右に振り分けたあとの値が来るので、
+ * 全体の下限より小さくなりうる（片方が短く、もう片方に多く回したとき）
+ */
+const COLUMN_MAX_CHARS_MIN = 100
 import { normalizeMode, type MinutesPoint } from '~/types/minutes'
 
 function clampMaxChars(v: unknown): number {
   const n = Number(v)
-  if (!Number.isFinite(n)) return PRINT_MAX_CHARS_MIN
-  return Math.min(PRINT_MAX_CHARS_MAX, Math.max(PRINT_MAX_CHARS_MIN, Math.round(n)))
+  if (!Number.isFinite(n)) return COLUMN_MAX_CHARS_MIN
+  return Math.min(PDF_MAX_CHARS_MAX, Math.max(COLUMN_MAX_CHARS_MIN, Math.round(n)))
 }
 
 export default defineEventHandler(async (event) => {

@@ -14,7 +14,9 @@ export async function loadUserSettings(event: H3Event, userId: string): Promise<
     .first()) as { pdf_left_max_chars: number; pdf_right_max_chars: number } | null
   // 行が無い＝一度も設定を変えていない人。既定値を返す（行はつくらない）
   if (!row) return defaultUserSettings()
-  return normalizeUserSettings({ pdfLeftMaxChars: row.pdf_left_max_chars, pdfRightMaxChars: row.pdf_right_max_chars })
+  // 目安文字数は2列の合計として読む。左右別々に設定していたころの行（既定は 1000＋1000）も、
+  // そのまま全体の文字数として引き継げる（列を作り変えずに済むようにこの持ち方にした）
+  return normalizeUserSettings({ pdfMaxChars: (row.pdf_left_max_chars ?? 0) + (row.pdf_right_max_chars ?? 0) })
 }
 
 export async function saveUserSettings(event: H3Event, userId: string, raw: unknown): Promise<UserSettings> {
@@ -30,7 +32,8 @@ export async function saveUserSettings(event: H3Event, userId: string, raw: unkn
          pdf_right_max_chars = excluded.pdf_right_max_chars,
          updated_at = excluded.updated_at`
     )
-    .bind(userId, settings.pdfLeftMaxChars, settings.pdfRightMaxChars)
+    // 全体の文字数を左の列に入れ、右の列は0にする（読むときは合計する）
+    .bind(userId, settings.pdfMaxChars, 0)
     .run()
   return settings
 }

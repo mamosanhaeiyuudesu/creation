@@ -20,15 +20,15 @@
                 :class="{ 'is-open': openPop === 'restructure' }"
                 :aria-expanded="openPop === 'restructure'"
                 :disabled="restructuring"
-                title="種類を選び直して、元の文章からつくり直す"
+                title="種類を変えて、元の文章からまとめ直す"
                 @click="togglePop('restructure')"
               >
                 <MinutesModeBadge :mode="minutes.mode" />
-                <span v-if="restructuring" class="kk-mode-btn-busy">つくり直しています…</span>
-                <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5" /></svg>
+                <span class="kk-mode-btn-text">{{ restructuring ? 'まとめ直しています…' : '種類を変える' }}</span>
+                <svg v-if="!restructuring" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5" /></svg>
               </button>
-              <div v-if="openPop === 'restructure'" class="kk-pop kk-pop--wide kk-pop--left" role="dialog" aria-label="つくり直す">
-                <p class="kk-pop-title">種類を選び直して、つくり直しますか？</p>
+              <div v-if="openPop === 'restructure'" class="kk-pop kk-pop--wide kk-pop--left" role="dialog" aria-label="種類を変える">
+                <p class="kk-pop-title">種類を変える</p>
                 <div class="kk-mode-choice" role="radiogroup" aria-label="どんな記録か">
                   <button
                     v-for="m in MINUTES_MODES"
@@ -46,11 +46,11 @@
                   </button>
                 </div>
                 <p class="kk-note mt-2 mb-0">
-                  元の文章から、AIがまとめ直します。いまの内容は置き換わり、手で直したところも元に戻ります（タグはそのまま残ります）。
+                  元の文章から、選んだ種類でAIがまとめ直します。いまの内容は置き換わり、手で直したところも元に戻ります（タグは残ります）。
                 </p>
                 <div class="flex justify-end mt-2">
                   <button type="button" class="kk-pop-run" :disabled="restructuring" @click="runRestructure">
-                    {{ restructuring ? 'つくり直しています…' : 'つくり直す' }}
+                    {{ restructuring ? 'まとめ直しています…' : restructureRunLabel }}
                   </button>
                 </div>
               </div>
@@ -92,7 +92,6 @@
               <ul class="kk-pop-list">
                 <li v-for="(p, i) in minutes.unclearPoints" :key="i">{{ p }}</li>
               </ul>
-              <p class="kk-note mt-2 mb-0">このあたりは、ご自分の記憶とあわせて確かめてください。</p>
             </div>
           </div>
 
@@ -174,19 +173,16 @@
           <!-- 左だけ: 会議の名前・日・まとめ -->
           <template v-if="col === 'left'">
             <section class="kk-card kk-review-card">
-              <div class="kk-meta-row">
-                <div class="flex-1 min-w-0">
-                  <label class="kk-field-label" for="minutes-title">{{ labels.title }}</label>
-                  <input id="minutes-title" v-model="minutes.title" class="kk-input" :placeholder="labels.titlePlaceholder">
-                </div>
-                <div class="kk-meta-date">
-                  <label class="kk-field-label" for="minutes-date">{{ labels.date }}</label>
-                  <input id="minutes-date" v-model="minutes.date" type="date" class="kk-input">
-                </div>
-              </div>
-              <!-- 参加者とタグは横に並べる（幅が足りなければ縦に積む） -->
+              <!-- 名前は横一行を使う（長い名前でも見切れないように） -->
+              <label class="kk-field-label" for="minutes-title">{{ labels.title }}</label>
+              <input id="minutes-title" v-model="minutes.title" class="kk-input" :placeholder="labels.titlePlaceholder">
+              <!-- 日・参加者・タグはその下に横に並べる（幅が足りなければ縦に積む） -->
               <div class="kk-meta-pair">
-              <div class="min-w-0">
+              <div class="kk-meta-date">
+                <label class="kk-field-label mt-2" for="minutes-date">{{ labels.date }}</label>
+                <input id="minutes-date" v-model="minutes.date" type="date" class="kk-input">
+              </div>
+              <div class="kk-meta-people">
               <!-- 参加者は1人1欄。末尾の空欄に入れて Enter（または欄を離れる）と確定し、次の空欄が出る -->
               <p class="kk-field-label mt-2">{{ labels.people }}<span class="kk-sec-count ml-1">{{ minutes.participants.length }}</span></p>
               <ul class="kk-people">
@@ -212,10 +208,9 @@
                 </li>
               </ul>
               </div>
-              <div class="min-w-0">
+              <div class="kk-meta-tags">
                 <p class="kk-field-label mt-2">タグ<span class="kk-sec-count ml-1">{{ minutes.tags.length }}</span></p>
                 <TagInput v-model="minutes.tags" :suggestions="tagSuggestions" />
-                <p class="kk-note m-0 mt-1">一覧での絞り込みに使います。PDFには載りません。</p>
               </div>
               </div>
             </section>
@@ -233,21 +228,23 @@
           <section v-for="group in pointGroups.filter((g) => g.col === col)" :key="group.key" class="kk-card kk-review-card">
             <div class="kk-sec-head">
               <h2 class="kk-sec-title">{{ group.label }}<span class="kk-sec-count">{{ group.items.length }}</span></h2>
-              <span class="kk-sec-hint">{{ group.hint }}</span>
               <button type="button" class="kk-add" @click="group.items.push({ content: '', note: '' })"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>追加</button>
             </div>
 
             <p v-if="!group.items.length" class="kk-empty">見つかりませんでした。</p>
             <ul v-else class="kk-items">
               <li v-for="(item, i) in group.items" :key="i" class="kk-item">
-                <div class="kk-item-main">
+                <!-- 番号と削除は左の細い列に縦に並べる（右側を空けて、スマホで本文の幅を取るため） -->
+                <div class="kk-item-side">
                   <span class="kk-num">{{ i + 1 }}</span>
-                  <AutoTextarea v-model="item.content" :placeholder="group.placeholder" class="flex-1 font-bold" />
                   <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(group.items, i)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg></button>
                 </div>
-                <div class="kk-sub">
-                  <span class="kk-sub-label">{{ group.subLabel }}</span>
-                  <AutoTextarea v-model="item.note" :placeholder="group.subPlaceholder" class="flex-1" />
+                <div class="kk-item-body">
+                  <AutoTextarea v-model="item.content" :placeholder="group.placeholder" class="font-bold" />
+                  <!-- 補足は字下げと縦線で本文にぶら下がるものと分かるので、ラベルは出さず空のときの案内文字だけにする -->
+                  <div class="kk-sub">
+                    <AutoTextarea v-model="item.note" :placeholder="group.subLabel" class="flex-1" />
+                  </div>
                 </div>
               </li>
             </ul>
@@ -258,18 +255,19 @@
             <section class="kk-card kk-review-card">
               <div class="kk-sec-head">
                 <h2 class="kk-sec-title">つぎの予定<span class="kk-sec-count">{{ minutes.eventCandidates.length }}</span></h2>
-                <span class="kk-sec-hint">次に集まる日や行事です。</span>
                 <button type="button" class="kk-add" @click="addEvent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>追加</button>
               </div>
 
               <p v-if="!minutes.eventCandidates.length" class="kk-empty">見つかりませんでした。</p>
               <ul v-else class="kk-items">
                 <li v-for="(ev, i) in minutes.eventCandidates" :key="i" class="kk-item">
-                  <div class="kk-item-main">
+                  <!-- 番号と削除は左の細い列に縦に並べる（右側を空けて、スマホで本文の幅を取るため） -->
+                  <div class="kk-item-side">
                     <span class="kk-num">{{ i + 1 }}</span>
-                    <AutoTextarea v-model="ev.title" placeholder="予定の名前" class="flex-1 font-bold" />
                     <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(minutes.eventCandidates, i)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg></button>
                   </div>
+                  <div class="kk-item-body">
+                  <AutoTextarea v-model="ev.title" placeholder="予定の名前" class="font-bold" />
                   <div class="kk-fields">
                     <div>
                       <label class="kk-field-label">日にちと時間</label>
@@ -281,6 +279,7 @@
                       <input v-model="ev.location" class="kk-input" placeholder="れい: 公民館">
                     </div>
                   </div>
+                  </div>
                 </li>
               </ul>
             </section>
@@ -288,18 +287,19 @@
             <section class="kk-card kk-review-card">
               <div class="kk-sec-head">
                 <h2 class="kk-sec-title">やること<span class="kk-sec-count">{{ minutes.taskCandidates.length }}</span></h2>
-                <span class="kk-sec-hint">だれが何をするか。期限が決まっていれば入れてください。</span>
                 <button type="button" class="kk-add" @click="addTask"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>追加</button>
               </div>
 
               <p v-if="!minutes.taskCandidates.length" class="kk-empty">見つかりませんでした。</p>
               <ul v-else class="kk-items">
                 <li v-for="(task, i) in minutes.taskCandidates" :key="i" class="kk-item">
-                  <div class="kk-item-main">
+                  <!-- 番号と削除は左の細い列に縦に並べる（右側を空けて、スマホで本文の幅を取るため） -->
+                  <div class="kk-item-side">
                     <span class="kk-num">{{ i + 1 }}</span>
-                    <AutoTextarea v-model="task.task" placeholder="やること" class="flex-1 font-bold" />
                     <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(minutes.taskCandidates, i)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg></button>
                   </div>
+                  <div class="kk-item-body">
+                  <AutoTextarea v-model="task.task" placeholder="やること" class="font-bold" />
                   <div class="kk-fields">
                     <div>
                       <label class="kk-field-label">だれが</label>
@@ -310,6 +310,7 @@
                       <input v-model="task.dueDate" type="date" class="kk-input">
                       <p v-if="task.due" class="kk-note m-0">会議では「{{ task.due }}」と話していました。</p>
                     </div>
+                  </div>
                   </div>
                 </li>
               </ul>
@@ -408,6 +409,12 @@ const reviseInstruction = ref('')
 const restructuring = ref(false)
 /** つくり直すときに選ぶまとめ方。開いたときは、いまのまとめ方と違うほうを選んでおく */
 const restructureMode = ref<MinutesMode>('meeting')
+/** 実行ボタンの文言。押す前に「何に変わるか」が分かるよう種類の名前を入れる。同じ種類なら最初からやり直す */
+const restructureRunLabel = computed(() => {
+  if (restructureMode.value === minutes.mode) return 'もう一度まとめ直す'
+  const label = MINUTES_MODES.find((m) => m.value === restructureMode.value)?.label ?? ''
+  return `「${label}」でまとめ直す`
+})
 const confirmingDelete = ref(false)
 const deleting = ref(false)
 /** ツールバーから開く小さな窓（不明点／つくり直す／AIに直してもらう＝いまは画面から外している）。同時に開くのは1つだけ */
@@ -565,20 +572,16 @@ const pointGroups = computed(() =>
           key: 'keyMessages',
           col: 'right',
           label: '伝えたかったこと',
-          hint: '話し手がいちばん伝えたかったことです。',
           placeholder: '伝えたかったこと',
           subLabel: '話の要旨',
-          subPlaceholder: 'どんな話で伝えていたか',
           items: minutes.keyMessages,
         },
         {
           key: 'topics',
           col: 'left',
           label: '話の内容',
-          hint: '話した順に、話題ごとに並べています。',
           placeholder: '話題',
           subLabel: '中身',
-          subPlaceholder: 'その話題で話したこと',
           items: minutes.topics,
         },
       ]
@@ -587,20 +590,16 @@ const pointGroups = computed(() =>
           key: 'decisions',
           col: 'right',
           label: 'この会で決まったこと',
-          hint: 'はっきり決まったことだけが入ります。',
           placeholder: '決まったこと',
           subLabel: '補足',
-          subPlaceholder: 'なくても構いません',
           items: minutes.decisions,
         },
         {
           key: 'discussions',
           col: 'left',
           label: '話し合ったこと',
-          hint: 'まだ決まっていない話です。',
           placeholder: '話し合ったこと',
           subLabel: '補足',
-          subPlaceholder: 'なくても構いません',
           items: minutes.discussions,
         },
       ]
@@ -855,7 +854,7 @@ async function runRevise() {
   revising.value = false
 }
 
-/** まとめ方を選び直して、元の文章からつくり直す。結果は自動保存で保存される（AIに直してもらうと同じ） */
+/** 種類を変えて、元の文章からまとめ直す。結果は自動保存で保存される */
 async function runRestructure() {
   errorMessage.value = ''
   savedMessage.value = ''
@@ -871,9 +870,9 @@ async function runRestructure() {
     minutes.tags = tags
     openPop.value = null
     const label = MINUTES_MODES.find((m) => m.value === res.minutes.mode)?.label ?? ''
-    savedMessage.value = `「${label}」としてつくり直しました。内容を確かめてください（自動で保存されます）。`
+    savedMessage.value = `「${label}」にまとめ直しました。内容を確かめてください。`
   } catch (e) {
-    errorMessage.value = apiMessage(e, 'つくり直せませんでした。もう一度お試しください。')
+    errorMessage.value = apiMessage(e, 'まとめ直せませんでした。もう一度お試しください。')
   }
   restructuring.value = false
 }
@@ -988,7 +987,6 @@ onUnmounted(() => {
   flex-shrink: 0;
   width: 1.35rem;
   height: 1.35rem;
-  margin-top: 0.35rem;
   border-radius: 999px;
   background: var(--kk-accent-soft);
   color: var(--kk-accent-strong);
@@ -1004,18 +1002,11 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-start;
   gap: 0.4rem;
-  margin: 0.25rem 1.9rem 0 1.75rem;
+  margin: 0.25rem 0 0 0.5rem;
   padding-left: 0.5rem;
   border-left: 2px solid var(--kk-line);
 }
 
-.kk-sub-label {
-  flex-shrink: 0;
-  margin-top: 0.45rem;
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--kk-ink-faint);
-}
 
 /* ── 確認画面: PDFと同じく左右2列。広い画面では高さを画面に収め、列の中だけ動かす ── */
 .kk-review-head {
@@ -1207,7 +1198,7 @@ onUnmounted(() => {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.kk-mode-btn-busy {
+.kk-mode-btn-text {
   font-size: 11.5px;
   font-weight: 700;
   color: var(--kk-ink-soft);
@@ -1431,19 +1422,19 @@ onUnmounted(() => {
   padding: 0.6rem 0.8rem 0.7rem;
 }
 
-/* 会議の名前と日は1行に並べる */
-.kk-meta-row {
+/* 名前の下に、日・参加者・タグを横に並べる（入りきらなければ折り返す） */
+.kk-meta-pair {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0 1rem;
 }
 .kk-meta-date {
-  flex: 0 0 170px;
+  flex: 0 0 160px;
 }
-.kk-meta-pair {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 0 1rem;
+.kk-meta-people,
+.kk-meta-tags {
+  flex: 1 1 200px;
+  min-width: 0;
 }
 
 /* 参加者: 名前ごとの小さな欄を横に並べ、入りきらなければ折り返す */
@@ -1511,12 +1502,6 @@ onUnmounted(() => {
   border-radius: 999px;
   padding: 0 0.4rem;
 }
-.kk-sec-hint {
-  flex: 1;
-  min-width: 0;
-  font-size: 11.5px;
-  color: var(--kk-ink-faint);
-}
 .kk-add {
   margin-left: auto;
   display: inline-flex;
@@ -1563,13 +1548,27 @@ onUnmounted(() => {
   border-top: 0;
   padding-top: 0;
 }
-.kk-item-main {
+.kk-item {
   display: flex;
   align-items: flex-start;
   gap: 0.4rem;
 }
+/* 左の細い列: 番号の下に削除 */
+.kk-item-side {
+  flex: none;
+  width: 1.6rem;
+  padding-top: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+.kk-item-body {
+  flex: 1;
+  min-width: 0;
+}
 .kk-fields {
-  margin: 0.3rem 1.9rem 0 1.75rem;
+  margin: 0.3rem 0 0;
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.35rem 0.5rem;
@@ -1614,14 +1613,13 @@ onUnmounted(() => {
   cursor: pointer;
   padding: 0.1rem 0.3rem;
 }
-/* 行の削除はゴミ箱アイコン（一覧・見出しの「削除」とそろえる）。
+/* 行の削除はゴミ箱アイコン（一覧・見出しの「削除」とそろえる）。番号の下に置く。
    PCではその項目に乗せたとき・入力中のときだけ出し、並んだ項目の邪魔をしない。
    スマホは乗せる操作が無いので、常に薄く出しておく */
 .kk-row-del {
   flex: none;
   width: 1.6rem;
   height: 1.6rem;
-  margin-top: 0.25rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
