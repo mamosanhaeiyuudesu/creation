@@ -3,7 +3,7 @@
     <div class="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-[3px]" @click.self="emit('close')">
       <div class="nk-sheet w-full sm:max-w-[560px] max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-[0_24px_70px_rgba(34,37,44,0.45)]">
         <!-- 見出し -->
-        <header class="nk-sheet-bar sticky top-0 z-10 flex items-center justify-between gap-3 px-5 pt-4 pb-3">
+        <header class="nk-sheet-bar sticky top-0 z-10 flex items-center justify-between gap-3 px-5 h-[68px]">
           <div class="flex items-center gap-1 min-w-0">
             <button
               class="nk-btn-ghost !w-8 !h-8 !px-0 flex items-center justify-center text-[16px] shrink-0"
@@ -11,11 +11,12 @@
               :title="prevDate ? formatDateLabel(prevDate) : ''"
               @click="prevDate && emit('navigate', prevDate)"
             >‹</button>
-            <div class="min-w-0 px-1">
-              <h2 class="nk-serif m-0 text-[20px] leading-none truncate" :class="date === today ? 'text-[var(--nk-today)]' : ''">
+            <!-- 幅と高さを固定して、日付の長さが違っても矢印の位置が動かないようにする -->
+            <div class="w-[132px] h-[40px] px-1 flex flex-col justify-center">
+              <h2 class="nk-serif m-0 text-[20px] leading-none whitespace-nowrap truncate" :class="date === today ? 'text-[var(--nk-today)]' : ''">
                 {{ formatDateLabel(date) }}
               </h2>
-              <p class="mt-1.5 mb-0 text-[11px] text-[var(--nk-ink-soft)]">
+              <p class="mt-1.5 mb-0 h-[14px] leading-[14px] text-[11px] text-[var(--nk-ink-soft)]">
                 {{ date === today ? '今日' : date.slice(0, 4) + '年' }}
               </p>
             </div>
@@ -76,13 +77,6 @@
                 <button class="nk-btn-ghost" @click="cancelRecording">やめる</button>
               </template>
 
-              <label class="ml-auto flex items-center gap-1.5 text-[11px] text-[var(--nk-ink-soft)]">
-                文字起こし
-                <select v-model="transcriptionModel" class="nk-input !w-auto !py-1 !text-[11px]">
-                  <option value="whisper">Whisper</option>
-                  <option value="gemini">Gemini</option>
-                </select>
-              </label>
             </div>
 
             <p v-if="micSeemsDead" class="mb-2 text-[12px] text-[var(--nk-today)]">
@@ -98,11 +92,8 @@
               class="nk-input resize-y leading-relaxed"
             />
             <div class="flex flex-wrap items-center gap-2 mt-2">
-              <button class="nk-btn" :disabled="!draft.trim() || saving" @click="submit(true)">
-                {{ saving ? '保存中…' : '保存してトピックを取り出す' }}
-              </button>
-              <button class="nk-btn-ghost" :disabled="!draft.trim() || saving" @click="submit(false)">
-                保存だけする
+              <button class="nk-btn" :disabled="!draft.trim() || saving" @click="submit">
+                {{ saving ? '保存中…' : '保存してサマリを取り出す' }}
               </button>
             </div>
           </section>
@@ -110,7 +101,7 @@
           <!-- 抜き出された重要トピック -->
           <section>
             <div class="flex items-center justify-between gap-2 mb-2">
-              <h3 class="text-[12px] font-bold text-[var(--nk-ink-soft)] tracking-wide">この日の重要トピック</h3>
+              <h3 class="text-[12px] font-bold text-[var(--nk-ink-soft)] tracking-wide">サマリ</h3>
               <div class="flex items-center gap-2">
                 <button
                   v-if="!adding"
@@ -118,12 +109,6 @@
                   :disabled="saving"
                   @click="startAdd"
                 >＋ 自分で入れる</button>
-                <button
-                  v-if="entry?.body"
-                  class="nk-btn-ghost !h-7 !px-2.5 !text-[11px]"
-                  :disabled="saving"
-                  @click="emit('reextract')"
-                >全文から作り直す</button>
               </div>
             </div>
 
@@ -172,11 +157,13 @@
                 <!-- 表示 -->
                 <template v-else>
                   <div class="flex items-start gap-2">
+                    <!-- 重要度の数値は非表示（復活させるときはこのコメントを外す）
                     <span
                       class="mt-[2px] shrink-0 rounded px-1.5 text-[10px] font-bold leading-[17px]"
                       :class="`nk-impact-${Math.min(5, Math.max(3, topic.impact))}`"
                       :title="`インパクト ${topic.impact}`"
                     >{{ topic.impact }}</span>
+                    -->
                     <div class="min-w-0 flex-1">
                       <p class="m-0 text-[13.5px] font-bold leading-snug">{{ topic.headline }}</p>
                       <p v-if="topic.detail" class="mt-1 mb-0 text-[12px] leading-relaxed text-[var(--nk-ink-soft)]">{{ topic.detail }}</p>
@@ -192,12 +179,10 @@
             </ul>
           </section>
 
-          <!-- 元の全文（読み返せるように残している） -->
+          <!-- 元の全文（常に表示） -->
           <section v-if="entry?.body">
-            <button class="text-[12px] font-bold text-[var(--nk-indigo)] underline underline-offset-2" @click="showBody = !showBody">
-              {{ showBody ? '話した内容を閉じる' : '話した内容（全文）を読む' }}
-            </button>
-            <p v-if="showBody" class="mt-2 mb-0 whitespace-pre-wrap text-[12.5px] leading-relaxed text-[var(--nk-ink)] nk-card px-3 py-2.5">
+            <h3 class="text-[12px] font-bold text-[var(--nk-ink-soft)] tracking-wide mb-2">全文</h3>
+            <p class="m-0 whitespace-pre-wrap text-[12.5px] leading-relaxed text-[var(--nk-ink)] nk-card px-3 py-2.5">
               {{ entry.body }}
             </p>
           </section>
@@ -211,7 +196,6 @@
 
 <script setup lang="ts">
 import { useAudioRecorder } from '~/composables/useAudioRecorder'
-import { useTranscriptionModel } from '~/composables/useTranscriptionModel'
 import { eventTime, formatDateLabel } from '~/utils/nikki-calendar'
 import type { NikkiEntry, NikkiEvent, NikkiTopic } from '~/types/nikki'
 
@@ -232,7 +216,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   save: [text: string, extract: boolean]
-  reextract: []
   addTopic: [input: { headline: string; detail: string; impact: number }]
   patchTopic: [id: string, patch: { headline: string; detail: string; impact: number }]
   removeTopic: [id: string]
@@ -240,12 +223,9 @@ const emit = defineEmits<{
 }>()
 
 const draft = ref('')
-const showBody = ref(false)
 const recordError = ref('')
 
 const topics = computed(() => props.entry?.topics ?? [])
-
-const { transcriptionModel } = useTranscriptionModel()
 
 // この日のGoogleカレンダーの予定名を文字起こしのヒントとして渡す（聞き間違い対策）。
 // 文章の形のまま渡すこと＝固有名詞を並べるだけだと効かないことが kikigaki の辞書で実測確認済み。
@@ -271,7 +251,7 @@ const { isRecording, isPaused, isProcessing, duration, level, formatTime, startR
     },
     onError: (msg: string) => { recordError.value = msg },
     getPrompt: () => transcriptionPrompt.value,
-    getModel: () => transcriptionModel.value,
+    getModel: () => 'whisper',
   })
 
 // 録り始めて数秒たってもレベルがまったく動かない＝マイクが死んでいる
@@ -282,10 +262,10 @@ const micSeemsDead = computed(() => (isRecording.value || isPaused.value) && dur
 
 const error = computed(() => recordError.value || props.error)
 
-const submit = (extract: boolean) => {
+const submit = () => {
   const text = draft.value.trim()
   if (!text) return
-  emit('save', text, extract)
+  emit('save', text, true)
 }
 
 // 保存が通ったら下書きを空にする
@@ -299,7 +279,6 @@ watch(
   () => props.date,
   () => {
     draft.value = ''
-    showBody.value = false
     editingId.value = ''
     adding.value = false
     recordError.value = ''

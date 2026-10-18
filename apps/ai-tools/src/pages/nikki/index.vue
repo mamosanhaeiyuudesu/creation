@@ -107,7 +107,6 @@
         :next-date="dayNavNext"
         @close="closeDay"
         @save="onSave"
-        @reextract="reextract"
         @add-topic="addTopic"
         @patch-topic="patchTopic"
         @remove-topic="removeTopic"
@@ -176,7 +175,6 @@ const {
   openDay,
   closeDay,
   saveText,
-  reextract,
   addTopic,
   patchTopic,
   removeTopic,
@@ -204,8 +202,8 @@ const quickDays = computed(() => {
   const todayStr = today.value
   const yesterday = prevDate(todayStr)
   return [
-    { date: todayStr, label: isRecorded(todayStr) ? '今日の記録（追記）' : '今日の記録', recorded: isRecorded(todayStr), solid: '', ghost: '!border-[var(--nk-accent)]' },
-    { date: yesterday, label: isRecorded(yesterday) ? '昨日の記録（追記）' : '昨日の記録', recorded: isRecorded(yesterday), solid: '!bg-[var(--nk-indigo)]', ghost: '!border-[var(--nk-indigo)]' },
+    { date: todayStr, label: '今日の記録', recorded: isRecorded(todayStr), solid: '', ghost: '!border-[var(--nk-accent)]' },
+    { date: yesterday, label: '昨日の記録', recorded: isRecorded(yesterday), solid: '!bg-[var(--nk-indigo)]', ghost: '!border-[var(--nk-indigo)]' },
   ]
 })
 

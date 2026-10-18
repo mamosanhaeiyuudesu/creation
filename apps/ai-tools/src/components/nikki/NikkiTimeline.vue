@@ -33,11 +33,13 @@
             class="rounded-lg border border-[var(--nk-line)] px-3 py-2"
           >
             <span class="flex items-start gap-2">
+              <!-- 重要度の数値は非表示（復活させるときはこのコメントを外す）
               <span
                 class="mt-[1px] shrink-0 rounded px-1 text-[10px] font-bold leading-[16px]"
                 :class="`nk-impact-${Math.min(5, Math.max(3, topic.impact))}`"
                 :title="`インパクト ${topic.impact}`"
               >{{ topic.impact }}</span>
+              -->
               <span class="text-[13px] font-bold leading-snug">{{ topic.headline }}</span>
             </span>
             <span v-if="topic.detail" class="block mt-1 text-[12px] leading-snug text-[var(--nk-ink-soft)]">
