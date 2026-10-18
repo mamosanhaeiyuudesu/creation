@@ -172,6 +172,47 @@ body {
 }
 .kk-btn-text:hover { color: var(--kk-ink); }
 
+/* まとめ方（複数人で話した／主に1人が話した）を選ぶ2択。文章から作るシートと、確認画面の「つくり直す」で使う。
+   中身の説明（講演・インタビューなど）まで見せて、どちらを選べばいいか迷わないようにする */
+.kk-mode-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.kk-mode-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--kk-line-strong);
+  border-radius: 10px;
+  background: var(--kk-panel);
+  font-family: inherit;
+  text-align: left;
+  color: var(--kk-ink);
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.kk-mode-opt:hover:not(:disabled) { border-color: var(--kk-accent); }
+.kk-mode-opt.is-on {
+  border-color: var(--kk-accent);
+  background: var(--kk-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--kk-accent);
+}
+.kk-mode-opt:disabled { opacity: 0.45; cursor: default; }
+.kk-mode-opt-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.kk-mode-opt.is-on .kk-mode-opt-label { color: var(--kk-accent-strong); }
+.kk-mode-opt-desc {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--kk-ink-faint);
+}
+
 /* ── 入力 ───────────────────────────────────────────── */
 
 .kk-input {

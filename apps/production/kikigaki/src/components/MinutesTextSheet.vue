@@ -9,7 +9,7 @@
 
     <template v-if="stage === 'idle'">
       <p class="kk-lead">
-        文字にした会議の文章から議事録をつくります。
+        文字にした会議や話の文章から議事録をつくります。
         文章のファイルをえらぶか、文章を貼り付けてください。
       </p>
 
@@ -34,6 +34,24 @@
         @input="clearTextFile"
       />
 
+      <!-- まとめ方。会議なら決まったこと・やることを、1人の話ならその人が伝えたかったことを中心にまとめる -->
+      <p class="kk-field-label mt-4">どんな記録ですか？</p>
+      <div class="kk-mode-choice" role="radiogroup" aria-label="どんな記録か">
+        <button
+          v-for="m in MINUTES_MODES"
+          :key="m.value"
+          type="button"
+          role="radio"
+          class="kk-mode-opt"
+          :class="{ 'is-on': mode === m.value }"
+          :aria-checked="mode === m.value"
+          @click="mode = m.value"
+        >
+          <span class="kk-mode-opt-label">{{ m.label }}</span>
+          <span class="kk-mode-opt-desc">{{ m.desc }}</span>
+        </button>
+      </div>
+
       <button class="kk-btn mt-4" :disabled="!canRunText" @click="runFromText">
         この文章から議事録をつくる
       </button>
@@ -42,7 +60,7 @@
     <template v-else>
       <div class="py-6 text-center">
         <span class="inline-block w-8 h-8 rounded-full border-[3px] border-[var(--kk-accent)] border-t-transparent animate-spin" />
-        <p class="kk-h2 mt-4">AIが議事録にまとめています…</p>
+        <p class="kk-h2 mt-4">AIが{{ mode === 'talk' ? '話の記録' : '議事録' }}にまとめています…</p>
         <p class="kk-lead mt-3">この画面を閉じずにお待ちください。</p>
       </div>
     </template>
@@ -51,6 +69,7 @@
 
 <script setup lang="ts">
 import { apiMessage } from '~/utils/apiMessage'
+import { MINUTES_MODES, type MinutesMode } from '~/types/minutes'
 
 const props = defineProps<{ modelValue: boolean }>()
 defineEmits<{ 'update:modelValue': [boolean] }>()
@@ -61,6 +80,8 @@ type Stage = 'idle' | 'structuring'
 const stage = ref<Stage>('idle')
 const errorMessage = ref('')
 const pastedText = ref('')
+/** まとめ方。閉じても覚えておく（続けて同じ種類の記録を作ることが多いので） */
+const mode = ref<MinutesMode>('meeting')
 const textFile = ref<File | null>(null)
 const textFileInput = ref<HTMLInputElement | null>(null)
 
@@ -125,7 +146,7 @@ async function runFromText() {
     if (!text) {
       throw new Error('文章が空でした。中身のあるファイルか、貼り付けた文章でお試しください。')
     }
-    await createMinutes(text, file?.name ?? '')
+    await createMinutes(text, file?.name ?? '', mode.value)
   } catch (e) {
     errorMessage.value = apiMessage(e)
     stage.value = 'idle'

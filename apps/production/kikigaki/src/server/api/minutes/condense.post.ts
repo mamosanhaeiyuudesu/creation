@@ -5,7 +5,7 @@ import { requireUser } from '~/server/utils/auth'
 import { requireEntitlement } from '~/server/utils/entitlement'
 import { condensePrintLeft, condensePrintRight, type PrintLineInput } from '~/server/utils/minutes-ai'
 import { PRINT_MAX_CHARS_MAX, PRINT_MAX_CHARS_MIN } from '~/types/settings'
-import type { MinutesPoint } from '~/types/minutes'
+import { normalizeMode, type MinutesPoint } from '~/types/minutes'
 
 function clampMaxChars(v: unknown): number {
   const n = Number(v)
@@ -19,8 +19,10 @@ export default defineEventHandler(async (event) => {
   await requireEntitlement(event, user.id)
   const body = await readBody<{
     target?: 'left' | 'right'
+    mode?: string
     summary?: string
-    discussions?: MinutesPoint[]
+    /** 左側で概要と一緒に載せる項目（会議＝話し合ったこと、1人の話＝話の内容） */
+    points?: MinutesPoint[]
     decisions?: PrintLineInput[]
     events?: PrintLineInput[]
     tasks?: PrintLineInput[]
@@ -28,11 +30,12 @@ export default defineEventHandler(async (event) => {
   }>(event)
 
   const maxChars = clampMaxChars(body?.maxChars)
+  const mode = normalizeMode(body?.mode)
 
   if (body?.target === 'left') {
     const text = await condensePrintLeft(
       event,
-      { summary: body?.summary ?? '', discussions: body?.discussions ?? [] },
+      { mode, summary: body?.summary ?? '', points: body?.points ?? [] },
       maxChars
     )
     return { text }
@@ -41,6 +44,7 @@ export default defineEventHandler(async (event) => {
   return await condensePrintRight(
     event,
     {
+      mode,
       decisions: body?.decisions ?? [],
       events: body?.events ?? [],
       tasks: body?.tasks ?? [],

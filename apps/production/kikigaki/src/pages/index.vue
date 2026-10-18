@@ -205,10 +205,23 @@
                   >
                 </div>
                 <div v-else class="kk-row-head">
-                  <NuxtLink :to="`/records/${r.id}`" class="kk-row-title" @click.stop>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l3 3v13H6z" /><path d="M9 11h6M9 15h6" /></svg>
-                    <span class="truncate">{{ r.title || '（名前のない議事録）' }}</span>
-                  </NuxtLink>
+                  <!-- 名前と「名前を変える」は離さない（名前が長くても、ボタンだけ次の行に落ちないように） -->
+                  <span class="kk-row-name">
+                    <NuxtLink :to="`/records/${r.id}`" class="kk-row-title" @click.stop>
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l3 3v13H6z" /><path d="M9 11h6M9 15h6" /></svg>
+                      <span class="truncate">{{ r.title || '（名前のない議事録）' }}</span>
+                    </NuxtLink>
+                    <button
+                      type="button"
+                      class="kk-row-icon kk-row-rename"
+                      :disabled="!!rowBusy"
+                      :aria-label="`${r.title || '議事録'}の名前を変える`"
+                      title="名前を変える"
+                      @click.stop="startTitle(r)"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16zM13 7l4 4" /></svg>
+                    </button>
+                  </span>
                   <!-- 行のタグを押しても、そのタグで絞り込める -->
                   <button
                     v-for="t in r.tags"
@@ -229,16 +242,6 @@
               <!-- 開かずにPDF・ドライブ保存。行を押すと開くので、ここだけ伝わらないよう止める -->
               <td class="kk-col-actions" @click.stop>
                 <div class="kk-row-actions">
-                  <button
-                    type="button"
-                    class="kk-row-icon"
-                    :disabled="!!rowBusy || editingId === r.id"
-                    :aria-label="`${r.title || '議事録'}の名前を変える`"
-                    title="名前を変える"
-                    @click="startTitle(r)"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16zM13 7l4 4" /></svg>
-                  </button>
                   <button
                     v-if="driveConnected"
                     type="button"
@@ -758,8 +761,24 @@ onMounted(async () => {
   gap: 0.25rem 0.4rem;
   min-width: 0;
 }
-.kk-row-head .kk-row-title {
+.kk-row-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  min-width: 0;
   max-width: 100%;
+}
+.kk-row-name .kk-row-title {
+  min-width: 0;
+}
+/* 名前の右の「名前を変える」。右端の操作より一回り小さくして、名前の邪魔をしない */
+.kk-row-icon.kk-row-rename {
+  width: 26px;
+  height: 26px;
+}
+.kk-row-icon.kk-row-rename svg {
+  width: 14px;
+  height: 14px;
 }
 .kk-row-tag {
   flex: none;
@@ -833,7 +852,7 @@ onMounted(async () => {
 }
 /* 行の右端の操作（アイコンのみ） */
 .kk-col-actions {
-  width: 150px;
+  width: 120px;
   padding-left: 0.25rem !important;
   padding-right: 0.6rem !important;
 }

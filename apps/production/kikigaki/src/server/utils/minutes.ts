@@ -7,7 +7,7 @@
 import type { H3Event } from 'h3'
 import { requireDb, ensureTables } from '~/server/utils/db'
 import { encryptText, decryptText } from '~/server/utils/encrypt'
-import { emptyMinutes } from '~/types/minutes'
+import { emptyMinutes, normalizeMode } from '~/types/minutes'
 import { normalizeTags } from '~/utils/tags'
 import type {
   EventItem,
@@ -85,12 +85,15 @@ function normalizeParticipants(v: unknown): string[] {
 export function normalizeMinutes(raw: any): Minutes {
   if (!raw || typeof raw !== 'object') return emptyMinutes()
   return {
+    mode: normalizeMode(raw.mode),
     title: str(raw.title),
     date: normalizeDate(raw.date),
     participants: normalizeParticipants(raw.participants),
     summary: str(raw.summary),
     decisions: normalizePoints(raw.decisions),
     discussions: normalizePoints(raw.discussions),
+    keyMessages: normalizePoints(raw.keyMessages ?? raw.key_messages),
+    topics: normalizePoints(raw.topics),
     taskCandidates: normalizeTasks(raw.taskCandidates ?? raw.task_candidates),
     eventCandidates: normalizeEvents(raw.eventCandidates ?? raw.event_candidates),
     unclearPoints: arr(raw.unclearPoints ?? raw.unclear_points).map(str).filter(Boolean),

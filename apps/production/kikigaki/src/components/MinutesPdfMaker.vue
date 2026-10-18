@@ -7,17 +7,17 @@
         <div class="kk-print-header">
           <span class="kk-print-date">{{ printDateLabel }}</span>
           <span>〈{{ doc.title || '（名前のない議事録）' }}〉</span>
-          <span v-if="printParticipants" class="kk-print-participants">参加者: {{ printParticipants }}</span>
+          <span v-if="printParticipants" class="kk-print-participants">{{ talk ? '話し手' : '参加者' }}: {{ printParticipants }}</span>
         </div>
   
-        <!-- 概要＝もとのまとめと「話し合ったこと」を1つの欄にしたもの。文字数内ならそのまま両方出し、
+        <!-- 概要＝もとのまとめと「話し合ったこと」（1人の話では「話の内容」）を1つの欄にしたもの。文字数内ならそのまま両方出し、
              超えていたらAIがひとつながりの文章に要約し直した printSummaryMain だけを出す
              （そのときは printDiscussionLines が空になり、小見出しごと消える）。 -->
         <div class="kk-print-section">
           <p class="kk-print-heading">概要</p>
           <p class="kk-print-body">{{ printSummaryMain || '（記載なし）' }}</p>
           <template v-if="printDiscussionLines.length">
-            <p class="kk-print-subheading">話し合ったこと</p>
+            <p class="kk-print-subheading">{{ talk ? '話の内容' : '話し合ったこと' }}</p>
             <ul class="kk-print-list">
               <li v-for="(d, i) in printDiscussionLines" :key="i">
                 {{ i + 1 }}. {{ d.main }}
@@ -29,8 +29,9 @@
       </div>
   
       <div class="kk-print-col kk-print-col--right">
+        <!-- 右側。会議＝決まったこと・つぎの予定・やること、1人の話＝伝えたかったことだけ -->
         <div class="kk-print-section">
-          <p class="kk-print-heading">決まったこと</p>
+          <p class="kk-print-heading">{{ talk ? '伝えたかったこと' : '決まったこと' }}</p>
           <p v-if="!printDecisionLines.length" class="kk-print-empty">（なし）</p>
           <ul v-else class="kk-print-list">
             <li v-for="(d, i) in printDecisionLines" :key="i">
@@ -40,7 +41,7 @@
           </ul>
         </div>
   
-        <div class="kk-print-section">
+        <div v-if="!talk" class="kk-print-section">
           <p class="kk-print-heading">つぎの予定</p>
           <p v-if="!printEventLines.length" class="kk-print-empty">（なし）</p>
           <ul v-else class="kk-print-list">
@@ -51,7 +52,7 @@
           </ul>
         </div>
   
-        <div class="kk-print-section">
+        <div v-if="!talk" class="kk-print-section">
           <p class="kk-print-heading">やること</p>
           <p v-if="!printTaskLines.length" class="kk-print-empty">（なし）</p>
           <ul v-else class="kk-print-list">
@@ -77,6 +78,9 @@ const { settings: userSettings, load: loadUserSettings } = useUserSettings()
 /** いまPDFにしている議事録 */
 const doc = ref<Minutes>(emptyMinutes())
 const printRoot = ref<HTMLElement | null>(null)
+
+/** 主に1人が話した記録か（見出しと載せる項目が変わる） */
+const talk = computed(() => doc.value.mode === 'talk')
 
 const printParticipants = computed(() => doc.value.participants.map((p) => p.trim()).filter(Boolean).join('、'))
 
@@ -107,16 +111,19 @@ function lineLength(l: PrintLine): number {
 
 /** PDFの左右に載せる元の行と、その文字数 */
 function buildPrintSource() {
-  // 左側＝まとめ＋話し合ったこと
-  const discussionLines: PrintLine[] = doc.value.discussions.map((d) => ({ main: d.content, note: d.note }))
+  // 左側＝まとめ＋話し合ったこと（1人の話では まとめ＋話の内容）
+  const leftPoints = talk.value ? doc.value.topics : doc.value.discussions
+  const discussionLines: PrintLine[] = leftPoints.map((d) => ({ main: d.content, note: d.note }))
   const leftChars = doc.value.summary.length + discussionLines.reduce((sum, l) => sum + lineLength(l), 0)
-  // 右側＝決まったこと・つぎの予定・やること（この順で出す）
-  const decisionLines: PrintLine[] = doc.value.decisions.map((d) => ({ main: d.content, note: d.note }))
-  const eventLines: PrintLine[] = doc.value.eventCandidates.map((ev) => ({
+  // 右側＝決まったこと・つぎの予定・やること（この順で出す）。1人の話では伝えたかったことだけ
+  // （予定・やることは空のまま。1人の話では拾っていない）
+  const rightPoints = talk.value ? doc.value.keyMessages : doc.value.decisions
+  const decisionLines: PrintLine[] = rightPoints.map((d) => ({ main: d.content, note: d.note }))
+  const eventLines: PrintLine[] = (talk.value ? [] : doc.value.eventCandidates).map((ev) => ({
     main: ev.title || '（無題）',
     note: ev.location ? `${printEventWhen(ev)} ・ ${ev.location}` : printEventWhen(ev),
   }))
-  const taskLines: PrintLine[] = doc.value.taskCandidates.map((t) => ({
+  const taskLines: PrintLine[] = (talk.value ? [] : doc.value.taskCandidates).map((t) => ({
     main: t.task,
     note: `担当: ${t.assignee || '未定'}${t.dueDate || t.due ? ` ・ 期限 ${t.dueDate || t.due}` : ''}`,
   }))
@@ -146,8 +153,9 @@ async function buildPrintContent() {
         method: 'POST',
         body: {
           target: 'left',
+          mode: doc.value.mode,
           summary: doc.value.summary,
-          discussions: toRaw(doc.value).discussions,
+          points: discussionLines.map((l) => ({ content: l.main, note: l.note ?? '' })),
           maxChars: summaryMax,
         },
       })
@@ -171,7 +179,7 @@ async function buildPrintContent() {
         '/api/minutes/condense',
         {
           method: 'POST',
-          body: { target: 'right', decisions: decisionLines, events: eventLines, tasks: taskLines, maxChars: rightMax },
+          body: { target: 'right', mode: doc.value.mode, decisions: decisionLines, events: eventLines, tasks: taskLines, maxChars: rightMax },
         }
       )
       printDecisionLines.value = res.decisions.map((main) => ({ main }))
@@ -221,7 +229,7 @@ async function make(src: Minutes): Promise<{ pdf: InstanceType<Awaited<typeof im
 
 /** ファイル名（ドライブでは同じ名前のPDFを上書きするので、名前の付け方を変えるときは注意） */
 function pdfFileName(m: Minutes): string {
-  const safeTitle = (m.title || '議事録').replace(/[\\/:*?"<>|]/g, '_')
+  const safeTitle = (m.title || (m.mode === 'talk' ? '話の記録' : '議事録')).replace(/[\\/:*?"<>|]/g, '_')
   return m.date ? `${safeTitle}_${m.date}.pdf` : `${safeTitle}.pdf`
 }
 

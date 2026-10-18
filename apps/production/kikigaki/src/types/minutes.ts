@@ -4,7 +4,25 @@
 // 承認送信フロー時代の持ち物（status / docUrl / sentTasks / approvedAt / sheetAppended / warnings）は
 // 引き継いでいない。本番版の出力は PDF のダウンロードだけで、承認という概念が無いため。
 
-/** この会で決まったこと／話し合ったこと の1件 */
+/**
+ * まとめ方。
+ * - meeting: 複数人の会議・話し合い（決まったこと・話し合ったこと・予定・やることを拾う）
+ * - talk:    主に1人が話した記録（講演・インタビュー・カウンセリングなど）。
+ *            決まったことは拾わず、その人が伝えたかったことと話の中身を重点的に残す
+ * talk を足す前に作った議事録には mode が無いので、meeting として読む。
+ */
+export type MinutesMode = 'meeting' | 'talk'
+
+export const MINUTES_MODES: { value: MinutesMode; label: string; desc: string }[] = [
+  { value: 'meeting', label: '複数人で話した', desc: '会議・打ち合わせ・話し合い' },
+  { value: 'talk', label: '主に1人が話した', desc: '講演・インタビュー・カウンセリングなど' },
+]
+
+export function normalizeMode(v: unknown): MinutesMode {
+  return v === 'talk' ? 'talk' : 'meeting'
+}
+
+/** この会で決まったこと／話し合ったこと の1件（talk では 伝えたかったこと／話の内容 の1件） */
 export interface MinutesPoint {
   content: string
   /** 補足（言い方の但し書きなど）。無ければ空文字 */
@@ -35,16 +53,22 @@ export interface EventItem {
 
 /** AIが文字起こしから組み立てる議事録の構造。確認画面で人が直す対象そのもの */
 export interface Minutes {
+  /** まとめ方。作るときに選び、あとから「つくり直す」で変えられる */
+  mode: MinutesMode
   title: string
   /** 会議の日付（YYYY-MM-DD）。文字起こしから分からなければ空文字 */
   date: string
-  /** 会議の参加者。1人1要素（画面でも1人ずつ入れる）。分からなければ空配列 */
+  /** 会議の参加者（talk では話し手）。1人1要素（画面でも1人ずつ入れる）。分からなければ空配列 */
   participants: string[]
   summary: string
   /** 決まったこと */
   decisions: MinutesPoint[]
   /** 話し合ったこと（まだ決まっていないこと） */
   discussions: MinutesPoint[]
+  /** talk のみ: その人が伝えたかったこと（content＝要点、note＝それが表れている話の要旨） */
+  keyMessages: MinutesPoint[]
+  /** talk のみ: 話の内容を話題ごとに（content＝話題、note＝話した中身） */
+  topics: MinutesPoint[]
   /** やること */
   taskCandidates: TaskItem[]
   /** つぎの予定 */
@@ -76,12 +100,15 @@ export interface MinutesRecord extends RecordSummary {
 
 export function emptyMinutes(): Minutes {
   return {
+    mode: 'meeting',
     title: '',
     date: '',
     participants: [],
     summary: '',
     decisions: [],
     discussions: [],
+    keyMessages: [],
+    topics: [],
     taskCandidates: [],
     eventCandidates: [],
     unclearPoints: [],

@@ -55,13 +55,56 @@
             </div>
           </div>
 
+          <!-- つくり直す＝まとめ方（複数人／主に1人）を選び直して、元の文章からAIにまとめ直してもらう -->
+          <div class="kk-pop-wrap">
+            <button
+              type="button"
+              class="kk-icon-btn"
+              :class="{ 'is-open': openPop === 'restructure' }"
+              :aria-expanded="openPop === 'restructure'"
+              :disabled="restructuring || revising"
+              title="まとめ方を選び直して、元の文章からつくり直す"
+              @click="togglePop('restructure')"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.6-4.5M4 4v4h4M4 13a8 8 0 0 0 14.6 4.5M20 20v-4h-4" /></svg>
+              {{ restructuring ? 'つくり直しています…' : 'つくり直す' }}
+            </button>
+            <div v-if="openPop === 'restructure'" class="kk-pop kk-pop--wide" role="dialog" aria-label="つくり直す">
+              <p class="kk-pop-title">どんな記録としてつくり直しますか？</p>
+              <div class="kk-mode-choice" role="radiogroup" aria-label="どんな記録か">
+                <button
+                  v-for="m in MINUTES_MODES"
+                  :key="m.value"
+                  type="button"
+                  role="radio"
+                  class="kk-mode-opt"
+                  :class="{ 'is-on': restructureMode === m.value }"
+                  :aria-checked="restructureMode === m.value"
+                  :disabled="restructuring"
+                  @click="restructureMode = m.value"
+                >
+                  <span class="kk-mode-opt-label">{{ m.label }}</span>
+                  <span class="kk-mode-opt-desc">{{ m.desc }}</span>
+                </button>
+              </div>
+              <p class="kk-note mt-2 mb-0">
+                元の文章から、AIがまとめ直します。いまの内容は置き換わり、手で直したところも元に戻ります（タグはそのまま残ります）。
+              </p>
+              <div class="flex justify-end mt-2">
+                <button type="button" class="kk-pop-run" :disabled="restructuring" @click="runRestructure">
+                  {{ restructuring ? 'つくり直しています…' : 'つくり直す' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div class="kk-pop-wrap">
             <button
               type="button"
               class="kk-icon-btn kk-icon-btn--ai"
               :class="{ 'is-open': openPop === 'revise' }"
               :aria-expanded="openPop === 'revise'"
-              :disabled="revising"
+              :disabled="revising || restructuring"
               @click="togglePop('revise')"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z" /></svg>
@@ -137,11 +180,11 @@
             <section class="kk-card kk-review-card">
               <div class="kk-meta-row">
                 <div class="flex-1 min-w-0">
-                  <label class="kk-field-label" for="minutes-title">会議の名前</label>
-                  <input id="minutes-title" v-model="minutes.title" class="kk-input" placeholder="れい: 青年部の定例会">
+                  <label class="kk-field-label" for="minutes-title">{{ labels.title }}</label>
+                  <input id="minutes-title" v-model="minutes.title" class="kk-input" :placeholder="labels.titlePlaceholder">
                 </div>
                 <div class="kk-meta-date">
-                  <label class="kk-field-label" for="minutes-date">会議をした日</label>
+                  <label class="kk-field-label" for="minutes-date">{{ labels.date }}</label>
                   <input id="minutes-date" v-model="minutes.date" type="date" class="kk-input">
                 </div>
               </div>
@@ -149,16 +192,16 @@
               <div class="kk-meta-pair">
               <div class="min-w-0">
               <!-- 参加者は1人1欄。末尾の空欄に入れて Enter（または欄を離れる）と確定し、次の空欄が出る -->
-              <p class="kk-field-label mt-2">会議の参加者<span class="kk-sec-count ml-1">{{ minutes.participants.length }}</span></p>
+              <p class="kk-field-label mt-2">{{ labels.people }}<span class="kk-sec-count ml-1">{{ minutes.participants.length }}</span></p>
               <ul class="kk-people">
                 <li v-for="(_, i) in minutes.participants" :key="i" class="kk-person">
                   <input
                     v-model="minutes.participants[i]"
                     class="kk-input kk-person-input"
-                    :aria-label="`参加者${i + 1}`"
+                    :aria-label="`${labels.person}${i + 1}`"
                     @keydown.enter="onPersonEnter"
                   >
-                  <button type="button" class="kk-person-del" :aria-label="`${minutes.participants[i] || '参加者'}を外す`" @click="minutes.participants.splice(i, 1)">✕</button>
+                  <button type="button" class="kk-person-del" :aria-label="`${minutes.participants[i] || labels.person}を外す`" @click="minutes.participants.splice(i, 1)">✕</button>
                 </li>
                 <li class="kk-person">
                   <input
@@ -166,7 +209,7 @@
                     v-model="newPerson"
                     class="kk-input kk-person-input kk-person-input--new"
                     :placeholder="minutes.participants.length ? '＋ 次の人' : 'れい: 田中さん'"
-                    aria-label="参加者を追加"
+                    :aria-label="`${labels.person}を追加`"
                     @keydown.enter="onNewPersonEnter"
                     @blur="commitNewPerson"
                   >
@@ -183,13 +226,14 @@
 
             <section class="kk-card kk-review-card">
               <div class="kk-sec-head">
-                <h2 class="kk-sec-title">会議のまとめ</h2>
+                <h2 class="kk-sec-title">{{ labels.summary }}</h2>
               </div>
-              <AutoTextarea v-model="minutes.summary" placeholder="会議の流れのまとめ" />
+              <AutoTextarea v-model="minutes.summary" :placeholder="labels.summaryPlaceholder" />
             </section>
           </template>
 
-          <!-- 決まったこと・話し合ったこと（同じ形なので部品で回す。左＝話し合い、右＝決定） -->
+          <!-- 決まったこと・話し合ったこと（1人の話では 伝えたかったこと・話の内容）。
+               同じ形なので部品で回す。左＝話し合い／話の内容、右＝決定／伝えたかったこと -->
           <section v-for="group in pointGroups.filter((g) => g.col === col)" :key="group.key" class="kk-card kk-review-card">
             <div class="kk-sec-head">
               <h2 class="kk-sec-title">{{ group.label }}<span class="kk-sec-count">{{ group.items.length }}</span></h2>
@@ -206,15 +250,15 @@
                   <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(group.items, i)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg></button>
                 </div>
                 <div class="kk-sub">
-                  <span class="kk-sub-label">補足</span>
-                  <AutoTextarea v-model="item.note" placeholder="なくても構いません" class="flex-1" />
+                  <span class="kk-sub-label">{{ group.subLabel }}</span>
+                  <AutoTextarea v-model="item.note" :placeholder="group.subPlaceholder" class="flex-1" />
                 </div>
               </li>
             </ul>
           </section>
 
-          <!-- 右だけ: つぎの予定・やること -->
-          <template v-if="col === 'right'">
+          <!-- 右だけ: つぎの予定・やること（会議のときだけ。1人の話では拾わない） -->
+          <template v-if="col === 'right' && minutes.mode === 'meeting'">
             <section class="kk-card kk-review-card">
               <div class="kk-sec-head">
                 <h2 class="kk-sec-title">つぎの予定<span class="kk-sec-count">{{ minutes.eventCandidates.length }}</span></h2>
@@ -338,8 +382,8 @@
 <script setup lang="ts">
 import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
-import { emptyMinutes } from '~/types/minutes'
-import type { Minutes, MinutesRecord } from '~/types/minutes'
+import { emptyMinutes, MINUTES_MODES } from '~/types/minutes'
+import type { Minutes, MinutesMode, MinutesRecord } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
 
 useHead({ title: `内容をたしかめる — ${SERVICE.name}` })
@@ -366,16 +410,21 @@ const saving = ref(false)
 const generatingPdf = ref(false)
 const revising = ref(false)
 const reviseInstruction = ref('')
+const restructuring = ref(false)
+/** つくり直すときに選ぶまとめ方。開いたときは、いまのまとめ方と違うほうを選んでおく */
+const restructureMode = ref<MinutesMode>('meeting')
 const confirmingDelete = ref(false)
 const deleting = ref(false)
-/** ツールバーから開く小さな窓（聞き取れなかった所／AIに直してもらう）。同時に開くのは1つだけ */
-const openPop = ref<'unclear' | 'revise' | null>(null)
+/** ツールバーから開く小さな窓（聞き取れなかった所／つくり直す／AIに直してもらう）。同時に開くのは1つだけ */
+type PopName = 'unclear' | 'restructure' | 'revise'
+const openPop = ref<PopName | null>(null)
 const toolsRoot = ref<HTMLElement | null>(null)
 const reviseInput = ref<HTMLTextAreaElement | null>(null)
 
-function togglePop(name: 'unclear' | 'revise') {
+function togglePop(name: PopName) {
   openPop.value = openPop.value === name ? null : name
   if (openPop.value === 'revise') nextTick(() => reviseInput.value?.focus())
+  if (openPop.value === 'restructure') restructureMode.value = minutes.mode === 'talk' ? 'meeting' : 'talk'
 }
 
 // 窓の外を押したら閉じる
@@ -485,27 +534,82 @@ function confirmRemoveRow() {
 /** 画面で編集している議事録。保存・PDFともこれをもとに行う */
 const minutes = reactive<Minutes>(emptyMinutes())
 
-/** 「決まったこと」「話し合ったこと」は同じ形なので、まとめて描く */
-const pointGroups = computed(() => [
-  {
-    key: 'decisions',
-    col: 'right',
-    label: 'この会で決まったこと',
-    hint: 'はっきり決まったことだけが入ります。',
-    placeholder: '決まったこと',
-    items: minutes.decisions,
-  },
-  {
-    key: 'discussions',
-    col: 'left',
-    label: '話し合ったこと',
-    hint: 'まだ決まっていない話です。',
-    placeholder: '話し合ったこと',
-    items: minutes.discussions,
-  },
-])
+/** まとめ方ごとの欄の名前（1人の話では「会議」と書かない） */
+const labels = computed(() =>
+  minutes.mode === 'talk'
+    ? {
+        title: 'タイトル',
+        titlePlaceholder: 'れい: 子育てについての講演',
+        date: '話した日',
+        people: '話し手',
+        person: '話し手',
+        summary: '話のまとめ',
+        summaryPlaceholder: 'どんな話だったかのまとめ',
+      }
+    : {
+        title: '会議の名前',
+        titlePlaceholder: 'れい: 青年部の定例会',
+        date: '会議をした日',
+        people: '会議の参加者',
+        person: '参加者',
+        summary: '会議のまとめ',
+        summaryPlaceholder: '会議の流れのまとめ',
+      }
+)
+
+/**
+ * 「決まったこと」「話し合ったこと」（1人の話では「伝えたかったこと」「話の内容」）は同じ形なので、まとめて描く
+ */
+const pointGroups = computed(() =>
+  minutes.mode === 'talk'
+    ? [
+        {
+          key: 'keyMessages',
+          col: 'right',
+          label: '伝えたかったこと',
+          hint: '話し手がいちばん伝えたかったことです。',
+          placeholder: '伝えたかったこと',
+          subLabel: '話の要旨',
+          subPlaceholder: 'どんな話で伝えていたか',
+          items: minutes.keyMessages,
+        },
+        {
+          key: 'topics',
+          col: 'left',
+          label: '話の内容',
+          hint: '話した順に、話題ごとに並べています。',
+          placeholder: '話題',
+          subLabel: '中身',
+          subPlaceholder: 'その話題で話したこと',
+          items: minutes.topics,
+        },
+      ]
+    : [
+        {
+          key: 'decisions',
+          col: 'right',
+          label: 'この会で決まったこと',
+          hint: 'はっきり決まったことだけが入ります。',
+          placeholder: '決まったこと',
+          subLabel: '補足',
+          subPlaceholder: 'なくても構いません',
+          items: minutes.decisions,
+        },
+        {
+          key: 'discussions',
+          col: 'left',
+          label: '話し合ったこと',
+          hint: 'まだ決まっていない話です。',
+          placeholder: '話し合ったこと',
+          subLabel: '補足',
+          subPlaceholder: 'なくても構いません',
+          items: minutes.discussions,
+        },
+      ]
+)
 
 function applyMinutes(src: Minutes) {
+  minutes.mode = src.mode
   minutes.title = src.title
   minutes.date = src.date
   minutes.participants = [...src.participants]
@@ -513,6 +617,8 @@ function applyMinutes(src: Minutes) {
   minutes.summary = src.summary
   minutes.decisions = src.decisions.map((d) => ({ ...d }))
   minutes.discussions = src.discussions.map((d) => ({ ...d }))
+  minutes.keyMessages = src.keyMessages.map((d) => ({ ...d }))
+  minutes.topics = src.topics.map((d) => ({ ...d }))
   minutes.taskCandidates = src.taskCandidates.map((t) => ({ ...t }))
   minutes.eventCandidates = src.eventCandidates.map((e) => ({ ...e }))
   minutes.unclearPoints = [...src.unclearPoints]
@@ -645,7 +751,14 @@ function scheduleAutoSave(delay = AUTOSAVE_DELAY_MS) {
 async function autoSave(): Promise<boolean> {
   if (deleting.value || !record.value) return true
   // ボタンでの保存・PDF作り・AIの直しの最中は、それが終わってからにする
-  if (saving.value || generatingPdf.value || driveSaving.value || revising.value || autoState.value === 'saving') {
+  if (
+    saving.value ||
+    generatingPdf.value ||
+    driveSaving.value ||
+    revising.value ||
+    restructuring.value ||
+    autoState.value === 'saving'
+  ) {
     scheduleAutoSave()
     return false
   }
@@ -756,6 +869,29 @@ async function runRevise() {
     errorMessage.value = apiMessage(e, 'AIが直せませんでした。もう一度お試しください。')
   }
   revising.value = false
+}
+
+/** まとめ方を選び直して、元の文章からつくり直す。結果は自動保存で保存される（AIに直してもらうと同じ） */
+async function runRestructure() {
+  errorMessage.value = ''
+  savedMessage.value = ''
+  restructuring.value = true
+  try {
+    const res = await authedFetch<{ minutes: Minutes }>('/api/minutes/restructure', {
+      method: 'POST',
+      body: { id: id.value, mode: restructureMode.value },
+    })
+    // タグは画面で付けたばかりのもの（まだ保存していないもの）も残す
+    const tags = [...minutes.tags]
+    applyMinutes(res.minutes)
+    minutes.tags = tags
+    openPop.value = null
+    const label = MINUTES_MODES.find((m) => m.value === res.minutes.mode)?.label ?? ''
+    savedMessage.value = `「${label}」記録としてつくり直しました。内容を確かめてください（自動で保存されます）。`
+  } catch (e) {
+    errorMessage.value = apiMessage(e, 'つくり直せませんでした。もう一度お試しください。')
+  }
+  restructuring.value = false
 }
 
 async function remove() {

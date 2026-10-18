@@ -66,3 +66,23 @@ describe('normalizeMinutes', () => {
     expect(m.unclearPoints).toEqual([])
   })
 })
+
+describe('normalizeMinutes のまとめ方', () => {
+  it('mode が無い（talk を足す前の）議事録は会議として読む', () => {
+    expect(normalizeMinutes({ title: '定例会' }).mode).toBe('meeting')
+    expect(normalizeMinutes({ mode: 'へんな値' }).mode).toBe('meeting')
+  })
+
+  it('1人の話の項目（伝えたかったこと・話の内容）を読み、空の行は落とす', () => {
+    const m = normalizeMinutes({
+      mode: 'talk',
+      key_messages: [{ content: '失敗を恐れなくていい', note: '若いころの転職の話' }, { content: '' }],
+      topics: [{ content: '生い立ち', note: '漁師の家に生まれた' }],
+    })
+    expect(m.mode).toBe('talk')
+    expect(m.keyMessages).toEqual([{ content: '失敗を恐れなくていい', note: '若いころの転職の話' }])
+    expect(m.topics).toHaveLength(1)
+    // 画面から保存し直したとき（キャメルケース）も読める
+    expect(normalizeMinutes({ keyMessages: m.keyMessages }).keyMessages).toHaveLength(1)
+  })
+})
