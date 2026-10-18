@@ -11,26 +11,6 @@
       <button type="button" class="kk-msg-close" aria-label="閉じる" @click="savedMessage = ''">✕</button>
     </p>
 
-    <!-- 今月の使用ぶん -->
-    <section class="kk-set-sec">
-      <h2 class="kk-set-title">今月つかった分</h2>
-      <p v-if="!usage" class="kk-set-text">読み込んでいます…</p>
-      <template v-else>
-        <div class="flex items-baseline justify-between">
-          <span class="kk-set-text">つかった分</span>
-          <span class="kk-set-num">{{ usage.usedPercent }}%</span>
-        </div>
-        <div class="kk-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="usage.usedPercent">
-          <div class="kk-meter-fill" :class="{ 'kk-meter-fill--warn': usage.usedPercent >= 80 }" :style="{ width: usage.usedPercent + '%' }" />
-        </div>
-        <p v-if="usage.exhausted" class="kk-notice kk-notice--warn mt-2">
-          今月のぶんを使い切りました。来月1日から、またお使いいただけます。
-        </p>
-        <p v-else-if="usage.usedPercent >= 80" class="kk-set-note">もうすぐ今月のぶんを使い切ります。</p>
-        <p class="kk-set-note">議事録づくりと「まとめ直す」の合計。毎月1日にリセットされます。</p>
-      </template>
-    </section>
-
     <!-- タグの管理。名前の変更（既にあるタグにすると1つにまとまる）と削除（全部の議事録から外す） -->
     <section class="kk-set-sec">
       <h2 class="kk-set-title">タグ<span v-if="allTags.length" class="kk-set-tag-total">{{ allTags.length }}</span></h2>
@@ -86,6 +66,26 @@
         <button class="kk-btn-text" :disabled="tagBusy" @click="deletingTag = ''">やめる</button>
       </div>
     </BottomSheet>
+
+    <!-- 今月の使用ぶん -->
+    <section class="kk-set-sec">
+      <h2 class="kk-set-title">今月つかった分</h2>
+      <p v-if="!usage" class="kk-set-text">読み込んでいます…</p>
+      <template v-else>
+        <div class="flex items-baseline justify-between">
+          <span class="kk-set-text">つかった分</span>
+          <span class="kk-set-num">{{ usage.usedPercent }}%</span>
+        </div>
+        <div class="kk-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="usage.usedPercent">
+          <div class="kk-meter-fill" :class="{ 'kk-meter-fill--warn': usage.usedPercent >= 80 }" :style="{ width: usage.usedPercent + '%' }" />
+        </div>
+        <p v-if="usage.exhausted" class="kk-notice kk-notice--warn mt-2">
+          今月のぶんを使い切りました。来月1日から、またお使いいただけます。
+        </p>
+        <p v-else-if="usage.usedPercent >= 80" class="kk-set-note">もうすぐ今月のぶんを使い切ります。</p>
+        <p class="kk-set-note">議事録づくりと「まとめ直す」の合計。毎月1日にリセットされます。</p>
+      </template>
+    </section>
 
     <!-- PDFの文字数（アカウント全体。すべての議事録のPDFに効く）。
          選んだらすぐ保存し、次にPDFをつくるときから使われる（PDFは保存しておらず毎回つくるので、作り直しは要らない） -->
@@ -163,23 +163,28 @@
       <p v-else class="kk-set-text">読み込んでいます…</p>
     </section>
 
-    <!-- Googleドライブ -->
+    <!-- Googleドライブ。つながっているかだけ分かればよいので、説明文は置かない -->
     <section class="kk-set-sec">
-      <h2 class="kk-set-title">
+      <h2 class="kk-set-title m-0">
         <span class="inline-flex items-center gap-1.5"><GoogleDriveIcon class="w-[14px] h-[14px]" />Googleドライブ</span>
-        <span class="kk-set-state" :class="{ 'is-on': driveConnected }">{{ driveConnected ? 'つながっています' : '未接続' }}</span>
+        <span v-if="driveConnected" class="kk-set-drive-on">
+          <span class="kk-set-state is-on">連携済み</span>
+          <button
+            type="button"
+            class="kk-set-tag-icon is-danger"
+            :disabled="driveBusy"
+            aria-label="Googleドライブとの連携を解除"
+            title="連携を解除"
+            @click="disconnectDrive"
+          >
+            <!-- 切れた鎖（連携の解除） -->
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 14.5l-1.8 1.8a3 3 0 0 1-4.2-4.2l2.6-2.6a3 3 0 0 1 4.2 0M14.5 9.5l1.8-1.8a3 3 0 0 1 4.2 4.2l-2.6 2.6a3 3 0 0 1-4.2 0M4 4l2 2M18 18l2 2M9 3v2M3 9h2M15 21v-2M21 15h-2" /></svg>
+          </button>
+        </span>
       </h2>
-      <template v-if="driveConnected">
-        <p class="kk-set-text">PDFはドライブの「キキガキ議事録」フォルダにも保存されます。</p>
-        <button class="kk-set-btn" :disabled="driveBusy" @click="disconnectDrive">つなぐのをやめる</button>
-      </template>
-      <template v-else>
-        <p class="kk-set-text">つなぐと、PDFが自動でドライブの「キキガキ議事録」フォルダに保存されます。</p>
-        <button class="kk-set-btn kk-set-btn--accent" :disabled="driveBusy" @click="connectDrive">
-          {{ driveBusy ? '画面をひらいています…' : 'Googleドライブとつなぐ' }}
-        </button>
-      </template>
-      <p class="kk-set-note">ドライブのほかのファイルは見えません。キキガキが作ったファイルだけを扱います。</p>
+      <button v-if="!driveConnected" class="kk-set-btn kk-set-btn--accent" :disabled="driveBusy" @click="connectDrive">
+        {{ driveBusy ? '画面をひらいています…' : 'Googleドライブとつなぐ' }}
+      </button>
     </section>
 
     <!-- アカウント -->
@@ -541,6 +546,11 @@ watch(() => route.path, refreshAll)
 .kk-set-state.is-on {
   color: var(--kk-accent-strong);
   background: var(--kk-accent-soft);
+}
+.kk-set-drive-on {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
 }
 .kk-set-text {
   margin: 0;

@@ -11,7 +11,7 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
           </NuxtLink>
           <div class="kk-review-titlebar">
-            <h1 class="kk-review-h1">内容をたしかめる</h1>
+            <h1 class="kk-review-h1">内容を確かめる</h1>
             <!-- 種類（話し合い／聞き取り）。押すと、種類を選び直して元の文章からつくり直せる -->
             <div ref="modeRoot" class="kk-pop-wrap">
               <button
@@ -24,7 +24,7 @@
                 @click="togglePop('restructure')"
               >
                 <MinutesModeBadge :mode="minutes.mode" />
-                <span class="kk-mode-btn-text">{{ restructuring ? 'まとめ直しています…' : '種類を変える' }}</span>
+                <span v-if="restructuring" class="kk-mode-btn-text">まとめ直しています…</span>
                 <svg v-if="!restructuring" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5" /></svg>
               </button>
               <div v-if="openPop === 'restructure'" class="kk-pop kk-pop--wide kk-pop--left" role="dialog" aria-label="種類を変える">
@@ -383,7 +383,7 @@ import { emptyMinutes, MINUTES_MODES } from '~/types/minutes'
 import type { Minutes, MinutesMode, MinutesRecord } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
 
-useHead({ title: `内容をたしかめる — ${SERVICE.name}` })
+useHead({ title: `内容を確かめる — ${SERVICE.name}` })
 // PDFのように左右に並べるので、レイアウト側で横幅を広げ画面の高さに収める
 definePageMeta({ wide: true })
 
