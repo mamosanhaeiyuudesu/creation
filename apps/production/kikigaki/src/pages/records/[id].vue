@@ -10,17 +10,58 @@
           <NuxtLink to="/" class="kk-back" title="一覧へ" aria-label="一覧へ">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
           </NuxtLink>
-          <div class="min-w-0">
-            <h1 class="kk-review-h1">
-              内容をたしかめる
-              <!-- 自動保存の状態。直してから少し待つと自動で保存される -->
-              <span class="kk-autosave" :class="`is-${autoState}`" role="status" aria-live="polite">{{ autoLabel }}</span>
-            </h1>
+          <div class="kk-review-titlebar">
+            <h1 class="kk-review-h1">内容をたしかめる</h1>
+            <!-- 種類（話し合い／聞き取り）。押すと、種類を選び直して元の文章からつくり直せる -->
+            <div ref="modeRoot" class="kk-pop-wrap">
+              <button
+                type="button"
+                class="kk-mode-btn"
+                :class="{ 'is-open': openPop === 'restructure' }"
+                :aria-expanded="openPop === 'restructure'"
+                :disabled="restructuring"
+                title="種類を選び直して、元の文章からつくり直す"
+                @click="togglePop('restructure')"
+              >
+                <MinutesModeBadge :mode="minutes.mode" />
+                <span v-if="restructuring" class="kk-mode-btn-busy">つくり直しています…</span>
+                <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5" /></svg>
+              </button>
+              <div v-if="openPop === 'restructure'" class="kk-pop kk-pop--wide kk-pop--left" role="dialog" aria-label="つくり直す">
+                <p class="kk-pop-title">種類を選び直して、つくり直しますか？</p>
+                <div class="kk-mode-choice" role="radiogroup" aria-label="どんな記録か">
+                  <button
+                    v-for="m in MINUTES_MODES"
+                    :key="m.value"
+                    type="button"
+                    role="radio"
+                    class="kk-mode-opt"
+                    :class="{ 'is-on': restructureMode === m.value }"
+                    :aria-checked="restructureMode === m.value"
+                    :disabled="restructuring"
+                    @click="restructureMode = m.value"
+                  >
+                    <span class="kk-mode-opt-label">{{ m.label }}</span>
+                    <span class="kk-mode-opt-desc">{{ m.desc }}</span>
+                  </button>
+                </div>
+                <p class="kk-note mt-2 mb-0">
+                  元の文章から、AIがまとめ直します。いまの内容は置き換わり、手で直したところも元に戻ります（タグはそのまま残ります）。
+                </p>
+                <div class="flex justify-end mt-2">
+                  <button type="button" class="kk-pop-run" :disabled="restructuring" @click="runRestructure">
+                    {{ restructuring ? 'つくり直しています…' : 'つくり直す' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <!-- 自動保存の状態。直してから少し待つと自動で保存される -->
+            <span class="kk-autosave" :class="`is-${autoState}`" role="status" aria-live="polite">{{ autoLabel }}</span>
           </div>
         </div>
 
         <div ref="toolsRoot" class="kk-head-actions">
-          <!-- 聞き取れなかったところ・AIに直してもらう は普段は小さく畳み、押したときだけ下に開く -->
+          <!-- 不明点 は普段は小さく畳み、押したときだけ下に開く -->
           <!-- 元の文章（取り込んだ全文）。右からせり出す欄で、左の列を直しながら見比べられる -->
           <button
             type="button"
@@ -43,11 +84,11 @@
               @click="togglePop('unclear')"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16.5v.01" /></svg>
-              聞き取れなかった所
+              不明点
               <span class="kk-badge">{{ minutes.unclearPoints.length }}</span>
             </button>
-            <div v-if="openPop === 'unclear'" class="kk-pop" role="dialog" aria-label="AIが聞き取れなかったところ">
-              <p class="kk-pop-title">AIが聞き取れなかったところ</p>
+            <div v-if="openPop === 'unclear'" class="kk-pop" role="dialog" aria-label="不明点">
+              <p class="kk-pop-title">AIが判断しきれなかったところ</p>
               <ul class="kk-pop-list">
                 <li v-for="(p, i) in minutes.unclearPoints" :key="i">{{ p }}</li>
               </ul>
@@ -55,49 +96,8 @@
             </div>
           </div>
 
-          <!-- つくり直す＝まとめ方（複数人／主に1人）を選び直して、元の文章からAIにまとめ直してもらう -->
-          <div class="kk-pop-wrap">
-            <button
-              type="button"
-              class="kk-icon-btn"
-              :class="{ 'is-open': openPop === 'restructure' }"
-              :aria-expanded="openPop === 'restructure'"
-              :disabled="restructuring || revising"
-              title="まとめ方を選び直して、元の文章からつくり直す"
-              @click="togglePop('restructure')"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.6-4.5M4 4v4h4M4 13a8 8 0 0 0 14.6 4.5M20 20v-4h-4" /></svg>
-              {{ restructuring ? 'つくり直しています…' : 'つくり直す' }}
-            </button>
-            <div v-if="openPop === 'restructure'" class="kk-pop kk-pop--wide" role="dialog" aria-label="つくり直す">
-              <p class="kk-pop-title">どんな記録としてつくり直しますか？</p>
-              <div class="kk-mode-choice" role="radiogroup" aria-label="どんな記録か">
-                <button
-                  v-for="m in MINUTES_MODES"
-                  :key="m.value"
-                  type="button"
-                  role="radio"
-                  class="kk-mode-opt"
-                  :class="{ 'is-on': restructureMode === m.value }"
-                  :aria-checked="restructureMode === m.value"
-                  :disabled="restructuring"
-                  @click="restructureMode = m.value"
-                >
-                  <span class="kk-mode-opt-label">{{ m.label }}</span>
-                  <span class="kk-mode-opt-desc">{{ m.desc }}</span>
-                </button>
-              </div>
-              <p class="kk-note mt-2 mb-0">
-                元の文章から、AIがまとめ直します。いまの内容は置き換わり、手で直したところも元に戻ります（タグはそのまま残ります）。
-              </p>
-              <div class="flex justify-end mt-2">
-                <button type="button" class="kk-pop-run" :disabled="restructuring" @click="runRestructure">
-                  {{ restructuring ? 'つくり直しています…' : 'つくり直す' }}
-                </button>
-              </div>
-            </div>
-          </div>
-
+          <!-- 「AIに直してもらう」は 2026-10-18 に画面から外した（「つくり直す」と並ぶと迷うため。本人の判断）。
+               戻すときはこのコメントを外す。script 側の runRevise と /api/minutes/revise は残してある。
           <div class="kk-pop-wrap">
             <button
               type="button"
@@ -129,6 +129,7 @@
               </div>
             </div>
           </div>
+          -->
 
           <span class="kk-head-sep" aria-hidden="true" />
 
@@ -136,29 +137,24 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
             削除
           </button>
-          <!-- 保存・ドライブ・PDF。PCでは見出しの右に並べ、スマホでは画面の下に固定する（ai-tools 版と同じ置き方。
-               長い議事録を下まで読んでも、上に戻らずに押せるように） -->
+          <!-- ドライブ・PDF。PCでは見出しの右に並べ、スマホでは画面の下に固定する（ai-tools 版と同じ置き方。
+               長い議事録を下まで読んでも、上に戻らずに押せるように）。
+               保存ボタンは置かない（自動保存＋欄を離れたとき・一覧へ戻るときにも保存される） -->
           <div class="kk-save-bar">
-          <button type="button" class="kk-icon-btn" :disabled="saving || generatingPdf" title="保存" @click="save">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6" /></svg>
-            {{ saving ? '保存中…' : '保存' }}
-          </button>
           <button
             v-if="driveConnected"
             type="button"
             class="kk-icon-btn"
-            :disabled="generatingPdf || saving || driveSaving"
+            :disabled="generatingPdf || driveSaving"
             title="Googleドライブに保存"
             @click="saveToDrive"
           >
             <GoogleDriveIcon />
-            <template v-if="driveSaving">保存中…</template>
-            <template v-else><span class="kk-lbl-long">ドライブに保存</span><span class="kk-lbl-short">ドライブ</span></template>
+            {{ driveSaving ? '保存中…' : 'ドライブ' }}
           </button>
-          <button type="button" class="kk-icon-btn kk-icon-btn--primary" :disabled="generatingPdf || saving || driveSaving" title="PDFのダウンロード" @click="downloadPdf">
+          <button type="button" class="kk-icon-btn kk-icon-btn--primary" :disabled="generatingPdf || driveSaving" title="PDFのダウンロード" @click="downloadPdf">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg>
-            <template v-if="generatingPdf">PDF作成中…</template>
-            <template v-else><span class="kk-lbl-long">PDFのダウンロード</span><span class="kk-lbl-short">PDF</span></template>
+            {{ generatingPdf ? 'PDF作成中…' : 'PDF' }}
           </button>
           </div>
         </div>
@@ -406,7 +402,6 @@ const record = ref<MinutesRecord | null>(null)
 const loading = ref(true)
 const errorMessage = ref('')
 const savedMessage = ref('')
-const saving = ref(false)
 const generatingPdf = ref(false)
 const revising = ref(false)
 const reviseInstruction = ref('')
@@ -415,10 +410,11 @@ const restructuring = ref(false)
 const restructureMode = ref<MinutesMode>('meeting')
 const confirmingDelete = ref(false)
 const deleting = ref(false)
-/** ツールバーから開く小さな窓（聞き取れなかった所／つくり直す／AIに直してもらう）。同時に開くのは1つだけ */
+/** ツールバーから開く小さな窓（不明点／つくり直す／AIに直してもらう＝いまは画面から外している）。同時に開くのは1つだけ */
 type PopName = 'unclear' | 'restructure' | 'revise'
 const openPop = ref<PopName | null>(null)
 const toolsRoot = ref<HTMLElement | null>(null)
+const modeRoot = ref<HTMLElement | null>(null)
 const reviseInput = ref<HTMLTextAreaElement | null>(null)
 
 function togglePop(name: PopName) {
@@ -430,7 +426,9 @@ function togglePop(name: PopName) {
 // 窓の外を押したら閉じる
 function onDocPointerDown(e: PointerEvent) {
   if (!openPop.value) return
-  if (toolsRoot.value && !toolsRoot.value.contains(e.target as Node)) openPop.value = null
+  const target = e.target as Node
+  if (toolsRoot.value?.contains(target) || modeRoot.value?.contains(target)) return
+  openPop.value = null
 }
 
 function onDocKeydown(e: KeyboardEvent) {
@@ -683,7 +681,7 @@ function syncSavedTags(tags: string[]) {
   touchTags()
 }
 
-/** 保存（「保存」ボタン・PDF化の前）。PDF化の前にも呼ぶ（保存し忘れた直しがPDFに出ないように） */
+/** 保存（PDF化の前に呼ぶ。保存し忘れた直しがPDFに出ないように） */
 async function saveMinutes(): Promise<void> {
   clearTimeout(autoTimer)
   // 末尾の空欄に打ちかけの名前があれば、それも参加者として保存する
@@ -693,7 +691,7 @@ async function saveMinutes(): Promise<void> {
     body: { minutes: toRaw(minutes) },
   })
   // サーバーが正規化した結果（日付の形・空の行を落とすなど）を画面へ返す。
-  // ボタンを押したときだけ返す（自動保存では返さない＝入力中の画面を書き換えない）
+  // PDF化の前だけ返す（自動保存では返さない＝入力中の画面を書き換えない）
   applyMinutes(res.minutes)
   markSaved()
   syncSavedTags(res.minutes.tags)
@@ -702,7 +700,7 @@ async function saveMinutes(): Promise<void> {
 // ── 自動保存 ───────────────────────────────────────────
 // 直してから AUTOSAVE_DELAY_MS 何も触らなかったら保存する。
 // ★自動保存ではサーバーの正規化結果を画面に返さない。返すと「＋追加」で出したばかりの空の行が
-//   消えたり、入力中の欄が書き換わったりするため。整えた形は「保存」ボタン・PDF化・開き直しで揃う。
+//   消えたり、入力中の欄が書き換わったりするため。整えた形はPDF化・開き直しで揃う。
 // ★参加者の打ちかけ（末尾の空欄）も確定させない（打っている途中の名前を横取りしないため）。
 
 const AUTOSAVE_DELAY_MS = 2000
@@ -752,7 +750,6 @@ async function autoSave(): Promise<boolean> {
   if (deleting.value || !record.value) return true
   // ボタンでの保存・PDF作り・AIの直しの最中は、それが終わってからにする
   if (
-    saving.value ||
     generatingPdf.value ||
     driveSaving.value ||
     revising.value ||
@@ -836,19 +833,6 @@ function onBeforeUnload(e: BeforeUnloadEvent) {
   e.returnValue = ''
 }
 
-async function save() {
-  errorMessage.value = ''
-  savedMessage.value = ''
-  saving.value = true
-  try {
-    // 「保存しました」は見出しの横の自動保存の表示（✓ 保存しました 時刻）に出るので、お知らせは出さない
-    await saveMinutes()
-  } catch (e) {
-    errorMessage.value = apiMessage(e, '保存できませんでした。もう一度お試しください。')
-  }
-  saving.value = false
-}
-
 async function runRevise() {
   const instruction = reviseInstruction.value.trim()
   if (!instruction) return
@@ -887,7 +871,7 @@ async function runRestructure() {
     minutes.tags = tags
     openPop.value = null
     const label = MINUTES_MODES.find((m) => m.value === res.minutes.mode)?.label ?? ''
-    savedMessage.value = `「${label}」記録としてつくり直しました。内容を確かめてください（自動で保存されます）。`
+    savedMessage.value = `「${label}」としてつくり直しました。内容を確かめてください（自動で保存されます）。`
   } catch (e) {
     errorMessage.value = apiMessage(e, 'つくり直せませんでした。もう一度お試しください。')
   }
@@ -1170,7 +1154,6 @@ onUnmounted(() => {
   transform: translateX(100%);
 }
 .kk-autosave {
-  margin-left: 0.5rem;
   font-size: 11.5px;
   font-weight: 500;
   color: var(--kk-ink-faint);
@@ -1186,6 +1169,48 @@ onUnmounted(() => {
 }
 .kk-autosave.is-saved::before {
   content: '✓ ';
+}
+.kk-review-titlebar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  min-width: 0;
+}
+/* 見出しの横の種類ラベル。押せることが分かるよう、下向きの矢印と枠を付ける */
+.kk-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 2px 4px 2px 2px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  font-family: inherit;
+  color: var(--kk-ink-faint);
+  cursor: pointer;
+}
+.kk-mode-btn:hover:not(:disabled),
+.kk-mode-btn.is-open {
+  border-color: var(--kk-line-strong);
+  background: var(--kk-panel);
+}
+.kk-mode-btn:disabled {
+  cursor: default;
+}
+.kk-mode-btn > svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.kk-mode-btn-busy {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--kk-ink-soft);
 }
 .kk-review-h1 {
   margin: 0;
@@ -1298,13 +1323,17 @@ onUnmounted(() => {
 .kk-pop--wide {
   width: 400px;
 }
+/* 画面の左側（見出しの横）から開く窓は、左端をそろえる（右にそろえると画面の外にはみ出す） */
+.kk-pop--left {
+  left: 0;
+  right: auto;
+  /* 左端が見出しの分だけ右にずれているので、スマホでも右にはみ出さない幅にする */
+  max-width: calc(100vw - 72px);
+}
 .kk-save-bar {
   display: contents;
 }
-.kk-lbl-short {
-  display: none;
-}
-/* スマホ・タブレット（1列表示）では、保存・ドライブ・PDFを画面の下に固定する */
+/* スマホ・タブレット（1列表示）では、ドライブ・PDFを画面の下に固定する */
 @media (max-width: 1023px) {
   .kk-review {
     padding-bottom: calc(64px + env(safe-area-inset-bottom));
@@ -1333,12 +1362,6 @@ onUnmounted(() => {
   }
   .kk-save-bar .kk-icon-btn--primary {
     flex-grow: 1.4;
-  }
-  .kk-save-bar .kk-lbl-long {
-    display: none;
-  }
-  .kk-save-bar .kk-lbl-short {
-    display: inline;
   }
   .kk-save-bar .kk-icon-btn svg {
     width: 17px;

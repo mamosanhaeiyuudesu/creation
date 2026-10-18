@@ -51,6 +51,7 @@ export async function ensureTables(db: any): Promise<void> {
       audio_name TEXT NOT NULL DEFAULT '',
       transcript TEXT NOT NULL DEFAULT '',
       minutes TEXT NOT NULL DEFAULT '',
+      mode TEXT NOT NULL DEFAULT 'meeting',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
@@ -112,4 +113,28 @@ export async function ensureTables(db: any): Promise<void> {
     )`,
   ]
   for (const sql of statements) await db.prepare(sql).run()
+  await ensureRecordsMode(db)
+}
+
+/** records.mode を確かめ終えたか（1つの isolate で1回だけ見れば足りる） */
+let recordsModeReady = false
+
+/**
+ * records に mode 列（2026-10-18 追加）が無ければ足す。
+ * CREATE TABLE IF NOT EXISTS では既存の表に列が増えないので、本番のDBにはここで足す
+ * （wrangler で手作業の ALTER を流さなくて済むように）。既存の行は 'meeting'＝話し合い になる。
+ * 同時に2つの要求が ALTER しても、後のほうは「列がもうある」で失敗するだけなので握りつぶす。
+ */
+async function ensureRecordsMode(db: any): Promise<void> {
+  if (recordsModeReady) return
+  const res = await db.prepare('PRAGMA table_info(records)').all()
+  const cols: { name: string }[] = res?.results ?? []
+  if (!cols.some((c) => c.name === 'mode')) {
+    try {
+      await db.prepare("ALTER TABLE records ADD COLUMN mode TEXT NOT NULL DEFAULT 'meeting'").run()
+    } catch (e) {
+      if (!/duplicate column/i.test(String((e as Error)?.message ?? e))) throw e
+    }
+  }
+  recordsModeReady = true
 }

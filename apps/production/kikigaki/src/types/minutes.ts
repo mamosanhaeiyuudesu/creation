@@ -13,9 +13,13 @@
  */
 export type MinutesMode = 'meeting' | 'talk'
 
+/**
+ * 画面での呼び名。人数ではなく「みんなで話し合ったか／誰かの話を聞いたか」で分ける
+ * （インタビューやカウンセリングは聞き手もいるので「1人」とは言えないため）
+ */
 export const MINUTES_MODES: { value: MinutesMode; label: string; desc: string }[] = [
-  { value: 'meeting', label: '複数人で話した', desc: '会議・打ち合わせ・話し合い' },
-  { value: 'talk', label: '主に1人が話した', desc: '講演・インタビュー・カウンセリングなど' },
+  { value: 'meeting', label: '話し合い', desc: '会議・打ち合わせ・相談' },
+  { value: 'talk', label: '聞き取り', desc: '講演・インタビュー・カウンセリングなど' },
 ]
 
 export function normalizeMode(v: unknown): MinutesMode {
@@ -87,6 +91,8 @@ export interface RecordSummary {
   date: string
   audioName: string
   createdAt: string
+  /** まとめ方（一覧で種類を見せるため） */
+  mode: MinutesMode
   /** タグ（一覧の表示と絞り込み用） */
   tags: string[]
 }

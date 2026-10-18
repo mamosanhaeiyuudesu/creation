@@ -7,7 +7,7 @@
     <template v-else-if="!isLoggedIn">
       <h1 class="kk-h1 mt-6">会議の文章から<br>議事録をつくります</h1>
       <p class="kk-lead mt-2">
-        会議の内容を書いた文章をえらぶか貼り付けるだけ。AIが話し合いの内容を1枚にまとめます。
+        会議の内容を書いた文章をアップロードするか貼り付けるだけ。AIが話し合いの内容を1枚にまとめます。
         できた議事録はその場で直せて、PDFにして配れます。
       </p>
 
@@ -90,7 +90,7 @@
       </section>
 
       <h1 class="kk-h1 m-0">議事録</h1>
-      <p class="kk-note m-0">会議の文章をえらぶか貼り付けると、AIが1枚の議事録にまとめます。</p>
+      <p class="kk-note m-0">会議の文章をアップロードするか貼り付けると、AIが1枚の議事録にまとめます。</p>
 
       <!-- 承認制で、まだ承認されていない人。押しても AI を呼ばないよう、はじめる操作を止める -->
       <p v-if="pendingApproval" class="kk-notice kk-notice--info mt-3 mb-0">
@@ -106,7 +106,7 @@
           </span>
           <span class="min-w-0">
             <span class="kk-action-title">文章から議事録をつくる</span>
-            <span class="kk-action-desc">.txt をえらぶか、文章を貼り付け</span>
+            <span class="kk-action-desc">.txt をアップロードするか、文章を貼り付け</span>
           </span>
         </button>
       </div>
@@ -208,7 +208,8 @@
                   <!-- 名前と「名前を変える」は離さない（名前が長くても、ボタンだけ次の行に落ちないように） -->
                   <span class="kk-row-name">
                     <NuxtLink :to="`/records/${r.id}`" class="kk-row-title" @click.stop>
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l3 3v13H6z" /><path d="M9 11h6M9 15h6" /></svg>
+                      <!-- 種類（話し合い／聞き取り）。名前の頭に置いて、一覧で見分けられるようにする -->
+                      <MinutesModeBadge :mode="r.mode" />
                       <span class="truncate">{{ r.title || '（名前のない議事録）' }}</span>
                     </NuxtLink>
                     <button
@@ -839,16 +840,6 @@ onMounted(async () => {
   font-weight: 700;
   color: var(--kk-ink);
   text-decoration: none;
-}
-.kk-row-title svg {
-  width: 16px;
-  height: 16px;
-  flex: none;
-  fill: none;
-  stroke: var(--kk-accent);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 /* 行の右端の操作（アイコンのみ） */
 .kk-col-actions {

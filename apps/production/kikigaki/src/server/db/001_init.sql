@@ -35,6 +35,9 @@ CREATE TABLE IF NOT EXISTS records (
   audio_name TEXT NOT NULL DEFAULT '',
   transcript TEXT NOT NULL DEFAULT '',
   minutes TEXT NOT NULL DEFAULT '',
+  -- まとめ方（meeting＝話し合い／talk＝聞き取り）。一覧で種類を出すため、minutes とは別に平文で持つ。
+  -- 2026-10-18 に追加。既存のDBには ensureTables（server/utils/db.ts）が自動で列を足す
+  mode TEXT NOT NULL DEFAULT 'meeting',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

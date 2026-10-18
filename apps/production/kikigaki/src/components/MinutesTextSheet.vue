@@ -10,7 +10,7 @@
     <template v-if="stage === 'idle'">
       <p class="kk-lead">
         文字にした会議や話の文章から議事録をつくります。
-        文章のファイルをえらぶか、文章を貼り付けてください。
+        文章のファイルをアップロードするか、文章を貼り付けてください。
       </p>
 
       <label class="kk-field-label mt-3" for="transcript-file">文章のファイルをえらぶ</label>

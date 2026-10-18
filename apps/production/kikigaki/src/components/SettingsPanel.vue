@@ -30,7 +30,7 @@
           今月のぶんを使い切りました。来月1日から、またお使いいただけます。
         </p>
         <p v-else-if="usage.usedPercent >= 80" class="kk-set-note">もうすぐ今月のぶんを使い切ります。</p>
-        <p class="kk-set-note">議事録づくりと「AIに直してもらう」の合計。毎月1日にリセットされます。</p>
+        <p class="kk-set-note">議事録づくりと「つくり直す」の合計。毎月1日にリセットされます。</p>
       </template>
     </section>
 

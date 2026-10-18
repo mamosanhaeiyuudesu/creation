@@ -111,6 +111,7 @@ interface RecordRow {
   audio_name: string
   transcript: string
   minutes: string
+  mode: string
   created_at: string
   updated_at: string
 }
@@ -153,8 +154,8 @@ export async function createRecord(
   const id = crypto.randomUUID()
   await db
     .prepare(
-      `INSERT INTO records (id, user_id, title, meeting_date, audio_name, transcript, minutes)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO records (id, user_id, title, meeting_date, audio_name, transcript, minutes, mode)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       id,
@@ -165,7 +166,8 @@ export async function createRecord(
       // それより前の行は平文のまま残っているが、decryptText は平文をそのまま返すので読める）
       await encryptText(event, audioName),
       await encryptText(event, transcript),
-      await encryptText(event, JSON.stringify(minutes))
+      await encryptText(event, JSON.stringify(minutes)),
+      minutes.mode
     )
     .run()
   return id
@@ -178,7 +180,7 @@ export async function listRecords(event: H3Event, userId: string): Promise<Recor
   // タグは一覧のために別の表（record_tags）に持っている。議事録本体（minutes）を復号しなくて済むように
   const res = await db
     .prepare(
-      `SELECT r.id, r.title, r.meeting_date, r.audio_name, r.created_at, COALESCE(t.tags, '') AS tags
+      `SELECT r.id, r.title, r.meeting_date, r.audio_name, r.mode, r.created_at, COALESCE(t.tags, '') AS tags
        FROM records r LEFT JOIN record_tags t ON t.record_id = r.id
        WHERE r.user_id = ? ORDER BY r.created_at DESC LIMIT 200`
     )
@@ -192,6 +194,7 @@ export async function listRecords(event: H3Event, userId: string): Promise<Recor
       date: row.meeting_date ?? '',
       audioName: await decryptText(event, row.audio_name ?? ''),
       createdAt: row.created_at ?? '',
+      mode: normalizeMode(row.mode),
       tags: await decryptTags(event, row.tags),
     }))
   )
@@ -223,6 +226,8 @@ export async function getRecord(event: H3Event, userId: string, id: string): Pro
     audioName: await decryptText(event, row.audio_name ?? ''),
     createdAt: row.created_at ?? '',
     updatedAt: row.updated_at ?? '',
+    // 種類は議事録本体（minutes）のほうを正とする（列は一覧を軽く読むための写し）
+    mode: minutes.mode,
     tags: minutes.tags,
     transcript: await decryptText(event, row.transcript ?? ''),
     minutes,
@@ -241,13 +246,14 @@ export async function updateRecordMinutes(
   const res = await db
     .prepare(
       `UPDATE records
-       SET title = ?, meeting_date = ?, minutes = ?, updated_at = datetime('now')
+       SET title = ?, meeting_date = ?, minutes = ?, mode = ?, updated_at = datetime('now')
        WHERE id = ? AND user_id = ?`
     )
     .bind(
       await encryptText(event, minutes.title),
       minutes.date,
       await encryptText(event, JSON.stringify(minutes)),
+      minutes.mode,
       id,
       userId
     )
