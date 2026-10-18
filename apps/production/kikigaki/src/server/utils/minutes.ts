@@ -35,11 +35,16 @@ function normalizeDate(v: unknown): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ''
 }
 
-/** YYYY-MM-DDTHH:mm 以外は空にする（datetime-local と同じ形） */
+/**
+ * YYYY-MM-DDTHH:mm か、時刻のない YYYY-MM-DD に揃える。それ以外は空にする。
+ * 予定は日付だけ分かって時刻が決まっていないことも多いので、日付だけでも残す
+ * （時刻を 00:00 などで埋めると、PDFに無かった時刻が載ってしまう）。
+ */
 function normalizeDateTime(v: unknown): string {
   const s = str(v).replace(' ', 'T')
   const m = s.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/)
-  return m ? `${m[1]}T${m[2]}` : ''
+  if (m) return `${m[1]}T${m[2]}`
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ''
 }
 
 function normalizePoints(v: unknown): MinutesPoint[] {

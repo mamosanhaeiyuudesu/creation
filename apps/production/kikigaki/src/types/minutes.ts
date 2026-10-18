@@ -49,7 +49,7 @@ export interface EventItem {
   datetime: string
   title: string
   location: string
-  /** 確定した開始日時（YYYY-MM-DDTHH:mm）。確定できないときは空文字 */
+  /** 確定した開始日時（YYYY-MM-DDTHH:mm、時刻が決まっていなければ YYYY-MM-DD）。確定できないときは空文字 */
   start: string
   /** 確定した終了日時。空でよい */
   end: string

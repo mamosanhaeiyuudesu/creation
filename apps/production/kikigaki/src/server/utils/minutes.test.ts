@@ -44,6 +44,10 @@ describe('normalizeMinutes', () => {
     const ok = normalizeMinutes({ event_candidates: [{ title: '会合', start: '2026-10-20 19:30:00' }] })
     expect(ok.eventCandidates[0]?.start).toBe('2026-10-20T19:30')
 
+    // 時刻が決まっていない予定は日付だけで残す（00:00 などで埋めない）
+    const dateOnly = normalizeMinutes({ event_candidates: [{ title: '会合', start: '2026-10-20' }] })
+    expect(dateOnly.eventCandidates[0]?.start).toBe('2026-10-20')
+
     const ng = normalizeMinutes({ event_candidates: [{ title: '会合', start: '夜7時半' }] })
     expect(ng.eventCandidates[0]?.start).toBe('')
     // 原文の表現は消さない（確定できなくても何と言っていたかは残す）

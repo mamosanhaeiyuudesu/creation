@@ -180,7 +180,7 @@
               <div class="kk-meta-pair">
               <div class="kk-meta-date">
                 <label class="kk-field-label mt-2" for="minutes-date">{{ labels.date }}</label>
-                <input id="minutes-date" v-model="minutes.date" type="date" class="kk-input">
+                <DateInput id="minutes-date" v-model="minutes.date" />
               </div>
               <div class="kk-meta-people">
               <!-- 参加者は1人1欄。末尾の空欄に入れて Enter（または欄を離れる）と確定し、次の空欄が出る -->
@@ -234,7 +234,7 @@
             <p v-if="!group.items.length" class="kk-empty">見つかりませんでした。</p>
             <ul v-else class="kk-items">
               <li v-for="(item, i) in group.items" :key="i" class="kk-item">
-                <!-- 番号と削除は左の細い列に縦に並べる（右側を空けて、スマホで本文の幅を取るため） -->
+                <!-- 番号と削除は左の細い列に置く（右側を空けて、スマホで本文の幅を取るため） -->
                 <div class="kk-item-side">
                   <span class="kk-num">{{ i + 1 }}</span>
                   <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(group.items, i)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg></button>
@@ -261,7 +261,7 @@
               <p v-if="!minutes.eventCandidates.length" class="kk-empty">見つかりませんでした。</p>
               <ul v-else class="kk-items">
                 <li v-for="(ev, i) in minutes.eventCandidates" :key="i" class="kk-item">
-                  <!-- 番号と削除は左の細い列に縦に並べる（右側を空けて、スマホで本文の幅を取るため） -->
+                  <!-- 番号と削除は左の細い列に置く（右側を空けて、スマホで本文の幅を取るため） -->
                   <div class="kk-item-side">
                     <span class="kk-num">{{ i + 1 }}</span>
                     <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(minutes.eventCandidates, i)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg></button>
@@ -271,7 +271,18 @@
                   <div class="kk-fields">
                     <div>
                       <label class="kk-field-label">日にちと時間</label>
-                      <input v-model="ev.start" type="datetime-local" class="kk-input">
+                      <!-- 日付はカレンダー、時刻は別の欄（時刻は空でもよい） -->
+                      <div class="kk-when">
+                        <DateInput :model-value="ev.start.slice(0, 10)" @update:model-value="setEventDate(ev, $event)" />
+                        <input
+                          :value="ev.start.slice(11, 16)"
+                          type="time"
+                          class="kk-input kk-when-time"
+                          aria-label="時刻"
+                          :disabled="!ev.start"
+                          @change="setEventTime(ev, ($event.target as HTMLInputElement).value)"
+                        >
+                      </div>
                       <p v-if="ev.datetime" class="kk-note m-0">会議では「{{ ev.datetime }}」と話していました。</p>
                     </div>
                     <div>
@@ -293,7 +304,7 @@
               <p v-if="!minutes.taskCandidates.length" class="kk-empty">見つかりませんでした。</p>
               <ul v-else class="kk-items">
                 <li v-for="(task, i) in minutes.taskCandidates" :key="i" class="kk-item">
-                  <!-- 番号と削除は左の細い列に縦に並べる（右側を空けて、スマホで本文の幅を取るため） -->
+                  <!-- 番号と削除は左の細い列に置く（右側を空けて、スマホで本文の幅を取るため） -->
                   <div class="kk-item-side">
                     <span class="kk-num">{{ i + 1 }}</span>
                     <button type="button" class="kk-row-del" aria-label="この行を削除" title="削除" @click="askRemoveRow(minutes.taskCandidates, i)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg></button>
@@ -307,7 +318,7 @@
                     </div>
                     <div>
                       <label class="kk-field-label">いつまでに</label>
-                      <input v-model="task.dueDate" type="date" class="kk-input">
+                      <DateInput v-model="task.dueDate" />
                       <p v-if="task.due" class="kk-note m-0">会議では「{{ task.due }}」と話していました。</p>
                     </div>
                   </div>
@@ -380,7 +391,7 @@
 import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
 import { emptyMinutes, MINUTES_MODES } from '~/types/minutes'
-import type { Minutes, MinutesMode, MinutesRecord } from '~/types/minutes'
+import type { EventItem, Minutes, MinutesMode, MinutesRecord } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
 
 useHead({ title: `内容を確かめる — ${SERVICE.name}` })
@@ -651,6 +662,19 @@ function onPersonEnter(e: KeyboardEvent) {
 
 function addTask() {
   minutes.taskCandidates.push({ assignee: '', task: '', due: '', dueDate: '' })
+}
+
+/** 予定の日付を変える。時刻は残す（日付を消したら時刻も消す） */
+function setEventDate(ev: EventItem, ymd: string) {
+  const time = ev.start.slice(11, 16)
+  ev.start = ymd ? (time ? `${ymd}T${time}` : ymd) : ''
+}
+
+/** 予定の時刻を変える。空にすると日付だけになる */
+function setEventTime(ev: EventItem, time: string) {
+  const ymd = ev.start.slice(0, 10)
+  if (!ymd) return
+  ev.start = time ? `${ymd}T${time}` : ymd
 }
 
 function addEvent() {
@@ -1161,7 +1185,11 @@ onUnmounted(() => {
 .kk-autosave.is-saved::before {
   content: '✓ ';
 }
+/* position: relative は、スマホで「種類を変える」の窓の位置の基準にするため
+   （スマホでは .kk-pop-wrap の基準を外して幅いっぱいに出すので、ここが無いと窓がページの下のほうに飛ぶ） */
 .kk-review-titlebar {
+  position: relative;
+  flex: 1;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -1553,9 +1581,10 @@ onUnmounted(() => {
   align-items: flex-start;
   gap: 0.4rem;
 }
-/* 左の細い列: 番号の下に削除 */
+/* 左の細い列: 番号は上、削除はその項目のいちばん下（番号のすぐ下だと押し間違えやすいため） */
 .kk-item-side {
   flex: none;
+  align-self: stretch;
   width: 1.6rem;
   padding-top: 0.35rem;
   display: flex;
@@ -1563,9 +1592,24 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.2rem;
 }
+.kk-item-side .kk-row-del {
+  margin-top: auto;
+}
 .kk-item-body {
   flex: 1;
   min-width: 0;
+}
+.kk-when {
+  display: flex;
+  gap: 0.35rem;
+}
+.kk-when > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.kk-when-time {
+  width: 6.5rem;
+  flex: none;
 }
 .kk-fields {
   margin: 0.3rem 0 0;
@@ -1613,7 +1657,7 @@ onUnmounted(() => {
   cursor: pointer;
   padding: 0.1rem 0.3rem;
 }
-/* 行の削除はゴミ箱アイコン（一覧・見出しの「削除」とそろえる）。番号の下に置く。
+/* 行の削除はゴミ箱アイコン（一覧・見出しの「削除」とそろえる）。左の列のいちばん下に置く。
    PCではその項目に乗せたとき・入力中のときだけ出し、並んだ項目の邪魔をしない。
    スマホは乗せる操作が無いので、常に薄く出しておく */
 .kk-row-del {

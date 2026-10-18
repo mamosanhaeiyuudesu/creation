@@ -137,12 +137,6 @@
           <span v-if="records.length" class="kk-note">
             {{ activeTag ? `${filteredRecords.length} / ${records.length}件` : `${records.length}件` }}
           </span>
-          <!-- 並び順（新しい順）。選んだものは URL（?sort=）に残す。列の見出しを押しても切り替わる -->
-          <div v-if="records.length" class="kk-sort" role="group" aria-label="並び順">
-            <span class="kk-sort-label">並び</span>
-            <button type="button" class="kk-sort-btn" :class="{ 'is-on': sortKey === 'date' }" @click="setSort('date')">会議の日</button>
-            <button type="button" class="kk-sort-btn" :class="{ 'is-on': sortKey === 'created' }" @click="setSort('created')">つくった日</button>
-          </div>
         </div>
 
         <!-- タグで絞り込む（1つだけ選ぶ。既定は「すべて」）。多い順に並べ、入りきらなければ横にスクロール。
@@ -703,34 +697,6 @@ onMounted(async () => {
 }
 
 /* 並び順の切り替え */
-.kk-sort {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-}
-.kk-sort-label {
-  font-size: 11.5px;
-  color: var(--kk-ink-faint);
-  margin-right: 0.15rem;
-}
-.kk-sort-btn {
-  height: 26px;
-  padding: 0 0.6rem;
-  border: 1px solid var(--kk-line);
-  border-radius: 999px;
-  background: #fff;
-  font-family: inherit;
-  font-size: 12px;
-  color: var(--kk-ink-soft);
-  cursor: pointer;
-}
-.kk-sort-btn.is-on {
-  border-color: var(--kk-accent);
-  background: var(--kk-accent-soft);
-  color: var(--kk-accent-strong);
-  font-weight: 700;
-}
 .kk-th-sort {
   border: 0;
   padding: 0;
