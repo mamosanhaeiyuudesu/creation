@@ -152,6 +152,18 @@ export async function appendEntryBody(
   return { entryId: id, added, body: merged }
 }
 
+/** その日の記録の行を返す。無ければ本文なしで作る（本文を書かずにトピックだけ入れる場合用）。 */
+export async function ensureEntryRow(db: any, userId: string, date: string): Promise<string> {
+  const existing = await findEntryRow(db, userId, date)
+  if (existing) return existing.id
+  const id = crypto.randomUUID()
+  await db
+    .prepare('INSERT INTO nikki_entries (id, user_id, date, body) VALUES (?, ?, ?, ?)')
+    .bind(id, userId, date, '')
+    .run()
+  return id
+}
+
 // ─────────────────────────────── トピック ───────────────────────────────
 
 interface TopicRow {
@@ -224,15 +236,17 @@ export async function addTopics(
   userId: string,
   date: string,
   entryId: string,
-  topics: NewTopic[]
+  topics: NewTopic[],
+  /** 人が自分で入れたものは edited を立てて、「作り直し」で消えないようにする */
+  manual = false
 ): Promise<void> {
   if (!topics.length) return
   let order = await nextTopicSortOrder(db, userId, date)
   for (const t of topics) {
     await db
       .prepare(
-        `INSERT INTO nikki_topics (id, user_id, entry_id, date, headline, detail, impact, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO nikki_topics (id, user_id, entry_id, date, headline, detail, impact, sort_order, edited)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         crypto.randomUUID(),
@@ -242,7 +256,8 @@ export async function addTopics(
         await encryptComment(event, t.headline),
         await encryptComment(event, t.detail),
         t.impact,
-        order++
+        order++,
+        manual ? 1 : 0
       )
       .run()
   }

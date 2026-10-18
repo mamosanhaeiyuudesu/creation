@@ -1,9 +1,9 @@
 <template>
-  <section class="nk-card px-5 py-4">
+  <section class="nk-card px-4 py-3">
     <div class="flex items-start justify-between gap-3">
       <div>
-        <h2 class="nk-serif m-0 text-[16px] leading-none">Googleカレンダーの連携</h2>
-        <p class="mt-1.5 mb-0 text-[11.5px] text-[var(--nk-ink-soft)] leading-relaxed">
+        <h2 class="nk-serif m-0 text-[14px] leading-none">Googleカレンダーの連携</h2>
+        <p class="mt-1 mb-0 text-[11px] text-[var(--nk-ink-soft)] leading-relaxed">
           予定を<strong class="font-bold">読むだけ</strong>の権限で連携します（書き込み・変更はしません）。
           表示したいカレンダーを選んでください。
         </p>

@@ -235,6 +235,24 @@ export function useNikki() {
     }
   }
 
+  /** 重要トピックを自分で1件追加する（AIは通さない）。成功したら true。 */
+  async function addTopic(input: { headline: string; detail: string; impact: number }): Promise<boolean> {
+    const date = selectedDate.value
+    if (!date) return false
+    saving.value = true
+    error.value = ''
+    try {
+      const res = await $fetch<{ entry: NikkiEntry }>(`/api/nikki/entries/${date}/topics`, { method: 'POST', body: input })
+      applyEntry(res.entry)
+      return true
+    } catch (e) {
+      fail(e, 'トピックを追加できませんでした')
+      return false
+    } finally {
+      saving.value = false
+    }
+  }
+
   async function patchTopic(id: string, patch: { headline: string; detail: string; impact: number }): Promise<void> {
     saving.value = true
     try {
@@ -288,6 +306,7 @@ export function useNikki() {
     closeDay,
     saveText,
     reextract,
+    addTopic,
     patchTopic,
     removeTopic,
   }

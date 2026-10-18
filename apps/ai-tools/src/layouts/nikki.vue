@@ -3,72 +3,20 @@
     <div class="nk-bg" aria-hidden="true" />
     <div class="relative z-[1]">
 
-      <!-- PC ナビ -->
-      <header class="nk-nav hidden lg:block border-b border-[var(--nk-line)]">
-        <nav class="flex max-w-[960px] mx-auto px-6">
-          <NuxtLink
-            v-for="tool in tools"
-            :key="tool.path"
-            :to="tool.path"
-            :class="[
-              'flex items-center gap-2 px-5 py-4 no-underline text-sm font-medium border-b-2 transition-all duration-200',
-              isActive(tool.path)
-                ? 'text-[var(--nk-indigo)] border-[var(--nk-indigo)]'
-                : 'text-[var(--nk-ink-soft)] border-transparent hover:text-[var(--nk-ink)] hover:border-[var(--nk-line)]'
-            ]"
-          >
-            <span class="text-[17px]" style="font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif">{{ tool.icon }}</span>
-            <span>{{ tool.name }}</span>
-          </NuxtLink>
-        </nav>
-      </header>
-
-      <!-- スマホ ナビ（横スクロール） -->
-      <header class="lg:hidden border-b border-[var(--nk-line)] bg-[var(--nk-paper)]">
-        <nav class="flex overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <NuxtLink
-            v-for="tool in tools"
-            :key="tool.path"
-            :to="tool.path"
-            :class="[
-              'flex items-center gap-1.5 px-4 py-3.5 no-underline text-sm font-medium border-b-2 whitespace-nowrap transition-all duration-200 shrink-0',
-              isActive(tool.path)
-                ? 'text-[var(--nk-indigo)] border-[var(--nk-indigo)]'
-                : 'text-[var(--nk-ink-soft)] border-transparent'
-            ]"
-          >
-            <span class="text-base" style="font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif">{{ tool.icon }}</span>
-            <span>{{ tool.name }}</span>
-          </NuxtLink>
-        </nav>
-      </header>
-
       <slot />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-const route = useRoute()
-
-const tools = [
-  { path: '/', name: 'ホーム', icon: '🏠' },
-  { path: '/nikki', name: '日記', icon: '📔' },
-  { path: '/kouba', name: 'タスクくん', icon: '⏱️' },
-  { path: '/games', name: 'ゲーム', icon: '🎮' },
-]
-
-const isActive = (path: string): boolean =>
-  path === '/' ? route.path === '/' : route.path.startsWith(path)
-
 useHead({
   link: [
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-    // 日付や見出しは明朝（読み返す紙の手触り）、本文はゴシックで読みやすく。
+    // まなび（apps/production/manabi）と同じ Noto Sans JP にそろえている
     {
       rel: 'stylesheet',
-      href: 'https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap',
+      href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap',
     },
   ],
 })
@@ -85,22 +33,23 @@ useHead({
   --nk-paper: #f7f5ef;
   --nk-paper-deep: #efece3;
   --nk-card: #ffffff;
-  --nk-ink: #22252c;
-  --nk-ink-soft: #7b7f89;
-  --nk-line: #e5e1d7;
+  --nk-ink: #252c3a;
+  --nk-ink-soft: #5a6272;
+  --nk-line: #e2e0d8;
 
-  --nk-indigo: #364a8a;
-  --nk-indigo-soft: #dfe3f2;
+  --nk-indigo: #252c3a;
+  --nk-indigo-soft: #e7e9ee;
   --nk-gold: #b8853a;
   --nk-gold-soft: #f2e4cb;
-  --nk-today: #c2453f;
+  --nk-today: #e2463a;
+  --nk-accent: #e2463a;
 }
 
 .nk-root {
   position: relative;
   color: var(--nk-ink);
   background: var(--nk-paper);
-  font-family: 'Zen Kaku Gothic New', -apple-system, 'Hiragino Sans', system-ui, sans-serif;
+  font-family: 'Noto Sans JP', 'Hiragino Sans', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -109,22 +58,24 @@ useHead({
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  /* 罫線の入った日記帳をうっすら敷く */
+  /* まなびと同じ方眼の紙 */
+  background-color: var(--nk-paper);
   background-image:
-    repeating-linear-gradient(180deg, rgba(54, 74, 138, 0.045) 0 1px, transparent 1px 28px),
-    radial-gradient(80% 50% at 50% -10%, rgba(54, 74, 138, 0.06) 0%, transparent 60%),
-    linear-gradient(180deg, var(--nk-paper) 0%, var(--nk-paper-deep) 100%);
+    linear-gradient(rgba(37, 44, 58, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(37, 44, 58, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 .nk-serif {
-  font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', serif;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .nk-card {
   background: var(--nk-card);
   border: 1px solid var(--nk-line);
-  border-radius: 14px;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(37, 44, 58, 0.05), 0 6px 18px -10px rgba(37, 44, 58, 0.2);
 }
 
 .nk-btn {
@@ -134,7 +85,7 @@ useHead({
   font-weight: 700;
   font-size: 13.5px;
   color: #fff;
-  background: var(--nk-indigo);
+  background: var(--nk-accent);
   transition: opacity 0.15s, transform 0.1s;
 }
 .nk-btn:hover { opacity: 0.9; }

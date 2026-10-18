@@ -111,19 +111,45 @@
           <section>
             <div class="flex items-center justify-between gap-2 mb-2">
               <h3 class="text-[12px] font-bold text-[var(--nk-ink-soft)] tracking-wide">この日の重要トピック</h3>
-              <button
-                v-if="entry?.body"
-                class="nk-btn-ghost !h-7 !px-2.5 !text-[11px]"
-                :disabled="saving"
-                @click="emit('reextract')"
-              >全文から作り直す</button>
+              <div class="flex items-center gap-2">
+                <button
+                  v-if="!adding"
+                  class="nk-btn-ghost !h-7 !px-2.5 !text-[11px]"
+                  :disabled="saving"
+                  @click="startAdd"
+                >＋ 自分で入れる</button>
+                <button
+                  v-if="entry?.body"
+                  class="nk-btn-ghost !h-7 !px-2.5 !text-[11px]"
+                  :disabled="saving"
+                  @click="emit('reextract')"
+                >全文から作り直す</button>
+              </div>
             </div>
 
-            <p v-if="!topics.length" class="m-0 text-[12.5px] text-[var(--nk-ink-soft)] leading-relaxed">
+            <!-- 自分で入れる（AIを通さずそのまま保存） -->
+            <div v-if="adding" class="nk-card px-3 py-2.5 mb-2">
+              <input v-model="addHeadline" class="nk-input !text-[13px] font-bold mb-1.5" placeholder="見出し" @keydown.enter.prevent />
+              <textarea v-model="addDetail" rows="2" class="nk-input !text-[12px] resize-y mb-1.5" placeholder="具体（1〜2文・省略できます）" />
+              <div class="flex items-center gap-2">
+                <label class="text-[11px] text-[var(--nk-ink-soft)]">インパクト</label>
+                <select v-model.number="addImpact" class="nk-input !w-auto !py-1 !text-[12px]">
+                  <option :value="3">3</option>
+                  <option :value="4">4</option>
+                  <option :value="5">5</option>
+                </select>
+                <button class="nk-btn !h-8 !px-3 !text-[12px] ml-auto" :disabled="!addHeadline.trim() || saving" @click="commitAdd">
+                  追加
+                </button>
+                <button class="nk-btn-ghost !h-8 !px-3 !text-[12px]" @click="adding = false">やめる</button>
+              </div>
+            </div>
+
+            <p v-if="!topics.length && !adding" class="m-0 text-[12.5px] text-[var(--nk-ink-soft)] leading-relaxed">
               まだありません。話した内容から、後で読み返して手応えの残るものだけが並びます。
             </p>
 
-            <ul v-else class="m-0 p-0 list-none flex flex-col gap-2">
+            <ul v-else-if="topics.length" class="m-0 p-0 list-none flex flex-col gap-2">
               <li v-for="topic in topics" :key="topic.id" class="nk-card px-3 py-2.5">
                 <!-- 編集中 -->
                 <template v-if="editingId === topic.id">
@@ -207,6 +233,7 @@ const emit = defineEmits<{
   close: []
   save: [text: string, extract: boolean]
   reextract: []
+  addTopic: [input: { headline: string; detail: string; impact: number }]
   patchTopic: [id: string, patch: { headline: string; detail: string; impact: number }]
   removeTopic: [id: string]
   navigate: [date: string]
@@ -274,9 +301,28 @@ watch(
     draft.value = ''
     showBody.value = false
     editingId.value = ''
+    adding.value = false
     recordError.value = ''
   }
 )
+
+const adding = ref(false)
+const addHeadline = ref('')
+const addDetail = ref('')
+const addImpact = ref(3)
+
+const startAdd = () => {
+  addHeadline.value = ''
+  addDetail.value = ''
+  addImpact.value = 3
+  adding.value = true
+}
+
+const commitAdd = () => {
+  if (!addHeadline.value.trim()) return
+  emit('addTopic', { headline: addHeadline.value, detail: addDetail.value, impact: addImpact.value })
+  adding.value = false
+}
 
 const editingId = ref('')
 const editHeadline = ref('')

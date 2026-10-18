@@ -1,7 +1,7 @@
 <template>
   <section class="nk-card px-3 py-4 sm:px-4 sm:py-3">
     <!-- 月の送り -->
-    <!-- 3列にしているのは、右に記録率を足しても月名が中央からずれないようにするため -->
+    <!-- 3列にして、月名を中央に保つ -->
     <header class="grid grid-cols-[1fr_auto_1fr] items-center mb-3 sm:mb-2">
       <button class="nk-btn-ghost !w-9 !px-0 justify-center text-[17px] leading-none" aria-label="前の月" @click="emit('shift', -1)">‹</button>
       <div class="text-center">
@@ -16,14 +16,6 @@
         </p>
       </div>
       <div class="flex items-center justify-self-end gap-1">
-        <!-- 記録した日数／その月の日数と、その割合（整数％） -->
-        <p
-          class="m-0 flex items-baseline gap-1.5 whitespace-nowrap tabular-nums text-[var(--nk-ink-soft)]"
-          :aria-label="`${grid.days}日中${recordedDays}日記録、${recordedPercent}パーセント`"
-        >
-          <span class="text-[12px]"><b class="text-[13px] text-[var(--nk-ink)]">{{ recordedDays }}</b>/{{ grid.days }}</span>
-          <span class="text-[12px] font-bold text-[var(--nk-gold)]">{{ recordedPercent }}%</span>
-        </p>
         <button class="nk-btn-ghost !w-9 !px-0 justify-center text-[17px] leading-none" aria-label="次の月" @click="emit('shift', 1)">›</button>
       </div>
     </header>
@@ -109,10 +101,6 @@ const emit = defineEmits<{
 const grid = computed(() => monthGrid(props.month))
 const byDate = computed(() => groupEventsByDate(props.events))
 const markSet = computed(() => new Set(props.marks))
-
-// marks は表示中の月ぶんだけ（月を送るたびに取り直す）ので、そのまま数えてよい
-const recordedDays = computed(() => grid.value.dates.filter((d) => markSet.value.has(d)).length)
-const recordedPercent = computed(() => Math.round((recordedDays.value / grid.value.days) * 100))
 
 const dayOf = (date: string) => Number(date.slice(8, 10))
 

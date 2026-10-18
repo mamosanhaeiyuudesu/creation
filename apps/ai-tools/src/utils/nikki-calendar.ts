@@ -13,6 +13,13 @@ export function nextDate(ymd: string): string {
   return d.toISOString().slice(0, 10)
 }
 
+/** "YYYY-MM-DD" を1日戻す（UTC基準で計算する＝ブラウザのローカルTZで日付がずれない） */
+export function prevDate(ymd: string): string {
+  const d = new Date(`${ymd}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() - 1)
+  return d.toISOString().slice(0, 10)
+}
+
 /** 予定の開始日（JST基準の YYYY-MM-DD）。終日予定は date、時刻ありは dateTime から取る。 */
 export function eventDate(value: string): string {
   if (!value) return ''
