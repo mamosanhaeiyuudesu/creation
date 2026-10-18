@@ -421,3 +421,50 @@ export async function updateDictionaryItem(db: any, userId: string, id: string, 
 export async function deleteDictionaryItem(db: any, userId: string, id: string): Promise<void> {
   await db.prepare('DELETE FROM nikki_dictionary WHERE id = ? AND user_id = ?').bind(id, userId).run()
 }
+
+// ─────────────────────────────── PDF 書き出し ───────────────────────────────
+
+/** 書き出す日数の上限（暗号化トピックの復号が重いので無制限にはしない） */
+export const NIKKI_EXPORT_MAX_DAYS = 1500
+
+/**
+ * 期間内の記録のある日を新しい順に返す（from/to を省くと端を開く＝全期間）。
+ * D1 のバインド変数の上限を避けるため、日付の IN ではなく範囲条件で1クエリに収める。
+ */
+export async function loadRange(
+  event: any,
+  db: any,
+  userId: string,
+  opts: { from?: string; to?: string }
+): Promise<NikkiDay[]> {
+  let where = 'user_id = ?'
+  const params: any[] = [userId]
+  if (opts.from) { where += ' AND date >= ?'; params.push(opts.from) }
+  if (opts.to) { where += ' AND date <= ?'; params.push(opts.to) }
+
+  const daysRes = await db
+    .prepare(`SELECT date FROM nikki_entries WHERE ${where} ORDER BY date DESC LIMIT ?`)
+    .bind(...params, NIKKI_EXPORT_MAX_DAYS)
+    .all()
+  const dates: string[] = (daysRes?.results ?? []).map((r: any) => r.date)
+  if (!dates.length) return []
+
+  // 日数の上限で切れたときも、返す日の範囲に収める
+  const oldest = dates[dates.length - 1]
+  const topicsRes = await db
+    .prepare(
+      `SELECT id, date, headline, detail, impact, sort_order, edited, created_at
+       FROM nikki_topics WHERE ${where} AND date >= ?
+       ORDER BY date DESC, ${TOPIC_ORDER}`
+    )
+    .bind(...params, oldest)
+    .all()
+  const byDate = new Map<string, NikkiTopic[]>()
+  for (const row of (topicsRes?.results ?? []) as TopicRow[]) {
+    const topic = await shapeTopic(event, row)
+    const list = byDate.get(row.date)
+    if (list) list.push(topic)
+    else byDate.set(row.date, [topic])
+  }
+  return dates.map((date) => ({ date, topics: byDate.get(date) ?? [], hasBody: true }))
+}

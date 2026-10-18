@@ -20,7 +20,6 @@
             </div>
           </template>
         </div>
-        <button class="nk-btn-ghost !border-transparent !bg-transparent !h-9 !px-3 !text-[12px]" @click="showPasswordModal = true">パスワード</button>
         <button class="nk-btn-ghost !border-transparent !bg-transparent !h-9 !px-3 !text-[12px]" @click="logout">ログアウト</button>
       </div>
     </header>
@@ -84,6 +83,12 @@
             :aria-expanded="showCalendar"
             @click="showCalendar = !showCalendar"
           >📅 カレンダー</button>
+          <button
+            class="nk-btn-ghost flex-1 sm:flex-none"
+            :class="showPdf ? '!border-[var(--nk-indigo)]' : ''"
+            :aria-expanded="showPdf"
+            @click="togglePdf"
+          >📄 PDF</button>
         </div>
 
         <template v-if="showCalendar">
@@ -104,6 +109,31 @@
             />
           </div>
         </template>
+      </div>
+
+      <!-- PDF の期間指定（📄 PDF ボタンの下に出す） -->
+      <div v-if="showPdf" class="mb-5 -mt-2">
+        <div class="nk-card px-4 py-3">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <h2 class="nk-serif m-0 text-[14px] leading-none">PDFでダウンロード</h2>
+            <button class="nk-btn-ghost !h-8 !px-3 !text-[12px]" @click="showPdf = false">閉じる</button>
+          </div>
+          <div class="flex flex-wrap gap-2 mb-2.5">
+            <button class="nk-btn-ghost !h-8 !px-3 !text-[12px]" :class="pdfPreset === 'month' ? '!border-[var(--nk-indigo)]' : ''" @click="setPdfPreset('month')">直近1ヶ月</button>
+            <button class="nk-btn-ghost !h-8 !px-3 !text-[12px]" :class="pdfPreset === 'all' ? '!border-[var(--nk-indigo)]' : ''" @click="setPdfPreset('all')">全期間</button>
+          </div>
+          <div class="flex flex-wrap items-center gap-2" :class="pdfPreset === 'all' ? 'opacity-40' : ''">
+            <input v-model="pdfFrom" type="date" :max="pdfTo || today" class="nk-input !w-auto !text-[13px]" :disabled="pdfPreset === 'all'" @input="pdfPreset = 'custom'" />
+            <span class="text-[12px] text-[var(--nk-ink-soft)]">〜</span>
+            <input v-model="pdfTo" type="date" :min="pdfFrom" :max="today" class="nk-input !w-auto !text-[13px]" :disabled="pdfPreset === 'all'" @input="pdfPreset = 'custom'" />
+          </div>
+          <div class="flex items-center gap-3 mt-3">
+            <button class="nk-btn" :disabled="pdfBusy || (pdfPreset !== 'all' && (!pdfFrom || !pdfTo))" @click="downloadPdf">
+              {{ pdfBusy ? pdfProgress || '準備中…' : 'ダウンロード' }}
+            </button>
+            <span v-if="pdfMessage" class="text-[12px] text-[var(--nk-today)]">{{ pdfMessage }}</span>
+          </div>
+        </div>
       </div>
 
       <!-- これまでの日々（メイン） -->
@@ -145,7 +175,6 @@
     </main>
 
     <AuthModal v-if="showAuthModal" accent="sky" />
-    <PasswordModal v-model:show="showPasswordModal" accent="sky" />
   </div>
 </template>
 
@@ -153,6 +182,7 @@
 import { useNikki } from '~/composables/nikki/useNikki'
 // import { useNikkiBrainWords } from '~/composables/nikki/useNikkiBrainWords'
 import { prevDate, nextDate } from '~/utils/nikki-calendar'
+import type { NikkiDay } from '~/types/nikki'
 import NikkiTimeline from '~/components/nikki/NikkiTimeline.vue'
 import NikkiDictionary from '~/components/nikki/NikkiDictionary.vue'
 // import NikkiBrainCloud from '~/components/nikki/NikkiBrainCloud.vue'
@@ -223,7 +253,6 @@ const dayNavNext = computed(() => {
   const next = nextDate(selectedDate.value)
   return next <= today.value ? next : undefined
 })
-const showPasswordModal = ref(false)
 const showSetup = ref(false)
 const showSettingsMenu = ref(false)
 const showDictionary = ref(false)
@@ -250,6 +279,60 @@ const onAddWord = (word: string, wrong: string) => withDictionaryBusy(() => addD
 const onUpdateWord = (id: string, word: string, wrong: string) => withDictionaryBusy(() => updateDictionaryItem(id, word, wrong))
 const onRemoveWord = (id: string) => withDictionaryBusy(() => removeDictionaryItem(id))
 const showCalendar = ref(false)
+
+// PDF 書き出し。既定は直近1ヶ月、「全期間」で端を開く
+const showPdf = ref(false)
+const pdfPreset = ref<'month' | 'all' | 'custom'>('month')
+const pdfFrom = ref('')
+const pdfTo = ref('')
+const pdfBusy = ref(false)
+const pdfProgress = ref('')
+const pdfMessage = ref('')
+
+const setPdfPreset = (preset: 'month' | 'all') => {
+  pdfPreset.value = preset
+  pdfTo.value = today.value
+  // 直近1ヶ月＝今日の1ヶ月前の翌日から今日まで
+  const d = new Date(`${today.value}T00:00:00Z`)
+  d.setUTCMonth(d.getUTCMonth() - 1)
+  d.setUTCDate(d.getUTCDate() + 1)
+  pdfFrom.value = preset === 'month' ? d.toISOString().slice(0, 10) : ''
+}
+const togglePdf = () => {
+  showPdf.value = !showPdf.value
+  if (showPdf.value) {
+    pdfMessage.value = ''
+    setPdfPreset('month')
+  }
+}
+
+const downloadPdf = async () => {
+  pdfBusy.value = true
+  pdfMessage.value = ''
+  pdfProgress.value = ''
+  try {
+    const all = pdfPreset.value === 'all'
+    const res = await $fetch<{ days: NikkiDay[]; truncated: boolean }>('/api/nikki/export', {
+      query: all ? {} : { from: pdfFrom.value, to: pdfTo.value },
+    })
+    if (!res.days.length) {
+      pdfMessage.value = 'この期間には記録がありません'
+      return
+    }
+    const oldest = res.days[res.days.length - 1]!.date
+    const newest = res.days[0]!.date
+    const label = all ? `全期間（${oldest} 〜 ${newest}）` : `${pdfFrom.value} 〜 ${pdfTo.value}`
+    const { downloadNikkiPdf } = await import('~/utils/nikki-pdf')
+    await downloadNikkiPdf(res.days, label, `日記_${oldest}_${newest}.pdf`, (done, total) => {
+      pdfProgress.value = `作成中… ${done}/${total}`
+    })
+    if (res.truncated) pdfMessage.value = '日数が多いため、新しい方から一部のみ書き出しました'
+  } catch (e: any) {
+    pdfMessage.value = e?.statusMessage || e?.data?.message || e?.message || 'PDFを作れませんでした'
+  } finally {
+    pdfBusy.value = false
+  }
+}
 
 // 頭の中（ワードクラウド）は一旦非表示
 // const { words: brainWords } = useNikkiBrainWords(days)
