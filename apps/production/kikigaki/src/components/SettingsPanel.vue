@@ -11,12 +11,19 @@
       <button type="button" class="kk-msg-close" aria-label="閉じる" @click="savedMessage = ''">✕</button>
     </p>
 
-    <!-- タグの管理。名前の変更（既にあるタグにすると1つにまとまる）と削除（全部の議事録から外す） -->
+    <!-- タグ。ふだんは横に並べ、押すとそのタグで一覧を絞り込む。
+         「編集」を押したときだけ、名前の変更（既にあるタグにすると1つにまとまる）と削除（全部の議事録から外す）ができる -->
     <section class="kk-set-sec">
-      <h2 class="kk-set-title">タグ<span v-if="allTags.length" class="kk-set-tag-total">{{ allTags.length }}</span></h2>
-      <p v-if="!allTags.length" class="kk-set-text">まだタグはありません。議事録の確認画面で付けられます。</p>
+      <h2 class="kk-set-title">
+        タグ<span v-if="allTags.length" class="kk-set-tag-total">{{ allTags.length }}</span>
+        <button v-if="allTags.length" type="button" class="kk-set-tag-mode" @click="toggleTagEditMode">
+          {{ tagEditMode ? '完了' : '編集' }}
+        </button>
+      </h2>
+      <p v-if="!allTags.length" class="kk-set-text">まだありません。</p>
       <ul v-else class="kk-set-tags">
-        <li v-for="t in allTags" :key="t.tag" class="kk-set-tag">
+        <li v-for="t in allTags" :key="t.tag" class="kk-set-tag" :class="{ 'is-editing': editingTag === t.tag }">
+          <!-- 名前を変えている途中（その行いっぱいの幅に広げる） -->
           <template v-if="editingTag === t.tag">
             <input
               ref="tagEditInput"
@@ -30,27 +37,27 @@
             <button type="button" class="kk-set-tag-ok" :disabled="tagBusy" @click="saveTagRename">保存</button>
             <button type="button" class="kk-set-tag-icon" :disabled="tagBusy" aria-label="やめる" @click="editingTag = ''">✕</button>
           </template>
-          <template v-else>
-            <!-- 名前と件数を押すと、そのタグで絞り込んだ一覧を開く（もう一度押すと「すべて」に戻る）。
-                 押せる範囲は名前と件数だけにして、右の変更・削除のアイコンとは間をあける -->
-            <NuxtLink
-              :to="tagLink(t.tag)"
-              class="kk-set-tag-link"
-              :class="{ 'is-on': isActiveTag(t.tag) }"
-              :aria-current="isActiveTag(t.tag) ? 'true' : undefined"
-              :title="isActiveTag(t.tag) ? '絞り込みを外す' : `「${t.tag}」で絞り込む`"
-              @click="scrollToTop"
-            >
-              <span class="kk-set-tag-name">#{{ t.tag }}</span>
-              <span class="kk-set-tag-count">{{ t.count }}</span>
-            </NuxtLink>
-            <button type="button" class="kk-set-tag-icon" :aria-label="`タグ「${t.tag}」の名前を変える`" title="名前を変える" @click="startTagEdit(t.tag)">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16zM13 7l4 4" /></svg>
+          <!-- 編集中: 名前を押すと名前を変える、ゴミ箱で消す（絞り込みはしない） -->
+          <span v-else-if="tagEditMode" class="kk-set-chip is-edit">
+            <button type="button" class="kk-set-chip-name" :title="`「${t.tag}」の名前を変える`" @click="startTagEdit(t.tag)">
+              #{{ t.tag }}<span class="kk-set-chip-count">{{ t.count }}</span>
             </button>
-            <button type="button" class="kk-set-tag-icon is-danger" :aria-label="`タグ「${t.tag}」を消す`" title="消す" @click="deletingTag = t.tag">
+            <button type="button" class="kk-set-chip-del" :aria-label="`タグ「${t.tag}」を消す`" title="消す" @click="deletingTag = t.tag">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
             </button>
-          </template>
+          </span>
+          <!-- ふだん: 押すとそのタグで一覧を絞り込む（もう一度押すと「すべて」に戻る） -->
+          <NuxtLink
+            v-else
+            :to="tagLink(t.tag)"
+            class="kk-set-chip"
+            :class="{ 'is-on': isActiveTag(t.tag) }"
+            :aria-current="isActiveTag(t.tag) ? 'true' : undefined"
+            :title="isActiveTag(t.tag) ? '絞り込みを外す' : `「${t.tag}」で絞り込む`"
+            @click="scrollToTop"
+          >
+            #{{ t.tag }}<span class="kk-set-chip-count">{{ t.count }}</span>
+          </NuxtLink>
         </li>
       </ul>
       <p v-if="editingTag && tagMergeTarget" class="kk-set-note">「{{ tagMergeTarget }}」は既にあるので、1つのタグにまとまります。</p>
@@ -368,6 +375,13 @@ const { tags: allTags, load: loadTags, rename: renameTag, remove: removeTag } = 
 const editingTag = ref('')
 const tagDraft = ref('')
 const deletingTag = ref('')
+/** 「編集」を押している間だけ、名前の変更と削除ができる */
+const tagEditMode = ref(false)
+
+function toggleTagEditMode() {
+  tagEditMode.value = !tagEditMode.value
+  if (!tagEditMode.value) editingTag.value = ''
+}
 const tagBusy = ref(false)
 const tagEditInput = ref<HTMLInputElement[] | HTMLInputElement | null>(null)
 /** 変えた先が既にあるタグなら、その名前（まとまることを知らせる） */
@@ -631,6 +645,9 @@ watch(() => route.path, refreshAll)
   list-style: none;
   margin: 0.2rem 0 0;
   padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
   max-height: 14rem;
   overflow-y: auto;
 }
@@ -638,47 +655,93 @@ watch(() => route.path, refreshAll)
   display: flex;
   align-items: center;
   gap: 0.2rem;
-  min-height: 30px;
-  border-top: 1px dashed var(--kk-line);
-}
-.kk-set-tag:first-child {
-  border-top: 0;
-}
-.kk-set-tag-link {
-  flex: 1;
   min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  margin-right: 0.35rem;
-  padding: 0.15rem 0.4rem;
-  border-radius: 6px;
-  text-decoration: none;
+  max-width: 100%;
 }
-.kk-set-tag-link:hover {
-  background: var(--kk-accent-soft);
+/* 名前を変えている行だけは、打ちやすいよう幅いっぱいに広げる */
+.kk-set-tag.is-editing {
+  flex-basis: 100%;
 }
-.kk-set-tag-link.is-on {
-  background: var(--kk-accent);
-}
-.kk-set-tag-link.is-on .kk-set-tag-name,
-.kk-set-tag-link.is-on .kk-set-tag-count {
-  color: #fff;
-}
-.kk-set-tag-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12.5px;
+.kk-set-tag-mode {
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--kk-accent-strong);
+  cursor: pointer;
+  padding: 0 0.2rem;
 }
-.kk-set-tag-count {
-  font-size: 11px;
+.kk-set-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  height: 24px;
+  padding: 0 0.55rem;
+  border-radius: 999px;
+  background: var(--kk-accent-soft);
+  color: var(--kk-accent-strong);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+a.kk-set-chip:hover,
+.kk-set-chip.is-on {
+  background: var(--kk-accent);
+  color: #fff;
+}
+.kk-set-chip-count {
+  font-size: 10.5px;
+  font-weight: 400;
+  opacity: 0.75;
+}
+/* 編集中のタグ: 押せる見た目（点線の枠）にして、ふだんの絞り込みと区別する */
+.kk-set-chip.is-edit {
+  padding: 0 0.15rem 0 0.55rem;
+  background: var(--kk-panel);
+  box-shadow: inset 0 0 0 1px var(--kk-line-strong);
+}
+.kk-set-chip-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.kk-set-chip-del {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
   color: var(--kk-ink-faint);
-  margin-right: 0.15rem;
+  cursor: pointer;
+}
+.kk-set-chip-del:hover {
+  background: var(--kk-danger-soft);
+  color: var(--kk-danger);
+}
+.kk-set-chip-del svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .kk-set-tag-icon {
   flex: none;
