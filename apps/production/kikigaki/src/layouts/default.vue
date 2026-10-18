@@ -64,11 +64,18 @@
             {{ serviceName }}
             <span class="kk-note font-normal hidden sm:inline">会議の文章から議事録を</span>
           </NuxtLink>
-          <!-- スマホでは左メニューが出ないので、管理画面への入口はこの帯の右端に置く（管理者だけ） -->
-          <NuxtLink v-if="isAdmin" to="/admin" class="kk-head-admin" :class="{ 'is-active': route.path.startsWith('/admin') }">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" /><path d="M9 12l2 2 4-4" /></svg>
-            管理画面
-          </NuxtLink>
+          <!-- スマホでは左メニューが出ないので、管理画面との行き来はこの帯の右端のボタンで行う（管理者だけ）。
+               管理画面にいるときは「議事録」（一覧へ戻る）、それ以外では「管理画面」に入れ替える -->
+          <template v-if="isAdmin">
+            <NuxtLink v-if="route.path.startsWith('/admin')" to="/" class="kk-head-admin">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l3 3v13H6z" /><path d="M9 11h6M9 15h6" /></svg>
+              議事録
+            </NuxtLink>
+            <NuxtLink v-else to="/admin" class="kk-head-admin">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" /><path d="M9 12l2 2 4-4" /></svg>
+              管理画面
+            </NuxtLink>
+          </template>
         </header>
 
         <main
@@ -250,11 +257,6 @@ const wide = computed(() => route.meta.wide === true)
   font-weight: 700;
   color: var(--kk-ink-soft);
   text-decoration: none;
-}
-.kk-head-admin.is-active {
-  border-color: var(--kk-accent);
-  background: var(--kk-accent-soft);
-  color: var(--kk-accent-strong);
 }
 .kk-head-admin svg {
   width: 15px;

@@ -182,7 +182,7 @@
             :disabled="driveBusy"
             aria-label="Googleドライブとの連携を解除"
             title="連携を解除"
-            @click="disconnectDrive"
+            @click="confirmingDriveOff = true"
           >
             <!-- 切れた鎖（連携の解除） -->
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 14.5l-1.8 1.8a3 3 0 0 1-4.2-4.2l2.6-2.6a3 3 0 0 1 4.2 0M14.5 9.5l1.8-1.8a3 3 0 0 1 4.2 4.2l-2.6 2.6a3 3 0 0 1-4.2 0M4 4l2 2M18 18l2 2M9 3v2M3 9h2M15 21v-2M21 15h-2" /></svg>
@@ -193,6 +193,17 @@
         {{ driveBusy ? '画面をひらいています…' : 'Googleドライブとつなぐ' }}
       </button>
     </section>
+
+    <!-- ドライブの連携を解除する前の確認（アイコン1つで押せるので、押し間違えで切れないように） -->
+    <BottomSheet v-model="confirmingDriveOff" title="Googleドライブとの連携を解除しますか？" :closable="!driveBusy">
+      <p class="kk-lead m-0">議事録の画面から、ドライブにPDFを保存できなくなります。ドライブに保存済みのPDFは消えません。</p>
+      <div class="mt-4 flex flex-col gap-2">
+        <button class="kk-btn-sub" :disabled="driveBusy" @click="confirmDriveOff">
+          {{ driveBusy ? '解除しています…' : 'はい、解除します' }}
+        </button>
+        <button class="kk-btn-text" :disabled="driveBusy" @click="confirmingDriveOff = false">やめる</button>
+      </div>
+    </BottomSheet>
 
     <!-- アカウント -->
     <section class="kk-set-sec">
@@ -364,10 +375,13 @@ async function connectDrive() {
   driveBusy.value = false
 }
 
-async function disconnectDrive() {
+const confirmingDriveOff = ref(false)
+
+async function confirmDriveOff() {
   driveBusy.value = true
   await disconnect()
   driveBusy.value = false
+  confirmingDriveOff.value = false
 }
 
 // ── タグの管理 ──

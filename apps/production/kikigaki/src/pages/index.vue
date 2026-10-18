@@ -112,6 +112,28 @@
       </div>
 
       <MinutesTextSheet v-model="showTextSheet" />
+
+      <!-- スマホの「⋯」から開く操作の一覧 -->
+      <BottomSheet :model-value="!!menuRecord" :title="menuRecord?.title || '（名前のない議事録）'" @update:model-value="menuRecord = null">
+        <div v-if="menuRecord" class="kk-menu">
+          <button type="button" class="kk-menu-item" @click="runMenu('rename')">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16zM13 7l4 4" /></svg>
+            名前を変える
+          </button>
+          <button type="button" class="kk-menu-item" @click="runMenu('pdf')">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg>
+            PDF
+          </button>
+          <button v-if="driveConnected" type="button" class="kk-menu-item" @click="runMenu('drive')">
+            <GoogleDriveIcon />
+            ドライブに保存
+          </button>
+          <button type="button" class="kk-menu-item is-danger" @click="runMenu('delete')">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+            削除
+          </button>
+        </div>
+      </BottomSheet>
       <MinutesPdfMaker ref="pdfMaker" />
 
       <!-- 削除の確認（確認画面と同じ文言）。消している間は閉じられないようにする -->
@@ -203,12 +225,13 @@
                   <span class="kk-row-name">
                     <NuxtLink :to="`/records/${r.id}`" class="kk-row-title" @click.stop>
                       <!-- 種類（話し合い／聞き取り）。名前の頭に置いて、一覧で見分けられるようにする -->
-                      <MinutesModeBadge :mode="r.mode" />
+                      <MinutesModeBadge :mode="r.mode" compact />
                       <span class="truncate">{{ r.title || '（名前のない議事録）' }}</span>
                     </NuxtLink>
+                    <!-- スマホでは「⋯」のメニューに入れる（タイトルに幅を回すため） -->
                     <button
                       type="button"
-                      class="kk-row-icon kk-row-rename"
+                      class="kk-row-icon kk-row-rename kk-pc-only"
                       :disabled="!!rowBusy"
                       :aria-label="`${r.title || '議事録'}の名前を変える`"
                       title="名前を変える"
@@ -217,12 +240,12 @@
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16zM13 7l4 4" /></svg>
                     </button>
                   </span>
-                  <!-- 行のタグを押しても、そのタグで絞り込める -->
+                  <!-- 行のタグを押しても、そのタグで絞り込める（スマホでは日付の行に並べる） -->
                   <button
                     v-for="t in r.tags"
                     :key="t"
                     type="button"
-                    class="kk-row-tag"
+                    class="kk-row-tag kk-pc-only"
                     :class="{ 'is-on': activeTag === t }"
                     :title="`「${t}」で絞り込む`"
                     @click.stop="setTag(t)"
@@ -230,12 +253,37 @@
                     #{{ t }}
                   </button>
                 </div>
-                <span class="kk-row-sub">{{ r.dateLabel }}</span>
+                <!-- スマホだけ: 名前の下に日付とタグ -->
+                <span class="kk-row-sub">
+                  <span>{{ r.dateLabel }}</span>
+                  <button
+                    v-for="t in r.tags"
+                    :key="t"
+                    type="button"
+                    class="kk-row-tag"
+                    :class="{ 'is-on': activeTag === t }"
+                    @click.stop="setTag(t)"
+                  >
+                    #{{ t }}
+                  </button>
+                </span>
               </td>
               <td class="kk-col-date">{{ r.date ? formatDateLabel(r.date) : '—' }}</td>
               <td class="kk-col-created">{{ r.createdLabel }}</td>
               <!-- 開かずにPDF・ドライブ保存。行を押すと開くので、ここだけ伝わらないよう止める -->
               <td class="kk-col-actions" @click.stop>
+                <!-- スマホ: 操作は「⋯」から下のシートで選ぶ。作っている間はここで回る -->
+                <button
+                  type="button"
+                  class="kk-row-icon kk-row-more"
+                  :disabled="!!rowBusy"
+                  :aria-label="`${r.title || '議事録'}の操作`"
+                  @click="menuRecord = r"
+                >
+                  <span v-if="rowBusy?.id === r.id" class="kk-row-spin" />
+                  <svg v-else viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.3" /><circle cx="12" cy="12" r="1.3" /><circle cx="19" cy="12" r="1.3" /></svg>
+                </button>
+                <!-- PC: アイコンを並べる（1回押すだけで済むように） -->
                 <div class="kk-row-actions">
                   <button
                     v-if="driveConnected"
@@ -414,6 +462,21 @@ const savedMessage = ref('')
 const pdfMaker = ref<InstanceType<typeof MinutesPdfMakerType> | null>(null)
 /** いま作っている行。PDFづくりは画面外の1枚の版を使い回すので、同時には1件だけにする */
 const rowBusy = ref<{ id: string; kind: 'pdf' | 'drive' } | null>(null)
+
+// ── スマホの「⋯」メニュー ──
+type RowRecord = (typeof records.value)[number]
+const menuRecord = ref<RowRecord | null>(null)
+
+/** メニューを閉じてから実行する（名前の欄・確認のシートと重ならないように） */
+function runMenu(kind: 'rename' | 'pdf' | 'drive' | 'delete') {
+  const r = menuRecord.value
+  menuRecord.value = null
+  if (!r) return
+  if (kind === 'rename') startTitle(r)
+  else if (kind === 'pdf') downloadRow(r)
+  else if (kind === 'drive') driveRow(r)
+  else pendingDelete.value = r
+}
 
 /** 保存されている内容でPDFをつくる（確認画面で保存していない直しは入らない） */
 async function makeRowPdf(id: string) {
@@ -807,9 +870,9 @@ onMounted(async () => {
   color: var(--kk-ink);
   text-decoration: none;
 }
-/* 行の右端の操作（アイコンのみ） */
+/* 行の右端の操作（PCはアイコンを並べ、スマホは「⋯」1つ） */
 .kk-col-actions {
-  width: 120px;
+  width: 44px;
   padding-left: 0.25rem !important;
   padding-right: 0.6rem !important;
 }
@@ -882,20 +945,80 @@ onMounted(async () => {
   padding: 0.1rem 0.3rem;
 }
 
-/* スマホでは列を畳み、日付は名前の下に出す */
+/* スマホでは列を畳み、日付とタグは名前の下に出す */
 .kk-row-sub {
-  display: block;
-  padding-left: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.35rem;
+  margin-top: 0.15rem;
+  padding-left: calc(22px + 0.45rem);
   font-size: 11.5px;
   color: var(--kk-ink-faint);
+}
+/* スマホの「⋯」と、そこから開くシートの中の操作 */
+.kk-row-more {
+  display: inline-flex;
+}
+.kk-row-more svg circle {
+  fill: currentColor;
+  stroke: none;
+}
+.kk-menu {
+  display: flex;
+  flex-direction: column;
+}
+.kk-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 48px;
+  padding: 0 0.25rem;
+  border: 0;
+  border-top: 1px solid var(--kk-line);
+  background: transparent;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--kk-ink);
+  text-align: left;
+  cursor: pointer;
+}
+.kk-menu-item:first-child {
+  border-top: 0;
+}
+.kk-menu-item svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.kk-menu-item.is-danger {
+  color: var(--kk-danger);
+}
+.kk-pc-only,
+.kk-row-actions {
+  display: none !important;
 }
 .kk-col-date,
 .kk-col-created {
   display: none;
 }
 @media (min-width: 640px) {
-  .kk-row-sub {
+  .kk-row-sub,
+  .kk-row-more {
     display: none;
+  }
+  .kk-pc-only {
+    display: inline-flex !important;
+  }
+  .kk-row-actions {
+    display: flex !important;
+  }
+  .kk-col-actions {
+    width: 120px;
   }
   .kk-col-date {
     display: table-cell;
