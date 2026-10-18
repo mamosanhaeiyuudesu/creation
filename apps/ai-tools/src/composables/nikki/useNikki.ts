@@ -3,6 +3,7 @@
 // サーバーとのやりとりはここに閉じる（コンポーネント側に $fetch を散らさない）。
 
 import { todayJST } from '~/utils/jst'
+import type { NikkiDictionaryEntry } from '~/utils/nikki-dictionary'
 import type { NikkiCalendarOption, NikkiDay, NikkiEntry, NikkiEvent, NikkiTopic } from '~/types/nikki'
 
 interface StatusResponse {
@@ -37,6 +38,8 @@ export function useNikki() {
   const dayLoading = useState<boolean>('nikki-day-loading', () => false)
   const saving = useState<boolean>('nikki-saving', () => false)
   const error = useState<string>('nikki-error', () => '')
+
+  const dictionary = useState<NikkiDictionaryEntry[]>('nikki-dictionary', () => [])
 
   const today = computed(() => todayJST())
 
@@ -89,6 +92,31 @@ export function useNikki() {
       fail(e, '連携を解除できませんでした')
     }
   }
+
+  // ─────────────────────── 文字起こし辞書 ───────────────────────
+
+  async function loadDictionary(): Promise<void> {
+    try {
+      dictionary.value = (await $fetch<{ items: NikkiDictionaryEntry[] }>('/api/nikki/dictionary')).items
+    } catch (e) {
+      fail(e, '辞書を取得できませんでした')
+    }
+  }
+
+  /** 追加・修正・削除はどれも更新後の一覧が返る */
+  async function sendDictionary(url: string, method: 'POST' | 'PATCH' | 'DELETE', body?: { word: string; wrong: string }): Promise<boolean> {
+    try {
+      dictionary.value = (await $fetch<{ items: NikkiDictionaryEntry[] }>(url, { method, body })).items
+      return true
+    } catch (e) {
+      fail(e, '辞書を保存できませんでした')
+      return false
+    }
+  }
+
+  const addDictionaryItem = (word: string, wrong: string) => sendDictionary('/api/nikki/dictionary', 'POST', { word, wrong })
+  const updateDictionaryItem = (id: string, word: string, wrong: string) => sendDictionary(`/api/nikki/dictionary/${id}`, 'PATCH', { word, wrong })
+  const removeDictionaryItem = (id: string) => sendDictionary(`/api/nikki/dictionary/${id}`, 'DELETE')
 
   // ─────────────────────────── 当月のカレンダー ───────────────────────────
 
@@ -294,6 +322,11 @@ export function useNikki() {
     saving,
     error,
     today,
+    dictionary,
+    loadDictionary,
+    addDictionaryItem,
+    updateDictionaryItem,
+    removeDictionaryItem,
     loadStatus,
     loadCalendars,
     saveCalendars,

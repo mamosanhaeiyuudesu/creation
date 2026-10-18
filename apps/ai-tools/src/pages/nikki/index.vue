@@ -4,7 +4,22 @@
     <header class="shrink-0 flex items-center justify-between px-4 sm:px-6 h-14">
       <span class="nk-serif text-[15px] !font-black text-[var(--nk-today)]">日記</span>
       <div v-if="isLoggedIn" class="flex items-center gap-1 shrink-0">
-        <button class="nk-btn-ghost !border-transparent !bg-transparent !w-9 !px-0 justify-center text-[15px]" title="Googleカレンダーの設定" @click="showSetup = !showSetup">⚙</button>
+        <div class="relative">
+          <button
+            class="nk-btn-ghost !border-transparent !bg-transparent !w-9 !px-0 justify-center text-[15px]"
+            title="設定"
+            :aria-expanded="showSettingsMenu"
+            @click="showSettingsMenu = !showSettingsMenu"
+          >⚙</button>
+          <template v-if="showSettingsMenu">
+            <!-- 外側タップで閉じる -->
+            <div class="fixed inset-0 z-30" @click="showSettingsMenu = false" />
+            <div class="absolute right-0 top-full mt-1 z-40 min-w-[210px] nk-card py-1 shadow-[0_12px_36px_rgba(34,37,44,0.18)]">
+              <button class="w-full text-left px-4 py-2.5 text-[13px] hover:bg-[var(--nk-indigo-soft)]" @click="openDictionary">📖 辞書を編集</button>
+              <button class="w-full text-left px-4 py-2.5 text-[13px] hover:bg-[var(--nk-indigo-soft)]" @click="openCalendarSetup">📅 Googleカレンダーとの連携</button>
+            </div>
+          </template>
+        </div>
         <button class="nk-btn-ghost !border-transparent !bg-transparent !h-9 !px-3 !text-[12px]" @click="showPasswordModal = true">パスワード</button>
         <button class="nk-btn-ghost !border-transparent !bg-transparent !h-9 !px-3 !text-[12px]" @click="logout">ログアウト</button>
       </div>
@@ -36,6 +51,18 @@
           @save="onSaveCalendars"
           @disconnect="onDisconnect"
           @close="closeSetup"
+        />
+      </div>
+
+      <!-- 辞書の編集。⚙ のメニューから開く -->
+      <div v-if="showDictionary" class="mb-4">
+        <NikkiDictionary
+          :items="dictionary"
+          :busy="dictionaryBusy"
+          @add="onAddWord"
+          @update="onUpdateWord"
+          @remove="onRemoveWord"
+          @close="showDictionary = false"
         />
       </div>
 
@@ -99,6 +126,7 @@
         :today="today"
         :entry="entry"
         :events="dayEvents"
+        :dictionary="dictionary"
         :loading="dayLoading"
         :saving="saving"
         :error="error"
@@ -126,6 +154,7 @@ import { useNikki } from '~/composables/nikki/useNikki'
 // import { useNikkiBrainWords } from '~/composables/nikki/useNikkiBrainWords'
 import { prevDate, nextDate } from '~/utils/nikki-calendar'
 import NikkiTimeline from '~/components/nikki/NikkiTimeline.vue'
+import NikkiDictionary from '~/components/nikki/NikkiDictionary.vue'
 // import NikkiBrainCloud from '~/components/nikki/NikkiBrainCloud.vue'
 
 definePageMeta({ layout: 'nikki' })
@@ -164,6 +193,11 @@ const {
   saving,
   error,
   today,
+  dictionary,
+  loadDictionary,
+  addDictionaryItem,
+  updateDictionaryItem,
+  removeDictionaryItem,
   loadStatus,
   loadCalendars,
   saveCalendars,
@@ -191,6 +225,30 @@ const dayNavNext = computed(() => {
 })
 const showPasswordModal = ref(false)
 const showSetup = ref(false)
+const showSettingsMenu = ref(false)
+const showDictionary = ref(false)
+const dictionaryBusy = ref(false)
+
+// 設定メニューの項目。辞書と連携の設定は同じ場所に出るので、片方を開くともう片方は閉じる
+const openDictionary = () => {
+  showSettingsMenu.value = false
+  showSetup.value = false
+  showDictionary.value = true
+}
+const openCalendarSetup = () => {
+  showSettingsMenu.value = false
+  showDictionary.value = false
+  showSetup.value = true
+}
+
+const withDictionaryBusy = async (fn: () => Promise<boolean>) => {
+  dictionaryBusy.value = true
+  await fn()
+  dictionaryBusy.value = false
+}
+const onAddWord = (word: string, wrong: string) => withDictionaryBusy(() => addDictionaryItem(word, wrong))
+const onUpdateWord = (id: string, word: string, wrong: string) => withDictionaryBusy(() => updateDictionaryItem(id, word, wrong))
+const onRemoveWord = (id: string) => withDictionaryBusy(() => removeDictionaryItem(id))
 const showCalendar = ref(false)
 
 // 頭の中（ワードクラウド）は一旦非表示
@@ -250,7 +308,7 @@ const onSave = async (text: string, extract: boolean) => {
 
 const load = async () => {
   await loadStatus()
-  await Promise.all([loadMonth(), loadTimeline()])
+  await Promise.all([loadMonth(), loadTimeline(), loadDictionary()])
   if (status.value.connected) await loadCalendars()
 }
 

@@ -57,6 +57,14 @@ export async function ensureNikkiTables(db: any): Promise<void> {
       created_at INTEGER,
       updated_at INTEGER
     )`,
+    `CREATE TABLE IF NOT EXISTS nikki_dictionary (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      word TEXT NOT NULL,
+      wrong TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_nikki_dictionary_user ON nikki_dictionary (user_id, created_at)`,
     `CREATE TABLE IF NOT EXISTS nikki_oauth_states (
       state TEXT PRIMARY KEY, user_id TEXT NOT NULL, verifier TEXT NOT NULL, created_at INTEGER
     )`,
@@ -357,4 +365,59 @@ export async function loadMonthMarks(db: any, userId: string, month: string): Pr
     .bind(userId, `${month}-%`)
     .all()
   return (res?.results ?? []).map((r: any) => r.date)
+}
+
+
+// ─────────────────────────────── 文字起こし辞書 ───────────────────────────────
+
+export const NIKKI_DICTIONARY_MAX = 200
+const WORD_MAX = 40
+
+export interface NikkiDictionaryItem {
+  id: string
+  word: string
+  wrong: string
+}
+
+/** 入力を整える。単語が空・長すぎるときは null。聞き間違いは読点/カンマ/改行区切りを「、」にそろえる。 */
+export function normalizeDictionaryInput(word: unknown, wrong: unknown): { word: string; wrong: string } | null {
+  const w = typeof word === 'string' ? word.trim() : ''
+  if (!w || w.length > WORD_MAX) return null
+  const list = (typeof wrong === 'string' ? wrong : '')
+    .split(/[、,，\n]/)
+    .map((v) => v.trim())
+    .filter((v) => v && v !== w && v.length <= WORD_MAX)
+  return { word: w, wrong: [...new Set(list)].join('、') }
+}
+
+export async function loadDictionary(db: any, userId: string): Promise<NikkiDictionaryItem[]> {
+  const { results } = await db
+    .prepare('SELECT id, word, wrong FROM nikki_dictionary WHERE user_id = ? ORDER BY created_at ASC, id ASC')
+    .bind(userId)
+    .all()
+  return (results ?? []) as NikkiDictionaryItem[]
+}
+
+export async function countDictionary(db: any, userId: string): Promise<number> {
+  const row = await db.prepare('SELECT COUNT(*) AS n FROM nikki_dictionary WHERE user_id = ?').bind(userId).first()
+  return Number(row?.n ?? 0)
+}
+
+export async function addDictionaryItem(db: any, userId: string, word: string, wrong: string): Promise<void> {
+  await db
+    .prepare('INSERT INTO nikki_dictionary (id, user_id, word, wrong) VALUES (?, ?, ?, ?)')
+    .bind(crypto.randomUUID(), userId, word, wrong)
+    .run()
+}
+
+export async function updateDictionaryItem(db: any, userId: string, id: string, word: string, wrong: string): Promise<boolean> {
+  const r = await db
+    .prepare('UPDATE nikki_dictionary SET word = ?, wrong = ? WHERE id = ? AND user_id = ?')
+    .bind(word, wrong, id, userId)
+    .run()
+  return (r?.meta?.changes ?? 0) > 0
+}
+
+export async function deleteDictionaryItem(db: any, userId: string, id: string): Promise<void> {
+  await db.prepare('DELETE FROM nikki_dictionary WHERE id = ? AND user_id = ?').bind(id, userId).run()
 }

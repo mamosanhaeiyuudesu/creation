@@ -11,7 +11,8 @@ interface Sortable {
 
 /**
  * 新しい順に並べる。
- *   - date: 会議の日の新しい順（既定）。会議の日が無いものは最後にまとめ、その中はつくった日の新しい順
+ *   - date: 会議の日の新しい順（既定）。会議の日が無いものは**先頭**にまとめ、その中はつくった日の新しい順
+ *     （日付が入っていない議事録は、入れ忘れに気づいて直せるよう目につく場所に出す。本人の指示 2026-10-18）
  *   - created: つくった日の新しい順
  * 同じ日どうしは、つくった日の新しい順。元の配列は変えない。
  */
@@ -20,8 +21,8 @@ export function sortRecords<T extends Sortable>(records: T[], key: RecordSortKey
   if (key === 'created') return [...records].sort(byCreated)
   return [...records].sort((a, b) => {
     if (!a.date && !b.date) return byCreated(a, b)
-    if (!a.date) return 1
-    if (!b.date) return -1
+    if (!a.date) return -1
+    if (!b.date) return 1
     return b.date.localeCompare(a.date) || byCreated(a, b)
   })
 }

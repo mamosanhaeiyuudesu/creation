@@ -218,6 +218,7 @@
             <section class="kk-card kk-review-card">
               <div class="kk-sec-head">
                 <h2 class="kk-sec-title">{{ labels.summary }}</h2>
+                <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${labels.summary}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection('summary', labels.summary)"><span v-if="sectionPdfBusy === 'summary'" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
               </div>
               <AutoTextarea v-model="minutes.summary" :placeholder="labels.summaryPlaceholder" />
             </section>
@@ -228,7 +229,7 @@
           <section v-for="group in pointGroups.filter((g) => g.col === col)" :key="group.key" class="kk-card kk-review-card">
             <div class="kk-sec-head">
               <h2 class="kk-sec-title">{{ group.label }}<span class="kk-sec-count">{{ group.items.length }}</span></h2>
-              <button type="button" class="kk-add" @click="group.items.push({ content: '', note: '' })"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>追加</button>
+              <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${group.label}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection(group.key, group.label)"><span v-if="sectionPdfBusy === group.key" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
             </div>
 
             <p v-if="!group.items.length" class="kk-empty">見つかりませんでした。</p>
@@ -248,6 +249,8 @@
                 </div>
               </li>
             </ul>
+            <!-- 追加は欄のいちばん下に（見出しの右はPDFのダウンロード） -->
+            <button type="button" class="kk-add-row" aria-label="追加" title="追加" @click="group.items.push({ content: '', note: '' })"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
           </section>
 
           <!-- 右だけ: つぎの予定・やること（会議のときだけ。1人の話では拾わない） -->
@@ -255,7 +258,7 @@
             <section class="kk-card kk-review-card">
               <div class="kk-sec-head">
                 <h2 class="kk-sec-title">つぎの予定<span class="kk-sec-count">{{ minutes.eventCandidates.length }}</span></h2>
-                <button type="button" class="kk-add" @click="addEvent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>追加</button>
+                <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${'つぎの予定'}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection('events', 'つぎの予定')"><span v-if="sectionPdfBusy === 'events'" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
               </div>
 
               <p v-if="!minutes.eventCandidates.length" class="kk-empty">見つかりませんでした。</p>
@@ -293,12 +296,14 @@
                   </div>
                 </li>
               </ul>
+              <!-- 追加は欄のいちばん下に（見出しの右はPDFのダウンロード） -->
+              <button type="button" class="kk-add-row" aria-label="追加" title="追加" @click="addEvent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
             </section>
 
             <section class="kk-card kk-review-card">
               <div class="kk-sec-head">
                 <h2 class="kk-sec-title">やること<span class="kk-sec-count">{{ minutes.taskCandidates.length }}</span></h2>
-                <button type="button" class="kk-add" @click="addTask"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>追加</button>
+                <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${'やること'}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection('tasks', 'やること')"><span v-if="sectionPdfBusy === 'tasks'" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
               </div>
 
               <p v-if="!minutes.taskCandidates.length" class="kk-empty">見つかりませんでした。</p>
@@ -325,6 +330,8 @@
                   </div>
                 </li>
               </ul>
+              <!-- 追加は欄のいちばん下に（見出しの右はPDFのダウンロード） -->
+              <button type="button" class="kk-add-row" aria-label="追加" title="追加" @click="addTask"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
             </section>
           </template>
         </div>
@@ -384,6 +391,7 @@
 
     <!-- PDFは部品で作る（一覧画面と共通） -->
     <MinutesPdfMaker ref="pdfMaker" />
+    <MinutesSectionPdf ref="sectionPdf" />
   </div>
 </template>
 
@@ -391,8 +399,9 @@
 import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
 import { emptyMinutes, MINUTES_MODES } from '~/types/minutes'
-import type { EventItem, Minutes, MinutesMode, MinutesRecord } from '~/types/minutes'
+import type { EventItem, Minutes, MinutesMode, MinutesRecord, SectionKind } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
+import type MinutesSectionPdfType from '~/components/MinutesSectionPdf.vue'
 
 useHead({ title: `内容を確かめる — ${SERVICE.name}` })
 // PDFのように左右に並べるので、レイアウト側で横幅を広げ画面の高さに収める
@@ -580,7 +589,7 @@ const pointGroups = computed(() =>
   minutes.mode === 'talk'
     ? [
         {
-          key: 'keyMessages',
+          key: 'keyMessages' as SectionKind,
           col: 'right',
           label: '伝えたかったこと',
           placeholder: '伝えたかったこと',
@@ -588,7 +597,7 @@ const pointGroups = computed(() =>
           items: minutes.keyMessages,
         },
         {
-          key: 'topics',
+          key: 'topics' as SectionKind,
           col: 'left',
           label: '話の内容',
           placeholder: '話題',
@@ -598,7 +607,7 @@ const pointGroups = computed(() =>
       ]
     : [
         {
-          key: 'decisions',
+          key: 'decisions' as SectionKind,
           col: 'right',
           label: 'この会で決まったこと',
           placeholder: '決まったこと',
@@ -606,7 +615,7 @@ const pointGroups = computed(() =>
           items: minutes.decisions,
         },
         {
-          key: 'discussions',
+          key: 'discussions' as SectionKind,
           col: 'left',
           label: '話し合ったこと',
           placeholder: '話し合ったこと',
@@ -925,6 +934,27 @@ async function createPdf() {
   await saveMinutes()
   if (!pdfMaker.value) throw new Error('PDFの中身を用意できませんでした。画面を開き直してお試しください。')
   return await pdfMaker.value.make(toRaw(minutes))
+}
+
+// ── セクションごとのPDF（見出しの右の小さなアイコン） ──
+const sectionPdf = ref<InstanceType<typeof MinutesSectionPdfType> | null>(null)
+/** いまPDFをつくっているセクション（そのアイコンだけ回す） */
+const sectionPdfBusy = ref<SectionKind | ''>('')
+
+async function downloadSection(kind: SectionKind, label: string) {
+  errorMessage.value = ''
+  savedMessage.value = ''
+  sectionPdfBusy.value = kind
+  try {
+    // 先に保存する（保存し忘れた直しがPDFに出ないように）
+    await saveMinutes()
+    if (!sectionPdf.value) throw new Error('PDFの中身を用意できませんでした。画面を開き直してお試しください。')
+    const { pdf, fileName } = await sectionPdf.value.make(toRaw(minutes), kind, label)
+    pdf.save(fileName)
+  } catch (e) {
+    errorMessage.value = apiMessage(e, 'PDFをつくれませんでした。もう一度お試しください。')
+  }
+  sectionPdfBusy.value = ''
 }
 
 async function downloadPdf() {
@@ -1530,29 +1560,74 @@ onUnmounted(() => {
   border-radius: 999px;
   padding: 0 0.4rem;
 }
-.kk-add {
+/* 見出しの右の、そのセクションだけのPDF（小さなダウンロードのアイコン） */
+.kk-sec-pdf {
   margin-left: auto;
+  flex: none;
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
-  height: 26px;
-  padding: 0 0.55rem;
-  border: 1px solid var(--kk-line);
-  border-radius: 999px;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--kk-ink-faint);
+  cursor: pointer;
+}
+.kk-sec-pdf:hover:not(:disabled) {
+  border-color: var(--kk-line);
   background: #fff;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
+  color: var(--kk-accent-strong);
+}
+.kk-sec-pdf:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.kk-sec-pdf svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.kk-sec-pdf-spin {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid var(--kk-accent);
+  border-top-color: transparent;
+  animation: kk-sec-spin 0.8s linear infinite;
+}
+@keyframes kk-sec-spin {
+  to { transform: rotate(360deg); }
+}
+/* 欄のいちばん下の「＋」（項目を足す） */
+.kk-add-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 30px;
+  margin-top: 0.4rem;
+  border: 1px dashed var(--kk-line-strong);
+  border-radius: 8px;
+  background: transparent;
   color: var(--kk-accent);
   cursor: pointer;
 }
-.kk-add:hover { border-color: var(--kk-accent); background: var(--kk-accent-soft); }
-.kk-add svg {
-  width: 12px;
-  height: 12px;
+.kk-add-row:hover {
+  border-color: var(--kk-accent);
+  background: var(--kk-accent-soft);
+}
+.kk-add-row svg {
+  width: 15px;
+  height: 15px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.6;
+  stroke-width: 2.4;
   stroke-linecap: round;
 }
 .kk-empty {

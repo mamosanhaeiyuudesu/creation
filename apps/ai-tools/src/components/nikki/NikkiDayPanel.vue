@@ -73,14 +73,14 @@
                 </span>
                 <button v-if="isRecording" class="nk-btn-ghost" @click="pauseRecording">一時停止</button>
                 <button v-else class="nk-btn-ghost" @click="resumeRecording">再開</button>
-                <button class="nk-btn" @click="transcribeRecording">文字にする</button>
+                <button class="nk-btn" @click="transcribeRecording">文字起こしする</button>
                 <button class="nk-btn-ghost" @click="cancelRecording">やめる</button>
               </template>
 
             </div>
 
             <p v-if="micSeemsDead" class="mb-2 text-[12px] text-[var(--nk-today)]">
-              マイクが音を拾えていないようです。入力デバイスやブラウザのマイク許可を確認してください（このまま録っても文字にはなりません）。
+              マイクが音を拾えていないようです。入力デバイスやブラウザのマイク許可を確認してください（このまま録っても文字起こしできません）。
             </p>
             <p v-if="isProcessing" class="mb-2 text-[12px] text-[var(--nk-indigo)]">文字起こし中…</p>
 
@@ -117,12 +117,14 @@
               <input v-model="addHeadline" class="nk-input !text-[13px] font-bold mb-1.5" placeholder="見出し" @keydown.enter.prevent />
               <textarea v-model="addDetail" rows="2" class="nk-input !text-[12px] resize-y mb-1.5" placeholder="具体（1〜2文・省略できます）" />
               <div class="flex items-center gap-2">
+                <!-- インパクトの選択は非表示（復活させるときはこのコメントを外す）
                 <label class="text-[11px] text-[var(--nk-ink-soft)]">インパクト</label>
                 <select v-model.number="addImpact" class="nk-input !w-auto !py-1 !text-[12px]">
                   <option :value="3">3</option>
                   <option :value="4">4</option>
                   <option :value="5">5</option>
                 </select>
+                -->
                 <button class="nk-btn !h-8 !px-3 !text-[12px] ml-auto" :disabled="!addHeadline.trim() || saving" @click="commitAdd">
                   追加
                 </button>
@@ -141,14 +143,16 @@
                   <input v-model="editHeadline" class="nk-input !text-[13px] font-bold mb-1.5" placeholder="見出し" />
                   <textarea v-model="editDetail" rows="2" class="nk-input !text-[12px] resize-y mb-1.5" placeholder="具体（1〜2文）" />
                   <div class="flex items-center gap-2">
+                    <!-- インパクトの選択は非表示（復活させるときはこのコメントを外す）
                     <label class="text-[11px] text-[var(--nk-ink-soft)]">インパクト</label>
                     <select v-model.number="editImpact" class="nk-input !w-auto !py-1 !text-[12px]">
                       <option :value="3">3</option>
                       <option :value="4">4</option>
                       <option :value="5">5</option>
                     </select>
+                    -->
                     <button class="nk-btn !h-8 !px-3 !text-[12px] ml-auto" :disabled="!editHeadline.trim() || saving" @click="commitEdit(topic.id)">
-                      直す
+                      修正する
                     </button>
                     <button class="nk-btn-ghost !h-8 !px-3 !text-[12px]" @click="editingId = ''">やめる</button>
                   </div>
@@ -170,9 +174,11 @@
                     </div>
                   </div>
                   <div class="flex items-center gap-3 mt-1.5">
-                    <button class="text-[11px] text-[var(--nk-indigo)] underline underline-offset-2" @click="startEdit(topic)">直す</button>
+                    <button class="text-[11px] text-[var(--nk-indigo)] underline underline-offset-2" @click="startEdit(topic)">修正する</button>
                     <button class="text-[11px] text-[var(--nk-ink-soft)] underline underline-offset-2" @click="emit('removeTopic', topic.id)">消す</button>
+                    <!-- 「手で直したもの」の表示は非表示
                     <span v-if="topic.edited" class="text-[10px] text-[var(--nk-gold)]">手で直したもの</span>
+                    -->
                   </div>
                 </template>
               </li>
@@ -198,12 +204,16 @@
 import { useAudioRecorder } from '~/composables/useAudioRecorder'
 import { eventTime, formatDateLabel } from '~/utils/nikki-calendar'
 import type { NikkiEntry, NikkiEvent, NikkiTopic } from '~/types/nikki'
+import { applyDictionary, buildDictionaryPrompt } from '~/utils/nikki-dictionary'
+import type { NikkiDictionaryEntry } from '~/utils/nikki-dictionary'
 
 const props = defineProps<{
   date: string
   today: string
   entry: NikkiEntry | null
   events: NikkiEvent[]
+  /** 文字起こし用の辞書 */
+  dictionary: NikkiDictionaryEntry[]
   loading: boolean
   saving: boolean
   error: string
@@ -231,15 +241,16 @@ const topics = computed(() => props.entry?.topics ?? [])
 // 文章の形のまま渡すこと＝固有名詞を並べるだけだと効かないことが kikigaki の辞書で実測確認済み。
 const transcriptionPrompt = computed(() => {
   const titles = [...new Set(props.events.map((ev) => ev.title.trim()).filter(Boolean))]
-  if (!titles.length) return ''
-  return `次の固有名詞や予定名が出てきます: ${titles.join('、')}。`
+  const dict = buildDictionaryPrompt(props.dictionary)
+  const events = titles.length ? `次の固有名詞や予定名が出てきます: ${titles.join('、')}。` : ''
+  return `${dict}${events}`
 })
 
 // 文字起こしは下書き欄に足す（続けて録音したときに前の文章を消さない）
 const { isRecording, isPaused, isProcessing, duration, level, formatTime, startRecording, pauseRecording, resumeRecording, transcribeRecording, cancelRecording } =
   useAudioRecorder({
     onTranscribed: (text: string) => {
-      const t = text.trim()
+      const t = applyDictionary(text, props.dictionary).trim()
       if (!t) {
         // 無音だと Whisper は「ご視聴ありがとうございました」を返す。サーバー側で落としてあるので
         // ここには空が来る＝「声が入っていなかった」ということなので、そう伝える。

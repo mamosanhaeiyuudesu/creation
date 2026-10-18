@@ -83,6 +83,9 @@ export interface Minutes {
   tags: string[]
 }
 
+/** 確認画面でセクションごとにPDFにできる欄（いちばん上の、名前・日・参加者の欄は対象外） */
+export type SectionKind = 'summary' | 'decisions' | 'discussions' | 'keyMessages' | 'topics' | 'events' | 'tasks'
+
 /** 一覧用の軽い行（文字起こし・本文を含まない） */
 export interface RecordSummary {
   id: string
