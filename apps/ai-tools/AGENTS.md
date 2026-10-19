@@ -1,37 +1,34 @@
 # リポジトリ運用ガイドライン
 日本語で回答して
 
-## プロジェクト構成とモジュール整理
-- `app.vue` は単一ページUIです。ページが大きくなるまではUI状態と表示ロジックをここに置きます。
-- `server/api/` にNitroサーバールートがあります。現在のAPIエントリポイントは `server/api/analyze.post.ts` です。
-- `nuxt.config.ts` はランタイム設定とデプロイのプリセットを保持します。
-- `wrangler.toml` はCloudflare Workersのデプロイ設定です。
-- ビルド出力は `.output/`（生成物。手動で編集しない）。
+詳しい仕様・設計判断・セットアップは `CLAUDE.md`（このディレクトリ）とモノレポルートの `CLAUDE.md` が正。ここは要点だけ。
 
-## ビルド、テスト、開発コマンド
-- `npm install`: 依存関係をインストールします。
-- `npm run dev`: ローカル開発用にNuxtのdevサーバーを起動します。
-- `npm run build`: Nitro/Cloudflare向けに本番ビルドします。
-- `npm run start`: ビルド後にローカルで本番サーバーを起動します。
-- `wrangler deploy`: ビルド出力をCloudflare Workersにデプロイします。
+## プロジェクト構成
+- Nuxt 4（`srcDir: src/`）+ Nitro（preset: `cloudflare_module`）+ Tailwind CSS。
+- 画面は `src/pages/<ツール名>/`、部品は `src/components/<ツール名>/`、状態は `src/composables/`。
+- サーバールートは `src/server/api/<ツール名>/`、共通処理は `src/server/utils/`（OpenAI は `openai.ts`、Claude は `anthropic.ts`）。
+- ホームのツール一覧は `src/utils/tools.ts`。
+- `wrangler.toml` は Cloudflare Workers のデプロイ設定（D1・cron）。ビルド出力 `.output/` は生成物なので手で編集しない。
+
+## コマンド（yarn workspaces。ルートから実行）
+- `yarn install`: 依存関係をインストール。
+- `yarn dev`: ai-tools の dev サーバーを起動（:3000）。
+- `yarn build:tools`: Cloudflare Workers 向けの本番ビルド。**dev 起動中に実行しない**（`.nuxt` が壊れる）。
+- `yarn workspace ai-tools test`: vitest（`src/**/*.test.ts` の純TSロジックのみ）。
+- 型チェックは `npx vue-tsc --noEmit`（dev 中でも安全。既存エラーが多いので、触ったファイルの分だけ見る）。
+- デプロイは `main` への push で GitHub Actions（`.github/workflows/deploy-ai-tools.yml`）。手動なら `wrangler deploy`。
 
 ## コーディングスタイルと命名規則
-- `.vue` と `.ts` はインデント2スペースです。
-- Vue SFCはTypeScriptの `script setup` を使います（`<script setup lang="ts">`）。
-- JS/TSの変数と関数はcamelCase、CSSクラスはkebab-caseです。
-- APIルートはHTTP動詞で命名します（例: `server/api/analyze.post.ts`）。
+- `.vue` と `.ts` はインデント2スペース。
+- Vue SFC は `<script setup lang="ts">`。
+- JS/TS の変数と関数は camelCase、CSS クラスは kebab-case。
+- API ルートは HTTP 動詞で命名する（例: `server/api/news/run.post.ts`）。
 
-## テスト方針
-- 自動テストフレームワークは未設定です。
-- 手動確認: `npm run dev` を実行し、画像をアップロードまたは撮影して要約が返ることを確認します。
-- テストを追加する場合は、`npm run test` などのスクリプトも追加し、ここに記載します。
+## コミットとプルリク
+- コミットメッセージは短く1行（`feat:` / `fix:` などの接頭辞＋日本語）。
+- PR には簡潔な説明・確認手順・UI 変更のスクリーンショットを含める。
 
-## コミットとプルリクのガイドライン
-- 履歴のコミットメッセージは短く、日本語で1行です。チーム合意がない限りこの形式に従います。
-- PRには、簡潔な説明、テスト手順、UI変更のスクリーンショットを含めます。
-- PRの説明に関連するIssueやタスクをリンクします。
-
-## 設定とセキュリティの注意点
-- ローカルの秘密情報は `.env`（`.env.example` を参照）に置きます。ローカルでは `OPENAI_API_KEY` を使います。
-- Cloudflareでは `wrangler secret put OPENAI_API_KEY` で秘密情報を保存します（コミットしない）。
-- `.nuxt/` や `.output/` などの生成フォルダはコミットしません。
+## 設定とセキュリティ
+- ローカルの秘密情報は `.env`（`.env.example` を参照）。キーは `NUXT_` 接頭辞付き（例: `NUXT_OPENAI_API_KEY`、`NUXT_ANTHROPIC_API_KEY`）。
+- Cloudflare では `wrangler secret put NUXT_ANTHROPIC_API_KEY` のようにシークレットとして保存する（コミットしない）。
+- `.nuxt/` や `.output/` などの生成フォルダはコミットしない。

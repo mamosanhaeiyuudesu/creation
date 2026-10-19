@@ -1,5 +1,6 @@
 import { getSessionUser } from '~/server/utils/auth'
 import { wrapApiError } from '~/server/utils/openai'
+import { claudeText, thinkingOff } from '~/server/utils/anthropic'
 
 interface SourceItem { date: string; text: string }
 interface AnalysisBlock { title: string; text: string }
@@ -126,7 +127,7 @@ export default defineEventHandler(async (event) => {
       body: JSON.stringify({
         model: 'claude-sonnet-5-5',
         max_tokens: 700,
-        thinking: { type: 'disabled' },
+        thinking: thinkingOff('claude-sonnet-5-5'),
         system,
         messages: [{ role: 'user', content: sourceText }],
       }),
@@ -141,7 +142,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const data = await response.json()
-    const raw = (data?.content?.[0]?.text ?? '').trim()
+    const raw = claudeText(data).trim()
 
     let parsed: { blocks?: { title?: string; text?: string }[] }
     try {

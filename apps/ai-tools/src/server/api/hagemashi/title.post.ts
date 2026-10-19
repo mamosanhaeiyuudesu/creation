@@ -1,4 +1,5 @@
 import { wrapApiError } from '~/server/utils/openai'
+import { claudeText, thinkingOff } from '~/server/utils/anthropic'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{ text: string }>(event)
@@ -21,6 +22,7 @@ export default defineEventHandler(async (event) => {
       },
       body: JSON.stringify({
         model: 'claude-haiku-5-5',
+        thinking: thinkingOff('claude-haiku-5-5'),
         max_tokens: 20,
         system: '以下のテキストの内容を表す簡潔なタイトルを日本語で8文字以内で出力してください。タイトルのみ出力し、それ以外は何も出力しないこと。',
         messages: [{ role: 'user', content: body.text }],
@@ -33,7 +35,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const data = await response.json()
-    const title = (data?.content?.[0]?.text ?? '').trim().slice(0, 8)
+    const title = claudeText(data).trim().slice(0, 8)
     return { title }
   } catch (err) {
     return wrapApiError(err, 'タイトル生成に失敗しました')

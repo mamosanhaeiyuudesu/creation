@@ -1,4 +1,5 @@
 import { wrapApiError } from '~/server/utils/openai'
+import { claudeText, thinkingOff } from '~/server/utils/anthropic'
 
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string }
 
@@ -72,6 +73,7 @@ async function summarizeChunk(apiKey: string, text: string): Promise<SummaryItem
     },
     body: JSON.stringify({
       model: 'claude-haiku-5-5',
+      thinking: thinkingOff('claude-haiku-5-5'),
       // 入力を分割して1回あたりの出力量を抑えているが、余裕を持って上限を引き上げておく
       max_tokens: 2048,
       system: SYSTEM_PROMPT,
@@ -88,7 +90,7 @@ async function summarizeChunk(apiKey: string, text: string): Promise<SummaryItem
   }
 
   const data = await response.json()
-  const raw = data?.content?.[0]?.text ?? ''
+  const raw = claudeText(data)
   const stripped = raw.replace(/```(?:json)?/g, '').trim()
 
   const extractJsonLike = (s: string) => {

@@ -1,4 +1,5 @@
 import { wrapApiError } from '~/server/utils/openai'
+import { claudeText, thinkingOff } from '~/server/utils/anthropic'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{ texts: string[]; encouragePrompt: string; charLimit?: number; vision?: string }>(event)
@@ -32,7 +33,7 @@ export default defineEventHandler(async (event) => {
       body: JSON.stringify({
         model: 'claude-sonnet-5-5',
         max_tokens: 1024,
-        thinking: { type: 'disabled' },
+        thinking: thinkingOff('claude-sonnet-5-5'),
         system: `${body.encouragePrompt || '話した内容を踏まえて、温かくはげましてください。'}${visionInstruction}\n\n返答は日本語で${body.charLimit ?? 500}文字程度にまとめること。`,
         messages: [{ role: 'user', content: userContent }],
       }),
@@ -47,7 +48,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const data = await response.json()
-    const text = data?.content?.[0]?.text ?? ''
+    const text = claudeText(data)
     return { result: text }
   } catch (err) {
     return wrapApiError(err, 'はげましの生成に失敗しました')

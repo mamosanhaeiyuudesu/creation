@@ -6,6 +6,24 @@ import type { ChatMessage } from '~/types/fitbit'
 const MESSAGES_URL = 'https://api.anthropic.com/v1/messages'
 const DEFAULT_MODEL = 'claude-sonnet-5-5'
 
+/**
+ * thinking を使わないときの指定。Sonnet 5.5 は `disabled` を 400 で拒否し、代わりに `between_tools`
+ * （ツール呼び出しの合間だけ考える＝ツールなしなら考えない）で切る。`between_tools` は Sonnet 5.5 専用なので
+ * Haiku 5.5 などは従来どおり `disabled`（Haiku 5.5 は既定 effort が medium なので受け付ける）。
+ */
+export function thinkingOff(model: string): { type: 'disabled' | 'between_tools' } {
+  return { type: model.startsWith('claude-sonnet-5-5') ? 'between_tools' : 'disabled' }
+}
+
+/** Messages API の応答から text ブロックだけを連結して返す（thinking ブロックが先頭に来ても拾わない）。 */
+export function claudeText(data: any): string {
+  const blocks: any[] = Array.isArray(data?.content) ? data.content : []
+  return blocks
+    .filter((b) => b?.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+}
+
 interface CallOptions {
   system: string
   messages: ChatMessage[]
@@ -16,14 +34,15 @@ interface CallOptions {
 }
 
 /**
- * Claude を1回呼び出し、応答のテキストブロックを連結して返す（thinkingは無効）。失敗時は createError を throw。
+ * Claude を1回呼び出し、応答のテキストブロックを連結して返す（thinkingは使わない＝thinkingOff）。失敗時は createError を throw。
  * webSearch 指定時はサーバーツール web_search を有効化する（モデルが検索→本文の順に返す）。
  */
 export async function callClaudeText(apiKey: string, opts: CallOptions): Promise<string> {
+  const model = opts.model ?? DEFAULT_MODEL
   const body: Record<string, unknown> = {
-    model: opts.model ?? DEFAULT_MODEL,
+    model,
     max_tokens: opts.maxTokens,
-    thinking: { type: 'disabled' },
+    thinking: thinkingOff(model),
     system: opts.system,
     messages: opts.messages,
   }
@@ -41,12 +60,7 @@ export async function callClaudeText(apiKey: string, opts: CallOptions): Promise
   }
   const data = await response.json()
   // Web検索時は content に server_tool_use / web_search_tool_result 等が混ざるので text だけを連結する。
-  const blocks: any[] = Array.isArray(data?.content) ? data.content : []
-  return blocks
-    .filter((b) => b?.type === 'text' && typeof b.text === 'string')
-    .map((b) => b.text)
-    .join('')
-    .trim()
+  return claudeText(data).trim()
 }
 
 interface VisionOptions {
@@ -75,7 +89,7 @@ export async function callClaudeVision(apiKey: string, opts: VisionOptions): Pro
     body: JSON.stringify({
       model: opts.model ?? DEFAULT_MODEL,
       max_tokens: opts.maxTokens,
-      thinking: { type: 'disabled' },
+      thinking: thinkingOff(opts.model ?? DEFAULT_MODEL),
       system: opts.system,
       messages: [{ role: 'user', content: [...imageBlocks, { type: 'text', text: opts.text }] }],
     }),
@@ -85,7 +99,7 @@ export async function callClaudeVision(apiKey: string, opts: VisionOptions): Pro
     throw createError({ statusCode: response.status, statusMessage: err?.error?.message || 'Claude APIの呼び出しに失敗しました。' })
   }
   const data = await response.json()
-  return (data?.content?.[0]?.text ?? '').trim()
+  return claudeText(data).trim()
 }
 
 /** JSON文字列を寛容にパース（素のJSON→失敗時は最初の {...} を抽出）。取れなければ null。 */

@@ -1,4 +1,5 @@
 import { wrapApiError } from '~/server/utils/openai'
+import { claudeText, thinkingOff } from '~/server/utils/anthropic'
 
 // できごと（Moment）のタグ。ポジ4→3（強みは廃止）、ネガ2の計5種。
 const KINDS = ['達成', '感謝', '喜び', 'しんどさ', '不安'] as const
@@ -26,6 +27,7 @@ export default defineEventHandler(async (event) => {
       },
       body: JSON.stringify({
         model: 'claude-haiku-5-5',
+        thinking: thinkingOff('claude-haiku-5-5'),
         max_tokens: 1500,
         system: `以下は、ある人の1回分の記録（その日の気持ち・状況を短文に分解した中間データ）です。
 各行の先頭の [ポジ] / [ネガ] は、その人自身が付けた感情の向きです。
@@ -74,7 +76,7 @@ text のルール:
     }
 
     const data = await response.json()
-    const raw = data?.content?.[0]?.text ?? ''
+    const raw = claudeText(data)
     const stripped = raw.replace(/```(?:json)?/g, '').trim()
     const match = stripped.match(/\{[\s\S]*\}/)
     const parsed = JSON.parse(match ? match[0] : stripped)

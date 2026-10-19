@@ -1,69 +1,66 @@
-# AI Tools (Nuxt 3)
+# ai-tools
 
-複数の AI ツールを統合した Nuxt 3 アプリです。画像要約（SnapReader）と音声文字起こし（whisper）を備えています。Cloudflare Workers へのデプロイ設定付き。
+身内向けの AI ツール群をまとめた Nuxt 4 アプリ（Nitro `cloudflare_module` プリセットで Cloudflare Workers に載せる）。
+whisper・hagemashi・kouba・nikki・kikigaki・news・farm-news・miyako・fitbit・kaki・momo・farm-manager・keiko・guesthouse・ゲームなど。
 
-## セットアップ
+ページごとの仕様・設計判断・セットアップ手順は [CLAUDE.md](./CLAUDE.md) にまとめてある（こちらが正）。
+ホーム画面のツール一覧は `src/utils/tools.ts`。
 
-- Node.js 18+ を想定。
-- 依存インストール: `npm install`
-- 環境変数: `.env` を作成し、ローカル用に `OPENAI_API_KEY=` を設定（テンプレは `.env.example`）。Cloudflare では `wrangler secret put OPENAI_API_KEY` でシークレット登録します。
+## ローカルで動かす
 
-## 開発
+モノレポのルートから:
 
-- ローカル起動: `npm run dev`
-- PC（1024px以上）：ヘッダーにタブナビゲーション
-- モバイル（1023px以下）：左上のハンバーガーメニューでツール選択
+```bash
+yarn install
+yarn dev            # http://localhost:3000（= yarn dev:tools）
+yarn build:tools    # 本番ビルド（Cloudflare Workers向け）
+```
 
-### SnapReader
-- 画像をアップロードまたは撮影
--. `.env` に `OPENAI_API_KEY` をセット。
-2. `npm run dev` で起動。
-3. ホームページからツール（SnapReader / whisper）を選択。
+このワークスペース単体では `yarn dev` / `yarn build` / `yarn test`（`src/**/*.test.ts` の純TSロジックだけを vitest で実行）。
 
-### SnapReader 確認
-- 画像をアップロードまたはカメラで撮影。
-- 「要約を依頼する」を押下。
-- 全文書き起こし → 要約が表示されることを確認。
+**`yarn dev` 中に `yarn build` を実行しないこと**（`.nuxt` を共有しているため壊れる。復旧手順はルートの `CLAUDE.md`）。
 
-### whisper 確認
-- 「🎙️」ボタンで録音開始。
-- 再度ボタンをクリックして文字起こし実行。
-- 日本語テキストが表示され
-### whisper
-- 音声を録音
-- OpenAI の whisper-1 で日本語に文字起こし
-- API エンドポイント：`/api/whisper`
+## 環境変数
 
-## 動作確認
+`.env.example` をコピーして `.env` を作る。キーはすべて `NUXT_` 接頭辞付き（`NUXT_OPENAI_API_KEY`・`NUXT_ANTHROPIC_API_KEY` など）。
+全項目の一覧と用途は [CLAUDE.md の「コマンド」節](./CLAUDE.md)。本番ではシークレットとして登録する:
 
-1) `.env` に `OPENAI_API_KEY` をセット。  
-2) `npm run dev` で起動。  
-3) 画像をアップロードまたはカメラで撮影し、「要約を依頼する」を押下。  
-4) 要約がカード内に表示されること、エラー時にメッセージが出ることを確認。
+```bash
+wrangler secret put NUXT_ANTHROPIC_API_KEY
+```
+
+AI は OpenAI（whisper 文字起こし・miyako など、`server/utils/openai.ts`）と
+Claude（`server/utils/anthropic.ts`。既定 `claude-sonnet-5-5`、news / farm-news の要約は `claude-haiku-5-5`）を使い分けている。
+
+## デプロイ
+
+`main` への push（`apps/ai-tools/**` の変更）で GitHub Actions（`.github/workflows/deploy-ai-tools.yml`）が
+`yarn build:tools` → `wrangler deploy` する。手動なら:
+
+```bash
+yarn build:tools
+cd apps/ai-tools && wrangler deploy
+```
+
+D1（`whisper-db` / `mlb-db`）や cron の設定は `wrangler.toml`。
 
 ## Claude Code リモートコントロール
 
-スマホなど外部デバイスから Claude Code を操作したい場合、以下の手順でローカル開発サーバーを外部公開できます。
+スマホなど外部デバイスから Claude Code を操作したい場合、ローカル開発サーバーを外部公開できる。
 
-1. **トンネルを張る**（cloudflared でローカルを外部公開）
+1. **トンネルを張る**
+
    ```bash
    cloudflared tunnel --url http://localhost:3000
    ```
-   実行すると `https://xxxx.trycloudflare.com` のような一時 URL が発行されます。
+
+   `https://xxxx.trycloudflare.com` のような一時 URL が発行される。
 
 2. **Claude Code をリモートコントロールモードで起動**
+
    ```bash
    claude remote-control
    ```
-   発行された URL をスマホのブラウザで開くと、外部から Claude Code に指示を送れます。
 
-> `nuxt.config.ts` の `vite.server.allowedHosts: true` は、cloudflared 経由のホスト名を Vite が受け付けるために必要な設定です。
-
-## Cloudflare Workers デプロイ
-
-- Nitro は `preset: 'cloudflare'`。ビルドで `.output/` を生成し、Wrangler でデプロイします。
-- シークレット登録: `wrangler secret put OPENAI_API_KEY`
-- ビルド: `npm run build`
-- デプロイ: `wrangler deploy`
-
-`wrangler.toml` で `compatibility_date` や `name` は適宜変更可能です。`[vars]` には秘密鍵を置かず、シークレットで管理してください。
+> cloudflared 経由のホスト名を Vite に受け付けさせるには `nuxt.config.ts` の `vite.server.allowedHosts: true` が要る。
+> 現在はコメントアウトしてあるので、使うときだけ戻す。

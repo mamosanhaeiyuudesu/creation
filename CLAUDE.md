@@ -8,7 +8,7 @@
 
 ```
 apps/
-├── ai-tools/       # AI ツール群（Nuxt 3 + Nitro + Cloudflare Workers）
+├── ai-tools/       # AI ツール群（Nuxt 4 + Nitro + Cloudflare Workers）
 ├── homepages/      # ホームページ一覧のポータル（開発用インデックス）
 ├── prototyper/     # 以下、1サイト = 1 Nuxt ワークスペース（静的生成）
 ├── shugorin/

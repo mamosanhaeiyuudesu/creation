@@ -1,5 +1,5 @@
 // Anthropic (Claude) Messages API 呼び出し。ai-tools の server/utils/anthropic.ts と同じ思想
-// (raw fetch・thinking無効・テキストブロック連結)だが、genogramはテキスト解釈しか使わないため
+// (raw fetch・thinkingを使わない・テキストブロック連結)だが、genogramはテキスト解釈しか使わないため
 // callClaudeText と parseJsonLoose だけを持つ最小構成にしている。
 
 const MESSAGES_URL = 'https://api.anthropic.com/v1/messages'
@@ -17,11 +17,13 @@ interface CallOptions {
    * thinkingをadaptiveにすると、その説明文はthinkingブロック側に出るようになり(呼び出し側はtextブロックしか
    * 見ないため)、text側にはJSONだけが残るようになる。既定はdisabledのまま(要らない呼び出しでコスト/レイテンシを
    * 増やさないため)、複雑なJSON生成タスクだけ明示的にadaptiveを指定する。
+   * Sonnet 5.5 は `disabled` を 400 で拒否するので、「無効」は `between_tools`(ツール呼び出しの合間だけ考える＝
+   * ツールを使わないこのアプリでは考えない)で送る。
    */
   thinking?: 'disabled' | 'adaptive'
 }
 
-/** Claude を1回呼び出し、応答のテキストブロックを連結して返す(thinking省略時は無効)。失敗時は createError を throw。 */
+/** Claude を1回呼び出し、応答のテキストブロックを連結して返す(thinking省略時は無効＝between_tools)。失敗時は createError を throw。 */
 export async function callClaudeText(apiKey: string, opts: CallOptions): Promise<string> {
   const response = await fetch(MESSAGES_URL, {
     method: 'POST',
@@ -29,7 +31,7 @@ export async function callClaudeText(apiKey: string, opts: CallOptions): Promise
     body: JSON.stringify({
       model: opts.model ?? DEFAULT_MODEL,
       max_tokens: opts.maxTokens,
-      thinking: { type: opts.thinking ?? 'disabled' },
+      thinking: { type: opts.thinking === 'adaptive' ? 'adaptive' : 'between_tools' },
       system: opts.system,
       messages: opts.messages,
     }),

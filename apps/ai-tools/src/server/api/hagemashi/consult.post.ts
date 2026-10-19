@@ -3,6 +3,7 @@ import { getSessionUser } from '~/server/utils/auth'
 import { encryptComment } from '~/server/utils/encrypt'
 import { wrapApiError } from '~/server/utils/openai'
 import { toJSTDate } from '~/utils/jst'
+import { thinkingOff } from '~/server/utils/anthropic'
 
 interface SummaryItem { sentiment: 'ポジ' | 'ネガ'; text: string; date: string }
 interface AchievementItem { text: string; level: number; date?: string }
@@ -95,7 +96,7 @@ ${visionText ? '- 相談者が目指しているビジョンが渡されてい�
         model: 'claude-sonnet-5-5',
         max_tokens: 1024,
         stream: true,
-        thinking: { type: 'disabled' },
+        thinking: thinkingOff('claude-sonnet-5-5'),
         // 人物像ブロックは毎ターン同じなので prompt caching でトークンを節約する
         system: [
           { type: 'text', text: systemPrompt },
