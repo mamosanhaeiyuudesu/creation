@@ -146,6 +146,27 @@ useHead({
   border-color: var(--mb-line-strong);
   color: var(--mb-ink);
 }
+.mb-name {
+  width: 8rem;
+  height: 2rem;
+  padding: 0 0.8rem;
+  border-radius: 999px;
+  /* 16px 未満だと iOS が入力時に拡大する */
+  font-size: 16px;
+  text-align: center;
+  color: var(--mb-ink);
+  border: 1px dashed var(--mb-line-strong);
+  background: transparent;
+  outline: none;
+}
+.mb-name::placeholder {
+  font-size: 13px;
+  color: var(--mb-ink-faint);
+}
+.mb-name:focus {
+  border-style: solid;
+  border-color: var(--mb-navy);
+}
 .mb-chip--on {
   color: var(--mb-navy);
   border-color: var(--mb-navy);

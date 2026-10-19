@@ -45,18 +45,31 @@
             </button>
           </div>
 
-          <div class="mt-4 flex items-center justify-center gap-2" role="radiogroup" aria-label="問題数">
-            <button
-              v-for="n in MANABI_COUNTS"
-              :key="n"
-              class="mb-chip"
-              :class="{ 'mb-chip--on': count === n }"
-              role="radio"
-              :aria-checked="count === n"
-              @click="count = n"
-            >
-              {{ n }}問
-            </button>
+          <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <div class="flex items-center gap-2" role="radiogroup" aria-label="問題数">
+              <button
+                v-for="n in MANABI_COUNTS"
+                :key="n"
+                class="mb-chip"
+                :class="{ 'mb-chip--on': count === n }"
+                role="radio"
+                :aria-checked="count === n"
+                @click="count = n"
+              >
+                {{ n }}問
+              </button>
+            </div>
+            <!-- 作成者の名前。目立たせず、問題数と同じ行に小さく置く -->
+            <input
+              v-model="creatorName"
+              type="text"
+              class="mb-name"
+              :maxlength="MANABI_CREATOR_NAME_MAX"
+              placeholder="名前（任意）"
+              aria-label="作成者の名前（問題名の横に表示。任意）"
+              autocomplete="nickname"
+              @keydown.enter.prevent
+            />
           </div>
 
           <label class="mt-4 flex items-start justify-center gap-2 text-[13px] text-[var(--mb-ink-soft)] cursor-pointer select-none">
@@ -66,18 +79,6 @@
               <span class="block text-[11.5px] text-[var(--mb-ink-faint)]">外すと、リンクを知っている人だけが開けます</span>
             </span>
           </label>
-
-          <div class="mt-4 mb-bar">
-            <input
-              v-model="creatorName"
-              type="text"
-              :maxlength="MANABI_CREATOR_NAME_MAX"
-              placeholder="あなたの名前（問題名の横に表示・省略できます）"
-              aria-label="作成者の名前"
-              autocomplete="nickname"
-              @keydown.enter.prevent
-            />
-          </div>
 
           <p v-if="error" class="mt-5 text-center text-[13.5px] text-[var(--mb-bad)]">{{ error }}</p>
 
