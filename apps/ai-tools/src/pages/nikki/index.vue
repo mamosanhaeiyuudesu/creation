@@ -40,8 +40,8 @@
         <button class="shrink-0 ml-auto px-1" aria-label="案内を閉じる" @click="dismissedSetup = true">×</button>
       </div>
 
-      <!-- 設定の本体。⚙ か上の案内から開く -->
-      <div v-if="setupVisible" class="mb-4">
+      <!-- 設定の本体（ポップアップ）。⚙ か上の案内から開く -->
+      <NikkiModal v-if="setupVisible" @close="closeSetup">
         <NikkiSetup
           :status="status"
           :calendars="calendars"
@@ -51,10 +51,10 @@
           @disconnect="onDisconnect"
           @close="closeSetup"
         />
-      </div>
+      </NikkiModal>
 
-      <!-- 辞書の編集。⚙ のメニューから開く -->
-      <div v-if="showDictionary" class="mb-4">
+      <!-- 辞書の編集（ポップアップ）。⚙ のメニューから開く -->
+      <NikkiModal v-if="showDictionary" @close="showDictionary = false">
         <NikkiDictionary
           :items="dictionary"
           :busy="dictionaryBusy"
@@ -63,7 +63,7 @@
           @remove="onRemoveWord"
           @close="showDictionary = false"
         />
-      </div>
+      </NikkiModal>
 
       <!-- 記録の入口：今日／昨日の記録と、カレンダー（ポップオーバー） -->
       <div class="relative mb-5">
@@ -194,6 +194,7 @@ import { prevDate, nextDate } from '~/utils/nikki-calendar'
 import type { NikkiDay } from '~/types/nikki'
 import NikkiTimeline from '~/components/nikki/NikkiTimeline.vue'
 import NikkiDictionary from '~/components/nikki/NikkiDictionary.vue'
+import NikkiModal from '~/components/nikki/NikkiModal.vue'
 // import NikkiBrainCloud from '~/components/nikki/NikkiBrainCloud.vue'
 
 definePageMeta({ layout: 'nikki' })
