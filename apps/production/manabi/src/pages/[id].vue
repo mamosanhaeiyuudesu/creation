@@ -236,7 +236,7 @@ useHead(() => ({
 }))
 
 const { touch, recordAnswered, recordScore } = useManabiRecent()
-const { scheduleSync } = useManabiSync()
+const { scheduleSync, flush } = useManabiSync()
 
 const phase = ref<ManabiPhase>('intro')
 /** 今回解く問題（set.questions の添字）。やり直しでは間違えた問題だけになる */
@@ -311,8 +311,17 @@ onMounted(() => {
   }
   ready.value = true
   window.addEventListener('keydown', onKey)
+  document.addEventListener('visibilitychange', onHidden)
 })
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKey)
+  document.removeEventListener('visibilitychange', onHidden)
+  flush()
+})
+// 途中でタブを離れた・閉じた分を、つないだ端末に渡す（答えるたびには同期しない）
+const onHidden = () => {
+  if (document.visibilityState === 'hidden') flush()
+}
 
 // 同じ問題集に挑めるのは1回だけ。控え（端末内）が残っている間は intro に戻れないので、ここは最初の1回しか通らない
 const start = () => {
@@ -334,7 +343,6 @@ const pick = (i: number) => {
   // トップの「8/10」と累計の正解数に使う
   recordAnswered(id, Object.keys(picks.value).length)
   recordCorrect(id, correctCount.value)
-  scheduleSync()
   // 解説を読んだら親指の位置のまま「次へ」を押せるように、ボタンまで寄せる
   nextTick(() => nextEl.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
 }

@@ -48,6 +48,8 @@ function apply(remote: ManabiSyncData) {
 const errorText = (e: any) => e?.data?.message || e?.statusMessage || '通信できませんでした。あとでもう一度お試しください。'
 
 let timer: ReturnType<typeof setTimeout> | null = null
+/** 最後に送った中身。同じなら送らない（書き込みを無駄に増やさない）。画面を開き直すと空に戻る */
+let lastSent = ''
 
 export function useManabiSync() {
   const load = () => {
@@ -93,7 +95,9 @@ export function useManabiSync() {
     if (!c) return false
     status.value = 'syncing'
     try {
-      const res = await $fetch<{ data: ManabiSyncData }>(`/api/sync/${c}`, { method: 'POST', body: { data: collect() } })
+      const data = collect()
+      const res = await $fetch<{ data: ManabiSyncData }>(`/api/sync/${c}`, { method: 'POST', body: { data } })
+      lastSent = JSON.stringify(data)
       apply(res.data)
       status.value = 'ok'
       return true
@@ -105,14 +109,32 @@ export function useManabiSync() {
     }
   }
 
-  /** 解答のたびに呼ぶ。連続して呼ばれてもまとめて1回にする */
+  /** 解き終えたときなどに呼ぶ。連続して呼ばれてもまとめて1回にし、前回と同じ中身なら送らない */
   const scheduleSync = () => {
     if (!readCode()) return
     if (timer) clearTimeout(timer)
     timer = setTimeout(() => {
       timer = null
-      void sync()
+      if (JSON.stringify(collect()) !== lastSent) void sync()
     }, 2000)
+  }
+
+  /**
+   * 画面を離れるとき（タブを切り替える・閉じる）に、解いている途中の分を預ける。
+   * 画面が閉じても送り切れる sendBeacon を使うので、返事は受け取らない（統合結果は次に開いたとき反映される）
+   */
+  const flush = () => {
+    const c = readCode()
+    if (!c) return
+    const data = collect()
+    const body = JSON.stringify(data)
+    if (body === lastSent) return
+    try {
+      const blob = new Blob([JSON.stringify({ data })], { type: 'application/json' })
+      if (navigator.sendBeacon(`/api/sync/${c}`, blob)) lastSent = body
+    } catch {
+      /* 送れなくても、次にトップを開いたときに揃う */
+    }
   }
 
   /** つなぐのをやめる（預けたデータは残る。コードを知っていれば、また同じコードでつなげる） */
@@ -137,5 +159,5 @@ export function useManabiSync() {
     }
   }
 
-  return { code, status, message, load, create, join, sync, scheduleSync, leave, eraseLocal }
+  return { code, status, message, load, create, join, sync, scheduleSync, flush, leave, eraseLocal }
 }
