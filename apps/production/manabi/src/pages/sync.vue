@@ -19,6 +19,12 @@
           このコードを知っている人は誰でも、あなたの正解数と問題の一覧を見られます。人に見せないでください。
         </p>
 
+        <!-- もう1台のカメラで読むと、このコードが入力済みの画面が開く -->
+        <div v-if="qrSvg" class="mt-5 grid place-items-center">
+          <div class="w-44 h-44 p-2 rounded-2xl bg-white border border-[var(--mb-line)] [&>svg]:w-full [&>svg]:h-full" role="img" aria-label="つなぐためのQRコード" v-html="qrSvg" />
+          <p class="mt-2 text-[12px] text-[var(--mb-ink-faint)]">もう1台のカメラで読み取ってください</p>
+        </div>
+
         <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
           <button class="mb-btn-ghost" @click="copy(formatSyncCode(code), 'コードをコピーしました')">コードをコピー</button>
           <button class="mb-btn-ghost" @click="copy(linkUrl, 'つなぐリンクをコピーしました')">リンクをコピー</button>
@@ -99,6 +105,25 @@ const input = ref('')
 const copied = ref('')
 const linkUrl = computed(() => (import.meta.client ? `${location.origin}/sync?code=${code.value}` : ''))
 const canJoin = computed(() => normalizeSyncCode(input.value).length === SYNC_CODE_LENGTH && status.value !== 'syncing')
+
+// QRはブラウザ側で作る（コードを外に送らない）。つながった／コードが変わったときに作り直す
+const qrSvg = ref('')
+watch(
+  [code, linkUrl],
+  async ([c, url]) => {
+    if (!c || !url) {
+      qrSvg.value = ''
+      return
+    }
+    try {
+      const QRCode = (await import('qrcode')).default
+      qrSvg.value = await QRCode.toString(url, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#1b1b1b', light: '#ffffff' } })
+    } catch {
+      qrSvg.value = ''
+    }
+  },
+  { immediate: true }
+)
 
 onMounted(() => {
   load()
