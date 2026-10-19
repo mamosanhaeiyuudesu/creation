@@ -12,8 +12,8 @@
     </div>
 
     <form class="mt-3 flex flex-col gap-1.5" @submit.prevent="submit">
-      <input v-model="word" class="nk-input !text-[13px]" placeholder="正しい言葉（例: 阪中さん）" maxlength="40" />
-      <input v-model="wrong" class="nk-input !text-[12px]" placeholder="よく間違えられる表記（任意・「、」区切り 例: 初中さん、坂中さん）" />
+      <input v-model="word" class="nk-input !text-[13px]" placeholder="正しい言葉（例: 宮古島）" maxlength="40" />
+      <input v-model="wrong" class="nk-input !text-[12px]" placeholder="よく間違えられる表記（任意・「、」区切り 例: 宮子島、宮古じま）" />
       <div class="flex items-center gap-2">
         <button type="submit" class="nk-btn !h-8 !px-3 !text-[12px]" :disabled="!word.trim() || busy">
           {{ editingId ? '修正を保存' : '登録する' }}

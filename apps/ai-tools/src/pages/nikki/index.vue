@@ -67,28 +67,29 @@
 
       <!-- 記録の入口：今日／昨日の記録と、カレンダー（ポップオーバー） -->
       <div class="relative mb-5">
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap sm:flex-nowrap gap-2">
           <button
             v-for="t in quickDays"
             :key="t.date"
-            class="flex-1 sm:flex-none sm:min-w-[170px]"
+            class="flex-1 sm:flex-none sm:!px-3 sm:whitespace-nowrap"
             :class="t.recorded ? ['nk-btn-ghost', t.ghost] : ['nk-btn', t.solid]"
             @click="openDay(t.date)"
           >
-            <span v-if="t.recorded" class="text-[var(--nk-gold)] mr-1">✓</span>{{ t.label }}
+            <span v-if="t.recorded" class="text-[var(--nk-gold)] mr-1">✓</span><span class="sm:hidden">{{ t.label.replace('の記録', '') }}</span><span class="hidden sm:inline">{{ t.label }}</span>
           </button>
           <button
-            class="nk-btn-ghost flex-1 sm:flex-none"
+            class="nk-btn-ghost flex-1 sm:flex-none sm:!px-3 sm:whitespace-nowrap"
             :class="showCalendar ? '!border-[var(--nk-indigo)]' : ''"
             :aria-expanded="showCalendar"
+            aria-label="カレンダー"
             @click="showCalendar = !showCalendar"
-          >📅 カレンダー</button>
+          >📅<span class="hidden sm:inline"> カレンダー</span></button>
           <button
-            class="nk-btn-ghost flex-1 sm:flex-none"
+            class="nk-btn-ghost flex-1 sm:flex-none sm:!px-3 sm:whitespace-nowrap"
             :class="showPdf ? '!border-[var(--nk-indigo)]' : ''"
             :aria-expanded="showPdf"
             @click="togglePdf"
-          >📄 PDF</button>
+          ><span class="hidden sm:inline">📄 </span>PDF</button>
         </div>
 
         <template v-if="showCalendar">
