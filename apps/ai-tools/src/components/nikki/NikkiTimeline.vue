@@ -28,14 +28,17 @@
             :remaining="NIKKI_PHOTO_MAX - day.photos.length"
             :busy="photoBusy"
             @add="(urls) => onAddPhotos(day.date, urls)"
+            @error="(m) => onPhotoError(day.date, m)"
           />
           <!-- この日まるごと（全文・予定・追記・サマリ追加）を開く。サマリ1件の「直す」とは別 -->
-          <button class="nk-btn-ghost !h-9 !px-3 !text-[12px] inline-flex items-center gap-1" @click="emit('select', day.date)">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z" /><path d="M14.5 7.5l3 3" /></svg>
+          <button class="nk-btn-ghost !h-[26px] !px-2 !text-[10px] inline-flex items-center gap-1" @click="emit('select', day.date)">
+            <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z" /><path d="M14.5 7.5l3 3" /></svg>
             編集
           </button>
         </div>
         </div>
+
+        <p v-if="photoError?.date === day.date" class="m-0 text-[12px] leading-snug text-[var(--nk-today)]">{{ photoError.message }}</p>
 
         <NikkiPhotoStrip :photos="day.photos" :busy="photoBusy" size="sm" @remove="(id) => onRemovePhoto(day.date, id)" />
 
@@ -65,10 +68,13 @@
               <span class="flex items-start gap-2">
                 <span class="text-[13px] font-bold leading-snug">{{ topic.headline }}</span>
                 <button
-                  class="shrink-0 ml-auto px-1 text-[11.5px] text-[var(--nk-indigo)] underline underline-offset-2"
+                  class="shrink-0 ml-auto p-1 text-[var(--nk-indigo)]"
+                  title="このサマリを直す"
                   aria-label="このサマリを直す"
                   @click="startEdit(topic)"
-                >直す</button>
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z" /><path d="M14.5 7.5l3 3" /></svg>
+                </button>
               </span>
               <span v-if="topic.detail" class="block mt-1 text-[12px] leading-snug text-[var(--nk-ink-soft)]">
                 {{ topic.detail }}
@@ -117,6 +123,8 @@ const props = defineProps<{
   /** 過去を追い読みする */
   onLoadOlder: () => Promise<number>
   photoBusy: boolean
+  photoError: { date: string; message: string } | null
+  onPhotoError: (date: string, message: string) => void
   onAddPhotos: (date: string, dataUrls: string[]) => Promise<void>
   onRemovePhoto: (date: string, id: string) => Promise<void>
   onPatchTopic: (id: string, patch: { headline: string; detail: string; impact: number }, date: string) => Promise<void>

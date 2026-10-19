@@ -145,6 +145,8 @@
         :today="today"
         :on-load-older="loadOlder"
         :photo-busy="photoBusy"
+        :photo-error="photoError"
+        :on-photo-error="setPhotoError"
         :on-add-photos="addPhotos"
         :on-remove-photo="removePhoto"
         :on-patch-topic="patchTopic"
@@ -168,6 +170,8 @@
         :error="error"
         :saved-tick="savedTick"
         :photo-busy="photoBusy"
+        :photo-error="photoError?.date === selectedDate ? photoError.message : ''"
+        @photo-error="(m: string) => setPhotoError(selectedDate, m)"
         @add-photos="(urls: string[]) => addPhotos(selectedDate, urls)"
         @remove-photo="(id: string) => removePhoto(selectedDate, id)"
         :prev-date="dayNavPrev"
@@ -253,6 +257,8 @@ const {
   patchTopic,
   removeTopic,
   photoBusy,
+  photoError,
+  setPhotoError,
   addPhotos,
   removePhoto,
 } = useNikki()

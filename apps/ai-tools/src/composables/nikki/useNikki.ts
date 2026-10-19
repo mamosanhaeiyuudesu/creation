@@ -200,6 +200,12 @@ export function useNikki() {
   // ───────────────────────────── 写真 ─────────────────────────────
 
   const photoBusy = ref(false)
+  /** 写真まわりの失敗。ページ上部ではなく、押したカード／写真欄の近くに出すため日付ごと持つ */
+  const photoError = ref<{ date: string; message: string } | null>(null)
+  const errorText = (e: any, fallback: string) => e?.statusMessage || e?.data?.message || e?.message || fallback
+  function setPhotoError(date: string, message: string): void {
+    photoError.value = message ? { date, message } : null
+  }
 
   /** サーバーが返した「その日の写真ID」を、開いている記録とタイムラインの両方へ反映する。 */
   function setPhotos(date: string, photos: string[]): void {
@@ -211,14 +217,14 @@ export function useNikki() {
   /** 縮小済みの data URL を順に送る（1枚ずつ＝途中で上限に当たっても入った分は残る）。 */
   async function addPhotos(date: string, dataUrls: string[]): Promise<void> {
     photoBusy.value = true
-    error.value = ''
+    setPhotoError(date, '')
     try {
       for (const dataUrl of dataUrls) {
         const res = await $fetch<{ photos: string[] }>('/api/nikki/photos', { method: 'POST', body: { date, dataUrl } })
         setPhotos(date, res.photos)
       }
     } catch (e) {
-      fail(e, '写真を追加できませんでした')
+      setPhotoError(date, errorText(e, '写真を追加できませんでした'))
     } finally {
       photoBusy.value = false
     }
@@ -226,11 +232,12 @@ export function useNikki() {
 
   async function removePhoto(date: string, id: string): Promise<void> {
     photoBusy.value = true
+    setPhotoError(date, '')
     try {
       const res = await $fetch<{ photos: string[] }>(`/api/nikki/photos/${id}`, { method: 'DELETE' })
       setPhotos(date, res.photos)
     } catch (e) {
-      fail(e, '写真を消せませんでした')
+      setPhotoError(date, errorText(e, '写真を消せませんでした'))
     } finally {
       photoBusy.value = false
     }
@@ -386,6 +393,8 @@ export function useNikki() {
     patchTopic,
     removeTopic,
     photoBusy,
+    photoError,
+    setPhotoError,
     addPhotos,
     removePhoto,
   }
