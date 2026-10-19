@@ -35,7 +35,7 @@ export interface ServiceConfig {
   trialDays: number
 
   /**
-   * 承認制。true の間、新しく登録した人は管理画面で承認されるまで議事録づくり・AIの直しを使えない
+   * 承認制。true の間、新しく登録した人は管理画面で承認されるまで議事録作り・AIの直しを使えない
    * （管理者は承認なしで使える）。URLを知っていれば誰でも登録できるため、モニター期間中のAI代を抑える目的。
    */
   approvalRequired: boolean

@@ -11,11 +11,11 @@ const rows = [
 const ids = (list: { id: string }[]) => list.map((r) => r.id)
 
 describe('sortRecords', () => {
-  it('既定は会議の日の新しい順。日が無いものは先頭、同じ日はつくった日の新しい順', () => {
+  it('既定は会議の日の新しい順。日が無いものは先頭、同じ日は作った日の新しい順', () => {
     expect(ids(sortRecords(rows, 'date'))).toEqual(['b', 'd', 'e', 'c', 'a'])
   })
 
-  it('つくった日の新しい順にもできる', () => {
+  it('作った日の新しい順にもできる', () => {
     expect(ids(sortRecords(rows, 'created'))).toEqual(['b', 'a', 'e', 'c', 'd'])
   })
 

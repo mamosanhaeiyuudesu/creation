@@ -74,7 +74,7 @@
       </div>
     </BottomSheet>
 
-    <!-- 今月の使用ぶん -->
+    <!-- 今月の使用分 -->
     <section class="kk-set-sec">
       <h2 class="kk-set-title">今月つかった分</h2>
       <p v-if="!usage" class="kk-set-text">読み込んでいます…</p>
@@ -87,15 +87,15 @@
           <div class="kk-meter-fill" :class="{ 'kk-meter-fill--warn': usage.usedPercent >= 80 }" :style="{ width: usage.usedPercent + '%' }" />
         </div>
         <p v-if="usage.exhausted" class="kk-notice kk-notice--warn mt-2">
-          今月のぶんを使い切りました。来月1日から、またお使いいただけます。
+          今月の分を使い切りました。来月1日から、またお使いいただけます。
         </p>
-        <p v-else-if="usage.usedPercent >= 80" class="kk-set-note">もうすぐ今月のぶんを使い切ります。</p>
-        <p class="kk-set-note">議事録づくりと「まとめ直す」の合計。毎月1日にリセットされます。</p>
+        <p v-else-if="usage.usedPercent >= 80" class="kk-set-note">もうすぐ今月の分を使い切ります。</p>
+        <p class="kk-set-note">議事録作りと「まとめ直す」の合計。毎月1日にリセットされます。</p>
       </template>
     </section>
 
     <!-- PDFの文字数（アカウント全体。すべての議事録のPDFに効く）。
-         選んだらすぐ保存し、次にPDFをつくるときから使われる（PDFは保存しておらず毎回つくるので、作り直しは要らない） -->
+         選んだらすぐ保存し、次にPDFを作るときから使われる（PDFは保存しておらず毎回作るので、作り直しは要らない） -->
     <section class="kk-set-sec">
       <div class="kk-set-pdf-row">
         <label class="kk-set-title m-0" for="pdf-max-chars">PDFの文字数</label>
@@ -117,14 +117,14 @@
       <h2 class="kk-set-title">お支払い</h2>
 
       <template v-if="monitorMode">
-        <p class="kk-set-text">モニター期間中のため、いまはお支払いの手続きは必要ありません。</p>
+        <p class="kk-set-text">モニター期間中のため、今はお支払いの手続きは必要ありません。</p>
       </template>
 
       <!-- 管理者・運営者が支払い不要にした人。契約が残っていれば解約できるようポータルは出す -->
       <template v-else-if="billing?.freeAccess">
         <p class="kk-set-text">運営者の設定により、お支払いなしでお使いいただけます。</p>
         <button v-if="billing.status" class="kk-set-btn" :disabled="billingBusy" @click="openPortal">
-          {{ billingBusy ? '画面をひらいています…' : 'お支払い方法の変更・解約' }}
+          {{ billingBusy ? '画面を開いています…' : 'お支払い方法の変更・解約' }}
         </button>
       </template>
 
@@ -153,7 +153,7 @@
         </p>
 
         <button v-if="!billing.active" class="kk-set-btn kk-set-btn--cta" :disabled="billingBusy" @click="startCheckout">
-          {{ billingBusy ? '画面をひらいています…' : billing.trialEligible ? `${trialLabel(billing.trialDays)}無料ではじめる` : 'お支払いの手続きをする' }}
+          {{ billingBusy ? '画面を開いています…' : billing.trialEligible ? `${trialLabel(billing.trialDays)}無料で始める` : 'お支払いの手続きをする' }}
         </button>
         <button
           v-else
@@ -162,9 +162,9 @@
           :disabled="billingBusy"
           @click="openPortal"
         >
-          {{ billingBusy ? '画面をひらいています…' : billing.paymentProblem ? 'カードを更新する' : 'お支払い方法の変更・解約' }}
+          {{ billingBusy ? '画面を開いています…' : billing.paymentProblem ? 'カードを更新する' : 'お支払い方法の変更・解約' }}
         </button>
-        <p class="kk-set-note">お支払いの画面は Stripe（決済の会社）のページがひらきます。</p>
+        <p class="kk-set-note">お支払いの画面は Stripe（決済の会社）のページが開きます。</p>
       </template>
 
       <p v-else class="kk-set-text">読み込んでいます…</p>
@@ -190,7 +190,7 @@
         </span>
       </h2>
       <button v-if="!driveConnected" class="kk-set-btn kk-set-btn--accent" :disabled="driveBusy" @click="connectDrive">
-        {{ driveBusy ? '画面をひらいています…' : 'Googleドライブとつなぐ' }}
+        {{ driveBusy ? '画面を開いています…' : 'Googleドライブとつなぐ' }}
       </button>
     </section>
 
@@ -280,6 +280,8 @@ const billingBusy = ref(false)
 const isAdmin = useState<boolean>('kk-is-admin', () => false)
 /** 承認待ちか（トップに「準備中」の案内を出すため。止めるのはサーバー側） */
 const pendingApproval = useState<boolean>('kk-pending-approval', () => false)
+/** 今月の分を使い切ったか（トップの「議事録を作る」ボタンを止めるため。止めるのはサーバー側も同じ） */
+const usageExhausted = useState<boolean>('kk-usage-exhausted', () => false)
 
 /** 30日 → 「1か月」。それ以外は「◯日間」 */
 function trialLabel(days: number): string {
@@ -329,6 +331,7 @@ async function load() {
   try {
     const me = await authedFetch<{ usage: typeof usage.value; isAdmin: boolean; pendingApproval: boolean }>('/api/me')
     usage.value = me.usage
+    usageExhausted.value = !!me.usage?.exhausted
     isAdmin.value = !!me.isAdmin
     pendingApproval.value = !!me.pendingApproval
   } catch (e) {
@@ -411,7 +414,7 @@ const tagMergeTarget = computed(() => {
   return to && to !== editingTag.value && allTags.value.some((t) => t.tag === to) ? to : ''
 })
 
-/** いま一覧をこのタグで絞り込んでいるか */
+/** 今、一覧をこのタグで絞り込んでいるか */
 function isActiveTag(tag: string): boolean {
   return route.path === '/' && route.query.tag === tag
 }
@@ -530,6 +533,7 @@ async function doDelete() {
 async function doLogout() {
   isAdmin.value = false
   pendingApproval.value = false
+  usageExhausted.value = false
   await logout()
   await router.push('/')
 }
@@ -548,7 +552,7 @@ async function refreshAll() {
 }
 
 // 常に出ている欄なので、ログインしたときと画面を移ったときに読み直す
-// （議事録をつくると使用量が変わるため。開きっぱなしで古い数字が残らないように）
+// （議事録を作ると使用量が変わるため。開きっぱなしで古い数字が残らないように）
 watch(isLoggedIn, refreshAll, { immediate: true })
 watch(() => route.path, refreshAll)
 </script>

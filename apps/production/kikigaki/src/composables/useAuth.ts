@@ -15,7 +15,7 @@ function friendlyAuthMessage(err: any): string {
   switch (code) {
     case 'auth/popup-closed-by-user':
     case 'auth/cancelled-popup-request':
-      return 'ログインの画面が閉じられました。もう一度「Googleではじめる」を押してください。'
+      return 'ログインの画面が閉じられました。もう一度「Googleで始める」を押してください。'
     case 'auth/popup-blocked':
       return 'ログインの画面が開けませんでした。もう一度押すと、同じ画面で続けられます。'
     case 'auth/invalid-email':

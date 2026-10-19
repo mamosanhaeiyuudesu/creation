@@ -1,7 +1,7 @@
 // すべての返答に付けるセキュリティ用のヘッダー（2026-10-17 追加）。
 //
 // 付けているもの:
-//   - frame-ancestors 'none' / X-Frame-Options: ほかのサイトにこの画面を埋め込ませない（クリックジャッキング対策）
+//   - frame-ancestors 'none' / X-Frame-Options: 他のサイトにこの画面を埋め込ませない（クリックジャッキング対策）
 //   - object-src 'none' / base-uri 'self': プラグインの読み込みと <base> の差し替えを封じる
 //   - X-Content-Type-Options: ファイルの種類の読み違い（スクリプトとして実行される）を防ぐ
 //   - Referrer-Policy: 議事録のURL（/records/<id>）を外のサイトへ渡さない

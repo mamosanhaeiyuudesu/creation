@@ -146,7 +146,7 @@ export async function tagsStatement(db: any, event: H3Event, userId: string, rec
 const LIST_COLS = 'id, title, meeting_date, audio_name, created_at'
 const FULL_COLS = `${LIST_COLS}, user_id, transcript, minutes, updated_at`
 
-/** 新しい議事録を1件つくる。戻り値はID */
+/** 新しい議事録を1件作る。戻り値はID */
 export async function createRecord(
   event: H3Event,
   userId: string,

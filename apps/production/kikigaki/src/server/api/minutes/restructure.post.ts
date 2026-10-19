@@ -1,4 +1,4 @@
-// 「つくり直す」。まとめ方（複数人の会議／主に1人が話した記録）を選び直して、元の文章から作り直す。
+// 「作り直す」。まとめ方（複数人の会議／主に1人が話した記録）を選び直して、元の文章から作り直す。
 //
 // 画面で直した内容は土台にしない（まとめ方が違うと項目そのものが違うので、原文からやり直す）。
 // 「AIで直す」と同じく DB には保存せず、画面の編集状態を置き換えるだけ（自動保存で保存される）。
@@ -20,11 +20,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'この議事録は見つかりませんでした。一覧からお選びください。' })
   }
   if (!record.transcript.trim()) {
-    throw createError({ statusCode: 400, message: '元の文章が保存されていないため、つくり直せません。' })
+    throw createError({ statusCode: 400, message: '元の文章が保存されていないため、作り直せません。' })
   }
 
   const minutes = await structureTranscript(event, record.transcript, normalizeMode(body?.mode))
-  // タグは AI が付けるものではない（利用者の整理の印）ので、つくり直しても保存済みのものを引き継ぐ
+  // タグは AI が付けるものではない（利用者の整理の印）ので、作り直しても保存済みのものを引き継ぐ
   minutes.tags = record.minutes.tags
 
   return { minutes }

@@ -12,7 +12,7 @@
           </NuxtLink>
           <div class="kk-review-titlebar">
             <h1 class="kk-review-h1">内容を確かめる</h1>
-            <!-- 種類（話し合い／聞き取り）。押すと、種類を選び直して元の文章からつくり直せる -->
+            <!-- 種類（話し合い／聞き取り）。押すと、種類を選び直して元の文章から作り直せる -->
             <div ref="modeRoot" class="kk-pop-wrap">
               <button
                 type="button"
@@ -46,7 +46,7 @@
                   </button>
                 </div>
                 <p class="kk-note mt-2 mb-0">
-                  元の文章から、選んだ種類でAIがまとめ直します。いまの内容は置き換わり、手で直したところも元に戻ります（タグは残ります）。
+                  元の文章から、選んだ種類でAIがまとめ直します。今の内容は置き換わり、手で直したところも元に戻ります（タグは残ります）。
                 </p>
                 <div class="flex justify-end mt-2">
                   <button type="button" class="kk-pop-run" :disabled="restructuring" @click="runRestructure">
@@ -95,7 +95,7 @@
             </div>
           </div>
 
-          <!-- 「AIに直してもらう」は 2026-10-18 に画面から外した（「つくり直す」と並ぶと迷うため。本人の判断）。
+          <!-- 「AIに直してもらう」は 2026-10-18 に画面から外した（「作り直す」と並ぶと迷うため。本人の判断）。
                戻すときはこのコメントを外す。script 側の runRevise と /api/minutes/revise は残してある。
           <div class="kk-pop-wrap">
             <button
@@ -427,7 +427,7 @@ const generatingPdf = ref(false)
 const revising = ref(false)
 const reviseInstruction = ref('')
 const restructuring = ref(false)
-/** つくり直すときに選ぶまとめ方。開いたときは、いまのまとめ方と違うほうを選んでおく */
+/** 作り直すときに選ぶまとめ方。開いたときは、いまのまとめ方と違うほうを選んでおく */
 const restructureMode = ref<MinutesMode>('meeting')
 /** 実行ボタンの文言。押す前に「何に変わるか」が分かるよう種類の名前を入れる。同じ種類なら最初からやり直す */
 const restructureRunLabel = computed(() => {
@@ -437,7 +437,7 @@ const restructureRunLabel = computed(() => {
 })
 const confirmingDelete = ref(false)
 const deleting = ref(false)
-/** ツールバーから開く小さな窓（不明点／つくり直す／AIに直してもらう＝いまは画面から外している）。同時に開くのは1つだけ */
+/** ツールバーから開く小さな窓（不明点／作り直す／AIに直してもらう＝いまは画面から外している）。同時に開くのは1つだけ */
 type PopName = 'unclear' | 'restructure' | 'revise'
 const openPop = ref<PopName | null>(null)
 const toolsRoot = ref<HTMLElement | null>(null)
@@ -938,7 +938,7 @@ async function createPdf() {
 
 // ── セクションごとのPDF（見出しの右の小さなアイコン） ──
 const sectionPdf = ref<InstanceType<typeof MinutesSectionPdfType> | null>(null)
-/** いまPDFをつくっているセクション（そのアイコンだけ回す） */
+/** いまPDFを作っているセクション（そのアイコンだけ回す） */
 const sectionPdfBusy = ref<SectionKind | ''>('')
 
 async function downloadSection(kind: SectionKind, label: string) {
@@ -952,7 +952,7 @@ async function downloadSection(kind: SectionKind, label: string) {
     const { pdf, fileName } = await sectionPdf.value.make(toRaw(minutes), kind, label)
     pdf.save(fileName)
   } catch (e) {
-    errorMessage.value = apiMessage(e, 'PDFをつくれませんでした。もう一度お試しください。')
+    errorMessage.value = apiMessage(e, 'PDFを作れませんでした。もう一度お試しください。')
   }
   sectionPdfBusy.value = ''
 }
@@ -966,7 +966,7 @@ async function downloadPdf() {
     pdf.save(fileName)
     savedMessage.value = 'PDFを保存しました。スマホの「ファイル」や「ダウンロード」から開けます。'
   } catch (e) {
-    errorMessage.value = apiMessage(e, 'PDFをつくれませんでした。もう一度お試しください。')
+    errorMessage.value = apiMessage(e, 'PDFを作れませんでした。もう一度お試しください。')
   }
   generatingPdf.value = false
 }

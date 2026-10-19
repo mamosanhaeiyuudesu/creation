@@ -1059,7 +1059,16 @@ html {
   padding: 22px 0;
 }
 
-.pp-footer-inner {
+.pp-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 24px;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.pp-footer-bottom {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -1068,6 +1077,499 @@ html {
 
 .pp-footer a:hover {
   color: #fff;
+}
+
+/* ---------- ヒーロー（お試しの導線） ---------- */
+
+.pp-hero-trial {
+  margin-top: 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pp-text-sub);
+}
+
+.pp-hero-trial a,
+.pp-page .pp-inline-link,
+.pp-cta-small a {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pp-hero-trial a,
+.pp-page .pp-inline-link {
+  color: var(--pp-main-dark);
+}
+
+.pp-page a.pp-badge {
+  color: var(--pp-deep-dark);
+}
+
+.pp-hero-card {
+  transition: transform 0.2s;
+}
+
+.pp-hero-card:hover {
+  transform: translateY(-2px);
+}
+
+/* ---------- 聞き手のごあいさつ（ヒーロー直下の短縮版） ---------- */
+
+.pp-greeting {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-top: 48px;
+  font-weight: 500;
+  color: var(--pp-text-sub);
+}
+
+.pp-maker-avatar.pp-greeting-avatar {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border-width: 3px;
+}
+
+.pp-greeting .pp-text-link {
+  margin-top: 6px;
+}
+
+/* ---------- 聞き手（全文） ---------- */
+
+.pp-maker-name p.pp-maker-fullname {
+  font-family: var(--pp-font);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pp-text-sub);
+  margin-top: 0;
+}
+
+.pp-maker-name p.pp-maker-tagline {
+  font-family: var(--pp-font);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pp-main-dark);
+  margin-top: 8px;
+  line-height: 1.6;
+}
+
+/* 見出しは左に黄緑の縦バー＋文字の下に黄色のマーカー（ヒーローの「生きている。」と同じ表現） */
+.pp-maker-body h3 {
+  display: table;
+  position: relative;
+  font-family: var(--pp-font-head);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.4;
+  color: var(--pp-deep);
+  margin: 44px 0 14px;
+  padding-left: 18px;
+  background: linear-gradient(transparent 60%, rgba(245, 197, 24, 0.75) 60%) no-repeat;
+  background-origin: content-box;
+  background-clip: content-box;
+}
+
+.pp-maker-body h3::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.12em;
+  bottom: 0.12em;
+  width: 6px;
+  border-radius: 3px;
+  background: var(--pp-main);
+}
+
+.pp-maker-body h3:first-child {
+  margin-top: 0;
+}
+
+.pp-maker-career li {
+  position: relative;
+  padding-left: 18px;
+  font-weight: 500;
+  color: var(--pp-text-sub);
+}
+
+.pp-maker-career li + li {
+  margin-top: 4px;
+}
+
+.pp-maker-career li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.75em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pp-main);
+}
+
+.pp-maker-cta {
+  margin-top: 44px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--pp-deep);
+}
+
+.pp-maker-cta p {
+  margin-bottom: 18px;
+}
+
+/* ---------- 料金（追加分） ---------- */
+
+.pp-price {
+  position: relative;
+}
+
+.pp-price-ribbon {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--pp-accent);
+  color: var(--pp-deep-dark);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 2px 18px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.pp-price-name {
+  line-height: 1.5;
+}
+
+.pp-price-spec {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pp-text-sub);
+  margin-top: 8px;
+  line-height: 1.6;
+}
+
+.pp-price-spec small {
+  font-size: 12px;
+}
+
+.pp-trial {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 28px;
+  align-items: center;
+  margin-top: 32px;
+  background: #fff;
+  border: 2px dashed var(--pp-accent-dark);
+  border-radius: var(--pp-radius);
+  padding: 26px 28px;
+  scroll-margin-top: 100px;
+}
+
+.pp-trial-head {
+  text-align: center;
+}
+
+.pp-trial-label {
+  display: inline-block;
+  background: var(--pp-accent);
+  color: var(--pp-deep-dark);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 1px 12px;
+  border-radius: 999px;
+}
+
+.pp-trial-name {
+  font-family: var(--pp-font-head);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--pp-deep);
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+.pp-trial-name small {
+  display: block;
+  font-family: var(--pp-font);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pp-text-sub);
+}
+
+.pp-trial-amount {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--pp-deep);
+}
+
+.pp-trial-amount .pp-num {
+  font-size: 42px;
+  line-height: 1.1;
+  margin-right: 2px;
+}
+
+.pp-trial-amount small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pp-text-sub);
+}
+
+.pp-trial-list li,
+.pp-legal-list li {
+  position: relative;
+  padding-left: 20px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--pp-text-sub);
+}
+
+.pp-trial-list li + li,
+.pp-legal-list li + li {
+  margin-top: 8px;
+}
+
+.pp-trial-list li::before,
+.pp-legal-list li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.7em;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pp-accent-dark);
+}
+
+.pp-options {
+  margin-top: 24px;
+  background: #fff;
+  border-radius: var(--pp-radius);
+  padding: 20px 28px;
+}
+
+.pp-options-title {
+  font-weight: 700;
+  color: var(--pp-deep);
+  margin-bottom: 6px;
+}
+
+.pp-options-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px dashed var(--pp-line);
+  font-weight: 500;
+}
+
+.pp-options-row dd {
+  margin: 0;
+  font-weight: 700;
+  color: var(--pp-deep);
+  white-space: nowrap;
+}
+
+.pp-options-row .pp-num {
+  font-size: 22px;
+}
+
+/* ---------- ご依頼の流れの下：契約の短縮版 ---------- */
+
+.pp-contract {
+  max-width: 860px;
+  margin: 40px auto 0;
+  background: var(--pp-base);
+  border-radius: var(--pp-radius);
+  padding: 20px 28px;
+}
+
+.pp-contract > div {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.pp-contract > div + div {
+  border-top: 1px dashed var(--pp-line);
+}
+
+.pp-contract dt {
+  font-weight: 700;
+  color: var(--pp-deep);
+}
+
+.pp-contract dd {
+  margin: 0;
+  font-weight: 500;
+  color: var(--pp-text-sub);
+  font-size: 15px;
+}
+
+/* ---------- FAQ のタブ ---------- */
+
+.pp-faq-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.pp-faq-tab {
+  flex: 0 1 260px;
+  padding: 12px 18px;
+  border: 2px solid var(--pp-main);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--pp-deep);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pp-faq-tab.is-active {
+  background: var(--pp-main);
+  color: var(--pp-deep-dark);
+}
+
+.pp-faq dd {
+  white-space: pre-line;
+}
+
+.pp-page .pp-faq-link {
+  display: inline-block;
+  margin-left: 4px;
+  color: var(--pp-main-dark);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ---------- 最後の CTA（補足） ---------- */
+
+.pp-cta-small {
+  margin-top: 18px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.pp-cta-small a {
+  color: var(--pp-accent);
+}
+
+/* ---------- ご契約・プライバシー・特商法のページ ---------- */
+
+.pp-legal-cta {
+  padding: 10px 22px;
+}
+
+.pp-legal {
+  background: var(--pp-base);
+  padding: 56px 0 80px;
+}
+
+.pp-legal-title {
+  font-family: var(--pp-font-head);
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 800;
+  color: var(--pp-deep);
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.pp-legal-intro {
+  font-weight: 500;
+  margin-bottom: 24px;
+}
+
+.pp-legal-sec {
+  background: #fff;
+  border-radius: var(--pp-radius);
+  padding: 24px 28px;
+}
+
+.pp-legal-sec + .pp-legal-sec {
+  margin-top: 16px;
+}
+
+.pp-legal-sec h2 {
+  font-family: var(--pp-font-head);
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--pp-deep);
+  margin-bottom: 10px;
+}
+
+.pp-legal-sec p {
+  font-weight: 500;
+  color: var(--pp-text-sub);
+  font-size: 15px;
+}
+
+.pp-legal-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 18px;
+}
+
+.pp-legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  font-size: 15px;
+}
+
+.pp-legal-table th,
+.pp-legal-table td {
+  border: 1px solid var(--pp-line);
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.7;
+}
+
+.pp-legal-table th {
+  background: var(--pp-base);
+  color: var(--pp-deep);
+  font-weight: 700;
+  width: 34%;
+}
+
+.pp-legal-table thead th {
+  background: var(--pp-deep);
+  color: #fff;
+}
+
+.pp-legal-table td {
+  color: var(--pp-text);
+  font-weight: 500;
+}
+
+.pp-legal-table a,
+.pp-legal-sign a {
+  color: var(--pp-main-dark);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  word-break: break-all;
+}
+
+.pp-legal-sign {
+  margin-top: 24px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pp-text-sub);
+}
+
+.pp-legal-back {
+  text-align: center;
+  margin-top: 36px;
 }
 
 /* ---------- タブレット ---------- */
@@ -1245,5 +1747,64 @@ html {
 
   .pp-maker {
     gap: 16px;
+  }
+
+  .pp-greeting {
+    align-items: flex-start;
+    gap: 14px;
+    margin-top: 36px;
+    font-size: 15px;
+  }
+
+  .pp-maker-avatar.pp-greeting-avatar {
+    width: 56px;
+    height: 56px;
+  }
+
+  .pp-maker-body h3 {
+    font-size: 20px;
+    margin-top: 36px;
+  }
+
+  .pp-trial {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 22px 18px;
+  }
+
+  .pp-options,
+  .pp-contract,
+  .pp-legal-sec {
+    padding: 18px;
+  }
+
+  .pp-options-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .pp-contract > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .pp-faq-tab {
+    font-size: 14px;
+    padding: 10px 8px;
+  }
+
+  .pp-faq dt,
+  .pp-faq dd {
+    padding-left: 40px;
+  }
+
+  .pp-legal-table th,
+  .pp-legal-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .pp-legal-table thead {
+    display: none;
   }
 }

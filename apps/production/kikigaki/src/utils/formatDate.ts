@@ -17,7 +17,7 @@ export function formatDateLabel(dateStr: string): string {
 export function formatMeetingDate(date: string, createdAt: string): string {
   if (date) return formatDateLabel(date)
   const ymd = (createdAt ?? '').slice(0, 10)
-  if (/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return `${formatDateLabel(ymd)}につくりました`
+  if (/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return `${formatDateLabel(ymd)}に作りました`
   return '日付が入っていません'
 }
 

@@ -107,6 +107,15 @@
                 <td class="text-right">
                   <span :class="{ 'kk-adm-warn': u.usedPercent >= 80 }">{{ u.usedPercent }}%</span>
                   <span class="kk-adm-sub">約{{ u.costYen }}円</span>
+                  <button
+                    v-if="u.usedPercent > 0"
+                    type="button"
+                    class="kk-adm-approved"
+                    title="今月の利用分を0に戻します"
+                    @click="resetTarget = u"
+                  >
+                    0にリセット
+                  </button>
                 </td>
                 <td v-if="summary?.approvalRequired">
                   <span v-if="u.isAdmin" class="kk-adm-sub">—</span>
@@ -173,12 +182,33 @@
       >
         <template v-if="unapproveTarget">
           <p class="kk-lead m-0"><strong>{{ unapproveTarget.email }}</strong></p>
-          <p class="kk-lead mt-1">取り消すと、この人は議事録づくりとAIの直しが使えなくなります（議事録の閲覧とPDFは使えます）。</p>
+          <p class="kk-lead mt-1">取り消すと、この人は議事録作りとAIの直しが使えなくなります（議事録の閲覧とPDFは使えます）。</p>
           <div class="mt-4 flex flex-col gap-2">
             <button class="kk-btn-sub" :disabled="!!approvingId" @click="setApproval(unapproveTarget, false)">
               {{ approvingId ? '取り消しています…' : 'はい、取り消します' }}
             </button>
             <button class="kk-btn-text" :disabled="!!approvingId" @click="unapproveTarget = null">やめる</button>
+          </div>
+        </template>
+      </BottomSheet>
+
+      <!-- 今月のAI利用分のリセット（元に戻せないので確認を挟む） -->
+      <BottomSheet
+        :model-value="!!resetTarget"
+        title="今月のAI利用分をリセットしますか？"
+        :closable="!resetting"
+        @update:model-value="resetTarget = null"
+      >
+        <template v-if="resetTarget">
+          <p class="kk-lead m-0"><strong>{{ resetTarget.email }}</strong></p>
+          <p class="kk-lead mt-1">
+            今月の利用分（{{ resetTarget.usedPercent }}%・約{{ resetTarget.costYen }}円）を0%に戻します。元には戻せません。
+          </p>
+          <div class="mt-4 flex flex-col gap-2">
+            <button class="kk-btn-sub" :disabled="resetting" @click="resetUsage(resetTarget)">
+              {{ resetting ? 'リセットしています…' : 'はい、0にリセットします' }}
+            </button>
+            <button class="kk-btn-text" :disabled="resetting" @click="resetTarget = null">やめる</button>
           </div>
         </template>
       </BottomSheet>
@@ -191,7 +221,7 @@
             <input v-model="draftFree" type="checkbox">
             <span>お支払いなしで使えるようにする</span>
           </label>
-          <p class="kk-note mt-1">有料モードでも、契約なしで議事録づくり・AIの直しが使えます。月の利用上限はほかの人と同じです。</p>
+          <p class="kk-note mt-1">有料モードでも、契約なしで議事録作り・AIの直しが使えます。月の利用上限は他の人と同じです。</p>
           <label class="kk-field-label mt-3" for="grant-note">メモ（なぜそうしたか。本人には見えません）</label>
           <input id="grant-note" v-model="draftNote" class="kk-input" maxlength="200" placeholder="れい: 家族／モニターのお礼">
           <div class="mt-4 flex flex-col gap-2">
@@ -352,6 +382,26 @@ async function setApproval(u: AdminUserRow, approved: boolean) {
   approvingId.value = ''
 }
 
+// ── 今月のAI利用分のリセット ──
+const resetTarget = ref<AdminUserRow | null>(null)
+const resetting = ref(false)
+
+async function resetUsage(u: AdminUserRow) {
+  errorMessage.value = ''
+  savedMessage.value = ''
+  resetting.value = true
+  try {
+    await authedFetch(`/api/admin/users/${encodeURIComponent(u.id)}/usage-reset`, { method: 'POST' })
+    savedMessage.value = `${u.email} の今月のAI利用分を0にしました。`
+    resetTarget.value = null
+    await load()
+    if (auditOpen.value) await loadAudit()
+  } catch (e) {
+    errorMessage.value = apiMessage(e, '保存できませんでした。もう一度お試しください。')
+  }
+  resetting.value = false
+}
+
 // ── 支払い不要の切り替え ──
 const editing = ref<AdminUserRow | null>(null)
 const draftFree = ref(false)
@@ -411,6 +461,7 @@ function actionLabel(action: string): string {
   if (action === 'grant_free_access') return '支払い不要にしました'
   if (action === 'revoke_free_access') return '支払い不要から外しました'
   if (action === 'approve') return '承認しました'
+  if (action === 'reset_ai_usage') return '今月のAI利用分を0にしました'
   if (action === 'unapprove') return '承認を取り消しました'
   return `操作しました（${action}）`
 }

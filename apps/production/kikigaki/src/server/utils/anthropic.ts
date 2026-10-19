@@ -33,7 +33,7 @@ export function getAnthropicKey(event: H3Event): string {
   if (!anthropicApiKey) {
     throw createError({
       statusCode: 503,
-      message: 'ただいま議事録をつくれない状態です。少し時間をおいてから、もう一度お試しください。',
+      message: 'ただいま議事録を作れない状態です。少し時間をおいてから、もう一度お試しください。',
     })
   }
   return anthropicApiKey as string

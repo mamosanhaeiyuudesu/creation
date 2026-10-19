@@ -78,7 +78,7 @@ export async function requireAiAllowance(event: H3Event, userId: string): Promis
   if ((await loadUsageStatus(event, userId)).exhausted) {
     throw createError({
       statusCode: 429,
-      message: '今月のご利用ぶんを使い切りました。来月1日から、またお使いいただけます。',
+      message: '今月のご利用分を使い切りました。来月1日から、またお使いいただけます。',
     })
   }
 }

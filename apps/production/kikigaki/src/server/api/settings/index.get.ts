@@ -1,4 +1,4 @@
-// 利用者ごとの設定を返す（左メニューの設定欄と、PDFをつくるときに使う）。
+// 利用者ごとの設定を返す（左メニューの設定欄と、PDFを作るときに使う）。
 
 import { requireUser } from '~/server/utils/auth'
 import { loadUserSettings } from '~/server/utils/settings'

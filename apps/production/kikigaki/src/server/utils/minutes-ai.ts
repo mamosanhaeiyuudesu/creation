@@ -1,4 +1,4 @@
-// 議事録づくりの Claude 呼び出しを集約する。
+// 議事録作りの Claude 呼び出しを集約する。
 // apps/ai-tools/src/server/utils/kikigaki-ai.ts からの移植。
 //
 // ★構造化の「匙加減」＝創作の禁止・決定と検討の切り分け・日付を確定してよい条件は

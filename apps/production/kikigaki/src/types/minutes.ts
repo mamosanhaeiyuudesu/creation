@@ -27,7 +27,7 @@ export function normalizeMode(v: unknown): MinutesMode {
 }
 
 /**
- * 1回の会議として受け付ける文章の長さの上限（約2時間ぶんの会話。AI代が膨らむのを防ぐ）。
+ * 1回の会議として受け付ける文章の長さの上限（約2時間分の会話。AI代が膨らむのを防ぐ）。
  * サーバーの受付と、貼り付け欄の文字数表示の両方がこの値を見る。
  */
 export const MAX_TRANSCRIPT_CHARS = 50_000
@@ -43,11 +43,11 @@ export function countTranscriptChars(text: string): number {
   return n
 }
 
-/** 「50,000文字まで／いまは62,345文字で12,345文字オーバー」の形の案内。超えていないときは空 */
+/** 「50,000文字まで／今は62,345文字で12,345文字オーバー」の形の案内。超えていないときは空 */
 export function transcriptOverMessage(length: number): string {
   if (length <= MAX_TRANSCRIPT_CHARS) return ''
   const f = (n: number) => n.toLocaleString('ja-JP')
-  return `文章が長すぎて一度にまとめられません（${f(MAX_TRANSCRIPT_CHARS)}文字まで／いまは${f(length)}文字で${f(length - MAX_TRANSCRIPT_CHARS)}文字オーバー）。会議を前半・後半に分けてお試しください。`
+  return `文章が長すぎて一度にまとめられません（${f(MAX_TRANSCRIPT_CHARS)}文字まで／今は${f(length)}文字で${f(length - MAX_TRANSCRIPT_CHARS)}文字オーバー）。会議を前半・後半に分けてお試しください。`
 }
 
 /** この会で決まったこと／話し合ったこと の1件（talk では 伝えたかったこと／話の内容 の1件） */
@@ -124,7 +124,7 @@ export interface RecordSummary {
   tags: string[]
 }
 
-/** 確認画面が扱う1件ぶんの全体 */
+/** 確認画面が扱う1件分の全体 */
 export interface MinutesRecord extends RecordSummary {
   transcript: string
   minutes: Minutes

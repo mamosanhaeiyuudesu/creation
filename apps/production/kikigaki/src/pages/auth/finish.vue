@@ -7,7 +7,7 @@
     <template v-else-if="status === 'need-email'">
       <p class="kk-lead mt-5">
         確認のため、メールを受け取ったアドレスを入力してください。
-        （リンクを送った端末と、いま開いている端末が違うときに必要です）
+        （リンクを送った端末と、今開いている端末が違うときに必要です）
       </p>
       <p v-if="errorMessage" class="kk-notice kk-notice--error mt-4">{{ errorMessage }}</p>
       <div class="kk-card px-5 py-5 mt-5">

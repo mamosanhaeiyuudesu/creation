@@ -76,7 +76,7 @@ import type { EventItem, Minutes } from '~/types/minutes'
 const { authedFetch } = useAuth()
 const { settings: userSettings, load: loadUserSettings } = useUserSettings()
 
-/** いまPDFにしている議事録 */
+/** 今PDFにしている議事録 */
 const doc = ref<Minutes>(emptyMinutes())
 const printRoot = ref<HTMLElement | null>(null)
 
@@ -140,7 +140,7 @@ function buildPrintSource() {
  */
 async function buildPrintContent() {
   const { discussionLines, leftChars, decisionLines, eventLines, taskLines, rightChars } = buildPrintSource()
-  // 別のタブで設定を変えたときも最新の値で作るよう、PDFをつくるたびに読み直す
+  // 別のタブで設定を変えたときも最新の値で作るよう、PDFを作るたびに読み直す
   // （読めなければ手元の値で続ける。PDFが作れなくなるほどのことではない）
   const settings = await loadUserSettings().catch(() => userSettings.value)
   // 全体の目安文字数を左右に振り分ける（片方が短ければ、余りをもう片方に回す）

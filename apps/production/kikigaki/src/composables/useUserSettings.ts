@@ -1,4 +1,4 @@
-// 利用者ごとの設定（アカウント全体）。左メニューの設定欄で変え、PDFをつくるときに読む。
+// 利用者ごとの設定（アカウント全体）。左メニューの設定欄で変え、PDFを作るときに読む。
 // 画面をまたいで同じ値を見るので useState に置く。
 
 import { defaultUserSettings } from '~/utils/userSettings'

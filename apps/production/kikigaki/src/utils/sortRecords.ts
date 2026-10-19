@@ -6,16 +6,16 @@ export type RecordSortOrder = 'desc' | 'asc'
 interface Sortable {
   /** 会議の日（YYYY-MM-DD）。空のことがある */
   date: string
-  /** つくった日時（D1 の datetime。YYYY-MM-DD HH:MM:SS） */
+  /** 作った日時（D1 の datetime。YYYY-MM-DD HH:MM:SS） */
   createdAt: string
 }
 
 /**
  * 新しい順に並べる。
- *   - date: 会議の日の新しい順（既定）。会議の日が無いものは**先頭**にまとめ、その中はつくった日の新しい順
+ *   - date: 会議の日の新しい順（既定）。会議の日が無いものは**先頭**にまとめ、その中は作った日の新しい順
  *     （日付が入っていない議事録は、入れ忘れに気づいて直せるよう目につく場所に出す。本人の指示 2026-10-18）
- *   - created: つくった日の新しい順
- * 同じ日どうしは、つくった日の新しい順。元の配列は変えない。
+ *   - created: 作った日の新しい順
+ * 同じ日どうしは、作った日の新しい順。元の配列は変えない。
  * order='asc' なら古い順（日が無いものは昇順でも先頭のまま＝入れ忘れに気づけるように）。
  */
 export function sortRecords<T extends Sortable>(records: T[], key: RecordSortKey, order: RecordSortOrder = 'desc'): T[] {

@@ -1,7 +1,7 @@
 <template>
   <BottomSheet
     :model-value="modelValue"
-    title="テキストから議事録をつくる"
+    title="テキストから議事録を作る"
     :closable="stage === 'idle'"
     @update:model-value="$emit('update:modelValue', $event)"
   >
@@ -9,11 +9,11 @@
 
     <template v-if="stage === 'idle'">
       <p class="kk-lead">
-        文字にした会議や話の文章から議事録をつくります。
+        文字にした会議や話の文章から議事録を作ります。
         文章のファイルをアップロードするか、文章を貼り付けてください。
       </p>
 
-      <label class="kk-field-label mt-3" for="transcript-file">文章のファイルをえらぶ</label>
+      <label class="kk-field-label mt-3" for="transcript-file">文章のファイルを選ぶ</label>
       <input
         id="transcript-file"
         ref="textFileInput"
@@ -43,7 +43,7 @@
         {{ fmt(pastedLength) }} / {{ fmt(MAX_TRANSCRIPT_CHARS) }}文字
         <template v-if="pastedOver > 0">（{{ fmt(pastedOver) }}文字オーバー。前半・後半に分けてください）</template>
       </p>
-      <p v-else class="kk-note mt-1">{{ fmt(MAX_TRANSCRIPT_CHARS) }}文字まで（約2時間ぶんの会話）</p>
+      <p v-else class="kk-note mt-1">{{ fmt(MAX_TRANSCRIPT_CHARS) }}文字まで（約2時間分の会話）</p>
 
       <!-- まとめ方。会議なら決まったこと・やることを、1人の話ならその人が伝えたかったことを中心にまとめる -->
       <p class="kk-field-label mt-4">どんな記録ですか？</p>
@@ -64,7 +64,7 @@
       </div>
 
       <button class="kk-btn mt-4" :disabled="!canRunText" @click="runFromText">
-        この文章から議事録をつくる
+        この文章から議事録を作る
       </button>
     </template>
 

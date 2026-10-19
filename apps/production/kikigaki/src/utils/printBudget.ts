@@ -2,7 +2,7 @@
 //
 // 半分ずつを基本にし、片方が半分に届かないときは、余った分をもう片方に回す
 // （例: 全体2000字で左が600字なら、右は1400字まで要約せずに載せる）。
-// 戻り値の文字数を超えている列だけ、PDFをつくるときにAIが要約し直す。
+// 戻り値の文字数を超えている列だけ、PDFを作るときにAIが要約し直す。
 
 export function splitPrintBudget(leftChars: number, rightChars: number, total: number): { left: number; right: number } {
   if (leftChars + rightChars <= total) return { left: leftChars, right: rightChars }

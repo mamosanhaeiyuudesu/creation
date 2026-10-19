@@ -15,7 +15,7 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 10h16M9 3v4M15 3v4" /></svg>
     </button>
 
-    <div v-if="open" class="kk-date-pop" role="dialog" aria-label="日付をえらぶ" @keydown.esc.stop="close">
+    <div v-if="open" class="kk-date-pop" role="dialog" aria-label="日付を選ぶ" @keydown.esc.stop="close">
       <div class="kk-date-head">
         <button type="button" class="kk-date-nav" aria-label="前の月" @click="moveMonth(-1)">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
@@ -60,7 +60,7 @@ import { formatDateLabel } from '~/utils/formatDate'
 
 const props = withDefaults(defineProps<{ modelValue: string; id?: string; placeholder?: string }>(), {
   id: undefined,
-  placeholder: '日付をえらぶ',
+  placeholder: '日付を選ぶ',
 })
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 

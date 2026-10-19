@@ -5,7 +5,7 @@
 
     <!-- ── ログインしていないとき ───────────────────────────── -->
     <template v-else-if="!isLoggedIn">
-      <h1 class="kk-h1 mt-6">会議の文章から<br>議事録をつくります</h1>
+      <h1 class="kk-h1 mt-6">会議の文章から<br>議事録を作ります</h1>
       <p class="kk-lead mt-2">
         会議の内容を書いた文章をアップロードするか貼り付けるだけ。AIが話し合いの内容を1枚にまとめます。
         できた議事録はその場で直せて、PDFにして配れます。
@@ -15,13 +15,13 @@
 
       <div class="mt-5">
         <button class="kk-btn" :disabled="busy" @click="loginWithGoogle">
-          Googleではじめる
+          Googleで始める
         </button>
 
         <!-- メールのリンクでログイン。押すまでは入力欄を出さない（画面の要素を減らす） -->
         <div class="mt-2">
           <button v-if="!showEmailForm" class="kk-btn-sub" :disabled="busy" @click="showEmailForm = true">
-            メールアドレスではじめる
+            メールアドレスで始める
           </button>
 
           <div v-else class="kk-card px-4 py-4">
@@ -65,7 +65,7 @@
       </div>
 
       <p class="kk-note mt-5">
-        はじめる前に<NuxtLink to="/terms" class="underline">利用規約</NuxtLink>と<NuxtLink to="/privacy" class="underline">プライバシーポリシー</NuxtLink>をご確認ください。
+        始める前に<NuxtLink to="/terms" class="underline">利用規約</NuxtLink>と<NuxtLink to="/privacy" class="underline">プライバシーポリシー</NuxtLink>をご確認ください。
       </p>
     </template>
 
@@ -82,29 +82,33 @@
         <span class="kk-drive-banner-dot" aria-hidden="true">!</span>
         <p class="flex-1 min-w-0 m-0">
           <strong>Googleドライブとつながっていません。</strong>
-          つなぐと、つくったPDFが自動でドライブの「キキガキ議事録」フォルダに保存されます。
+          つなぐと、作ったPDFが自動でドライブの「キキガキ議事録」フォルダに保存されます。
         </p>
         <button class="kk-drive-banner-btn" :disabled="driveBusy" @click="connectDrive">
-          {{ driveBusy ? '画面をひらいています…' : 'ドライブとつなぐ' }}
+          {{ driveBusy ? '画面を開いています…' : 'ドライブとつなぐ' }}
         </button>
       </section>
 
       <h1 class="kk-h1 m-0">議事録</h1>
 
-      <!-- 承認制で、まだ承認されていない人。押しても AI を呼ばないよう、はじめる操作を止める -->
+      <!-- 承認制で、まだ承認されていない人。押しても AI を呼ばないよう、始める操作を止める -->
       <p v-if="pendingApproval" class="kk-notice kk-notice--info mt-3 mb-0">
         <strong>ただいま利用の準備中です。</strong>
-        準備ができしだい、議事録をつくれるようになります。しばらくお待ちください。
+        準備ができしだい、議事録を作れるようになります。しばらくお待ちください。
       </p>
 
-      <!-- はじめる操作。押しても画面は変わらず、下のシートで入力する -->
+      <p v-if="usageExhausted && !pendingApproval" class="kk-notice kk-notice--warn mt-3 mb-0">
+        今月の分を使い切りました。来月1日から、またお使いいただけます。
+      </p>
+
+      <!-- 始める操作。押しても画面は変わらず、下のシートで入力する -->
       <div class="kk-actions mt-3">
-        <button type="button" class="kk-action kk-action--main" :disabled="pendingApproval" @click="showTextSheet = true">
+        <button type="button" class="kk-action kk-action--main" :disabled="pendingApproval || usageExhausted" @click="showTextSheet = true">
           <span class="kk-action-icon">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
           </span>
           <span class="min-w-0">
-            <span class="kk-action-title">文章から議事録をつくる</span>
+            <span class="kk-action-title">文章から議事録を作る</span>
             <span class="kk-action-desc">テキストファイルをアップロードするか、文章を貼り付け</span>
           </span>
         </button>
@@ -182,7 +186,7 @@
 
         <p v-else-if="!records.length" class="kk-lead px-4 py-8 m-0 text-center">
           まだ議事録はありません。<br>
-          上の「文章から議事録をつくる」から、会議の文章をえらんでください。
+          上の「文章から議事録を作る」から、会議の文章を選んでください。
         </p>
 
         <table v-else class="kk-table">
@@ -196,7 +200,7 @@
               </th>
               <th class="kk-col-created">
                 <button type="button" class="kk-th-sort" :class="{ 'is-on': sortKey === 'created' }" @click="setSort('created')">
-                  つくった日<span v-if="sortKey === 'created'" aria-hidden="true"> {{ sortArrow }}</span>
+                  作成日<span v-if="sortKey === 'created'" aria-hidden="true"> {{ sortArrow }}</span>
                 </button>
               </th>
               <th class="kk-col-actions"><span class="sr-only">操作</span></th>
@@ -373,7 +377,7 @@ const showTextSheet = ref(false)
 // ── タグで絞り込む ──
 const { version: tagsVersion, load: loadTags } = useTags()
 const tagCounts = computed(() => countTags(records.value))
-/** 選んでいるタグ（URL の ?tag=）。いまの一覧に無いタグ（消した・名前を変えた）なら「すべて」扱い */
+/** 選んでいるタグ（URL の ?tag=）。今の一覧に無いタグ（消した・名前を変えた）なら「すべて」扱い */
 const activeTag = computed(() => {
   const t = String(route.query.tag ?? '')
   return tagCounts.value.some((c) => c.tag === t) ? t : ''
@@ -461,11 +465,12 @@ watch(tagsVersion, () => {
   if (isLoggedIn.value) loadRecords()
 })
 const pendingApproval = useState<boolean>('kk-pending-approval', () => false)
+const usageExhausted = useState<boolean>('kk-usage-exhausted', () => false)
 
 // ── 一覧から開かずにPDF・ドライブ保存 ──
 const savedMessage = ref('')
 const pdfMaker = ref<InstanceType<typeof MinutesPdfMakerType> | null>(null)
-/** いま作っている行。PDFづくりは画面外の1枚の版を使い回すので、同時には1件だけにする */
+/** 今作っている行。PDF作りは画面外の1枚の版を使い回すので、同時には1件だけにする */
 const rowBusy = ref<{ id: string; kind: 'pdf' | 'drive' } | null>(null)
 
 // ── スマホの「⋯」メニュー ──
@@ -483,7 +488,7 @@ function runMenu(kind: 'rename' | 'pdf' | 'drive' | 'delete') {
   else pendingDelete.value = r
 }
 
-/** 保存されている内容でPDFをつくる（確認画面で保存していない直しは入らない） */
+/** 保存されている内容でPDFを作る（確認画面で保存していない直しは入らない） */
 async function makeRowPdf(id: string) {
   const res = await authedFetch<{ record: MinutesRecord }>(`/api/records/${id}`)
   if (!pdfMaker.value) throw new Error('PDFの中身を用意できませんでした。画面を開き直してお試しください。')
@@ -523,7 +528,7 @@ async function downloadRow(r: RecordSummary) {
     pdf.save(fileName)
     savedMessage.value = `「${r.title || '議事録'}」のPDFを保存しました。`
   } catch (e) {
-    errorMessage.value = apiMessage(e, 'PDFをつくれませんでした。もう一度お試しください。')
+    errorMessage.value = apiMessage(e, 'PDFを作れませんでした。もう一度お試しください。')
   }
   rowBusy.value = null
 }
@@ -652,7 +657,7 @@ onMounted(async () => {
 .kk-drive-banner-btn:hover:not(:disabled) { background: var(--kk-cta-strong); }
 .kk-drive-banner-btn:disabled { opacity: 0.5; cursor: default; }
 
-/* はじめる操作のカード（Notta の「録音開始」「アップロード」の並びにならう） */
+/* 始める操作のカード（Notta の「録音開始」「アップロード」の並びにならう） */
 .kk-actions {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
