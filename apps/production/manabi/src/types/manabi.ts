@@ -40,5 +40,5 @@ export const MANABI_AUDIENCES = ['doctor', 'adult', 'kids'] as const
 export type ManabiAudience = (typeof MANABI_AUDIENCES)[number]
 export const MANABI_AUDIENCE_LABELS: Record<ManabiAudience, string> = { doctor: '博士向け', adult: '大人向け', kids: '子供向け' }
 
-export const MANABI_COUNTS = [10, 20, 30] as const
+export const MANABI_COUNTS = [5, 10, 20, 30] as const
 export type ManabiCount = (typeof MANABI_COUNTS)[number]

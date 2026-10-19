@@ -192,7 +192,7 @@ const phaseText = computed(() => {
   if (elapsed.value < 40) return '問題をつくっています'
   return 'もうすぐできあがります'
 })
-const waitHint = computed(() => (count.value === 10 ? '20秒' : count.value === 20 ? '30秒' : '40秒'))
+const waitHint = computed(() => (count.value === 5 ? '15秒' : count.value === 10 ? '20秒' : count.value === 20 ? '30秒' : '40秒'))
 
 onMounted(() => {
   loadRecent()
