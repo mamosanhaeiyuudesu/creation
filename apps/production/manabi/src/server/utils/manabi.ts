@@ -4,7 +4,7 @@ import type { ManabiListItem, ManabiQuestion, ManabiSet } from '~/types/manabi'
 
 /** 1つのIPが1日（UTC）に作れる問題セットの数 */
 export const MANABI_DAILY_LIMIT = 10
-export const MANABI_THEME_MAX = 200
+export const MANABI_THEME_MAX = 100
 /** 「みんなの問題」で1回に返す件数の上限（一覧は題・テーマ等の表示用の文字だけなので、全件返しても軽い） */
 export const MANABI_LIST_MAX = 1000
 
@@ -110,17 +110,17 @@ export async function listPublicSets(db: any | null, opts: { limit: number; q?: 
   if (!db) {
     return [...devStore.values()]
       .map((e) => e.set)
-      .filter((s) => s.isPublic && (!q || s.title.includes(q) || s.theme.includes(q)))
+      .filter((s) => s.isPublic && (!q || s.title.includes(q)))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, limit)
       .map((s) => ({ id: s.id, theme: s.theme, title: s.title, level: s.level, creatorName: s.creatorName, count: s.questions.length, createdAt: s.createdAt }))
   }
 
-  const where = q ? "AND (theme LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\')" : ''
+  const where = q ? "AND title LIKE ? ESCAPE '\\'" : ''
   const binds: unknown[] = []
   if (q) {
     const like = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`
-    binds.push(like, like)
+    binds.push(like)
   }
   binds.push(limit)
   const { results } = await db

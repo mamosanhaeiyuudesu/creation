@@ -60,7 +60,7 @@
       <section>
         <header class="pr-head">
           <h1 class="pr-h1">{{ docTitle || set.title }}</h1>
-          <p class="pr-meta">テーマ：{{ set.theme }}　／　全{{ set.questions.length }}問（選択式）</p>
+          <p class="pr-meta">全{{ set.questions.length }}問（選択式）</p>
           <p v-if="nameField" class="pr-name">
             <span>　　年　　組　　番</span>
             <span class="pr-name__who">氏名</span>

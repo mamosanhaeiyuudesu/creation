@@ -17,8 +17,7 @@
       <!-- 作っている間は入力欄ごと置き換える（二重に送らせない・待っていることを伝える） -->
       <div v-if="generating" class="flex-1 flex flex-col items-center justify-center text-center mb-rise">
         <div class="mb-dots mb-6" aria-hidden="true"><span /><span /><span /></div>
-        <p class="mb-display text-[19px] font-bold">{{ theme }}</p>
-        <p class="mt-3 text-[14px] text-[var(--mb-ink-soft)]">{{ phaseText }}</p>
+        <p class="text-[15px] text-[var(--mb-ink-soft)]">{{ phaseText }}</p>
         <p class="mt-8 text-[12px] text-[var(--mb-ink-faint)]">{{ count }}問だと{{ waitHint }}ほどかかります</p>
       </div>
 
@@ -28,7 +27,7 @@
             何を学びますか？
           </h1>
           <p class="mt-3 text-center text-[13.5px] text-[var(--mb-ink-soft)]">
-            テーマを書くと、AIが選択式の問題をつくります
+            どんな問題を作りたいかを書いてください。AIが選択式の問題をつくります
           </p>
 
           <div class="mt-8 mb-bar">
@@ -39,7 +38,7 @@
               enterkeyhint="go"
               :maxlength="THEME_MAX"
               placeholder="例：肥料の基礎知識、小学4年生の漢字"
-              aria-label="学びたいテーマ"
+              aria-label="どんな問題を作りたいか"
               autocomplete="off"
               @keydown.enter="onEnter"
             />
@@ -161,7 +160,7 @@ useHead({
   ],
 })
 
-const THEME_MAX = 200
+const THEME_MAX = 100
 
 const router = useRouter()
 const route = useRoute()
@@ -189,7 +188,7 @@ const canSubmit = computed(() => theme.value.trim().length > 0 && !generating.va
 
 // 実際の進み具合はサーバーから来ないので、経過時間でおおよその段階を見せる
 const phaseText = computed(() => {
-  if (elapsed.value < 6) return 'テーマを読み解いています'
+  if (elapsed.value < 6) return '内容を読み解いています'
   if (elapsed.value < 40) return '問題をつくっています'
   return 'もうすぐできあがります'
 })

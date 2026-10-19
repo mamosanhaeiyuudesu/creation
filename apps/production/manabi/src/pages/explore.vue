@@ -14,8 +14,8 @@
           v-model="q"
           type="search"
           enterkeyhint="search"
-          placeholder="テーマで探す"
-          aria-label="テーマで探す"
+          placeholder="題名で探す"
+          aria-label="題名で探す"
           autocomplete="off"
         />
       </div>
@@ -38,7 +38,6 @@
                 <span class="min-w-0 text-[15px] font-bold leading-snug">{{ it.title }}</span>
                 <span v-if="it.creatorName" class="shrink-0 max-w-[40%] truncate text-[11.5px] text-[var(--mb-ink-faint)]">{{ it.creatorName }}</span>
               </span>
-              <span class="mt-1 block text-[12.5px] leading-relaxed text-[var(--mb-ink-soft)] line-clamp-2">{{ it.theme }}</span>
               <span class="mt-1.5 block text-[11.5px] text-[var(--mb-ink-faint)]">
                 {{ it.count }}問<template v-if="it.level"> ・ {{ it.level }}</template> ・ {{ dateLabel(it.createdAt) }}
               </span>
@@ -81,7 +80,7 @@ const shown = computed(() => {
   const words = norm(keyword.value).split(/\s+/).filter(Boolean)
   if (!words.length) return items.value
   return items.value.filter((it) => {
-    const hay = norm(`${it.title} ${it.theme} ${it.level ?? ''}`)
+    const hay = norm(`${it.title} ${it.level ?? ''}`)
     return words.every((w) => hay.includes(w))
   })
 })

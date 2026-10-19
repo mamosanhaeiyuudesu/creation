@@ -13,6 +13,7 @@ import type { ManabiAudience, ManabiQuestion } from '~/types/manabi'
 const BATCH_SIZE = 5
 
 const AUDIENCE_TEXT: Record<ManabiAudience, string> = {
+  doctor: '博士向け（その分野を深く学んだ専門家・上級者）',
   adult: '大人向け',
   kids: '子供向け（小学5〜6年生ぐらい）',
 }
@@ -44,6 +45,9 @@ const PLAN_SYSTEM = `あなたは学び直しのためのドリルを設計す�
 【対象の指定】
 - ユーザーが「対象」を指定している。
   - 大人向け: 上の読み取りに従う（読み取れなければ、その分野を少しかじった大人の水準）。
+  - 博士向け: その分野を深く学んだ専門家・上級者の水準にする。基礎的な用語の暗記は避け、
+    例外・前提条件・メカニズム・似た概念の厳密な区別・実務上の落とし穴を問う論点を選ぶ。ただし正解が1つに定まる確立した知識に限る。
+    level には「専門家向けの発展」のように書く。
   - 子供向け: 小学5〜6年生が読んで、少し考えれば解ける水準にする。やさしすぎる暗記問題（名前や用語を知っていれば答えられるだけのもの）は避け、
     「なぜそうなるか」「どれが当てはまるか」を考えさせる論点を、全体の半分以上にする。身近な例をまじえてよいが、
     小学6年生までに習わない専門的な知識を前提にしない。level には「小学5〜6年生向け」のように書く。
@@ -85,6 +89,11 @@ const WRITE_SYSTEM = `あなたは学び直しのためのドリルの作問者�
   - 「発火する」「数年かかる」のような、常識だけで外せる選択肢は入れない。
 - 「すべて正しい」「いずれでもない」「上記のうち2つ」のような選択肢は使わない。
 - 「正しくないものはどれか」形式は全体の2割までにし、使うときは問題文に明記する。
+
+【対象が博士向けのとき】
+- 専門用語は注釈なしで使ってよい。問題文は60字以内を目安に、条件を絞って答えを1つにする。
+  誤りの選択肢は、初学者ではなく「半端に知っている人」がつい選ぶ、専門的でもっともらしいものにする。
+  解説は専門家が読んで学びのある、理由・前提条件・例外に触れた内容にする（120字程度まで）。
 
 【対象が子供向けのとき】
 - 小学5〜6年生が読める言葉で書く。小学6年生までに習う漢字はそのまま使う。
@@ -189,7 +198,8 @@ async function writeBatch(apiKey: string, theme: string, level: string, audience
   })
   const parsed = parseJsonLoose<{ questions?: RawQuestion[] }>(out)
   const raws = Array.isArray(parsed?.questions) ? parsed!.questions : []
-  return raws.map(shapeQuestion).filter((q): q is ManabiQuestion => q !== null)
+  // AIが論点より多く返すことがある（10問指定が15問になった原因）ので、論点の数で打ち切る。
+  return raws.slice(0, points.length).map(shapeQuestion).filter((q): q is ManabiQuestion => q !== null)
 }
 
 /**
@@ -227,7 +237,7 @@ export async function generateSet(apiKey: string, theme: string, count: number, 
     if (firstError) throw firstError.reason
     throw createError({ statusCode: 502, message: '問題の作成に失敗しました。もう一度お試しください。' })
   }
-  return { title: plan.title, level: plan.level, questions }
+  return { title: plan.title, level: plan.level, questions: questions.slice(0, count) }
 }
 
 // ── 深掘りの提案 ──────────────────────────────

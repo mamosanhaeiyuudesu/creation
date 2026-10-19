@@ -18,9 +18,9 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<{ theme?: string; count?: number; isPublic?: boolean; creatorName?: string; audience?: string }>(event)
   const theme = (body?.theme ?? '').trim()
-  if (!theme) throw createError({ statusCode: 400, message: 'テーマを入力してください' })
+  if (!theme) throw createError({ statusCode: 400, message: 'どんな問題を作りたいかを入力してください' })
   if (theme.length > MANABI_THEME_MAX) {
-    throw createError({ statusCode: 400, message: `テーマは${MANABI_THEME_MAX}文字以内で入力してください` })
+    throw createError({ statusCode: 400, message: `${MANABI_THEME_MAX}文字以内で入力してください` })
   }
   const count = (MANABI_COUNTS as readonly number[]).includes(Number(body?.count)) ? Number(body!.count) : 10
   // 公開は本人が明示したときだけ（省略・不明な値は非公開＝リンクを知っている人だけ）

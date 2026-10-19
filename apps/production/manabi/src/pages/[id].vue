@@ -27,10 +27,9 @@
       </div>
 
       <template v-else>
-        <!-- どのテーマの問題か。出題中も結果でも、画面を開いたままいつでも確認できるように常に出す -->
-        <p class="mb-theme" :title="set.theme">
-          <span class="mb-theme__label">テーマ</span>
-          <span class="mb-theme__text">{{ set.theme }}</span>
+        <!-- どの問題集か。出題中も結果でも、画面を開いたままいつでも確認できるように常に出す -->
+        <p class="mb-theme" :title="set.title">
+          <span class="mb-theme__text">{{ set.title }}</span>
         </p>
 
         <!-- はじめる前。共有で開いた人にも、何の問題かがわかるように -->
@@ -168,12 +167,12 @@
             </ol>
           </section>
 
-          <!-- さらに掘り下げるなら。押すと、そのテーマを入力欄に入れた状態でトップへ -->
+          <!-- さらに掘り下げるなら。押すと、その内容を入力欄に入れた状態でトップへ -->
           <section v-if="deepenLoading || deepenThemes.length" class="mt-10">
             <h2 class="text-[13px] font-bold text-[var(--mb-ink-soft)] mb-3 px-1">もっと深く学ぶなら</h2>
             <div v-if="deepenLoading" class="mb-card px-4 py-5 flex items-center gap-3 text-[13.5px] text-[var(--mb-ink-soft)]">
               <span class="mb-dots" aria-hidden="true"><span /><span /><span /></span>
-              次のテーマを考えています
+              次の問題を考えています
             </div>
             <ul v-else class="flex flex-col gap-2.5">
               <li v-for="t in deepenThemes" :key="t">
@@ -193,7 +192,7 @@
 
           <div class="mt-6 flex justify-center">
             <NuxtLink to="/" class="text-[13.5px] text-[var(--mb-accent-deep)] underline underline-offset-4">
-              別のテーマで問題をつくる
+              別の問題をつくる
             </NuxtLink>
           </div>
         </div>
