@@ -8,9 +8,14 @@
 // 呼び出し数は 1 + ceil(30/5) = 7（書き直しが全部に起きても13）で、Workers の subrequest 上限（50）には十分遠い。
 
 import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
-import type { ManabiQuestion } from '~/types/manabi'
+import type { ManabiAudience, ManabiQuestion } from '~/types/manabi'
 
 const BATCH_SIZE = 5
+
+const AUDIENCE_TEXT: Record<ManabiAudience, string> = {
+  adult: '大人向け',
+  kids: '子供向け（小学3年生ぐらい）',
+}
 
 interface Plan {
   title: string
@@ -32,6 +37,12 @@ const PLAN_SYSTEM = `あなたは学び直しのためのドリルを設計す�
 - 基礎の土台になる事柄を優先し、テーマ全体をまんべんなく覆うこと。
 - 地域・品種・年によって答えが変わる事柄、法令の細かな数値など、正解が1つに定まりにくいものは選ばない。
 - 各論点は「肥料の三要素のうちNが担う働き」のように、何を問うかが一文でわかる具体性で書く。
+
+【対象の指定】
+- ユーザーが「対象」を指定している。
+  - 大人向け: 上の読み取りに従う（読み取れなければ、その分野を少しかじった大人の水準）。
+  - 子供向け: 小学3年生が読んで解ける水準にする。テーマの範囲はそのままに、論点は身近な例で問えるものを選び、
+    難しい専門用語や、小学3年生までに習わない知識を前提にしない。level には「小学3年生向け」のように書く。
 
 【テーマが問題を作れないものだった場合】
 - 意味をなさない文字列、特定の個人についての詮索、危険な行為の手順などは出題しない。
@@ -68,6 +79,11 @@ const WRITE_SYSTEM = `あなたは学び直しのためのドリルの作問者�
 - 「すべて正しい」「いずれでもない」「上記のうち2つ」のような選択肢は使わない。
 - 「正しくないものはどれか」形式は全体の2割までにし、使うときは問題文に明記する。
 
+【対象が子供向けのとき】
+- 小学3年生が読める言葉で書く。習っていない漢字は使わずひらがなにする。むずかしい言葉は、やさしい言い方にする。
+- 問題文は短く、40字以内を目安にする。解説は2文までのやさしい言葉で、「〜だよ」のようにやわらかく書いてよい。
+- 選択肢も子供が読んで意味のわかる言葉にする（形だけで当てられないようにする条件は大人向けと同じ）。
+
 【解説】
 - なぜそれが正解なのかを、学び直しに役立つ形で2〜3文（120字程度まで）で書く。
 - 誤りの選択肢のうち紛らわしいものがあれば、どこが違うのかにも一言触れる。
@@ -81,11 +97,11 @@ JSONのみを出力すること。前置き・説明文・コードフェンス�
   ]
 }`
 
-async function planSet(apiKey: string, theme: string, count: number): Promise<Plan> {
+async function planSet(apiKey: string, theme: string, count: number, audience: ManabiAudience): Promise<Plan> {
   const out = await callClaudeText(apiKey, {
     system: PLAN_SYSTEM,
     maxTokens: 400 + count * 80,
-    messages: [{ role: 'user', content: `テーマ: ${theme}\n問題数: ${count}` }],
+    messages: [{ role: 'user', content: `テーマ: ${theme}\n対象: ${AUDIENCE_TEXT[audience]}\n問題数: ${count}` }],
   })
   const parsed = parseJsonLoose<Partial<Plan> & { reject?: string }>(out)
   if (!parsed) throw createError({ statusCode: 502, message: '問題の準備に失敗しました。もう一度お試しください。' })
@@ -148,12 +164,12 @@ function shapeQuestion(raw: RawQuestion): ManabiQuestion | null {
   return { q, choices, answer: choices.indexOf(correct), explanation: str(raw.explanation) }
 }
 
-async function writeBatch(apiKey: string, theme: string, level: string, points: string[]): Promise<ManabiQuestion[]> {
+async function writeBatch(apiKey: string, theme: string, level: string, audience: ManabiAudience, points: string[]): Promise<ManabiQuestion[]> {
   const list = points.map((p, i) => `${i + 1}. ${p}`).join('\n')
   const out = await callClaudeText(apiKey, {
     system: WRITE_SYSTEM,
     maxTokens: 600 + points.length * 550,
-    messages: [{ role: 'user', content: `テーマ: ${theme}\n対象と水準: ${level || '（指定なし）'}\n\n論点:\n${list}` }],
+    messages: [{ role: 'user', content: `テーマ: ${theme}\n対象: ${AUDIENCE_TEXT[audience]}\n対象と水準: ${level || '（指定なし）'}\n\n論点:\n${list}` }],
   })
   const parsed = parseJsonLoose<{ questions?: RawQuestion[] }>(out)
   const raws = Array.isArray(parsed?.questions) ? parsed!.questions : []
@@ -165,10 +181,10 @@ async function writeBatch(apiKey: string, theme: string, level: string, points: 
  * JSONが崩れる・選択肢が足りない問題を落とす、で20問が15問になることがあった（実測）。
  * 書き直しても足りなければ多いほうを採る（問題数が少し欠けても、出題できるほうを優先する）。
  */
-async function writeBatchWithRetry(apiKey: string, theme: string, level: string, points: string[]): Promise<ManabiQuestion[]> {
-  const first = await writeBatch(apiKey, theme, level, points).catch(() => [] as ManabiQuestion[])
+async function writeBatchWithRetry(apiKey: string, theme: string, level: string, audience: ManabiAudience, points: string[]): Promise<ManabiQuestion[]> {
+  const first = await writeBatch(apiKey, theme, level, audience, points).catch(() => [] as ManabiQuestion[])
   if (first.length >= points.length) return first
-  const second = await writeBatch(apiKey, theme, level, points).catch((e) => {
+  const second = await writeBatch(apiKey, theme, level, audience, points).catch((e) => {
     if (first.length === 0) throw e
     return [] as ManabiQuestion[]
   })
@@ -181,14 +197,14 @@ export interface GeneratedSet {
   questions: ManabiQuestion[]
 }
 
-export async function generateSet(apiKey: string, theme: string, count: number): Promise<GeneratedSet> {
-  const plan = await planSet(apiKey, theme, count)
+export async function generateSet(apiKey: string, theme: string, count: number, audience: ManabiAudience = 'adult'): Promise<GeneratedSet> {
+  const plan = await planSet(apiKey, theme, count, audience)
 
   const batches: string[][] = []
   for (let i = 0; i < plan.points.length; i += BATCH_SIZE) batches.push(plan.points.slice(i, i + BATCH_SIZE))
 
   // 一部のバッチが落ちても、残りで出題できるなら出す（全滅のときだけエラーにする）。
-  const results = await Promise.allSettled(batches.map((b) => writeBatchWithRetry(apiKey, theme, plan.level, b)))
+  const results = await Promise.allSettled(batches.map((b) => writeBatchWithRetry(apiKey, theme, plan.level, audience, b)))
   const questions = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
   if (questions.length === 0) {
     const firstError = results.find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined

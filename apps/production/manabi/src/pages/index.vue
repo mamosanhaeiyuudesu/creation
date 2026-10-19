@@ -50,6 +50,24 @@
             </button>
           </div>
 
+          <!-- 対象（問題の言葉づかいと水準） -->
+          <div class="mt-5 flex items-center justify-center gap-2" role="radiogroup" aria-label="問題の対象">
+            <button
+              v-for="a in MANABI_AUDIENCES"
+              :key="a"
+              class="mb-chip"
+              :class="{ 'mb-chip--on': audience === a }"
+              role="radio"
+              :aria-checked="audience === a"
+              @click="audience = a"
+            >
+              {{ MANABI_AUDIENCE_LABELS[a] }}
+            </button>
+          </div>
+          <p class="mt-1.5 text-center text-[11.5px] text-[var(--mb-ink-faint)]">
+            {{ audience === 'kids' ? '小学3年生ぐらいが読める言葉で作ります' : '大人が学び直す水準で作ります' }}
+          </p>
+
           <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
             <div class="flex items-center gap-2" role="radiogroup" aria-label="問題数">
               <button
@@ -87,9 +105,9 @@
 
           <p v-if="error" class="mt-5 text-center text-[13.5px] text-[var(--mb-bad)]">{{ error }}</p>
 
-          <!-- これまでにやった問題。押すとその問題にもう一度挑戦できる -->
+          <!-- 回答した問題。押すとその問題にもう一度挑戦できる -->
           <section v-if="recent.length" class="mt-8">
-            <h2 class="text-[12px] text-[var(--mb-ink-faint)] mb-2 px-1">これまでの問題</h2>
+            <h2 class="text-[12px] text-[var(--mb-ink-faint)] mb-2 px-1">回答した問題</h2>
             <ul class="mb-card divide-y divide-[var(--mb-line)] overflow-hidden">
               <li v-for="r in recent" :key="r.id">
                 <NuxtLink
@@ -105,7 +123,7 @@
                     class="shrink-0 w-14 text-right text-[13px] tabular-nums"
                     :class="r.lastScore === null ? 'text-[var(--mb-ink-faint)]' : 'font-bold text-[var(--mb-accent-deep)]'"
                   >
-                    {{ r.lastScore === null ? `${r.answered}/${r.count}` : `${r.lastScore}%` }}
+                    {{ r.lastScore === null ? `${r.answered}/${r.count}` : `${r.lastScore}点` }}
                   </span>
                 </NuxtLink>
               </li>
@@ -132,10 +150,10 @@
  * - トップは入力欄ひとつ。問題数だけは選べるが、それ以上の設定は足さない
  * - ログインは求めない（共有されたURLをLINEから開いた人が、そのまま解けるように）
  */
-import { MANABI_COUNTS, MANABI_CREATOR_NAME_MAX, type ManabiCount } from '~/types/manabi'
+import { MANABI_AUDIENCES, MANABI_AUDIENCE_LABELS, MANABI_COUNTS, MANABI_CREATOR_NAME_MAX, type ManabiAudience, type ManabiCount } from '~/types/manabi'
 import { useManabiRecent } from '~/composables/useManabiRecent'
 import { useManabiSync } from '~/composables/useManabiSync'
-import { rankOf, saveName, savedName, useManabiTotalCorrect } from '~/composables/useManabiMe'
+import { rankOf, saveName, saveOptions, savedName, savedOptions, useManabiTotalCorrect } from '~/composables/useManabiMe'
 
 definePageMeta({ layout: 'manabi' })
 useHead({
@@ -158,6 +176,8 @@ const { code: syncCode, load: loadSync, sync } = useManabiSync()
 // 深掘りの提案などから来たときは ?theme= で入力済みにする（作るのは本人が押してから）
 const theme = ref(typeof route.query.theme === 'string' ? route.query.theme.slice(0, THEME_MAX) : '')
 const count = ref<ManabiCount>(10)
+// 対象は大人向けが既定。子供向けは小学3年生ぐらい
+const audience = ref<ManabiAudience>('adult')
 // 作成者の名前。前回入れた名前を端末から読む（SSR との食い違いを出さないため mount 後）
 const creatorName = ref('')
 // 公開の既定はオン（みんなで見られることが前提の機能）。やめたい人だけ外す
@@ -182,6 +202,11 @@ onMounted(() => {
   loadRecent()
   loadTotal()
   creatorName.value = savedName()
+  // 前回選んだ対象・問題数・公開を戻す（SSR との食い違いを出さないため mount 後）
+  const opts = savedOptions()
+  if (opts.audience) audience.value = opts.audience
+  if (opts.count) count.value = opts.count
+  if (opts.isPublic !== undefined) isPublic.value = opts.isPublic
   // 他の端末とつないであれば、開いたときに揃える。済んだら画面の表示も読み直す
   loadSync()
   if (syncCode.value) {
@@ -194,6 +219,9 @@ onMounted(() => {
   }
   inputEl.value?.focus()
 })
+// 選び直したら、そのつど覚える
+watch([audience, count, isPublic], () => saveOptions({ audience: audience.value, count: count.value, isPublic: isPublic.value }))
+
 onBeforeUnmount(() => {
   if (tick) clearInterval(tick)
 })
@@ -214,7 +242,7 @@ const submit = async () => {
   try {
     const { id } = await $fetch<{ id: string }>('/api/sets', {
       method: 'POST',
-      body: { theme: theme.value.trim(), count: count.value, isPublic: isPublic.value, creatorName: creatorName.value.trim() },
+      body: { theme: theme.value.trim(), count: count.value, audience: audience.value, isPublic: isPublic.value, creatorName: creatorName.value.trim() },
       // ふつうは20〜40秒。応答が返らないまま待たせ続けないよう上限を置く
       timeout: 120_000,
     })

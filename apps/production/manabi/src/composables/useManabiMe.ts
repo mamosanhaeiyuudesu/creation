@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { MANABI_AUDIENCES, MANABI_COUNTS, type ManabiAudience, type ManabiCount } from '~/types/manabi'
 
 /**
  * この端末の控え（localStorage）。ログインが無いので端末をまたいでは使えない。
@@ -9,6 +10,35 @@ import { ref } from 'vue'
  */
 const CORRECT_KEY = 'manabi-correct-v1'
 const NAME_KEY = 'manabi-name-v1'
+
+/** 前回、問題を作るときに選んだ設定（対象・問題数・公開）。次回から選択済みにする。端末だけの控え */
+const OPTIONS_KEY = 'manabi-options-v1'
+export interface ManabiOptions {
+  audience: ManabiAudience
+  count: ManabiCount
+  isPublic: boolean
+}
+
+export function savedOptions(): Partial<ManabiOptions> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(OPTIONS_KEY) ?? '{}') ?? {}
+    const out: Partial<ManabiOptions> = {}
+    if ((MANABI_AUDIENCES as readonly string[]).includes(raw.audience)) out.audience = raw.audience
+    if ((MANABI_COUNTS as readonly number[]).includes(raw.count)) out.count = raw.count
+    if (typeof raw.isPublic === 'boolean') out.isPublic = raw.isPublic
+    return out
+  } catch {
+    return {}
+  }
+}
+
+export function saveOptions(opts: ManabiOptions) {
+  try {
+    localStorage.setItem(OPTIONS_KEY, JSON.stringify(opts))
+  } catch {
+    /* 保存できなくても使える */
+  }
+}
 
 /** 前回、問題を作るときに入れた名前（次回から入力済みにする。端末だけの控え） */
 export function savedName(): string {

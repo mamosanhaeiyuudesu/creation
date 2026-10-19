@@ -13,7 +13,7 @@ export interface ManabiRecent {
   count: number
   /** ここまでに答えた問題数（途中でも「8/10」と出すため） */
   answered: number
-  /** 解き終えたときの正答率（%）。まだ解き終えていなければ null */
+  /** 解き終えたときの点数（100点満点）。まだ解き終えていなければ null */
   lastScore: number | null
   openedAt: number
 }

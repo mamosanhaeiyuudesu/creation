@@ -94,7 +94,7 @@
           <div class="text-center">
             <p class="text-[13px] text-[var(--mb-ink-soft)]">{{ set.title }}</p>
             <p class="mt-3 mb-display font-bold leading-none text-[var(--mb-accent-deep)]">
-              <span class="text-[64px] tabular-nums">{{ score }}</span><span class="text-[24px] ml-1">%</span>
+              <span class="text-[64px] tabular-nums">{{ score }}</span><span class="text-[24px] ml-1">点</span>
             </p>
             <p class="mt-3 text-[14px] text-[var(--mb-ink-soft)]">{{ order.length }}問中 {{ correctCount }}問 正解</p>
           </div>

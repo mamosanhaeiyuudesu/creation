@@ -6,7 +6,7 @@
 
     <main class="flex-1 w-full max-w-[600px] mx-auto px-4 sm:px-6 pb-10">
       <p class="text-[13px] leading-relaxed text-[var(--mb-ink-soft)] px-1">
-        コードでつなぐと、名前・正解数・これまでの問題が端末のあいだで揃います。
+        コードでつなぐと、名前・正解数・回答した問題が端末のあいだで揃います。
         一度つなげば、あとは自動で同期されます（毎回の操作は要りません）。
       </p>
 
@@ -94,7 +94,7 @@
         <section v-else-if="panel === 'erase'" class="mb-card p-5 text-left">
           <p class="text-[14px] font-bold">この端末のデータを削除します</p>
           <p class="mt-1.5 text-[12.5px] leading-relaxed text-[var(--mb-ink-soft)]">
-            名前・正解数・これまでの問題・解答の控えが消え、元に戻せません。
+            名前・正解数・回答した問題・解答の控えが消え、元に戻せません。
             <template v-if="code">つなぎも解除されます。</template>
             預けたデータは消えないので、同じコードでつなぎ直せば戻ります。
           </p>

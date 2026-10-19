@@ -5,7 +5,7 @@ import { runKey } from '~/composables/useManabiRun'
 import { mergeSyncData, sanitizeSyncData, type ManabiSyncData } from '~/utils/manabi-sync'
 
 /**
- * 他の端末との引き継ぎ（同期コード）。名前・正解数・これまでの問題の一覧を、コードでつないだ端末どうしで揃える。
+ * 他の端末との引き継ぎ（同期コード）。名前・正解数・回答した問題の一覧を、コードでつないだ端末どうしで揃える。
  * 一度つなげば、トップを開いたときと解いた後に裏で勝手に同期する（毎回の操作は要らない）。
  * 解答の途中経過は運ばない（別の端末では最初から解く）。
  */
