@@ -126,9 +126,7 @@
 
     <!-- 聞き手のごあいさつ（短縮版。全文は #maker） -->
     <div class="pp-wrap pp-wrap-narrow pp-greeting">
-      <span class="pp-maker-avatar pp-greeting-avatar" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></svg>
-      </span>
+      <img class="pp-maker-avatar pp-greeting-avatar" src="/papa.jpg" :alt="`聞き手の${site.makerName}`" width="72" height="72" />
       <div>
         <p>宮古島に暮らす、{{ site.makerName }}・{{ site.makerFullName }}です。<br />
           全国どこからでも、オンラインでお話を伺います。<br />
@@ -421,9 +419,7 @@
         <h2 class="pp-title">聞き手</h2>
         <div class="pp-maker">
           <div class="pp-maker-name">
-            <span class="pp-maker-avatar" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></svg>
-            </span>
+            <img class="pp-maker-avatar" src="/papa.jpg" :alt="`聞き手の${site.makerName}`" width="120" height="120" />
             <p>{{ site.makerName }}</p>
             <p class="pp-maker-fullname">（{{ site.makerFullName }}）</p>
             <p class="pp-maker-tagline"><span v-for="t in site.makerTagline.split('　')" :key="t" class="pp-nb">{{ t }}</span></p>

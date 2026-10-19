@@ -821,6 +821,8 @@ html {
   background: var(--pp-base);
   border: 4px solid var(--pp-main);
   color: var(--pp-deep);
+  object-fit: cover;
+  object-position: 50% 30%;
 }
 
 .pp-maker-name p {
