@@ -98,7 +98,7 @@
       </p>
 
       <p v-if="usageExhausted && !pendingApproval" class="kk-notice kk-notice--warn mt-3 mb-0">
-        今月の分を使い切りました。来月1日から、またお使いいただけます。
+        今月のAI利用量を使い切りました。来月1日から、またお使いいただけます。
       </p>
 
       <!-- 始める操作。押しても画面は変わらず、下のシートで入力する -->

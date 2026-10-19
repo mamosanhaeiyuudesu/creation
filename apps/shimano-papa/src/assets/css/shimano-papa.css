@@ -807,6 +807,10 @@ html {
   text-align: center;
 }
 
+.pp-section-tint .pp-maker-avatar {
+  background: #fff;
+}
+
 .pp-maker-avatar {
   display: inline-flex;
   align-items: center;
@@ -1208,17 +1212,6 @@ html {
   background: var(--pp-main);
 }
 
-.pp-maker-cta {
-  margin-top: 44px;
-  text-align: center;
-  font-weight: 700;
-  color: var(--pp-deep);
-}
-
-.pp-maker-cta p {
-  margin-bottom: 18px;
-}
-
 /* ---------- 料金（追加分） ---------- */
 
 .pp-price {
@@ -1262,7 +1255,7 @@ html {
   gap: 28px;
   align-items: center;
   margin-top: 32px;
-  background: #fff;
+  background: var(--pp-cream);
   border: 2px dashed var(--pp-accent-dark);
   border-radius: var(--pp-radius);
   padding: 26px 28px;
@@ -1346,7 +1339,7 @@ html {
 
 .pp-options {
   margin-top: 24px;
-  background: #fff;
+  background: var(--pp-base);
   border-radius: var(--pp-radius);
   padding: 20px 28px;
 }
@@ -1383,7 +1376,7 @@ html {
 .pp-contract {
   max-width: 860px;
   margin: 40px auto 0;
-  background: var(--pp-base);
+  background: #fff;
   border-radius: var(--pp-radius);
   padding: 20px 28px;
 }

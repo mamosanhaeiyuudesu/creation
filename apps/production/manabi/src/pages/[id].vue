@@ -229,8 +229,8 @@ const { data: set, pending } = await useFetch<ManabiSet>(`/api/sets/${id}`, { ke
 useHead(() => ({
   title: set.value ? `${set.value.title}｜マナビー` : 'マナビー',
   meta: [
-    { property: 'og:title', content: set.value ? `${set.value.title}（${set.value.questions.length}問）` : 'マナビー' },
-    { property: 'og:description', content: '選択式の問題で学ぶ。タップしてすぐ解けます。' },
+    { key: 'og:title', property: 'og:title', content: set.value ? `${set.value.title}（${set.value.questions.length}問）` : 'マナビー' },
+    { key: 'og:description', property: 'og:description', content: '選択式の問題で学ぶ。タップしてすぐ解けます。' },
     { name: 'theme-color', content: '#f7f5ef' },
   ],
 }))

@@ -74,23 +74,21 @@
       </div>
     </BottomSheet>
 
-    <!-- 今月の使用分 -->
+    <!-- 今月の利用量 -->
     <section class="kk-set-sec">
-      <h2 class="kk-set-title">今月つかった分</h2>
+      <h2 class="kk-set-title">
+        今月のAI利用量
+        <span v-if="usage" class="kk-set-num">{{ usage.usedPercent }}%</span>
+      </h2>
       <p v-if="!usage" class="kk-set-text">読み込んでいます…</p>
       <template v-else>
-        <div class="flex items-baseline justify-between">
-          <span class="kk-set-text">つかった分</span>
-          <span class="kk-set-num">{{ usage.usedPercent }}%</span>
-        </div>
         <div class="kk-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="usage.usedPercent">
           <div class="kk-meter-fill" :class="{ 'kk-meter-fill--warn': usage.usedPercent >= 80 }" :style="{ width: usage.usedPercent + '%' }" />
         </div>
         <p v-if="usage.exhausted" class="kk-notice kk-notice--warn mt-2">
-          今月の分を使い切りました。来月1日から、またお使いいただけます。
+          今月のAI利用量を使い切りました。来月1日から、またお使いいただけます。
         </p>
-        <p v-else-if="usage.usedPercent >= 80" class="kk-set-note">もうすぐ今月の分を使い切ります。</p>
-        <p class="kk-set-note">議事録作りと「まとめ直す」の合計。毎月1日にリセットされます。</p>
+        <p v-else-if="usage.usedPercent >= 80" class="kk-set-note">もうすぐ今月のAI利用量を使い切ります。</p>
       </template>
     </section>
 

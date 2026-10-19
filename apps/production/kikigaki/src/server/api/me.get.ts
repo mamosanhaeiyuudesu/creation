@@ -1,5 +1,5 @@
 // ログイン確認の口。ID トークンを検証し、users に行を用意して返す。
-// あわせて今月の利用分も返す（設定画面と、上限が近いときの案内に使う）。
+// あわせて今月の利用量も返す（設定画面と、上限が近いときの案内に使う）。
 
 import { requireUser } from '~/server/utils/auth'
 import { loadUsageStatus } from '~/server/utils/usage'

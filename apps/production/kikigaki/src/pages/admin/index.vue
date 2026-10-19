@@ -111,7 +111,7 @@
                     v-if="u.usedPercent > 0"
                     type="button"
                     class="kk-adm-approved"
-                    title="今月の利用分を0に戻します"
+                    title="今月の利用量を0に戻します"
                     @click="resetTarget = u"
                   >
                     0にリセット
@@ -192,17 +192,17 @@
         </template>
       </BottomSheet>
 
-      <!-- 今月のAI利用分のリセット（元に戻せないので確認を挟む） -->
+      <!-- 今月のAI利用量のリセット（元に戻せないので確認を挟む） -->
       <BottomSheet
         :model-value="!!resetTarget"
-        title="今月のAI利用分をリセットしますか？"
+        title="今月のAI利用量をリセットしますか？"
         :closable="!resetting"
         @update:model-value="resetTarget = null"
       >
         <template v-if="resetTarget">
           <p class="kk-lead m-0"><strong>{{ resetTarget.email }}</strong></p>
           <p class="kk-lead mt-1">
-            今月の利用分（{{ resetTarget.usedPercent }}%・約{{ resetTarget.costYen }}円）を0%に戻します。元には戻せません。
+            今月の利用量（{{ resetTarget.usedPercent }}%・約{{ resetTarget.costYen }}円）を0%に戻します。元には戻せません。
           </p>
           <div class="mt-4 flex flex-col gap-2">
             <button class="kk-btn-sub" :disabled="resetting" @click="resetUsage(resetTarget)">
@@ -382,7 +382,7 @@ async function setApproval(u: AdminUserRow, approved: boolean) {
   approvingId.value = ''
 }
 
-// ── 今月のAI利用分のリセット ──
+// ── 今月のAI利用量のリセット ──
 const resetTarget = ref<AdminUserRow | null>(null)
 const resetting = ref(false)
 
@@ -392,7 +392,7 @@ async function resetUsage(u: AdminUserRow) {
   resetting.value = true
   try {
     await authedFetch(`/api/admin/users/${encodeURIComponent(u.id)}/usage-reset`, { method: 'POST' })
-    savedMessage.value = `${u.email} の今月のAI利用分を0にしました。`
+    savedMessage.value = `${u.email} の今月のAI利用量を0にしました。`
     resetTarget.value = null
     await load()
     if (auditOpen.value) await loadAudit()
@@ -461,7 +461,7 @@ function actionLabel(action: string): string {
   if (action === 'grant_free_access') return '支払い不要にしました'
   if (action === 'revoke_free_access') return '支払い不要から外しました'
   if (action === 'approve') return '承認しました'
-  if (action === 'reset_ai_usage') return '今月のAI利用分を0にしました'
+  if (action === 'reset_ai_usage') return '今月のAI利用量を0にしました'
   if (action === 'unapprove') return '承認を取り消しました'
   return `操作しました（${action}）`
 }

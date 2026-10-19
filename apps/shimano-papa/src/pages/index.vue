@@ -28,9 +28,9 @@
           <a href="#about" @click="isMenuOpen = false">特徴</a>
           <a href="#book" @click="isMenuOpen = false">本の中身</a>
           <a href="#voice" @click="isMenuOpen = false">体験者の声</a>
-          <a href="#maker" @click="isMenuOpen = false">聞き手</a>
           <a href="#price" @click="isMenuOpen = false">料金</a>
           <a href="#faq" @click="isMenuOpen = false">よくある質問</a>
+          <a href="#maker" @click="isMenuOpen = false">聞き手</a>
           <a :href="site.formUrl" target="_blank" rel="noopener" class="pp-btn pp-btn-accent pp-nav-cta">{{ site.ctaLabel }}</a>
         </nav>
         <button class="pp-menu-btn" :aria-expanded="isMenuOpen" aria-label="メニュー" @click="isMenuOpen = !isMenuOpen">
@@ -289,53 +289,8 @@
       </div>
     </section>
 
-    <!-- 聞き手 -->
-    <section id="maker" class="pp-section">
-      <div class="pp-wrap pp-wrap-narrow">
-        <p class="pp-label">INTERVIEWER</p>
-        <h2 class="pp-title">聞き手</h2>
-        <div class="pp-maker">
-          <div class="pp-maker-name">
-            <span class="pp-maker-avatar" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></svg>
-            </span>
-            <p>{{ site.makerName }}</p>
-            <p class="pp-maker-fullname">（{{ site.makerFullName }}）</p>
-            <p class="pp-maker-tagline"><span v-for="t in site.makerTagline.split('　')" :key="t" class="pp-nb">{{ t }}</span></p>
-          </div>
-          <div class="pp-maker-body">
-            <h3>なぜ、この仕事をしているのか</h3>
-            <p>小学生のころ、祖父から戦争の話や仕事の話を聞き、「かっこいいじいちゃんみたいに生きたい」と思いました。</p>
-            <p>43歳でがんを経験し、死と向き合うなかで、内村鑑三が語った「後世に残せるものは、生き様である」という考えに感銘を受けました。それから、自分の心が納得する生き方を楽しみたいと思い、パパとして、がんサバイバーとして、島での日々を生きています。</p>
-            <p>最初に自伝を作ったとき、語り手の喜びも悲しみも、その場にいるかのように伝わってきて、気づけば、語り手と同じように涙が流れていました。完成した本を受け取ったお客様は、「宝にしたい」と言ってくださいました。</p>
-            <p>人生を聴き、本にして残すことは、その人の生き様を、未来へ渡すこと。私は、そう思っています。</p>
-
-            <h3>「島のパパ」という名前について</h3>
-            <p>パパとして、子育ても夫婦関係も、楽しく生きたいと思っています。同じ島のパパたちと、苦しさも楽しさも分かち合いたい。そんな思いを込めて、島のパパと名乗っています。</p>
-
-            <h3>聴き方について</h3>
-            <p>質問や意見をはさみすぎず、話したいことを、とことん話していただきます。受け止めて、聴く。その繰り返しです。</p>
-
-            <h3>経歴</h3>
-            <ul class="pp-maker-career">
-              <li>コーチングを学び、傾聴の実践を重ねてきました</li>
-              <li>広告・出版の制作現場を1年経験し、文章と編集に携わりました</li>
-              <li>Web制作の経験があり、オンラインでの進行やデータの管理にも慣れています</li>
-            </ul>
-          </div>
-        </div>
-        <div class="pp-maker-cta">
-          <p>ご相談は無料です。お話だけでも、どうぞ。<br class="pp-sp" />島内は対面も可です。</p>
-          <a :href="site.formUrl" target="_blank" rel="noopener" class="pp-btn pp-btn-accent pp-btn-lg">
-            {{ site.ctaLabel }}
-            <span class="pp-btn-arrow" aria-hidden="true">→</span>
-          </a>
-        </div>
-      </div>
-    </section>
-
     <!-- 料金 -->
-    <section id="price" class="pp-section pp-section-tint">
+    <section id="price" class="pp-section">
       <div class="pp-wrap pp-wrap-narrow">
         <p class="pp-label">PRICE</p>
         <h2 class="pp-title">プランと料金</h2>
@@ -385,7 +340,7 @@
     </section>
 
     <!-- 流れ -->
-    <section id="flow" class="pp-section">
+    <section id="flow" class="pp-section pp-section-tint">
       <div class="pp-wrap">
         <p class="pp-label">FLOW</p>
         <h2 class="pp-title">ご依頼の流れ</h2>
@@ -419,7 +374,7 @@
     </section>
 
     <!-- FAQ（客層別のタブ） -->
-    <section id="faq" class="pp-section pp-section-tint">
+    <section id="faq" class="pp-section">
       <div class="pp-wrap pp-wrap-narrow">
         <p class="pp-label">FAQ</p>
         <h2 class="pp-title">よくある質問</h2>
@@ -459,12 +414,50 @@
       </div>
     </section>
 
+    <!-- 聞き手 -->
+    <section id="maker" class="pp-section pp-section-tint">
+      <div class="pp-wrap pp-wrap-narrow">
+        <p class="pp-label">INTERVIEWER</p>
+        <h2 class="pp-title">聞き手</h2>
+        <div class="pp-maker">
+          <div class="pp-maker-name">
+            <span class="pp-maker-avatar" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></svg>
+            </span>
+            <p>{{ site.makerName }}</p>
+            <p class="pp-maker-fullname">（{{ site.makerFullName }}）</p>
+            <p class="pp-maker-tagline"><span v-for="t in site.makerTagline.split('　')" :key="t" class="pp-nb">{{ t }}</span></p>
+          </div>
+          <div class="pp-maker-body">
+            <h3>なぜ、この仕事をしているのか</h3>
+            <p>小学生のころ、祖父から戦争の話や仕事の話を聞き、「かっこいいじいちゃんみたいに生きたい」と思いました。</p>
+            <p>43歳でがんを経験し、死と向き合うなかで、内村鑑三が語った「後世に残せるものは、生き様である」という考えに感銘を受けました。それから、自分の心が納得する生き方を楽しみたいと思い、パパとして、がんサバイバーとして、島での日々を生きています。</p>
+            <p>最初に自伝を作ったとき、語り手の喜びも悲しみも、その場にいるかのように伝わってきて、気づけば、語り手と同じように涙が流れていました。完成した本を受け取ったお客様は、「宝にしたい」と言ってくださいました。</p>
+            <p>人生を聴き、本にして残すことは、その人の生き様を、未来へ渡すこと。私は、そう思っています。</p>
+
+            <h3>「島のパパ」という名前について</h3>
+            <p>パパとして、子育ても夫婦関係も、楽しく生きたいと思っています。同じ島のパパたちと、苦しさも楽しさも分かち合いたい。そんな思いを込めて、島のパパと名乗っています。</p>
+
+            <h3>聴き方について</h3>
+            <p>質問や意見をはさみすぎず、話したいことを、とことん話していただきます。受け止めて、聴く。その繰り返しです。</p>
+
+            <h3>経歴</h3>
+            <ul class="pp-maker-career">
+              <li>コーチングを学び、傾聴の実践を重ねてきました</li>
+              <li>広告・出版の制作現場を1年経験し、文章と編集に携わりました</li>
+              <li>Web制作の経験があり、オンラインでの進行やデータの管理にも慣れています</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 最後の CTA -->
     <section id="contact" class="pp-cta">
       <div class="pp-wrap pp-cta-inner">
         <p class="pp-cta-sub">まずは、あなたの話を聞かせてください</p>
         <h2 class="pp-cta-title">ご相談は、<br class="pp-sp" />無料です</h2>
-        <p class="pp-cta-note">どんな本にしたいか、まだ決まっていなくても大丈夫です。</p>
+        <p class="pp-cta-note">お話だけでも、どうぞ。島内は対面も可です。<br />どんな本にしたいか、まだ決まっていなくても大丈夫です。</p>
         <a :href="site.formUrl" target="_blank" rel="noopener" class="pp-btn pp-btn-accent pp-btn-lg">
           {{ site.ctaLabel }}
           <span class="pp-btn-arrow" aria-hidden="true">→</span>

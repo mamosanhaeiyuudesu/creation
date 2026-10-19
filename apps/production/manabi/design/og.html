@@ -1,0 +1,113 @@
+<!doctype html>
+<!--
+  リンクを共有したときのサムネイル画像（src/public/og.png、1200x630）の元。問題は架空のサンプル。
+  配色は画面と同じ（生成りの紙・濃紺・朱赤。src/layouts/manabi.vue）。
+  直したら、次のコマンドで画像を作り直す（Noto Sans JP をネットから読むので、つながった状態で）:
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
+      --force-device-scale-factor=1 --window-size=1200,630 --virtual-time-budget=8000 \
+      --screenshot=src/public/og.png "file://$PWD/design/og.html"
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=block" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    font-family: 'Noto Sans JP', 'Hiragino Sans', sans-serif;
+    color: #252c3a;
+    background: #f7f5ef;
+    position: relative;
+  }
+  /* 方眼紙の薄い罫 */
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(37,44,58,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37,44,58,0.05) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+  .band { position: absolute; left: 0; right: 0; bottom: 0; height: 14px; background: #252c3a; }
+  .wrap { position: relative; display: flex; height: 100%; padding: 58px 60px 70px; gap: 48px; }
+
+  .left { width: 480px; display: flex; flex-direction: column; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .mark { width: 60px; height: 60px; }
+  .brand-name { font-size: 40px; font-weight: 900; letter-spacing: 0.08em; }
+  .headline { margin-top: 50px; font-size: 52px; font-weight: 900; line-height: 1.32; letter-spacing: 0.02em; }
+  .headline em { font-style: normal; color: #e2463a; }
+  .lead { margin-top: 22px; font-size: 22px; line-height: 1.75; color: #5a6272; font-weight: 500; }
+  .tags { margin-top: auto; display: flex; gap: 10px; }
+  .tag {
+    padding: 9px 18px; border-radius: 999px; font-size: 18px; font-weight: 700;
+    background: #fff; border: 2px solid #c9c8c0; color: #252c3a;
+  }
+  .tag.cta { background: #e2463a; border-color: #e2463a; color: #fff; }
+
+  /* 右: 問題のサンプル（架空） */
+  .card {
+    flex: 1; background: #fff; border: 2px solid #252c3a; border-radius: 20px; padding: 28px 30px;
+    box-shadow: 8px 10px 0 #252c3a;
+    display: flex; flex-direction: column;
+    transform: rotate(1.2deg); margin-top: 4px;
+  }
+  .card-top { display: flex; justify-content: space-between; align-items: center; }
+  .theme { font-size: 16px; font-weight: 700; color: #c23328; background: #fde8e5; padding: 4px 12px; border-radius: 999px; }
+  .progress { font-size: 16px; color: #9aa0ab; font-weight: 700; }
+  .q { margin-top: 20px; font-size: 27px; font-weight: 900; line-height: 1.45; }
+  .choices { margin-top: 20px; display: flex; flex-direction: column; gap: 11px; }
+  .choice {
+    display: flex; align-items: center; gap: 14px;
+    border: 2px solid #e2e0d8; border-radius: 14px; padding: 11px 16px;
+    font-size: 20px; font-weight: 500;
+  }
+  .label {
+    flex: none; width: 32px; height: 32px; border-radius: 9px; background: #f7f5ef; color: #5a6272;
+    font-size: 16px; font-weight: 900; display: flex; align-items: center; justify-content: center;
+  }
+  .choice.correct { border-color: #e2463a; background: #fde8e5; font-weight: 700; }
+  .choice.correct .label { background: #e2463a; color: #fff; }
+  .ok { margin-left: auto; width: 34px; height: 34px; border: 5px solid #e2463a; border-radius: 999px; }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="band"></div>
+  <div class="wrap">
+    <div class="left">
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="14" fill="#252c3a"/>
+          <path d="M18 34l10 10 18-22" fill="none" stroke="#e2463a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="brand-name">マナビー</div>
+      </div>
+      <p class="headline">テーマを書くと、<br><em>4択の問題</em>に。</p>
+      <p class="lead">AIが問題と解説をつくります。<br>URLを送れば、だれでもすぐ解けます。</p>
+      <div class="tags">
+        <span class="tag">テーマを書く</span>
+        <span class="tag">AIが出題</span>
+        <span class="tag cta">解いて学ぶ</span>
+      </div>
+    </div>
+
+    <!-- サンプル（架空のドリル） -->
+    <div class="card">
+      <div class="card-top">
+        <span class="theme">肥料の基礎知識</span>
+        <span class="progress">3 / 10</span>
+      </div>
+      <p class="q">肥料の三要素のうち、<br>窒素（N）のおもな働きは？</p>
+      <div class="choices">
+        <div class="choice"><span class="label">A</span>実を大きくする</div>
+        <div class="choice correct"><span class="label">B</span>葉や茎をしげらせる<span class="ok"></span></div>
+        <div class="choice"><span class="label">C</span>根を太く丈夫にする</div>
+        <div class="choice"><span class="label">D</span>花の色を濃くする</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

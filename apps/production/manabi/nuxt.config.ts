@@ -18,6 +18,17 @@ export default defineNuxtConfig({
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         { name: 'format-detection', content: 'telephone=no' },
+        // リンクを共有したときの見え方（OGP）。画像の元は design/og.html。画像のURLは絶対URLにすること。
+        // 題と説明は問題のページ（pages/[id].vue）で上書きする。画像は全ページ共通
+        { property: 'og:type', content: 'website' },
+        { property: 'og:site_name', content: 'マナビー' },
+        { key: 'og:title', property: 'og:title', content: 'マナビー — テーマを書くと4択の問題に' },
+        { key: 'og:description', property: 'og:description', content: 'テーマを書くと、AIが選択式の問題と解説をつくります。URLを送れば、だれでもすぐ解けます。' },
+        { property: 'og:image', content: 'https://manabi.insightlens.jp/og.png' },
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
+        { property: 'og:locale', content: 'ja_JP' },
+        { name: 'twitter:card', content: 'summary_large_image' },
       ],
     },
   },
