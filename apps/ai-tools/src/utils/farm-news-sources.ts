@@ -129,7 +129,7 @@ export const FARM_NEWS_MAX_YEAR_SNAPSHOTS_PER_RUN = 2
  * 要約・分類・潮流考察・アーカイブ生成に使うモデル。
  * news と同じ実測結果（Haiku 4.5で品質差なし・コスト大幅減）を踏襲して既定にする。
  */
-export const FARM_NEWS_MODEL = 'claude-haiku-4-5'
+export const FARM_NEWS_MODEL = 'claude-haiku-5-5'
 
 /**
  * 過去アーカイブ（Web検索バックフィル）関連。RSSは直近の記事しか配信しないため、

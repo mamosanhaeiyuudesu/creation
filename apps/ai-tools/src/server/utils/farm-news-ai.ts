@@ -230,7 +230,7 @@ ${PLAIN_LANGUAGE_NOTE}`
  * 過去年アーカイブ（Web検索バックフィル）。RSSでは遡れない年（サイト運用開始より前）を、
  * Claudeの Web検索で調べさせて1年分の振り返りにする。月次スナップショットを積み上げる
  * 通常の年次生成（synthesizeYearSnapshot）とは別物＝実際の収集記事は材料にせず、検索結果だけが根拠。
- * モデルは軽い分類作業用の FARM_NEWS_MODEL（Haiku）ではなく anthropic.ts の既定（Sonnet 5）を使う
+ * モデルは軽い分類作業用の FARM_NEWS_MODEL（Haiku）ではなく anthropic.ts の既定（Sonnet 5.5）を使う
  * ＝実行頻度が低い（年1回×バックフィル分だけ）ので、調べ物の質を優先してよい。
  */
 export async function synthesizeHistoricalYearSnapshot(apiKey: string, input: { year: string }): Promise<FarmNewsCurrentSection[]> {

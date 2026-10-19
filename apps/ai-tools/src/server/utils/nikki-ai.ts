@@ -11,7 +11,7 @@ import { normalizeTopic } from '~/server/utils/nikki'
 import type { NewTopic } from '~/server/utils/nikki'
 import { NIKKI_MAX_TOPICS_PER_EXTRACT } from '~/types/nikki'
 
-const MODEL = 'claude-sonnet-5'
+const MODEL = 'claude-sonnet-5-5'
 const MAX_TOKENS = 2000
 
 function buildSystemPrompt(date: string, existingHeadlines: string[]): string {

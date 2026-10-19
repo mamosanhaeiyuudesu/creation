@@ -92,7 +92,7 @@ ${visionText ? '- 相談者が目指しているビジョンが渡されてい�
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-5',
+        model: 'claude-sonnet-5-5',
         max_tokens: 1024,
         stream: true,
         thinking: { type: 'disabled' },

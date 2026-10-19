@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'claude-haiku-5-5',
         max_tokens: 20,
         system: '以下のテキストの内容を表す簡潔なタイトルを日本語で8文字以内で出力してください。タイトルのみ出力し、それ以外は何も出力しないこと。',
         messages: [{ role: 'user', content: body.text }],

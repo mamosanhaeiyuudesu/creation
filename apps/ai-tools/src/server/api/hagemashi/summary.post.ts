@@ -71,7 +71,7 @@ async function summarizeChunk(apiKey: string, text: string): Promise<SummaryItem
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-haiku-5-5',
       // 入力を分割して1回あたりの出力量を抑えているが、余裕を持って上限を引き上げておく
       max_tokens: 2048,
       system: SYSTEM_PROMPT,

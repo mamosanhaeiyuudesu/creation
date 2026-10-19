@@ -155,6 +155,6 @@ export const NEWS_TREND_LOOKBACK_DAYS = 30
 /**
  * 要約・分類・潮流考察に使うモデル。
  * 実測比較（2026-09-06）で Sonnet 5 と品質差がほぼ無く、同じ記事でトークン数も
- * 少なく済んだため Haiku 4.5 を既定にした（1記事あたり約1.48円→約0.58円）。
+ * 少なく済んだため Haiku 5.5 を既定にした（1記事あたり約1.48円→約0.58円）。
  */
-export const NEWS_MODEL = 'claude-haiku-4-5'
+export const NEWS_MODEL = 'claude-haiku-5-5'

@@ -3,7 +3,7 @@
 // callClaudeText と parseJsonLoose だけを持つ最小構成にしている。
 
 const MESSAGES_URL = 'https://api.anthropic.com/v1/messages'
-const DEFAULT_MODEL = 'claude-sonnet-5'
+const DEFAULT_MODEL = 'claude-sonnet-5-5'
 
 interface CallOptions {
   system: string
@@ -11,7 +11,7 @@ interface CallOptions {
   maxTokens: number
   model?: string
   /**
-   * claude-sonnet-5 はthinkingを無効化すると、複雑な指示(このプロジェクトのJSON生成プロンプトのように
+   * claude-sonnet-5-5 はthinkingを無効化すると、複雑な指示(このプロジェクトのJSON生成プロンプトのように
    * 守るべきルールが多いもの)で「出力はJSONのみ」という指示を破り、JSONの前に説明文を漏らすことがある。
    * その場合に備えたparseJsonLooseの正規表現フォールバックも、説明文の中に { } が入ると抽出に失敗しうる。
    * thinkingをadaptiveにすると、その説明文はthinkingブロック側に出るようになり(呼び出し側はtextブロックしか
