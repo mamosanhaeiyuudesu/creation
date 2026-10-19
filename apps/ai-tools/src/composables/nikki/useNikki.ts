@@ -181,9 +181,10 @@ export function useNikki() {
   }
 
   /** 保存・編集のあとにタイムラインの当該日を差し替える（全体を読み直すとスクロール位置が飛ぶため）。 */
-  function mergeDay(date: string, topics: NikkiTopic[]): void {
-    const next: NikkiDay = { date, topics, hasBody: true }
+  function mergeDay(date: string, topics: NikkiTopic[], photos?: string[]): void {
     const idx = days.value.findIndex((d) => d.date === date)
+    // photos を渡されなければ、すでにタイムラインにある写真を残す
+    const next: NikkiDay = { date, topics, photos: photos ?? (idx >= 0 ? days.value[idx]!.photos : []), hasBody: true }
     if (idx >= 0) {
       days.value = days.value.map((d, i) => (i === idx ? next : d))
       return
@@ -194,6 +195,45 @@ export function useNikki() {
     list.splice(at < 0 ? list.length : at, 0, next)
     days.value = list
     if (!marks.value.includes(date) && monthOf(date) === month.value) marks.value = [...marks.value, date]
+  }
+
+  // ───────────────────────────── 写真 ─────────────────────────────
+
+  const photoBusy = ref(false)
+
+  /** サーバーが返した「その日の写真ID」を、開いている記録とタイムラインの両方へ反映する。 */
+  function setPhotos(date: string, photos: string[]): void {
+    if (entry.value?.date === date) entry.value = { ...entry.value, photos }
+    const topics = days.value.find((d) => d.date === date)?.topics ?? (entry.value?.date === date ? entry.value.topics : [])
+    mergeDay(date, topics, photos)
+  }
+
+  /** 縮小済みの data URL を順に送る（1枚ずつ＝途中で上限に当たっても入った分は残る）。 */
+  async function addPhotos(date: string, dataUrls: string[]): Promise<void> {
+    photoBusy.value = true
+    error.value = ''
+    try {
+      for (const dataUrl of dataUrls) {
+        const res = await $fetch<{ photos: string[] }>('/api/nikki/photos', { method: 'POST', body: { date, dataUrl } })
+        setPhotos(date, res.photos)
+      }
+    } catch (e) {
+      fail(e, '写真を追加できませんでした')
+    } finally {
+      photoBusy.value = false
+    }
+  }
+
+  async function removePhoto(date: string, id: string): Promise<void> {
+    photoBusy.value = true
+    try {
+      const res = await $fetch<{ photos: string[] }>(`/api/nikki/photos/${id}`, { method: 'DELETE' })
+      setPhotos(date, res.photos)
+    } catch (e) {
+      fail(e, '写真を消せませんでした')
+    } finally {
+      photoBusy.value = false
+    }
   }
 
   // ───────────────────────────── 1日ぶんの記録 ─────────────────────────────
@@ -223,7 +263,7 @@ export function useNikki() {
 
   function applyEntry(updated: NikkiEntry): void {
     entry.value = updated
-    mergeDay(updated.date, updated.topics)
+    mergeDay(updated.date, updated.topics, updated.photos)
   }
 
   /** 入力（音声の文字起こし／手打ち）を追記し、トピックを抜き出す。 */
@@ -281,11 +321,13 @@ export function useNikki() {
     }
   }
 
-  async function patchTopic(id: string, patch: { headline: string; detail: string; impact: number }): Promise<void> {
+  /** date を渡すと、日の記録を開いていなくてもタイムラインの該当日を更新する（トップから直接直す用）。 */
+  async function patchTopic(id: string, patch: { headline: string; detail: string; impact: number }, date?: string): Promise<void> {
     saving.value = true
     try {
       const res = await $fetch<{ topics: NikkiTopic[] }>(`/api/nikki/topics/${id}`, { method: 'PATCH', body: patch })
-      if (entry.value) applyEntry({ ...entry.value, topics: res.topics })
+      if (entry.value && (!date || entry.value.date === date)) applyEntry({ ...entry.value, topics: res.topics })
+      else if (date) mergeDay(date, res.topics)
     } catch (e) {
       fail(e, 'トピックを直せませんでした')
     } finally {
@@ -293,11 +335,12 @@ export function useNikki() {
     }
   }
 
-  async function removeTopic(id: string): Promise<void> {
+  async function removeTopic(id: string, date?: string): Promise<void> {
     saving.value = true
     try {
       const res = await $fetch<{ topics: NikkiTopic[] }>(`/api/nikki/topics/${id}`, { method: 'DELETE' })
-      if (entry.value) applyEntry({ ...entry.value, topics: res.topics })
+      if (entry.value && (!date || entry.value.date === date)) applyEntry({ ...entry.value, topics: res.topics })
+      else if (date) mergeDay(date, res.topics)
     } catch (e) {
       fail(e, 'トピックを消せませんでした')
     } finally {
@@ -342,5 +385,8 @@ export function useNikki() {
     addTopic,
     patchTopic,
     removeTopic,
+    photoBusy,
+    addPhotos,
+    removePhoto,
   }
 }

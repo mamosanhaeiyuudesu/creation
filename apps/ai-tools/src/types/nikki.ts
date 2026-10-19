@@ -21,6 +21,8 @@ export interface NikkiEntry {
   /** 音声の文字起こし・テキスト入力を追記していった全文 */
   body: string
   topics: NikkiTopic[]
+  /** 添付写真のID（最大 NIKKI_PHOTO_MAX 枚）。本体は /api/nikki/photos/:id から取る */
+  photos: string[]
   updatedAt: string
 }
 
@@ -28,6 +30,8 @@ export interface NikkiEntry {
 export interface NikkiDay {
   date: string
   topics: NikkiTopic[]
+  /** 添付写真のID */
+  photos: string[]
   /** 本文があるか（トピックが0件でも「書いた日」と分かるように） */
   hasBody: boolean
 }
@@ -79,6 +83,11 @@ export const NIKKI_MAX_CALENDARS = 8
 
 /** AIに1回で抜き出させるトピックの上限 */
 export const NIKKI_MAX_TOPICS_PER_EXTRACT = 8
+
+/** 1日に付けられる写真の枚数 */
+export const NIKKI_PHOTO_MAX = 3
+/** 写真1枚（data URL 文字列）の上限。クライアントで縮小してから送る前提（暗号化後も D1 の1行 2MB に収める） */
+export const NIKKI_PHOTO_DATAURL_MAX = 900_000
 
 export const NIKKI_BODY_MAX = 20000
 export const NIKKI_HEADLINE_MAX = 60

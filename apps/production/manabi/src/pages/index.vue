@@ -64,9 +64,6 @@
               {{ MANABI_AUDIENCE_LABELS[a] }}
             </button>
           </div>
-          <p class="mt-1.5 text-center text-[11.5px] text-[var(--mb-ink-faint)]">
-            {{ audience === 'kids' ? '小学3年生ぐらいが読める言葉で作ります' : '大人が学び直す水準で作ります' }}
-          </p>
 
           <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
             <div class="flex items-center gap-2" role="radiogroup" aria-label="問題数">

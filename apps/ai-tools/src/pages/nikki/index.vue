@@ -144,6 +144,11 @@
         :loading="timelineLoading"
         :today="today"
         :on-load-older="loadOlder"
+        :photo-busy="photoBusy"
+        :on-add-photos="addPhotos"
+        :on-remove-photo="removePhoto"
+        :on-patch-topic="patchTopic"
+        :on-remove-topic="removeTopic"
         @select="openDay"
       />
 
@@ -162,6 +167,9 @@
         :saving="saving"
         :error="error"
         :saved-tick="savedTick"
+        :photo-busy="photoBusy"
+        @add-photos="(urls: string[]) => addPhotos(selectedDate, urls)"
+        @remove-photo="(id: string) => removePhoto(selectedDate, id)"
         :prev-date="dayNavPrev"
         :next-date="dayNavNext"
         @close="closeDay"
@@ -243,6 +251,9 @@ const {
   addTopic,
   patchTopic,
   removeTopic,
+  photoBusy,
+  addPhotos,
+  removePhoto,
 } = useNikki()
 
 const showAuthModal = computed(() => !isLoggedIn.value && checked.value)

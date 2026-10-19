@@ -12,6 +12,7 @@
         class="nk-card px-4 py-3.5 flex flex-col gap-2.5 transition-colors"
         :class="day.date === today ? 'border-[var(--nk-today)]' : ''"
       >
+        <div class="flex items-center justify-between gap-2">
         <button class="text-left flex items-baseline gap-2" @click="emit('select', day.date)">
           <span class="nk-serif text-[16px] leading-none" :class="day.date === today ? 'text-[var(--nk-today)]' : ''">
             {{ formatShortDate(day.date) }}
@@ -21,6 +22,16 @@
             {{ day.date === today ? '今日' : yearLabel(day.date) }}
           </span>
         </button>
+        <NikkiPhotoAdd
+          :remaining="NIKKI_PHOTO_MAX - day.photos.length"
+          :busy="photoBusy"
+          label="📷"
+          small
+          @add="(urls) => onAddPhotos(day.date, urls)"
+        />
+        </div>
+
+        <NikkiPhotoStrip :photos="day.photos" :busy="photoBusy" size="sm" @remove="(id) => onRemovePhoto(day.date, id)" />
 
         <p v-if="!day.topics.length" class="m-0 text-[12px] text-[var(--nk-ink-soft)] leading-relaxed">
           インパクトのある出来事は拾えませんでした
@@ -32,19 +43,31 @@
             :key="topic.id"
             class="rounded-lg border border-[var(--nk-line)] px-3 py-2"
           >
-            <span class="flex items-start gap-2">
-              <!-- 重要度の数値は非表示（復活させるときはこのコメントを外す）
-              <span
-                class="mt-[1px] shrink-0 rounded px-1 text-[10px] font-bold leading-[16px]"
-                :class="`nk-impact-${Math.min(5, Math.max(3, topic.impact))}`"
-                :title="`インパクト ${topic.impact}`"
-              >{{ topic.impact }}</span>
-              -->
-              <span class="text-[13px] font-bold leading-snug">{{ topic.headline }}</span>
-            </span>
-            <span v-if="topic.detail" class="block mt-1 text-[12px] leading-snug text-[var(--nk-ink-soft)]">
-              {{ topic.detail }}
-            </span>
+            <template v-if="editingId === topic.id">
+              <input v-model="editHeadline" class="nk-input !text-[13px] font-bold mb-1.5" placeholder="見出し" />
+              <textarea v-model="editDetail" rows="2" class="nk-input !text-[12px] resize-y mb-1.5" placeholder="具体（1〜2文）" />
+              <div class="flex items-center gap-2">
+                <button class="nk-btn !h-8 !px-3 !text-[12px]" :disabled="!editHeadline.trim() || busy" @click="commitEdit(day.date, topic)">
+                  {{ busy ? '保存中…' : '保存' }}
+                </button>
+                <button class="nk-btn-ghost !h-8 !px-3 !text-[12px]" @click="editingId = ''">やめる</button>
+                <button class="ml-auto text-[11px] text-[var(--nk-ink-soft)] underline underline-offset-2" :disabled="busy" @click="removeTopic(day.date, topic)">消す</button>
+              </div>
+            </template>
+            <template v-else>
+              <span class="flex items-start gap-2">
+                <span class="text-[13px] font-bold leading-snug">{{ topic.headline }}</span>
+                <button
+                  class="shrink-0 ml-auto px-1 text-[12px] text-[var(--nk-ink-soft)]"
+                  title="このサマリを直す"
+                  aria-label="このサマリを直す"
+                  @click="startEdit(topic)"
+                >✏️</button>
+              </span>
+              <span v-if="topic.detail" class="block mt-1 text-[12px] leading-snug text-[var(--nk-ink-soft)]">
+                {{ topic.detail }}
+              </span>
+            </template>
           </li>
         </ul>
 
@@ -71,8 +94,10 @@
 <script setup lang="ts">
 import { formatShortDate } from '~/utils/nikki-calendar'
 import { weekdayJa } from '~/utils/jst'
-import { NIKKI_TIMELINE_VISIBLE } from '~/types/nikki'
-import type { NikkiDay } from '~/types/nikki'
+import { NIKKI_TIMELINE_VISIBLE, NIKKI_PHOTO_MAX } from '~/types/nikki'
+import type { NikkiDay, NikkiTopic } from '~/types/nikki'
+import NikkiPhotoAdd from '~/components/nikki/NikkiPhotoAdd.vue'
+import NikkiPhotoStrip from '~/components/nikki/NikkiPhotoStrip.vue'
 
 const props = defineProps<{
   /** 新しい順（サーバーの返り順）。そのまま上から並べる */
@@ -82,9 +107,44 @@ const props = defineProps<{
   today: string
   /** 過去を追い読みする */
   onLoadOlder: () => Promise<number>
+  photoBusy: boolean
+  onAddPhotos: (date: string, dataUrls: string[]) => Promise<void>
+  onRemovePhoto: (date: string, id: string) => Promise<void>
+  onPatchTopic: (id: string, patch: { headline: string; detail: string; impact: number }, date: string) => Promise<void>
+  onRemoveTopic: (id: string, date: string) => Promise<void>
 }>()
 
-const emit = defineEmits<{ select: [date: string] }>()
+const emit = defineEmits<{
+  select: [date: string]
+}>()
+
+// サマリ（トピック）のその場編集。1度に1件だけ開く
+const editingId = ref('')
+const editHeadline = ref('')
+const editDetail = ref('')
+const busy = ref(false)
+
+const startEdit = (topic: NikkiTopic) => {
+  editingId.value = topic.id
+  editHeadline.value = topic.headline
+  editDetail.value = topic.detail
+}
+
+const commitEdit = async (date: string, topic: NikkiTopic) => {
+  if (!editHeadline.value.trim()) return
+  busy.value = true
+  await props.onPatchTopic(topic.id, { headline: editHeadline.value, detail: editDetail.value, impact: topic.impact }, date)
+  busy.value = false
+  editingId.value = ''
+}
+
+const removeTopic = async (date: string, topic: NikkiTopic) => {
+  if (!confirm(`「${topic.headline}」を消します。よろしいですか？`)) return
+  busy.value = true
+  await props.onRemoveTopic(topic.id, date)
+  busy.value = false
+  editingId.value = ''
+}
 
 const expanded = ref<Set<string>>(new Set())
 

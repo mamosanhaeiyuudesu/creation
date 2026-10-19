@@ -51,6 +51,16 @@
             </ul>
           </section>
 
+          <!-- 写真（1日3枚まで） -->
+          <section>
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <h3 class="text-[12px] font-bold text-[var(--nk-ink-soft)] tracking-wide">写真</h3>
+              <NikkiPhotoAdd :remaining="NIKKI_PHOTO_MAX - photos.length" :busy="photoBusy" label="＋ 写真を追加" small @add="(urls) => emit('addPhotos', urls)" />
+            </div>
+            <NikkiPhotoStrip v-if="photos.length" :photos="photos" :busy="photoBusy" @remove="(id) => emit('removePhoto', id)" />
+            <p v-else class="m-0 text-[12.5px] text-[var(--nk-ink-soft)]">まだありません（3枚まで）</p>
+          </section>
+
           <!-- 入力（音声 or テキスト） -->
           <section>
             <h3 class="text-[12px] font-bold text-[var(--nk-ink-soft)] tracking-wide mb-2">この日のことを話す・書く</h3>
@@ -203,7 +213,10 @@
 <script setup lang="ts">
 import { useAudioRecorder } from '~/composables/useAudioRecorder'
 import { eventTime, formatDateLabel } from '~/utils/nikki-calendar'
+import { NIKKI_PHOTO_MAX } from '~/types/nikki'
 import type { NikkiEntry, NikkiEvent, NikkiTopic } from '~/types/nikki'
+import NikkiPhotoAdd from '~/components/nikki/NikkiPhotoAdd.vue'
+import NikkiPhotoStrip from '~/components/nikki/NikkiPhotoStrip.vue'
 import { applyDictionary, buildDictionaryPrompt } from '~/utils/nikki-dictionary'
 import type { NikkiDictionaryEntry } from '~/utils/nikki-dictionary'
 
@@ -219,6 +232,7 @@ const props = defineProps<{
   error: string
   /** 保存が通った回数。増えたら下書きを空にする（updated_at は秒単位なので同じ秒の連投を拾えない） */
   savedTick: number
+  photoBusy: boolean
   prevDate?: string
   nextDate?: string
 }>()
@@ -229,6 +243,8 @@ const emit = defineEmits<{
   addTopic: [input: { headline: string; detail: string; impact: number }]
   patchTopic: [id: string, patch: { headline: string; detail: string; impact: number }]
   removeTopic: [id: string]
+  addPhotos: [dataUrls: string[]]
+  removePhoto: [id: string]
   navigate: [date: string]
 }>()
 
@@ -236,6 +252,7 @@ const draft = ref('')
 const recordError = ref('')
 
 const topics = computed(() => props.entry?.topics ?? [])
+const photos = computed(() => props.entry?.photos ?? [])
 
 // この日のGoogleカレンダーの予定名を文字起こしのヒントとして渡す（聞き間違い対策）。
 // 文章の形のまま渡すこと＝固有名詞を並べるだけだと効かないことが kikigaki の辞書で実測確認済み。

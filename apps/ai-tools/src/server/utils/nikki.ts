@@ -12,6 +12,8 @@ import {
   NIKKI_BODY_MAX,
   NIKKI_DETAIL_MAX,
   NIKKI_HEADLINE_MAX,
+  NIKKI_PHOTO_MAX,
+  NIKKI_PHOTO_DATAURL_MAX,
 } from '~/types/nikki'
 import type { NikkiDay, NikkiEntry, NikkiTopic } from '~/types/nikki'
 
@@ -65,6 +67,15 @@ export async function ensureNikkiTables(db: any): Promise<void> {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
     `CREATE INDEX IF NOT EXISTS idx_nikki_dictionary_user ON nikki_dictionary (user_id, created_at)`,
+    `CREATE TABLE IF NOT EXISTS nikki_photos (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      date TEXT NOT NULL,
+      data TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_nikki_photos_user_date ON nikki_photos (user_id, date, sort_order)`,
     `CREATE TABLE IF NOT EXISTS nikki_oauth_states (
       state TEXT PRIMARY KEY, user_id TEXT NOT NULL, verifier TEXT NOT NULL, created_at INTEGER
     )`,
@@ -114,11 +125,13 @@ async function findEntryRow(db: any, userId: string, date: string): Promise<Entr
 export async function loadEntry(event: any, db: any, userId: string, date: string): Promise<NikkiEntry> {
   const row = await findEntryRow(db, userId, date)
   const topics = await loadTopics(event, db, userId, date)
-  if (!row) return { date, body: '', topics, updatedAt: '' }
+  const photos = await loadPhotoIds(db, userId, date)
+  if (!row) return { date, body: '', topics, photos, updatedAt: '' }
   return {
     date,
     body: row.body ? await decryptComment(event, row.body) : '',
     topics,
+    photos,
     updatedAt: row.updated_at ?? '',
   }
 }
@@ -306,6 +319,79 @@ export async function deleteTopic(db: any, userId: string, id: string): Promise<
   await db.prepare('DELETE FROM nikki_topics WHERE id = ? AND user_id = ?').bind(id, userId).run()
 }
 
+// ─────────────────────────────── 写真 ───────────────────────────────
+
+const PHOTO_DATA_URL = /^data:(image\/(?:jpeg|png|webp));base64,[A-Za-z0-9+/]+=*$/
+
+export async function loadPhotoIds(db: any, userId: string, date: string): Promise<string[]> {
+  const res = await db
+    .prepare('SELECT id FROM nikki_photos WHERE user_id = ? AND date = ? ORDER BY sort_order ASC, created_at ASC')
+    .bind(userId, date)
+    .all()
+  return (res?.results ?? []).map((r: any) => r.id)
+}
+
+/** タイムライン用。本体（data）は引かず ID だけ日付ごとにまとめる。 */
+export async function loadPhotoIdsByDates(db: any, userId: string, dates: string[]): Promise<Map<string, string[]>> {
+  const map = new Map<string, string[]>()
+  if (!dates.length) return map
+  const res = await db
+    .prepare(
+      `SELECT id, date FROM nikki_photos WHERE user_id = ? AND date IN (${dates.map(() => '?').join(',')})
+       ORDER BY date DESC, sort_order ASC, created_at ASC`
+    )
+    .bind(userId, ...dates)
+    .all()
+  for (const r of (res?.results ?? []) as any[]) {
+    const list = map.get(r.date)
+    if (list) list.push(r.id)
+    else map.set(r.date, [r.id])
+  }
+  return map
+}
+
+/** 写真を1枚足す。上限・形式・サイズはここで弾く。返り値はその日の写真ID（追加後）。 */
+export async function addPhoto(event: any, db: any, userId: string, date: string, dataUrl: unknown): Promise<string[]> {
+  if (typeof dataUrl !== 'string' || dataUrl.length > NIKKI_PHOTO_DATAURL_MAX) {
+    throw createError({ statusCode: 400, message: '写真が大きすぎます' })
+  }
+  if (!PHOTO_DATA_URL.test(dataUrl)) throw createError({ statusCode: 400, message: '写真の形式が不正です' })
+
+  const existing = await loadPhotoIds(db, userId, date)
+  if (existing.length >= NIKKI_PHOTO_MAX) {
+    throw createError({ statusCode: 400, message: `写真は1日${NIKKI_PHOTO_MAX}枚までです` })
+  }
+
+  // 写真だけの日もタイムラインに出すため、記録の行を作っておく
+  await ensureEntryRow(db, userId, date)
+  const row = await db
+    .prepare('SELECT MAX(sort_order) AS max_order FROM nikki_photos WHERE user_id = ? AND date = ?')
+    .bind(userId, date)
+    .first()
+  const id = crypto.randomUUID()
+  await db
+    .prepare('INSERT INTO nikki_photos (id, user_id, date, data, sort_order) VALUES (?, ?, ?, ?, ?)')
+    .bind(id, userId, date, await encryptComment(event, dataUrl), ((row as any)?.max_order ?? 0) + 1)
+    .run()
+  return [...existing, id]
+}
+
+/** 写真の本体（復号した data URL）。本人のものでなければ null。 */
+export async function loadPhotoData(event: any, db: any, userId: string, id: string): Promise<string | null> {
+  const row = await db.prepare('SELECT data FROM nikki_photos WHERE id = ? AND user_id = ?').bind(id, userId).first()
+  if (!row) return null
+  return await decryptComment(event, (row as any).data)
+}
+
+/** 消して、その日に残った写真IDを返す。本人のものでなければ null。 */
+export async function deletePhoto(db: any, userId: string, id: string): Promise<{ date: string; photos: string[] } | null> {
+  const row = await db.prepare('SELECT date FROM nikki_photos WHERE id = ? AND user_id = ?').bind(id, userId).first()
+  if (!row) return null
+  const date = (row as any).date as string
+  await db.prepare('DELETE FROM nikki_photos WHERE id = ? AND user_id = ?').bind(id, userId).run()
+  return { date, photos: await loadPhotoIds(db, userId, date) }
+}
+
 // ─────────────────────────────── タイムライン ───────────────────────────────
 
 /**
@@ -355,7 +441,8 @@ export async function loadTimeline(
     else byDate.set(row.date, [topic])
   }
 
-  return dates.map((date) => ({ date, topics: byDate.get(date) ?? [], hasBody: true }))
+  const photosByDate = await loadPhotoIdsByDates(db, userId, dates)
+  return dates.map((date) => ({ date, topics: byDate.get(date) ?? [], photos: photosByDate.get(date) ?? [], hasBody: true }))
 }
 
 /** 月表示で「この日は書いた」の印を付けるための日付一覧（YYYY-MM）。 */
@@ -466,5 +553,6 @@ export async function loadRange(
     if (list) list.push(topic)
     else byDate.set(row.date, [topic])
   }
-  return dates.map((date) => ({ date, topics: byDate.get(date) ?? [], hasBody: true }))
+  // PDF には写真を載せない
+  return dates.map((date) => ({ date, topics: byDate.get(date) ?? [], photos: [], hasBody: true }))
 }
