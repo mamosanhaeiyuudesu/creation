@@ -35,7 +35,7 @@ export interface ManabiListItem {
 
 export const MANABI_CREATOR_NAME_MAX = 20
 
-/** 問題の対象。大人向けが既定。子供向けは小学3年生ぐらいの言葉・水準 */
+/** 問題の対象。大人向けが既定。子供向けは小学5〜6年生ぐらいの言葉・水準 */
 export const MANABI_AUDIENCES = ['adult', 'kids'] as const
 export type ManabiAudience = (typeof MANABI_AUDIENCES)[number]
 export const MANABI_AUDIENCE_LABELS: Record<ManabiAudience, string> = { adult: '大人向け', kids: '子供向け' }

@@ -173,7 +173,7 @@ const { code: syncCode, load: loadSync, sync } = useManabiSync()
 // 深掘りの提案などから来たときは ?theme= で入力済みにする（作るのは本人が押してから）
 const theme = ref(typeof route.query.theme === 'string' ? route.query.theme.slice(0, THEME_MAX) : '')
 const count = ref<ManabiCount>(10)
-// 対象は大人向けが既定。子供向けは小学3年生ぐらい
+// 対象は大人向けが既定。子供向けは小学5〜6年生ぐらい
 const audience = ref<ManabiAudience>('adult')
 // 作成者の名前。前回入れた名前を端末から読む（SSR との食い違いを出さないため mount 後）
 const creatorName = ref('')
