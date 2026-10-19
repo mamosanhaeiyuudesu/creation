@@ -34,7 +34,10 @@ const PLAN_SYSTEM = `あなたは学び直しのためのドリルを設計す�
 
 【論点の決め方】
 - 指定された数の論点を、互いに重ならないように選ぶこと（同じ知識を言い換えて2回聞かない）。
-- 基礎の土台になる事柄を優先し、テーマ全体をまんべんなく覆うこと。
+- 「まちがえやすいが、知っておくべき事柄」を最優先で選ぶこと。
+  多くの人が思い込みや勘違いをしている事柄、似た用語・似た手順と取り違えやすい事柄、
+  知らないと実際に困る・損をする事柄がこれにあたる。誰でも知っている当たり前のことや、知らなくても困らない雑学は選ばない。
+- そのうえで、テーマ全体をまんべんなく覆うこと。
 - 地域・品種・年によって答えが変わる事柄、法令の細かな数値など、正解が1つに定まりにくいものは選ばない。
 - 各論点は「肥料の三要素のうちNが担う働き」のように、何を問うかが一文でわかる具体性で書く。
 
@@ -70,10 +73,13 @@ const WRITE_SYSTEM = `あなたは学び直しのためのドリルの作問者�
 - 誤りの選択肢は、その分野を学び始めた人がつい選びそうな、もっともらしいものにする。
   同じ分野の別の知識（例: 窒素の働きを問うならリン酸・カリの働き）を誤りに使うのがよい。
   明らかにふざけた選択肢や、正解と同じ意味の言い換えは入れない。
+- 【勘違いの選択肢】誤りのうち1つは、実際に多くの人がしている勘違い・思い込みそのものを選択肢にし、trap に書く。
+  「なんとなく知っている人ほど選んでしまう」ものにすること（例: 窒素の働きを問うなら「実を大きくする」）。
+  trap は必ず出題に使う。解説では、この勘違いがなぜ誤りなのかに必ず触れること。
 - 【重要】知識が無くても形だけで正解が当てられる問題にしないこと。作問の最大の失敗はこれである。
-  - 誤りの選択肢は候補として5つ書く（使う3つはこちらで選ぶ）。5つとも明確に誤りであること。
+  - trap とは別に、誤りの選択肢を候補として4つ wrong に書く（使う2つはこちらで選ぶ）。trap も wrong もすべて明確に誤りであること。
   - 正解だけが長く詳しいのが最も多い失敗である。これを防ぐため、正解を書いたらその文字数を数えて
-    correct_len に書き、誤りの候補は5つとも「correct_len 〜 correct_len + 8 文字」で書く（正解より短くしない）。
+    correct_len に書き、trap と誤りの候補はすべて「correct_len 〜 correct_len + 8 文字」で書く（正解より短くしない）。
     正解に2つの要素（「〜し、〜する」）を並べるなら、誤りの選択肢も同じく2つの要素を並べる。
   - 誤りの選択肢にだけ「必ず」「一切」「だけ」「すべて」のような極端な言い切りを入れない。
   - 「発火する」「数年かかる」のような、常識だけで外せる選択肢は入れない。
@@ -91,14 +97,14 @@ const WRITE_SYSTEM = `あなたは学び直しのためのドリルの作問者�
 
 【解説】
 - なぜそれが正解なのかを、学び直しに役立つ形で2〜3文（120字程度まで）で書く。
-- 誤りの選択肢のうち紛らわしいものがあれば、どこが違うのかにも一言触れる。
+- trap の勘違いがなぜ誤りなのか、どこで取り違えやすいのかに必ず一言触れる。
 
 【出力形式】
 JSONのみを出力すること。前置き・説明文・コードフェンスは付けない。
 論点と同じ順番・同じ数で questions を返すこと。
 {
   "questions": [
-    { "q": "問題文", "correct": "正解の選択肢", "correct_len": 正解の文字数, "wrong": ["誤り1", "誤り2", "誤り3", "誤り4", "誤り5"], "explanation": "解説" }
+    { "q": "問題文", "correct": "正解の選択肢", "correct_len": 正解の文字数, "trap": "よくある勘違いの選択肢", "wrong": ["誤り1", "誤り2", "誤り3", "誤り4"], "explanation": "解説" }
   ]
 }`
 
@@ -129,6 +135,7 @@ async function planSet(apiKey: string, theme: string, count: number, audience: M
 interface RawQuestion {
   q?: unknown
   correct?: unknown
+  trap?: unknown
   wrong?: unknown
   explanation?: unknown
 }
@@ -138,11 +145,14 @@ interface RawQuestion {
  * AIに「選択肢の長さをそろえて」と指示するだけでは守られず、正解がいちばん長い問題が
  * 20問中16〜19問になった（実測。偶然なら5問程度）。長さだけで当てられるドリルは学び直しにならないので、
  * 候補を多めに書かせ、正解より長い候補が1つは入るようにこちらで選ぶ。
+ * よくある勘違い（trap）は学ぶ価値が一番高い誤りなので、長さに関係なく必ず残す。
  */
-function pickDistractors(correct: string, candidates: string[]): string[] {
+function pickDistractors(correct: string, candidates: string[], trap: string): string[] {
   const len = correct.length
-  const byCloseness = [...candidates].sort((a, b) => Math.abs(a.length - len) - Math.abs(b.length - len))
-  const chosen = byCloseness.slice(0, 3)
+  const byCloseness = candidates
+    .filter((c) => c !== trap)
+    .sort((a, b) => Math.abs(a.length - len) - Math.abs(b.length - len))
+  const chosen = trap ? [trap, ...byCloseness.slice(0, 2)] : byCloseness.slice(0, 3)
   if (chosen.length === 3 && chosen.every((c) => c.length < len)) {
     const longer = byCloseness.find((c) => c.length >= len && !chosen.includes(c))
     if (longer) chosen[2] = longer
@@ -155,8 +165,9 @@ function shapeQuestion(raw: RawQuestion): ManabiQuestion | null {
   const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
   const q = str(raw.q)
   const correct = str(raw.correct)
+  const trap = str(raw.trap) === correct ? '' : str(raw.trap)
   const wrong = Array.isArray(raw.wrong) ? raw.wrong.map(str).filter((w) => w && w !== correct) : []
-  const distractors = pickDistractors(correct, [...new Set(wrong)])
+  const distractors = pickDistractors(correct, [...new Set(wrong)], trap)
   if (!q || !correct || distractors.length < 3) return null
 
   // AIは正解を先頭や特定の位置に置きがちなので、並びはこちらで決める。
