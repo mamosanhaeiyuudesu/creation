@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { readCorrectMap, saveName, savedName, writeCorrectMap } from '~/composables/useManabiMe'
 import { readRecent, writeRecent } from '~/composables/useManabiRecent'
+import { runKey } from '~/composables/useManabiRun'
 import { mergeSyncData, sanitizeSyncData, type ManabiSyncData } from '~/utils/manabi-sync'
 
 /**
@@ -117,5 +118,24 @@ export function useManabiSync() {
   /** つなぐのをやめる（預けたデータは残る。コードを知っていれば、また同じコードでつなげる） */
   const leave = () => storeCode('')
 
-  return { code, status, message, load, create, join, sync, scheduleSync, leave }
+  /**
+   * この端末の控えをすべて消す（名前・正解数・問題の一覧・解答の控え）。
+   * つないだままだと次の同期でサーバーから戻ってくるので、つなぎも解除する。サーバーに預けたデータは消えない
+   */
+  const eraseLocal = () => {
+    if (timer) clearTimeout(timer)
+    timer = null
+    storeCode('')
+    writeCorrectMap({})
+    writeRecent([])
+    saveName('')
+    try {
+      const prefix = runKey('')
+      for (const k of Object.keys(localStorage)) if (k.startsWith(prefix)) localStorage.removeItem(k)
+    } catch {
+      /* 消せなくても今回は使える */
+    }
+  }
+
+  return { code, status, message, load, create, join, sync, scheduleSync, leave, eraseLocal }
 }

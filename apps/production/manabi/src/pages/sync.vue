@@ -10,8 +10,14 @@
         一度つなげば、あとは自動で同期されます（毎回の操作は要りません）。
       </p>
 
+      <!-- QR・リンクから来たとき -->
+      <div v-if="linking" class="mt-24 grid place-items-center text-center">
+        <div class="mb-dots mb-5" aria-hidden="true"><span /><span /><span /></div>
+        <p class="text-[14px] text-[var(--mb-ink-soft)]">つないでいます</p>
+      </div>
+
       <!-- つないでいる -->
-      <section v-if="code" class="mt-6 mb-card p-5 text-center">
+      <section v-else-if="code" class="mt-6 mb-card p-5 text-center">
         <p class="text-[12px] text-[var(--mb-ink-faint)]">つないでいます</p>
         <p class="mt-2 mb-display text-[26px] tracking-[0.08em] tabular-nums break-all">{{ formatSyncCode(code) }}</p>
         <p class="mt-3 text-[12.5px] leading-relaxed text-[var(--mb-ink-soft)]">
@@ -31,17 +37,7 @@
         </div>
         <p v-if="copied" class="mt-3 text-[12.5px] text-[var(--mb-accent-deep)]">{{ copied }}</p>
 
-        <div class="mt-6 flex flex-wrap items-center justify-center gap-2">
-          <button class="mb-btn" :disabled="status === 'syncing'" @click="syncNow">
-            {{ status === 'syncing' ? '同期しています' : 'いま同期する' }}
-          </button>
-        </div>
-        <p v-if="status === 'ok'" class="mt-3 text-[12.5px] text-[var(--mb-ink-soft)]">同期しました</p>
-        <p v-else-if="status === 'error'" class="mt-3 text-[12.5px] text-[var(--mb-bad)]">{{ message }}</p>
-
-        <button class="mt-6 text-[12.5px] text-[var(--mb-ink-faint)] underline underline-offset-4" @click="leaveConfirm">
-          この端末のつなぎを解除する
-        </button>
+        <p v-if="status === 'error'" class="mt-5 text-[12.5px] text-[var(--mb-bad)]">{{ message }}</p>
       </section>
 
       <!-- まだつないでいない -->
@@ -79,6 +75,42 @@
 
         <p v-if="status === 'error'" class="mt-4 text-center text-[13.5px] text-[var(--mb-bad)]">{{ message }}</p>
       </template>
+
+      <!-- つなぎの解除・端末のデータの削除（どちらも確認してから） -->
+      <div v-if="!linking" class="mt-8 text-center">
+        <section v-if="panel === 'leave'" class="mb-card p-5 text-left">
+          <p class="text-[14px] font-bold">つなぎを解除します</p>
+          <p class="mt-1.5 text-[12.5px] leading-relaxed text-[var(--mb-ink-soft)]">
+            この端末のデータも消しますか？ 消さない場合、名前・正解数・問題の一覧はこの端末に残ります。
+            どちらでも、預けたデータは残るので、同じコードでまたつなげます。
+          </p>
+          <div class="mt-4 flex flex-col gap-2">
+            <button class="mb-btn-ghost" @click="doLeave(false)">データは残して解除</button>
+            <button class="mb-btn-ghost !text-[var(--mb-bad)]" @click="doLeave(true)">データも消して解除</button>
+            <button class="text-[12.5px] text-[var(--mb-ink-faint)] py-2" @click="panel = ''">やめる</button>
+          </div>
+        </section>
+
+        <section v-else-if="panel === 'erase'" class="mb-card p-5 text-left">
+          <p class="text-[14px] font-bold">この端末のデータを削除します</p>
+          <p class="mt-1.5 text-[12.5px] leading-relaxed text-[var(--mb-ink-soft)]">
+            名前・正解数・これまでの問題・解答の控えが消え、元に戻せません。
+            <template v-if="code">つなぎも解除されます。</template>
+            預けたデータは消えないので、同じコードでつなぎ直せば戻ります。
+          </p>
+          <div class="mt-4 flex flex-col gap-2">
+            <button class="mb-btn-ghost !text-[var(--mb-bad)]" @click="doErase">削除する</button>
+            <button class="text-[12.5px] text-[var(--mb-ink-faint)] py-2" @click="panel = ''">やめる</button>
+          </div>
+        </section>
+
+        <p v-else-if="done" class="text-[12.5px] text-[var(--mb-ink-soft)]">{{ done }}</p>
+
+        <div v-else class="flex items-center justify-center gap-5 text-[12.5px] text-[var(--mb-ink-faint)]">
+          <button v-if="code" class="underline underline-offset-4" @click="panel = 'leave'">この端末のつなぎを解除する</button>
+          <button class="underline underline-offset-4" @click="panel = 'erase'">この端末のデータを削除する</button>
+        </div>
+      </div>
     </main>
   </div>
 </template>
@@ -98,7 +130,10 @@ useHead({
 })
 
 const route = useRoute()
-const { code, status, message, load, create, join, sync, leave } = useManabiSync()
+const router = useRouter()
+// リンクから来て、つないでいる最中（この間は操作画面を出さない）
+const linking = ref(false)
+const { code, status, message, load, create, join, leave, eraseLocal } = useManabiSync()
 const { load: loadTotal } = useManabiTotalCorrect()
 
 const input = ref('')
@@ -125,10 +160,21 @@ watch(
   { immediate: true }
 )
 
-onMounted(() => {
+onMounted(async () => {
   load()
-  // 共有されたリンクから来たときは入力済みにする（つなぐのは本人が押してから）
-  if (!code.value && typeof route.query.code === 'string') input.value = formatSyncCode(normalizeSyncCode(route.query.code))
+  // QR・共有リンクから来たときは、その場でつないでトップへ移る。失敗したら入力済みにして、ここに残る
+  const linked = typeof route.query.code === 'string' ? normalizeSyncCode(route.query.code) : ''
+  if (!linked || linked === code.value) {
+    if (linked) await router.replace('/')
+    return
+  }
+  linking.value = true
+  if (await join(linked)) {
+    await router.replace('/')
+    return
+  }
+  linking.value = false
+  input.value = formatSyncCode(linked)
 })
 
 const issue = async () => {
@@ -141,17 +187,28 @@ const connect = async () => {
     loadTotal()
   }
 }
-const syncNow = async () => {
-  if (await sync()) loadTotal()
-}
 // 日本語入力の変換確定の Enter で送信しない
 const onEnter = (e: KeyboardEvent) => {
   if (e.isComposing || e.keyCode === 229) return
   e.preventDefault()
   connect()
 }
-const leaveConfirm = () => {
-  if (window.confirm('この端末のつなぎを解除します。データは端末に残ります。よろしいですか？')) leave()
+const panel = ref<'' | 'leave' | 'erase'>('')
+const done = ref('')
+const finish = (text: string) => {
+  panel.value = ''
+  done.value = text
+  loadTotal()
+  setTimeout(() => (done.value = ''), 3000)
+}
+const doLeave = (erase: boolean) => {
+  if (erase) eraseLocal()
+  else leave()
+  finish(erase ? 'つなぎを解除し、この端末のデータを消しました' : 'つなぎを解除しました')
+}
+const doErase = () => {
+  eraseLocal()
+  finish('この端末のデータを消しました')
 }
 
 const copy = async (text: string, done: string) => {
