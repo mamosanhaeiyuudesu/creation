@@ -3,7 +3,7 @@
 // AI代の歯止めは IP ごとの1日の生成回数（server/utils/manabi.ts）。
 
 const MESSAGES_URL = 'https://api.anthropic.com/v1/messages'
-const DEFAULT_MODEL = 'claude-sonnet-5'
+const DEFAULT_MODEL = 'claude-sonnet-5-5'
 
 interface CallOptions {
   system: string
