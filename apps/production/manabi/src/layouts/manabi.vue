@@ -146,6 +146,23 @@ useHead({
   border-color: var(--mb-line-strong);
   color: var(--mb-ink);
 }
+.mb-rank {
+  display: inline-flex;
+  gap: 0.4em;
+  height: 1.4rem;
+  padding: 0 0.7rem;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mb-navy);
+  background: var(--mb-navy-soft);
+}
+.mb-rank > span {
+  font-weight: 400;
+  font-size: 11px;
+  opacity: 0.75;
+}
 .mb-name {
   width: 8rem;
   height: 2rem;

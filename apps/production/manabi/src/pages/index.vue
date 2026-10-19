@@ -1,10 +1,15 @@
 <template>
   <div class="min-h-[100dvh] flex flex-col">
-    <header class="shrink-0 flex items-center justify-between px-4 sm:px-6 h-14">
+    <header class="shrink-0 flex items-center justify-between px-4 sm:px-6 h-20">
       <span class="mb-display text-[15px] font-bold text-[var(--mb-accent-deep)]">まなび</span>
       <!-- これまでに正解した問題の累計（この端末の分） -->
-      <span class="text-[12.5px] text-[var(--mb-ink-soft)]" aria-label="正解した問題の累計">
-        正解 <b class="text-[16px] tabular-nums text-[var(--mb-accent-deep)]">{{ totalCorrect }}</b> 問
+      <span class="flex flex-col items-end gap-1" aria-label="正解した問題の累計と称号">
+        <span class="flex items-baseline gap-1 text-[var(--mb-accent-deep)]">
+          <span class="text-[12.5px] text-[var(--mb-ink-soft)]">正解</span>
+          <b class="mb-display text-[30px] leading-none font-bold tabular-nums">{{ totalCorrect }}</b>
+          <span class="text-[13px] text-[var(--mb-ink-soft)]">問</span>
+        </span>
+        <span class="mb-rank"><span class="tabular-nums">Lv.{{ rank.level }}</span>{{ rank.name }}</span>
       </span>
     </header>
 
@@ -128,7 +133,7 @@
  */
 import { MANABI_COUNTS, MANABI_CREATOR_NAME_MAX, type ManabiCount } from '~/types/manabi'
 import { useManabiRecent } from '~/composables/useManabiRecent'
-import { saveName, savedName, useManabiTotalCorrect } from '~/composables/useManabiMe'
+import { rankOf, saveName, savedName, useManabiTotalCorrect } from '~/composables/useManabiMe'
 
 definePageMeta({ layout: 'manabi' })
 useHead({
@@ -145,6 +150,7 @@ const router = useRouter()
 const route = useRoute()
 const { items: recent, load: loadRecent } = useManabiRecent()
 const { totalCorrect, load: loadTotal } = useManabiTotalCorrect()
+const rank = computed(() => rankOf(totalCorrect.value))
 
 // 深掘りの提案などから来たときは ?theme= で入力済みにする（作るのは本人が押してから）
 const theme = ref(typeof route.query.theme === 'string' ? route.query.theme.slice(0, THEME_MAX) : '')

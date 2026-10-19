@@ -51,6 +51,28 @@ export function recordCorrect(id: string, correct: number) {
   totalCorrect.value = sumCorrect()
 }
 
+/** 累計正解数に応じた称号（10段階）。次の段階までの距離などは出さない（煽らないため） */
+const RANKS: { min: number; name: string }[] = [
+  { min: 0, name: '見習い' },
+  { min: 10, name: '入門' },
+  { min: 30, name: '初級' },
+  { min: 60, name: '中級' },
+  { min: 100, name: '上級' },
+  { min: 160, name: '達人' },
+  { min: 240, name: '師範' },
+  { min: 350, name: '博士' },
+  { min: 500, name: '賢者' },
+  { min: 700, name: '学聖' },
+]
+
+export function rankOf(correct: number): { level: number; name: string } {
+  let level = 0
+  RANKS.forEach((r, i) => {
+    if (correct >= r.min) level = i
+  })
+  return { level: level + 1, name: RANKS[level]?.name ?? '' }
+}
+
 export function useManabiTotalCorrect() {
   const load = () => {
     totalCorrect.value = sumCorrect()
