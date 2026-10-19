@@ -12,7 +12,7 @@ interface CallOptions {
   model?: string
 }
 
-/** Claude を1回呼び出し、応答のテキストブロックを連結して返す（thinkingは無効）。失敗時は createError を throw。 */
+/** Claude を1回呼び出し、応答のテキストブロックを連結して返す（考えてから答えるthinkingは使わない。Sonnet 5.5 は disabled を受け付けず between_tools で切る）。失敗時は createError を throw。 */
 export async function callClaudeText(apiKey: string, opts: CallOptions): Promise<string> {
   const response = await fetch(MESSAGES_URL, {
     method: 'POST',
@@ -20,7 +20,7 @@ export async function callClaudeText(apiKey: string, opts: CallOptions): Promise
     body: JSON.stringify({
       model: opts.model ?? DEFAULT_MODEL,
       max_tokens: opts.maxTokens,
-      thinking: { type: 'disabled' },
+      thinking: { type: 'between_tools' },
       system: opts.system,
       messages: opts.messages,
     }),
