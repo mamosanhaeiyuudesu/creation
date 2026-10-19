@@ -54,15 +54,15 @@ export function recordCorrect(id: string, correct: number) {
 /** 累計正解数に応じた称号（10段階）。次の段階までの距離などは出さない（煽らないため） */
 const RANKS: { min: number; name: string }[] = [
   { min: 0, name: '見習い' },
-  { min: 10, name: '入門' },
-  { min: 30, name: '初級' },
-  { min: 60, name: '中級' },
-  { min: 100, name: '上級' },
-  { min: 160, name: '達人' },
-  { min: 240, name: '師範' },
-  { min: 350, name: '博士' },
-  { min: 500, name: '賢者' },
-  { min: 700, name: '学聖' },
+  { min: 5, name: '入門' },
+  { min: 20, name: '初級' },
+  { min: 50, name: '中級' },
+  { min: 120, name: '上級' },
+  { min: 300, name: '達人' },
+  { min: 700, name: '師範' },
+  { min: 1400, name: '博士' },
+  { min: 2600, name: '賢者' },
+  { min: 5000, name: '学聖' },
 ]
 
 export function rankOf(correct: number): { level: number; name: string } {

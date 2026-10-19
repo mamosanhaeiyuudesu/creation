@@ -1,4 +1,4 @@
-// manabi（まなび）のサーバー共通処理。問題セットの保存・読み出しと、生成回数の上限判定。
+// manabi（マナビー）のサーバー共通処理。問題セットの保存・読み出しと、生成回数の上限判定。
 // ログイン不要のサービスなので、AI代の暴走を防ぐ歯止めは「IPごとの1日あたり生成回数」だけに置いている。
 import type { ManabiListItem, ManabiQuestion, ManabiSet } from '~/types/manabi'
 

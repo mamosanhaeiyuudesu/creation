@@ -58,7 +58,7 @@ import type { ManabiListItem } from '~/types/manabi'
 
 definePageMeta({ layout: 'manabi' })
 useHead({
-  title: 'みんなの問題｜まなび',
+  title: 'みんなの問題｜マナビー',
   meta: [
     { name: 'theme-color', content: '#f7f5ef' },
   ],

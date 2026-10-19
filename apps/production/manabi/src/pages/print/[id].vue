@@ -126,7 +126,7 @@ const marks = computed(() => MARKS[markKind.value])
 
 // ブラウザは PDF の保存名に <title> を使うので、題をそのまま入れておく
 useHead(() => ({
-  title: `${docTitle.value || set.value?.title || 'まなび'} 問題集`,
+  title: `${docTitle.value || set.value?.title || 'マナビー'} 問題集`,
   meta: [{ name: 'robots', content: 'noindex' }],
 }))
 

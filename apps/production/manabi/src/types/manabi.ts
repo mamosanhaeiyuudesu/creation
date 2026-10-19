@@ -1,4 +1,4 @@
-// manabi（まなび）の型。サーバーとページで共有する。
+// manabi（マナビー）の型。サーバーとページで共有する。
 
 export interface ManabiQuestion {
   q: string

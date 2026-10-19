@@ -5,7 +5,7 @@
         <div class="mb-progress flex-1"><span :style="{ width: `${progressPct}%` }" /></div>
         <span class="shrink-0 text-[13px] tabular-nums text-[var(--mb-ink-soft)]">{{ pos + 1 }} / {{ order.length }}</span>
       </div>
-      <span v-else class="flex-1 min-w-0 truncate mb-display text-[14px] font-bold text-[var(--mb-accent-deep)]">まなび</span>
+      <span v-else class="flex-1 min-w-0 truncate mb-display text-[14px] font-bold text-[var(--mb-accent-deep)]">マナビー</span>
       <template #right>
         <button v-if="set" class="mb-icon-btn" aria-label="この問題を共有する" @click="share">
           <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -226,9 +226,9 @@ const { data: set, pending } = await useFetch<ManabiSet>(`/api/sets/${id}`, { ke
 
 // LINE などに貼ったときのプレビューに題が出るように、サーバー側で描画する時点で入れておく
 useHead(() => ({
-  title: set.value ? `${set.value.title}｜まなび` : 'まなび',
+  title: set.value ? `${set.value.title}｜マナビー` : 'マナビー',
   meta: [
-    { property: 'og:title', content: set.value ? `${set.value.title}（${set.value.questions.length}問）` : 'まなび' },
+    { property: 'og:title', content: set.value ? `${set.value.title}（${set.value.questions.length}問）` : 'マナビー' },
     { property: 'og:description', content: '選択式の問題で学ぶ。タップしてすぐ解けます。' },
     { name: 'theme-color', content: '#f7f5ef' },
   ],
