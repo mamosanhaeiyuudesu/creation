@@ -33,6 +33,17 @@
         class="kk-input resize-y"
         @input="clearTextFile"
       />
+      <!-- 上限を貼る前から見せておき、超えたら何文字オーバーかを出す（送ってから断られないように） -->
+      <p
+        v-if="pastedLength > 0"
+        class="kk-note mt-1 text-right"
+        :class="{ 'kk-count--over': pastedOver > 0 }"
+        aria-live="polite"
+      >
+        {{ fmt(pastedLength) }} / {{ fmt(MAX_TRANSCRIPT_CHARS) }}文字
+        <template v-if="pastedOver > 0">（{{ fmt(pastedOver) }}文字オーバー。前半・後半に分けてください）</template>
+      </p>
+      <p v-else class="kk-note mt-1">{{ fmt(MAX_TRANSCRIPT_CHARS) }}文字まで（約2時間ぶんの会話）</p>
 
       <!-- まとめ方。会議なら決まったこと・やることを、1人の話ならその人が伝えたかったことを中心にまとめる -->
       <p class="kk-field-label mt-4">どんな記録ですか？</p>
@@ -70,7 +81,7 @@
 <script setup lang="ts">
 import { apiMessage } from '~/utils/apiMessage'
 import { DOCUMENT_ACCEPT, readDocumentText } from '~/utils/readDocumentText'
-import { MINUTES_MODES, type MinutesMode } from '~/types/minutes'
+import { MAX_TRANSCRIPT_CHARS, MINUTES_MODES, transcriptOverMessage, type MinutesMode } from '~/types/minutes'
 
 const props = defineProps<{ modelValue: boolean }>()
 defineEmits<{ 'update:modelValue': [boolean] }>()
@@ -86,8 +97,15 @@ const mode = ref<MinutesMode>('meeting')
 const textFile = ref<File | null>(null)
 const textFileInput = ref<HTMLInputElement | null>(null)
 
-/** ファイルを選んでいるか、文章を貼り付けているかのどちらかが埋まっていれば進める */
-const canRunText = computed(() => !!textFile.value || pastedText.value.trim().length > 0)
+/** 送るときと同じく前後の空白を除いた長さで数える（サーバーの判定とずれないように） */
+const pastedLength = computed(() => pastedText.value.trim().length)
+const pastedOver = computed(() => Math.max(0, pastedLength.value - MAX_TRANSCRIPT_CHARS))
+const fmt = (n: number) => n.toLocaleString('ja-JP')
+
+/** ファイルを選んでいるか、上限内の文章を貼り付けているかのどちらかなら進める */
+const canRunText = computed(
+  () => !!textFile.value || (pastedLength.value > 0 && pastedOver.value === 0)
+)
 
 function onPickText(e: Event) {
   textFile.value = (e.target as HTMLInputElement).files?.[0] ?? null
@@ -128,6 +146,9 @@ async function runFromText() {
     if (!text) {
       throw new Error('文章が空でした。中身のあるファイルか、貼り付けた文章でお試しください。')
     }
+    // ファイルは読むまで長さが分からないので、ここで先に断る（AIに送る前に数字つきで伝える）
+    const over = transcriptOverMessage(text.length)
+    if (over) throw new Error(over)
     await createMinutes(text, file?.name ?? '', mode.value)
   } catch (e) {
     errorMessage.value = apiMessage(e)
@@ -135,3 +156,10 @@ async function runFromText() {
   }
 }
 </script>
+
+<style scoped>
+.kk-count--over {
+  color: var(--kk-danger);
+  font-weight: 700;
+}
+</style>

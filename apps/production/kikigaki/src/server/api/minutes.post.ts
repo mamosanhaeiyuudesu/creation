@@ -5,10 +5,7 @@ import { requireUser } from '~/server/utils/auth'
 import { requireEntitlement } from '~/server/utils/entitlement'
 import { createRecord } from '~/server/utils/minutes'
 import { structureTranscript } from '~/server/utils/minutes-ai'
-import { normalizeMode } from '~/types/minutes'
-
-/** 1回の会議として受け付ける文章の長さの上限（約2時間ぶんの会話。AI代が膨らむのを防ぐ） */
-const MAX_TRANSCRIPT_CHARS = 50_000
+import { MAX_TRANSCRIPT_CHARS, normalizeMode, transcriptOverMessage } from '~/types/minutes'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -27,7 +24,7 @@ export default defineEventHandler(async (event) => {
   if (transcript.length > MAX_TRANSCRIPT_CHARS) {
     throw createError({
       statusCode: 413,
-      message: '文章が長すぎて一度にまとめられません。会議を前半・後半に分けてお試しください。',
+      message: transcriptOverMessage(transcript.length),
     })
   }
 
