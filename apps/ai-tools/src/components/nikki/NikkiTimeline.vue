@@ -13,7 +13,7 @@
         :class="day.date === today ? 'border-[var(--nk-today)]' : ''"
       >
         <div class="flex items-center justify-between gap-2">
-        <button class="text-left flex items-baseline gap-2" @click="emit('select', day.date)">
+        <button class="text-left flex items-baseline gap-2 min-w-0" @click="emit('select', day.date)">
           <span class="nk-serif text-[16px] leading-none" :class="day.date === today ? 'text-[var(--nk-today)]' : ''">
             {{ formatShortDate(day.date) }}
             <span class="text-[11.5px] font-normal text-[var(--nk-ink-soft)]">({{ weekdayJa(day.date) }})</span>
@@ -21,14 +21,20 @@
           <span class="text-[10.5px] text-[var(--nk-ink-soft)]">
             {{ day.date === today ? '今日' : yearLabel(day.date) }}
           </span>
+          <span class="text-[14px] leading-none text-[var(--nk-ink-soft)]" aria-hidden="true">›</span>
         </button>
-        <NikkiPhotoAdd
-          :remaining="NIKKI_PHOTO_MAX - day.photos.length"
-          :busy="photoBusy"
-          label="📷"
-          small
-          @add="(urls) => onAddPhotos(day.date, urls)"
-        />
+        <div class="flex items-center gap-1.5 shrink-0">
+          <NikkiPhotoAdd
+            :remaining="NIKKI_PHOTO_MAX - day.photos.length"
+            :busy="photoBusy"
+            @add="(urls) => onAddPhotos(day.date, urls)"
+          />
+          <!-- この日まるごと（全文・予定・追記・サマリ追加）を開く。サマリ1件の「直す」とは別 -->
+          <button class="nk-btn-ghost !h-9 !px-3 !text-[12px] inline-flex items-center gap-1" @click="emit('select', day.date)">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z" /><path d="M14.5 7.5l3 3" /></svg>
+            編集
+          </button>
+        </div>
         </div>
 
         <NikkiPhotoStrip :photos="day.photos" :busy="photoBusy" size="sm" @remove="(id) => onRemovePhoto(day.date, id)" />
@@ -41,7 +47,8 @@
           <li
             v-for="topic in visibleTopics(day)"
             :key="topic.id"
-            class="rounded-lg border border-[var(--nk-line)] px-3 py-2"
+            class="rounded-lg border px-3 py-2 transition-colors"
+            :class="editingId === topic.id ? 'border-[var(--nk-indigo)]' : 'border-[var(--nk-line)]'"
           >
             <template v-if="editingId === topic.id">
               <input v-model="editHeadline" class="nk-input !text-[13px] font-bold mb-1.5" placeholder="見出し" />
@@ -58,11 +65,10 @@
               <span class="flex items-start gap-2">
                 <span class="text-[13px] font-bold leading-snug">{{ topic.headline }}</span>
                 <button
-                  class="shrink-0 ml-auto px-1 text-[12px] text-[var(--nk-ink-soft)]"
-                  title="このサマリを直す"
+                  class="shrink-0 ml-auto px-1 text-[11.5px] text-[var(--nk-indigo)] underline underline-offset-2"
                   aria-label="このサマリを直す"
                   @click="startEdit(topic)"
-                >✏️</button>
+                >直す</button>
               </span>
               <span v-if="topic.detail" class="block mt-1 text-[12px] leading-snug text-[var(--nk-ink-soft)]">
                 {{ topic.detail }}
@@ -71,14 +77,17 @@
           </li>
         </ul>
 
-        <!-- 5つを超えた分はエクスパンドで見せる（要件: 最大5つ＋残りは展開） -->
-        <button
-          v-if="day.topics.length > NIKKI_TIMELINE_VISIBLE"
-          class="self-start text-[11.5px] font-bold text-[var(--nk-indigo)] underline underline-offset-2"
-          @click="toggle(day.date)"
-        >
-          {{ expanded.has(day.date) ? '閉じる' : `他${day.topics.length - NIKKI_TIMELINE_VISIBLE}件を見る` }}
-        </button>
+        <!-- 5つを超えた分はエクスパンドで見せる（要件: 最大5つ＋残りは展開）。右端はカード下からも日を開ける入口 -->
+        <div class="flex items-center justify-between gap-2">
+          <button
+            v-if="day.topics.length > NIKKI_TIMELINE_VISIBLE"
+            class="text-[11.5px] font-bold text-[var(--nk-indigo)] underline underline-offset-2"
+            @click="toggle(day.date)"
+          >
+            {{ expanded.has(day.date) ? '閉じる' : `他${day.topics.length - NIKKI_TIMELINE_VISIBLE}件を見る` }}
+          </button>
+          <button class="ml-auto text-[11.5px] text-[var(--nk-ink-soft)]" @click="emit('select', day.date)">この日を開く ›</button>
+        </div>
       </article>
 
       <button

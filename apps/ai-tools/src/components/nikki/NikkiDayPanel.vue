@@ -55,7 +55,7 @@
           <section>
             <div class="flex items-center justify-between gap-2 mb-2">
               <h3 class="text-[12px] font-bold text-[var(--nk-ink-soft)] tracking-wide">写真</h3>
-              <NikkiPhotoAdd :remaining="NIKKI_PHOTO_MAX - photos.length" :busy="photoBusy" label="＋ 写真を追加" small @add="(urls) => emit('addPhotos', urls)" />
+              <NikkiPhotoAdd :remaining="NIKKI_PHOTO_MAX - photos.length" :busy="photoBusy" label="写真を追加" @add="(urls) => emit('addPhotos', urls)" />
             </div>
             <NikkiPhotoStrip v-if="photos.length" :photos="photos" :busy="photoBusy" @remove="(id) => emit('removePhoto', id)" />
             <p v-else class="m-0 text-[12.5px] text-[var(--nk-ink-soft)]">まだありません（3枚まで）</p>
