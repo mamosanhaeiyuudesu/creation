@@ -34,7 +34,10 @@
         <li v-for="it in shown" :key="it.id">
           <NuxtLink :to="`/${it.id}`" class="mb-card mb-deepen !items-start">
             <span class="flex-1 min-w-0">
-              <span class="block text-[15px] font-bold leading-snug">{{ it.title }}</span>
+              <span class="flex items-baseline gap-2">
+                <span class="min-w-0 text-[15px] font-bold leading-snug">{{ it.title }}</span>
+                <span v-if="it.creatorName" class="shrink-0 max-w-[40%] truncate text-[11.5px] text-[var(--mb-ink-faint)]">{{ it.creatorName }}</span>
+              </span>
               <span class="mt-1 block text-[12.5px] leading-relaxed text-[var(--mb-ink-soft)] line-clamp-2">{{ it.theme }}</span>
               <span class="mt-1.5 block text-[11.5px] text-[var(--mb-ink-faint)]">
                 {{ it.count }}問<template v-if="it.level"> ・ {{ it.level }}</template> ・ {{ dateLabel(it.createdAt) }}

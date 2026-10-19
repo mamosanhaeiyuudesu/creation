@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseSortKey, sortRecords } from './sortRecords'
+import { parseSortKey, parseSortOrder, sortRecords } from './sortRecords'
 
 const rows = [
   { id: 'a', date: '2026-10-01', createdAt: '2026-10-10 09:00:00' },
@@ -19,6 +19,11 @@ describe('sortRecords', () => {
     expect(ids(sortRecords(rows, 'created'))).toEqual(['b', 'a', 'e', 'c', 'd'])
   })
 
+  it('昇順にすると古い順。日が無いものは先頭のまま', () => {
+    expect(ids(sortRecords(rows, 'date', 'asc'))).toEqual(['d', 'b', 'a', 'c', 'e'])
+    expect(ids(sortRecords(rows, 'created', 'asc'))).toEqual(['d', 'c', 'e', 'a', 'b'])
+  })
+
   it('元の配列は変えない', () => {
     const copy = [...rows]
     sortRecords(rows, 'date')
@@ -32,5 +37,13 @@ describe('parseSortKey', () => {
     expect(parseSortKey('date')).toBe('date')
     expect(parseSortKey(undefined)).toBe('date')
     expect(parseSortKey('xxx')).toBe('date')
+  })
+})
+
+describe('parseSortOrder', () => {
+  it('asc 以外は新しい順', () => {
+    expect(parseSortOrder('asc')).toBe('asc')
+    expect(parseSortOrder('desc')).toBe('desc')
+    expect(parseSortOrder(undefined)).toBe('desc')
   })
 })

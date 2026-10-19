@@ -1,7 +1,11 @@
 <template>
   <div class="min-h-[100dvh] flex flex-col">
-    <header class="shrink-0 flex items-center px-4 sm:px-6 h-14">
+    <header class="shrink-0 flex items-center justify-between px-4 sm:px-6 h-14">
       <span class="mb-display text-[15px] font-bold text-[var(--mb-accent-deep)]">まなび</span>
+      <!-- これまでに正解した問題の累計（この端末の分） -->
+      <span class="text-[12.5px] text-[var(--mb-ink-soft)]" aria-label="正解した問題の累計">
+        正解 <b class="text-[16px] tabular-nums text-[var(--mb-accent-deep)]">{{ totalCorrect }}</b> 問
+      </span>
     </header>
 
     <main class="flex-1 w-full max-w-[600px] mx-auto px-4 sm:px-6 pb-10 flex flex-col">
@@ -63,6 +67,18 @@
             </span>
           </label>
 
+          <div class="mt-4 mb-bar">
+            <input
+              v-model="creatorName"
+              type="text"
+              :maxlength="MANABI_CREATOR_NAME_MAX"
+              placeholder="あなたの名前（問題名の横に表示・省略できます）"
+              aria-label="作成者の名前"
+              autocomplete="nickname"
+              @keydown.enter.prevent
+            />
+          </div>
+
           <p v-if="error" class="mt-5 text-center text-[13.5px] text-[var(--mb-bad)]">{{ error }}</p>
 
           <!-- これまでにやった問題。押すとその問題にもう一度挑戦できる -->
@@ -74,13 +90,16 @@
                   :to="`/${r.id}`"
                   class="flex items-center gap-3 px-4 py-3 hover:bg-[rgba(128,128,128,0.05)] transition-colors"
                 >
-                  <span class="flex-1 min-w-0 truncate text-[14.5px]">{{ r.title }}</span>
-                  <span class="shrink-0 text-[12px] text-[var(--mb-ink-faint)]">{{ r.count }}問</span>
+                  <span class="flex-1 min-w-0 flex items-baseline gap-2">
+                    <span class="truncate text-[14.5px]">{{ r.title }}</span>
+                    <span v-if="r.creatorName" class="shrink-0 max-w-[40%] truncate text-[11.5px] text-[var(--mb-ink-faint)]">{{ r.creatorName }}</span>
+                  </span>
+                  <!-- 解き終えたら正答率、途中なら「答えた数/全問」 -->
                   <span
-                    class="shrink-0 w-12 text-right text-[13px] font-bold tabular-nums"
-                    :class="r.lastScore === null ? 'text-[var(--mb-ink-faint)] font-normal' : 'text-[var(--mb-accent-deep)]'"
+                    class="shrink-0 w-14 text-right text-[13px] tabular-nums"
+                    :class="r.lastScore === null ? 'text-[var(--mb-ink-faint)]' : 'font-bold text-[var(--mb-accent-deep)]'"
                   >
-                    {{ r.lastScore === null ? '未回答' : `${r.lastScore}%` }}
+                    {{ r.lastScore === null ? `${r.answered}/${r.count}` : `${r.lastScore}%` }}
                   </span>
                 </NuxtLink>
               </li>
@@ -106,8 +125,9 @@
  * - トップは入力欄ひとつ。問題数だけは選べるが、それ以上の設定は足さない
  * - ログインは求めない（共有されたURLをLINEから開いた人が、そのまま解けるように）
  */
-import { MANABI_COUNTS, type ManabiCount } from '~/types/manabi'
+import { MANABI_COUNTS, MANABI_CREATOR_NAME_MAX, type ManabiCount } from '~/types/manabi'
 import { useManabiRecent } from '~/composables/useManabiRecent'
+import { ownerToken, rememberOwned, saveName, savedName, useManabiTotalCorrect } from '~/composables/useManabiMe'
 
 definePageMeta({ layout: 'manabi' })
 useHead({
@@ -123,10 +143,13 @@ const THEME_MAX = 200
 const router = useRouter()
 const route = useRoute()
 const { items: recent, load: loadRecent } = useManabiRecent()
+const { totalCorrect, load: loadTotal } = useManabiTotalCorrect()
 
 // 深掘りの提案などから来たときは ?theme= で入力済みにする（作るのは本人が押してから）
 const theme = ref(typeof route.query.theme === 'string' ? route.query.theme.slice(0, THEME_MAX) : '')
 const count = ref<ManabiCount>(10)
+// 作成者の名前。前回入れた名前を端末から読む（SSR との食い違いを出さないため mount 後）
+const creatorName = ref('')
 // 公開の既定はオン（みんなで見られることが前提の機能）。やめたい人だけ外す
 const isPublic = ref(true)
 const generating = ref(false)
@@ -147,6 +170,8 @@ const waitHint = computed(() => (count.value === 10 ? '20秒' : count.value === 
 
 onMounted(() => {
   loadRecent()
+  loadTotal()
+  creatorName.value = savedName()
   inputEl.value?.focus()
 })
 onBeforeUnmount(() => {
@@ -169,10 +194,18 @@ const submit = async () => {
   try {
     const { id } = await $fetch<{ id: string }>('/api/sets', {
       method: 'POST',
-      body: { theme: theme.value.trim(), count: count.value, isPublic: isPublic.value },
+      body: {
+        theme: theme.value.trim(),
+        count: count.value,
+        isPublic: isPublic.value,
+        creatorName: creatorName.value.trim(),
+        ownerToken: ownerToken(),
+      },
       // ふつうは20〜40秒。応答が返らないまま待たせ続けないよう上限を置く
       timeout: 120_000,
     })
+    saveName(creatorName.value.trim())
+    rememberOwned(id)
     await router.push(`/${id}`)
   } catch (e: any) {
     error.value = e?.data?.message || e?.statusMessage || '問題をつくれませんでした。もう一度お試しください。'

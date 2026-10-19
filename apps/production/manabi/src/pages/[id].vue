@@ -36,13 +36,35 @@
         <!-- はじめる前。共有で開いた人にも、何の問題かがわかるように -->
         <div v-if="phase === 'intro'" class="flex-1 flex flex-col justify-center pb-[8vh] mb-rise">
           <p class="text-center text-[12.5px] text-[var(--mb-ink-faint)]">{{ set.questions.length }}問・選択式</p>
-          <h1 class="mt-3 mb-display text-center text-[26px] font-bold leading-snug">{{ set.title }}</h1>
+          <div v-if="!editingTitle" class="mt-3 text-center">
+            <h1 class="mb-display text-[26px] font-bold leading-snug inline">{{ set.title }}</h1>
+            <span v-if="set.creatorName" class="ml-2 text-[13px] text-[var(--mb-ink-faint)] whitespace-nowrap">{{ set.creatorName }}</span>
+            <p v-if="owned" class="mt-1">
+              <button class="mb-link" @click="startRename">題名を変える</button>
+            </p>
+          </div>
+          <form v-else class="mt-3 flex flex-col items-center gap-2" @submit.prevent="saveTitle">
+            <div class="mb-bar w-full">
+              <input
+                ref="titleEl"
+                v-model="titleDraft"
+                type="text"
+                :maxlength="MANABI_TITLE_MAX"
+                aria-label="題名"
+                autocomplete="off"
+                @keydown.enter="onTitleEnter"
+              />
+            </div>
+            <p v-if="titleError" class="text-[13px] text-[var(--mb-bad)]">{{ titleError }}</p>
+            <div class="flex gap-2">
+              <button type="submit" class="mb-btn" :disabled="!titleDraft.trim() || savingTitle">保存</button>
+              <button type="button" class="mb-btn-ghost" @click="editingTitle = false">やめる</button>
+            </div>
+          </form>
           <p v-if="set.level" class="mt-3 text-center text-[13.5px] text-[var(--mb-ink-soft)]">{{ set.level }}</p>
           <div class="mt-12 flex flex-col items-center gap-3">
-            <button class="mb-btn min-w-[220px]" @click="start(allIndexes)">はじめる</button>
-            <button v-if="lastResult" class="mb-btn-ghost min-w-[220px]" @click="showLastResult">
-              前回の結果を見る（{{ lastResultScore }}%）
-            </button>
+            <button class="mb-btn min-w-[220px]" @click="start">はじめる</button>
+            <p class="text-[12px] text-[var(--mb-ink-faint)]">同じ問題集に挑戦できるのは1回だけです</p>
           </div>
           <p class="mt-8 text-center">
             <NuxtLink :to="`/print/${id}`" class="mb-link">A4の問題集として印刷・PDFにする（授業用）</NuxtLink>
@@ -91,21 +113,16 @@
         <!-- 結果 -->
         <div v-else-if="phase === 'result'" class="pt-4 mb-rise">
           <div class="text-center">
-            <p class="text-[13px] text-[var(--mb-ink-soft)]">{{ set.title }}{{ reviewOnly ? '（間違えた問題）' : '' }}</p>
+            <p class="text-[13px] text-[var(--mb-ink-soft)]">{{ set.title }}</p>
             <p class="mt-3 mb-display font-bold leading-none text-[var(--mb-accent-deep)]">
               <span class="text-[64px] tabular-nums">{{ score }}</span><span class="text-[24px] ml-1">%</span>
             </p>
             <p class="mt-3 text-[14px] text-[var(--mb-ink-soft)]">{{ order.length }}問中 {{ correctCount }}問 正解</p>
           </div>
 
-          <div class="mt-8 flex flex-col sm:flex-row gap-2.5 justify-center">
-            <button v-if="wrongIndexes.length" class="mb-btn" @click="start(wrongIndexes, true)">
-              間違えた{{ wrongIndexes.length }}問を解き直す
-            </button>
-            <button class="mb-btn-ghost" @click="start(allIndexes)">最初からもう一度</button>
-          </div>
-          <div class="mt-2.5 flex justify-center">
-            <NuxtLink to="/" class="mb-btn-ghost inline-flex items-center justify-center">トップに戻る</NuxtLink>
+          <p class="mt-6 text-center text-[12.5px] text-[var(--mb-ink-faint)]">この問題集は解き終えました（挑戦できるのは1回だけです）</p>
+          <div class="mt-4 flex justify-center">
+            <NuxtLink to="/" class="mb-btn inline-flex items-center justify-center">トップに戻る</NuxtLink>
           </div>
 
           <div class="mt-5 flex gap-2 justify-center">
@@ -215,9 +232,10 @@
 </template>
 
 <script setup lang="ts">
-import type { ManabiSet } from '~/types/manabi'
+import { MANABI_TITLE_MAX, type ManabiSet } from '~/types/manabi'
 import { useManabiRecent } from '~/composables/useManabiRecent'
-import { readRun, writeRun, type ManabiPhase, type ManabiRun } from '~/composables/useManabiRun'
+import { isOwned, ownerToken, recordCorrect } from '~/composables/useManabiMe'
+import { readRun, writeRun, type ManabiPhase } from '~/composables/useManabiRun'
 
 definePageMeta({ layout: 'manabi' })
 
@@ -237,7 +255,7 @@ useHead(() => ({
   ],
 }))
 
-const { touch, recordScore } = useManabiRecent()
+const { touch, recordAnswered, recordScore } = useManabiRecent()
 
 const phase = ref<ManabiPhase>('intro')
 /** 今回解く問題（set.questions の添字）。やり直しでは間違えた問題だけになる */
@@ -250,8 +268,6 @@ const runId = ref(0)
 const nextEl = ref<HTMLButtonElement | null>(null)
 /** 端末に残っていた控えを読み終えたか。読む前に「はじめる」を見せると、途中の人に一瞬だけ最初の画面が出てしまう */
 const ready = ref(false)
-/** 前回解き終えたときの結果（イントロから見返せる） */
-const lastResult = ref<ManabiRun | null>(null)
 const reviewFilter = ref<'wrong' | 'all'>('wrong')
 
 const allIndexes = computed(() => (set.value ? set.value.questions.map((_, i) => i) : []))
@@ -275,12 +291,44 @@ const review = computed(() =>
 )
 const shownReview = computed(() => (reviewFilter.value === 'wrong' && wrongIndexes.value.length ? review.value.filter((r) => !r.right) : review.value))
 
-const lastResultScore = computed(() => {
-  const r = lastResult.value
-  if (!r || !set.value) return 0
-  const right = r.order.filter((qi) => r.picks[qi] === set.value!.questions[qi]?.answer).length
-  return Math.round((right / r.order.length) * 100)
-})
+// ── 題名の変更（作った人の端末だけ） ──────────────────────────────
+
+const owned = ref(false)
+const editingTitle = ref(false)
+const titleDraft = ref('')
+const titleError = ref('')
+const savingTitle = ref(false)
+const titleEl = ref<HTMLInputElement | null>(null)
+
+const startRename = () => {
+  titleDraft.value = set.value?.title ?? ''
+  titleError.value = ''
+  editingTitle.value = true
+  nextTick(() => titleEl.value?.focus())
+}
+
+// 日本語入力の変換確定の Enter で保存しない
+const onTitleEnter = (e: KeyboardEvent) => {
+  if (e.isComposing || e.keyCode === 229) e.preventDefault()
+}
+
+const saveTitle = async () => {
+  const title = titleDraft.value.trim()
+  if (!set.value || !title || savingTitle.value) return
+  savingTitle.value = true
+  titleError.value = ''
+  try {
+    const res = await $fetch<{ title: string }>(`/api/sets/${id}`, { method: 'PATCH', body: { title, ownerToken: ownerToken() } })
+    set.value = { ...set.value, title: res.title }
+    touch({ id, title: res.title, creatorName: set.value.creatorName, count: set.value.questions.length })
+    editingTitle.value = false
+    showToast('題名を変えました')
+  } catch (e: any) {
+    titleError.value = e?.data?.message || '題名を変えられませんでした'
+  } finally {
+    savingTitle.value = false
+  }
+}
 
 // ── 途中経過の保存 ──────────────────────────────
 // 選ぶたび・次へ進むたびに端末へ書く。戻る・閉じる・開き直しのどれでも続きから始められる。
@@ -299,7 +347,8 @@ const persist = () => {
 
 onMounted(() => {
   if (set.value) {
-    touch({ id: set.value.id, title: set.value.title, count: set.value.questions.length })
+    touch({ id: set.value.id, title: set.value.title, creatorName: set.value.creatorName, count: set.value.questions.length })
+    owned.value = isOwned(id)
     const run = readRun(id, set.value.questions.length)
     if (run?.phase === 'quiz') {
       // 解いている途中だったら、イントロを挟まずそのまま続きへ
@@ -310,7 +359,13 @@ onMounted(() => {
       phase.value = 'quiz'
       showToast(`${run.pos + 1}問目から再開しました`)
     } else if (run?.phase === 'result') {
-      lastResult.value = run
+      // 解き終えた問題集は、開くたびに結果へ（もう一度は解けない）
+      order.value = run.order
+      picks.value = run.picks
+      pos.value = run.pos
+      reviewOnly.value = run.reviewOnly
+      reviewFilter.value = 'wrong'
+      phase.value = 'result'
     }
   }
   ready.value = true
@@ -318,26 +373,16 @@ onMounted(() => {
 })
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
-const start = (indexes: number[], onlyWrong = false) => {
-  order.value = [...indexes]
+// 同じ問題集に挑めるのは1回だけ。控え（端末内）が残っている間は intro に戻れないので、ここは最初の1回しか通らない
+const start = () => {
+  if (phase.value !== 'intro') return
+  order.value = [...allIndexes.value]
   picks.value = {}
   pos.value = 0
-  reviewOnly.value = onlyWrong
+  reviewOnly.value = false
   runId.value++
   phase.value = 'quiz'
   persist()
-  window.scrollTo({ top: 0 })
-}
-
-const showLastResult = () => {
-  const r = lastResult.value
-  if (!r) return
-  order.value = r.order
-  picks.value = r.picks
-  pos.value = r.pos
-  reviewOnly.value = r.reviewOnly
-  reviewFilter.value = 'wrong'
-  phase.value = 'result'
   window.scrollTo({ top: 0 })
 }
 
@@ -345,6 +390,9 @@ const pick = (i: number) => {
   if (picked.value !== null || currentIndex.value === undefined) return
   picks.value = { ...picks.value, [currentIndex.value]: i }
   persist()
+  // トップの「8/10」と累計の正解数に使う
+  recordAnswered(id, Object.keys(picks.value).length)
+  recordCorrect(id, correctCount.value)
   // 解説を読んだら親指の位置のまま「次へ」を押せるように、ボタンまで寄せる
   nextTick(() => nextEl.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
 }

@@ -21,9 +21,13 @@ export function ensureManabiTables(db: any): Promise<void> {
       `CREATE TABLE IF NOT EXISTS manabi_sets (
         id TEXT PRIMARY KEY, theme TEXT NOT NULL, title TEXT NOT NULL DEFAULT '', level TEXT NOT NULL DEFAULT '',
         questions TEXT NOT NULL, ip_hash TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        is_public INTEGER NOT NULL DEFAULT 0, deepen TEXT
+        is_public INTEGER NOT NULL DEFAULT 0, deepen TEXT,
+        creator_name TEXT NOT NULL DEFAULT '', owner_hash TEXT NOT NULL DEFAULT ''
       )`
     ).run().catch(() => {})
+    // 既存テーブルへの列追加（002_creator.sql と同じ）。すでにあれば失敗するので握りつぶす
+    await db.prepare("ALTER TABLE manabi_sets ADD COLUMN creator_name TEXT NOT NULL DEFAULT ''").run().catch(() => {})
+    await db.prepare("ALTER TABLE manabi_sets ADD COLUMN owner_hash TEXT NOT NULL DEFAULT ''").run().catch(() => {})
     await db.prepare(
       'CREATE INDEX IF NOT EXISTS idx_manabi_sets_ip_created ON manabi_sets (ip_hash, created_at)'
     ).run().catch(() => {})
@@ -44,6 +48,7 @@ export function ensureManabiTables(db: any): Promise<void> {
 interface DevEntry {
   set: ManabiSet
   deepen: string[] | null
+  ownerHash: string
 }
 const devStore: Map<string, DevEntry> = ((globalThis as any).__manabiDevStore ??= new Map())
 
@@ -62,21 +67,28 @@ export function isValidSetId(id: string): boolean {
   return /^[a-zA-Z0-9]{10}$/.test(id)
 }
 
-export async function saveSet(db: any | null, set: ManabiSet, ipHash: string): Promise<void> {
+/** 作った人の端末が持つ合言葉のハッシュ。題名の変更を本人に限るための印で、生の値は保存しない。 */
+export async function ownerHashOf(token: unknown): Promise<string> {
+  if (typeof token !== 'string' || !/^[a-zA-Z0-9]{16,64}$/.test(token)) return ''
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`manabi-owner:${token}`))
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+export async function saveSet(db: any | null, set: ManabiSet, ipHash: string, ownerHash: string): Promise<void> {
   if (!db) {
-    devStore.set(set.id, { set, deepen: null })
+    devStore.set(set.id, { set, deepen: null, ownerHash })
     return
   }
   await db
-    .prepare('INSERT INTO manabi_sets (id, theme, title, level, questions, ip_hash, is_public) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    .bind(set.id, set.theme, set.title, set.level, JSON.stringify(set.questions), ipHash, set.isPublic ? 1 : 0)
+    .prepare('INSERT INTO manabi_sets (id, theme, title, level, questions, ip_hash, is_public, creator_name, owner_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(set.id, set.theme, set.title, set.level, JSON.stringify(set.questions), ipHash, set.isPublic ? 1 : 0, set.creatorName, ownerHash)
     .run()
 }
 
 export async function loadSet(db: any | null, id: string): Promise<ManabiSet | null> {
   if (!db) return devStore.get(id)?.set ?? null
   const row = await db
-    .prepare('SELECT id, theme, title, level, questions, created_at, is_public FROM manabi_sets WHERE id = ?')
+    .prepare('SELECT id, theme, title, level, creator_name, questions, created_at, is_public FROM manabi_sets WHERE id = ?')
     .bind(id)
     .first()
   if (!row) return null
@@ -91,10 +103,24 @@ export async function loadSet(db: any | null, id: string): Promise<ManabiSet | n
     theme: row.theme,
     title: row.title,
     level: row.level,
+    creatorName: row.creator_name ?? '',
     questions,
     createdAt: row.created_at,
     isPublic: row.is_public === 1,
   }
+}
+
+/** 題名を変える。作った人（saveSet 時の合言葉と一致する人）だけ。変えられたら true */
+export async function renameSet(db: any | null, id: string, ownerHash: string, title: string): Promise<boolean> {
+  if (!ownerHash) return false
+  if (!db) {
+    const e = devStore.get(id)
+    if (!e || e.ownerHash !== ownerHash) return false
+    e.set.title = title
+    return true
+  }
+  const res = await db.prepare('UPDATE manabi_sets SET title = ? WHERE id = ? AND owner_hash = ?').bind(title, id, ownerHash).run()
+  return (res?.meta?.changes ?? 0) > 0
 }
 
 // ── みんなの問題 ──────────────────────────────
@@ -110,7 +136,7 @@ export async function listPublicSets(db: any | null, opts: { limit: number; q?: 
       .filter((s) => s.isPublic && (!q || s.title.includes(q) || s.theme.includes(q)))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, limit)
-      .map((s) => ({ id: s.id, theme: s.theme, title: s.title, level: s.level, count: s.questions.length, createdAt: s.createdAt }))
+      .map((s) => ({ id: s.id, theme: s.theme, title: s.title, level: s.level, creatorName: s.creatorName, count: s.questions.length, createdAt: s.createdAt }))
   }
 
   const where = q ? "AND (theme LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\')" : ''
@@ -122,7 +148,7 @@ export async function listPublicSets(db: any | null, opts: { limit: number; q?: 
   binds.push(limit)
   const { results } = await db
     .prepare(
-      `SELECT id, theme, title, level, created_at, json_array_length(questions) AS n
+      `SELECT id, theme, title, level, creator_name, created_at, json_array_length(questions) AS n
        FROM manabi_sets WHERE is_public = 1 ${where} ORDER BY created_at DESC LIMIT ?`
     )
     .bind(...binds)
@@ -132,6 +158,7 @@ export async function listPublicSets(db: any | null, opts: { limit: number; q?: 
     theme: r.theme,
     title: r.title,
     level: r.level,
+    creatorName: r.creator_name ?? '',
     count: r.n ?? 0,
     createdAt: r.created_at,
   }))

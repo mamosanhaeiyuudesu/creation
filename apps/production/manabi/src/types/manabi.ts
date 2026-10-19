@@ -14,6 +14,8 @@ export interface ManabiSet {
   theme: string
   title: string
   level: string
+  /** 作った人の名前（任意。空なら表示しない） */
+  creatorName: string
   questions: ManabiQuestion[]
   createdAt: string
   /** 「みんなの問題」に載せるか。false ならリンクを知っている人だけが開ける */
@@ -26,9 +28,13 @@ export interface ManabiListItem {
   theme: string
   title: string
   level: string
+  creatorName: string
   count: number
   createdAt: string
 }
+
+export const MANABI_CREATOR_NAME_MAX = 20
+export const MANABI_TITLE_MAX = 60
 
 export const MANABI_COUNTS = [10, 20, 30] as const
 export type ManabiCount = (typeof MANABI_COUNTS)[number]

@@ -192,12 +192,12 @@
               <th>会議の名前</th>
               <th class="kk-col-date">
                 <button type="button" class="kk-th-sort" :class="{ 'is-on': sortKey === 'date' }" @click="setSort('date')">
-                  会議の日<span v-if="sortKey === 'date'" aria-hidden="true"> ↓</span>
+                  会議の日<span v-if="sortKey === 'date'" aria-hidden="true"> {{ sortArrow }}</span>
                 </button>
               </th>
               <th class="kk-col-created">
                 <button type="button" class="kk-th-sort" :class="{ 'is-on': sortKey === 'created' }" @click="setSort('created')">
-                  つくった日<span v-if="sortKey === 'created'" aria-hidden="true"> ↓</span>
+                  つくった日<span v-if="sortKey === 'created'" aria-hidden="true"> {{ sortArrow }}</span>
                 </button>
               </th>
               <th class="kk-col-actions"><span class="sr-only">操作</span></th>
@@ -333,7 +333,7 @@ import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
 import { formatDateLabel, formatMeetingDate } from '~/utils/formatDate'
 import { countTags } from '~/utils/tags'
-import { parseSortKey, sortRecords, type RecordSortKey } from '~/utils/sortRecords'
+import { parseSortKey, parseSortOrder, sortRecords, type RecordSortKey } from '~/utils/sortRecords'
 
 /** 会議の名前の上限（サーバーの MAX_TITLE_LENGTH と同じ） */
 const MAX_TITLE_LENGTH = 100
@@ -385,10 +385,16 @@ const filteredRecords = computed(() =>
 
 // ── 並び順（既定は会議の日の新しい順） ──
 const sortKey = computed<RecordSortKey>(() => parseSortKey(route.query.sort))
-const sortedRecords = computed(() => sortRecords(filteredRecords.value, sortKey.value))
+const sortOrder = computed(() => parseSortOrder(route.query.order))
+const sortedRecords = computed(() => sortRecords(filteredRecords.value, sortKey.value, sortOrder.value))
+const sortArrow = computed(() => (sortOrder.value === 'asc' ? '↑' : '↓'))
 
+// 別の列を押したら新しい順から、今の列をもう一度押したら昇順（古い順）⇄降順を切り替える
 function setSort(key: RecordSortKey) {
-  router.replace({ query: { ...route.query, sort: key === 'date' ? undefined : key } })
+  const order = key === sortKey.value && sortOrder.value === 'desc' ? 'asc' : 'desc'
+  router.replace({
+    query: { ...route.query, sort: key === 'date' ? undefined : key, order: order === 'asc' ? 'asc' : undefined },
+  })
 }
 
 // ── 一覧から会議の名前を変える ──

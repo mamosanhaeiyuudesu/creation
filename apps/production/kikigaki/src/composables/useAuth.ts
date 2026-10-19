@@ -166,8 +166,8 @@ export function useAuth() {
    * Firebase は「最近ログインしていない」と削除を断る（auth/requires-recent-login）。そのときは
    * データはもう消えているので、ログアウトだけして終える（次にログインしても空の状態から始まる）。
    */
-  async function deleteAccount(): Promise<void> {
-    await authedFetch('/api/account', { method: 'DELETE', body: { confirm: 'DELETE' } })
+  async function deleteAccount(email: string): Promise<void> {
+    await authedFetch('/api/account', { method: 'DELETE', body: { confirm: 'DELETE', email } })
     const auth = getFbAuth()
     const current = auth?.currentUser
     if (current) {

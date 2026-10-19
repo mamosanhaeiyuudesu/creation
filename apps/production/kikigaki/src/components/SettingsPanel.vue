@@ -229,12 +229,19 @@
         Googleドライブに保存したPDFや、ダウンロードしたPDFは消えません（ご自身の端末・ドライブにあるため）。
         お支払いの記録は、法令にもとづき決済会社（Stripe）に一定期間残ります。
       </p>
-      <label class="kk-set-confirm mt-3">
-        <input v-model="deleteAgree" type="checkbox">
-        <span>議事録がすべて消え、元に戻せないことを理解しました</span>
+      <label v-if="user?.email" class="mt-3 block">
+        <span class="kk-note">確認のため、アカウントのメールアドレス（<strong>{{ user.email }}</strong>）を入力してください</span>
+        <input
+          v-model="deleteEmail"
+          type="email"
+          class="kk-input mt-1 w-full"
+          autocomplete="off"
+          :placeholder="user.email"
+          :disabled="deleting"
+        >
       </label>
       <div class="mt-3 flex flex-col gap-2">
-        <button class="kk-set-delete-btn" :disabled="!deleteAgree || deleting" @click="doDelete">
+        <button class="kk-set-delete-btn" :disabled="!deleteConfirmed || deleting" @click="doDelete">
           {{ deleting ? '削除しています…' : 'アカウントを削除する' }}
         </button>
         <button class="kk-btn-text" :disabled="deleting" @click="deleteOpen = false">やめる</button>
@@ -473,14 +480,19 @@ async function confirmTagDelete() {
 
 // ── 退会 ──
 const deleteOpen = ref(false)
-const deleteAgree = ref(false)
+const deleteEmail = ref('')
+// メールアドレスが入力と一致して初めて削除できる（大文字小文字・前後の空白は無視）。メールが無いアカウントは確認なし
+const deleteConfirmed = computed(() => {
+  const email = (user.value?.email ?? '').trim().toLowerCase()
+  return !email || deleteEmail.value.trim().toLowerCase() === email
+})
 const deleting = ref(false)
 const deleteError = ref('')
 const recordCount = ref<number | null>(null)
 const recordCountLabel = computed(() => (recordCount.value === null ? '全件' : `${recordCount.value}件`))
 
 async function openDelete() {
-  deleteAgree.value = false
+  deleteEmail.value = ''
   deleteError.value = ''
   deleteOpen.value = true
   // 何件消えるかを見せる（読めなくても削除はできる）
@@ -503,7 +515,7 @@ async function doDelete() {
   deleteError.value = ''
   deleting.value = true
   try {
-    await deleteAccount()
+    await deleteAccount(deleteEmail.value)
     // この端末に残っている目印も消す（ドライブの連携・PDFの設定など）
     await disconnect()
     isAdmin.value = false
@@ -615,20 +627,6 @@ watch(() => route.path, refreshAll)
 }
 .kk-set-danger-link:hover {
   color: var(--kk-danger);
-}
-.kk-set-confirm {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  font-size: 13.5px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.kk-set-confirm input {
-  margin-top: 0.25rem;
-  width: 17px;
-  height: 17px;
-  accent-color: var(--kk-danger);
 }
 .kk-set-delete-btn {
   width: 100%;
