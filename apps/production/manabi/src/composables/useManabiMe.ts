@@ -36,6 +36,17 @@ function readMap(): Record<string, number> {
   }
 }
 
+/** 問題集ごとの正解数（同期コードで他の端末と統合するときに読み書きする） */
+export const readCorrectMap = readMap
+export function writeCorrectMap(map: Record<string, number>) {
+  try {
+    localStorage.setItem(CORRECT_KEY, JSON.stringify(map))
+  } catch {
+    /* 保存できなくても使える */
+  }
+  totalCorrect.value = sumCorrect()
+}
+
 const totalCorrect = ref(0)
 
 function sumCorrect(): number {

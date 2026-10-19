@@ -115,6 +115,7 @@
 
         <div class="pb-6 text-center">
           <NuxtLink to="/explore" class="mb-link">みんなの問題を見る</NuxtLink>
+          <NuxtLink to="/sync" class="mb-link ml-5">他の端末とつなぐ</NuxtLink>
         </div>
       </template>
     </main>
@@ -133,6 +134,7 @@
  */
 import { MANABI_COUNTS, MANABI_CREATOR_NAME_MAX, type ManabiCount } from '~/types/manabi'
 import { useManabiRecent } from '~/composables/useManabiRecent'
+import { useManabiSync } from '~/composables/useManabiSync'
 import { rankOf, saveName, savedName, useManabiTotalCorrect } from '~/composables/useManabiMe'
 
 definePageMeta({ layout: 'manabi' })
@@ -151,6 +153,7 @@ const route = useRoute()
 const { items: recent, load: loadRecent } = useManabiRecent()
 const { totalCorrect, load: loadTotal } = useManabiTotalCorrect()
 const rank = computed(() => rankOf(totalCorrect.value))
+const { code: syncCode, load: loadSync, sync } = useManabiSync()
 
 // 深掘りの提案などから来たときは ?theme= で入力済みにする（作るのは本人が押してから）
 const theme = ref(typeof route.query.theme === 'string' ? route.query.theme.slice(0, THEME_MAX) : '')
@@ -179,6 +182,16 @@ onMounted(() => {
   loadRecent()
   loadTotal()
   creatorName.value = savedName()
+  // 他の端末とつないであれば、開いたときに揃える。済んだら画面の表示も読み直す
+  loadSync()
+  if (syncCode.value) {
+    sync().then((ok) => {
+      if (!ok) return
+      loadRecent()
+      loadTotal()
+      if (!creatorName.value) creatorName.value = savedName()
+    })
+  }
   inputEl.value?.focus()
 })
 onBeforeUnmount(() => {

@@ -48,6 +48,9 @@ function write(list: ManabiRecent[]) {
   }
 }
 
+// 同期コードで他の端末と統合するときに、一覧をそのまま読み書きする
+export { read as readRecent, write as writeRecent }
+
 export function useManabiRecent() {
   const load = () => {
     items.value = read()

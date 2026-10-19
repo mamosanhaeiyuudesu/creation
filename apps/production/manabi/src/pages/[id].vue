@@ -215,6 +215,7 @@ import type { ManabiSet } from '~/types/manabi'
 import { useManabiRecent } from '~/composables/useManabiRecent'
 import { recordCorrect } from '~/composables/useManabiMe'
 import { readRun, writeRun, type ManabiPhase } from '~/composables/useManabiRun'
+import { useManabiSync } from '~/composables/useManabiSync'
 
 definePageMeta({ layout: 'manabi' })
 
@@ -235,6 +236,7 @@ useHead(() => ({
 }))
 
 const { touch, recordAnswered, recordScore } = useManabiRecent()
+const { scheduleSync } = useManabiSync()
 
 const phase = ref<ManabiPhase>('intro')
 /** 今回解く問題（set.questions の添字）。やり直しでは間違えた問題だけになる */
@@ -332,6 +334,7 @@ const pick = (i: number) => {
   // トップの「8/10」と累計の正解数に使う
   recordAnswered(id, Object.keys(picks.value).length)
   recordCorrect(id, correctCount.value)
+  scheduleSync()
   // 解説を読んだら親指の位置のまま「次へ」を押せるように、ボタンまで寄せる
   nextTick(() => nextEl.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
 }
@@ -349,7 +352,10 @@ const next = () => {
   persist()
   window.scrollTo({ top: 0 })
   // 点数の控えは「全問を通して解いたとき」だけ残す（間違えた問題だけの解き直しは100%になりやすいので混ぜない）
-  if (set.value && !reviewOnly.value) recordScore(set.value.id, score.value)
+  if (set.value && !reviewOnly.value) {
+    recordScore(set.value.id, score.value)
+    scheduleSync()
+  }
 }
 
 const prev = () => {
