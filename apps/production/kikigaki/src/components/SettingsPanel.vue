@@ -85,10 +85,7 @@
         <div class="kk-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="usage.usedPercent">
           <div class="kk-meter-fill" :class="{ 'kk-meter-fill--warn': usage.usedPercent >= 80 }" :style="{ width: usage.usedPercent + '%' }" />
         </div>
-        <p v-if="usage.exhausted" class="kk-notice kk-notice--warn mt-2">
-          今月のAI利用量を使い切りました。来月1日から、またお使いいただけます。
-        </p>
-        <p v-else-if="usage.usedPercent >= 80" class="kk-set-note">もうすぐ今月のAI利用量を使い切ります。</p>
+        <p v-if="!usage.exhausted && usage.usedPercent >= 80" class="kk-set-note">もうすぐ今月のAI利用量を使い切ります。</p>
       </template>
     </section>
 
