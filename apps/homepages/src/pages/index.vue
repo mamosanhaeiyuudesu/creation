@@ -39,7 +39,6 @@ const pages = [
   { url: 'http://localhost:3004', icon: '🌊', name: 'kaito', desc: 'セラピスト月ノ瀬 直のページ' },
   { url: 'http://localhost:3007', icon: '🌸', name: '晴レルヤ鍼灸院', desc: '内臓鍼灸・ソフトカイロ矯正' },
   { url: 'http://localhost:3012', icon: '📖', name: '島のパパ', desc: 'インタビューで自伝本をつくる' },
-  { url: 'http://localhost:3005', icon: '🤝', name: 'AI Consultant', desc: 'AIと人間の協調を考える' },
   { url: 'http://localhost:3006', icon: '✍️', name: 'sakubun', desc: '本当の思いを綴る「心の作文」' },
   { url: 'http://localhost:3008', icon: '🧬', name: 'genogram', desc: 'ジェノグラム作成ツール' },
 ]

@@ -13,7 +13,6 @@ apps/
 ├── prototyper/     # 以下、1サイト = 1 Nuxt ワークスペース（静的生成）
 ├── shugorin/
 ├── kaito/
-├── ai-consultant/
 ├── sakubun/
 ├── hareruya/
 ├── data-vis/       # データ可視化の受託制作LP（data-vis.insightlens.jp。miyako を事例に紹介）
@@ -33,17 +32,17 @@ apps/
 
 ## どのディレクトリで作業するか
 
-`apps/ai-tools/` → キーワード: **miyako・whisper・hagemashi・task・kouba・deepheart・mlb・kaki・momo・ippon・guesthouse・life-analyzer・kiroku・keiko・kikigaki・news・farm-manager・nikki・ai-tools 全般**
+`apps/ai-tools/` → キーワード: **miyako・whisper・hagemashi・task・kouba・deepheart・mlb・kaki・momo・ippon・guesthouse・life-analyzer・kiroku・keiko・旧キキガキ（ai-tools の `/kikigaki` と明示されたときだけ）・news・farm-manager・nikki・ai-tools 全般**
 
 各ホームページ → 下表のキーワードのディレクトリ
 
 `apps/production/manabi/` → キーワード: **まなび・manabi・manabi.insightlens.jp・学びドリル・osarai**（ai-tools の `/manabi` は撤去済み）
 
-`apps/production/kikigaki/` → キーワード: **キキガキ本番版・kikigaki.insightlens.jp・課金・Stripe・ログイン(Firebase)**
+`apps/production/kikigaki/` → キーワード: **キキガキ・kikigaki・キキガキ本番版・kikigaki.insightlens.jp・課金・Stripe・ログイン(Firebase)**
 
-⚠️ **「キキガキ」には2つある**。身内向けの `apps/ai-tools`（`/kikigaki`）と、一般ユーザー向けの
-`apps/production/kikigaki`（本番サービス）。**どちらの話かを必ず確かめること**。本番版の作業で
-ai-tools 側を変更しないこと（コピー元として扱う）。
+⚠️ **「キキガキ」「kikigaki」と言われたら、基本的に `apps/production/kikigaki`（本番版）のこと**。
+身内向けの旧版 `apps/ai-tools` の `/kikigaki`（ナビ上の表記も「キキガキ（旧）」）を触るのは、「ai-tools の」「旧」「/kikigaki ページ」
+などと明示されたときだけ。本番版の作業で ai-tools 側を変更しないこと（コピー元として扱う）。
 
 ### ホームページ一覧
 
@@ -53,7 +52,6 @@ ai-tools 側を変更しないこと（コピー元として扱う）。
 | prototyper | 3002 | ヒアリング × 高速プロトタイピングの相談窓口（可視化はその一部） |
 | shugorin | 3003 | カウンセリング & 感情フォーカス・セラピー（個人ページ） |
 | kaito | 3004 | セラピスト「月ノ瀬 直」のランディングページ |
-| ai-consultant | 3005 | AIと人間の協調をテーマにしたコンサルタントページ |
 | sakubun | 3006 | 「心の作文」 |
 | hareruya | 3007 | 晴レルヤ鍼灸院（内臓鍼灸・ソフトカイロ矯正／横浜市旭区若葉台） |
 | data-vis | 3011 | データ可視化の受託制作LP（data-vis.insightlens.jp）。参考サイトは trust-bank.net。料金・問い合わせ先は `src/config/site.ts` に集約 |
@@ -64,7 +62,7 @@ ai-tools 側を変更しないこと（コピー元として扱う）。
 
 | キーワード | ポート | 概要 |
 |---|---|---|
-| kikigaki（本番） | 3009 | キキガキ本番版（`apps/production/kikigaki`）。会議の録音→議事録→PDF。Firebase Auth（Google／メールのリンク）＋ Stripe の月額1プラン。**当面はモニター期間として無料で提供**（`src/config/service.ts` の `monitorMode`、環境変数 `NUXT_PUBLIC_MONITOR_MODE=false` で有料化）。詳細は `apps/production/kikigaki/README.md` |
+| kikigaki（本番） | 3009 | キキガキ本番版（`apps/production/kikigaki`）。会議の文章（テキスト）→議事録→PDF（音声の文字起こしは2026-10-13にやめた）。Firebase Auth（Google／メールのリンク）＋ Stripe の月額1プラン。**当面はモニター期間として無料で提供**（`src/config/service.ts` の `monitorMode`、環境変数 `NUXT_PUBLIC_MONITOR_MODE=false` で有料化）。詳細は `apps/production/kikigaki/README.md` |
 | manabi | 3010 | まなび本番版（`apps/production/manabi`）。テーマ→AIが4択問題→URL共有。ログイン・課金なし。詳細は `apps/production/manabi/README.md` |
 
 **hareruya の注意点**: 未確定の掲載情報（料金・LINE URL・詳細住所・地図）は

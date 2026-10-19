@@ -218,7 +218,7 @@ import { NIKKI_PHOTO_MAX } from '~/types/nikki'
 import type { NikkiEntry, NikkiEvent, NikkiTopic } from '~/types/nikki'
 import NikkiPhotoAdd from '~/components/nikki/NikkiPhotoAdd.vue'
 import NikkiPhotoStrip from '~/components/nikki/NikkiPhotoStrip.vue'
-import { applyDictionary, buildDictionaryPrompt } from '~/utils/nikki-dictionary'
+import { buildDictionaryPrompt } from '~/utils/nikki-dictionary'
 import type { NikkiDictionaryEntry } from '~/utils/nikki-dictionary'
 
 const props = defineProps<{
@@ -270,7 +270,7 @@ const transcriptionPrompt = computed(() => {
 const { isRecording, isPaused, isProcessing, duration, level, formatTime, startRecording, pauseRecording, resumeRecording, transcribeRecording, cancelRecording } =
   useAudioRecorder({
     onTranscribed: (text: string) => {
-      const t = applyDictionary(text, props.dictionary).trim()
+      const t = text.trim()
       if (!t) {
         // 無音だと Whisper は「ご視聴ありがとうございました」を返す。サーバー側で落としてあるので
         // ここには空が来る＝「声が入っていなかった」ということなので、そう伝える。

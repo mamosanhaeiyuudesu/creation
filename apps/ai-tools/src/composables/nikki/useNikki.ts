@@ -104,7 +104,7 @@ export function useNikki() {
   }
 
   /** 追加・修正・削除はどれも更新後の一覧が返る */
-  async function sendDictionary(url: string, method: 'POST' | 'PATCH' | 'DELETE', body?: { word: string; wrong: string }): Promise<boolean> {
+  async function sendDictionary(url: string, method: 'POST' | 'PATCH' | 'DELETE', body?: { word: string }): Promise<boolean> {
     try {
       dictionary.value = (await $fetch<{ items: NikkiDictionaryEntry[] }>(url, { method, body })).items
       return true
@@ -114,8 +114,8 @@ export function useNikki() {
     }
   }
 
-  const addDictionaryItem = (word: string, wrong: string) => sendDictionary('/api/nikki/dictionary', 'POST', { word, wrong })
-  const updateDictionaryItem = (id: string, word: string, wrong: string) => sendDictionary(`/api/nikki/dictionary/${id}`, 'PATCH', { word, wrong })
+  const addDictionaryItem = (word: string) => sendDictionary('/api/nikki/dictionary', 'POST', { word })
+  const updateDictionaryItem = (id: string, word: string) => sendDictionary(`/api/nikki/dictionary/${id}`, 'PATCH', { word })
   const removeDictionaryItem = (id: string) => sendDictionary(`/api/nikki/dictionary/${id}`, 'DELETE')
 
   // ─────────────────────────── 当月のカレンダー ───────────────────────────

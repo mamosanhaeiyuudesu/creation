@@ -294,8 +294,8 @@ const withDictionaryBusy = async (fn: () => Promise<boolean>) => {
   await fn()
   dictionaryBusy.value = false
 }
-const onAddWord = (word: string, wrong: string) => withDictionaryBusy(() => addDictionaryItem(word, wrong))
-const onUpdateWord = (id: string, word: string, wrong: string) => withDictionaryBusy(() => updateDictionaryItem(id, word, wrong))
+const onAddWord = (word: string) => withDictionaryBusy(() => addDictionaryItem(word))
+const onUpdateWord = (id: string, word: string) => withDictionaryBusy(() => updateDictionaryItem(id, word))
 const onRemoveWord = (id: string) => withDictionaryBusy(() => removeDictionaryItem(id))
 const showCalendar = ref(false)
 

@@ -12,7 +12,6 @@ Claude Code 向けの詳細ガイダンスは [CLAUDE.md](CLAUDE.md)、ai-tools 
 | `apps/prototyper` | ヒアリング × 高速プロトタイピングの相談窓口 | 3002 | 静的生成 → Pages |
 | `apps/shugorin` | カウンセリング & 感情フォーカス・セラピー | 3003 | 静的生成 → Workers |
 | `apps/kaito` | セラピスト「月ノ瀬 直」のランディングページ | 3004 | 静的生成 → Pages |
-| `apps/ai-consultant` | AI と人間の協調をテーマにしたコンサルタントページ | 3005 | 静的生成 → Pages |
 | `apps/sakubun` | 「心の作文」 | 3006 | Cloudflare Workers |
 | `apps/hareruya` | 晴レルヤ鍼灸院 | 3007 | 静的生成 → Workers |
 | `apps/genogram` | ジェノグラム作成ツール（AI 解釈の API ルートのみ Workers 上） | 3008 | Cloudflare Workers |
@@ -41,7 +40,7 @@ yarn dev:all          # ai-tools と全ホームページ（3001〜3008・3011�
 yarn dev:<name>       # 個別に起動
 ```
 
-`<name>` は `homepages` `prototyper` `shugorin` `kaito` `ai-consultant` `sakubun` `hareruya` `genogram` `kikigaki` `manabi` `data-vis` `shimano-papa`。
+`<name>` は `homepages` `prototyper` `shugorin` `kaito` `sakubun` `hareruya` `genogram` `kikigaki` `manabi` `data-vis` `shimano-papa`。
 
 | コマンド | URL |
 |---|---|
@@ -50,7 +49,6 @@ yarn dev:<name>       # 個別に起動
 | `yarn dev:prototyper` | http://localhost:3002 |
 | `yarn dev:shugorin` | http://localhost:3003 |
 | `yarn dev:kaito` | http://localhost:3004 |
-| `yarn dev:ai-consultant` | http://localhost:3005 |
 | `yarn dev:sakubun` | http://localhost:3006 |
 | `yarn dev:hareruya` | http://localhost:3007 |
 | `yarn dev:genogram` | http://localhost:3008 |
@@ -66,7 +64,7 @@ yarn dev:<name>       # 個別に起動
 AI を使うアプリ（ai-tools・sakubun・genogram・kikigaki・manabi）は各ディレクトリに `.env` が必要。
 キーの一覧は [apps/ai-tools/CLAUDE.md](apps/ai-tools/CLAUDE.md)（ai-tools）、
 `apps/production/kikigaki/.env.example`（キキガキ）・`apps/production/manabi/.env.example`（まなび）を参照。
-静的なホームページ（homepages / prototyper / shugorin / kaito / ai-consultant / hareruya）は不要。
+静的なホームページ（homepages / prototyper / shugorin / kaito / hareruya）は不要。
 
 D1 はローカルでは `nuxt dev` が miniflare のものを自動で用意する。
 
