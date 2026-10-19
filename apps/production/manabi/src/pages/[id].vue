@@ -36,31 +36,10 @@
         <!-- はじめる前。共有で開いた人にも、何の問題かがわかるように -->
         <div v-if="phase === 'intro'" class="flex-1 flex flex-col justify-center pb-[8vh] mb-rise">
           <p class="text-center text-[12.5px] text-[var(--mb-ink-faint)]">{{ set.questions.length }}問・選択式</p>
-          <div v-if="!editingTitle" class="mt-3 text-center">
+          <div class="mt-3 text-center">
             <h1 class="mb-display text-[26px] font-bold leading-snug inline">{{ set.title }}</h1>
             <span v-if="set.creatorName" class="ml-2 text-[13px] text-[var(--mb-ink-faint)] whitespace-nowrap">{{ set.creatorName }}</span>
-            <p v-if="owned" class="mt-1">
-              <button class="mb-link" @click="startRename">題名を変える</button>
-            </p>
           </div>
-          <form v-else class="mt-3 flex flex-col items-center gap-2" @submit.prevent="saveTitle">
-            <div class="mb-bar w-full">
-              <input
-                ref="titleEl"
-                v-model="titleDraft"
-                type="text"
-                :maxlength="MANABI_TITLE_MAX"
-                aria-label="題名"
-                autocomplete="off"
-                @keydown.enter="onTitleEnter"
-              />
-            </div>
-            <p v-if="titleError" class="text-[13px] text-[var(--mb-bad)]">{{ titleError }}</p>
-            <div class="flex gap-2">
-              <button type="submit" class="mb-btn" :disabled="!titleDraft.trim() || savingTitle">保存</button>
-              <button type="button" class="mb-btn-ghost" @click="editingTitle = false">やめる</button>
-            </div>
-          </form>
           <p v-if="set.level" class="mt-3 text-center text-[13.5px] text-[var(--mb-ink-soft)]">{{ set.level }}</p>
           <div class="mt-12 flex flex-col items-center gap-3">
             <button class="mb-btn min-w-[220px]" @click="start">はじめる</button>
@@ -232,9 +211,9 @@
 </template>
 
 <script setup lang="ts">
-import { MANABI_TITLE_MAX, type ManabiSet } from '~/types/manabi'
+import type { ManabiSet } from '~/types/manabi'
 import { useManabiRecent } from '~/composables/useManabiRecent'
-import { isOwned, ownerToken, recordCorrect } from '~/composables/useManabiMe'
+import { recordCorrect } from '~/composables/useManabiMe'
 import { readRun, writeRun, type ManabiPhase } from '~/composables/useManabiRun'
 
 definePageMeta({ layout: 'manabi' })
@@ -291,45 +270,6 @@ const review = computed(() =>
 )
 const shownReview = computed(() => (reviewFilter.value === 'wrong' && wrongIndexes.value.length ? review.value.filter((r) => !r.right) : review.value))
 
-// ── 題名の変更（作った人の端末だけ） ──────────────────────────────
-
-const owned = ref(false)
-const editingTitle = ref(false)
-const titleDraft = ref('')
-const titleError = ref('')
-const savingTitle = ref(false)
-const titleEl = ref<HTMLInputElement | null>(null)
-
-const startRename = () => {
-  titleDraft.value = set.value?.title ?? ''
-  titleError.value = ''
-  editingTitle.value = true
-  nextTick(() => titleEl.value?.focus())
-}
-
-// 日本語入力の変換確定の Enter で保存しない
-const onTitleEnter = (e: KeyboardEvent) => {
-  if (e.isComposing || e.keyCode === 229) e.preventDefault()
-}
-
-const saveTitle = async () => {
-  const title = titleDraft.value.trim()
-  if (!set.value || !title || savingTitle.value) return
-  savingTitle.value = true
-  titleError.value = ''
-  try {
-    const res = await $fetch<{ title: string }>(`/api/sets/${id}`, { method: 'PATCH', body: { title, ownerToken: ownerToken() } })
-    set.value = { ...set.value, title: res.title }
-    touch({ id, title: res.title, creatorName: set.value.creatorName, count: set.value.questions.length })
-    editingTitle.value = false
-    showToast('題名を変えました')
-  } catch (e: any) {
-    titleError.value = e?.data?.message || '題名を変えられませんでした'
-  } finally {
-    savingTitle.value = false
-  }
-}
-
 // ── 途中経過の保存 ──────────────────────────────
 // 選ぶたび・次へ進むたびに端末へ書く。戻る・閉じる・開き直しのどれでも続きから始められる。
 
@@ -348,7 +288,6 @@ const persist = () => {
 onMounted(() => {
   if (set.value) {
     touch({ id: set.value.id, title: set.value.title, creatorName: set.value.creatorName, count: set.value.questions.length })
-    owned.value = isOwned(id)
     const run = readRun(id, set.value.questions.length)
     if (run?.phase === 'quiz') {
       // 解いている途中だったら、イントロを挟まずそのまま続きへ

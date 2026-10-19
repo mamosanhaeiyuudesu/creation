@@ -127,7 +127,7 @@
  */
 import { MANABI_COUNTS, MANABI_CREATOR_NAME_MAX, type ManabiCount } from '~/types/manabi'
 import { useManabiRecent } from '~/composables/useManabiRecent'
-import { ownerToken, rememberOwned, saveName, savedName, useManabiTotalCorrect } from '~/composables/useManabiMe'
+import { saveName, savedName, useManabiTotalCorrect } from '~/composables/useManabiMe'
 
 definePageMeta({ layout: 'manabi' })
 useHead({
@@ -194,18 +194,11 @@ const submit = async () => {
   try {
     const { id } = await $fetch<{ id: string }>('/api/sets', {
       method: 'POST',
-      body: {
-        theme: theme.value.trim(),
-        count: count.value,
-        isPublic: isPublic.value,
-        creatorName: creatorName.value.trim(),
-        ownerToken: ownerToken(),
-      },
+      body: { theme: theme.value.trim(), count: count.value, isPublic: isPublic.value, creatorName: creatorName.value.trim() },
       // ふつうは20〜40秒。応答が返らないまま待たせ続けないよう上限を置く
       timeout: 120_000,
     })
     saveName(creatorName.value.trim())
-    rememberOwned(id)
     await router.push(`/${id}`)
   } catch (e: any) {
     error.value = e?.data?.message || e?.statusMessage || '問題をつくれませんでした。もう一度お試しください。'

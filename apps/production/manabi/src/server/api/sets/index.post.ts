@@ -5,7 +5,6 @@ import {
   ensureManabiTables,
   getManabiDb,
   makeSetId,
-  ownerHashOf,
   saveSet,
 } from '~/server/utils/manabi'
 import { generateSet } from '~/server/utils/manabi-ai'
@@ -17,7 +16,7 @@ export default defineEventHandler(async (event) => {
   const { anthropicApiKey } = useRuntimeConfig(event)
   if (!anthropicApiKey) throw createError({ statusCode: 500, message: 'Anthropic API key is not configured.' })
 
-  const body = await readBody<{ theme?: string; count?: number; isPublic?: boolean; creatorName?: string; ownerToken?: string }>(event)
+  const body = await readBody<{ theme?: string; count?: number; isPublic?: boolean; creatorName?: string }>(event)
   const theme = (body?.theme ?? '').trim()
   if (!theme) throw createError({ statusCode: 400, message: 'テーマを入力してください' })
   if (theme.length > MANABI_THEME_MAX) {
@@ -28,7 +27,6 @@ export default defineEventHandler(async (event) => {
   const isPublic = body?.isPublic === true
 
   const creatorName = (typeof body?.creatorName === 'string' ? body.creatorName : '').trim().slice(0, MANABI_CREATOR_NAME_MAX)
-  const ownerHash = await ownerHashOf(body?.ownerToken)
 
   const db = getManabiDb(event)
   if (db) await ensureManabiTables(db)
@@ -46,6 +44,6 @@ export default defineEventHandler(async (event) => {
     createdAt: new Date().toISOString(),
     isPublic,
   }
-  await saveSet(db, set, ipHash, ownerHash)
+  await saveSet(db, set, ipHash)
   return { id: set.id }
 })

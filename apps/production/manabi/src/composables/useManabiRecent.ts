@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { readRun } from '~/composables/useManabiRun'
 
 /**
  * 作った・開いた問題セットの控え（端末内だけ）。ログインが無いので、トップから
@@ -26,7 +27,13 @@ function read(): ManabiRecent[] {
   try {
     const raw = localStorage.getItem(KEY)
     const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    // answered / creatorName は後から足した項目。古い控えには無いので、端末に残る解答の控えから補う
+    return parsed.map((r: ManabiRecent) => ({
+      ...r,
+      creatorName: r.creatorName ?? '',
+      answered: Number.isInteger(r.answered) ? r.answered : Object.keys(readRun(r.id, r.count)?.picks ?? {}).length,
+    }))
   } catch {
     return []
   }

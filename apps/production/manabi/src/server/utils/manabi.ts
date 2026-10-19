@@ -21,13 +21,11 @@ export function ensureManabiTables(db: any): Promise<void> {
       `CREATE TABLE IF NOT EXISTS manabi_sets (
         id TEXT PRIMARY KEY, theme TEXT NOT NULL, title TEXT NOT NULL DEFAULT '', level TEXT NOT NULL DEFAULT '',
         questions TEXT NOT NULL, ip_hash TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        is_public INTEGER NOT NULL DEFAULT 0, deepen TEXT,
-        creator_name TEXT NOT NULL DEFAULT '', owner_hash TEXT NOT NULL DEFAULT ''
+        is_public INTEGER NOT NULL DEFAULT 0, deepen TEXT, creator_name TEXT NOT NULL DEFAULT ''
       )`
     ).run().catch(() => {})
     // 既存テーブルへの列追加（002_creator.sql と同じ）。すでにあれば失敗するので握りつぶす
     await db.prepare("ALTER TABLE manabi_sets ADD COLUMN creator_name TEXT NOT NULL DEFAULT ''").run().catch(() => {})
-    await db.prepare("ALTER TABLE manabi_sets ADD COLUMN owner_hash TEXT NOT NULL DEFAULT ''").run().catch(() => {})
     await db.prepare(
       'CREATE INDEX IF NOT EXISTS idx_manabi_sets_ip_created ON manabi_sets (ip_hash, created_at)'
     ).run().catch(() => {})
@@ -48,7 +46,6 @@ export function ensureManabiTables(db: any): Promise<void> {
 interface DevEntry {
   set: ManabiSet
   deepen: string[] | null
-  ownerHash: string
 }
 const devStore: Map<string, DevEntry> = ((globalThis as any).__manabiDevStore ??= new Map())
 
@@ -67,21 +64,14 @@ export function isValidSetId(id: string): boolean {
   return /^[a-zA-Z0-9]{10}$/.test(id)
 }
 
-/** 作った人の端末が持つ合言葉のハッシュ。題名の変更を本人に限るための印で、生の値は保存しない。 */
-export async function ownerHashOf(token: unknown): Promise<string> {
-  if (typeof token !== 'string' || !/^[a-zA-Z0-9]{16,64}$/.test(token)) return ''
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`manabi-owner:${token}`))
-  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('')
-}
-
-export async function saveSet(db: any | null, set: ManabiSet, ipHash: string, ownerHash: string): Promise<void> {
+export async function saveSet(db: any | null, set: ManabiSet, ipHash: string): Promise<void> {
   if (!db) {
-    devStore.set(set.id, { set, deepen: null, ownerHash })
+    devStore.set(set.id, { set, deepen: null })
     return
   }
   await db
-    .prepare('INSERT INTO manabi_sets (id, theme, title, level, questions, ip_hash, is_public, creator_name, owner_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .bind(set.id, set.theme, set.title, set.level, JSON.stringify(set.questions), ipHash, set.isPublic ? 1 : 0, set.creatorName, ownerHash)
+    .prepare('INSERT INTO manabi_sets (id, theme, title, level, questions, ip_hash, is_public, creator_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(set.id, set.theme, set.title, set.level, JSON.stringify(set.questions), ipHash, set.isPublic ? 1 : 0, set.creatorName)
     .run()
 }
 
@@ -108,19 +98,6 @@ export async function loadSet(db: any | null, id: string): Promise<ManabiSet | n
     createdAt: row.created_at,
     isPublic: row.is_public === 1,
   }
-}
-
-/** 題名を変える。作った人（saveSet 時の合言葉と一致する人）だけ。変えられたら true */
-export async function renameSet(db: any | null, id: string, ownerHash: string, title: string): Promise<boolean> {
-  if (!ownerHash) return false
-  if (!db) {
-    const e = devStore.get(id)
-    if (!e || e.ownerHash !== ownerHash) return false
-    e.set.title = title
-    return true
-  }
-  const res = await db.prepare('UPDATE manabi_sets SET title = ? WHERE id = ? AND owner_hash = ?').bind(title, id, ownerHash).run()
-  return (res?.meta?.changes ?? 0) > 0
 }
 
 // ── みんなの問題 ──────────────────────────────
