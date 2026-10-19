@@ -90,7 +90,6 @@
       </section>
 
       <h1 class="kk-h1 m-0">議事録</h1>
-      <p class="kk-note m-0">会議の文章をアップロードするか貼り付けると、AIが1枚の議事録にまとめます。</p>
 
       <!-- 承認制で、まだ承認されていない人。押しても AI を呼ばないよう、はじめる操作を止める -->
       <p v-if="pendingApproval" class="kk-notice kk-notice--info mt-3 mb-0">
@@ -106,7 +105,7 @@
           </span>
           <span class="min-w-0">
             <span class="kk-action-title">文章から議事録をつくる</span>
-            <span class="kk-action-desc">.txt をアップロードするか、文章を貼り付け</span>
+            <span class="kk-action-desc">テキストファイルをアップロードするか、文章を貼り付け</span>
           </span>
         </button>
       </div>

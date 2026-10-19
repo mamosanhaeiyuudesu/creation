@@ -18,11 +18,11 @@
         id="transcript-file"
         ref="textFileInput"
         type="file"
-        accept=".txt,text/plain"
+        :accept="DOCUMENT_ACCEPT"
         class="block w-full text-[14px] file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[13px] file:font-bold file:bg-[var(--kk-accent-soft)] file:text-[var(--kk-accent-strong)] file:cursor-pointer"
         @change="onPickText"
       >
-      <p class="kk-note mt-2">文字だけのファイル（.txt）が使えます。</p>
+      <p class="kk-note mt-2">テキスト・Word（.docx）・Markdown（.md）・字幕（.srt）などが使えます。PDFは未対応です。</p>
 
       <p class="kk-field-label mt-4">または、文章を貼り付ける</p>
       <textarea
@@ -69,6 +69,7 @@
 
 <script setup lang="ts">
 import { apiMessage } from '~/utils/apiMessage'
+import { DOCUMENT_ACCEPT, readDocumentText } from '~/utils/readDocumentText'
 import { MINUTES_MODES, type MinutesMode } from '~/types/minutes'
 
 const props = defineProps<{ modelValue: boolean }>()
@@ -116,25 +117,6 @@ watch(
   }
 )
 
-/**
- * テキストファイルを読む。
- * **文字コードの取り違えに備える**＝ Windows のメモ帳で保存した古いファイルは Shift_JIS のことがあり、
- * UTF-8 として読むと全部文字化けする（利用者からは「変な記号だらけの議事録ができた」に見える）。
- * まず UTF-8 として厳密に読み、壊れていたら Shift_JIS として読み直す。
- */
-async function readTextFile(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer()
-  try {
-    return new TextDecoder('utf-8', { fatal: true }).decode(buffer)
-  } catch {
-    try {
-      return new TextDecoder('shift_jis').decode(buffer)
-    } catch {
-      throw new Error('この文章ファイルは読み込めませんでした。文字だけのファイル（.txt）をお試しください。')
-    }
-  }
-}
-
 async function runFromText() {
   if (!canRunText.value) return
   errorMessage.value = ''
@@ -142,7 +124,7 @@ async function runFromText() {
     const file = textFile.value
     // 読み込みの待ち時間が出るので、先に「まとめています」の画面に切り替えてから読む
     stage.value = 'structuring'
-    const text = file ? (await readTextFile(file)).trim() : pastedText.value.trim()
+    const text = file ? (await readDocumentText(file)).trim() : pastedText.value.trim()
     if (!text) {
       throw new Error('文章が空でした。中身のあるファイルか、貼り付けた文章でお試しください。')
     }
