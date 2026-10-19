@@ -58,29 +58,16 @@ gtag('config', 'G-JRBVTJYCEH');`,
     fitbitClientId: '',
     fitbitClientSecret: '',
     fitbitRedirectUri: '',
-    // life（人生のインタビュー）Google連携。Sheets/Driveへの書き込み用（fitbitとは別のOAuthクライアント）
-    lifeGoogleClientId: '',
-    lifeGoogleClientSecret: '',
-    lifeGoogleRedirectUri: '',
     // kikigaki（会議の録音→議事録）Google連携。Docs/Sheets/Tasks/Calendar への書き込み用
-    // （life とはスコープが違うので使い回さず、別のOAuthクライアントを発行する）
+    // （fitbit とはスコープが違うので使い回さず、別のOAuthクライアントを発行する）
     kikigakiGoogleClientId: '',
     kikigakiGoogleClientSecret: '',
     kikigakiGoogleRedirectUri: '',
     // nikki（日記）Google連携。カレンダーの**読み取り専用**（calendar.readonly）。
-    // life/kikigaki とはスコープが違うので使い回さず、別のOAuthクライアントを発行する
+    // kikigaki とはスコープが違うので使い回さず、別のOAuthクライアントを発行する
     nikkiGoogleClientId: '',
     nikkiGoogleClientSecret: '',
     nikkiGoogleRedirectUri: '',
-    // ippon（Sketch2View）3D生成プロバイダ。鍵が無ければ mock にフォールバック。
-    ipponProvider: '', // 'tripo' | 'mock'（既定 mock）
-    tripoApiKey: '',
-  },
-  // model-viewer（Web Component）を Vue のカスタム要素として許可する（ippon の3Dビュー）。
-  vue: {
-    compilerOptions: {
-      isCustomElement: (tag) => tag === 'model-viewer',
-    },
   },
   routeRules: {
     // manabi は本番サービスに移った（apps/production/manabi）。LINEなどに共有済みのURLは、

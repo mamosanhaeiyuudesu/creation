@@ -1,6 +1,6 @@
 # creation
 
-AI ツール群・各種ホームページ・本番サービスをまとめた yarn workspaces のモノレポ（Nuxt 3）。
+AI ツール群・各種ホームページ・本番サービスをまとめた yarn workspaces のモノレポ（Nuxt 4）。
 Claude Code 向けの詳細ガイダンスは [CLAUDE.md](CLAUDE.md)、ai-tools の個別ツールは [apps/ai-tools/CLAUDE.md](apps/ai-tools/CLAUDE.md) を参照。
 
 ## 構成
@@ -10,13 +10,16 @@ Claude Code 向けの詳細ガイダンスは [CLAUDE.md](CLAUDE.md)、ai-tools 
 | `apps/ai-tools` | 身内向け AI ツール群（miyako・whisper・hagemashi・task・kaki・momo・nikki など）。Nitro サーバー＋D1 | 3000 | Cloudflare Workers |
 | `apps/homepages` | 各ホームページへのリンク一覧（ローカル開発用ポータル） | 3001 | 静的生成 |
 | `apps/prototyper` | ヒアリング × 高速プロトタイピングの相談窓口 | 3002 | 静的生成 → Pages |
-| `apps/shugorin` | カウンセリング & 感情フォーカス・セラピー | 3003 | 静的生成 |
+| `apps/shugorin` | カウンセリング & 感情フォーカス・セラピー | 3003 | 静的生成 → Workers |
 | `apps/kaito` | セラピスト「月ノ瀬 直」のランディングページ | 3004 | 静的生成 → Pages |
 | `apps/ai-consultant` | AI と人間の協調をテーマにしたコンサルタントページ | 3005 | 静的生成 → Pages |
 | `apps/sakubun` | 「心の作文」 | 3006 | Cloudflare Workers |
-| `apps/hareruya` | 晴レルヤ鍼灸院 | 3007 | 静的生成 |
+| `apps/hareruya` | 晴レルヤ鍼灸院 | 3007 | 静的生成 → Workers |
 | `apps/genogram` | ジェノグラム作成ツール（AI 解釈の API ルートのみ Workers 上） | 3008 | Cloudflare Workers |
+| `apps/data-vis` | データ可視化の受託制作LP（data-vis.insightlens.jp） | 3011 | Cloudflare Workers |
+| `apps/shimano-papa` | 人生のインタビュー（自伝本づくり）のLP（shimano-papa.insightlens.jp） | 3012 | Cloudflare Workers |
 | `apps/production/kikigaki` | キキガキ本番版（Firebase Auth + Stripe + D1）。詳細は [README](apps/production/kikigaki/README.md) | 3009 | Cloudflare Workers |
+| `apps/production/manabi` | まなび本番版（ログイン・課金なし。専用D1）。詳細は [README](apps/production/manabi/README.md) | 3010 | Cloudflare Workers |
 
 > 「キキガキ」は2つある。身内向けは `apps/ai-tools` の `/kikigaki`、一般ユーザー向けは `apps/production/kikigaki`。
 
@@ -34,11 +37,11 @@ yarn install
 
 ```bash
 yarn dev              # ai-tools のみ（http://localhost:3000）
-yarn dev:all          # ai-tools と全ホームページ（3001〜3008）を同時起動
+yarn dev:all          # ai-tools と全ホームページ（3001〜3008・3011・3012）を同時起動
 yarn dev:<name>       # 個別に起動
 ```
 
-`<name>` は `homepages` `prototyper` `shugorin` `kaito` `ai-consultant` `sakubun` `hareruya` `genogram` `kikigaki`。
+`<name>` は `homepages` `prototyper` `shugorin` `kaito` `ai-consultant` `sakubun` `hareruya` `genogram` `kikigaki` `manabi` `data-vis` `shimano-papa`。
 
 | コマンド | URL |
 |---|---|
@@ -52,14 +55,17 @@ yarn dev:<name>       # 個別に起動
 | `yarn dev:hareruya` | http://localhost:3007 |
 | `yarn dev:genogram` | http://localhost:3008 |
 | `yarn dev:kikigaki` | http://localhost:3009 |
+| `yarn dev:manabi` | http://localhost:3010 |
+| `yarn dev:data-vis` | http://localhost:3011 |
+| `yarn dev:shimano-papa` | http://localhost:3012 |
 
-`yarn dev:all` に `kikigaki` は含まれない。別ターミナルで `yarn dev:kikigaki` を起動する。
+`yarn dev:all` に `kikigaki`・`manabi` は含まれない。別ターミナルで `yarn dev:kikigaki` / `yarn dev:manabi` を起動する。
 
 ### 環境変数
 
-AI を使うアプリ（ai-tools・sakubun・genogram・kikigaki）は各ディレクトリに `.env` が必要。
+AI を使うアプリ（ai-tools・sakubun・genogram・kikigaki・manabi）は各ディレクトリに `.env` が必要。
 キーの一覧は [apps/ai-tools/CLAUDE.md](apps/ai-tools/CLAUDE.md)（ai-tools）、
-`apps/production/kikigaki/.env.example`（キキガキ）を参照。
+`apps/production/kikigaki/.env.example`（キキガキ）・`apps/production/manabi/.env.example`（まなび）を参照。
 静的なホームページ（homepages / prototyper / shugorin / kaito / ai-consultant / hareruya）は不要。
 
 D1 はローカルでは `nuxt dev` が miniflare のものを自動で用意する。
@@ -70,6 +76,7 @@ D1 はローカルでは `nuxt dev` が miniflare のものを自動で用意す
 yarn build:tools      # ai-tools（Cloudflare Workers 向け）
 yarn build:<name>     # 各ホームページ（静的生成は apps/<name>/.output/public に出力）
 yarn build:kikigaki   # キキガキ本番版
+yarn build:manabi     # まなび本番版
 ```
 
 静的生成したサイトの確認: `yarn workspace <name> preview`
@@ -88,6 +95,8 @@ dev と build は `.nuxt/` を共有しており、dev 中に build すると以
 
 `main` への push で GitHub Actions（[.github/workflows/](.github/workflows/)）が、
 変更のあったアプリだけをビルドして Cloudflare にデプロイする。手動実行（`workflow_dispatch`）も可。
+ルートの `package.json`・`yarn.lock` を変えると全アプリのワークフローが走る。
+data-vis・shimano-papa・genogram はワークフローが無く、手動で `wrangler deploy` する。
 
 手動で出すとき（ai-tools の例）:
 

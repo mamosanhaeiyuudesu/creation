@@ -43,7 +43,6 @@ export const SECTIONS: Section[] = [
       { path: '/guesthouse', icon: '🏡', name: 'ゲストハウス案内', desc: 'お客様チャットにAIが自ら回答し、緊急時だけホストへ取り次ぐ。日記から顧客分析も。', tags: ['要ログイン', '共有リンク'] },
       { path: '/kaki', icon: '🌳', name: '柿の木 里親', desc: '自分の柿の木の成長写真・観察日記・応援コメントを見る。農家用の管理画面つき。', tags: ['要ログイン'] },
       { path: '/momo', icon: '🍑', name: '桃 注文管理', desc: 'SNSの会話を貼るとAIが注文を構造化。選果集計と佐川e飛伝III用CSVまで。', tags: ['要ログイン'] },
-      { path: '/office', icon: '🏢', name: '勤怠', desc: '出勤・退勤の打刻と日付ごとの記録。', tags: ['要ログイン'] },
       { path: '/task', icon: '📋', name: 'タスクくん（旧）', desc: 'Trello の DOING / TODO / DONE を1画面に。週の使い方をAIが振り返る。', tags: ['要ログイン', 'Trello連携'] },
       { path: '/whisper', icon: '🎙️', name: 'whisper', desc: '録音や音声ファイルから文字起こし・要約・校正。Whisper / Gemini を切替可能。', tags: ['要ログイン'] },
       { path: '/hagemashi', icon: '💪', name: 'はげまし', desc: 'いまの状況を話すと、AIがはげましの言葉を書いて読み上げる。', tags: ['要ログイン', '読み上げ'] },
@@ -53,7 +52,6 @@ export const SECTIONS: Section[] = [
       { path: '/games/kenken', icon: '🧠', name: '賢くなるパズル', desc: 'ケンケン（KenKen）。ナンプレ＋四則計算のパズルで、暗算力と論理力を鍛える。' },
       { path: '/fitbit', icon: '⌚️', name: 'Fitbit', desc: '睡眠・歩数・心拍・HRV をまとめたヘルスダッシュボードと相談チャット。', tags: ['要ログイン', 'Google連携'] },
       { path: '/kouba', icon: '⏱️', name: 'タスクくん', desc: 'マーケティングなど自分で決めたカテゴリ×タスクで作業時間を記録。3×3の板に付箋でタスクを並べ、時間の内訳を集計する。', tags: ['要ログイン'] },
-      { path: '/setsuyaku', icon: '💰', name: '節約', desc: '節約の記録。', tags: ['要ログイン'] },
     ],
   },
 ]

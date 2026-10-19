@@ -52,4 +52,4 @@ wrangler secret put NUXT_ANTHROPIC_API_KEY
 ### データ移行（2026-10-13 実施済み）
 
 `whisper-db.osarai_sets` の11件（全件公開）を `manabi_sets` へコピーした。IDは同じなので共有済みリンクはそのまま開ける。
-`ip_hash` は持ち越していない（空）。移行元の `osarai_sets` は残してある。
+`ip_hash` は持ち越していない（空）。移行元の `osarai_sets` は2026-10-19にDROPした（バックアップは `~/Development/d1-backups/`）。

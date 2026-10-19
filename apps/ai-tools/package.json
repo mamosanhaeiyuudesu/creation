@@ -12,15 +12,12 @@
   "dependencies": {
     "cytoscape": "^3.34.0",
     "echarts": "^6",
-    "echarts-wordcloud": "^2.1.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "leaflet": "^1.9.4",
     "marked": "^17.0.4",
     "nuxt": "^4.5.2",
-    "three": "^0.186.1",
-    "vite-plugin-vuetify": "^2.1.2",
-    "vuetify": "^3.11.6"
+    "three": "^0.186.1"
   },
   "packageManager": "yarn@4.9.1+sha512.f95ce356460e05be48d66401c1ae64ef84d163dd689964962c6888a9810865e39097a5e9de748876c2e0bf89b232d583c33982773e9903ae7a76257270986538",
   "devDependencies": {
