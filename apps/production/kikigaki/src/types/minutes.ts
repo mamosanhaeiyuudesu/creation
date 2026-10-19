@@ -32,7 +32,18 @@ export function normalizeMode(v: unknown): MinutesMode {
  */
 export const MAX_TRANSCRIPT_CHARS = 50_000
 
-/** 「50,000文字中 62,345文字（12,345文字オーバー）」の形の案内。超えていないときは空 */
+/**
+ * 上限と比べるときの文字数。空白・改行は数えず、絵文字や一部の漢字も1文字として数える。
+ * JS の .length のままだと改行や絵文字（2つ分）が入って、利用者が Word などで数えた
+ * 「文字数（スペースを含めない）」より数千文字多くなり、「48,000文字なのに断られた」となるため。
+ */
+export function countTranscriptChars(text: string): number {
+  let n = 0
+  for (const ch of text) if (!/\s/.test(ch)) n++
+  return n
+}
+
+/** 「50,000文字まで／いまは62,345文字で12,345文字オーバー」の形の案内。超えていないときは空 */
 export function transcriptOverMessage(length: number): string {
   if (length <= MAX_TRANSCRIPT_CHARS) return ''
   const f = (n: number) => n.toLocaleString('ja-JP')

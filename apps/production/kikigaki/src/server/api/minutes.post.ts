@@ -5,7 +5,7 @@ import { requireUser } from '~/server/utils/auth'
 import { requireEntitlement } from '~/server/utils/entitlement'
 import { createRecord } from '~/server/utils/minutes'
 import { structureTranscript } from '~/server/utils/minutes-ai'
-import { MAX_TRANSCRIPT_CHARS, normalizeMode, transcriptOverMessage } from '~/types/minutes'
+import { MAX_TRANSCRIPT_CHARS, countTranscriptChars, normalizeMode, transcriptOverMessage } from '~/types/minutes'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -21,10 +21,11 @@ export default defineEventHandler(async (event) => {
       message: '文章が空でした。中身のあるファイルか、貼り付けた文章でお試しください。',
     })
   }
-  if (transcript.length > MAX_TRANSCRIPT_CHARS) {
+  const chars = countTranscriptChars(transcript)
+  if (chars > MAX_TRANSCRIPT_CHARS) {
     throw createError({
       statusCode: 413,
-      message: transcriptOverMessage(transcript.length),
+      message: transcriptOverMessage(chars),
     })
   }
 

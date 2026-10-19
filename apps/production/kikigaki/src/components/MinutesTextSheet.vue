@@ -81,7 +81,7 @@
 <script setup lang="ts">
 import { apiMessage } from '~/utils/apiMessage'
 import { DOCUMENT_ACCEPT, readDocumentText } from '~/utils/readDocumentText'
-import { MAX_TRANSCRIPT_CHARS, MINUTES_MODES, transcriptOverMessage, type MinutesMode } from '~/types/minutes'
+import { MAX_TRANSCRIPT_CHARS, MINUTES_MODES, countTranscriptChars, transcriptOverMessage, type MinutesMode } from '~/types/minutes'
 
 const props = defineProps<{ modelValue: boolean }>()
 defineEmits<{ 'update:modelValue': [boolean] }>()
@@ -97,8 +97,8 @@ const mode = ref<MinutesMode>('meeting')
 const textFile = ref<File | null>(null)
 const textFileInput = ref<HTMLInputElement | null>(null)
 
-/** 送るときと同じく前後の空白を除いた長さで数える（サーバーの判定とずれないように） */
-const pastedLength = computed(() => pastedText.value.trim().length)
+/** サーバーの判定と同じ数え方（空白・改行は数えない） */
+const pastedLength = computed(() => countTranscriptChars(pastedText.value))
 const pastedOver = computed(() => Math.max(0, pastedLength.value - MAX_TRANSCRIPT_CHARS))
 const fmt = (n: number) => n.toLocaleString('ja-JP')
 
@@ -147,7 +147,7 @@ async function runFromText() {
       throw new Error('文章が空でした。中身のあるファイルか、貼り付けた文章でお試しください。')
     }
     // ファイルは読むまで長さが分からないので、ここで先に断る（AIに送る前に数字つきで伝える）
-    const over = transcriptOverMessage(text.length)
+    const over = transcriptOverMessage(countTranscriptChars(text))
     if (over) throw new Error(over)
     await createMinutes(text, file?.name ?? '', mode.value)
   } catch (e) {
