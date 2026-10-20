@@ -42,3 +42,6 @@ export const MANABI_AUDIENCE_LABELS: Record<ManabiAudience, string> = { doctor: 
 
 export const MANABI_COUNTS = [5, 10, 20, 30] as const
 export type ManabiCount = (typeof MANABI_COUNTS)[number]
+
+/** イイねの「1人」を表す、端末が作るランダムID */
+export const MANABI_LIKE_VOTER_PATTERN = /^[a-zA-Z0-9-]{16,64}$/

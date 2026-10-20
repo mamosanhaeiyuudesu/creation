@@ -191,6 +191,34 @@ useHead({
   font-weight: 700;
 }
 
+/* 問題へのイイね（ハート＋件数）。押したあとは塗りつぶして押せなくする */
+.mb-like {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2rem;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--mb-ink-soft);
+  border: 1px solid var(--mb-line);
+  background: var(--mb-card);
+  transition: all 0.15s;
+}
+button.mb-like:hover {
+  border-color: var(--mb-accent);
+  color: var(--mb-accent-deep);
+}
+.mb-like--on {
+  color: var(--mb-accent-deep);
+  border-color: var(--mb-accent);
+  background: var(--mb-accent-soft);
+  font-weight: 700;
+}
+.mb-like--on svg {
+  fill: currentColor;
+}
+
 .mb-btn {
   height: 3.25rem;
   padding: 0 1.8rem;

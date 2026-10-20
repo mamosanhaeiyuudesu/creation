@@ -1033,13 +1033,12 @@ function pollGamepad(now: number) {
   }
 
   // ── アクションボタン（エッジ検出のみ） ────────────────────────
-  // A=0: 入替 / B=1: 縦横切替
+  // B(刻印)=0: 入替・決定 / Y(刻印)=2: 縦横切替・メニューの戻る
   // Start: PS2アダプターによってindex違うので 6〜11 を全部試す
   const startPressed = [6, 7, 8, 9, 10, 11].some(i => gp.buttons[i]?.pressed ?? false)
   const actMap: Record<string, boolean> = {
-    // ○=1: 入替 / ✕(0 or 2): 縦横切替
-    swap:      gp.buttons[1]?.pressed ?? false,
-    toggleDir: (gp.buttons[0]?.pressed ?? false) || (gp.buttons[2]?.pressed ?? false),
+    swap:      gp.buttons[0]?.pressed ?? false,
+    toggleDir: gp.buttons[2]?.pressed ?? false,
     start:     startPressed,
   }
 

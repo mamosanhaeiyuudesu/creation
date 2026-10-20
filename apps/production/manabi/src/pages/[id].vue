@@ -77,6 +77,20 @@
                 {{ current.explanation }}
               </p>
             </div>
+            <!-- いい問題だったら。1人1回まで、みんなの数も見える -->
+            <div class="mt-3 flex items-center justify-end gap-2">
+              <span v-if="!mine.has(currentIndex!)" class="text-[12px] text-[var(--mb-ink-faint)]">いい問題だったら</span>
+              <button
+                class="mb-like"
+                :class="{ 'mb-like--on': mine.has(currentIndex!) }"
+                :disabled="mine.has(currentIndex!)"
+                :aria-label="mine.has(currentIndex!) ? `イイね済み（${counts[currentIndex!] ?? 0}件）` : `この問題にイイねする（${counts[currentIndex!] ?? 0}件）`"
+                @click="onLike(currentIndex!)"
+              >
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.3A4.2 4.2 0 0 1 12 7.7a4.2 4.2 0 0 1 7.5 2.5c0 5.7-7.5 10.3-7.5 10.3z" /></svg>
+                <span class="tabular-nums">{{ counts[currentIndex!] ?? 0 }}</span>
+              </button>
+            </div>
           </div>
 
           <!-- 前へ・次へ。まだ答えていない問題には進めない（前の問題には、答えたあとなら戻れる） -->
@@ -140,6 +154,9 @@
                   <summary class="mb-review-summary">
                     <span class="mb-review-mark" :class="r.right ? 'mb-review-mark--good' : 'mb-review-mark--bad'">{{ r.right ? '◯' : '✕' }}</span>
                     <span class="flex-1 min-w-0 text-[14px] leading-[1.7]"><span class="text-[var(--mb-ink-faint)] tabular-nums">{{ r.qi + 1 }}.</span> {{ r.q }}</span>
+                    <span v-if="counts[r.qi]" class="shrink-0 inline-flex items-center gap-1 text-[12px] text-[var(--mb-accent-deep)] tabular-nums" :aria-label="`イイね ${counts[r.qi]}件`">
+                      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.3A4.2 4.2 0 0 1 12 7.7a4.2 4.2 0 0 1 7.5 2.5c0 5.7-7.5 10.3-7.5 10.3z" /></svg>{{ counts[r.qi] }}
+                    </span>
                   </summary>
                   <div class="px-4 pb-4 pt-1">
                     <ul class="flex flex-col gap-1.5">
@@ -161,6 +178,18 @@
                     <p v-if="r.explanation" class="mt-3 text-[13.5px] leading-[1.85] text-[var(--mb-ink-soft)]">
                       {{ r.explanation }}
                     </p>
+                    <div class="mt-3 flex justify-end">
+                      <button
+                        class="mb-like"
+                        :class="{ 'mb-like--on': mine.has(r.qi) }"
+                        :disabled="mine.has(r.qi)"
+                        :aria-label="mine.has(r.qi) ? `イイね済み（${counts[r.qi] ?? 0}件）` : `この問題にイイねする（${counts[r.qi] ?? 0}件）`"
+                        @click="onLike(r.qi)"
+                      >
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.3A4.2 4.2 0 0 1 12 7.7a4.2 4.2 0 0 1 7.5 2.5c0 5.7-7.5 10.3-7.5 10.3z" /></svg>
+                        <span class="tabular-nums">{{ counts[r.qi] ?? 0 }}</span>
+                      </button>
+                    </div>
                   </div>
                 </details>
               </li>
@@ -215,6 +244,7 @@ import { useManabiRecent } from '~/composables/useManabiRecent'
 import { recordCorrect } from '~/composables/useManabiMe'
 import { readRun, writeRun, type ManabiPhase } from '~/composables/useManabiRun'
 import { useManabiSync } from '~/composables/useManabiSync'
+import { useManabiLikes } from '~/composables/useManabiLikes'
 
 definePageMeta({ layout: 'manabi' })
 
@@ -236,6 +266,7 @@ useHead(() => ({
 
 const { touch, recordAnswered, recordScore } = useManabiRecent()
 const { scheduleSync, flush } = useManabiSync()
+const { counts, mine, load: loadLikes, like } = useManabiLikes(id)
 
 const phase = ref<ManabiPhase>('intro')
 /** 今回解く問題（set.questions の添字）。やり直しでは間違えた問題だけになる */
@@ -309,6 +340,7 @@ onMounted(() => {
     }
   }
   ready.value = true
+  loadLikes()
   window.addEventListener('keydown', onKey)
   document.addEventListener('visibilitychange', onHidden)
 })
@@ -363,6 +395,10 @@ const next = () => {
     recordScore(set.value.id, score.value)
     scheduleSync()
   }
+}
+
+const onLike = async (qi: number) => {
+  if (!(await like(qi)) && !mine.value.has(qi)) showToast('イイねできませんでした')
 }
 
 const prev = () => {
