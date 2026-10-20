@@ -1,31 +1,29 @@
 <template>
-  <div class="ac-page">
-    <nav class="ac-nav">
-      <div class="ac-nav-inner">
-        <NuxtLink to="/"><img src="/images/prototyper-nav-logo.png" alt="prototyper" class="ac-nav-logo-img"></NuxtLink>
+  <div class="pt-page">
+    <header class="pt-header">
+      <div class="pt-wrap pt-header-inner">
+        <NuxtLink to="/" class="pt-logo"><img src="/images/prototyper-nav-logo.png" alt="prototyper" /></NuxtLink>
       </div>
-    </nav>
+    </header>
 
-    <section>
-      <div class="ac-wrap">
-        <h1 class="section-title">特定商取引法に基づく表記</h1>
-        <div class="terms-payment">
-          <div class="terms-payment-body">
-            <div v-for="row in rows" :key="row.label" class="terms-payment-row">
-              <span class="terms-payment-label">{{ row.label }}</span>
-              <span class="terms-payment-value">{{ row.value }}</span>
-            </div>
+    <section class="pt-legal">
+      <div class="pt-wrap pt-wrap-narrow">
+        <h1 class="pt-title">特定商取引法に基づく表記</h1>
+        <dl class="pt-legal-list">
+          <div v-for="row in rows" :key="row.label" class="pt-legal-row">
+            <dt>{{ row.label }}</dt>
+            <dd>{{ row.value }}</dd>
           </div>
-        </div>
-        <p style="margin-top: 28px;">
-          <NuxtLink to="/" class="terms-payment-link">← トップに戻る</NuxtLink>
+        </dl>
+        <p class="pt-legal-back">
+          <NuxtLink to="/" class="pt-text-link">← トップに戻る</NuxtLink>
         </p>
       </div>
     </section>
 
-    <footer class="ac-footer">
-      <div class="ac-footer-inner">
-        <span class="ac-footer-copy">&copy; 2026 prototyper</span>
+    <footer class="pt-footer">
+      <div class="pt-wrap pt-footer-inner">
+        <span>&copy; 2026 prototyper</span>
       </div>
     </footer>
   </div>

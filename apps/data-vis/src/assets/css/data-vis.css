@@ -33,21 +33,17 @@
   box-sizing: border-box;
 }
 
-.dv-page h1,
-.dv-page h2,
-.dv-page h3,
-.dv-page p,
-.dv-page ul,
-.dv-page ol,
-.dv-page dl,
-.dv-page dd,
-.dv-page figure {
+/*
+ * リセットは :where() で詳細度を 0 にする。
+ * `.dv-page p`（クラス＋要素）のままだと `.dv-hero-sub` などの単一クラスより強く、
+ * 各部品に書いた margin / padding が全部 0 に潰されてしまう
+ */
+:where(.dv-page) :where(h1, h2, h3, p, ul, ol, dl, dd, figure) {
   margin: 0;
   padding: 0;
 }
 
-.dv-page ul,
-.dv-page ol {
+:where(.dv-page) :where(ul, ol) {
   list-style: none;
 }
 
