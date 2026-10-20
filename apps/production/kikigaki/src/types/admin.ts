@@ -26,6 +26,10 @@ export interface AdminUserRow {
   note: string
   /** いま使えるか（承認・モニター期間・管理者・支払い不要・契約を合わせた結果） */
   canUse: boolean
+  /** お休み（退会）中か。預かる期限（JST の日付）と、その期限を過ぎたか */
+  withdrawn: boolean
+  retainUntil: string
+  retentionExpired: boolean
 }
 
 export interface AdminSummary {
@@ -45,6 +49,9 @@ export interface AdminSummary {
   /** 今月のAI代の合計（円・おおよそ） */
   monthCostYen: number
   monitorMode: boolean
+  /** お休み中の人 / うち預かる期限を過ぎて消せる人 */
+  withdrawnCount: number
+  expiredCount: number
   storage: AdminStorage
 }
 

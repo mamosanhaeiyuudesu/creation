@@ -100,6 +100,12 @@
                   <span class="kk-adm-email">{{ u.email || '（メールなし）' }}</span>
                   <span v-if="u.displayName" class="kk-adm-sub">{{ u.displayName }}</span>
                   <span class="kk-adm-sub kk-adm-id" :title="u.id">{{ u.id }}</span>
+                  <!-- お休み（退会）中。預かる期限を過ぎたら、ここから消せる -->
+                  <span v-if="u.withdrawn" class="kk-adm-sub">
+                    <span class="kk-adm-badge" :class="u.retentionExpired ? 'is-warn' : ''">{{ u.retentionExpired ? 'お預かり期限切れ' : 'お休み中' }}</span>
+                    {{ u.retainUntil }}まで預かり
+                    <button v-if="u.retentionExpired" type="button" class="kk-adm-approve" @click="purgeTarget = u">データを消す</button>
+                  </span>
                 </td>
                 <td class="kk-adm-date">{{ u.createdAt.slice(0, 10) }}</td>
                 <td class="kk-adm-date">{{ u.lastLoginAt }}</td>
@@ -213,6 +219,27 @@
         </template>
       </BottomSheet>
 
+      <!-- 預かる期限が切れたお休み中のデータを消す（元に戻せないので確認を挟む） -->
+      <BottomSheet
+        :model-value="!!purgeTarget"
+        title="この人のデータを消しますか？"
+        :closable="!purging"
+        @update:model-value="purgeTarget = null"
+      >
+        <template v-if="purgeTarget">
+          <p class="kk-lead m-0"><strong>{{ purgeTarget.email }}</strong></p>
+          <p class="kk-lead mt-1">
+            お預かりの期限（{{ purgeTarget.retainUntil }}）を過ぎています。議事録（{{ purgeTarget.recordCount }}件）・設定などをすべて消します。元には戻せません。
+          </p>
+          <div class="mt-4 flex flex-col gap-2">
+            <button class="kk-btn-sub" :disabled="purging" @click="purgeUser(purgeTarget)">
+              {{ purging ? '消しています…' : 'はい、消します' }}
+            </button>
+            <button class="kk-btn-text" :disabled="purging" @click="purgeTarget = null">やめる</button>
+          </div>
+        </template>
+      </BottomSheet>
+
       <!-- 支払い不要の切り替え -->
       <BottomSheet :model-value="!!editing" title="支払い不要の設定" :closable="!saving" @update:model-value="editing = null">
         <template v-if="editing">
@@ -282,6 +309,9 @@ const stats = computed(() => {
       ? [{ label: '承認待ち', value: `${s.pendingCount}人`, sub: '承認すると使えるようになります', tone: s.pendingCount ? 'is-warn' : '' }]
       : []),
     { label: '登録者', value: `${s.userCount}人`, sub: '', tone: '' },
+    ...(s.withdrawnCount
+      ? [{ label: 'お休み中', value: `${s.withdrawnCount}人`, sub: s.expiredCount ? `うち期限切れ ${s.expiredCount}人（消せます）` : '預かり期間中', tone: s.expiredCount ? 'is-warn' : '' }]
+      : []),
     { label: '契約中', value: `${s.payingCount}人`, sub: s.trialingCount ? `うち無料期間 ${s.trialingCount}人` : '', tone: '' },
     { label: '支払い遅れ', value: `${s.paymentProblemCount}人`, sub: 'カードの更新待ち', tone: s.paymentProblemCount ? 'is-warn' : '' },
     { label: '支払い不要', value: `${s.freeAccessCount}人`, sub: '管理者を含む', tone: '' },
@@ -291,7 +321,7 @@ const stats = computed(() => {
 })
 
 // ── 絞り込み ──
-type FilterKey = 'all' | 'pending' | 'paying' | 'free' | 'none' | 'problem'
+type FilterKey = 'all' | 'pending' | 'paying' | 'free' | 'none' | 'problem' | 'withdrawn'
 const filters = computed<{ key: FilterKey; label: string }[]>(() => [
   { key: 'all', label: 'すべて' },
   ...(summary.value?.approvalRequired ? [{ key: 'pending' as const, label: '承認待ち' }] : []),
@@ -299,6 +329,7 @@ const filters = computed<{ key: FilterKey; label: string }[]>(() => [
   { key: 'free', label: '支払い不要' },
   { key: 'none', label: '未契約' },
   { key: 'problem', label: '支払い遅れ' },
+  { key: 'withdrawn', label: 'お休み中' },
 ])
 const filter = ref<FilterKey>('all')
 const query = ref('')
@@ -318,6 +349,8 @@ const filtered = computed(() => {
         return !isActiveStatus(u.status) && !u.freeAccess && !u.isAdmin
       case 'problem':
         return isPaymentProblem(u.status)
+      case 'withdrawn':
+        return u.withdrawn
       default:
         return true
     }
@@ -402,6 +435,26 @@ async function resetUsage(u: AdminUserRow) {
   resetting.value = false
 }
 
+// ── 預かる期限を過ぎたお休み中のデータを消す ──
+const purgeTarget = ref<AdminUserRow | null>(null)
+const purging = ref(false)
+
+async function purgeUser(u: AdminUserRow) {
+  errorMessage.value = ''
+  savedMessage.value = ''
+  purging.value = true
+  try {
+    await authedFetch(`/api/admin/users/${encodeURIComponent(u.id)}/purge`, { method: 'POST' })
+    savedMessage.value = `${u.email} のデータを消しました。`
+    purgeTarget.value = null
+    await load()
+    if (auditOpen.value) await loadAudit()
+  } catch (e) {
+    errorMessage.value = apiMessage(e, '消せませんでした。もう一度お試しください。')
+  }
+  purging.value = false
+}
+
 // ── 支払い不要の切り替え ──
 const editing = ref<AdminUserRow | null>(null)
 const draftFree = ref(false)
@@ -463,6 +516,7 @@ function actionLabel(action: string): string {
   if (action === 'approve') return '承認しました'
   if (action === 'reset_ai_usage') return '今月のAI利用量を0にしました'
   if (action === 'unapprove') return '承認を取り消しました'
+  if (action === 'purge_expired') return '預かる期限が切れたためデータを消しました'
   return `操作しました（${action}）`
 }
 

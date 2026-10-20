@@ -6,6 +6,18 @@ export interface AuthUser {
   id: string
   email: string
   displayName: string
+  /** お休み（退会）に入った日時(UTC)。空ならふつうに使えている */
+  withdrawnAt?: string
+  /** お休み中のデータを預かる期限(UTC) */
+  retainUntil?: string
+}
+
+/** お休み中の人に画面が出す情報（/api/me が返す） */
+export interface WithdrawnInfo {
+  /** 期限の日付（JST の「2031年10月20日」） */
+  retainUntilLabel: string
+  /** もう預かる期限を過ぎている（再開はできず、消すことだけできる） */
+  expired: boolean
 }
 
 /** 画面が持つログイン状態。checked が false のうちは「まだ分からない」＝ログイン画面を出さない */

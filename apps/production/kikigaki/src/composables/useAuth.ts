@@ -162,7 +162,7 @@ export function useAuth() {
   }
 
   /**
-   * 退会。サーバーで本人のデータをすべて消したあと、Firebase のアカウントも消す。
+   * 退会のうち「すべて消す」。サーバーで本人のデータをすべて消したあと、Firebase のアカウントも消す。
    * Firebase は「最近ログインしていない」と削除を断る（auth/requires-recent-login）。そのときは
    * データはもう消えているので、ログアウトだけして終える（次にログインしても空の状態から始まる）。
    */
@@ -178,6 +178,21 @@ export function useAuth() {
         await logout()
       }
     }
+  }
+
+  /**
+   * 退会のうち「お休み」。データは残し、契約だけ止める。Firebase のアカウントは消さずにログアウトする
+   * （消すと uid が変わり、再開したときに前のデータとつながらなくなる）。
+   */
+  async function withdrawAccount(): Promise<{ retainUntilLabel: string }> {
+    const res = await authedFetch<{ retainUntilLabel: string }>('/api/account/withdraw', { method: 'POST' })
+    await logout()
+    return res
+  }
+
+  /** お休みから戻る */
+  async function resumeAccount(): Promise<void> {
+    await authedFetch('/api/account/resume', { method: 'POST' })
   }
 
   /** いまの ID トークン。期限が近ければ Firebase が自動で更新する */
@@ -225,5 +240,7 @@ export function useAuth() {
     idToken,
     authedFetch,
     deleteAccount,
+    withdrawAccount,
+    resumeAccount,
   }
 }

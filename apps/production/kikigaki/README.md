@@ -31,7 +31,7 @@
 
 | ルート | 内容 |
 |---|---|
-| `/` | 未ログイン＝ログイン（Google／メールのリンク）。ログイン後＝大ボタン1つ＋これまでの議事録 |
+| `/` | 未ログイン＝ログイン（Google／メールのリンク）。ログイン後＝大ボタン1つ＋これまでの議事録。**お休み中の人には「おかえりなさい」（再開／すべて消す）** |
 | `/new` | 文章をえらぶ・貼り付け → まとめ中 → できたら `/records/[id]` へ |
 | `/records/[id]` | 内容の確認・修正・PDF・削除 |
 | `/settings` | 設定はポップアップ（`components/SettingsSheet.vue`）。このURLは開くとトップへ戻して設定を開く（Stripeの戻り先） |
@@ -65,6 +65,15 @@
   （**呼ぶ前に必ず `requireUser()` を通すこと**。通さないとエラーにして未計測のAI呼び出しを防ぐ）。
   モデルや単価を変えたら `PRICE_PER_MTOK` と上限も見直す。1件あたりの文章は5万字まで。
   D1 の古い `usage_monthly` / `record_revisions` / `glossary` テーブルと `records.audio_name` 列は残っていても使っていない。
+- **退会は2種類**（`server/utils/account.ts`）。既定は「お休み」＝`users.withdrawn_at` / `retain_until` に日時を入れるだけで、
+  議事録などは消さず **5年**（`utils/withdrawal.ts` の `RETENTION_YEARS`）預かる。契約は止める。
+  もう1つは「すべて消す」＝従来どおり即時に全消去（Firebase のアカウントも消す）。
+  - お休み中は `requireUser` が **403（`data.code: 'withdrawn'`）** で止める。通すのは `/api/me`・`/api/account/resume`・`DELETE /api/account` だけ
+    （`requireUser(event, { allowWithdrawn: true })`）。新しい API を足すときは何もしなくてよい（既定で止まる）。
+  - お休みでは **Firebase のアカウントを消さない**（uid が変わると再開したデータとつながらないため）。
+    `ensureUser` の「同じメールなら既存の行を使う」救済は、お休み中の行には**使わない**（5年のあいだにメールの持ち主が変わりうる。uid が違えば 409）。
+  - 5年を過ぎたデータは **管理画面から手動で消す**（Cron が使えないため。`purgeExpiredUser`。期限前は消せない）。管理画面の「お休み中」に期限切れの人数が出る。
+  - 期限切れ前の通知メールは出せない（メール送信の仕組みが無い）。規約・プライバシーポリシーにもそう書いてある。
 - Cron は使わない（Freeプランのcronはアカウント全体で5個までで、ai-tools が使い切っている）。
 
 ## ローカルで動かす

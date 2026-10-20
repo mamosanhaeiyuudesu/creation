@@ -69,6 +69,38 @@
       </p>
     </template>
 
+    <!-- ── お休み（退会）中のとき。再開するか、すべて消すかを選んでもらう ───────── -->
+    <template v-else-if="withdrawn">
+      <h1 class="kk-h1 mt-6">おかえりなさい</h1>
+      <p v-if="errorMessage" class="kk-notice kk-notice--error mt-4">{{ errorMessage }}</p>
+
+      <template v-if="!withdrawn.expired">
+        <p class="kk-lead mt-2">
+          いまはお休み中です。これまでの議事録は
+          <strong v-if="withdrawn.retainUntilLabel">{{ withdrawn.retainUntilLabel }}</strong><template v-else>期限</template>
+          までお預かりしています。再開すると、そのまま使えます。
+        </p>
+        <div class="mt-5">
+          <button class="kk-btn" :disabled="resuming" @click="resume">
+            {{ resuming ? '再開しています…' : '再開する' }}
+          </button>
+        </div>
+      </template>
+      <template v-else>
+        <p class="kk-lead mt-2">
+          お預かりする期間（{{ withdrawn.retainUntilLabel }}まで）が過ぎました。
+          前の議事録は近いうちに消えるため、再開はできません。もう一度使うときは、いったんすべて消してから、あらためて登録してください。
+        </p>
+      </template>
+
+      <p class="kk-note mt-5">
+        データを今すぐ消したいときは
+        <button type="button" class="underline" :disabled="resuming" @click="eraseOpen = true">すべて消してやめる</button>
+        を押してください。
+      </p>
+      <WithdrawSheet v-model="eraseOpen" erase-only @done="onErased" />
+    </template>
+
     <!-- ── ログインしているとき ─────────────────────────────── -->
     <template v-else>
       <p v-if="errorMessage" class="kk-notice kk-notice--error mb-3">{{ errorMessage }}</p>
@@ -347,7 +379,8 @@ useHead({ title: `${SERVICE.name} — 会議の文章から議事録を` })
 
 const router = useRouter()
 const route = useRoute()
-const { isLoggedIn, checked, signInWithGoogle, sendLoginLink, catchRedirectError, authedFetch } = useAuth()
+const { isLoggedIn, checked, signInWithGoogle, sendLoginLink, catchRedirectError, authedFetch, resumeAccount } = useAuth()
+const { withdrawn, refresh: refreshWithdrawn, isWithdrawnError } = useWithdrawn()
 
 const errorMessage = ref('')
 const busy = ref(false)
@@ -585,18 +618,49 @@ function resetEmailForm() {
   errorMessage.value = ''
 }
 
+// ── お休み中の人の「再開」「すべて消す」 ──
+const resuming = ref(false)
+const eraseOpen = ref(false)
+
+async function resume() {
+  errorMessage.value = ''
+  resuming.value = true
+  try {
+    await resumeAccount()
+    withdrawn.value = null
+    await loadRecords()
+  } catch (e) {
+    errorMessage.value = apiMessage(e, '再開できませんでした。少し時間をおいてから、もう一度お試しください。')
+    // 期限が過ぎていた（410）など、状態が変わっていたら画面も合わせる
+    await refreshWithdrawn().catch(() => {})
+  }
+  resuming.value = false
+}
+
+async function onErased() {
+  withdrawn.value = null
+  records.value = []
+  await router.push('/')
+}
+
 async function loadRecords() {
   loadingRecords.value = true
   try {
     const res = await authedFetch<{ records: RecordSummary[] }>('/api/records')
+    withdrawn.value = null
     records.value = res.records.map((r) => ({
       ...r,
       dateLabel: formatMeetingDate(r.date, r.createdAt),
       createdLabel: formatDateLabel((r.createdAt ?? '').slice(0, 10)) || '—',
     }))
   } catch (e) {
-    errorMessage.value = apiMessage(e, '議事録の一覧を読み込めませんでした。画面を開き直してみてください。')
     records.value = []
+    // お休み中の人は一覧が読めない（403）。エラーにせず「おかえりなさい」の画面に切り替える
+    if (isWithdrawnError(e)) {
+      await refreshWithdrawn().catch(() => {})
+    } else {
+      errorMessage.value = apiMessage(e, '議事録の一覧を読み込めませんでした。画面を開き直してみてください。')
+    }
   }
   loadingRecords.value = false
 }
@@ -604,7 +668,10 @@ async function loadRecords() {
 // ログインが済んだ時点で読み込む（この watch が無いと、ログイン直後に一覧が空のまま見える）
 watch(isLoggedIn, async (v) => {
   if (v) await loadRecords()
-  else records.value = []
+  else {
+    records.value = []
+    withdrawn.value = null
+  }
 })
 
 onMounted(async () => {

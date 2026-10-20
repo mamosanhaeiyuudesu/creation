@@ -13,7 +13,7 @@
 
     <!-- タグ。ふだんは横に並べ、押すとそのタグで一覧を絞り込む。
          「編集」を押したときだけ、名前の変更（既にあるタグにすると1つにまとまる）と削除（全部の議事録から外す）ができる -->
-    <section class="kk-set-sec">
+    <section v-if="!withdrawn" class="kk-set-sec">
       <h2 class="kk-set-title">
         タグ<span v-if="allTags.length" class="kk-set-tag-total">{{ allTags.length }}</span>
         <button v-if="allTags.length" type="button" class="kk-set-tag-mode" @click="toggleTagEditMode">
@@ -75,7 +75,7 @@
     </BottomSheet>
 
     <!-- 今月の利用量 -->
-    <section class="kk-set-sec">
+    <section v-if="!withdrawn" class="kk-set-sec">
       <h2 class="kk-set-title">
         今月のAI利用量
         <span v-if="usage" class="kk-set-num">{{ usage.usedPercent }}%</span>
@@ -91,7 +91,7 @@
 
     <!-- PDFの文字数（アカウント全体。すべての議事録のPDFに効く）。
          選んだらすぐ保存し、次にPDFを作るときから使われる（PDFは保存しておらず毎回作るので、作り直しは要らない） -->
-    <section class="kk-set-sec">
+    <section v-if="!withdrawn" class="kk-set-sec">
       <div class="kk-set-pdf-row">
         <label class="kk-set-title m-0" for="pdf-max-chars">PDFの文字数</label>
         <span v-if="pdfSaved" class="kk-set-pdf-saved" role="status">✓ 保存しました</span>
@@ -108,7 +108,7 @@
     </section>
 
     <!-- お支払い -->
-    <section class="kk-set-sec">
+    <section v-if="!withdrawn" class="kk-set-sec">
       <h2 class="kk-set-title">お支払い</h2>
 
       <template v-if="monitorMode">
@@ -166,7 +166,7 @@
     </section>
 
     <!-- Googleドライブ。つながっているかだけ分かればよいので、説明文は置かない -->
-    <section class="kk-set-sec">
+    <section v-if="!withdrawn" class="kk-set-sec">
       <h2 class="kk-set-title m-0">
         <span class="inline-flex items-center gap-1.5"><GoogleDriveIcon class="w-[14px] h-[14px]" />Googleドライブ</span>
         <span v-if="driveConnected" class="kk-set-drive-on">
@@ -205,44 +205,11 @@
       <h2 class="kk-set-title">ログインしている人</h2>
       <p class="kk-set-text kk-set-email" :title="user?.email || ''">{{ user?.email || '（メールアドレスなし）' }}</p>
       <button class="kk-set-btn" @click="doLogout">ログアウトする</button>
-      <button type="button" class="kk-set-danger-link" @click="openDelete">アカウントを削除する</button>
+      <button v-if="!withdrawn" type="button" class="kk-set-danger-link" @click="leaveOpen = true">退会する</button>
     </section>
 
-    <!-- 退会の確認。元に戻せないので、何が消えるかを並べ、確認のチェックを入れないと押せないようにする -->
-    <BottomSheet v-model="deleteOpen" title="アカウントを削除しますか？" :closable="!deleting">
-      <p class="kk-lead m-0">
-        <strong>{{ user?.email }}</strong> のアカウントを削除します。次のものがすべて消え、<strong>元には戻せません</strong>。
-      </p>
-      <ul class="kk-lead mt-2 mb-0 pl-5 list-disc">
-        <li>これまでの議事録と、元の文章（{{ recordCountLabel }}）</li>
-        <li>PDFの文字数などの設定</li>
-      </ul>
-      <p v-if="billing?.status && !['canceled', 'incomplete_expired'].includes(billing.status)" class="kk-notice kk-notice--warn mt-3">
-        お支払いの契約は、削除と同時に解約されます。お支払い済みの期間の返金はありません。
-      </p>
-      <p class="kk-note mt-2 mb-0">
-        Googleドライブに保存したPDFや、ダウンロードしたPDFは消えません（ご自身の端末・ドライブにあるため）。
-        お支払いの記録は、法令にもとづき決済会社（Stripe）に一定期間残ります。
-      </p>
-      <label v-if="user?.email" class="mt-3 block">
-        <span class="kk-note">確認のため、アカウントのメールアドレス（<strong>{{ user.email }}</strong>）を入力してください</span>
-        <input
-          v-model="deleteEmail"
-          type="email"
-          class="kk-input mt-1 w-full"
-          autocomplete="off"
-          :placeholder="user.email"
-          :disabled="deleting"
-        >
-      </label>
-      <div class="mt-3 flex flex-col gap-2">
-        <button class="kk-set-delete-btn" :disabled="!deleteConfirmed || deleting" @click="doDelete">
-          {{ deleting ? '削除しています…' : 'アカウントを削除する' }}
-        </button>
-        <button class="kk-btn-text" :disabled="deleting" @click="deleteOpen = false">やめる</button>
-      </div>
-      <p v-if="deleteError" class="kk-notice kk-notice--error mt-3">{{ deleteError }}</p>
-    </BottomSheet>
+    <!-- 退会の確認（お休み／すべて消す） -->
+    <WithdrawSheet v-model="leaveOpen" @done="onLeft" />
   </div>
 </template>
 
@@ -251,13 +218,15 @@ import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
 import { parseMonitorMode } from '~/utils/entitlement'
 import type { BillingStatus } from '~/types/billing'
+import type { WithdrawnInfo } from '~/types/auth'
 import { PDF_MAX_CHARS_MAX, PDF_MAX_CHARS_MIN } from '~/types/settings'
 import { normalizeUserSettings } from '~/utils/userSettings'
 import { MAX_TAG_LENGTH, normalizeTag } from '~/utils/tags'
 
 const router = useRouter()
 const route = useRoute()
-const { user, isLoggedIn, authedFetch, logout, deleteAccount } = useAuth()
+const { user, isLoggedIn, authedFetch, logout } = useAuth()
+const { withdrawn } = useWithdrawn()
 const { connected: driveConnected, refresh: refreshDrive, connect, disconnect } = useDrive()
 const driveBusy = ref(false)
 const paidFlag = useState<boolean>('kk-settings-paid', () => false)
@@ -317,18 +286,26 @@ async function onPdfChange(e: Event) {
 }
 
 async function load() {
-  loadTags().catch(() => {})
+  // 最初に /api/me を読む。お休み中の人は議事録も設定も読めない（403）ので、ここで分かれば他は呼ばない
   try {
-    await loadUserSettings()
-  } catch (e) {
-    errorMessage.value = apiMessage(e, '設定を読み込めませんでした。画面を開き直してみてください。')
-  }
-  try {
-    const me = await authedFetch<{ usage: typeof usage.value; isAdmin: boolean; pendingApproval: boolean }>('/api/me')
+    const me = await authedFetch<{
+      usage: typeof usage.value
+      isAdmin: boolean
+      pendingApproval: boolean
+      withdrawn: WithdrawnInfo | null
+    }>('/api/me')
+    withdrawn.value = me.withdrawn ?? null
     usage.value = me.usage
     usageExhausted.value = !!me.usage?.exhausted
     isAdmin.value = !!me.isAdmin
     pendingApproval.value = !!me.pendingApproval
+    if (me.withdrawn) return
+  } catch (e) {
+    errorMessage.value = apiMessage(e, '設定を読み込めませんでした。画面を開き直してみてください。')
+  }
+  loadTags().catch(() => {})
+  try {
+    await loadUserSettings()
   } catch (e) {
     errorMessage.value = apiMessage(e, '設定を読み込めませんでした。画面を開き直してみてください。')
   }
@@ -476,56 +453,21 @@ async function confirmTagDelete() {
   tagBusy.value = false
 }
 
-// ── 退会 ──
-const deleteOpen = ref(false)
-const deleteEmail = ref('')
-// メールアドレスが入力と一致して初めて削除できる（大文字小文字・前後の空白は無視）。メールが無いアカウントは確認なし
-const deleteConfirmed = computed(() => {
-  const email = (user.value?.email ?? '').trim().toLowerCase()
-  return !email || deleteEmail.value.trim().toLowerCase() === email
-})
-const deleting = ref(false)
-const deleteError = ref('')
-const recordCount = ref<number | null>(null)
-const recordCountLabel = computed(() => (recordCount.value === null ? '全件' : `${recordCount.value}件`))
-
-async function openDelete() {
-  deleteEmail.value = ''
-  deleteError.value = ''
-  deleteOpen.value = true
-  // 何件消えるかを見せる（読めなくても削除はできる）
-  try {
-    recordCount.value = (await authedFetch<{ records: unknown[] }>('/api/records')).records.length
-  } catch {
-    recordCount.value = null
-  }
-  // モニター期間中は契約状態を読んでいないので、解約の注意を出すために読む
-  if (!billing.value) {
-    try {
-      billing.value = await authedFetch<BillingStatus>('/api/billing/status')
-    } catch {
-      // 読めなくても、サーバー側で契約があれば必ず解約してから消す
-    }
-  }
-}
-
-async function doDelete() {
-  deleteError.value = ''
-  deleting.value = true
-  try {
-    await deleteAccount(deleteEmail.value)
-    // この端末に残っている目印も消す（ドライブの連携・PDFの設定など）
-    await disconnect()
-    isAdmin.value = false
-    deleteOpen.value = false
-    await router.push('/')
-  } catch (e) {
-    deleteError.value = apiMessage(e, '削除できませんでした。少し時間をおいてから、もう一度お試しください。')
-  }
-  deleting.value = false
+// ── 退会（お休み／すべて消す） ──
+const leaveOpen = ref(false)
+async function onLeft(kind: 'rest' | 'erase') {
+  // すべて消したときは、この端末に残っている目印も消す（ドライブの連携・PDFの設定など）。
+  // お休みのときは通常のログアウトと同じで、端末の設定はそのまま
+  if (kind === 'erase') await disconnect()
+  isAdmin.value = false
+  pendingApproval.value = false
+  usageExhausted.value = false
+  withdrawn.value = null
+  await router.push('/')
 }
 
 async function doLogout() {
+  withdrawn.value = null
   isAdmin.value = false
   pendingApproval.value = false
   usageExhausted.value = false
@@ -626,22 +568,6 @@ watch(() => route.path, refreshAll)
 }
 .kk-set-danger-link:hover {
   color: var(--kk-danger);
-}
-.kk-set-delete-btn {
-  width: 100%;
-  min-height: 44px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--kk-danger);
-  color: #fff;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.kk-set-delete-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
 }
 .kk-set-tag-total {
   margin-right: auto;

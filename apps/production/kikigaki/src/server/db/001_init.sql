@@ -16,7 +16,11 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT NOT NULL DEFAULT '',
   display_name TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  last_login_at TEXT NOT NULL DEFAULT (datetime('now'))
+  last_login_at TEXT NOT NULL DEFAULT (datetime('now')),
+  -- お休み（退会）中の印。空でなければお休み中で、議事録などは残したまま使えない。
+  -- retain_until までは預かり、過ぎたら管理画面から消す。2026-10-20 に追加（既存のDBには ensureTables が列を足す）
+  withdrawn_at TEXT NOT NULL DEFAULT '',
+  retain_until TEXT NOT NULL DEFAULT ''
 );
 
 -- 同じメールアドレスで2行できないようにする（Google ログインとマジックリンクの統合は

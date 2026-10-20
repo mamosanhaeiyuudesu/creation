@@ -8,6 +8,7 @@ import { toStatus } from '~/server/utils/usage'
 import { canUseFeatures, isPendingApproval } from '~/utils/entitlement'
 import { SERVICE } from '~/config/service'
 import { jstYearMonth, utcToJstLabel } from '~/utils/formatDate'
+import { isRetentionExpired, retainUntilLabel } from '~/utils/withdrawal'
 import { isActiveStatus, isPaymentProblem } from '~/types/billing'
 import type { AdminSummary, AdminUserRow } from '~/types/admin'
 
@@ -31,7 +32,7 @@ export default defineEventHandler(async (event) => {
   // 1回のクエリで取る（Workers の subrequest 上限に当たらないよう、利用者ごとにループで引かない）
   const res = await db
     .prepare(
-      `SELECT u.id, u.email, u.display_name, u.created_at, u.last_login_at,
+      `SELECT u.id, u.email, u.display_name, u.created_at, u.last_login_at, u.withdrawn_at, u.retain_until,
          (SELECT COUNT(*) FROM records r WHERE r.user_id = u.id) AS record_count,
          (SELECT COUNT(*) FROM records r WHERE r.user_id = u.id AND r.created_at >= datetime('now', '-30 days')) AS recent_count,
          COALESCE((SELECT a.cost_units FROM ai_usage_monthly a WHERE a.user_id = u.id AND a.ym = ?), 0) AS cost_units,
@@ -86,7 +87,10 @@ export default defineEventHandler(async (event) => {
       approved: !pending,
       freeAccess,
       note: r.note ?? '',
-      canUse: !pending && canUseFeatures({ monitorMode, status: r.status ?? '', freeAccess: freeAccess || isAdmin }),
+      withdrawn: !!r.withdrawn_at,
+      retainUntil: retainUntilLabel(r.retain_until ?? ''),
+      retentionExpired: !!r.withdrawn_at && isRetentionExpired(r.retain_until ?? ''),
+      canUse: !r.withdrawn_at && !pending && canUseFeatures({ monitorMode, status: r.status ?? '', freeAccess: freeAccess || isAdmin }),
     }
   })
 
@@ -102,6 +106,8 @@ export default defineEventHandler(async (event) => {
     recentRecordCount: rows.reduce((sum, r) => sum + (Number(r.recent_count) || 0), 0),
     monthCostYen: users.reduce((sum, u) => sum + u.costYen, 0),
     monitorMode,
+    withdrawnCount: users.filter((u) => u.withdrawn).length,
+    expiredCount: users.filter((u) => u.retentionExpired).length,
     storage: {
       dbBytes,
       limitBytes: D1_LIMIT_BYTES,
