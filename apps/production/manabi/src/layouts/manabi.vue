@@ -14,7 +14,7 @@ useHead({
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
     {
       rel: 'stylesheet',
-      href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap',
+      href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Maru+Gothic:wght@500;700;900&display=swap',
     },
   ],
 })
@@ -53,7 +53,7 @@ useHead({
   color-scheme: light;
   color: var(--mb-ink);
   background: var(--mb-paper);
-  font-family: 'Noto Sans JP', 'Hiragino Sans', system-ui, sans-serif;
+  font-family: 'こども丸ゴシック', 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Noto Sans JP', 'Hiragino Sans', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
