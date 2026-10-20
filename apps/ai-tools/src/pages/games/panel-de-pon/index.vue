@@ -1,71 +1,70 @@
 <template>
-  <div class="flex flex-col items-center py-4 px-0 lg:px-2 min-h-full select-none">
+  <div
+    class="pdp-root flex flex-col items-center lg:items-stretch py-3 lg:pb-2 min-h-full lg:h-screen select-none"
+    :class="gameMode === 'puzzle' ? 'pdp-puzzle' : ''"
+  >
     <AuthModal v-if="showAuthModal" accent="sky" />
-
 
     <!-- Stage Clear overlay -->
     <Transition name="ovl">
-      <div v-if="phase === 'stageclear'" class="fixed inset-0 bg-black/75 flex items-center justify-center z-50 backdrop-blur-sm">
-        <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-emerald-400/40 rounded-3xl p-8 text-center max-w-sm mx-4 shadow-[0_0_60px_rgba(52,211,153,0.25)] animate-[pop_0.4s_cubic-bezier(0.34,1.56,0.64,1)]">
+      <div v-if="phase === 'stageclear'" class="pdp-ovl z-50">
+        <div class="pdp-card pdp-acc-red pdp-pop">
           <div class="flex justify-center gap-1.5 text-3xl mb-2">
             <span class="animate-[wiggle_0.5s_ease_infinite]">🎉</span>
             <span class="animate-[wiggle_0.5s_ease_0.1s_infinite]">⭐</span>
             <span class="animate-[wiggle_0.5s_ease_0.2s_infinite]">🎉</span>
           </div>
-          <p class="text-emerald-400 text-sm font-semibold mb-1 tracking-wider">ステージ {{ stage }} クリア！</p>
-          <h2 class="m-0 text-2xl font-extrabold bg-gradient-to-r from-yellow-300 via-emerald-300 to-teal-300 bg-clip-text text-transparent mb-3 leading-tight">
-            {{ clearPraise?.title }}
-          </h2>
-          <p class="text-slate-300 text-sm leading-relaxed mb-6">{{ clearPraise?.message }}</p>
-          <button
-            v-if="stage < STAGE_TARGETS.length"
-            class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-base cursor-pointer border-none hover:opacity-90 transition-opacity"
-            @click="goNextStage"
-          >次のステージへ →</button>
-          <button
-            v-else
-            class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-base cursor-pointer border-none hover:opacity-90 transition-opacity"
-            @click="resetToStart"
-          >🏆 全クリア！最初から</button>
+          <p class="pdp-card-kicker">たいけつ {{ stage }} クリア！</p>
+          <h2 class="pdp-praise">{{ clearPraise?.title }}</h2>
+          <p class="pdp-card-text !mb-4">{{ clearPraise?.message }}</p>
+          <div v-if="records.length" class="pdp-clear-rank">
+            <div class="pdp-side-label">{{ gameMode === 'puzzle' ? '最新クリア' : `たいけつ ${stage} ランキング` }}</div>
+            <div
+              v-for="rec in records" :key="rec.rank"
+              class="pdp-rk-row px-1.5 py-0.5 text-xs"
+              :class="{ 'is-top': rec.rank === 1 }"
+            >
+              <span class="pdp-rk-no w-4 text-right text-[10px]">{{ rec.rank }}</span>
+              <span class="font-mono font-bold w-8 shrink-0">{{ rec.name }}</span>
+              <span class="pdp-dim font-mono text-[9px] shrink-0">{{ formatDate(rec.recorded_at) }}</span>
+              <span v-if="gameMode === 'normal'" class="font-mono text-right flex-1">{{ formatTime(rec.seconds) }}</span>
+            </div>
+          </div>
+          <button v-if="stage < STAGE_TARGETS.length" class="pdp-btn" @click="goNextStage">次のたいけつへ →</button>
+          <button v-else class="pdp-btn pdp-btn--gold" @click="resetToStart">🏆 全クリア！最初から</button>
         </div>
       </div>
     </Transition>
 
     <!-- Game Over overlay -->
     <Transition name="ovl">
-      <div v-if="phase === 'gameover'" class="fixed inset-0 bg-black/75 flex items-center justify-center z-50 backdrop-blur-sm">
-        <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-red-400/40 rounded-3xl p-8 text-center max-w-xs mx-4 shadow-[0_0_60px_rgba(248,113,113,0.2)]">
+      <div v-if="phase === 'gameover'" class="pdp-ovl z-50">
+        <div class="pdp-card pdp-card--sm pdp-acc-red">
           <div class="text-5xl mb-3">💀</div>
-          <h2 class="m-0 text-2xl font-bold text-red-400 mb-1">ゲームオーバー</h2>
-          <p class="text-slate-400 text-sm mb-6">ステージ {{ stage }}</p>
-          <button
-            class="w-full py-3 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 text-white font-bold text-base cursor-pointer border-none hover:opacity-90 transition-opacity mb-2"
-            @click="startGame"
-          >このステージからリトライ</button>
-          <button
-            class="w-full py-2.5 rounded-xl border border-slate-600 text-slate-400 text-sm font-medium cursor-pointer bg-transparent hover:bg-white/[0.06] transition-colors"
-            @click="resetToStart"
-          >ステージ1から</button>
+          <h2 class="pdp-card-title">ゲームオーバー</h2>
+          <p class="pdp-card-sub">たいけつ {{ stage }}</p>
+          <button class="pdp-btn mb-2" @click="startGame">このたいけつからリトライ</button>
+          <button class="pdp-btn pdp-btn--ghost" @click="resetToStart">たいけつ1から</button>
         </div>
       </div>
     </Transition>
 
     <!-- Name Entry Modal -->
     <Transition name="ovl">
-      <div v-if="showNameEntry" class="fixed inset-0 bg-black/85 flex items-center justify-center z-[60] backdrop-blur-sm">
-        <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-amber-400/40 rounded-3xl p-8 text-center max-w-xs mx-4 shadow-[0_0_60px_rgba(251,191,36,0.2)]">
+      <div v-if="showNameEntry" class="pdp-ovl z-[60]">
+        <div class="pdp-card pdp-card--sm pdp-acc-gold">
           <div class="text-4xl mb-3">{{ gameMode === 'puzzle' ? '🧩' : '🏆' }}</div>
-          <h2 class="m-0 text-xl font-bold text-amber-400 mb-1">{{ gameMode === 'puzzle' ? 'クリア記録！' : '記録達成！' }}</h2>
-          <p class="text-slate-400 text-sm mb-1">{{ gameMode === 'puzzle' ? `パズル ST${stage}` : `ステージ ${stage}` }} クリアタイム</p>
-          <p class="font-mono text-2xl font-bold text-white mb-4">{{ formatTime(clearSeconds) }}</p>
-          <p class="text-slate-500 text-xs mb-3">名前を3文字で入力（↑↓で変更・Enter登録）</p>
+          <h2 class="pdp-card-title">{{ gameMode === 'puzzle' ? 'クリア記録！' : '記録達成！' }}</h2>
+          <p class="pdp-card-sub mb-1">{{ gameMode === 'puzzle' ? `なぞとき ST${stage}` : `たいけつ ${stage}` }} クリアタイム</p>
+          <p class="font-mono text-2xl font-bold mb-4">{{ formatTime(clearSeconds) }}</p>
+          <p class="pdp-dim text-xs mb-3">名前を3文字で入力（↑↓で変更・Enter登録）</p>
 
           <!-- Name suggestions from leaderboard -->
           <div v-if="suggestedNames.length > 0" class="flex flex-wrap gap-1.5 justify-center mb-3">
             <button
               v-for="name in suggestedNames"
               :key="name"
-              class="px-3 py-1 rounded-lg bg-white/[0.08] border border-white/10 text-slate-300 font-mono text-sm hover:bg-amber-400/20 hover:border-amber-400/40 hover:text-amber-300 transition-colors cursor-pointer"
+              class="pdp-chip px-3 py-1 font-mono text-sm"
               @click="selectSuggestedName(name)"
             >{{ name }}</button>
           </div>
@@ -73,152 +72,146 @@
           <div class="flex gap-2 justify-center mb-3">
             <div
               v-for="(ch, i) in nameChars" :key="i"
-              class="w-12 h-14 rounded-xl border-2 flex items-center justify-center text-2xl font-bold font-mono cursor-pointer transition-colors"
-              :class="nameInputIdx === i ? 'border-amber-400 bg-amber-400/10 text-amber-300' : 'border-slate-600 bg-white/[0.05] text-white'"
+              class="pdp-namebox"
+              :class="{ 'is-on': nameInputIdx === i }"
               @click="nameInputIdx = i"
             >{{ ch }}</div>
           </div>
 
           <div class="flex gap-2 justify-center mb-5">
             <div v-for="(_, i) in nameChars" :key="i" class="flex flex-col items-center gap-1">
-              <button class="w-11 h-8 rounded-lg bg-white/[0.08] border border-white/10 text-white text-xs hover:bg-white/[0.15] transition-colors cursor-pointer" @click="changeLetter(i, 1); nameInputIdx = i">▲</button>
-              <button class="w-11 h-8 rounded-lg bg-white/[0.08] border border-white/10 text-white text-xs hover:bg-white/[0.15] transition-colors cursor-pointer" @click="changeLetter(i, -1); nameInputIdx = i">▼</button>
+              <button class="pdp-chip w-11 h-8 text-xs" @click="changeLetter(i, 1); nameInputIdx = i">▲</button>
+              <button class="pdp-chip w-11 h-8 text-xs" @click="changeLetter(i, -1); nameInputIdx = i">▼</button>
             </div>
           </div>
 
-          <button
-            class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-base cursor-pointer border-none hover:opacity-90 transition-opacity mb-2"
-            @click="submitRecord"
-          >登録する</button>
-          <button
-            class="w-full py-2 rounded-xl border border-slate-700 text-slate-500 text-sm cursor-pointer bg-transparent hover:bg-white/[0.04] transition-colors"
-            @click="showNameEntry = false"
-          >スキップ</button>
+          <button class="pdp-btn mb-2" @click="submitRecord">登録する</button>
+          <button class="pdp-btn pdp-btn--ghost" @click="showNameEntry = false">スキップ</button>
         </div>
       </div>
     </Transition>
 
     <!-- Ranking Popup -->
     <Transition name="ovl">
-      <div
-        v-if="showRankingPopup"
-        class="fixed inset-0 bg-black/85 flex items-center justify-center z-[70] backdrop-blur-sm"
-        @click.self="showRankingPopup = false"
-      >
-        <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-slate-700/60 rounded-3xl p-6 text-center w-72 mx-4 shadow-[0_0_60px_rgba(0,0,0,0.6)]">
+      <div v-if="showRankingPopup" class="pdp-ovl z-[70]" @click.self="showRankingPopup = false">
+        <div class="pdp-card pdp-card--sm pdp-acc-gold" style="max-width: 20rem">
           <div class="text-3xl mb-2">{{ gameMode === 'puzzle' ? '🧩' : '🏆' }}</div>
-          <h2 class="m-0 text-lg font-bold text-slate-200 mb-1">
-            {{ gameMode === 'puzzle' ? `パズル ST${stage} 最新記録` : `ステージ ${stage} ランキング` }}
+          <h2 class="pdp-card-title" style="font-size: 1.1rem">
+            {{ gameMode === 'puzzle' ? `なぞとき ST${stage} 最新記録` : `たいけつ ${stage} ランキング` }}
           </h2>
-          <p class="text-slate-500 text-xs mb-4">あなたの記録: {{ formatTime(submittedSeconds) }}</p>
+          <p class="pdp-dim text-xs mb-4">あなたの記録: {{ formatTime(submittedSeconds) }}</p>
 
           <div class="flex flex-col gap-1 text-left mb-5">
             <div
               v-for="rec in records" :key="rec.rank"
-              class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm transition-colors"
-              :class="rec.rank === submittedRank
-                ? 'bg-amber-400/15 border border-amber-400/50'
-                : 'bg-white/[0.03]'"
+              class="pdp-rk-row px-3 py-1.5 text-sm"
+              :class="{ 'is-me': rec.rank === submittedRank }"
             >
-              <span
-                class="w-5 text-right font-bold text-[11px] shrink-0"
-                :class="rec.rank === submittedRank ? 'text-amber-300' : rec.rank === 1 ? 'text-amber-400' : 'text-slate-600'"
-              >{{ rec.rank }}</span>
-              <span
-                class="font-mono font-bold w-10 shrink-0"
-                :class="rec.rank === submittedRank ? 'text-amber-200' : 'text-slate-300'"
-              >{{ rec.name }}</span>
-              <span class="font-mono text-[10px] text-slate-600 shrink-0">{{ formatDate(rec.recorded_at) }}</span>
-              <span
-                class="flex-1 font-mono text-right"
-                :class="rec.rank === submittedRank ? 'text-amber-300' : 'text-slate-500'"
-              >{{ formatTime(rec.seconds) }}</span>
-              <span
-                v-if="rec.rank === submittedRank"
-                class="text-[9px] font-bold text-amber-400 bg-amber-400/20 px-1.5 py-0.5 rounded-full shrink-0"
-              >NEW</span>
+              <span class="pdp-rk-no w-5 text-right text-[11px]">{{ rec.rank }}</span>
+              <span class="font-mono font-bold w-10 shrink-0">{{ rec.name }}</span>
+              <span class="pdp-dim font-mono text-[10px] shrink-0">{{ formatDate(rec.recorded_at) }}</span>
+              <span class="flex-1 font-mono text-right">{{ formatTime(rec.seconds) }}</span>
+              <span v-if="rec.rank === submittedRank" class="pdp-new">NEW</span>
             </div>
           </div>
 
-          <button
-            class="w-full py-2.5 rounded-xl bg-white/[0.07] border border-white/10 text-slate-300 font-medium text-sm cursor-pointer hover:bg-white/[0.12] transition-colors"
-            @click="showRankingPopup = false"
-          >閉じる</button>
+          <button class="pdp-btn pdp-btn--ghost" @click="showRankingPopup = false">閉じる</button>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Start Ranking（スタートを押すと、そのステージのランキングを見せてから始める） -->
+    <Transition name="ovl">
+      <div v-if="showStartRanking" class="pdp-ovl z-[66]" @click.self="showStartRanking = false">
+        <div class="pdp-card pdp-card--sm pdp-acc-gold" style="max-width: 20rem">
+          <div class="text-3xl mb-2">{{ gameMode === 'puzzle' ? '🧩' : '🏆' }}</div>
+          <h2 class="pdp-card-title" style="font-size: 1.1rem; margin-bottom: 16px">
+            {{ gameMode === 'puzzle' ? `なぞとき ST${stage} 最新クリア` : `たいけつ ${stage} ランキング` }}
+          </h2>
+          <div v-if="recordsLoading" class="pdp-dim text-xs py-2 mb-4">…</div>
+          <div v-else-if="records.length === 0" class="pdp-dim text-xs py-2 mb-4">記録なし</div>
+          <div v-else class="flex flex-col gap-1 text-left mb-5">
+            <div
+              v-for="rec in records" :key="rec.rank"
+              class="pdp-rk-row px-3 py-1 text-sm"
+              :class="{ 'is-top': rec.rank === 1 }"
+            >
+              <span class="pdp-rk-no w-5 text-right text-[11px]">{{ rec.rank }}</span>
+              <span class="font-mono font-bold w-10 shrink-0">{{ rec.name }}</span>
+              <span class="pdp-dim font-mono text-[10px] shrink-0">{{ formatDate(rec.recorded_at) }}</span>
+              <span v-if="gameMode === 'normal'" class="flex-1 font-mono text-right">{{ formatTime(rec.seconds) }}</span>
+            </div>
+          </div>
+          <button class="pdp-btn mb-2" @click="confirmStartRanking">スタート</button>
+          <button class="pdp-btn pdp-btn--ghost" @click="showStartRanking = false">もどる</button>
         </div>
       </div>
     </Transition>
 
     <!-- Puzzle Clear overlay -->
     <Transition name="ovl">
-      <div v-if="phase === 'puzzleclear'" class="fixed inset-0 bg-black/75 flex items-center justify-center z-50 backdrop-blur-sm">
-        <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-violet-400/40 rounded-3xl p-8 text-center max-w-sm mx-4 shadow-[0_0_60px_rgba(167,139,250,0.25)] animate-[pop_0.4s_cubic-bezier(0.34,1.56,0.64,1)]">
+      <div v-if="phase === 'puzzleclear'" class="pdp-ovl z-50">
+        <div class="pdp-card pdp-acc-blue pdp-pop">
           <div class="flex justify-center gap-1.5 text-3xl mb-2">
             <span class="animate-[wiggle_0.5s_ease_infinite]">🧩</span>
             <span class="animate-[wiggle_0.5s_ease_0.1s_infinite]">✨</span>
             <span class="animate-[wiggle_0.5s_ease_0.2s_infinite]">🧩</span>
           </div>
-          <p class="text-violet-400 text-sm font-semibold mb-1 tracking-wider">パズル ST{{ stage }} クリア！</p>
-          <h2 class="m-0 text-2xl font-extrabold bg-gradient-to-r from-violet-300 via-purple-300 to-pink-300 bg-clip-text text-transparent mb-3 leading-tight">
-            {{ clearPraise?.title }}
-          </h2>
-          <p class="text-slate-300 text-sm leading-relaxed mb-6">{{ clearPraise?.message }}</p>
-          <button
-            v-if="stage < PUZZLE_STAGES.length"
-            class="w-full py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 text-white font-bold text-base cursor-pointer border-none hover:opacity-90 transition-opacity"
-            @click="goNextPuzzle"
-          >次のパズルへ →</button>
-          <button
-            v-else
-            class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-base cursor-pointer border-none hover:opacity-90 transition-opacity"
-            @click="() => { stage = 1; startPuzzle() }"
-          >🏆 全クリア！最初から</button>
+          <p class="pdp-card-kicker">なぞとき ST{{ stage }} クリア！</p>
+          <h2 class="pdp-praise">{{ clearPraise?.title }}</h2>
+          <p class="pdp-card-text !mb-4">{{ clearPraise?.message }}</p>
+          <div v-if="records.length" class="pdp-clear-rank">
+            <div class="pdp-side-label">{{ gameMode === 'puzzle' ? '最新クリア' : `たいけつ ${stage} ランキング` }}</div>
+            <div
+              v-for="rec in records" :key="rec.rank"
+              class="pdp-rk-row px-1.5 py-0.5 text-xs"
+              :class="{ 'is-top': rec.rank === 1 }"
+            >
+              <span class="pdp-rk-no w-4 text-right text-[10px]">{{ rec.rank }}</span>
+              <span class="font-mono font-bold w-8 shrink-0">{{ rec.name }}</span>
+              <span class="pdp-dim font-mono text-[9px] shrink-0">{{ formatDate(rec.recorded_at) }}</span>
+              <span v-if="gameMode === 'normal'" class="font-mono text-right flex-1">{{ formatTime(rec.seconds) }}</span>
+            </div>
+          </div>
+          <button v-if="stage < PUZZLE_STAGES.length" class="pdp-btn" @click="goNextPuzzle">次のなぞときへ →</button>
+          <button v-else class="pdp-btn pdp-btn--gold" @click="() => { stage = 1; startPuzzle() }">🏆 全クリア！最初から</button>
         </div>
       </div>
     </Transition>
 
     <!-- Puzzle Fail overlay -->
     <Transition name="ovl">
-      <div v-if="phase === 'puzzlefail'" class="fixed inset-0 bg-black/75 flex items-center justify-center z-50 backdrop-blur-sm">
-        <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-orange-400/40 rounded-3xl p-8 text-center max-w-xs mx-4 shadow-[0_0_60px_rgba(251,146,60,0.2)]">
+      <div v-if="phase === 'puzzlefail'" class="pdp-ovl z-50">
+        <div class="pdp-card pdp-card--sm pdp-acc-gold">
           <div class="text-5xl mb-3">😵</div>
-          <h2 class="m-0 text-2xl font-bold text-orange-400 mb-1">手数切れ</h2>
-          <p class="text-slate-400 text-sm mb-6">パズル ST{{ stage }}</p>
-          <button
-            class="w-full py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-base cursor-pointer border-none hover:opacity-90 transition-opacity mb-2"
-            @click="startPuzzle"
-          >もう一度</button>
-          <button
-            class="w-full py-2.5 rounded-xl border border-slate-600 text-slate-400 text-sm font-medium cursor-pointer bg-transparent hover:bg-white/[0.06] transition-colors"
-            @click="backToIdle"
-          >モード選択に戻る</button>
+          <h2 class="pdp-card-title">手数切れ</h2>
+          <p class="pdp-card-sub">なぞとき ST{{ stage }}</p>
+          <button class="pdp-btn mb-2" @click="startPuzzle">もう一度</button>
+          <button class="pdp-btn pdp-btn--ghost" @click="backToIdle">モード選択に戻る</button>
         </div>
       </div>
     </Transition>
 
     <!-- Stage/Puzzle Select overlay -->
     <Transition name="ovl">
-      <div v-if="phase === 'stageselect'" class="fixed inset-0 bg-black/85 flex items-center justify-center z-[65] backdrop-blur-sm p-4">
-        <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-white/10 rounded-3xl p-6 w-full max-w-md max-h-[85vh] flex flex-col shadow-[0_0_60px_rgba(0,0,0,0.6)]">
+      <div v-if="phase === 'stageselect' || showStagePicker" class="pdp-ovl z-[65]" @click.self="closeStagePicker">
+        <div class="pdp-card w-full max-h-[85vh] flex flex-col" style="max-width: 28rem; text-align: left; padding: 24px">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="m-0 text-lg font-bold" :class="gameMode === 'puzzle' ? 'text-violet-300' : 'text-emerald-300'">
-              {{ gameMode === 'puzzle' ? '🧩 パズルを選択' : '🎮 ステージを選択' }}
+            <h2 class="pdp-card-title !mb-0 !text-lg" style="color: var(--acc)">
+              {{ gameMode === 'puzzle' ? '🧩 なぞときを選択' : '🎮 たいけつを選択' }}
             </h2>
-            <button
-              class="text-slate-500 text-xs cursor-pointer bg-transparent border-none hover:text-slate-300 transition-colors"
-              @click="phase = 'idle'"
-            >← モード選択</button>
+            <button v-if="showStagePicker" class="pdp-link text-xs" @click="showStagePicker = false">閉じる ✕</button>
+            <button v-else class="pdp-link text-xs" @click="phase = 'idle'">← モード選択</button>
           </div>
-          <div class="grid grid-cols-4 gap-2 overflow-y-auto pr-1">
+          <div class="grid grid-cols-4 gap-2 overflow-y-auto p-1.5">
             <button
               v-for="n in stageCount" :key="n"
-              class="flex flex-col items-center gap-1 rounded-xl border p-3 transition-colors cursor-pointer"
-              :class="n === savedStage && gameMode === 'normal'
-                ? 'bg-emerald-500/15 border-emerald-400/50 text-emerald-300'
-                : 'bg-white/[0.04] border-white/10 text-slate-300 hover:bg-white/[0.09] hover:border-white/20'"
+              class="pdp-stagecard"
+              :class="{ 'is-on': n === savedStage && gameMode === 'normal', 'is-focus': pickFocus === n - 1 }"
               @click="chooseStage(n)"
             >
               <span class="text-lg font-black">{{ n }}</span>
-              <span class="text-[10px] text-slate-500">{{ gameMode === 'puzzle' ? `${PUZZLE_STAGES[n - 1].moves}手` : `目標${STAGE_TARGETS[n - 1]}` }}</span>
+              <span class="text-[10px] pdp-dim">{{ gameMode === 'puzzle' ? `${PUZZLE_STAGES[n - 1].moves}手` : `目標${STAGE_TARGETS[n - 1]}` }}</span>
             </button>
           </div>
         </div>
@@ -229,29 +222,25 @@
     <div class="portrait-notice lg:hidden fixed inset-0 bg-black/90 z-[80] flex items-center justify-center flex-col gap-4 text-center p-6">
       <div class="text-5xl">📱</div>
       <p class="text-white text-xl font-bold">端末を横にしてください</p>
-      <p class="text-slate-400 text-sm">このゲームは横画面でお楽しみください</p>
+      <p class="text-sm" style="color: var(--pdp-sub)">このゲームは横画面でお楽しみください</p>
     </div>
 
-    <!-- Header -->
-    <div class="flex items-center gap-3 mb-3">
-      <h1 class="m-0 text-base font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-        🎴 パネルでポン
-        <span v-if="phase !== 'idle'" class="text-xs font-semibold ml-1" :class="gameMode === 'puzzle' ? 'text-violet-400' : 'text-emerald-400'">
-          — {{ gameMode === 'puzzle' ? 'パズルモード' : 'ステージモード' }}
-        </span>
+    <!-- Header (mobile only. desktop は右サイドに集約) -->
+    <div class="lg:hidden flex items-center gap-3 mb-3">
+      <h1 class="pdp-title">
+        パネルでポン
+        <span v-if="phase !== 'idle'" class="pdp-title-mode">— {{ gameMode === 'puzzle' ? 'なぞときモード' : 'たいけつモード' }}</span>
       </h1>
       <button
         v-if="phase !== 'idle'"
-        class="px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer"
-        :class="gameMode === 'puzzle'
-          ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-400 hover:bg-emerald-500/25'
-          : 'bg-violet-500/15 border-violet-400/40 text-violet-400 hover:bg-violet-500/25'"
+        class="pdp-chip px-2.5 py-1 text-[11px] font-medium"
+        :disabled="phase === 'paused'"
         @click="selectMode(gameMode === 'puzzle' ? 'normal' : 'puzzle')"
-      >{{ gameMode === 'puzzle' ? '🎮 ステージへ' : '🧩 パズルへ' }}</button>
+      >{{ gameMode === 'puzzle' ? '🎮 たいけつへ' : '🧩 なぞときへ' }}</button>
     </div>
 
-    <!-- Board area: mobile=[dpad|game|buttons], desktop=[game|leaderboard] -->
-    <div class="flex items-end w-full lg:w-auto lg:gap-4 lg:items-stretch px-3 lg:px-0">
+    <!-- Board area: mobile=[dpad|game|buttons], desktop=[空き|game|サイド] -->
+    <div class="flex items-end w-full px-3 lg:px-6 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6 lg:items-center lg:flex-1 lg:min-h-0">
 
       <!-- D-pad (mobile only, left side) -->
       <div class="flex-1 flex items-center justify-start lg:hidden">
@@ -268,28 +257,27 @@
         </div>
       </div>
 
-      <!-- Game column -->
-      <div class="flex-none flex flex-col items-center lg:items-start">
-        <!-- Stage + score above board -->
-        <div class="flex items-center gap-3 mb-1.5">
-          <span class="text-sm font-bold text-slate-300">{{ gameMode === 'puzzle' ? 'パズル' : 'ステージ' }} {{ stage }}</span>
+      <!-- Game column（画面中央） -->
+      <div class="flex-none flex flex-col items-center lg:col-start-2 lg:row-start-1">
+        <!-- Stage + chain above board -->
+        <div class="pdp-stagebar lg:hidden">
+          <span class="pdp-stagebar-name">{{ gameMode === 'puzzle' ? 'なぞとき' : 'たいけつ' }} {{ stage }}</span>
           <Transition name="chain">
-            <span v-if="chainLevel >= 2" class="text-xs font-bold text-amber-400 animate-bounce">{{ chainLevel }}チェーン!</span>
+            <span v-if="chainLevel >= 2" class="pdp-chain animate-bounce">{{ chainLevel }}チェーン!</span>
           </Transition>
         </div>
 
-        <!-- board -->
-        <div class="flex gap-2 items-start">
-          <!-- Game board container -->
+        <!-- board（メーターは右隣に絶対配置し、盤面を中央から動かさない） -->
+        <div class="relative flex-shrink-0">
           <div
-            class="relative border-2 border-slate-700 rounded-lg overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.7)] flex-shrink-0"
-            :style="{ width: `${COLS * CELL}px`, height: `${ROWS * CELL}px` }"
+            class="pdp-board relative overflow-hidden"
+            :style="{ width: `${COLS * CELL_W}px`, height: `${ROWS * CELL}px` }"
           >
             <!-- Inner board (transforms for rise effect) -->
             <div
               class="absolute top-0 left-0"
               :style="{
-                width: `${COLS * CELL}px`,
+                width: `${COLS * CELL_W}px`,
                 transform: `translateY(${-riseOffset}px)`,
               }"
             >
@@ -308,34 +296,36 @@
 
               <!-- Cursor -->
               <div
-                v-if="phase === 'playing' || phase === 'idle'"
+                v-if="phase === 'playing'"
                 class="pointer-events-none absolute z-10 cursor-box"
                 :style="{
-                  left: `${cursor.col * CELL}px`,
+                  left: `${cursor.col * CELL_W}px`,
                   top: `${cursor.row * CELL}px`,
-                  width:  cursorDir === 'h' ? `${2 * CELL}px` : `${CELL}px`,
+                  width:  cursorDir === 'h' ? `${2 * CELL_W}px` : `${CELL_W}px`,
                   height: cursorDir === 'h' ? `${CELL}px`     : `${2 * CELL}px`,
                 }"
               />
             </div>
 
+            <!-- チェーン表示（desktop は盤面の上に重ねる） -->
+            <Transition name="chain">
+              <span v-if="chainLevel >= 2" class="pdp-chain pdp-chain--float hidden lg:block animate-bounce">{{ chainLevel }}チェーン!</span>
+            </Transition>
+
             <!-- Ready overlay (board only) -->
             <Transition name="ovl">
-              <div v-if="phase === 'ready'" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center z-20 gap-2">
-                <div class="text-slate-300 text-sm font-medium">{{ gameMode === 'puzzle' ? `パズル ${stage}` : `ステージ ${stage}` }}</div>
-                <div class="text-slate-500 text-xs">スタートを押してください</div>
+              <div v-if="phase === 'ready'" class="pdp-boardcover z-20 gap-2" style="background: rgba(24,24,24,0.96)">
+                <div class="text-sm font-bold">{{ gameMode === 'puzzle' ? `なぞとき ${stage}` : `たいけつ ${stage}` }}</div>
+                <div class="pdp-dim text-xs">スタートを押してください</div>
+                <div class="pdp-dim text-[11px] mt-2">コントローラー: ○ スタート ／ ✕ {{ gameMode === 'puzzle' ? 'なぞとき' : 'たいけつ' }}選択</div>
               </div>
             </Transition>
 
             <!-- Pause overlay (board only) -->
             <Transition name="ovl">
-              <div v-if="phase === 'paused'" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center z-20 gap-3">
+              <div v-if="phase === 'paused'" class="pdp-boardcover z-20 gap-3" style="background: rgba(24,24,24,0.96)">
                 <div class="text-4xl">⏸</div>
-                <p class="text-slate-400 text-xs">スタートで再開</p>
-                <button
-                  class="mt-1 px-4 py-1.5 rounded-xl border border-slate-600 text-slate-400 text-xs font-medium cursor-pointer bg-transparent hover:bg-white/[0.08] transition-colors"
-                  @click="gameMode === 'puzzle' ? startPuzzle() : startGame()"
-                >最初から</button>
+                <button class="pdp-btn mt-1" style="width: 9rem" @click="handleStart">スタートで再開</button>
               </div>
             </Transition>
 
@@ -343,7 +333,7 @@
             <div
               v-if="isDanger"
               class="absolute inset-0 pointer-events-none animate-[dangerPulse_0.5s_ease_infinite]"
-              style="background: rgba(239,68,68,0.08)"
+              style="background: rgba(224,40,60,0.14)"
             />
 
             <!-- Moves left (puzzle mode, top-right big number) -->
@@ -351,37 +341,42 @@
               v-if="gameMode === 'puzzle' && phase === 'playing'"
               class="absolute top-1.5 right-2 z-20 pointer-events-none text-right leading-none"
             >
-              <div class="text-[9px] font-medium tracking-widest text-slate-400/80">のこり</div>
+              <div class="pdp-dim text-[9px] font-medium tracking-widest">のこり</div>
               <div
                 class="font-extrabold tabular-nums drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] transition-colors"
-                :class="movesLeft <= 1 ? 'text-red-400 animate-pulse' : 'text-violet-300'"
-                style="font-size: 2.75rem"
+                :class="movesLeft <= 1 ? 'animate-pulse' : ''"
+                :style="{ fontSize: '2.75rem', color: movesLeft <= 1 ? 'var(--pdp-red)' : 'var(--pdp-blue)' }"
               >{{ movesLeft }}</div>
             </div>
 
             <!-- Idle overlay -->
-            <div
-              v-if="phase === 'idle'"
-              class="absolute inset-0 bg-black/70 flex items-center justify-center"
-            >
-              <div class="flex flex-col gap-3 items-center px-4">
-                <p class="text-slate-400 text-xs tracking-widest mb-1">モードを選択</p>
-                <button
-                  class="w-40 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-sm border-none cursor-pointer hover:opacity-90 transition-opacity shadow-lg"
-                  @click="selectMode('normal')"
-                >
-                  🎮 ステージ
+            <div v-if="phase === 'idle'" class="pdp-boardcover" style="background: rgba(24,24,24,0.82)">
+              <div class="flex flex-col gap-3 items-center px-4 pdp-modes">
+                <p class="pdp-dim text-xs tracking-widest mb-1 w-full text-center" style="flex-basis:100%">モードを選択</p>
+                <button class="pdp-btn pdp-modebtn" :class="{ 'is-focus': modeFocus === 0 }" @click="selectMode('normal')">
+                  <span class="pdp-modeico">🎮</span>たいけつ
                   <span v-if="savedStage > 1" class="block text-[10px] font-normal opacity-80 mt-0.5">ST{{ savedStage }}から再開</span>
                 </button>
-                <button
-                  class="w-40 py-3 rounded-2xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-bold text-sm border-none cursor-pointer hover:opacity-90 transition-opacity shadow-lg"
-                  @click="selectMode('puzzle')"
-                >🧩 パズル</button>
+                <button class="pdp-btn pdp-btn--blue pdp-modebtn" :class="{ 'is-focus': modeFocus === 1 }" @click="selectMode('puzzle')"><span class="pdp-modeico">🧩</span>なぞとき</button>
               </div>
             </div>
           </div>
-        </div>
 
+          <!-- 縦のスコアメーター（下から溜まる。desktop・たいけつモード） -->
+          <div
+            v-if="gameMode === 'normal' && (phase === 'ready' || phase === 'playing' || phase === 'stageclear' || phase === 'gameover')"
+            class="pdp-meter hidden lg:flex"
+          >
+            <div class="pdp-meter-target"><span>目標</span>{{ stageTarget }}</div>
+            <div class="pdp-meter-track">
+              <div class="pdp-meter-fill" :style="{ height: `${progressPct}%` }" />
+              <i class="pdp-meter-tick" style="bottom: 25%" />
+              <i class="pdp-meter-tick" style="bottom: 50%" />
+              <i class="pdp-meter-tick" style="bottom: 75%" />
+            </div>
+            <div class="pdp-meter-score">{{ score }}</div>
+          </div>
+        </div>
       </div><!-- /game column -->
 
       <!-- Action buttons (mobile only, right side) -->
@@ -392,154 +387,52 @@
         </div>
       </div>
 
-      <!-- Leaderboard (desktop only, normal mode) -->
-      <div v-if="gameMode === 'normal'" class="hidden lg:flex w-44 flex-shrink-0 flex-col">
-        <div class="text-[10px] font-medium tracking-widest text-slate-500 mb-2 text-center">
-          ランキング
-        </div>
-        <div v-if="recordsLoading" class="text-slate-600 text-xs text-center py-2">…</div>
-        <div v-else-if="records.length === 0" class="text-slate-600 text-xs text-center py-2">記録なし</div>
-        <div v-else class="flex flex-col gap-0.5">
-          <div
-            v-for="rec in records" :key="rec.rank"
-            class="flex items-center gap-1.5 px-1 py-0.5 rounded text-xs"
-            :class="rec.rank === 1 ? 'bg-amber-400/10' : ''"
-          >
-            <span class="text-[10px] w-4 text-right shrink-0" :class="rec.rank === 1 ? 'text-amber-400' : 'text-slate-600'">{{ rec.rank }}</span>
-            <span class="font-mono font-bold w-8 shrink-0" :class="rec.rank === 1 ? 'text-amber-300' : 'text-slate-300'">{{ rec.name }}</span>
-            <span class="font-mono text-[9px] text-slate-600 shrink-0">{{ formatDate(rec.recorded_at) }}</span>
-            <span class="font-mono text-right flex-1" :class="rec.rank === 1 ? 'text-amber-400' : 'text-slate-500'">{{ formatTime(rec.seconds) }}</span>
-          </div>
-        </div>
-
-        <!-- Circular score meter (desktop, normal mode) -->
-        <div v-if="phase === 'ready' || phase === 'playing' || phase === 'stageclear' || phase === 'gameover'" class="flex flex-col items-center pt-2 pb-3">
-          <div class="relative w-36 h-36">
-            <svg width="144" height="144" viewBox="0 0 144 144">
-              <!-- track -->
-              <circle cx="72" cy="72" r="60" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="12"/>
-              <!-- progress -->
-              <circle
-                cx="72" cy="72" r="60"
-                fill="none"
-                stroke="url(#scoreGrad)"
-                stroke-width="12"
-                stroke-linecap="round"
-                stroke-dasharray="377.0"
-                :stroke-dashoffset="377.0 * (1 - progressPct / 100)"
-                transform="rotate(-90 72 72)"
-                style="transition: stroke-dashoffset 0.3s ease"
-              />
-              <defs>
-                <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stop-color="#10b981"/>
-                  <stop offset="100%" stop-color="#2dd4bf"/>
-                </linearGradient>
-              </defs>
-            </svg>
-            <div class="absolute inset-0 flex flex-col items-center justify-center">
-              <span class="text-emerald-400 font-bold text-xl leading-none">{{ score }}</span>
-              <span class="text-slate-600 text-xs leading-none mt-1.5">/ {{ stageTarget }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Stage selector (desktop) -->
-        <div class="mt-auto">
-          <div class="text-[9px] text-slate-600 text-center mb-1.5">ステージ選択</div>
-          <div class="grid grid-cols-5 gap-1">
-            <button
-              v-for="n in stageCount" :key="n"
-              class="h-7 rounded-lg text-xs font-bold border transition-colors cursor-pointer"
-              :class="stage === n && phase !== 'idle'
-                ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-400'
-                : 'bg-black/40 border-white/10 text-slate-500 hover:bg-white/[0.10] hover:text-slate-200'"
-              @click="jumpToStage(n)"
-            >{{ n }}</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Puzzle side panel (desktop only, puzzle mode) -->
-      <div v-if="gameMode === 'puzzle'" class="hidden lg:flex w-44 flex-shrink-0 flex-col">
-        <!-- 最新クリア記録（上位10件） -->
-        <div class="text-[10px] font-medium tracking-widest text-slate-500 mb-2 text-center">最新クリア</div>
-        <div v-if="recordsLoading" class="text-slate-600 text-xs text-center py-2">…</div>
-        <div v-else-if="records.length === 0" class="text-slate-600 text-xs text-center py-2">記録なし</div>
-        <div v-else class="flex flex-col gap-0.5">
-          <div
-            v-for="rec in records" :key="rec.rank"
-            class="flex items-center gap-1.5 px-1 py-0.5 rounded text-xs"
-            :class="rec.rank === 1 ? 'bg-violet-400/10' : ''"
-          >
-            <span class="text-[10px] w-4 text-right shrink-0" :class="rec.rank === 1 ? 'text-violet-300' : 'text-slate-600'">{{ rec.rank }}</span>
-            <span class="font-mono font-bold w-8 shrink-0" :class="rec.rank === 1 ? 'text-violet-200' : 'text-slate-300'">{{ rec.name }}</span>
-            <span class="font-mono text-[9px] text-slate-600 shrink-0">{{ formatDate(rec.recorded_at) }}</span>
-          </div>
-        </div>
-
-        <!-- Puzzle selector (desktop, bottom-right) -->
-        <div class="mt-auto pt-3">
-          <div class="text-[9px] text-slate-600 text-center mb-1.5">パズル選択</div>
-          <div class="grid grid-cols-5 gap-1">
-            <button
-              v-for="n in stageCount" :key="n"
-              class="h-7 rounded-lg text-xs font-bold border transition-colors cursor-pointer"
-              :class="stage === n && phase !== 'idle'
-                ? 'bg-violet-500/20 border-violet-400/50 text-violet-300'
-                : 'bg-black/40 border-white/10 text-slate-500 hover:bg-white/[0.10] hover:text-slate-200'"
-              @click="jumpToStage(n)"
-            >{{ n }}</button>
-          </div>
+      <!-- タイトル・モード・たいけつ選択（desktop only。盤面の左上寄り） -->
+      <div class="pdp-side hidden lg:flex lg:col-start-1 lg:row-start-1">
+        <h1 class="pdp-title">パネルでポン</h1>
+        <div v-if="phase !== 'idle'" class="pdp-title-mode">{{ gameMode === 'puzzle' ? 'なぞときモード' : 'たいけつモード' }}</div>
+        <div class="flex flex-col gap-2 mt-3">
+          <button class="pdp-btn pdp-btn--side" :disabled="phase === 'paused'" @click="openStagePicker">
+            {{ gameMode === 'puzzle' ? '🧩 なぞとき' : '🎮 たいけつ' }} {{ stage }} ▾
+          </button>
+          <button
+            v-if="phase !== 'idle'"
+            class="pdp-chip px-2.5 py-1.5 text-xs font-medium"
+            :disabled="phase === 'paused'"
+            @click="selectMode(gameMode === 'puzzle' ? 'normal' : 'puzzle')"
+          >{{ gameMode === 'puzzle' ? '🎮 たいけつへ' : '🧩 なぞときへ' }}</button>
         </div>
       </div>
     </div><!-- /board area -->
 
     <!-- Stage selector (mobile only, below board area) -->
     <div class="lg:hidden mt-2 px-3 w-full">
-      <div class="text-[9px] text-slate-600 text-center mb-1.5">{{ gameMode === 'puzzle' ? 'パズル選択' : 'ステージ選択' }}</div>
+      <div class="pdp-side-label !mb-1.5">{{ gameMode === 'puzzle' ? 'なぞとき選択' : 'たいけつ選択' }}</div>
       <div class="grid grid-cols-5 gap-1">
         <button
           v-for="n in stageCount" :key="n"
-          class="h-7 rounded-lg text-xs font-bold border transition-colors cursor-pointer"
-          :class="stage === n && phase !== 'idle'
-            ? (gameMode === 'puzzle'
-                ? 'bg-violet-500/20 border-violet-400/50 text-violet-300'
-                : 'bg-emerald-500/20 border-emerald-400/50 text-emerald-400')
-            : 'bg-black/40 border-white/10 text-slate-500 hover:bg-white/[0.10] hover:text-slate-200'"
+          class="pdp-stagebtn"
+          :disabled="phase === 'paused'"
+          :class="{ 'is-on': stage === n && phase !== 'idle' }"
           @click="jumpToStage(n)"
         >{{ n }}</button>
       </div>
     </div>
 
-    <!-- Controls hint -->
-    <div class="mt-4 flex flex-col items-center gap-2">
+    <!-- Controls hint（使い方は従来どおり画面下） -->
+    <div class="pdp-hint mt-3 lg:mt-2 flex flex-col items-center gap-1.5">
       <!-- Gamepad status -->
-      <div class="flex items-center gap-1.5 text-xs" :class="gpConnected ? 'text-emerald-400' : 'text-slate-600'">
+      <div class="flex items-center gap-1.5 text-xs" :style="{ color: gpConnected ? 'var(--pdp-green)' : 'var(--pdp-dim)' }">
         <span>🎮</span>
         <span>{{ gpConnected ? 'コントローラー接続中' : 'コントローラー未接続（繋いでボタンを押すと認識）' }}</span>
       </div>
       <!-- Keyboard hint (PC only) -->
-      <div class="hidden lg:flex items-center gap-4 text-xs text-slate-500">
-        <span class="flex items-center gap-1.5">
-          <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">↑↓←→</kbd>
-          移動
-        </span>
-        <span class="flex items-center gap-1.5">
-          <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">Z</kbd>
-          <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">Space</kbd>
-          入替
-        </span>
-        <span class="flex items-center gap-1.5">
-          <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">X</kbd>
-          縦横切替
-        </span>
-        <span class="text-slate-700">｜</span>
-        <span class="flex items-center gap-1.5">
-          <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">Enter</kbd>
-          <kbd class="px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/10 font-mono text-[11px]">Esc</kbd>
-          開始/停止
-        </span>
+      <div class="hidden lg:flex items-center gap-4 text-xs" style="color: var(--pdp-sub)">
+        <span class="flex items-center gap-1.5"><kbd class="pdp-kbd">↑↓←→</kbd>移動</span>
+        <span class="flex items-center gap-1.5"><kbd class="pdp-kbd">Z</kbd><kbd class="pdp-kbd">Space</kbd>入替</span>
+        <span class="flex items-center gap-1.5"><kbd class="pdp-kbd">X</kbd>縦横切替</span>
+        <span class="pdp-dim">｜</span>
+        <span class="flex items-center gap-1.5"><kbd class="pdp-kbd">Enter</kbd><kbd class="pdp-kbd">Esc</kbd>開始/停止</span>
       </div>
     </div>
 
@@ -552,7 +445,13 @@ import { useAuth } from '~/composables/useAuth'
 
 useHead({
   title: 'パネルでポン',
-  link: [{ key: 'icon', rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎴</text></svg>` }],
+  link: [
+    { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎴</text></svg>` },
+    // こども丸ゴシックが端末に無いときの代わり（丸ゴシック系のWebフォント）
+    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap' },
+  ],
 })
 
 // ── Constants ─────────────────────────────────────────────────
@@ -560,18 +459,29 @@ const COLS = 6
 const ROWS = 12
 
 const isMobile = ref(false)
-const checkMobile = () => { isMobile.value = window.innerWidth < 1024 }
-const CELL = computed(() => isMobile.value ? 28 : 40)
+const viewH = ref(800)
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 1024
+  viewH.value = window.innerHeight
+}
+// PCのパネルは横長（縦の1.3倍）。縦は CELL、横は CELL_W
+const CELL_W_RATIO = 1.3
+// PCは縦幅いっぱいに盤面を広げる（上のステージ表示・下の使い方ぶんを差し引いて12行に割る）
+const LAYOUT_RESERVED = 84
+const CELL = computed(() =>
+  isMobile.value ? 28 : Math.max(28, Math.min(80, Math.floor((viewH.value - LAYOUT_RESERVED) / ROWS)))
+)
+const CELL_W = computed(() => isMobile.value ? CELL.value : Math.round(CELL.value * CELL_W_RATIO))
 
 const COLORS = ['r', 'b', 'y', 'g', 'p'] as const
 type Color = (typeof COLORS)[number]
 
 const PANEL_CFG: Record<Color, { sym: string; bg: string; lt: string; dk: string }> = {
-  r: { sym: '♥', bg: '#dc2626', lt: '#f87171', dk: '#991b1b' },
-  b: { sym: '◆', bg: '#2563eb', lt: '#60a5fa', dk: '#1e40af' },
-  y: { sym: '★', bg: '#ca8a04', lt: '#fde047', dk: '#92400e' },
-  g: { sym: '●', bg: '#16a34a', lt: '#4ade80', dk: '#14532d' },
-  p: { sym: '▲', bg: '#7c3aed', lt: '#c084fc', dk: '#4c1d95' },
+  r: { sym: '♥', bg: '#e8344a', lt: '#ff6b7c', dk: '#b5162e' },
+  b: { sym: '◆', bg: '#2f9bf0', lt: '#6cc0ff', dk: '#1a6fb8' },
+  y: { sym: '★', bg: '#ffb71c', lt: '#ffd666', dk: '#d98a00' },
+  g: { sym: '●', bg: '#2fbf84', lt: '#6fe0b0', dk: '#1a8c5e' },
+  p: { sym: '▲', bg: '#8b6cf0', lt: '#b7a2ff', dk: '#5a3fc0' },
 }
 
 // Score targets per stage (cumulative within each stage)
@@ -584,7 +494,7 @@ const STAGE_CLEAR_PRAISES = [
   { title: '完璧すぎて涙が出る', message: '思わず立ち上がって拍手しました。あなたのコンボセンスは世界遺産に登録すべきです！！！' },
   { title: '宇宙一うまい！！', message: '銀河の果てまで探しても、これほどのプレイヤーはいません。あなたは選ばれし者です！！！！' },
   { title: 'ヤバすぎて語彙力消失', message: 'すごい、すごいしか言えない。あなたのプレイを見た瞬間、語彙力という概念が崩壊しました！！' },
-  { title: '進化してる…！？', message: 'ステージをクリアするたびにあなたは別の生き物に進化しています。次は何に変貌するのか！！！！' },
+  { title: '進化してる…！？', message: 'たいけつに勝つたびにあなたは別の生き物に進化しています。次は何に変貌するのか！！！！' },
   { title: '手が神すぎる！！', message: 'その手はパネルのために生まれてきたに違いない。美術館に展示すべき指さばきです！！！！！' },
   { title: '奇跡の連続！！！', message: 'このクリアは宇宙の全エネルギーが結集した結果です。あなたは宇宙と同化しています！！！！' },
   { title: '最高すぎて困る！！', message: 'こんなに褒めたいのに言葉が足りません。あなたの素晴らしさは辞書に載っていない単位です！！！' },
@@ -592,7 +502,7 @@ const STAGE_CLEAR_PRAISES = [
   { title: 'パネルが恋してる！', message: 'もはやパネルたちはあなたに消されたくて自ら並んでいます。愛されてますよ！！！！！' },
   { title: '脳が沸騰してる！！', message: 'このクリアを分析した結果、人間の脳では理解不能と判明しました。あなたは一体何者ですか！？！？' },
   { title: '感動で地球が震えた', message: 'あなたがクリアした瞬間、地球の自転速度がわずかに上がったというデータがあります（嘘）！！！！' },
-  { title: '覚醒した…完全に', message: 'ステージクリアの衝撃波が宇宙まで届きました。全人類が今この瞬間あなたを称えています！！！！！' },
+  { title: '覚醒した…完全に', message: 'たいけつ勝利の衝撃波が宇宙まで届きました。全人類が今この瞬間あなたを称えています！！！！！' },
   { title: 'もう人間じゃない！', message: 'パネルでポン界に革命が起きた日として永久に記録されます。あなたは歴史の一部です！！！！' },
   { title: '最強の証明完了！！', message: '今のクリア、教科書に載せます。未来の子供たちの目標はあなたになりました！！！！！！' },
   { title: '勝ちすぎて引退勧告', message: '強すぎてゲームが可哀想です。でも続けてください！あなたのプレイが好きすぎます！！！！！' },
@@ -777,6 +687,8 @@ type RecordRow = { rank: number; name: string; seconds: number; recorded_at: str
 const records         = ref<RecordRow[]>([])
 const recordsLoading  = ref(false)
 const showRankingPopup = ref(false)
+const showStagePicker = ref(false)
+const showStartRanking = ref(false)
 const submittedRank   = ref<number | null>(null)
 const submittedSeconds = ref(0)
 
@@ -816,26 +728,25 @@ const isDanger = computed(() =>
 
 // ── Style helpers ──────────────────────────────────────────────
 function cellStyle(color: Color | null): Record<string, string> {
+  const size = CELL.value
+  const base: Record<string, string> = {
+    width: `${CELL_W.value}px`,
+    height: `${size}px`,
+    boxSizing: 'border-box',
+    // 透明の縁でパネル同士にすき間を作る（背景は縁の内側だけに塗る）
+    border: `${Math.max(2, Math.round(size / 18))}px solid transparent`,
+    backgroundClip: 'padding-box',
+    borderRadius: `${Math.round(size * 0.22)}px`,
+  }
   if (!color) {
-    return {
-      width: `${CELL.value}px`,
-      height: `${CELL.value}px`,
-      background: 'rgba(0,0,0,0.35)',
-      borderRight: '1px solid rgba(255,255,255,0.04)',
-      borderBottom: '1px solid rgba(255,255,255,0.04)',
-      boxSizing: 'border-box',
-    }
+    return { ...base, background: 'rgba(255,255,255,0.025)' }
   }
   const cfg = PANEL_CFG[color]
   return {
-    width: `${CELL.value}px`,
-    height: `${CELL.value}px`,
-    background: `linear-gradient(145deg, ${cfg.lt} 0%, ${cfg.bg} 40%, ${cfg.dk} 100%)`,
-    borderTop: `2px solid ${cfg.lt}`,
-    borderLeft: `2px solid ${cfg.lt}`,
-    borderRight: `2px solid ${cfg.dk}`,
-    borderBottom: `2px solid ${cfg.dk}`,
-    boxSizing: 'border-box',
+    ...base,
+    background: `linear-gradient(160deg, ${cfg.lt} 0%, ${cfg.bg} 55%, ${cfg.dk} 130%)`,
+    boxShadow: `inset 0 -${Math.round(size / 14)}px 0 rgba(0,0,0,0.18), inset 0 2px 0 rgba(255,255,255,0.28)`,
+    fontSize: `${Math.round(size * 0.5)}px`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1006,6 +917,61 @@ function moveCursor(dr: number, dc: number) {
   }
 }
 
+// ── Menu 操作（コントローラー／キーボードだけで遊べるように） ─────────
+const modeFocus = ref(0)   // モード選択: 0=たいけつ 1=なぞとき
+const pickFocus = ref(0)   // 選択ポップアップ: 0始まりの番号
+const PICK_COLS = 4
+
+const isPickerOpen = () => phase.value === 'stageselect' || showStagePicker.value
+// 十字キー・決定・戻るで操作するメニューが前面にあるか
+const isMenuOpen = () =>
+  showNameEntry.value || showRankingPopup.value || showStartRanking.value || isPickerOpen() || phase.value === 'idle'
+
+function dirInput(dr: number, dc: number) {
+  if (phase.value === 'playing' && !isMenuOpen()) moveCursor(dr, dc)
+  else menuNav(dr, dc)
+}
+
+function menuNav(dr: number, dc: number) {
+  if (showNameEntry.value) {
+    const i = nameInputIdx.value
+    if (dr !== 0) changeLetter(i, -dr)
+    if (dc !== 0) nameInputIdx.value = Math.max(0, Math.min(2, i + dc))
+    return
+  }
+  if (showRankingPopup.value || showStartRanking.value) return
+  if (isPickerOpen()) {
+    const n = stageCount.value
+    const i = pickFocus.value
+    let next = i
+    if (dc !== 0) next = i + dc
+    if (dr !== 0) next = i + dr * PICK_COLS
+    if (next >= 0 && next < n) pickFocus.value = next
+    return
+  }
+  if (phase.value === 'idle' && dc !== 0) modeFocus.value = dc < 0 ? 0 : 1
+}
+
+function menuConfirm() {
+  if (showNameEntry.value) { submitRecord(); return }
+  if (showRankingPopup.value) { showRankingPopup.value = false; return }
+  if (showStartRanking.value) { confirmStartRanking(); return }
+  if (isPickerOpen()) { chooseStage(pickFocus.value + 1); return }
+  if (phase.value === 'idle') { selectMode(modeFocus.value === 0 ? 'normal' : 'puzzle'); return }
+  if (phase.value === 'paused') return   // 一時停止中の再開はスタートボタンだけ
+  handleStart()
+}
+
+function menuCancel() {
+  if (showNameEntry.value) { showNameEntry.value = false; return }
+  if (showRankingPopup.value) { showRankingPopup.value = false; return }
+  if (showStartRanking.value) { showStartRanking.value = false; return }
+  if (isPickerOpen()) { closeStagePicker(); return }
+  if (phase.value === 'ready') openStagePicker()
+  else if (phase.value === 'puzzlefail') backToIdle()
+  else if (phase.value === 'gameover') resetToStart()
+}
+
 // ── Gamepad ────────────────────────────────────────────────────
 const REPEAT_DELAY = 280  // ms ─ 押し続けてリピート開始するまでの時間
 const REPEAT_RATE  = 110  // ms ─ リピート間隔
@@ -1031,10 +997,19 @@ function pollGamepad(now: number) {
   // このPS2アダプター: axes[0]=左右（左=-1, 右=+1）/ axes[1]=上下（上=-1, 下=+1）
   // 標準マッピング buttons[12-15] も念のため併用
   const THR = 0.5
-  const dUp    = (gp.buttons[12]?.pressed ?? false) || (gp.axes[1] ?? 0) < -THR
-  const dDown  = (gp.buttons[13]?.pressed ?? false) || (gp.axes[1] ?? 0) >  THR
-  const dLeft  = (gp.buttons[14]?.pressed ?? false) || (gp.axes[0] ?? 0) < -THR
-  const dRight = (gp.buttons[15]?.pressed ?? false) || (gp.axes[0] ?? 0) >  THR
+  // 非標準マッピング（8BitDoのD-input/Switchモード等）では十字キーが axes[9] の「ハット」値で来る。
+  // 8方向を -1〜1 の7等分で表し（上=-1, 右上=-0.71, 右=-0.43, 右下=-0.14, 下=0.14, 左下=0.43, 左=0.71, 左上=1）、
+  // 離しているときは 1.28 前後になる。
+  const hat = gp.mapping !== 'standard' && gp.axes.length > 9 ? gp.axes[9] : null
+  const hatIdx = hat !== null && hat <= 1.1 ? Math.round((hat + 1) * 3.5) : -1  // 0=上 1=右上 2=右 3=右下 4=下 5=左下 6=左 7=左上
+  const hatUp    = [7, 0, 1].includes(hatIdx)
+  const hatRight = [1, 2, 3].includes(hatIdx)
+  const hatDown  = [3, 4, 5].includes(hatIdx)
+  const hatLeft  = [5, 6, 7].includes(hatIdx)
+  const dUp    = (gp.buttons[12]?.pressed ?? false) || hatUp    || (gp.axes[1] ?? 0) < -THR
+  const dDown  = (gp.buttons[13]?.pressed ?? false) || hatDown  || (gp.axes[1] ?? 0) >  THR
+  const dLeft  = (gp.buttons[14]?.pressed ?? false) || hatLeft  || (gp.axes[0] ?? 0) < -THR
+  const dRight = (gp.buttons[15]?.pressed ?? false) || hatRight || (gp.axes[0] ?? 0) >  THR
 
   const dpadState: Record<string, boolean> = { up: dUp, down: dDown, left: dLeft, right: dRight }
   const dpadDelta: Record<string, [number, number]> = {
@@ -1046,10 +1021,10 @@ function pollGamepad(now: number) {
     const s = gpDir[key] ?? { held: false, heldAt: 0, lastRepeat: 0 }
     if (pressed) {
       if (!s.held) {
-        moveCursor(dr, dc)
+        dirInput(dr, dc)
         gpDir[key] = { held: true, heldAt: now, lastRepeat: now }
       } else if (now - s.heldAt > REPEAT_DELAY && now - s.lastRepeat > REPEAT_RATE) {
-        moveCursor(dr, dc)
+        dirInput(dr, dc)
         gpDir[key] = { ...s, lastRepeat: now }
       }
     } else {
@@ -1070,9 +1045,9 @@ function pollGamepad(now: number) {
 
   for (const [key, pressed] of Object.entries(actMap)) {
     if (pressed && !gpAct[key]) {
-      if (key === 'swap')      doSwap()
-      if (key === 'toggleDir') toggleDir()
-      if (key === 'start')     handleStart()
+      if (key === 'swap')      { if (phase.value === 'playing') doSwap(); else menuConfirm() }
+      if (key === 'toggleDir') { if (phase.value === 'playing') toggleDir(); else menuCancel() }
+      if (key === 'start')     { if (isMenuOpen()) menuConfirm(); else handleStart() }
     }
     gpAct[key] = pressed
   }
@@ -1171,8 +1146,15 @@ function formatDate(s: string): string {
   return `${String(jst.getUTCFullYear()).slice(2)}/${jst.getUTCMonth() + 1}/${jst.getUTCDate()}`
 }
 
+function confirmStartRanking() {
+  showStartRanking.value = false
+  if (phase.value !== 'ready') return
+  phase.value = 'playing'
+  stageStartTime.value = Date.now()
+}
+
 function handleStart() {
-  if      (phase.value === 'ready')        { phase.value = 'playing'; stageStartTime.value = Date.now() }
+  if      (phase.value === 'ready')        { fetchRecords(stage.value); showStartRanking.value = true }
   else if (phase.value === 'playing')      phase.value = 'paused'
   else if (phase.value === 'paused')       phase.value = 'playing'
   else if (phase.value === 'idle' || phase.value === 'gameover') {
@@ -1250,6 +1232,7 @@ function resetToStart() {
 }
 
 function jumpToStage(n: number) {
+  if (phase.value === 'paused') return
   stage.value = n
   if (gameMode.value === 'puzzle') startPuzzle()
   else startGame()
@@ -1257,12 +1240,29 @@ function jumpToStage(n: number) {
 
 // モード選択 → まずステージ/パズル一覧を見せる（即開始しない）
 function selectMode(mode: 'normal' | 'puzzle') {
+  if (phase.value === 'paused') return
   gameMode.value = mode
+  pickFocus.value = mode === 'normal' ? Math.max(0, savedStage.value - 1) : 0
   phase.value = 'stageselect'
 }
 
 function chooseStage(n: number) {
+  showStagePicker.value = false
   jumpToStage(n)
+}
+
+// ポップアップの外クリック／閉じる。モード選択直後（まだ遊んでいない）ならモード選択へ戻る
+function closeStagePicker() {
+  if (showStagePicker.value) showStagePicker.value = false
+  else if (phase.value === 'stageselect') phase.value = 'idle'
+}
+
+// 盤面の横のボタンから開くステージ選択（遊んでいる最中なら一時停止する）
+function openStagePicker() {
+  if (phase.value === 'paused') return   // 一時停止中はスタートでの再開だけ
+  if (phase.value === 'playing') phase.value = 'paused'
+  pickFocus.value = Math.max(0, Math.min(stageCount.value - 1, stage.value - 1))
+  showStagePicker.value = true
 }
 
 function startPuzzle() {
@@ -1336,6 +1336,15 @@ async function saveProgress(nextStage: number) {
 // ── Keyboard ───────────────────────────────────────────────────
 function handleKey(e: KeyboardEvent) {
   if (showNameEntry.value) { handleNameKey(e); return }
+  // メニュー（モード選択・ステージ選択・ランキング）は十字キー／決定／戻るで操作
+  if (isMenuOpen()) {
+    const dirs: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }
+    if (dirs[e.key]) { e.preventDefault(); menuNav(...dirs[e.key]); return }
+    if (['Enter', ' ', 'z', 'Z'].includes(e.key)) { e.preventDefault(); menuConfirm(); return }
+    if (['Escape', 'x', 'X'].includes(e.key)) { e.preventDefault(); menuCancel(); return }
+    return
+  }
+  if ((e.key === 'x' || e.key === 'X') && phase.value === 'ready') { openStagePicker(); return }
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) {
     e.preventDefault()
   }
@@ -1373,68 +1382,374 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* ── メルカリ風テーマ ───────────────────────────────────────── */
+.pdp-root {
+  --pdp-bg: #202020;
+  --pdp-panel: #2b2b2b;
+  --pdp-panel2: #363636;
+  --pdp-line: #454545;
+  --pdp-text: #f5f5f5;
+  --pdp-sub: #b5b5b5;
+  --pdp-dim: #838383;
+  --pdp-red: #e0283c;
+  --pdp-red-dk: #b81a2d;
+  --pdp-blue: #4aa8f0;
+  --pdp-gold: #ffc233;
+  --pdp-green: #3ccf8e;
+  --acc: var(--pdp-red);
+  background: var(--pdp-bg);
+  color: var(--pdp-text);
+  font-family: 'こども丸ゴシック', 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', Meiryo, sans-serif;
+  font-weight: 500;
+}
+.pdp-root.pdp-puzzle { --acc: var(--pdp-blue); }
+.pdp-acc-red  { --acc: var(--pdp-red); }
+.pdp-acc-blue { --acc: var(--pdp-blue); }
+.pdp-acc-gold { --acc: var(--pdp-gold); }
+
+.pdp-dim { color: var(--pdp-dim); }
+
+/* ── 盤面 ───────────────────────────────────────────────────── */
+.pdp-board {
+  background: #181818;
+  border: 3px solid var(--pdp-line);
+  border-radius: 14px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
+}
+.pdp-boardcover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdp-stagebar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 24px;
+  margin-bottom: 6px;
+}
+@media (min-width: 1024px) {
+  .pdp-stagebar { display: none; }
+}
+.pdp-stagebar-name { font-size: 14px; font-weight: 800; color: var(--pdp-text); }
+.pdp-chain { font-size: 12px; font-weight: 800; color: var(--pdp-gold); }
+.pdp-chain--float {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 15;
+  font-size: 18px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
 .panel-cell {
   flex-shrink: 0;
   position: relative;
-  font-size: 20px;
   line-height: 1;
 }
-
 .panel-sym {
   display: block;
   line-height: 1;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
   user-select: none;
 }
-
-.panel-flashing {
-  animation: panelFlash 0.1s ease-in-out infinite;
-}
-
+.panel-flashing { animation: panelFlash 0.1s ease-in-out infinite; }
 @keyframes panelFlash {
   0%, 100% { filter: brightness(1); }
-  50%       { filter: brightness(2.8) saturate(0.2); }
+  50%       { filter: brightness(2.6) saturate(0.2); }
 }
 
 .cursor-box {
   border: 3px solid #fff;
-  box-shadow: 0 0 10px rgba(255,255,255,0.9), inset 0 0 4px rgba(255,255,255,0.3);
+  border-radius: 10px;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.85), 0 0 0 1px rgba(224, 40, 60, 0.9);
   animation: cursorBlink 0.8s ease infinite;
 }
-
 @keyframes cursorBlink {
-  0%, 100% { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.9); }
-  50%       { border-color: rgba(255,255,255,0.5); box-shadow: 0 0 4px rgba(255,255,255,0.3); }
+  0%, 100% { border-color: #fff; box-shadow: 0 0 12px rgba(255, 255, 255, 0.85), 0 0 0 1px rgba(224, 40, 60, 0.9); }
+  50%       { border-color: rgba(255, 255, 255, 0.55); box-shadow: 0 0 4px rgba(255, 255, 255, 0.3), 0 0 0 1px rgba(224, 40, 60, 0.6); }
 }
-
 @keyframes dangerPulse {
   0%, 100% { opacity: 0; }
   50%       { opacity: 1; }
 }
 
-.dpad {
-  width: 42px;
-  height: 42px;
+/* ── 縦のスコアメーター（盤面の右隣・下から溜まる） ───────────── */
+.pdp-meter {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  height: 100%;
+  margin-left: 14px;
+  width: 46px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.pdp-meter-target {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--pdp-sub);
+}
+.pdp-meter-target span { font-size: 9px; font-weight: 500; color: var(--pdp-dim); }
+.pdp-meter-track {
+  position: relative;
+  flex: 1;
+  width: 24px;
+  min-height: 0;
+  display: flex;
+  align-items: flex-end;
+  background: #181818;
+  border: 2px solid var(--pdp-line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.pdp-meter-fill {
+  width: 100%;
+  background: linear-gradient(0deg, var(--pdp-red-dk) 0%, var(--pdp-red) 55%, #ff6b7c 100%);
+  box-shadow: 0 0 14px rgba(224, 40, 60, 0.55);
+  transition: height 0.3s ease;
+}
+.pdp-meter-tick {
+  position: absolute;
+  left: 0;
+  width: 7px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.28);
+}
+.pdp-meter-score {
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--pdp-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 右サイド ───────────────────────────────────────────────── */
+.pdp-side {
+  width: 11rem;
+  justify-self: end;
+  align-self: start;
+  flex-direction: column;
+  margin-top: 4px;
+}
+.pdp-modes { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+.pdp-btn.pdp-modebtn { width: 9rem; letter-spacing: 0.15em; }
+.is-focus { outline: 3px solid #fff; outline-offset: 3px; }
+.pdp-modeico { margin-right: 0.5em; }
+.pdp-btn--side { padding: 10px; font-size: 13px; }
+.pdp-clear-rank { margin-bottom: 20px; text-align: left; }
+.pdp-side-head { margin-bottom: 18px; }
+.pdp-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: var(--pdp-text);
+}
+.pdp-title-mode { margin-top: 2px; font-size: 11px; font-weight: 700; color: var(--acc); }
+.pdp-side-label {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--pdp-sub);
+}
+
+.pdp-rk-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   border-radius: 8px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.12);
-  color: #e2e8f0;
-  font-size: 16px;
+  color: var(--pdp-sub);
+}
+.pdp-rk-no { flex-shrink: 0; color: var(--pdp-dim); }
+.pdp-rk-row.is-top { background: color-mix(in srgb, var(--pdp-gold) 12%, transparent); color: var(--pdp-gold); }
+.pdp-rk-row.is-top .pdp-rk-no { color: var(--pdp-gold); }
+.pdp-rk-row.is-me {
+  background: color-mix(in srgb, var(--pdp-gold) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pdp-gold) 55%, transparent);
+  color: var(--pdp-gold);
+}
+.pdp-rk-row.is-me .pdp-rk-no { color: var(--pdp-gold); }
+.pdp-new {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--pdp-gold);
+  background: color-mix(in srgb, var(--pdp-gold) 20%, transparent);
+}
+
+.pdp-stagebtn {
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--pdp-line);
+  background: var(--pdp-panel);
+  color: var(--pdp-sub);
+  font-size: 12px;
+  font-weight: 800;
   cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.pdp-stagebtn:hover { background: var(--pdp-panel2); color: var(--pdp-text); }
+.pdp-stagebtn.is-on {
+  background: var(--acc);
+  border-color: var(--acc);
+  color: #fff;
+}
+
+/* ── ボタン・カード類 ───────────────────────────────────────── */
+.pdp-chip {
+  border-radius: 8px;
+  border: 1px solid var(--pdp-line);
+  background: var(--pdp-panel);
+  color: var(--pdp-text);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.pdp-chip:disabled, .pdp-btn:disabled, .pdp-stagebtn:disabled { opacity: 0.35; cursor: not-allowed; }
+.pdp-chip:hover { background: var(--pdp-panel2); }
+.pdp-link {
+  background: transparent;
+  border: none;
+  color: var(--pdp-blue);
+  cursor: pointer;
+}
+.pdp-link:hover { text-decoration: underline; }
+
+.pdp-btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: var(--pdp-red);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+.pdp-btn:hover { opacity: 0.9; }
+.pdp-btn--blue { background: #2f8fe0; }
+.pdp-btn--gold { background: var(--pdp-gold); color: #3a2a00; }
+.pdp-btn--ghost {
+  padding: 10px;
+  background: transparent;
+  border: 1px solid var(--pdp-line);
+  color: var(--pdp-sub);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pdp-btn--ghost:hover { background: rgba(255, 255, 255, 0.06); opacity: 1; }
+
+.pdp-ovl {
+  position: fixed;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.1s;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(4px);
 }
-.dpad:active { background: rgba(255,255,255,0.2); }
+.pdp-card {
+  width: 100%;
+  max-width: 24rem;
+  padding: 28px;
+  text-align: center;
+  background: var(--pdp-panel);
+  border: 1px solid var(--pdp-line);
+  border-top: 4px solid var(--acc);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+.pdp-card--sm { max-width: 20rem; }
+.pdp-pop { animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.pdp-card-kicker { margin: 0 0 4px; font-size: 14px; font-weight: 800; letter-spacing: 0.06em; color: var(--acc); }
+.pdp-card-title { margin: 0 0 4px; font-size: 24px; font-weight: 900; color: var(--acc); }
+.pdp-card-sub { margin: 0 0 24px; font-size: 14px; color: var(--pdp-sub); }
+.pdp-card-text { margin: 0 0 24px; font-size: 14px; line-height: 1.7; color: var(--pdp-sub); }
+.pdp-praise {
+  margin: 0 0 12px;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.3;
+  background: linear-gradient(90deg, var(--pdp-gold), var(--acc));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 
+.pdp-namebox {
+  width: 48px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, monospace;
+  font-size: 24px;
+  font-weight: 800;
+  border: 2px solid var(--pdp-line);
+  border-radius: 12px;
+  background: var(--pdp-bg);
+  cursor: pointer;
+}
+.pdp-namebox.is-on { border-color: var(--pdp-gold); color: var(--pdp-gold); }
+
+.pdp-stagecard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--pdp-line);
+  background: var(--pdp-bg);
+  color: var(--pdp-text);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.pdp-stagecard:hover { background: var(--pdp-panel2); }
+.pdp-stagecard.is-on {
+  border-color: var(--acc);
+  background: color-mix(in srgb, var(--acc) 16%, transparent);
+  color: var(--acc);
+}
+
+/* ── 使い方 ─────────────────────────────────────────────────── */
+.pdp-kbd {
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--pdp-line);
+  border-bottom-width: 2px;
+  background: var(--pdp-panel);
+  color: var(--pdp-text);
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+
+/* ── モバイル操作 ───────────────────────────────────────────── */
 .dpad-sm {
   width: 45px;
   height: 45px;
   border-radius: 9px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.12);
-  color: #e2e8f0;
+  background: var(--pdp-panel2);
+  border: 1px solid var(--pdp-line);
+  color: var(--pdp-text);
   font-size: 18px;
   cursor: pointer;
   display: flex;
@@ -1442,15 +1757,15 @@ onUnmounted(() => {
   justify-content: center;
   transition: background 0.1s;
 }
-.dpad-sm:active { background: rgba(255,255,255,0.2); }
+.dpad-sm:active { background: #4a4a4a; }
 
 .dpad-action {
   width: 51px;
   height: 51px;
   border-radius: 12px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
-  color: #e2e8f0;
+  background: var(--pdp-panel2);
+  border: 1px solid var(--pdp-line);
+  color: var(--pdp-text);
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
@@ -1461,23 +1776,15 @@ onUnmounted(() => {
 }
 .dpad-action:active { transform: scale(0.92); }
 .dpad-action--swap {
-  background: linear-gradient(135deg, #10b981, #14b8a6);
+  background: var(--pdp-red);
   border-color: transparent;
   color: #fff;
 }
 
-@media (max-width: 1023px) {
-  .panel-cell { font-size: 13px; }
-}
-
 /* Portrait warning: visible in portrait, hidden in landscape */
-.portrait-notice {
-  display: flex;
-}
+.portrait-notice { display: flex; }
 @media (orientation: landscape) {
-  .portrait-notice {
-    display: none;
-  }
+  .portrait-notice { display: none; }
 }
 
 /* Overlay transitions */
