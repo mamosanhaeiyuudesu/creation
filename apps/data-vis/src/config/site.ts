@@ -6,7 +6,7 @@ export const site = {
   domain: 'data-vis.insightlens.jp',
   /** 問い合わせ・無料相談の受け口。prototyper と同じ Google フォームを使う */
   contactUrl:
-    'https://docs.google.com/forms/d/e/1FAIpQLSdBsT7TiFTC_zl8B7saQxM60-WcjHTpv7pz-ere34aQ_1YWsw/viewform?usp=publish-editor',
+    'https://docs.google.com/forms/d/e/1FAIpQLSd_h56W-9kJJRto5rqojYJ9HdDta9hLtcQ4Kk_sUeNL6cCTUQ/viewform?usp=dialog',
   prototyperUrl: 'https://prototyper.insightlens.jp',
   dsInsightUrl: 'https://ds.yahoo.co.jp/service/insight/basic.html',
   miyakoUrl: 'https://prototype.insightlens.jp/miyako',

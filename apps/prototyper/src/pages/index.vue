@@ -342,7 +342,7 @@
 definePageMeta({ layout: 'prototyper' })
 
 const contactUrl =
-  'https://docs.google.com/forms/d/e/1FAIpQLSdBsT7TiFTC_zl8B7saQxM60-WcjHTpv7pz-ere34aQ_1YWsw/viewform?usp=publish-editor'
+  'https://docs.google.com/forms/d/e/1FAIpQLSd_h56W-9kJJRto5rqojYJ9HdDta9hLtcQ4Kk_sUeNL6cCTUQ/viewform?usp=dialog'
 
 const isMenuOpen = ref(false)
 
