@@ -28,10 +28,10 @@ export interface AuthUser {
   id: string
   email: string
   displayName: string
-  /** お休み（退会）に入った日時(UTC)。空ならふつうに使えている */
+  /** 退会に入った日時(UTC)。空ならふつうに使えている */
   withdrawnAt: string
-  /** お休み中のデータを預かる期限(UTC) */
-  retainUntil: string
+  /** 削除予定日(UTC)。空ならお休み（期限なし） */
+  deleteAfter: string
 }
 
 interface FirebaseClaims {
@@ -95,16 +95,16 @@ async function ensureUser(event: H3Event, claims: FirebaseClaims): Promise<AuthU
   // 確認済みの同じメールの行が別の uid で既にあれば、そちらを本人として使う。
   if (email && emailVerified) {
     const existing = (await db
-      .prepare('SELECT id, email, display_name, withdrawn_at, retain_until FROM users WHERE email = ?')
+      .prepare('SELECT id, email, display_name, withdrawn_at, delete_after FROM users WHERE email = ?')
       .bind(email)
-      .first()) as { id: string; email: string; display_name: string; withdrawn_at: string; retain_until: string } | null
+      .first()) as { id: string; email: string; display_name: string; withdrawn_at: string; delete_after: string } | null
     if (existing && existing.id !== uid) {
-      // お休み中の行は uid が同じ人にしか戻さない。預かりは最長5年と長く、そのあいだにメールアドレスの
+      // 退会中の行は uid が同じ人にしか戻さない。お休みは期限なしで預かるので、そのあいだにメールアドレスの
       // 持ち主が変わりうる（会社のメールの再割り当てなど）。別の uid が来たら、他人の議事録を見せないよう止める。
       if (existing.withdrawn_at) {
         throw createError({
           statusCode: 409,
-          message: 'このメールアドレスは、以前にお休みに入ったアカウントとして残っています。以前と同じ方法でログインするか、お問い合わせください。',
+          message: 'このメールアドレスは、以前に退会の手続きをしたアカウントとして残っています。以前と同じ方法でログインするか、お問い合わせください。',
         })
       }
       await db
@@ -116,7 +116,7 @@ async function ensureUser(event: H3Event, claims: FirebaseClaims): Promise<AuthU
         email: existing.email,
         displayName: existing.display_name,
         withdrawnAt: '',
-        retainUntil: '',
+        deleteAfter: '',
       }
     }
   }
@@ -133,11 +133,11 @@ async function ensureUser(event: H3Event, claims: FirebaseClaims): Promise<AuthU
     .bind(uid, email, displayName)
     .run()
 
-  const row = (await db.prepare('SELECT withdrawn_at, retain_until FROM users WHERE id = ?').bind(uid).first()) as {
+  const row = (await db.prepare('SELECT withdrawn_at, delete_after FROM users WHERE id = ?').bind(uid).first()) as {
     withdrawn_at: string
-    retain_until: string
+    delete_after: string
   } | null
-  return { id: uid, email, displayName, withdrawnAt: row?.withdrawn_at ?? '', retainUntil: row?.retain_until ?? '' }
+  return { id: uid, email, displayName, withdrawnAt: row?.withdrawn_at ?? '', deleteAfter: row?.delete_after ?? '' }
 }
 
 /** Authorization ヘッダーから Bearer トークンを取り出す */
@@ -151,7 +151,7 @@ function readBearer(event: H3Event): string {
  * ログイン必須のエンドポイントの先頭で呼ぶ。
  * 未ログイン・期限切れなら 401 を throw し、通れば users の行を用意して返す。
  *
- * お休み（退会）中の人は 403（code: 'withdrawn'）で止める。議事録も設定も読めず、AIも使えない。
+ * 退会中（お休み・削除予約）の人は 403（code: 'withdrawn'）で止める。議事録も設定も読めず、AIも使えない。
  * 通すのは「お休み中かどうかの確認（/api/me）」「再開」「すべて消す」だけで、そこだけ allowWithdrawn: true で呼ぶ。
  */
 export async function requireUser(event: H3Event, opts: { allowWithdrawn?: boolean } = {}): Promise<AuthUser> {

@@ -12,7 +12,7 @@ import { requireUser, type AuthUser } from '~/server/utils/auth'
 import { isPendingApproval, parseAdminIds } from '~/utils/entitlement'
 import { SERVICE } from '~/config/service'
 import { jstYearMonth } from '~/utils/formatDate'
-import { isRetentionExpired } from '~/utils/withdrawal'
+import { isDeletionDue } from '~/utils/withdrawal'
 import { deleteAccount } from '~/server/utils/account'
 
 export function isAdminId(event: H3Event, userId: string): boolean {
@@ -152,24 +152,25 @@ export async function resetAiUsage(event: H3Event, adminId: string, userId: stri
 }
 
 /**
- * 預かる期限を過ぎたお休み中の利用者のデータを消す（Cron が使えないので、管理画面から手動で）。
- * 期限前・お休みでない人は消さない（押し間違いや画面の古さで、使っている人のデータを消さないため）。
+ * 削除予定日を過ぎた利用者のデータを消す（Cron が使えないので、管理画面から手動で）。
+ * 削除予約中でない人（お休み・ふつうに使っている人）や、予定日の前の人は消さない
+ * （押し間違いや画面の古さで、使っている人・戻れる人のデータを消さないため）。
  * 操作の記録には利用者のIDだけ残す（メールアドレスは消す）。
  */
-export async function purgeExpiredUser(event: H3Event, adminId: string, userId: string): Promise<void> {
+export async function purgeDueUser(event: H3Event, adminId: string, userId: string): Promise<void> {
   const db = requireDb(event)
   await ensureTables(db)
-  const row = (await db.prepare('SELECT withdrawn_at, retain_until FROM users WHERE id = ?').bind(userId).first()) as {
+  const row = (await db.prepare('SELECT withdrawn_at, delete_after FROM users WHERE id = ?').bind(userId).first()) as {
     withdrawn_at: string
-    retain_until: string
+    delete_after: string
   } | null
   if (!row) throw createError({ statusCode: 404, message: 'その利用者は見つかりませんでした。' })
-  if (!row.withdrawn_at || !isRetentionExpired(row.retain_until)) {
-    throw createError({ statusCode: 409, message: 'この利用者はまだお預かりの期間中です。消せるのは期限を過ぎた人だけです。' })
+  if (!row.withdrawn_at || !isDeletionDue(row.delete_after)) {
+    throw createError({ statusCode: 409, message: 'この利用者は削除の予定日がまだ来ていません。消せるのは、予定日を過ぎた削除予約中の人だけです。' })
   }
   await deleteAccount(event, userId, [
     db
       .prepare('INSERT INTO admin_audit (admin_id, action, target_user_id, detail) VALUES (?, ?, ?, ?)')
-      .bind(adminId, 'purge_expired', userId, row.retain_until),
+      .bind(adminId, 'purge_due', userId, row.delete_after),
   ])
 }

@@ -65,15 +65,18 @@
   （**呼ぶ前に必ず `requireUser()` を通すこと**。通さないとエラーにして未計測のAI呼び出しを防ぐ）。
   モデルや単価を変えたら `PRICE_PER_MTOK` と上限も見直す。1件あたりの文章は5万字まで。
   D1 の古い `usage_monthly` / `record_revisions` / `glossary` テーブルと `records.audio_name` 列は残っていても使っていない。
-- **退会は2種類**（`server/utils/account.ts`）。既定は「お休み」＝`users.withdrawn_at` / `retain_until` に日時を入れるだけで、
-  議事録などは消さず **5年**（`utils/withdrawal.ts` の `RETENTION_YEARS`）預かる。契約は止める。
-  もう1つは「すべて消す」＝従来どおり即時に全消去（Firebase のアカウントも消す）。
-  - お休み中は `requireUser` が **403（`data.code: 'withdrawn'`）** で止める。通すのは `/api/me`・`/api/account/resume`・`DELETE /api/account` だけ
+- **退会は3つの道**（`server/utils/account.ts`、日数は `utils/withdrawal.ts`）。状態は `users.withdrawn_at`（退会中の印）と
+  `users.delete_after`（削除予定日）の2列だけ。
+  - **お休み**（既定）: `delete_after` が空＝**期限なし**で預かる。議事録は消さず、契約は止める。
+  - **すべて消してやめる**: 削除予約。`delete_after` = 今日+`DELETION_GRACE_DAYS`（30日）。そのあいだは取り消せる。契約は止める。
+  - **今すぐ消す**: `DELETE /api/account`。その場で全消去（メールアドレスの入力で確認。Firebase のアカウントも画面側で消す）。
+  - 退会中は `requireUser` が **403（`data.code: 'withdrawn'`）** で止める。通すのは `/api/me`・`/api/account/resume`・`DELETE /api/account` だけ
     （`requireUser(event, { allowWithdrawn: true })`）。新しい API を足すときは何もしなくてよい（既定で止まる）。
-  - お休みでは **Firebase のアカウントを消さない**（uid が変わると再開したデータとつながらないため）。
-    `ensureUser` の「同じメールなら既存の行を使う」救済は、お休み中の行には**使わない**（5年のあいだにメールの持ち主が変わりうる。uid が違えば 409）。
-  - 5年を過ぎたデータは **管理画面から手動で消す**（Cron が使えないため。`purgeExpiredUser`。期限前は消せない）。管理画面の「お休み中」に期限切れの人数が出る。
-  - 期限切れ前の通知メールは出せない（メール送信の仕組みが無い）。規約・プライバシーポリシーにもそう書いてある。
+  - お休みでも削除予約でも **Firebase のアカウントは消さない**（uid が変わると戻したデータとつながらないため）。
+    `ensureUser` の「同じメールなら既存の行を使う」救済は、退会中の行には**使わない**（お休みは期限がなく、メールの持ち主が変わりうる。uid が違えば 409）。
+  - 予定日を過ぎた削除予約は **管理画面から手動で消す**（Cron が使えないため。`purgeDueUser`。予定日前・お休みの人は消せない）。
+    約束は「30日後、遅れても2か月以内」（規約・プライバシーに記載）。
+  - 期限前の通知メールは出せない（メール送信の仕組みが無い）。
 - Cron は使わない（Freeプランのcronはアカウント全体で5個までで、ai-tools が使い切っている）。
 
 ## ローカルで動かす

@@ -1,5 +1,5 @@
-// 退会のうち「すべて消す」。本人のデータをその場で全部消す。詳細は server/utils/account.ts。
-// お休み中の人もここから消せる（allowWithdrawn）。
+// 退会のうち「今すぐ消す」。本人のデータをその場で全部消す（猶予なし）。詳細は server/utils/account.ts。
+// お休み中・削除予約中の人もここから消せる（allowWithdrawn）。
 // 画面側は、これが成功したあとに Firebase のアカウントも消してログアウトする。
 
 import { requireUser } from '~/server/utils/auth'

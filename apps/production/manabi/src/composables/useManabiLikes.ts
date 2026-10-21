@@ -6,7 +6,7 @@ import { ref } from 'vue'
  */
 const VOTER_KEY = 'manabi-voter-v1'
 
-function voterId(): string {
+export function voterId(): string {
   try {
     let v = localStorage.getItem(VOTER_KEY)
     if (!v || !/^[a-zA-Z0-9-]{16,64}$/.test(v)) {

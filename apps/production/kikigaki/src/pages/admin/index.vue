@@ -100,11 +100,14 @@
                   <span class="kk-adm-email">{{ u.email || '（メールなし）' }}</span>
                   <span v-if="u.displayName" class="kk-adm-sub">{{ u.displayName }}</span>
                   <span class="kk-adm-sub kk-adm-id" :title="u.id">{{ u.id }}</span>
-                  <!-- お休み（退会）中。預かる期限を過ぎたら、ここから消せる -->
-                  <span v-if="u.withdrawn" class="kk-adm-sub">
-                    <span class="kk-adm-badge" :class="u.retentionExpired ? 'is-warn' : ''">{{ u.retentionExpired ? 'お預かり期限切れ' : 'お休み中' }}</span>
-                    {{ u.retainUntil }}まで預かり
-                    <button v-if="u.retentionExpired" type="button" class="kk-adm-approve" @click="purgeTarget = u">データを消す</button>
+                  <!-- 退会中。お休みは期限なし。削除予約中は予定日を過ぎたらここから消せる -->
+                  <span v-if="u.withdrawn === 'rest'" class="kk-adm-sub">
+                    <span class="kk-adm-badge">お休み中</span> 期限なしで預かり
+                  </span>
+                  <span v-else-if="u.withdrawn === 'scheduled'" class="kk-adm-sub">
+                    <span class="kk-adm-badge" :class="u.deletionDue ? 'is-warn' : ''">{{ u.deletionDue ? '削除できます' : '削除予約中' }}</span>
+                    {{ u.deleteAfter }}以降に削除
+                    <button v-if="u.deletionDue" type="button" class="kk-adm-approve" @click="purgeTarget = u">データを消す</button>
                   </span>
                 </td>
                 <td class="kk-adm-date">{{ u.createdAt.slice(0, 10) }}</td>
@@ -219,7 +222,7 @@
         </template>
       </BottomSheet>
 
-      <!-- 預かる期限が切れたお休み中のデータを消す（元に戻せないので確認を挟む） -->
+      <!-- 削除予定日を過ぎたデータを消す（元に戻せないので確認を挟む） -->
       <BottomSheet
         :model-value="!!purgeTarget"
         title="この人のデータを消しますか？"
@@ -229,7 +232,7 @@
         <template v-if="purgeTarget">
           <p class="kk-lead m-0"><strong>{{ purgeTarget.email }}</strong></p>
           <p class="kk-lead mt-1">
-            お預かりの期限（{{ purgeTarget.retainUntil }}）を過ぎています。議事録（{{ purgeTarget.recordCount }}件）・設定などをすべて消します。元には戻せません。
+            本人が選んだ削除の予定日（{{ purgeTarget.deleteAfter }}）を過ぎています。議事録（{{ purgeTarget.recordCount }}件）・設定などをすべて消します。元には戻せません。
           </p>
           <div class="mt-4 flex flex-col gap-2">
             <button class="kk-btn-sub" :disabled="purging" @click="purgeUser(purgeTarget)">
@@ -309,8 +312,9 @@ const stats = computed(() => {
       ? [{ label: '承認待ち', value: `${s.pendingCount}人`, sub: '承認すると使えるようになります', tone: s.pendingCount ? 'is-warn' : '' }]
       : []),
     { label: '登録者', value: `${s.userCount}人`, sub: '', tone: '' },
-    ...(s.withdrawnCount
-      ? [{ label: 'お休み中', value: `${s.withdrawnCount}人`, sub: s.expiredCount ? `うち期限切れ ${s.expiredCount}人（消せます）` : '預かり期間中', tone: s.expiredCount ? 'is-warn' : '' }]
+    ...(s.restCount ? [{ label: 'お休み中', value: `${s.restCount}人`, sub: '期限なしで預かり', tone: '' }] : []),
+    ...(s.scheduledCount
+      ? [{ label: '削除予約中', value: `${s.scheduledCount}人`, sub: s.dueCount ? `うち予定日が来た ${s.dueCount}人（消せます）` : '予定日まで取り消せます', tone: s.dueCount ? 'is-warn' : '' }]
       : []),
     { label: '契約中', value: `${s.payingCount}人`, sub: s.trialingCount ? `うち無料期間 ${s.trialingCount}人` : '', tone: '' },
     { label: '支払い遅れ', value: `${s.paymentProblemCount}人`, sub: 'カードの更新待ち', tone: s.paymentProblemCount ? 'is-warn' : '' },
@@ -321,7 +325,7 @@ const stats = computed(() => {
 })
 
 // ── 絞り込み ──
-type FilterKey = 'all' | 'pending' | 'paying' | 'free' | 'none' | 'problem' | 'withdrawn'
+type FilterKey = 'all' | 'pending' | 'paying' | 'free' | 'none' | 'problem' | 'withdrawn' | 'due'
 const filters = computed<{ key: FilterKey; label: string }[]>(() => [
   { key: 'all', label: 'すべて' },
   ...(summary.value?.approvalRequired ? [{ key: 'pending' as const, label: '承認待ち' }] : []),
@@ -329,7 +333,8 @@ const filters = computed<{ key: FilterKey; label: string }[]>(() => [
   { key: 'free', label: '支払い不要' },
   { key: 'none', label: '未契約' },
   { key: 'problem', label: '支払い遅れ' },
-  { key: 'withdrawn', label: 'お休み中' },
+  { key: 'withdrawn', label: '退会中' },
+  { key: 'due', label: '削除できる' },
 ])
 const filter = ref<FilterKey>('all')
 const query = ref('')
@@ -350,7 +355,9 @@ const filtered = computed(() => {
       case 'problem':
         return isPaymentProblem(u.status)
       case 'withdrawn':
-        return u.withdrawn
+        return !!u.withdrawn
+      case 'due':
+        return u.deletionDue
       default:
         return true
     }
@@ -435,7 +442,7 @@ async function resetUsage(u: AdminUserRow) {
   resetting.value = false
 }
 
-// ── 預かる期限を過ぎたお休み中のデータを消す ──
+// ── 削除予定日を過ぎた削除予約中のデータを消す ──
 const purgeTarget = ref<AdminUserRow | null>(null)
 const purging = ref(false)
 
@@ -516,7 +523,7 @@ function actionLabel(action: string): string {
   if (action === 'approve') return '承認しました'
   if (action === 'reset_ai_usage') return '今月のAI利用量を0にしました'
   if (action === 'unapprove') return '承認を取り消しました'
-  if (action === 'purge_expired') return '預かる期限が切れたためデータを消しました'
+  if (action === 'purge_due') return '削除の予定日が来たためデータを消しました'
   return `操作しました（${action}）`
 }
 

@@ -1,13 +1,17 @@
-// 退会（お休み）の保存期間まわりの純粋関数。サーバー／クライアント共用。
+// 退会まわりの純粋関数。サーバー／クライアント共用。
 //
-// 退会には2種類ある。
-//   - お休み: 議事録などを残したまま使えなくする。退会の日から RETENTION_YEARS 年のあいだ預かり、
-//     期間内にログインして「再開」すれば元どおりに使える。
-//   - すべて消す: その場ですべて削除する（server/utils/account.ts の deleteAccount）。
+// 退会には3つの道がある。
+//   - お休み: 議事録などを残したまま使えなくする。**期限なし**（本人が消すまで預かる）。再開すれば元どおり。
+//   - すべて消してやめる: 削除を予約する。DELETION_GRACE_DAYS 日のあいだは取り消せて、過ぎたら管理画面から消す。
+//   - 今すぐ消す: その場で全部消す（元に戻せない）。
+// お休みと削除予約は「使えないが、データは持っている」点が同じで、違いは削除予定日（users.delete_after）の有無だけ。
 // 日時は D1 の datetime('now') と同じ UTC の「YYYY-MM-DD HH:MM:SS」で持つ。
 
-/** お休み中のデータを預かる年数。規約・プライバシーポリシーの文面もこの数字に合わせる */
-export const RETENTION_YEARS = 5
+/** 「すべて消してやめる」を選んでから、実際に消すまでの猶予（日）。規約・プライバシーポリシーの文面もこの数字に合わせる */
+export const DELETION_GRACE_DAYS = 30
+
+/** 退会中の状態。rest＝お休み（期限なし）、scheduled＝削除予約中 */
+export type WithdrawnKind = 'rest' | 'scheduled'
 
 function pad(n: number): string {
   return String(n).padStart(2, '0')
@@ -25,30 +29,28 @@ export function parseSqlDateTime(s: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
-/**
- * 預かる期限。退会の日の RETENTION_YEARS 年後。
- * 2月29日に退会した場合、翌年が平年でも3月1日にずれて期間が短くならないよう、月末側に丸める。
- */
-export function retainUntilFrom(withdrawnAt: Date, years: number = RETENTION_YEARS): string {
-  const y = withdrawnAt.getUTCFullYear() + years
-  const m = withdrawnAt.getUTCMonth()
-  const day = withdrawnAt.getUTCDate()
-  const lastDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate()
-  const until = new Date(
-    Date.UTC(y, m, Math.min(day, lastDay), withdrawnAt.getUTCHours(), withdrawnAt.getUTCMinutes(), withdrawnAt.getUTCSeconds())
-  )
-  return toSqlDateTime(until)
+/** 削除予定日。予約した日の DELETION_GRACE_DAYS 日後 */
+export function deleteAfterFrom(scheduledAt: Date, days: number = DELETION_GRACE_DAYS): string {
+  return toSqlDateTime(new Date(scheduledAt.getTime() + days * 24 * 60 * 60 * 1000))
 }
 
-/** 預かる期限を過ぎているか。期限が読めない（空など）ときは過ぎていないものとして扱う（消す方向に倒さない） */
-export function isRetentionExpired(retainUntil: string, now: Date = new Date()): boolean {
-  const until = parseSqlDateTime(retainUntil)
+/** 退会中の種類。削除予定日があれば削除予約中、なければお休み */
+export function withdrawnKindOf(deleteAfter: string): WithdrawnKind {
+  return deleteAfter ? 'scheduled' : 'rest'
+}
+
+/**
+ * 削除予定日を過ぎているか。削除予定日が無い（お休み）や読めないときは過ぎていないものとして扱う
+ * （消す方向に倒さない）。
+ */
+export function isDeletionDue(deleteAfter: string, now: Date = new Date()): boolean {
+  const until = parseSqlDateTime(deleteAfter)
   return !!until && until.getTime() <= now.getTime()
 }
 
-/** 画面に出す期限の日付（JST の「2031年10月20日」） */
-export function retainUntilLabel(retainUntil: string): string {
-  const until = parseSqlDateTime(retainUntil)
+/** 画面に出す削除予定日（JST の「2026年11月20日」） */
+export function deleteAfterLabel(deleteAfter: string): string {
+  const until = parseSqlDateTime(deleteAfter)
   if (!until) return ''
   const j = new Date(until.getTime() + 9 * 60 * 60 * 1000)
   return `${j.getUTCFullYear()}年${j.getUTCMonth() + 1}月${j.getUTCDate()}日`

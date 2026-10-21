@@ -34,7 +34,9 @@
 
         <!-- はじめる前。共有で開いた人にも、何の問題かがわかるように -->
         <div v-if="phase === 'intro'" class="flex-1 flex flex-col justify-center pb-[8vh] mb-rise">
-          <p class="text-center text-[12.5px] text-[var(--mb-ink-faint)]">{{ set.questions.length }}問・選択式</p>
+          <p class="text-center text-[12.5px] text-[var(--mb-ink-faint)]">
+            {{ set.questions.length }}問・選択式 ・ <span class="text-[var(--mb-accent-deep)]">{{ set.clearCount ?? 0 }}人がクリア</span>
+          </p>
           <div class="mt-3 text-center">
             <h1 class="mb-display text-[26px] font-bold leading-snug inline">{{ set.title }}</h1>
             <span v-if="set.creatorName" class="ml-2 text-[13px] text-[var(--mb-ink-faint)] whitespace-nowrap">{{ set.creatorName }}</span>
@@ -244,7 +246,7 @@ import { useManabiRecent } from '~/composables/useManabiRecent'
 import { recordCorrect } from '~/composables/useManabiMe'
 import { readRun, writeRun, type ManabiPhase } from '~/composables/useManabiRun'
 import { useManabiSync } from '~/composables/useManabiSync'
-import { useManabiLikes } from '~/composables/useManabiLikes'
+import { useManabiLikes, voterId } from '~/composables/useManabiLikes'
 
 definePageMeta({ layout: 'manabi' })
 
@@ -394,6 +396,8 @@ const next = () => {
   if (set.value && !reviewOnly.value) {
     recordScore(set.value.id, score.value)
     scheduleSync()
+    // クリア人数に数える（同じ端末は1回だけ）。失敗しても結果は見られるので黙って流す
+    $fetch(`/api/sets/${id}/clear`, { method: 'POST', body: { voter: voterId() } }).catch(() => {})
   }
 }
 

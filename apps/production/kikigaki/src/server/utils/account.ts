@@ -1,11 +1,15 @@
-// 退会。本人が左メニューから行う。2種類ある。
+// 退会。本人が左メニューから行う。3つの道がある（日数などは utils/withdrawal.ts）。
 //
-//   お休み（withdrawAccount / resumeAccount）: データは消さず、使えない状態にして RETENTION_YEARS 年預かる。
-//     users.withdrawn_at に日時を入れるだけ。契約は止める。ログインすれば「再開しますか？」が出て、
-//     再開すると元どおりに使える（Firebase のアカウントは消さないので、uid が変わらずデータがつながる）。
-//     期限（retain_until）を過ぎたものは、管理画面から消す（Cron が使えないため手動。admin.ts の purgeExpiredUser）。
-//   すべて消す（deleteAccount）: その場で全部消す。元に戻せない。以下はこちらの話。
+//   お休み（withdrawAccount）: データは消さず、使えない状態にして**期限なし**で預かる。
+//     users.withdrawn_at に日時を入れるだけ（delete_after は空）。契約は止める。
+//     ログインすれば「再開しますか？」が出て、再開すると元どおりに使える
+//     （Firebase のアカウントは消さないので、uid が変わらずデータがつながる）。
+//   すべて消してやめる（scheduleDeletion）: 削除を予約する。DELETION_GRACE_DAYS 日のあいだは取り消せる（resumeAccount）。
+//     予約日を過ぎたものは、管理画面から消す（Cron が使えないため手動。admin.ts の purgeDueUser）。
+//     Firebase のアカウントは予約中は残す（戻せるように）。
+//   今すぐ消す（deleteAccount）: その場で全部消す。元に戻せない。Firebase のアカウントは画面側で本人のログインのまま消す。
 //
+// 以下は「消す」ときの話。
 // 消すもの: 議事録（元の文章を含む）・設定・支払い不要の指定・承認・月の利用量・契約の控え・利用者の行。
 // （001_init.sql の record_revisions はコードから一度も書き込まれておらず、ensureTables にも無いので対象外。
 //   ローカルには表自体が無く、含めると batch ごと失敗する）
@@ -20,7 +24,7 @@
 import type { H3Event } from 'h3'
 import { requireDb, ensureTables } from '~/server/utils/db'
 import { createStripe, getStripeConfig, loadSubscription } from '~/server/utils/stripe'
-import { isRetentionExpired, retainUntilFrom, toSqlDateTime } from '~/utils/withdrawal'
+import { deleteAfterFrom, isDeletionDue, toSqlDateTime } from '~/utils/withdrawal'
 
 /** もう請求が起きない契約の状態 */
 const ENDED_STATUSES = ['canceled', 'incomplete_expired']
@@ -71,48 +75,66 @@ export async function deleteAccount(event: H3Event, userId: string, extra: any[]
   ])
 }
 
-/**
- * お休みに入る。データは残し、契約だけ止める（止められなければ何も変えずに断る）。
- * すでにお休み中なら何もしない（期限を延ばさない）。
- */
-export async function withdrawAccount(event: H3Event, userId: string): Promise<{ retainUntil: string }> {
+interface WithdrawalRow {
+  withdrawn_at: string
+  delete_after: string
+}
+
+async function loadWithdrawal(event: H3Event, userId: string): Promise<WithdrawalRow> {
   const db = requireDb(event)
   await ensureTables(db)
-  const row = (await db.prepare('SELECT withdrawn_at, retain_until FROM users WHERE id = ?').bind(userId).first()) as {
-    withdrawn_at: string
-    retain_until: string
-  } | null
+  const row = (await db.prepare('SELECT withdrawn_at, delete_after FROM users WHERE id = ?').bind(userId).first()) as WithdrawalRow | null
   if (!row) throw createError({ statusCode: 404, message: '利用者が見つかりませんでした。' })
-  if (row.withdrawn_at) return { retainUntil: row.retain_until }
+  return row
+}
+
+/**
+ * お休みに入る。データは残し、契約だけ止める（止められなければ何も変えずに断る）。期限はない。
+ * すでに退会中（お休み・削除予約）なら何もしない。
+ */
+export async function withdrawAccount(event: H3Event, userId: string): Promise<void> {
+  const row = await loadWithdrawal(event, userId)
+  if (row.withdrawn_at) return
+
+  await cancelSubscriptionIfAny(event, userId)
+
+  const db = requireDb(event)
+  await db.prepare('UPDATE users SET withdrawn_at = ?, delete_after = ? WHERE id = ?').bind(toSqlDateTime(new Date()), '', userId).run()
+}
+
+/**
+ * 「すべて消してやめる」。削除を予約する（DELETION_GRACE_DAYS 日後）。契約は止める。
+ * お休み中から予約に切り替えてもよい。すでに予約中なら日付を延ばさない。
+ */
+export async function scheduleDeletion(event: H3Event, userId: string): Promise<{ deleteAfter: string }> {
+  const row = await loadWithdrawal(event, userId)
+  if (row.delete_after) return { deleteAfter: row.delete_after }
 
   await cancelSubscriptionIfAny(event, userId)
 
   const now = new Date()
-  const retainUntil = retainUntilFrom(now)
+  const deleteAfter = deleteAfterFrom(now)
+  const db = requireDb(event)
   await db
-    .prepare('UPDATE users SET withdrawn_at = ?, retain_until = ? WHERE id = ?')
-    .bind(toSqlDateTime(now), retainUntil, userId)
+    .prepare('UPDATE users SET withdrawn_at = ?, delete_after = ? WHERE id = ?')
+    .bind(row.withdrawn_at || toSqlDateTime(now), deleteAfter, userId)
     .run()
-  return { retainUntil }
+  return { deleteAfter }
 }
 
 /**
- * お休みから戻る。預かる期限を過ぎていたら戻せない（期限後は管理画面で消す対象なので、戻すと約束が崩れる）。
- * お休みでなければ何もしない。
+ * 退会から戻る（お休みの再開・削除予約の取り消し）。削除予定日を過ぎていたら戻せない
+ * （約束した日を過ぎたものは管理画面で消す対象なので、戻すと約束が崩れる）。退会中でなければ何もしない。
  */
 export async function resumeAccount(event: H3Event, userId: string): Promise<void> {
-  const db = requireDb(event)
-  await ensureTables(db)
-  const row = (await db.prepare('SELECT withdrawn_at, retain_until FROM users WHERE id = ?').bind(userId).first()) as {
-    withdrawn_at: string
-    retain_until: string
-  } | null
-  if (!row?.withdrawn_at) return
-  if (isRetentionExpired(row.retain_until)) {
+  const row = await loadWithdrawal(event, userId)
+  if (!row.withdrawn_at) return
+  if (isDeletionDue(row.delete_after)) {
     throw createError({
       statusCode: 410,
-      message: 'お預かりする期間が過ぎたため、前の議事録はお戻しできません。お手数ですが、いったんすべて消してから、あらためて登録してください。',
+      message: '削除の予定日を過ぎたため、前の議事録はお戻しできません。お手数ですが、いったんすべて消してから、あらためて登録してください。',
     })
   }
-  await db.prepare("UPDATE users SET withdrawn_at = '', retain_until = '' WHERE id = ?").bind(userId).run()
+  const db = requireDb(event)
+  await db.prepare("UPDATE users SET withdrawn_at = '', delete_after = '' WHERE id = ?").bind(userId).run()
 }

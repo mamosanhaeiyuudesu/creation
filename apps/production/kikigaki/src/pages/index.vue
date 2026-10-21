@@ -69,16 +69,15 @@
       </p>
     </template>
 
-    <!-- ── お休み（退会）中のとき。再開するか、すべて消すかを選んでもらう ───────── -->
+    <!-- ── 退会中（お休み／削除予約中）のとき。戻すか、今すぐ消すかを選んでもらう ───────── -->
     <template v-else-if="withdrawn">
       <h1 class="kk-h1 mt-6">おかえりなさい</h1>
       <p v-if="errorMessage" class="kk-notice kk-notice--error mt-4">{{ errorMessage }}</p>
 
-      <template v-if="!withdrawn.expired">
+      <!-- お休み中（期限なし） -->
+      <template v-if="withdrawn.kind === 'rest'">
         <p class="kk-lead mt-2">
-          いまはお休み中です。これまでの議事録は
-          <strong v-if="withdrawn.retainUntilLabel">{{ withdrawn.retainUntilLabel }}</strong><template v-else>期限</template>
-          までお預かりしています。再開すると、そのまま使えます。
+          いまはお休み中です。これまでの議事録はそのままお預かりしています。再開すると、続きから使えます。
         </p>
         <div class="mt-5">
           <button class="kk-btn" :disabled="resuming" @click="resume">
@@ -86,16 +85,30 @@
           </button>
         </div>
       </template>
+
+      <!-- 削除予約中。予定日の前なら取り消せる -->
+      <template v-else-if="!withdrawn.expired">
+        <p class="kk-lead mt-2">
+          いまは削除の手続き中です。これまでの議事録は
+          <strong v-if="withdrawn.deleteAfterLabel">{{ withdrawn.deleteAfterLabel }}</strong><template v-else>予定日</template>
+          以降に消えます。取り消すと、そのまま使えます。
+        </p>
+        <div class="mt-5">
+          <button class="kk-btn" :disabled="resuming" @click="resume">
+            {{ resuming ? '取り消しています…' : '削除を取り消して、再開する' }}
+          </button>
+        </div>
+      </template>
       <template v-else>
         <p class="kk-lead mt-2">
-          お預かりする期間（{{ withdrawn.retainUntilLabel }}まで）が過ぎました。
-          前の議事録は近いうちに消えるため、再開はできません。もう一度使うときは、いったんすべて消してから、あらためて登録してください。
+          削除の予定日（{{ withdrawn.deleteAfterLabel }}）を過ぎました。前の議事録は近いうちに消えるため、戻すことはできません。
+          もう一度使うときは、いったんすべて消してから、あらためて登録してください。
         </p>
       </template>
 
       <p class="kk-note mt-5">
         データを今すぐ消したいときは
-        <button type="button" class="underline" :disabled="resuming" @click="eraseOpen = true">すべて消してやめる</button>
+        <button type="button" class="underline" :disabled="resuming" @click="eraseOpen = true">今すぐすべて消す</button>
         を押してください。
       </p>
       <WithdrawSheet v-model="eraseOpen" erase-only @done="onErased" />
@@ -618,7 +631,7 @@ function resetEmailForm() {
   errorMessage.value = ''
 }
 
-// ── お休み中の人の「再開」「すべて消す」 ──
+// ── 退会中の人の「再開（取り消し）」「今すぐ消す」 ──
 const resuming = ref(false)
 const eraseOpen = ref(false)
 
@@ -655,7 +668,7 @@ async function loadRecords() {
     }))
   } catch (e) {
     records.value = []
-    // お休み中の人は一覧が読めない（403）。エラーにせず「おかえりなさい」の画面に切り替える
+    // 退会中の人は一覧が読めない（403）。エラーにせず「おかえりなさい」の画面に切り替える
     if (isWithdrawnError(e)) {
       await refreshWithdrawn().catch(() => {})
     } else {

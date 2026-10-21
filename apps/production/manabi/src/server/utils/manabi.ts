@@ -1,5 +1,6 @@
 // manabi（マナビー）のサーバー共通処理。問題セットの保存・読み出しと、生成回数の上限判定。
 // ログイン不要のサービスなので、AI代の暴走を防ぐ歯止めは「IPごとの1日あたり生成回数」だけに置いている。
+import { devClears } from '~/server/utils/manabi-clears'
 import type { ManabiListItem, ManabiQuestion, ManabiSet } from '~/types/manabi'
 
 /** 1つのIPが1日（UTC）に作れる問題セットの数 */
@@ -113,7 +114,7 @@ export async function listPublicSets(db: any | null, opts: { limit: number; q?: 
       .filter((s) => s.isPublic && (!q || s.title.includes(q)))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, limit)
-      .map((s) => ({ id: s.id, theme: s.theme, title: s.title, level: s.level, creatorName: s.creatorName, count: s.questions.length, createdAt: s.createdAt }))
+      .map((s) => ({ id: s.id, theme: s.theme, title: s.title, level: s.level, creatorName: s.creatorName, count: s.questions.length, createdAt: s.createdAt, clearCount: devClears.get(s.id)?.size ?? 0 }))
   }
 
   const where = q ? "AND title LIKE ? ESCAPE '\\'" : ''
@@ -125,7 +126,8 @@ export async function listPublicSets(db: any | null, opts: { limit: number; q?: 
   binds.push(limit)
   const { results } = await db
     .prepare(
-      `SELECT id, theme, title, level, creator_name, created_at, json_array_length(questions) AS n
+      `SELECT id, theme, title, level, creator_name, created_at, json_array_length(questions) AS n,
+              (SELECT COUNT(*) FROM manabi_clears c WHERE c.set_id = manabi_sets.id) AS clears
        FROM manabi_sets WHERE is_public = 1 ${where} ORDER BY created_at DESC LIMIT ?`
     )
     .bind(...binds)
@@ -138,6 +140,7 @@ export async function listPublicSets(db: any | null, opts: { limit: number; q?: 
     creatorName: r.creator_name ?? '',
     count: r.n ?? 0,
     createdAt: r.created_at,
+    clearCount: r.clears ?? 0,
   }))
 }
 

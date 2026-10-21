@@ -6,17 +6,19 @@ export interface AuthUser {
   id: string
   email: string
   displayName: string
-  /** お休み（退会）に入った日時(UTC)。空ならふつうに使えている */
+  /** 退会に入った日時(UTC)。空ならふつうに使えている */
   withdrawnAt?: string
-  /** お休み中のデータを預かる期限(UTC) */
-  retainUntil?: string
+  /** 削除予定日(UTC)。空ならお休み（期限なし） */
+  deleteAfter?: string
 }
 
-/** お休み中の人に画面が出す情報（/api/me が返す） */
+/** 退会中の人に画面が出す情報（/api/me が返す） */
 export interface WithdrawnInfo {
-  /** 期限の日付（JST の「2031年10月20日」） */
-  retainUntilLabel: string
-  /** もう預かる期限を過ぎている（再開はできず、消すことだけできる） */
+  /** rest＝お休み（期限なし）／scheduled＝削除予約中 */
+  kind: 'rest' | 'scheduled'
+  /** 削除予定日（JST の「2026年11月20日」）。お休みは空 */
+  deleteAfterLabel: string
+  /** 削除予定日を過ぎた（再開はできず、今すぐ消すことだけできる） */
   expired: boolean
 }
 

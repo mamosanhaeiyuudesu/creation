@@ -42,7 +42,7 @@ export async function ensureTables(db: any): Promise<void> {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       last_login_at TEXT NOT NULL DEFAULT (datetime('now')),
       withdrawn_at TEXT NOT NULL DEFAULT '',
-      retain_until TEXT NOT NULL DEFAULT ''
+      delete_after TEXT NOT NULL DEFAULT ''
     )`,
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users (email) WHERE email <> ''`,
     `CREATE TABLE IF NOT EXISTS records (
@@ -146,14 +146,16 @@ async function ensureRecordsMode(db: any): Promise<void> {
 let usersWithdrawalReady = false
 
 /**
- * users に withdrawn_at / retain_until 列（2026-10-20 追加）が無ければ足す。ensureRecordsMode と同じ理由。
- * withdrawn_at が空でなければ「お休み中」。retain_until はデータを預かる期限（utils/withdrawal.ts）。
+ * users に withdrawn_at / delete_after 列（2026-10-21 追加）が無ければ足す。ensureRecordsMode と同じ理由。
+ * withdrawn_at が空でなければ退会中（使えないがデータは残している）。delete_after が空ならお休み（期限なし）、
+ * 入っていれば削除予約中でその日以降に管理画面から消す（utils/withdrawal.ts）。
+ * （試作で一時期あった retain_until 列は使わない。ローカルのDBに残っていても害はない）
  */
 async function ensureUsersWithdrawal(db: any): Promise<void> {
   if (usersWithdrawalReady) return
   const res = await db.prepare('PRAGMA table_info(users)').all()
   const cols: { name: string }[] = res?.results ?? []
-  for (const name of ['withdrawn_at', 'retain_until']) {
+  for (const name of ['withdrawn_at', 'delete_after']) {
     if (cols.some((c) => c.name === name)) continue
     try {
       await db.prepare(`ALTER TABLE users ADD COLUMN ${name} TEXT NOT NULL DEFAULT ''`).run()

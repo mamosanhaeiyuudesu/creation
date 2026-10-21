@@ -208,7 +208,7 @@
       <button v-if="!withdrawn" type="button" class="kk-set-danger-link" @click="leaveOpen = true">退会する</button>
     </section>
 
-    <!-- 退会の確認（お休み／すべて消す） -->
+    <!-- 退会の確認（お休み／すべて消してやめる） -->
     <WithdrawSheet v-model="leaveOpen" @done="onLeft" />
   </div>
 </template>
@@ -453,11 +453,11 @@ async function confirmTagDelete() {
   tagBusy.value = false
 }
 
-// ── 退会（お休み／すべて消す） ──
+// ── 退会（お休み／すべて消してやめる＝削除予約） ──
 const leaveOpen = ref(false)
-async function onLeft(kind: 'rest' | 'erase') {
-  // すべて消したときは、この端末に残っている目印も消す（ドライブの連携・PDFの設定など）。
-  // お休みのときは通常のログアウトと同じで、端末の設定はそのまま
+async function onLeft(kind: 'rest' | 'schedule' | 'erase') {
+  // 今すぐ消したときだけ、この端末に残っている目印も消す（ドライブの連携・PDFの設定など）。
+  // お休み・削除予約は通常のログアウトと同じで、端末の設定はそのまま（取り消して戻ったときに困らない）
   if (kind === 'erase') await disconnect()
   isAdmin.value = false
   pendingApproval.value = false

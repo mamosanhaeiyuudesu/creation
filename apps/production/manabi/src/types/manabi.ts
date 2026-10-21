@@ -20,6 +20,8 @@ export interface ManabiSet {
   createdAt: string
   /** 「みんなの問題」に載せるか。false ならリンクを知っている人だけが開ける */
   isPublic: boolean
+  /** クリア（最後まで解き終えた）人数。GET /api/sets/<id> が付ける */
+  clearCount?: number
 }
 
 /** 「みんなの問題」の一覧に出す1件。問題の中身は持たない */
@@ -31,6 +33,8 @@ export interface ManabiListItem {
   creatorName: string
   count: number
   createdAt: string
+  /** クリア（最後まで解き終えた）人数 */
+  clearCount: number
 }
 
 export const MANABI_CREATOR_NAME_MAX = 20

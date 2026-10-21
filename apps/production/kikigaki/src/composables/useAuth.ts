@@ -162,7 +162,7 @@ export function useAuth() {
   }
 
   /**
-   * 退会のうち「すべて消す」。サーバーで本人のデータをすべて消したあと、Firebase のアカウントも消す。
+   * 退会のうち「今すぐ消す」。サーバーで本人のデータをすべて消したあと、Firebase のアカウントも消す。
    * Firebase は「最近ログインしていない」と削除を断る（auth/requires-recent-login）。そのときは
    * データはもう消えているので、ログアウトだけして終える（次にログインしても空の状態から始まる）。
    */
@@ -181,16 +181,25 @@ export function useAuth() {
   }
 
   /**
-   * 退会のうち「お休み」。データは残し、契約だけ止める。Firebase のアカウントは消さずにログアウトする
-   * （消すと uid が変わり、再開したときに前のデータとつながらなくなる）。
+   * 退会のうち「お休み」。データは残し（期限なし）、契約だけ止める。
+   * Firebase のアカウントは消さずにログアウトする（消すと uid が変わり、再開したときに前のデータとつながらなくなる）。
    */
-  async function withdrawAccount(): Promise<{ retainUntilLabel: string }> {
-    const res = await authedFetch<{ retainUntilLabel: string }>('/api/account/withdraw', { method: 'POST' })
+  async function withdrawAccount(): Promise<void> {
+    await authedFetch('/api/account/withdraw', { method: 'POST' })
+    await logout()
+  }
+
+  /**
+   * 退会のうち「すべて消してやめる」。削除を予約してログアウトする（猶予のあいだは取り消せる）。
+   * こちらも Firebase のアカウントは消さない（取り消してログインし直せるように）。
+   */
+  async function scheduleDeletion(): Promise<{ deleteAfterLabel: string }> {
+    const res = await authedFetch<{ deleteAfterLabel: string }>('/api/account/schedule-delete', { method: 'POST' })
     await logout()
     return res
   }
 
-  /** お休みから戻る */
+  /** お休みの再開・削除予約の取り消し */
   async function resumeAccount(): Promise<void> {
     await authedFetch('/api/account/resume', { method: 'POST' })
   }
@@ -241,6 +250,7 @@ export function useAuth() {
     authedFetch,
     deleteAccount,
     withdrawAccount,
+    scheduleDeletion,
     resumeAccount,
   }
 }

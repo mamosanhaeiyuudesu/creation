@@ -39,7 +39,7 @@
                 <span v-if="it.creatorName" class="shrink-0 max-w-[40%] truncate text-[11.5px] text-[var(--mb-ink-faint)]">{{ it.creatorName }}</span>
               </span>
               <span class="mt-1.5 block text-[11.5px] text-[var(--mb-ink-faint)]">
-                {{ it.count }}問<template v-if="it.level"> ・ {{ it.level }}</template> ・ {{ dateLabel(it.createdAt) }}
+                {{ it.count }}問<template v-if="it.level"> ・ {{ it.level }}</template> ・ {{ dateLabel(it.createdAt) }} ・ <span class="text-[var(--mb-accent-deep)]">{{ it.clearCount }}人がクリア</span>
               </span>
             </span>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-1 text-[var(--mb-accent)]">

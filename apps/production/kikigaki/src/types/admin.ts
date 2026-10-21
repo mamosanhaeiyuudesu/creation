@@ -26,10 +26,11 @@ export interface AdminUserRow {
   note: string
   /** いま使えるか（承認・モニター期間・管理者・支払い不要・契約を合わせた結果） */
   canUse: boolean
-  /** お休み（退会）中か。預かる期限（JST の日付）と、その期限を過ぎたか */
-  withdrawn: boolean
-  retainUntil: string
-  retentionExpired: boolean
+  /** 退会中の種類。空＝ふつうに使っている／rest＝お休み（期限なし）／scheduled＝削除予約中 */
+  withdrawn: '' | 'rest' | 'scheduled'
+  /** 削除予定日（JST の日付。お休みは空）と、その日を過ぎて消せるか */
+  deleteAfter: string
+  deletionDue: boolean
 }
 
 export interface AdminSummary {
@@ -49,9 +50,10 @@ export interface AdminSummary {
   /** 今月のAI代の合計（円・おおよそ） */
   monthCostYen: number
   monitorMode: boolean
-  /** お休み中の人 / うち預かる期限を過ぎて消せる人 */
-  withdrawnCount: number
-  expiredCount: number
+  /** お休み中の人 / 削除予約中の人 / うち予定日を過ぎて消せる人 */
+  restCount: number
+  scheduledCount: number
+  dueCount: number
   storage: AdminStorage
 }
 

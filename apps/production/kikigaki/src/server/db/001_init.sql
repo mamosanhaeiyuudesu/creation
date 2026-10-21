@@ -17,10 +17,12 @@ CREATE TABLE IF NOT EXISTS users (
   display_name TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   last_login_at TEXT NOT NULL DEFAULT (datetime('now')),
-  -- お休み（退会）中の印。空でなければお休み中で、議事録などは残したまま使えない。
-  -- retain_until までは預かり、過ぎたら管理画面から消す。2026-10-20 に追加（既存のDBには ensureTables が列を足す）
+  -- 退会中の印。withdrawn_at が空でなければ退会中で、議事録などは残したまま使えない。
+  -- delete_after が空＝お休み（期限なし。本人が戻る／消すまで預かる）。
+  -- 入っている＝削除予約中で、その日を過ぎたら管理画面から消す（それまでは取り消せる）。
+  -- 2026-10-21 に追加（既存のDBには ensureTables が列を足す）
   withdrawn_at TEXT NOT NULL DEFAULT '',
-  retain_until TEXT NOT NULL DEFAULT ''
+  delete_after TEXT NOT NULL DEFAULT ''
 );
 
 -- 同じメールアドレスで2行できないようにする（Google ログインとマジックリンクの統合は
