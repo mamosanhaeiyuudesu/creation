@@ -9,7 +9,7 @@
         </a>
         <nav class="pt-nav" :class="{ 'is-open': isMenuOpen }">
           <a v-for="n in navItems" :key="n.href" :href="n.href" @click="isMenuOpen = false">{{ n.label }}</a>
-          <a :href="contactUrl" target="_blank" rel="noopener" class="pt-btn pt-btn-accent pt-nav-cta">お問い合わせ</a>
+          <a :href="contactUrl" target="_blank" rel="noopener" class="pt-btn pt-btn-accent pt-nav-cta">無料相談</a>
         </nav>
         <button class="pt-menu-btn" :aria-expanded="isMenuOpen" aria-label="メニュー" @click="isMenuOpen = !isMenuOpen">
           <span /><span /><span />
@@ -31,14 +31,15 @@
             触って、直して、シンプルで長く使える形に育てます。
           </p>
           <ul class="pt-hero-chips">
-            <li>ご相談30分 無料</li>
+            <li>ご相談60分 無料</li>
             <li>要件が決まる前からOK</li>
             <li>大手IT企業で17年</li>
           </ul>
           <a :href="contactUrl" target="_blank" rel="noopener" class="pt-btn pt-btn-accent pt-btn-lg">
-            30分の無料相談
+            無料相談
             <span class="pt-btn-arrow" aria-hidden="true">→</span>
           </a>
+          <p class="pt-btn-note">60分・試作品もその場でお渡しします</p>
         </div>
 
         <div class="pt-hero-visual">
@@ -220,7 +221,8 @@
             <p class="pt-price-name">ご相談</p>
             <p class="pt-price-amount"><span class="pt-num">0</span>円</p>
             <ul>
-              <li>30分・オンライン可</li>
+              <li>60分・オンライン可</li>
+              <li>試作品もその場でお渡しします</li>
               <li>要件が決まっていなくても大丈夫です</li>
             </ul>
           </div>
@@ -307,11 +309,12 @@
       <div class="pt-wrap pt-cta-inner">
         <p class="pt-cta-sub">そのくらいの温度感で十分です</p>
         <h2 class="pt-cta-title">「こういうの、できませんか？」</h2>
-        <p class="pt-cta-note">まだ何も決まっていない段階で構いません。一緒に考えましょう。（ご相談 30分 無料）</p>
+        <p class="pt-cta-note">まだ何も決まっていない段階で構いません。一緒に考えましょう。（ご相談 60分 無料）</p>
         <a :href="contactUrl" target="_blank" rel="noopener" class="pt-btn pt-btn-accent pt-btn-lg">
-          お問い合わせ
+          無料相談
           <span class="pt-btn-arrow" aria-hidden="true">→</span>
         </a>
+        <p class="pt-btn-note">60分・試作品もその場でお渡しします</p>
       </div>
     </section>
 
@@ -484,7 +487,7 @@ const voices = [
 ]
 
 const processSteps = [
-  { title: 'お話を聞く', time: '30分・オンライン可', body: 'お困りごとや実現したいこと、現場の使い方を伺います。' },
+  { title: 'お話を聞く', time: '60分・オンライン可', body: 'お困りごとや実現したいこと、現場の使い方を伺います。' },
   { title: 'すぐ作る', time: 'その場〜3日', body: '動く試作品を作ります。Web・スマホ・LINE・ホームページなど最適な形で。' },
   { title: '触って、直す', time: '2〜3週間', body: '使っていただき、納得がいくまで何度でもシンプルに直します。' },
   { title: '現場で試す', time: '2〜3週間', body: '実際の業務で使い、不具合や使い勝手を確かめます。' },

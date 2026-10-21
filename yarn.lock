@@ -8605,6 +8605,14 @@ __metadata:
   languageName: node
   linkType: hard
 
+"kaito2@workspace:apps/kaito2":
+  version: 0.0.0-use.local
+  resolution: "kaito2@workspace:apps/kaito2"
+  dependencies:
+    nuxt: "npm:^4.5.2"
+  languageName: unknown
+  linkType: soft
+
 "kaito@workspace:apps/kaito":
   version: 0.0.0-use.local
   resolution: "kaito@workspace:apps/kaito"

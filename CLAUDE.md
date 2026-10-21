@@ -13,6 +13,7 @@ apps/
 ├── prototyper/     # 以下、1サイト = 1 Nuxt ワークスペース（静的生成）
 ├── shugorin/
 ├── kaito/
+├── kaito2/        # kaito のリニューアル版（kaito.insightlens.jp）
 ├── sakubun/
 ├── hareruya/
 ├── data-vis/       # データ可視化の受託制作LP（data-vis.insightlens.jp。miyako を事例に紹介）
@@ -57,6 +58,7 @@ apps/
 | data-vis | 3011 | データ可視化の受託制作LP（data-vis.insightlens.jp）。参考サイトは trust-bank.net。料金・問い合わせ先は `src/config/site.ts` に集約 |
 | genogram | 3008 | ジェノグラム作成ツール（家族構成をAIに伝えるとJSONを作成・更新しSVG描画。AI解釈のみCloudflare Workers上のAPIルートを使う） |
 | shimano-papa | 3012 | 人生のインタビュー（聞き手「島のパパ」がインタビューして自伝本にする）のLP（shimano-papa.insightlens.jp）。参考サイトは jinsei-interview.pages.dev。料金・note のURLは `src/config/site.ts` に集約。カウンセリング的な効果はメインで訴求しない（補足の枠だけ） |
+| kaito2 | 3013 | 月ノ瀬 直のページのリニューアル版（kaito.insightlens.jp）。kaito の内容を要点に絞り直したもの。宮古ブルー（#00A3AF）＋サンセット（#FF6F61）、見出し=やさしさゴシック／本文=Noto Sans JP。料金・フォームURLは `src/config/site.ts` に集約 |
 
 ### 本番サービス一覧
 

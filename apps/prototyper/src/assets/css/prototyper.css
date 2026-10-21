@@ -1674,3 +1674,9 @@ html {
     gap: 4px;
   }
 }
+
+.pt-btn-note {
+  margin: 10px 0 0;
+  font-size: 13px;
+  opacity: 0.85;
+}

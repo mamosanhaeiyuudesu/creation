@@ -31,7 +31,7 @@
           <a href="#how" @click="isMenuOpen = false">つくり方</a>
           <a href="#price" @click="isMenuOpen = false">料金</a>
           <a href="#faq" @click="isMenuOpen = false">よくある質問</a>
-          <a :href="site.contactUrl" target="_blank" rel="noopener" class="dv-btn dv-btn-accent dv-nav-cta">無料相談を申し込む</a>
+          <a :href="site.contactUrl" target="_blank" rel="noopener" class="dv-btn dv-btn-accent dv-nav-cta">無料相談</a>
         </nav>
         <button class="dv-menu-btn" :aria-expanded="isMenuOpen" aria-label="メニュー" @click="isMenuOpen = !isMenuOpen">
           <span /><span /><span />
@@ -60,9 +60,10 @@
             加工とグラフ化で、誰が見ても中身が分かり、関心が持てる形に変えます。
           </p>
           <a :href="site.contactUrl" target="_blank" rel="noopener" class="dv-btn dv-btn-accent dv-btn-lg">
-            無料相談で試作してもらう
+            無料相談
             <span class="dv-btn-arrow" aria-hidden="true">→</span>
           </a>
+          <p class="dv-btn-note">60分・試作品もその場でお渡しします</p>
         </div>
         <div class="dv-hero-visual">
           <div class="dv-device">
@@ -93,7 +94,7 @@
           <span>無料相談</span>
         </div>
         <div class="dv-hero-card-body">
-          <p class="dv-hero-card-lead">30分の相談で、その場で試作</p>
+          <p class="dv-hero-card-lead">60分の相談で、その場で試作</p>
           <p class="dv-hero-card-big"><span class="dv-num">0</span>円</p>
           <p class="dv-hero-card-note">※お一人様1件まで</p>
         </div>
@@ -373,7 +374,7 @@
             <p class="dv-price-name">無料相談</p>
             <p class="dv-price-amount"><span class="dv-num">0</span>円</p>
             <ul>
-              <li>30分のオンライン相談</li>
+              <li>60分のオンライン相談</li>
               <li>お聞きした内容で、その場で試作をお渡し</li>
               <li>お一人様1件まで</li>
             </ul>
@@ -433,12 +434,13 @@
     <section id="contact" class="dv-cta">
       <div class="dv-wrap dv-cta-inner">
         <p class="dv-cta-sub">まずは、お手元のデータを見せてください</p>
-        <h2 class="dv-cta-title">30分の無料相談で、<br class="dv-sp" />その場で試作をお渡しします</h2>
+        <h2 class="dv-cta-title">60分の無料相談で、<br class="dv-sp" />その場で試作をお渡しします</h2>
         <p class="dv-cta-note">データの一部だけでも、「こんなデータがある」というお話だけでも大丈夫です。※お一人様1件まで</p>
         <a :href="site.contactUrl" target="_blank" rel="noopener" class="dv-btn dv-btn-accent dv-btn-lg">
-          無料相談を申し込む
+          無料相談
           <span class="dv-btn-arrow" aria-hidden="true">→</span>
         </a>
+        <p class="dv-btn-note">60分・試作品もその場でお渡しします</p>
       </div>
     </section>
 
@@ -635,8 +637,8 @@ const howSteps = [
 const vizTypes = ['ワードクラウド', 'ネットワーク図', 'ヒートマップ', '時系列グラフ', '地図', 'ランキング', 'AI による要約', '検索']
 
 const flowSteps = [
-  { title: 'フォームからお申し込み', body: 'どんなデータをお持ちか、誰に見せたいかを簡単にお書きください。' },
-  { title: '無料相談（30分）', body: 'お話を伺いながら、その場で試作を作ってお渡しします。' },
+  { title: 'フォームから無料相談', body: 'どんなデータをお持ちか、誰に見せたいかを簡単にお書きください。' },
+  { title: '無料相談（60分）', body: 'お話を伺いながら、その場で試作を作ってお渡しします。' },
   { title: '内容とお見積り', body: '試作を見ながら、見せ方や画面の数を決め、お見積りをお出しします。' },
   { title: '制作・公開', body: '途中の画面をお見せしながら仕上げ、公開します。公開後の更新もご相談ください。' },
 ]

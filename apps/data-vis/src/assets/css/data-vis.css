@@ -1569,3 +1569,9 @@ html {
     padding-right: 16px;
   }
 }
+
+.dv-btn-note {
+  margin: 10px 0 0;
+  font-size: 13px;
+  opacity: 0.85;
+}
