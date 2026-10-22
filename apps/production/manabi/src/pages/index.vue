@@ -3,6 +3,7 @@
     <header class="shrink-0 flex items-center justify-between px-4 sm:px-6 h-20">
       <span class="mb-display text-[15px] font-bold text-[var(--mb-accent-deep)]">マナビー</span>
       <!-- これまでに正解した問題の累計（この端末の分） -->
+      <FeedbackButton service="マナビー" class="ml-auto mr-3" />
       <span class="flex flex-col items-end gap-1" aria-label="正解した問題の累計と称号">
         <span class="flex items-baseline gap-1 text-[var(--mb-accent-deep)]">
           <span class="text-[12.5px] text-[var(--mb-ink-soft)]">正解</span>

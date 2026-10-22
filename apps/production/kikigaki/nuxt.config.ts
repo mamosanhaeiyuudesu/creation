@@ -48,6 +48,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // ── サーバー専用（クライアントへは絶対に出さない） ──
     anthropicApiKey: '',
+    // お客様の声のメール送信（Resend）。wrangler secret put NUXT_RESEND_API_KEY
+    resendApiKey: '',
     // 議事録・元の文章の暗号化鍵（32文字以上）。ai-tools とは別の鍵を使う
     encryptionKey: '',
     // 管理者の users.id（＝最初にログインしたときの Firebase UID）。カンマ区切り。

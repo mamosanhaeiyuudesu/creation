@@ -35,6 +35,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // サーバー専用（クライアントへは出さない）
     anthropicApiKey: '',
+    // お客様の声のメール送信（Resend）。wrangler secret put NUXT_RESEND_API_KEY
+    resendApiKey: '',
   },
   nitro: {
     preset: 'cloudflare_module',

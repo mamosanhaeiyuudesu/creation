@@ -55,6 +55,9 @@
         </nav>
       </aside>
 
+      <!-- 左メニュー表示中（PC・ログイン後）は上の帯が無いので、画面右上に固定で置く -->
+      <FeedbackButton v-if="isLoggedIn" service="キキガキ" class="kk-fb-fixed" />
+
       <div class="kk-shell-main">
         <header class="kk-mobile-head">
           <NuxtLink to="/" class="kk-logo">
@@ -64,6 +67,7 @@
             {{ serviceName }}
             <span class="kk-note font-normal hidden sm:inline">会議の文章から議事録を</span>
           </NuxtLink>
+          <FeedbackButton service="キキガキ" class="kk-fb-head" />
           <!-- スマホでは左メニューが出ないので、管理画面との行き来はこの帯の右端のボタンで行う（管理者だけ）。
                管理画面にいるときは「議事録」（一覧へ戻る）、それ以外では「管理画面」に入れ替える -->
           <template v-if="isAdmin">
@@ -244,6 +248,21 @@ const wide = computed(() => route.meta.wide === true)
   gap: 0.5rem;
   background: var(--kk-panel);
   border-bottom: 1px solid var(--kk-line);
+}
+.kk-fb-head {
+  margin-left: auto;
+}
+.kk-fb-fixed {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .kk-fb-fixed {
+    display: inline-flex;
+    position: fixed;
+    top: 12px;
+    right: 16px;
+    z-index: 30;
+  }
 }
 .kk-head-admin {
   display: inline-flex;

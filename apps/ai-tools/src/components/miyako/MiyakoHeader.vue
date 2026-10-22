@@ -52,16 +52,7 @@ const isActive = (page: MiyakoPage) => props.activePage === page
         </nav>
 
         <div class="flex items-center flex-wrap gap-y-1.5 gap-x-4 ml-auto shrink-0">
-          <a
-            href="https://docs.google.com/forms/d/e/1FAIpQLSe9bfl-DXIf9VWKvbsq3WuWYC72N2PSJUMeAo83jG6UE_7YFw/viewform"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="feedback-link"
-            aria-label="ご意見・お問い合わせ"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span class="hidden xl:inline">ご意見・お問い合わせ</span>
-          </a>
+          <MiyakoFeedbackButton service="宮古議事録" />
           <span class="hidden md:contents"><slot /></span>
         </div>
       </div>

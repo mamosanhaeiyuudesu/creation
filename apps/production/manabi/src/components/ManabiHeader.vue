@@ -11,5 +11,6 @@
       <slot />
     </div>
     <slot name="right" />
+    <FeedbackButton service="マナビー" />
   </header>
 </template>
