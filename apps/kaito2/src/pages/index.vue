@@ -7,16 +7,16 @@
       <section id="top" class="k2-hero">
         <div class="k2-wrap k2-hero-inner">
           <div class="k2-hero-text">
-            <p class="k2-hero-label">カウンセリング ＆ ヒーリング</p>
+            <p class="k2-hero-label">カウンセリング ＆ ヒーリング ／ 60分</p>
             <h1 class="k2-hero-title">
-              <span>「大丈夫」と言ってきた</span><span>あなたが、</span><br />
-              <span>本来の自分に還る場所。</span>
+              <span>話すだけで、</span><span>心が軽くなる。</span>
             </h1>
             <p class="k2-hero-lead">
-              <span>頑張りすぎて後回しにしてきた気持ちを、</span><span>安心できる場所でほどいていく。</span><br />
-              <span>もっと自分を好きになり、</span><span>自分らしく笑える毎日へ。</span>
+              <span>頑張りすぎて、自分の気持ちが後回しの方へ。</span><br />
+              <span>考えがまとまっていなくても大丈夫です。</span><span>「大丈夫」と言ってきたあなたが、</span><span>本来の自分に還る場所です。</span>
             </p>
 
+            <p class="k2-hero-sub">ここで得られること</p>
             <ul class="k2-hero-values">
               <li v-for="v in heroValues" :key="v.title">
                 <K2Icon :name="v.icon" />
@@ -27,6 +27,10 @@
               </li>
             </ul>
 
+            <ul class="k2-chips" aria-label="受けやすさ">
+              <li v-for="c in chips" :key="c">{{ c }}</li>
+            </ul>
+
             <div class="k2-hero-cta">
               <a
                 class="k2-btn k2-btn-accent k2-btn-lg"
@@ -34,7 +38,7 @@
                 :target="site.applyFormUrl ? '_blank' : undefined"
                 :rel="site.applyFormUrl ? 'noopener noreferrer' : undefined"
               >初回 {{ site.price.monitor }} で受けてみる</a>
-              <a class="k2-btn k2-btn-ghost k2-btn-lg" href="#menu">メニューを見る</a>
+              <a class="k2-btn k2-btn-ghost k2-btn-lg" href="#menu">自分に合うメニューを見る</a>
             </div>
           </div>
 
@@ -42,6 +46,62 @@
             <img :src="site.images.hero" alt="愛猫を抱いてほほえむ月ノ瀬 直" width="1000" height="896" />
             <figcaption>セラピスト　月ノ瀬 直</figcaption>
           </figure>
+        </div>
+      </section>
+
+      <!-- 受けたあとの変化: 実際の声の言葉をヒーロー直下に引用 -->
+      <section class="k2-quotes" aria-label="受けた方の声から">
+        <div class="k2-wrap">
+          <ul>
+            <li v-for="q in quotes" :key="q">{{ q }}</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- メニュー・料金: 料金は基本の単発のみ。継続コース・特典は問い合わせで案内 -->
+      <section id="menu" class="k2-section">
+        <div class="k2-wrap">
+          <p class="k2-label">MENU</p>
+          <h2 class="k2-title">メニュー・料金</h2>
+          <p class="k2-lead">迷われたら、ご相談いただければご提案します。</p>
+
+          <div class="k2-choose">
+            <p class="k2-choose-head">あなたに合うのは？</p>
+            <ul>
+              <li v-for="c in choose" :key="c.menu">
+                <span class="k2-choose-when">{{ c.when }}</span>
+                <span class="k2-choose-arrow" aria-hidden="true">→</span>
+                <strong>{{ c.menu }}</strong>
+              </li>
+            </ul>
+          </div>
+
+          <div class="k2-grid-3">
+            <article v-for="m in menus" :key="m.title" class="k2-card k2-menu">
+              <span class="k2-tag k2-tag-main">{{ m.tag }}</span>
+              <h3>{{ m.title }}</h3>
+              <p class="k2-menu-catch">{{ m.catch }}</p>
+              <ul class="k2-dot-list">
+                <li v-for="item in m.items" :key="item">{{ item }}</li>
+              </ul>
+            </article>
+          </div>
+
+          <div class="k2-price">
+            <p class="k2-price-head">料金（どのメニューも共通・税込）</p>
+            <div class="k2-price-row">
+              <div class="k2-price-item k2-price-item-hl">
+                <span class="k2-price-label">初回モニター価格</span>
+                <span class="k2-price-num">{{ site.price.monitor }}</span>
+              </div>
+              <div class="k2-price-item">
+                <span class="k2-price-label">キャンペーン価格（{{ site.price.minutes }}）</span>
+                <span class="k2-price-num">{{ site.price.campaign }}</span>
+                <s class="k2-price-regular">通常 {{ site.price.regular }}</s>
+              </div>
+            </div>
+            <p class="k2-price-note">継続コースもあります（継続中は、セッション後の質問にLINEでお答えする特典つき）。詳しくはお問い合わせください。</p>
+          </div>
         </div>
       </section>
 
@@ -78,42 +138,6 @@
               <h3>{{ p.title }}</h3>
               <p>{{ p.body }}</p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- メニュー・料金: 料金は基本の単発のみ。継続コース・特典は問い合わせで案内 -->
-      <section id="menu" class="k2-section">
-        <div class="k2-wrap">
-          <p class="k2-label">MENU</p>
-          <h2 class="k2-title">メニュー・料金</h2>
-          <p class="k2-lead">迷われたら、ご相談いただければご提案します。</p>
-
-          <div class="k2-grid-3">
-            <article v-for="m in menus" :key="m.title" class="k2-card k2-menu">
-              <span class="k2-tag k2-tag-main">{{ m.tag }}</span>
-              <h3>{{ m.title }}</h3>
-              <p class="k2-menu-catch">{{ m.catch }}</p>
-              <ul class="k2-dot-list">
-                <li v-for="item in m.items" :key="item">{{ item }}</li>
-              </ul>
-            </article>
-          </div>
-
-          <div class="k2-price">
-            <p class="k2-price-head">料金（どのメニューも共通・税込）</p>
-            <div class="k2-price-row">
-              <div class="k2-price-item k2-price-item-hl">
-                <span class="k2-price-label">初回モニター価格</span>
-                <span class="k2-price-num">{{ site.price.monitor }}</span>
-              </div>
-              <div class="k2-price-item">
-                <span class="k2-price-label">キャンペーン価格（{{ site.price.minutes }}）</span>
-                <span class="k2-price-num">{{ site.price.campaign }}</span>
-                <s class="k2-price-regular">通常 {{ site.price.regular }}</s>
-              </div>
-            </div>
-            <p class="k2-price-note">お得な継続コースもあります。詳しくはお問い合わせください。</p>
           </div>
         </div>
       </section>
@@ -218,10 +242,24 @@
 import { site } from '~/config/site'
 
 const heroValues = [
-  { icon: 'shell', title: '安心して、ありのままを話せる', body: '否定せずに聴きます。秘密は厳守します。' },
-  { icon: 'wave', title: '心の奥のブロックをほどく', body: '我慢や思い込みで見えなくなった気持ちに触れます。' },
-  { icon: 'sun', title: '答えは、あなたの中に', body: '「自分で決められた」という感覚が残る時間に。' },
+  { icon: 'shell', title: '気持ちが整理される', body: 'もやもやを話すうちに、「私、こんなこと思ってたんだ」と本音が見えてきます。' },
+  { icon: 'wave', title: 'くり返す悩みの根っこに触れる', body: '我慢や思い込みをほどき、同じ悩みをくり返しにくくなる方もいます。' },
+  { icon: 'sun', title: '心と身体がゆるむ', body: '横になって受けるだけ。終わったあと、受け取ったメッセージやビジョンをお伝えします。' },
 ] as const
+
+const chips = ['60分', '初回モニター 5,000円', '1回だけでもOK', '秘密厳守']
+
+const quotes = [
+  '「翌朝には、前日より気持ちが楽になっていました」',
+  '「今は心も身体も軽くスッキリしています」',
+  '「肩の力が抜けて、価値観が書き変わってきているのを感じます」',
+]
+
+const choose = [
+  { when: '誰かに話して整理したい', menu: 'おしゃべりカウンセリング' },
+  { when: '同じ悩みや人間関係をくり返す', menu: 'ブロック解放セラピー' },
+  { when: '話す元気もない、まず休みたい', menu: 'ヒーリング' },
+]
 
 const worries = [
   {

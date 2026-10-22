@@ -403,6 +403,96 @@ body:has(.k2) {
   border-radius: var(--k2-radius-pill);
 }
 
+.k2-hero-sub {
+  margin-top: 26px;
+  font-family: var(--k2-font-heading);
+  letter-spacing: var(--k2-heading-spacing);
+  font-weight: 700;
+  color: var(--k2-main-deep);
+  font-size: 14px;
+}
+
+.k2-hero-sub + .k2-hero-values {
+  margin-top: 10px;
+}
+
+.k2-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.k2-chips li {
+  background: #fff;
+  border: 1px solid var(--k2-main);
+  color: var(--k2-main-deep);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 3px 14px;
+  border-radius: var(--k2-radius-pill);
+}
+
+/* 声の引用帯 */
+.k2-quotes {
+  background: var(--k2-main);
+  color: #fff;
+  padding: 26px 0;
+}
+
+.k2-quotes ul {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.k2-quotes li {
+  font-family: var(--k2-font-heading);
+  letter-spacing: var(--k2-heading-spacing);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+/* メニューの選び方 */
+.k2-choose {
+  margin: 32px auto 0;
+  max-width: 760px;
+  background: var(--k2-surface);
+  border-radius: var(--k2-radius);
+  padding: 22px 26px;
+  box-shadow: var(--k2-shadow);
+}
+
+.k2-choose-head {
+  font-family: var(--k2-font-heading);
+  letter-spacing: var(--k2-heading-spacing);
+  font-weight: 700;
+  color: var(--k2-main-deep);
+  margin-bottom: 8px;
+}
+
+.k2-choose li {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px dashed var(--k2-line);
+  font-size: 15px;
+}
+
+.k2-choose-arrow {
+  color: var(--k2-accent);
+  font-weight: 700;
+}
+
+.k2-choose strong {
+  font-family: var(--k2-font-heading);
+  letter-spacing: var(--k2-heading-spacing);
+}
+
 /* ===== Icon / Avatar ===== */
 
 .k2-icon {
@@ -929,8 +1019,13 @@ body:has(.k2) {
   }
 
   .k2-hero-inner,
-  .k2-grid-3 {
+  .k2-grid-3,
+  .k2-quotes ul {
     grid-template-columns: 1fr;
+  }
+
+  .k2-quotes ul {
+    gap: 10px;
   }
 
   .k2-hero-inner {
@@ -957,6 +1052,20 @@ body:has(.k2) {
 
   .k2-price-row {
     grid-template-columns: 1fr;
+  }
+
+  .k2-choose li {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .k2-choose-arrow {
+    display: none;
+  }
+
+  .k2-choose strong::before {
+    content: '→ ';
+    color: var(--k2-accent);
   }
 
   .k2-hero-cta .k2-btn {

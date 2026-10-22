@@ -32,8 +32,8 @@
 import { site } from '~/config/site'
 
 const navItems = [
-  { id: 'for-you', label: 'こんな方へ' },
   { id: 'menu', label: 'メニュー・料金' },
+  { id: 'for-you', label: 'こんな方へ' },
   { id: 'voices', label: 'お客様の声' },
   { id: 'about', label: 'プロフィール' },
   { id: 'faq', label: 'よくある質問' },

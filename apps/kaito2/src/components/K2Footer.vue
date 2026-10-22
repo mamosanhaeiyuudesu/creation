@@ -2,8 +2,8 @@
   <footer class="k2-footer">
     <div class="k2-footer-inner">
       <nav class="k2-footer-nav" aria-label="ページ内リンク">
-        <a href="#for-you">こんな方へ</a>
         <a href="#menu">メニュー・料金</a>
+        <a href="#for-you">こんな方へ</a>
         <a href="#voices">お客様の声</a>
         <a href="#about">プロフィール</a>
         <a href="#faq">よくある質問</a>
