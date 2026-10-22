@@ -76,6 +76,11 @@ export async function ensureNikkiTables(db: any): Promise<void> {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`,
     `CREATE INDEX IF NOT EXISTS idx_nikki_photos_user_date ON nikki_photos (user_id, date, sort_order)`,
+    `CREATE TABLE IF NOT EXISTS nikki_settings (
+      user_id TEXT PRIMARY KEY,
+      review_prompt TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
     `CREATE TABLE IF NOT EXISTS nikki_oauth_states (
       state TEXT PRIMARY KEY, user_id TEXT NOT NULL, verifier TEXT NOT NULL, created_at INTEGER
     )`,
@@ -507,6 +512,47 @@ export async function updateDictionaryItem(db: any, userId: string, id: string, 
 
 export async function deleteDictionaryItem(db: any, userId: string, id: string): Promise<void> {
   await db.prepare('DELETE FROM nikki_dictionary WHERE id = ? AND user_id = ?').bind(id, userId).run()
+}
+
+// ─────────────────────────────── AI振り返り ───────────────────────────────
+
+/** 振り返りプロンプトの文字数上限 */
+export const NIKKI_REVIEW_PROMPT_MAX = 4000
+
+/** 保存済みの振り返りプロンプト。未保存なら空文字（呼び出し側が既定を使う）。 */
+export async function loadReviewPrompt(db: any, userId: string): Promise<string> {
+  const row = await db.prepare('SELECT review_prompt FROM nikki_settings WHERE user_id = ?').bind(userId).first()
+  return String(row?.review_prompt ?? '')
+}
+
+/** 空文字を保存すると既定に戻る。 */
+export async function saveReviewPrompt(db: any, userId: string, prompt: string): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO nikki_settings (user_id, review_prompt, updated_at) VALUES (?, ?, datetime('now'))
+       ON CONFLICT(user_id) DO UPDATE SET review_prompt = excluded.review_prompt, updated_at = excluded.updated_at`
+    )
+    .bind(userId, prompt)
+    .run()
+}
+
+/** 期間内の日ごとの本文（古い順）。振り返りの材料。本文が空の日は返さない。 */
+export async function loadBodiesRange(
+  event: any,
+  db: any,
+  userId: string,
+  opts: { from: string; to: string }
+): Promise<{ date: string; body: string }[]> {
+  const res = await db
+    .prepare('SELECT date, body FROM nikki_entries WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY date ASC')
+    .bind(userId, opts.from, opts.to)
+    .all()
+  const out: { date: string; body: string }[] = []
+  for (const r of (res?.results ?? []) as { date: string; body: string }[]) {
+    const body = r.body ? (await decryptComment(event, r.body)).trim() : ''
+    if (body) out.push({ date: r.date, body })
+  }
+  return out
 }
 
 // ─────────────────────────────── PDF 書き出し ───────────────────────────────

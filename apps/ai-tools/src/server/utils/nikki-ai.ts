@@ -85,3 +85,77 @@ export async function extractNikkiTopics(
     .filter((t): t is NewTopic => !!t && t.impact >= 3)
     .slice(0, NIKKI_MAX_TOPICS_PER_EXTRACT)
 }
+
+// ─────────────────────────────── 直近の振り返り ───────────────────────────────
+//
+// ★振り返りの観点（誰として何を見るか）はこの DEFAULT_REVIEW_PROMPT に書く。画面の ⚙ →
+//   「AI振り返りのプロンプト」で本人が上書きできる（D1 の nikki_settings。空なら既定に戻る）。
+// ★出力の形（JSON）はプロンプトに含めず REVIEW_OUTPUT_RULE で毎回後ろに足す。
+//   本人が文面を編集しても、画面が読めなくならないようにするため。
+
+export const DEFAULT_REVIEW_PROMPT = `あなたは、独立しようとしている人の日記を読み、伴走する聞き手です。
+
+## 本人について
+- 今、独立して自分の事業やサービスを作ろうとしている。
+- エンジニアで開発は得意。マーケティング・デザイン・セールスはほとんどやったことがなく、そこを強めていきたい。
+- 何より、自分が何をしていると本当に楽しいのか、何を本心からしたいと考えているのかをじっくり追求しながら、自分軸で独立していきたい。
+
+## 振り返りの観点（直近1ヶ月の日記から、次の3つを見る）
+1. 楽しさ・本心: 何をしているとき楽しそう／夢中だったか。本心から望んでいそうなことは何か。やらされ感や無理の気配はどこか。
+2. 苦手分野の前進: マーケティング・デザイン・セールスに関して、やったこと・避けていること・次の一歩。
+3. 自分軸での独立: 他人の基準や不安に引っ張られた場面と、自分の軸で選べた場面。今の進み方の方向。
+
+## 書き方
+- 3項目それぞれに、短い見出しと、50文字程度（40〜60字）のまとめを書く。
+- 日記に書かれていることだけを根拠にする。書かれていないことを補わない。根拠が薄い項目は、薄いと正直に書く。
+- 本人の言葉づかいを活かし、励ましや一般論は足さない。具体的に。`
+
+const REVIEW_OUTPUT_RULE = `
+
+## 出力
+JSONのみを返す。前置き・説明・コードフェンスは付けない。
+{"items":[{"heading":"見出し","summary":"まとめ"}]}`
+
+export interface NikkiReviewItem {
+  heading: string
+  summary: string
+}
+
+/** 期間の日記本文（古い順）から振り返りを作る。prompt が空なら既定のプロンプトを使う。 */
+export async function generateNikkiReview(
+  event: any,
+  input: { from: string; to: string; days: { date: string; body: string }[]; prompt?: string }
+): Promise<NikkiReviewItem[]> {
+  const { anthropicApiKey } = useRuntimeConfig(event)
+  if (!anthropicApiKey) {
+    throw createError({ statusCode: 500, message: 'Anthropic APIキーが未設定です' })
+  }
+
+  // 1日あたり・全体の文字数を絞る（長い日があっても全期間が入るよう、新しい日を優先して削る）
+  const PER_DAY = 1500
+  const TOTAL = 40000
+  let used = 0
+  const picked: string[] = []
+  for (const d of [...input.days].reverse()) {
+    const text = `■ ${d.date}\n${d.body.slice(-PER_DAY)}`
+    if (used + text.length > TOTAL) break
+    used += text.length
+    picked.unshift(text)
+  }
+
+  const raw = await callClaudeText(anthropicApiKey as string, {
+    system: (input.prompt?.trim() || DEFAULT_REVIEW_PROMPT) + REVIEW_OUTPUT_RULE,
+    messages: [{ role: 'user', content: `以下は ${input.from} 〜 ${input.to} の日記です。\n\n${picked.join('\n\n')}` }],
+    maxTokens: 1500,
+    model: MODEL,
+  })
+
+  const parsed = parseJsonLoose<{ items?: unknown }>(raw)
+  const list = Array.isArray(parsed?.items) ? (parsed!.items as Partial<NikkiReviewItem>[]) : []
+  const items = list
+    .map((i) => ({ heading: String(i?.heading ?? '').trim(), summary: String(i?.summary ?? '').trim() }))
+    .filter((i) => i.heading && i.summary)
+    .slice(0, 6)
+  if (!items.length) throw createError({ statusCode: 502, message: '振り返りを作れませんでした。もう一度お試しください' })
+  return items
+}

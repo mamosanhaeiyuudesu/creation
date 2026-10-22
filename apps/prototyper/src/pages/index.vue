@@ -473,6 +473,10 @@ const works: Work[] = [
 
 const voices = [
   {
+    title: '思いを汲み取って作ってくれた',
+    body: '以前お願いしたエンジニアさんは仕組みには詳しくても、私たちの悩みまでは汲み取ってもらえませんでした。まもりんさんはこちらの思いを丁寧に汲み取って作ってくれるので、とても助かりました。',
+  },
+  {
     title: '「これはもう、100点満点ですね」',
     body: '何が決まり、次の予定はいつか。全部が1枚のPDFに整理されていて、見返すだけでその日の会議が思い浮かぶ。多少の誤字は、自分で直せばいいだけです。',
   },
@@ -545,6 +549,13 @@ useHead({
     { name: 'description', content: 'ものづくりの主役は、つくる人ではなくあなた自身。実現したいことをじっくり伺い、触れるプロトタイプにして一緒に育てます。ITが苦手な方でも大丈夫。規模に応じて、運用まで担当することも、設計図にして専門チームへ渡すこともできます。' },
     { property: 'og:title', content: 'prototyper | 答えは、いつもあなたの中にある。' },
     { property: 'og:description', content: 'あなたの中にすでにある答えを、触れる形にして一緒に育てる。ITが苦手な方でも安心して話せる、ヒアリングとプロトタイピングの相談窓口です。' },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: 'https://prototyper.insightlens.jp/' },
+    { property: 'og:image', content: 'https://prototyper.insightlens.jp/images/prototyper-ogp.png' },
+    { property: 'og:image:width', content: '1200' },
+    { property: 'og:image:height', content: '630' },
+    { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:image', content: 'https://prototyper.insightlens.jp/images/prototyper-ogp.png' },
   ],
   link: [{ rel: 'icon', type: 'image/png', href: '/images/prototyper-icon.png' }],
 })

@@ -6,7 +6,7 @@
       <div v-if="isLoggedIn" class="flex items-center gap-1 shrink-0">
         <div class="relative">
           <button
-            class="nk-btn-ghost !border-transparent !bg-transparent !w-9 !px-0 justify-center text-[15px]"
+            class="nk-btn-ghost !border-transparent !bg-transparent !w-11 !h-11 !px-0 justify-center !text-[30px] leading-none"
             title="設定"
             :aria-expanded="showSettingsMenu"
             @click="showSettingsMenu = !showSettingsMenu"
@@ -15,7 +15,9 @@
             <!-- 外側タップで閉じる -->
             <div class="fixed inset-0 z-30" @click="showSettingsMenu = false" />
             <div class="absolute right-0 top-full mt-1 z-40 min-w-[210px] nk-card py-1 shadow-[0_12px_36px_rgba(34,37,44,0.18)]">
+              <button class="w-full text-left px-4 py-2.5 text-[13px] hover:bg-[var(--nk-indigo-soft)]" @click="openPdf">📄 PDFでダウンロード</button>
               <button class="w-full text-left px-4 py-2.5 text-[13px] hover:bg-[var(--nk-indigo-soft)]" @click="openDictionary">📖 辞書を編集</button>
+              <button class="w-full text-left px-4 py-2.5 text-[13px] hover:bg-[var(--nk-indigo-soft)]" @click="openReviewPrompt">✏️ AIのプロンプトを編集</button>
               <button class="w-full text-left px-4 py-2.5 text-[13px] hover:bg-[var(--nk-indigo-soft)]" @click="openCalendarSetup">📅 Googleカレンダーとの連携</button>
             </div>
           </template>
@@ -65,6 +67,31 @@
         />
       </NikkiModal>
 
+      <!-- AI振り返りのプロンプト編集（ポップアップ）。⚙ のメニューから開く -->
+      <NikkiModal v-if="showReviewPrompt" @close="showReviewPrompt = false">
+        <NikkiReviewPrompt
+          :prompt="reviewPrompt"
+          :default-prompt="reviewDefaultPrompt"
+          :max="reviewPromptMax"
+          :loading="reviewPromptLoading"
+          :saving="reviewPromptSaving"
+          :error="reviewPromptError"
+          @save="saveReviewPrompt"
+          @close="showReviewPrompt = false"
+        />
+      </NikkiModal>
+
+      <!-- AI振り返り（ポップアップ）。「AI」ボタンから開く -->
+      <NikkiModal v-if="showReview" @close="showReview = false">
+        <NikkiReview
+          :loading="reviewLoading"
+          :error="reviewError"
+          :result="reviewResult"
+          @retry="runReview"
+          @close="showReview = false"
+        />
+      </NikkiModal>
+
       <!-- 記録の入口：今日／昨日の記録と、カレンダー（ポップオーバー） -->
       <div class="relative mb-5">
         <div class="flex flex-wrap sm:flex-nowrap gap-2">
@@ -86,10 +113,9 @@
           >📅<span class="hidden sm:inline"> カレンダー</span></button>
           <button
             class="nk-btn-ghost flex-1 sm:flex-none sm:!px-3 sm:whitespace-nowrap"
-            :class="showPdf ? '!border-[var(--nk-indigo)]' : ''"
-            :aria-expanded="showPdf"
-            @click="togglePdf"
-          ><span class="hidden sm:inline">📄 </span>PDF</button>
+            title="直近1ヶ月をAIで振り返る"
+            @click="openReview"
+          ><span class="hidden sm:inline">✨ </span>AI</button>
         </div>
 
         <template v-if="showCalendar">
@@ -198,6 +224,9 @@ import { prevDate, nextDate } from '~/utils/nikki-calendar'
 import type { NikkiDay } from '~/types/nikki'
 import NikkiTimeline from '~/components/nikki/NikkiTimeline.vue'
 import NikkiDictionary from '~/components/nikki/NikkiDictionary.vue'
+import NikkiReview from '~/components/nikki/NikkiReview.vue'
+import type { NikkiReviewResult } from '~/components/nikki/NikkiReview.vue'
+import NikkiReviewPrompt from '~/components/nikki/NikkiReviewPrompt.vue'
 import NikkiModal from '~/components/nikki/NikkiModal.vue'
 // import NikkiBrainCloud from '~/components/nikki/NikkiBrainCloud.vue'
 
@@ -289,6 +318,72 @@ const openCalendarSetup = () => {
   showSetup.value = true
 }
 
+// AI振り返り（直近1ヶ月）と、そのプロンプトの編集
+const showReview = ref(false)
+const reviewLoading = ref(false)
+const reviewError = ref('')
+const reviewResult = ref<NikkiReviewResult | null>(null)
+
+const runReview = async () => {
+  reviewLoading.value = true
+  reviewError.value = ''
+  try {
+    reviewResult.value = await $fetch<NikkiReviewResult>('/api/nikki/review', { method: 'POST' })
+  } catch (e: any) {
+    reviewResult.value = null
+    reviewError.value = e?.statusMessage || e?.data?.message || e?.message || '振り返りを作れませんでした'
+  } finally {
+    reviewLoading.value = false
+  }
+}
+const openReview = () => {
+  showReview.value = true
+  // 閉じて開き直しただけなら、作り済みの結果を見せる（APIの呼び直しで待たせない）
+  if (!reviewResult.value) runReview()
+}
+
+const showReviewPrompt = ref(false)
+const reviewPrompt = ref('')
+const reviewDefaultPrompt = ref('')
+const reviewPromptMax = ref(4000)
+const reviewPromptLoading = ref(false)
+const reviewPromptSaving = ref(false)
+const reviewPromptError = ref('')
+
+const openReviewPrompt = async () => {
+  showSettingsMenu.value = false
+  showSetup.value = false
+  showDictionary.value = false
+  showReviewPrompt.value = true
+  reviewPromptError.value = ''
+  reviewPromptLoading.value = true
+  try {
+    const res = await $fetch<{ prompt: string; defaultPrompt: string; max: number }>('/api/nikki/review/prompt')
+    reviewPrompt.value = res.prompt
+    reviewDefaultPrompt.value = res.defaultPrompt
+    reviewPromptMax.value = res.max
+  } catch (e: any) {
+    reviewPromptError.value = e?.statusMessage || e?.data?.message || e?.message || 'プロンプトを取得できませんでした'
+  } finally {
+    reviewPromptLoading.value = false
+  }
+}
+const saveReviewPrompt = async (prompt: string) => {
+  reviewPromptSaving.value = true
+  reviewPromptError.value = ''
+  try {
+    const res = await $fetch<{ prompt: string }>('/api/nikki/review/prompt', { method: 'PUT', body: { prompt } })
+    reviewPrompt.value = res.prompt
+    // 次に開いたとき、新しいプロンプトでの振り返りになるよう結果を捨てる
+    reviewResult.value = null
+    showReviewPrompt.value = false
+  } catch (e: any) {
+    reviewPromptError.value = e?.statusMessage || e?.data?.message || e?.message || '保存できませんでした'
+  } finally {
+    reviewPromptSaving.value = false
+  }
+}
+
 const withDictionaryBusy = async (fn: () => Promise<boolean>) => {
   dictionaryBusy.value = true
   await fn()
@@ -317,12 +412,12 @@ const setPdfPreset = (preset: 'month' | 'all') => {
   d.setUTCDate(d.getUTCDate() + 1)
   pdfFrom.value = preset === 'month' ? d.toISOString().slice(0, 10) : ''
 }
-const togglePdf = () => {
-  showPdf.value = !showPdf.value
-  if (showPdf.value) {
-    pdfMessage.value = ''
-    setPdfPreset('month')
-  }
+// ⚙ のメニューから開く。期間指定のパネルはボタンの下（記録の入口の直下）に出る
+const openPdf = () => {
+  showSettingsMenu.value = false
+  pdfMessage.value = ''
+  setPdfPreset('month')
+  showPdf.value = true
 }
 
 const downloadPdf = async () => {
