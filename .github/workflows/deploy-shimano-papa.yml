@@ -1,18 +1,19 @@
-name: Deploy kaito (Pages)
+name: Deploy shimano-papa (Workers)
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'apps/kaito/**'
+      - 'apps/shimano-papa/**'
+      - '.github/workflows/deploy-shimano-papa.yml'
       - 'package.json'
       - 'yarn.lock'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    name: Deploy to Cloudflare Pages
+    name: Deploy to Cloudflare Workers
     steps:
       - uses: actions/checkout@v4
 
@@ -27,10 +28,11 @@ jobs:
         run: yarn install --immutable
 
       - name: Build
-        run: yarn build:kaito
+        run: yarn build:shimano-papa
 
       - name: Deploy
-        run: npx wrangler pages deploy apps/kaito/.output/public --project-name=tsukinose-kaito
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/shimano-papa

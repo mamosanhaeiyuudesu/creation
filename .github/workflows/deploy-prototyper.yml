@@ -1,4 +1,4 @@
-name: Deploy prototyper (Pages)
+name: Deploy prototyper (Workers)
 
 on:
   workflow_dispatch:
@@ -6,13 +6,14 @@ on:
     branches: [main]
     paths:
       - 'apps/prototyper/**'
+      - '.github/workflows/deploy-prototyper.yml'
       - 'package.json'
       - 'yarn.lock'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    name: Deploy to Cloudflare Pages
+    name: Deploy to Cloudflare Workers
     steps:
       - uses: actions/checkout@v4
 
@@ -30,7 +31,8 @@ jobs:
         run: yarn build:prototyper
 
       - name: Deploy
-        run: npx wrangler pages deploy apps/prototyper/.output/public --project-name=prototyper-mamorin
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/prototyper
