@@ -810,6 +810,13 @@ useHead({
     { name: 'description', content: '本来のあなたに還る場所。おしゃべりカウンセリングとレムリアンヒーリングで、あなたの心の声に寄り添います。セラピスト 月ノ瀬 直。' },
     { property: 'og:title', content: '月ノ瀬 直 | 本来のあなたに還る場所' },
     { property: 'og:description', content: 'フタをしてしまった想いや感情を解放し、本来の自分を思い出すお手伝いをします。' },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: 'https://kaito-tsukinose.jp/' },
+    // URLを共有したときのサムネイル。画像の元は scripts/og/targets.json（node scripts/og/build.mjs で作り直す）
+    { property: 'og:image', content: 'https://kaito-tsukinose.jp/og.jpg' },
+    { property: 'og:image:width', content: '1200' },
+    { property: 'og:image:height', content: '630' },
+    { name: 'twitter:card', content: 'summary_large_image' },
   ],
   link: [
     { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌊</text></svg>` },

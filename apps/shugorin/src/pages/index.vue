@@ -446,6 +446,15 @@ useHead({
   title: '親子問題専門のカウンセリング',
   meta: [
     { name: 'description', content: '人の輪に入れない、目上の人に反発してしまう、心から休めない——そんな生きづらさの根っこにある親子問題に向き合う、オンラインカウンセリング。自身も親子問題を抱えてきた40代の理系カウンセラーが、自由な対話を通じて思考パターンや生い立ちの理解を深め、自己受容をサポートします。初回30分1,500円の相談あり。' },
+    { property: 'og:title', content: '親子問題専門のカウンセリング' },
+    { property: 'og:description', content: '生きづらさの根っこにある親子問題に向き合う、オンラインカウンセリング。自由な対話で思考パターンや生い立ちの理解を深めます。' },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: 'https://shugorin.insightlens.jp/' },
+    // URLを共有したときのサムネイル。画像の元は scripts/og/targets.json（node scripts/og/build.mjs で作り直す）
+    { property: 'og:image', content: 'https://shugorin.insightlens.jp/og.jpg' },
+    { property: 'og:image:width', content: '1200' },
+    { property: 'og:image:height', content: '630' },
+    { name: 'twitter:card', content: 'summary_large_image' },
   ],
   link: [
     { rel: 'icon', type: 'image/jpeg', href: '/images/brain-duality.jpeg' },

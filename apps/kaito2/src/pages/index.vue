@@ -389,6 +389,8 @@ useHead({
     { property: 'og:description', content: '「大丈夫」と言ってきたあなたが、本来の自分に還る場所。' },
     { property: 'og:url', content: site.url },
     { property: 'og:image', content: `${site.url}${site.images.hero}` },
+    // X（旧Twitter）でもサムネイルを大きく出す
+    { name: 'twitter:card', content: 'summary_large_image' },
   ],
 })
 </script>

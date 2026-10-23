@@ -37,6 +37,8 @@ gtag('config', 'G-JRBVTJYCEH');`,
     workbox: {
       navigateFallback: null,
       globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+      // 共有用のサムネイル（public/og/・ogp-*.png）はSNSが取りに来るだけなので、アプリに先読みさせない（合計数MBある）
+      globIgnores: ['og/**', 'ogp-*.png'],
       runtimeCaching: [
         {
           urlPattern: /^\/api\//,

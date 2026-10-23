@@ -65,6 +65,18 @@ import JsonPopup from '~/components/JsonPopup.vue'
 
 useHead({
   title: 'ジェノグラム作成ツール',
+  meta: [
+    { name: 'description', content: '家族構成をAIに伝えると、ジェノグラム（家系図）と感情の関係図をその場に描く。' },
+    { property: 'og:title', content: 'ジェノグラム作成ツール' },
+    { property: 'og:description', content: '家族構成をAIに伝えると、ジェノグラム（家系図）と感情の関係図をその場に描く。' },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: 'https://genogram.insightlens.jp/' },
+    // URLを共有したときのサムネイル。画像の元は scripts/og/targets.json（node scripts/og/build.mjs で作り直す）
+    { property: 'og:image', content: 'https://genogram.insightlens.jp/og.png' },
+    { property: 'og:image:width', content: '1200' },
+    { property: 'og:image:height', content: '630' },
+    { name: 'twitter:card', content: 'summary_large_image' },
+  ],
   link: [
     {
       rel: 'icon',

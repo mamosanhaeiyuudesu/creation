@@ -678,6 +678,8 @@ useHead({
     { property: 'og:type', content: 'website' },
     { property: 'og:url', content: `https://${site.domain}/` },
     { property: 'og:image', content: `https://${site.domain}/images/miyako-trend.png` },
+    // X（旧Twitter）でもサムネイルを大きく出す
+    { name: 'twitter:card', content: 'summary_large_image' },
   ],
 })
 </script>

@@ -87,6 +87,19 @@ yarn build:kikigaki   # キキガキ本番版をビルド（Cloudflare Workers�
 yarn dev:manabi       # まなび本番版を起動（:3010）／ yarn build:manabi でビルド
 ```
 
+### URLを共有したときのサムネイル（OGP画像）
+
+ai-tools の各ツールと、genogram・kaito・sakubun・shimano-papa・shugorin のサムネイル（1200x630）は
+`scripts/og/` で作っている。中身は `scripts/og/targets.json`（1件＝1枚。タイトル・説明・絵文字か写真・ブランド色・出力先）、
+見た目は `scripts/og/template.html` の共通テンプレート。直したら `node scripts/og/build.mjs [idの一部]` で作り直す
+（headless Chrome で撮影。フォントをネットから読むのでつながった状態で）。
+
+- **ai-tools はページごとに useHead を書かない**。`src/utils/og-pages.ts` の対応表（パスの前方一致）を
+  `src/server/plugins/og-meta.ts` が HTML の head に差し込む。新しいツールを足したら、対応表と targets.json の両方に1件足す。
+  ページ側で og:image を出しているもの（miyako・japanese-mlb-player）はプラグインが二重に入れない。
+- 各ホームページは `pages/index.vue` の useHead に og:image を**絶対URL**で書く（相対URLだとSNSが読めない。hareruya が以前そうなっていた）。
+- prototyper・data-vis・kaito2・hareruya・キキガキ・まなびは、それぞれ自前の画像を使っている（このスクリプトの対象外）。
+
 ### ⚠️ dev 起動中に build を実行しないこと
 
 `yarn dev` が動いている間に `yarn build` を走らせると Nuxt が壊れ、**以降ファイルを編集するたびに**

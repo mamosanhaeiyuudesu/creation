@@ -1,0 +1,159 @@
+<!doctype html>
+<!--
+  URLを共有したときのサムネイル画像（1200x630）の共通テンプレート。
+  中身は URL の # 以降に JSON で渡す（scripts/og/build.mjs が targets.json を1件ずつ渡して撮影する）。
+  直接ブラウザで開いて見た目を確かめることもできる: file:///.../template.html#{"title":"..."}
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Serif+JP:wght@500;700;900&display=block" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    --main: #1d6fd6;
+    --main2: #134c9c;
+    --ink: #1f2a37;
+    --soft: #4b5868;
+    --paper: #ffffff;
+    font-family: 'Noto Sans JP', 'Hiragino Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    position: relative;
+  }
+  body.maru { font-family: 'Zen Maru Gothic', 'Noto Sans JP', sans-serif; }
+  body.serif { font-family: 'Noto Serif JP', 'Noto Sans JP', serif; }
+
+  /* 左の色帯＋右の白い紙。ブランド色を太く見せつつ、文字は白地で読みやすく */
+  .band {
+    position: absolute; inset: 0 auto 0 0; width: 26px;
+    background: linear-gradient(180deg, var(--main) 0%, var(--main2) 100%);
+  }
+  .bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(900px 520px at 100% 0%, color-mix(in srgb, var(--main) 14%, transparent) 0%, transparent 60%),
+      radial-gradient(700px 500px at 0% 100%, color-mix(in srgb, var(--main2) 10%, transparent) 0%, transparent 60%);
+  }
+  .dots {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(color-mix(in srgb, var(--main) 16%, transparent) 1.4px, transparent 1.6px);
+    background-size: 24px 24px;
+    mask-image: linear-gradient(90deg, transparent 0%, #000 70%);
+    opacity: 0.7;
+  }
+
+  .wrap { position: relative; display: flex; height: 100%; padding: 64px 64px 56px 90px; gap: 48px; align-items: center; }
+  .text { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100%; }
+  .kicker {
+    align-self: flex-start;
+    font-size: 24px; font-weight: 700; letter-spacing: 0.06em;
+    color: var(--main2);
+    background: color-mix(in srgb, var(--main) 12%, #fff);
+    border: 2px solid color-mix(in srgb, var(--main) 30%, #fff);
+    padding: 6px 20px; border-radius: 999px;
+  }
+  .title {
+    margin-top: 30px;
+    font-size: 76px; font-weight: 900; line-height: 1.2; letter-spacing: 0.01em;
+    color: var(--ink);
+  }
+  /* 改行は「\n」で指定した位置だけ。入りきらないときは字を小さくして1行に収める（下のfit()） */
+  .title, .lead { white-space: pre; }
+  .lead {
+    margin-top: 24px;
+    font-size: 28px; font-weight: 500; line-height: 1.65;
+    color: var(--soft);
+
+  }
+  .site {
+    margin-top: auto;
+    display: flex; align-items: center; gap: 14px;
+    font-size: 24px; font-weight: 700; letter-spacing: 0.04em; color: var(--main2);
+  }
+  .site-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--main); }
+
+  /* 右側: 絵文字のタイル or 写真 */
+  .visual { flex: none; width: 400px; height: 400px; position: relative; }
+  .tile {
+    width: 100%; height: 100%; border-radius: 64px;
+    background: linear-gradient(145deg, var(--main) 0%, var(--main2) 100%);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 30px 60px color-mix(in srgb, var(--main2) 35%, transparent);
+    transform: rotate(-4deg);
+  }
+  .tile::after {
+    content: ''; position: absolute; inset: 22px; border-radius: 46px;
+    border: 3px solid rgba(255,255,255,0.28);
+  }
+  .emoji { font-size: 210px; line-height: 1; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif; transform: rotate(4deg); }
+  .photo {
+    width: 100%; height: 100%; border-radius: 40px; overflow: hidden;
+    box-shadow: 0 30px 60px color-mix(in srgb, var(--main2) 30%, transparent);
+    border: 10px solid #fff;
+  }
+  .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .visual.wide { width: 470px; height: 470px; }
+</style>
+</head>
+<body>
+  <div class="bg"></div>
+  <div class="dots"></div>
+  <div class="band"></div>
+  <div class="wrap">
+    <div class="text">
+      <span id="kicker" class="kicker"></span>
+      <h1 id="title" class="title"></h1>
+      <p id="lead" class="lead"></p>
+      <div class="site"><span class="site-dot"></span><span id="site"></span></div>
+    </div>
+    <div id="visual" class="visual"></div>
+  </div>
+<script>
+  const p = JSON.parse(decodeURIComponent(location.hash.slice(1) || '{}'))
+  const b = document.body.style
+  if (p.main) b.setProperty('--main', p.main)
+  if (p.main2) b.setProperty('--main2', p.main2)
+  if (p.ink) b.setProperty('--ink', p.ink)
+  if (p.paper) b.setProperty('--paper', p.paper)
+  if (p.font) document.body.classList.add(p.font)
+
+  const kicker = document.getElementById('kicker')
+  if (p.kicker) kicker.textContent = p.kicker
+  else kicker.remove()
+
+  // タイトルは「\n」で改行できる。長さで字の大きさを3段階に落とす（はみ出し防止）
+  const title = document.getElementById('title')
+  title.innerHTML = (p.title || '').split('\n').map((s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c])).join('<br>')
+
+  document.getElementById('lead').textContent = p.lead || ''
+  document.getElementById('site').textContent = p.site || ''
+
+  const visual = document.getElementById('visual')
+  // 右側の絵を置いたあとで、文字の列の幅に収まるまで字を小さくする
+  function fit(el, max, min) {
+    let size = max
+    el.style.fontSize = `${size}px`
+    while (size > min && el.scrollWidth > el.parentElement.clientWidth) {
+      size -= 1
+      el.style.fontSize = `${size}px`
+    }
+  }
+  if (p.photo) {
+    visual.classList.add('wide')
+    visual.innerHTML = `<div class="photo"><img src="${p.photo}" style="object-position:${p.photoPos || 'center'}"></div>`
+  } else if (p.emoji) {
+    visual.innerHTML = `<div class="tile"><span class="emoji">${p.emoji}</span></div>`
+  } else {
+    visual.remove()
+  }
+  document.fonts.ready.then(() => {
+    fit(title, 76, 40)
+    fit(document.getElementById('lead'), 28, 18)
+  })
+</script>
+</body>
+</html>

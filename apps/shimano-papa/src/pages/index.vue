@@ -595,6 +595,11 @@ useHead({
     { property: 'og:description', content: description },
     { property: 'og:type', content: 'website' },
     { property: 'og:url', content: `https://${site.domain}/` },
+    // URLを共有したときのサムネイル。画像の元は scripts/og/targets.json（node scripts/og/build.mjs で作り直す）
+    { property: 'og:image', content: 'https://shimano-papa.insightlens.jp/og.jpg' },
+    { property: 'og:image:width', content: '1200' },
+    { property: 'og:image:height', content: '630' },
+    { name: 'twitter:card', content: 'summary_large_image' },
   ],
 })
 </script>

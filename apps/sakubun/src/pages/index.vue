@@ -70,6 +70,15 @@ useHead({
   title: '心の作文',
   meta: [
     { name: 'description', content: '本当の思いだけを綴っていきます。' },
+    { property: 'og:title', content: '心の作文' },
+    { property: 'og:description', content: '本当の思いだけを綴っていきます。' },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: 'https://sakubun.insightlens.jp/' },
+    // URLを共有したときのサムネイル。画像の元は scripts/og/targets.json（node scripts/og/build.mjs で作り直す）
+    { property: 'og:image', content: 'https://sakubun.insightlens.jp/og.png' },
+    { property: 'og:image:width', content: '1200' },
+    { property: 'og:image:height', content: '630' },
+    { name: 'twitter:card', content: 'summary_large_image' },
   ],
   link: [
     { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✍</text></svg>` },

@@ -605,7 +605,10 @@ useHead({
         '助産師でもある鍼灸師が、女性のからだの声に寄り添います。横浜市旭区若葉台Wakka内、毎週月曜日・木曜日。',
     },
     { property: 'og:type', content: 'website' },
-    { property: 'og:image', content: '/images/main.png' },
+    { property: 'og:url', content: 'https://hareruya.insightlens.jp/' },
+    // og:image は絶対URLでないとSNS側が読めない（以前は '/images/main.png' で、サムネイルが出ていなかった）
+    { property: 'og:image', content: 'https://hareruya.insightlens.jp/images/main.png' },
+    { name: 'twitter:card', content: 'summary_large_image' },
   ],
   link: [
     {
