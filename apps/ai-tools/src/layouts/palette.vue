@@ -1,128 +1,227 @@
 <template>
-  <div class="pl-root min-h-screen w-full">
-    <div class="relative z-[1]">
-      <slot />
-    </div>
+  <div class="pl-root">
+    <slot />
   </div>
 </template>
 
 <script setup lang="ts">
+// 見た目の作りはキキガキ本番版（apps/production/kikigaki の kikigaki.css）に合わせている
+// （Noto Sans JP・本文14px・白いカードに薄い影・ピル型ボタン・ボトムシートのモーダル）。
+// 色だけは palette 独自のまま（紙色の地・朱の主役ボタン・青緑の差し色）。クラス接頭辞は pl-。
 useHead({
   link: [
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-    {
-      rel: 'stylesheet',
-      href: 'https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap',
-    },
+    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap' },
   ],
 })
 </script>
 
 <style>
-.pl-root {
-  /* 画材店の紙とインク。絵の具の4色（朱・青緑・山吹・藤）を差し色にする */
+/* モーダルを Teleport で出しても色が抜けないよう、変数は :root に置く（キキガキと同じ理由）。
+   他ツールと衝突しないよう --pl- で始める */
+:root {
   --pl-paper: #f6f2ea;
   --pl-paper-2: #ece6d9;
-  --pl-card: #fffdf8;
+  --pl-card: #ffffff;
   --pl-ink: #2a2723;
-  --pl-ink-soft: #7d766a;
+  --pl-ink-soft: #5c564c;
+  --pl-ink-faint: #8f887b;
   --pl-line: #e2dbcb;
+  --pl-line-strong: #cbc1ab;
+  /* 主役ボタンの朱。1画面に1つだけ */
   --pl-vermilion: #e0522b;
   --pl-vermilion-deep: #bd3d1a;
   --pl-teal: #1f8a8a;
+  --pl-teal-deep: #166868;
+  --pl-teal-soft: #e5f3f3;
   --pl-mustard: #e8b630;
   --pl-wisteria: #8a74c7;
+  --pl-danger: #c62828;
+  --pl-danger-soft: #fdf1f1;
+  --pl-shadow: 0 2px 10px rgba(80, 55, 20, 0.07);
+}
 
-  position: relative;
+.pl-root {
+  min-height: 100dvh;
   color: var(--pl-ink);
-  background:
-    radial-gradient(90% 60% at 0% 0%, rgba(232, 182, 48, 0.12) 0%, transparent 60%),
-    radial-gradient(80% 60% at 100% 0%, rgba(31, 138, 138, 0.10) 0%, transparent 60%),
-    var(--pl-paper);
-  font-family: 'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', system-ui, sans-serif;
+  background: var(--pl-paper);
+  font-family: 'Noto Sans JP', 'Hiragino Sans', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
   -webkit-font-smoothing: antialiased;
 }
-.pl-display { font-family: 'DM Serif Display', 'Zen Kaku Gothic New', serif; letter-spacing: 0.01em; }
 
+/* ── 文字 ── */
+.pl-h1 { font-size: 20px; font-weight: 700; line-height: 1.4; letter-spacing: 0.02em; }
+.pl-h2 { font-size: 15px; font-weight: 700; line-height: 1.5; }
+.pl-note { font-size: 12px; color: var(--pl-ink-faint); line-height: 1.7; }
+
+/* ── 面 ── */
 .pl-card {
   background: var(--pl-card);
   border: 1px solid var(--pl-line);
-  border-radius: 16px;
-  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: var(--pl-shadow);
+  padding: 0.9rem 1rem;
 }
-.pl-label { display: block; font-size: 12.5px; font-weight: 700; color: var(--pl-ink); }
+.pl-notice { border-radius: 8px; padding: 0.55rem 0.8rem; font-size: 13px; line-height: 1.7; }
+.pl-notice--error { background: var(--pl-danger-soft); border: 1px solid #f0c2c2; color: var(--pl-danger); }
+
+/* ── 入力 ── */
+.pl-label { display: block; font-size: 12px; font-weight: 700; color: var(--pl-ink-soft); }
 .pl-input {
+  width: 100%;
   background: #fff;
   border: 1px solid var(--pl-line);
-  border-radius: 10px;
-  padding: 0.5rem 0.7rem;
-  font-size: 14px;
-  color: var(--pl-ink);
-  width: 100%;
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
   font-family: inherit;
+  font-size: 16px; /* 16px未満にするとiOSが勝手にズームする（PCだけ下で詰める） */
+  line-height: 1.6;
+  color: var(--pl-ink);
+  transition: border-color 0.15s;
 }
-.pl-input::placeholder { color: color-mix(in srgb, var(--pl-ink-soft) 65%, transparent); }
-.pl-input:focus { outline: none; border-color: var(--pl-teal); box-shadow: 0 0 0 3px rgba(31, 138, 138, 0.15); }
-textarea.pl-input { resize: vertical; line-height: 1.55; }
+.pl-input::placeholder { color: var(--pl-ink-faint); }
+.pl-input:focus { outline: none; border-color: var(--pl-teal); box-shadow: 0 0 0 3px var(--pl-teal-soft); }
+textarea.pl-input { resize: vertical; }
+@media (min-width: 768px) {
+  .pl-input { font-size: 14px; }
+}
 
+/* ── 押せるもの ── */
 .pl-btn {
-  height: 2.6rem;
-  padding: 0 1.3rem;
+  min-height: 44px;
+  padding: 0 1.4rem;
+  border: none;
   border-radius: 999px;
-  font-weight: 900;
-  font-size: 14.5px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
   color: #fff;
   background: var(--pl-vermilion);
-  transition: background 0.15s, opacity 0.15s, transform 0.1s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.15s;
 }
 .pl-btn:hover:not(:disabled) { background: var(--pl-vermilion-deep); }
-.pl-btn:active:not(:disabled) { transform: translateY(1px); }
-.pl-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.pl-btn:disabled { opacity: 0.45; cursor: default; }
 
+/* 脇役。主役と並べても迷わない見た目にする */
 .pl-btn-ghost {
-  height: 2.2rem;
-  padding: 0 0.9rem;
+  min-height: 34px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--pl-line-strong);
   border-radius: 999px;
-  font-weight: 700;
+  font-family: inherit;
   font-size: 12.5px;
-  color: var(--pl-ink-soft);
-  border: 1px solid var(--pl-line);
+  font-weight: 700;
+  color: var(--pl-ink);
   background: var(--pl-card);
-  transition: border-color 0.15s, color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
 }
-.pl-btn-ghost:hover:not(:disabled) { border-color: var(--pl-teal); color: var(--pl-teal); }
-.pl-btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; }
+.pl-btn-ghost:hover:not(:disabled) { border-color: var(--pl-teal); background: var(--pl-teal-soft); color: var(--pl-teal-deep); }
+.pl-btn-ghost:disabled { opacity: 0.45; cursor: default; }
 
-.pl-tab {
-  padding: 0.55rem 1.2rem;
-  font-weight: 900;
-  font-size: 14px;
-  border-radius: 999px;
+/* 文字リンク相当の小さな操作 */
+.pl-btn-text {
+  min-height: 32px;
+  padding: 0 0.5rem;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
   color: var(--pl-ink-soft);
-  transition: all 0.15s;
+  text-decoration: underline;
+  cursor: pointer;
 }
-.pl-tab--on { background: var(--pl-ink); color: #fff; }
+.pl-btn-text:hover { color: var(--pl-ink); }
+
+/* 切り替え（キキガキのタグの絞り込みと同じ形） */
+.pl-tab {
+  flex: none;
+  height: 32px;
+  padding: 0 1rem;
+  border: 1px solid var(--pl-line);
+  border-radius: 999px;
+  background: var(--pl-card);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pl-ink-soft);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+}
+.pl-tab:hover { border-color: var(--pl-teal); color: var(--pl-teal-deep); }
+.pl-tab--on, .pl-tab--on:hover { background: var(--pl-teal); border-color: var(--pl-teal); color: #fff; }
 
 .pl-chip {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
-  padding: 0.3rem 0.7rem;
+  padding: 0.1rem 0.55rem;
   border-radius: 999px;
   border: 1px solid var(--pl-line);
-  background: var(--pl-card);
+  background: var(--pl-paper);
   color: var(--pl-ink-soft);
 }
 
-@keyframes pl-rise {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.pl-rise { animation: pl-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* ── ロゴ ── */
+.pl-logo { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 17px; font-weight: 700; letter-spacing: 0.02em; color: var(--pl-ink); text-decoration: none; }
+.pl-logo-mark { width: 28px; height: 28px; border-radius: 8px; background: var(--pl-vermilion); display: inline-flex; align-items: center; justify-content: center; }
+.pl-logo-mark svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-@keyframes pl-pulse {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 1; }
+/* ── ポップアップ（ボトムシート。キキガキと同じ） ── */
+.pl-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(40, 36, 28, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 200;
 }
+.pl-sheet-panel {
+  background: var(--pl-card);
+  width: 100%;
+  max-width: 720px;
+  max-height: 88vh;
+  overflow-y: auto;
+  border-radius: 14px 14px 0 0;
+  padding: 0.25rem 1.1rem 1.5rem;
+  box-shadow: 0 -8px 30px rgba(40, 36, 28, 0.18);
+  animation: pl-sheet-up 0.25s ease-out both;
+}
+.pl-sheet-handle { width: 40px; height: 4px; border-radius: 999px; background: var(--pl-line-strong); margin: 0.4rem auto 0.5rem; }
+.pl-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.6rem; }
+.pl-sheet-close {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  font-size: 16px;
+  color: var(--pl-ink-soft);
+  cursor: pointer;
+}
+.pl-sheet-close:hover { background: var(--pl-teal-soft); color: var(--pl-ink); }
+@keyframes pl-sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+@keyframes pl-pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
 .pl-pulse { animation: pl-pulse 1.4s ease-in-out infinite; }
+
+:focus-visible { outline: 2px solid var(--pl-teal); outline-offset: 2px; }
 </style>

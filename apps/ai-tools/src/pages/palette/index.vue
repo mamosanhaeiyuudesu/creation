@@ -2,12 +2,12 @@
   <div class="max-w-[1180px] mx-auto px-4 sm:px-6 pt-6 pb-24">
     <!-- ヘッダー -->
     <div class="flex items-center justify-between gap-2 mb-5">
-      <div class="flex items-center gap-3">
-        <span class="text-3xl" aria-hidden="true">🎨</span>
-        <div>
-          <h1 class="pl-display text-[28px] leading-none">palette</h1>
-          <p class="text-[12px] text-[var(--pl-ink-soft)] mt-1">FLUX × LoRA の画像生成</p>
-        </div>
+      <div class="pl-logo">
+        <span class="pl-logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.6-2.1-.4-1.1.2-2.4 1.6-2.4H17a4 4 0 0 0 4-4c0-5-4-9.5-9-9.5z" /><circle cx="7.5" cy="11" r="1" /><circle cx="10" cy="7" r="1" /><circle cx="15" cy="7.5" r="1" /></svg>
+        </span>
+        <h1 class="pl-h1 !text-[17px]">palette</h1>
+        <span class="pl-note font-normal hidden sm:inline">FLUX × LoRA の画像生成</span>
       </div>
       <div class="flex items-center gap-1.5">
         <button class="pl-btn-ghost" @click="showLoras = true">LoRA を管理</button>
@@ -17,7 +17,7 @@
     </div>
 
     <!-- タブ -->
-    <div class="inline-flex gap-1 p-1 rounded-full bg-[var(--pl-paper-2)] mb-5" role="tablist">
+    <div class="flex gap-1.5 mb-4" role="tablist">
       <button class="pl-tab" :class="{ 'pl-tab--on': tab === 't2i' }" role="tab" :aria-selected="tab === 't2i'" @click="setTab('t2i')">テキスト → 画像</button>
       <button class="pl-tab" :class="{ 'pl-tab--on': tab === 'i2i' }" role="tab" :aria-selected="tab === 'i2i'" @click="setTab('i2i')">画像 → 画像</button>
     </div>
@@ -26,7 +26,7 @@
       <!-- 左: 入力 -->
       <div class="space-y-4">
         <!-- i2i: 入力画像 -->
-        <section v-if="tab === 'i2i'" class="pl-card pl-rise">
+        <section v-if="tab === 'i2i'" class="pl-card">
           <ParamField label="入力画像" help="この画像をもとに、プロンプトと LoRA で描き直します。長い辺は 1536px に縮めて送ります。">
             <div
               class="pl-drop"
@@ -74,10 +74,10 @@
           </div>
           <p v-if="!loras.length" class="text-[13px] text-[var(--pl-ink-soft)]">LoRA なしで生成します。「管理」から URL に名前をつけて保存すると、ここで選べます。</p>
           <ul v-else class="space-y-2">
-            <li v-for="l in loras" :key="l.id" class="rounded-xl border p-2.5" :class="selected[l.id]?.on ? 'border-[var(--pl-teal)] bg-[#f1fafa]' : 'border-[var(--pl-line)] bg-white'">
+            <li v-for="l in loras" :key="l.id" class="rounded-lg border p-2.5" :class="selected[l.id]?.on ? 'border-[var(--pl-teal)] bg-[var(--pl-teal-soft)]' : 'border-[var(--pl-line)] bg-white'">
               <label class="flex items-center gap-2 cursor-pointer">
                 <input v-model="selected[l.id]!.on" type="checkbox" class="accent-[var(--pl-teal)] w-4 h-4" />
-                <span class="font-black text-[14px] truncate">{{ l.name }}</span>
+                <span class="font-bold text-[14px] truncate">{{ l.name }}</span>
                 <span v-if="l.triggerWord" class="pl-chip !py-0.5">{{ l.triggerWord }}</span>
               </label>
               <div v-if="selected[l.id]?.on" class="mt-2 flex items-center gap-3">
@@ -90,7 +90,7 @@
 
         <!-- パラメータ -->
         <section class="pl-card">
-          <h2 class="font-black text-[14px] mb-3">パラメータ</h2>
+          <h2 class="pl-h2 mb-3">パラメータ</h2>
           <div class="grid sm:grid-cols-2 gap-x-4 gap-y-4">
             <ParamField label="画像サイズ" for-id="pl-size" :help="tab === 'i2i' ? '生成する絵の縦横の大きさ。「元画像と同じ」は入力画像の大きさのまま描き直します。大きいほど細部が出ますが、時間と料金が増えます。' : '生成する絵の縦横の大きさ。square は正方形、portrait は縦長、landscape は横長です。大きいほど細部が出ますが、時間と料金が増えます。'">
               <select id="pl-size" v-model="params.imageSize" class="pl-input">
@@ -161,19 +161,19 @@
           <button class="pl-btn" :disabled="busy || translating" @click="generate">
             {{ busy ? '生成中…' : '生成する' }}
           </button>
-          <p v-if="errorMsg" class="text-[13px] text-[var(--pl-vermilion-deep)]" role="alert">{{ errorMsg }}</p>
+          <p v-if="errorMsg" class="pl-notice pl-notice--error" role="alert">{{ errorMsg }}</p>
         </div>
       </div>
 
       <!-- 右: 結果と履歴 -->
       <div class="space-y-6 lg:sticky lg:top-4">
         <section>
-          <h2 class="pl-display text-[20px] mb-2">できた絵</h2>
+          <h2 class="pl-h2 mb-2">できた絵</h2>
           <div v-if="busy" class="pl-card text-center py-14">
-            <p class="pl-pulse font-black text-[15px]">{{ progressText }}</p>
+            <p class="pl-pulse font-bold text-[15px]">{{ progressText }}</p>
             <p class="text-[12px] text-[var(--pl-ink-soft)] mt-2">通常は数秒〜1分ほどです。このまま待てます。</p>
           </div>
-          <div v-else-if="results.length" class="space-y-3 pl-rise">
+          <div v-else-if="results.length" class="space-y-3">
             <div class="grid gap-3" :class="results.length > 1 ? 'sm:grid-cols-2' : ''">
               <figure v-for="(img, i) in results" :key="img.url" class="pl-card !p-2">
                 <img :src="img.url" :width="img.width" :height="img.height" alt="生成された画像" class="w-full rounded-lg" />
@@ -193,7 +193,7 @@
         </section>
 
         <section>
-          <h2 class="pl-display text-[20px] mb-2">履歴</h2>
+          <h2 class="pl-h2 mb-2">履歴</h2>
           <p v-if="!history.length" class="text-[13px] text-[var(--pl-ink-soft)]">まだ履歴がありません。</p>
           <ul v-else class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             <li v-for="h in history" :key="h.id" class="pl-card !p-1.5">
@@ -539,7 +539,7 @@ watch(isLoggedIn, (v) => {
 <style scoped>
 .pl-drop {
   border: 2px dashed var(--pl-line);
-  border-radius: 14px;
+  border-radius: 10px;
   padding: 1.1rem;
   text-align: center;
   cursor: pointer;
@@ -549,6 +549,6 @@ watch(isLoggedIn, (v) => {
 .pl-drop:hover,
 .pl-drop--over {
   border-color: var(--pl-teal);
-  background: #f1fafa;
+  background: var(--pl-teal-soft);
 }
 </style>

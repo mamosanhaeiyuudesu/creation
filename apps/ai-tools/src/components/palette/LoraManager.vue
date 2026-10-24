@@ -1,17 +1,18 @@
 <template>
-  <div class="fixed inset-0 z-[150] flex items-end sm:items-center justify-center bg-black/45 p-0 sm:p-4" @click.self="$emit('close')">
-    <div class="w-full sm:max-w-[560px] max-h-[92vh] overflow-y-auto bg-[var(--pl-card)] rounded-t-2xl sm:rounded-2xl p-4 sm:p-5 shadow-2xl">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="pl-display text-[22px]">LoRA を管理</h2>
-        <button class="pl-btn-ghost" @click="$emit('close')">閉じる</button>
+  <div class="pl-sheet-backdrop" @click.self="$emit('close')">
+    <div class="pl-sheet-panel" role="dialog" aria-modal="true" aria-label="LoRA を管理">
+      <div class="pl-sheet-handle" aria-hidden="true" />
+      <div class="pl-sheet-head">
+        <h2 class="pl-h2">LoRA を管理</h2>
+        <button class="pl-sheet-close" aria-label="閉じる" @click="$emit('close')">✕</button>
       </div>
 
       <!-- 保存済み -->
       <ul v-if="loras.length" class="space-y-2 mb-4">
-        <li v-for="l in loras" :key="l.id" class="rounded-xl border border-[var(--pl-line)] p-3 bg-white">
+        <li v-for="l in loras" :key="l.id" class="rounded-lg border border-[var(--pl-line)] p-3 bg-white">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
-              <p class="font-black text-[14.5px] truncate">{{ l.name }}</p>
+              <p class="font-bold text-[14.5px] truncate">{{ l.name }}</p>
               <p class="text-[11.5px] text-[var(--pl-ink-soft)] break-all line-clamp-2">{{ l.url }}</p>
               <p class="text-[12px] mt-1 text-[var(--pl-ink-soft)]">
                 強さ {{ l.scale }}<span v-if="l.triggerWord"> ／ トリガー: <b class="text-[var(--pl-ink)]">{{ l.triggerWord }}</b></span>
@@ -29,7 +30,7 @@
 
       <!-- フォーム -->
       <form class="space-y-3 border-t border-[var(--pl-line)] pt-4" @submit.prevent="save">
-        <h3 class="font-black text-[14px]">{{ editingId ? 'LoRA を編集' : 'LoRA を追加' }}</h3>
+        <h3 class="pl-h2">{{ editingId ? 'LoRA を編集' : 'LoRA を追加' }}</h3>
         <div>
           <label class="pl-label mb-1" for="lm-name">名前</label>
           <input id="lm-name" v-model="form.name" class="pl-input" placeholder="例: 水彩タッチ v2" maxlength="60" />
@@ -37,7 +38,7 @@
         <div>
           <label class="pl-label mb-1" for="lm-url">重みファイルの URL</label>
           <input id="lm-url" v-model="form.url" class="pl-input" placeholder="https://…/xxx.safetensors" inputmode="url" />
-          <p class="text-[11.5px] text-[var(--pl-ink-soft)] mt-1">fal.ai が取りに行ける公開 URL（Hugging Face の resolve URL や fal で学習した結果の URL など）。</p>
+          <p class="pl-note mt-1">fal.ai が取りに行ける公開 URL（Hugging Face の resolve URL や fal で学習した結果の URL など）。</p>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
@@ -53,10 +54,10 @@
           <label class="pl-label mb-1" for="lm-memo">メモ</label>
           <input id="lm-memo" v-model="form.memo" class="pl-input" placeholder="どんな絵が出るか など" maxlength="500" />
         </div>
-        <p v-if="error" class="text-[13px] text-[var(--pl-vermilion-deep)]">{{ error }}</p>
+        <p v-if="error" class="pl-notice pl-notice--error">{{ error }}</p>
         <div class="flex gap-2">
           <button class="pl-btn" type="submit" :disabled="busy">{{ editingId ? '更新する' : '保存する' }}</button>
-          <button v-if="editingId" class="pl-btn-ghost !h-[2.6rem]" type="button" @click="reset">編集をやめる</button>
+          <button v-if="editingId" class="pl-btn-ghost" type="button" @click="reset">編集をやめる</button>
         </div>
       </form>
     </div>

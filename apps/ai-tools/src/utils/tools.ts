@@ -27,12 +27,12 @@ export const SECTIONS: Section[] = [
       { path: '/nikki', icon: '📔', name: '日記', desc: 'カレンダーの日を選んで話すだけ。その日の手応えの残る出来事をAIが拾って横並びに残す。', tags: ['要ログイン', 'Google連携'] },
       { path: 'https://manabi.insightlens.jp', icon: '✅', name: 'マナビー', desc: 'テーマを書くとAIが選択式の問題をつくる学びのドリル。URLで送れば同じ問題を解いてもらえる。みんなの問題や、授業用のA4問題集（PDF）も。', tags: ['ログイン不要', '共有リンク', '別ドメイン'] },
       { path: '/miyako', icon: '🏝️', name: '宮古島市議会 議事録', desc: '最新の定例会でよく議論された言葉をワードクラウドで。全体像・年別・議員別・キーワード検索とAI解説も。' },
+      { path: '/ai-manager', icon: '🧭', name: 'AI管理', desc: 'AIを呼んでいる場所ごとに、モデル・オプション・プロンプトがいつどう変わってきたかを履歴で見る。', tags: ['要ログイン'] },
+      { path: '/palette', icon: '🎨', name: 'palette', desc: 'FLUX に自分の LoRA を載せて画像を生成。日本語で書くと英語プロンプトに変換。画像→画像にも対応。', tags: ['要ログイン'] },
       { path: '/games/panel-de-pon', icon: '🎴', name: 'パネルでポン', desc: 'SFC版パネルでポンをブラウザで。パネルを入れ替えて3つ以上並べて消す。' },
       { path: '/games/kendo2', icon: '🥋', name: '剣道 三本勝負', desc: '親子対戦もCOM対戦もできる剣道ゲーム。' },
       { path: 'https://genogram.insightlens.jp', icon: '🧬', name: 'ジェノグラム', desc: '家族構成をAIに伝えると、家系図(ジェノグラム)と感情関係図をその場に描画する。', tags: ['別ドメイン'] },
       { path: '/farm-simulation', icon: '🔭', name: '経営の見直し', desc: '確定申告書を読み込むだけ。資材費の上昇などの前提を変えながら、10年先の利益と対応策の効果を試せる。', tags: ['要ログイン'] },
-      { path: '/palette', icon: '🎨', name: 'palette', desc: 'FLUX に自分の LoRA を載せて画像を生成。日本語で書くと英語プロンプトに変換。画像→画像にも対応。', tags: ['要ログイン'] },
-      { path: '/farm-manager', icon: '🌾', name: '農園の経営', desc: '納品書を撮るとAIが仕訳。畑の中（変動費）と畑の外（固定費）を色で分けて、毎月の利益が5秒で分かる。', tags: ['要ログイン'] },
     ],
   },
   {
@@ -40,6 +40,7 @@ export const SECTIONS: Section[] = [
     lead: 'いまは手を入れていないもの',
     accent: 'slate',
     tools: [
+      { path: '/farm-manager', icon: '🌾', name: '農園の経営', desc: '納品書を撮るとAIが仕訳。畑の中（変動費）と畑の外（固定費）を色で分けて、毎月の利益が5秒で分かる。', tags: ['要ログイン'] },
       { path: '/japanese-mlb-player', icon: '⚾', name: '日本人MLB選手', desc: '打者・投手のスタッツを FanGraphs / MLB Stats から取得して一覧。' },
       { path: '/farm-log', icon: '🌿', name: '農作業ログ', desc: 'スマホのセンサーで記録した農作業の動きを可視化。' },
       { path: '/guesthouse', icon: '🏡', name: 'ゲストハウス案内', desc: 'お客様チャットにAIが自ら回答し、緊急時だけホストへ取り次ぐ。日記から顧客分析も。', tags: ['要ログイン', '共有リンク'] },

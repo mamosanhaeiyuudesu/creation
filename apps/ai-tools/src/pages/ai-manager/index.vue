@@ -1,107 +1,83 @@
 <template>
-  <div>
-    <header class="bg-white border-b border-slate-200">
-      <div class="am-wrap mx-auto px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-        <h1 class="text-lg font-bold m-0">AI管理</h1>
-        <p class="text-xs text-slate-500 m-0">
-          どこで・どのモデルとプロンプトでAIを使ってきたか
-          <template v-if="index">（{{ formatDateTime(index.generatedAt) }} 時点）</template>
-        </p>
-      </div>
-      <nav class="am-wrap mx-auto px-4 flex gap-1">
-        <button
-          v-for="t in TABS"
-          :key="t.id"
-          type="button"
-          class="px-3 py-2 text-sm border-b-2 -mb-px"
-          :class="tab === t.id ? 'border-sky-600 text-sky-700 font-bold' : 'border-transparent text-slate-500 hover:text-slate-800'"
-          @click="setTab(t.id)"
-        >
-          {{ t.label }}
-        </button>
-      </nav>
-    </header>
+  <div class="am-page">
+    <div class="am-page-head">
+      <h1 class="am-h1">{{ tab === 'timeline' ? '全体タイムライン' : '一覧' }}</h1>
+      <p v-if="index" class="am-note mt-1">{{ formatDateTime(index.generatedAt) }} 時点のデータ</p>
+    </div>
 
-    <main class="am-wrap mx-auto px-4 py-4">
-      <p v-if="loading" class="text-center text-slate-500 py-10">読み込んでいます…</p>
-      <div v-else-if="error" class="bg-white border border-slate-200 rounded p-6 text-center">
-        <p class="m-0 mb-3">{{ error }}</p>
-        <button v-if="isLoggedIn" type="button" class="am-btn" @click="load">読み込み直す</button>
-      </div>
+    <p v-if="loading" class="text-center py-10" style="color: var(--am-ink-soft)">読み込んでいます…</p>
+    <div v-else-if="error" class="am-card p-6 text-center">
+      <p class="m-0 mb-3">{{ error }}</p>
+      <button v-if="isLoggedIn" type="button" class="am-btn" @click="load">読み込み直す</button>
+    </div>
 
-      <template v-else-if="index">
-        <!-- 全体タイムライン（トップの既定） -->
-        <section v-if="tab === 'timeline'">
-          <div class="flex flex-wrap gap-1.5 mb-3">
-            <button
-              v-for="t in TIMELINE_TYPES"
-              :key="t"
-              type="button"
-              class="am-chip"
-              :class="{ 'is-on': timelineTypes.includes(t) }"
-              @click="toggleTimelineType(t)"
-            >
-              {{ AI_MANAGER_CHANGE_LABELS[t] }}
-            </button>
-          </div>
-          <div v-for="day in timelineDays" :key="day.date" class="mb-4">
-            <h2 class="text-sm font-bold text-slate-600 mb-1.5 sticky top-0 bg-slate-50 py-1">{{ day.date }}（{{ day.entries.length }}件）</h2>
-            <ul class="bg-white border border-slate-200 rounded divide-y divide-slate-100 m-0 p-0 list-none">
-              <li
-                v-for="e in day.entries"
-                :key="e.key"
-                class="px-3 py-2 hover:bg-sky-50 cursor-pointer"
-                @click="openSite(e.site.id, e.version.commit)"
-              >
-                <div class="flex flex-wrap items-center gap-1.5 text-sm">
-                  <span class="am-app" :data-tool="e.site.tool">{{ AI_MANAGER_TOOL_LABELS[e.site.tool] }}</span>
-                  <span class="font-medium">{{ e.site.feature }}</span>
-                  <span v-for="t in e.types" :key="t" class="am-badge" :data-type="t">{{ AI_MANAGER_CHANGE_LABELS[t] }}</span>
-                  <span class="text-xs text-slate-400 ml-auto tabular-nums">{{ formatTime(e.version.date) }}</span>
+    <template v-else-if="index">
+      <!-- 全体タイムライン（トップの既定） -->
+      <section v-if="tab === 'timeline'">
+        <div class="flex flex-wrap gap-1.5 mb-4">
+          <button
+            v-for="t in TIMELINE_TYPES"
+            :key="t"
+            type="button"
+            class="am-chip"
+            :class="{ 'is-on': timelineTypes.includes(t) }"
+            @click="toggleTimelineType(t)"
+          >
+            {{ AI_MANAGER_CHANGE_LABELS[t] }}
+          </button>
+        </div>
+        <div v-for="day in timelineDays" :key="day.date" class="mb-5">
+          <h2 class="am-day">{{ day.date }}（{{ day.entries.length }}件）</h2>
+          <ul class="am-card m-0 p-0 list-none overflow-hidden">
+            <li v-for="e in day.entries" :key="e.key" class="am-row px-4 py-3" @click="openSite(e.site.id, e.version.commit)">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="am-app" :data-tool="e.site.tool">{{ AI_MANAGER_TOOL_LABELS[e.site.tool] }}</span>
+                <span class="font-bold">{{ e.site.feature }}</span>
+                <span v-for="t in e.types" :key="t" class="am-badge" :data-type="t">{{ AI_MANAGER_CHANGE_LABELS[t] }}</span>
+                <span class="am-note ml-auto tabular-nums">{{ formatTime(e.version.date) }}</span>
+              </div>
+              <p class="m-0 mt-1" style="color: var(--am-ink-soft)">{{ e.version.change?.summary }}</p>
+            </li>
+          </ul>
+        </div>
+        <p v-if="!timelineDays.length" class="text-center py-8" style="color: var(--am-ink-soft)">当てはまる修正はありません</p>
+      </section>
+
+      <!-- 一覧 -->
+      <section v-else class="am-card overflow-x-auto">
+        <table class="am-table">
+          <thead>
+            <tr>
+              <th class="am-th">ツール</th>
+              <th class="am-th">機能</th>
+              <th class="am-th">model</th>
+              <th class="am-th">option</th>
+              <th class="am-th" style="text-align: right">修正</th>
+              <th class="am-th">最後に変えた日</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="s in sites" :key="s.id" class="am-row" @click="openSite(s.id)">
+              <td class="am-td whitespace-nowrap">
+                <span class="am-app" :data-tool="s.tool">{{ AI_MANAGER_TOOL_LABELS[s.tool] }}</span>
+              </td>
+              <td class="am-td">
+                <div class="font-bold">{{ s.feature }}</div>
+                <div v-if="latestChange(s)" class="am-note mt-0.5" style="color: var(--am-ink-soft)">
+                  最近の修正（{{ formatDate(latestChange(s)!.date) }}）: {{ latestChange(s)!.change!.summary }}
                 </div>
-                <p class="text-sm text-slate-600 m-0 mt-0.5">{{ e.version.change?.summary }}</p>
-              </li>
-            </ul>
-          </div>
-          <p v-if="!timelineDays.length" class="text-center text-slate-500 py-8">当てはまる修正はありません</p>
-        </section>
-
-        <!-- 一覧 -->
-        <section v-else class="bg-white border border-slate-200 rounded overflow-x-auto">
-          <table class="w-full text-sm am-table-w">
-            <thead class="bg-slate-100 text-slate-600 text-xs">
-              <tr>
-                <th class="am-th">ツール</th>
-                <th class="am-th">機能</th>
-                <th class="am-th">model</th>
-                <th class="am-th">option</th>
-                <th class="am-th text-right whitespace-nowrap">修正</th>
-                <th class="am-th">最後に変えた日</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="s in sites" :key="s.id" class="border-t border-slate-100 hover:bg-sky-50 cursor-pointer" @click="openSite(s.id)">
-                <td class="am-td whitespace-nowrap">
-                  <span class="am-app" :data-tool="s.tool">{{ AI_MANAGER_TOOL_LABELS[s.tool] }}</span>
-                </td>
-                <td class="am-td">
-                  <div class="font-medium">{{ s.feature }}</div>
-                  <div v-if="latestChange(s)" class="text-xs text-slate-500 mt-0.5">
-                    最近の修正（{{ formatDate(latestChange(s)!.date) }}）: {{ latestChange(s)!.change!.summary }}
-                  </div>
-                </td>
-                <td class="am-td whitespace-nowrap text-xs">{{ last(s).model }}</td>
-                <td class="am-td text-xs text-slate-500">
-                  <div v-for="o in optionList(last(s).options)" :key="o.key" class="truncate am-opt-w" :title="`${o.label}: ${o.value}`">{{ o.label }}: {{ o.value }}</div>
-                </td>
-                <td class="am-td text-right tabular-nums whitespace-nowrap">{{ s.versions.length - 1 }}回</td>
-                <td class="am-td whitespace-nowrap tabular-nums">{{ formatDate(s.versions[s.versions.length - 1]!.date) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-      </template>
-    </main>
+              </td>
+              <td class="am-td whitespace-nowrap" style="font-size: 12.5px">{{ last(s).model }}</td>
+              <td class="am-td" style="font-size: 12.5px; color: var(--am-ink-soft)">
+                <div v-for="o in optionList(last(s).options)" :key="o.key" class="truncate am-opt-w" :title="`${o.label}: ${o.value}`">{{ o.label }}: {{ o.value }}</div>
+              </td>
+              <td class="am-td tabular-nums whitespace-nowrap" style="text-align: right">{{ s.versions.length - 1 }}回</td>
+              <td class="am-td whitespace-nowrap tabular-nums">{{ formatDate(s.versions[s.versions.length - 1]!.date) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </template>
 
     <AuthModal v-if="showAuthModal" accent="sky" />
   </div>
@@ -127,11 +103,8 @@ import {
 definePageMeta({ layout: 'ai-manager' })
 useHead({ title: 'AI管理 | ai-manager', meta: [{ name: 'robots', content: 'noindex' }] })
 
-const TABS = [
-  { id: 'timeline', label: '全体タイムライン' },
-  { id: 'list', label: '一覧' },
-] as const
-type TabId = (typeof TABS)[number]['id']
+// タブの切り替えは左サイドバー（layouts/ai-manager.vue）の ?tab= で行う
+type TabId = 'timeline' | 'list'
 
 // 新設は出さない。プロンプトを左端に
 const TIMELINE_TYPES: AiManagerChangeType[] = ['prompt', 'model', 'options', 'moved', 'forked']
@@ -145,13 +118,8 @@ const index = ref<AiManagerIndex | null>(null)
 const loading = ref(true)
 const error = ref('')
 
-const tab = ref<TabId>(route.query.tab === 'list' ? 'list' : 'timeline')
+const tab = computed<TabId>(() => (route.query.tab === 'list' ? 'list' : 'timeline'))
 const timelineTypes = ref<AiManagerChangeType[]>(['prompt'])
-
-function setTab(id: TabId) {
-  tab.value = id
-  router.replace({ query: { ...route.query, tab: id === 'timeline' ? undefined : id } })
-}
 
 async function load() {
   loading.value = true

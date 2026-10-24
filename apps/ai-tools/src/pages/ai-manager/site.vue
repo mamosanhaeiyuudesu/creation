@@ -1,106 +1,101 @@
 <template>
-  <div>
-    <header class="bg-white border-b border-slate-200">
-      <div class="am-wrap-sm mx-auto px-4 py-3">
-        <NuxtLink to="/ai-manager" class="text-xs text-sky-700 hover:underline">← AI管理の一覧へ</NuxtLink>
-        <template v-if="site">
-          <h1 class="text-lg font-bold m-0 mt-1 flex flex-wrap items-center gap-2">
-            <span class="am-app" :data-tool="site.tool">{{ AI_MANAGER_TOOL_LABELS[site.tool] }}</span>
-            {{ site.feature }}
-            <span v-if="site.status === 'removed'" class="am-badge">撤去済み</span>
-          </h1>
-          <p class="text-sm text-slate-600 m-0 mt-1">
-            {{ live.model }}
-            <span class="text-slate-400">·</span> {{ AI_MANAGER_PROVIDER_LABELS[live.provider] ?? live.provider }}・{{ AI_MANAGER_KIND_LABELS[live.kind] ?? live.kind }}
-            <template v-for="o in optionList(live.options)" :key="o.key">
-              <span class="text-slate-400">·</span> {{ o.label }} {{ o.value }}
-            </template>
-            <span class="text-slate-400">·</span> 修正 {{ changes.length }}回
-          </p>
-        </template>
-      </div>
-    </header>
-
-    <main class="am-wrap-sm mx-auto px-4 py-4">
-      <p v-if="loading" class="text-center text-slate-500 py-10">読み込んでいます…</p>
-      <div v-else-if="error" class="bg-white border border-slate-200 rounded p-6 text-center">
-        <p class="m-0">{{ error }}</p>
-      </div>
-
-      <template v-else-if="site">
-        <!-- いまのプロンプト（全文） -->
-        <section class="mb-6">
-          <div class="flex items-center gap-2 mb-1.5">
-            <h2 class="text-sm font-bold m-0">{{ site.status === 'removed' ? '撤去する前のシステムプロンプト' : 'いまのシステムプロンプト' }}</h2>
-            <button v-if="live.system" type="button" class="text-xs text-sky-700 hover:underline ml-auto" @click="copy(live.system)">{{ copied ? 'コピーしました' : 'コピー' }}</button>
-          </div>
-          <div v-if="live.system" class="am-prose">{{ live.system }}</div>
-          <p v-else class="text-sm text-slate-500 m-0">システムプロンプトはありません（指示はユーザープロンプトに書いています）。</p>
-
-          <template v-if="live.user">
-            <h2 class="text-sm font-bold m-0 mt-4 mb-1.5">いまのユーザープロンプト</h2>
-            <div class="am-prose am-prose-sub">{{ live.user }}</div>
+  <div class="am-page">
+    <div class="am-page-head">
+      <NuxtLink to="/ai-manager" class="am-btn-text" style="font-size: 12.5px">← 全体タイムラインへ</NuxtLink>
+      <template v-if="site">
+        <h1 class="am-h1 mt-2 flex flex-wrap items-center gap-2">
+          <span class="am-app" :data-tool="site.tool">{{ AI_MANAGER_TOOL_LABELS[site.tool] }}</span>
+          {{ site.feature }}
+        </h1>
+        <p class="m-0 mt-1.5" style="color: var(--am-ink-soft)">
+          {{ live.model }}
+          <span style="color: var(--am-ink-faint)">·</span> {{ AI_MANAGER_PROVIDER_LABELS[live.provider] ?? live.provider }}・{{ AI_MANAGER_KIND_LABELS[live.kind] ?? live.kind }}
+          <template v-for="o in optionList(live.options)" :key="o.key">
+            <span style="color: var(--am-ink-faint)">·</span> {{ o.label }} {{ o.value }}
           </template>
-        </section>
-
-        <!-- 修正の歴史（新しい順・すべて開いた状態） -->
-        <h2 class="text-sm font-bold m-0 mb-2">これまでの修正</h2>
-        <ol class="list-none m-0 p-0 border-l-2 border-slate-200 ml-2">
-          <template v-for="item in history" :key="item.version.commit">
-            <li v-if="item.appChange" class="ml-4 my-3 text-xs text-slate-500">
-              ── {{ AI_MANAGER_APP_LABELS[item.appChange.from] }} から {{ AI_MANAGER_APP_LABELS[item.appChange.to] }} へ{{ item.types.includes('forked') ? '派生' : '移動' }} ──
-            </li>
-            <li :id="`v-${item.version.commit.slice(0, 12)}`" class="ml-4 mb-4 relative">
-              <span class="absolute am-dot top-3 w-3 h-3 rounded-full border-2 border-white" :style="{ background: dotColor(item.types) }" />
-              <div class="bg-white border rounded px-4 py-3" :class="highlight === item.version.commit.slice(0, 12) ? 'border-sky-400 ring-2 ring-sky-100' : 'border-slate-200'">
-                <div class="flex flex-wrap items-center gap-1.5 text-sm">
-                  <span class="tabular-nums font-bold">{{ formatDate(item.version.date) }}</span>
-                  <span v-for="t in item.types" :key="t" class="am-badge" :data-type="t">{{ AI_MANAGER_CHANGE_LABELS[t] }}</span>
-                  <span class="text-xs text-slate-500 ml-auto">{{ item.version.model }}</span>
-                </div>
-                <p class="am-summary">{{ item.summary }}</p>
-
-                <!-- モデル・オプションは変わったものだけ -->
-                <ul v-if="settingChanges(item).length" class="list-none m-0 mt-2 p-0 text-sm space-y-0.5">
-                  <li v-for="c in settingChanges(item)" :key="c.label">
-                    <span class="text-slate-500">{{ c.label }}:</span>
-                    <template v-if="c.before !== null"><span class="am-ins-del ml-1">{{ c.before }}</span> → </template>
-                    <span class="am-ins-add" :class="{ 'ml-1': c.before === null }">{{ c.after ?? '（なし）' }}</span>
-                  </li>
-                </ul>
-
-                <!-- システムプロンプトの差分（主役） -->
-                <div v-if="item.prev && item.prev.system !== item.version.system" class="mt-3">
-                  <h3 class="am-h3">システムプロンプトの修正</h3>
-                  <ProseDiffView :rows="diffOf(item, 'system')" />
-                </div>
-
-                <!-- ユーザープロンプトは大きく変わったときだけ -->
-                <div v-if="item.prev && item.version.userChanged" class="mt-3">
-                  <h3 class="am-h3">ユーザープロンプトの修正</h3>
-                  <ProseDiffView :rows="diffOf(item, 'user')" />
-                </div>
-              </div>
-            </li>
-          </template>
-        </ol>
-
-        <!-- いちばん最初のプロンプト（どこから育ったかを見比べるため） -->
-        <section v-if="first" class="mt-8">
-          <h2 class="text-sm font-bold m-0 mb-1.5">
-            最初のシステムプロンプト
-            <span class="font-normal text-slate-500">（{{ formatDate(first.date) }}・{{ first.model }}）</span>
-          </h2>
-          <div v-if="first.system" class="am-prose">{{ first.system }}</div>
-          <p v-else class="text-sm text-slate-500 m-0">システムプロンプトはありませんでした。</p>
-
-          <template v-if="first.user">
-            <h2 class="text-sm font-bold m-0 mt-4 mb-1.5">最初のユーザープロンプト</h2>
-            <div class="am-prose am-prose-sub">{{ first.user }}</div>
-          </template>
-        </section>
+          <span style="color: var(--am-ink-faint)">·</span> 修正 {{ changes.length }}回
+        </p>
       </template>
-    </main>
+    </div>
+
+    <p v-if="loading" class="text-center py-10" style="color: var(--am-ink-soft)">読み込んでいます…</p>
+    <div v-else-if="error" class="am-card p-6 text-center">
+      <p class="m-0">{{ error }}</p>
+    </div>
+
+    <template v-else-if="site">
+      <!-- いまのプロンプト（全文） -->
+      <section class="mb-8">
+        <div class="flex items-center gap-2 mb-2">
+          <h2 class="am-h2">いまのシステムプロンプト</h2>
+          <button v-if="live.system" type="button" class="am-btn-text ml-auto" @click="copy(live.system)">{{ copied ? 'コピーしました' : 'コピー' }}</button>
+        </div>
+        <div v-if="live.system" class="am-prose">{{ live.system }}</div>
+        <p v-else class="m-0" style="color: var(--am-ink-soft)">システムプロンプトはありません（指示はユーザープロンプトに書いています）。</p>
+
+        <template v-if="live.user">
+          <h2 class="am-h2 mt-5 mb-2">いまのユーザープロンプト</h2>
+          <div class="am-prose am-prose-sub">{{ live.user }}</div>
+        </template>
+      </section>
+
+      <!-- 修正の歴史（新しい順・すべて開いた状態） -->
+      <h2 class="am-h2 mb-3">これまでの修正</h2>
+      <ol class="list-none m-0 p-0 ml-2" style="border-left: 2px solid var(--am-line)">
+        <template v-for="item in history" :key="item.version.commit">
+          <li v-if="item.appChange" class="ml-4 my-3 am-note">
+            ── {{ AI_MANAGER_APP_LABELS[item.appChange.from] }} から {{ AI_MANAGER_APP_LABELS[item.appChange.to] }} へ{{ item.types.includes('forked') ? '派生' : '移動' }} ──
+          </li>
+          <li :id="`v-${item.version.commit.slice(0, 12)}`" class="ml-4 mb-4 relative">
+            <span class="absolute am-dot top-4 w-3 h-3 rounded-full border-2 border-white" :style="{ background: dotColor(item.types) }" />
+            <div class="am-card px-4 py-3" :style="highlight === item.version.commit.slice(0, 12) ? 'border-color: var(--am-accent); box-shadow: 0 0 0 3px var(--am-accent-soft)' : ''">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="tabular-nums font-bold">{{ formatDate(item.version.date) }}</span>
+                <span v-for="t in item.types" :key="t" class="am-badge" :data-type="t">{{ AI_MANAGER_CHANGE_LABELS[t] }}</span>
+                <span class="am-note ml-auto">{{ item.version.model }}</span>
+              </div>
+              <p class="am-summary">{{ item.summary }}</p>
+
+              <!-- model・option は変わったものだけ -->
+              <ul v-if="settingChanges(item).length" class="list-none m-0 mt-2 p-0 space-y-0.5">
+                <li v-for="c in settingChanges(item)" :key="c.label">
+                  <span style="color: var(--am-ink-soft)">{{ c.label }}:</span>
+                  <template v-if="c.before !== null"><span class="am-ins-del ml-1">{{ c.before }}</span> → </template>
+                  <span class="am-ins-add" :class="{ 'ml-1': c.before === null }">{{ c.after ?? '（なし）' }}</span>
+                </li>
+              </ul>
+
+              <!-- システムプロンプトの差分（主役） -->
+              <div v-if="item.prev && item.prev.system !== item.version.system" class="mt-3">
+                <h3 class="am-h3">システムプロンプトの修正</h3>
+                <ProseDiffView :rows="diffOf(item, 'system')" />
+              </div>
+
+              <!-- ユーザープロンプトは大きく変わったときだけ -->
+              <div v-if="item.prev && item.version.userChanged" class="mt-3">
+                <h3 class="am-h3">ユーザープロンプトの修正</h3>
+                <ProseDiffView :rows="diffOf(item, 'user')" />
+              </div>
+            </div>
+          </li>
+        </template>
+      </ol>
+
+      <!-- いちばん最初のプロンプト（どこから育ったかを見比べるため） -->
+      <section v-if="first" class="mt-10">
+        <h2 class="am-h2 mb-2">
+          最初のシステムプロンプト
+          <span class="am-note" style="font-weight: 400">（{{ formatDate(first.date) }}・{{ first.model }}）</span>
+        </h2>
+        <div v-if="first.system" class="am-prose">{{ first.system }}</div>
+        <p v-else class="m-0" style="color: var(--am-ink-soft)">システムプロンプトはありませんでした。</p>
+
+        <template v-if="first.user">
+          <h2 class="am-h2 mt-5 mb-2">最初のユーザープロンプト</h2>
+          <div class="am-prose am-prose-sub">{{ first.user }}</div>
+        </template>
+      </section>
+    </template>
 
     <AuthModal v-if="showAuthModal" accent="sky" />
   </div>
