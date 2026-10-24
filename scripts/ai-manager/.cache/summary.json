@@ -1,0 +1,394 @@
+{
+ "02d03afc2f9021f82be0a4d70664bd4552339cb2": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#condensePrintLeft",
+  "commit": "1be6047de0efb6334ea0f743cc893a4e416d4f5e",
+  "summary": "まとめ方を「ひとつながりの文章」から、【背景】【話し合いの流れ】【結論・まとめ】のような見出しで章立てする形に変更。"
+ },
+ "0801a2341321298d9dd4f923f2d48eaadbfd0814": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/genogram/src/server/api/interpret.post.ts#handler",
+  "commit": "db4b8f6d7022661bf85163ca3dd7fab89b6cea08",
+  "summary": "夫婦・親子・関係の線に出てくる人物は、必ず人物の一覧にも入れる決まりを追加（名前が分からなくても「(名前不明)」として足す）。"
+ },
+ "0997d020eac1fe316bab69434512195da52c7ca8": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/api/miyako/keyword.post.ts#handler",
+  "commit": "2fa11111f503e608a77118415e3bd90aba952c64",
+  "summary": "文章の書き方の条件を追加。議会・行政の専門用語や略称は普通の言葉に言い換え、言い換えられない制度名は（）で説明を補い、中学生にも通じるやわらかい文章にする。"
+ },
+ "0d78f87d8392520026dcce189b36a5d725efdef6": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#reviseMinutes",
+  "commit": "1be6047de0efb6334ea0f743cc893a4e416d4f5e",
+  "summary": "対象を社内会議・商談など会議全般に広げ、修正のときも概要の見出しの章立てと1000字以内を保つ決まりを追加。"
+ },
+ "0e4f0b8e35160fe959855c270a0055bfdaf66898": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/osarai-ai.ts#planSet",
+  "commit": "65c3c3452d6c7353d53c48be85af429b1867f2dc",
+  "summary": "モデルを Sonnet 5 から Sonnet 5.5 に変更。"
+ },
+ "1232ffd83e159b0bc6ffedf39562db0d07781e9d": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/miyako-trends-ai.ts#extractFromChunk",
+  "commit": "26f6b5112d3c3930257f25bfefda1ec2d8b06b4a",
+  "summary": "語を1つ書かせる形から、話題ごとに「話題名（本文どおり・長くてよい）」「短い語（漢字2〜4字、カタカナ6字まで）」「何が議論されたか（中学生にも分かる40字以内）」の3つを書かせる形に変更。選ばないもの（手続きの言葉・議案名・どこでも出る言葉・人名）は整理して残した。max_output_tokens を 2500 → 3500 に。"
+ },
+ "1b226bec5d9d161e6f9750e32b38cc3ebd039526": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/osarai-ai.ts#planSet",
+  "commit": "33f6f8c8438ec445d2b324febbdef79ed204d058",
+  "summary": "子供向けの水準を小学3年生から小学5〜6年生に引き上げ。暗記だけで答えられる問題は避け、「なぜ」「どれが当てはまるか」を考えさせる論点を半分以上にする。"
+ },
+ "1ca04fd30bcca30e759b4a079b3a8f3379208b47": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "38a36aad128f53b1f874e577cee20eca00193172",
+  "summary": "「聞き取れない箇所」を「文字の誤り（誤変換など）で意味が分からない箇所」に言い換え（音声ではなく文章を入力する前提に合わせた）。会議用・話の記録用の両方。"
+ },
+ "2441764cffa570049740b16b49cee8a7ba06ad50": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/genogram/src/server/api/interpret.post.ts#handler",
+  "commit": "b87952e580c228a07c252da2ce73dc1e3a632fa9",
+  "summary": "関係の種類に「共依存」を追加し、お互いに依存し合って離れられない関係をそれに当てる目安を追加。"
+ },
+ "2893af8751665b130c4370506b3c6929d7655444": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#reviseMinutes",
+  "commit": "bb8f66b7ea6da187082a5ddbe85ecd21be94742b",
+  "summary": "修正用も、会議と話の記録で切り替える形に。話の記録では、指示に求められても話し手が話していない分析・評価・助言を足さない決まりを追加。"
+ },
+ "28ebc69a37817b7b1e75f26a35656f0da7cf4277": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/nikki-ai.ts#extractNikkiTopics",
+  "commit": "e74c41d9e1e85047af189ea2452415a51113e196",
+  "summary": "モデルを Sonnet 5 から Sonnet 5.5 に変更。"
+ },
+ "2e4372e7184786316bc3790c9c6b86383b3a349f": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/api/miyako/keyword.post.ts#handler",
+  "commit": "99b2824e9a138f8ddd8ee72faa4701cfd8fdb987",
+  "summary": "各時期に「くわしい説明」（100〜150字。具体的な議論・争点・背景・変化の理由）を足し、もとの説明は40〜70字の短い要約にした。"
+ },
+ "2f66c8dbb653bae647ff52821f8e5df6319a237f": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/genogram/src/server/api/interpret.post.ts#handler",
+  "commit": "af691eba5ea42ea58cd66919c929c23d2a69fdc2",
+  "summary": "関係の表し方を1つの種類から、「距離」「対立があるか」「依存の向き」の3つに分けて判断する形に変更（例:「疎遠なのに会うと喧嘩」は距離あり＋対立あり）。"
+ },
+ "3da00d90d8d5f44bbac506dec0497d9df1b727c8": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/api/miyako/keyword.post.ts#handler",
+  "commit": "f6b398b35c00093f9b0187d9884a473511b9589b",
+  "summary": "2つの言葉の関係を扱う形を追加。「AとBが関連してどう議論されてきたか」を5つの時期で解説させ、共通点・交わるところ・影響し合いに注目させる。2つが直接絡まない時期は正直に書いてよいとした。"
+ },
+ "44519fd7bc7d79b2ea26c784a3f100a86ed3ea45": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/osarai-ai.ts#suggestDeeperThemes",
+  "commit": "980708d6d2c98fc6ddf6358ff820d5b997c9f446",
+  "summary": "thinking を disabled → between_tools に変更（Sonnet 5.5 は disabled を受け付けないため）。"
+ },
+ "48ba995dc124e9ee896146b4a87adfb8ebf6c4a6": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/nikki-ai.ts#extractNikkiTopics",
+  "commit": "295ee3ddf5e26594952d97c833f0598c6ae25ffe",
+  "summary": "thinking を disabled → between_tools に変更（Sonnet 5.5 は disabled を受け付けないため）。"
+ },
+ "4a145941215b55e7589a56a793bb99ae6b0ed701": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#reviseMinutes",
+  "commit": "225a200fbb43dc5a6dfa54b6cb852782994ca012",
+  "summary": "thinking を disabled → between_tools に変更（Sonnet 5.5 は disabled を受け付けないため。考える時間は0のまま）。"
+ },
+ "4bb7ca01fa906321c8471946e8ba6b52aaf43f0c": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/genogram/src/server/api/interpret.post.ts#handler",
+  "commit": "9f75bd9c492919fc96a068ea70efb1d53813810e",
+  "summary": "人物に「本人から見た続柄」と、人物像をくわしく書く欄を追加。上の世代の人を足すときは親子関係として結ぶ（感情の線だけでつながない）決まりと、続柄を家族関係から機械的に付ける決まりを追加。"
+ },
+ "4ed10a4707a24cdd9f528b95e40891b3f0ed6b1e": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/osarai-ai.ts#writeBatch",
+  "commit": "65c3c3452d6c7353d53c48be85af429b1867f2dc",
+  "summary": "モデルを Sonnet 5 から Sonnet 5.5 に変更。"
+ },
+ "4ef285905c9bbad8c095c2d0fc9a8102320410fd": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#condensePrintLeft",
+  "commit": "bb8f66b7ea6da187082a5ddbe85ecd21be94742b",
+  "summary": "話の記録のときは「伝えたかったこと」を材料にまとめ、分析・評価・助言を足さず話し手の言い回しを残す形に切り替えられるように。見出しも記録の種類に合わせる。"
+ },
+ "62e8845627bee196b248167cc0e9c39e8cafaedc": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#reviseMinutes",
+  "commit": "cb8310e98de49dcb06b46f6c1b4567a5ef64b013",
+  "summary": "修正の出力に「出席者」を追加。"
+ },
+ "64f9e9ad8dfad8d15794179aa2975da932fdeab0": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/api/miyako/search.post.ts#handler",
+  "commit": "2fa11111f503e608a77118415e3bd90aba952c64",
+  "summary": "文章の書き方の条件を追加。議会・行政の専門用語や略称は普通の言葉に言い換え、言い換えられない制度名は（）で説明を補い、中学生にも通じるやわらかい文章にする。"
+ },
+ "668bf5613ca852e79a699fdcba91ac7123d910e8": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "225a200fbb43dc5a6dfa54b6cb852782994ca012",
+  "summary": "thinking を disabled → between_tools に変更（Sonnet 5.5 は disabled を受け付けないため。考える時間は0のまま）。"
+ },
+ "67a1e40596a5b2c5ff9308618c4dae212065b70e": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#condensePrintRight",
+  "commit": "5bac1bfbf59261e08e0310b21e5a843f01dad49e",
+  "summary": "本番版として派生。モデルを Sonnet 5.5 に。エラーのときは利用者に「混み合っている」と案内する形に（プロンプトは同じ）。"
+ },
+ "735cc8aa41ae5129b30c3f80127ec22a33ca232f": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/osarai-ai.ts#writeBatch",
+  "commit": "a47cf3da2fc93450c1b13afe9ce5864a72d31a92",
+  "summary": "子供向けの書き方を追加。小学3年生が読める言葉（習っていない漢字はひらがな）で、問題文は40字以内、解説は2文までのやわらかい言葉。問題を作るときに「対象」も渡す形に。"
+ },
+ "7682f3513129a95886f3874a82bacc45d6f0717c": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/genogram/src/server/api/interpret.post.ts#handler",
+  "commit": "e74c41d9e1e85047af189ea2452415a51113e196",
+  "summary": "モデルを Sonnet 5 から Sonnet 5.5 に変更。"
+ },
+ "7a2ec184f3ecda83135779c36a5b4db4b6f43e87": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#reviseMinutes",
+  "commit": "5bac1bfbf59261e08e0310b21e5a843f01dad49e",
+  "summary": "本番版として派生。モデルを Sonnet 5.5 に。全員共通の用語集の埋め込みを、利用者ごとの「よく出る名前」の節に置き換えた。"
+ },
+ "7a8b8e0dffbd012e174fb3ae59e92478014c655b": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/genogram/src/server/api/interpret.post.ts#handler",
+  "commit": "a4554022399bd830bfc1fc76c16240924274cc56",
+  "summary": "人物に生年・没年・職業・健康上のこと、夫婦に関係の始まりと終わりの年を書く欄を追加。説明文にあれば必ず反映し、年齢しか分からなければ生年を逆算してよい。ただし推測で作らない。"
+ },
+ "81dafde634859a36bc96f0f360d23aa2193ba20a": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/osarai-ai.ts#writeBatch",
+  "commit": "5af6b521b50284a3149464fc6f393bd527d609b2",
+  "summary": "博士向けの書き方を追加。専門用語は説明なしでよく、問題文は60字以内。誤りの選択肢は「半端に知っている人」が選びがちな専門的なものにし、解説は理由・前提・例外に触れる。"
+ },
+ "85af6a935b3ca291aa2912987a6b7c9f77a40e9f": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/api/miyako/member-summary.post.ts#handler",
+  "commit": "2fa11111f503e608a77118415e3bd90aba952c64",
+  "summary": "文章の書き方の条件を追加。議会・行政の専門用語や略称は普通の言葉に言い換え、言い換えられない制度名は（）で説明を補い、中学生にも通じるやわらかい文章にする。"
+ },
+ "868ea030bf8d71ee2b862d7835f85166e6d8221a": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#condensePrintLeft",
+  "commit": "5bac1bfbf59261e08e0310b21e5a843f01dad49e",
+  "summary": "本番版として派生。モデルを Sonnet 5.5 に。エラーのときは利用者に「混み合っている」と案内する形に（プロンプトは同じ）。"
+ },
+ "88326da10053294f692897ebd8aedc125743c914": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/osarai-ai.ts#planSet",
+  "commit": "a47cf3da2fc93450c1b13afe9ce5864a72d31a92",
+  "summary": "「対象」の指定を追加。大人向けはこれまでどおり、子供向けは小学3年生が解ける水準で身近な例を使い、難しい言葉や習っていない知識を前提にしない。"
+ },
+ "8893dba7754929cf0ceb5429c7377d8c9ae1a447": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "bb8f66b7ea6da187082a5ddbe85ecd21be94742b",
+  "summary": "「話の記録」用のプロンプトを新しく作り、会議用と使い分ける形に。講演・インタビューなど1人の話し手が中心の記録で、解釈や評価を足さず、話し手が伝えたかったことと話の流れをまとめる。"
+ },
+ "896514d6b1f84a25c0792c9f738d72b5623f6385": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/osarai-ai.ts#writeBatch",
+  "commit": "ef0d98dc9dfb4f86196d77433c0eb119f0c3ce4c",
+  "summary": "「よくある勘違い」を選択肢に入れる決まりを追加。誤りのうち1つは多くの人が実際にしている思い込みにし、解説でなぜ誤りかに必ず触れる。あわせて、ほかの誤りの候補は5つから4つに。"
+ },
+ "8e0f2148a00deda75dbd2e770ab6b2e7ab752b21": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/osarai-ai.ts#suggestDeeperThemes",
+  "commit": "65c3c3452d6c7353d53c48be85af429b1867f2dc",
+  "summary": "モデルを Sonnet 5 から Sonnet 5.5 に変更。"
+ },
+ "90422f9c2a34992e66eff8fa0c9d29865c92bf11": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/genogram/src/server/api/summarize-person.post.ts#handler",
+  "commit": "295ee3ddf5e26594952d97c833f0598c6ae25ffe",
+  "summary": "thinking を disabled → between_tools に変更（Sonnet 5.5 は disabled を受け付けないため）。"
+ },
+ "96f5859ddc88dd84db3861551a778c02a2027447": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/osarai-ai.ts#planSet",
+  "commit": "5af6b521b50284a3149464fc6f393bd527d609b2",
+  "summary": "「博士向け」の対象を追加。専門家の水準で、例外・前提条件・しくみ・似た考え方の厳密な違い・実務の落とし穴を問う。ただし答えが1つに決まる確かな知識に限る。"
+ },
+ "96fa2ce93181567274e7aece3379e86f7be1ae8c": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#condensePrintRight",
+  "commit": "bb8f66b7ea6da187082a5ddbe85ecd21be94742b",
+  "summary": "話の記録用（伝えたかったことの一覧を短くまとめる）を追加し、会議用（決定事項・予定・タスク）と切り替える形に。"
+ },
+ "99f3928c79125b22b4e310e265fe822c4830c3ad": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#condensePrintLeft",
+  "commit": "225a200fbb43dc5a6dfa54b6cb852782994ca012",
+  "summary": "thinking を disabled → between_tools に変更（Sonnet 5.5 は disabled を受け付けないため。考える時間は0のまま）。"
+ },
+ "9b80f7e6cdf8032963daafa2116fe6fce888d55d": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "5bac1bfbf59261e08e0310b21e5a843f01dad49e",
+  "summary": "本番版として派生。モデルを Sonnet 5.5 に。全員共通の用語集を埋め込んでいた部分を、利用者ごとの「よく出る名前」の節に置き換えた。タイトルを短く分かりやすくする指示を足し、日付の欄の説明からカレンダー登録の話を外した。"
+ },
+ "a1f55546f49c8055b7e3831dbb20e10d30b00245": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/genogram/src/server/api/interpret.post.ts#handler",
+  "commit": "c3e9e95605dc88ae3132db94c3d30649b4951c40",
+  "summary": "感情の表し方の目安を追加（対立・不仲→対立、絶縁・音信不通→絶縁、べったり・過干渉→密着、仲が良い→良好、疎遠→距離あり）。苦しいほどの近さは必ず「密着」にする。"
+ },
+ "a2ef8d774c73c95d7c3fcf2244e1c74d5c8f6998": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/genogram/src/server/api/interpret.post.ts#handler",
+  "commit": "f8eaa048896309eadb6135a676d2ad9103d8b935",
+  "summary": "名前が分からない人物には必ず続柄を入れ、本人が決まっていなくて続柄も付けられないときは「父の兄」のような呼び方を名前に入れる、と追加（画面に何も出ない人物を作らせない）。"
+ },
+ "a5e6b64f934e891375324c1e5f8345423f248380": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/genogram/src/server/api/summarize-person.post.ts#handler",
+  "commit": "e74c41d9e1e85047af189ea2452415a51113e196",
+  "summary": "モデルを Sonnet 5 から Sonnet 5.5 に変更。"
+ },
+ "af4bba44df844b9110ad44fda165aae57ccebc8c": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/osarai-ai.ts#planSet",
+  "commit": "980708d6d2c98fc6ddf6358ff820d5b997c9f446",
+  "summary": "thinking を disabled → between_tools に変更（Sonnet 5.5 は disabled を受け付けないため）。"
+ },
+ "b0ba27643811a6aae898fe07bcbde9676e1ea8af": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/genogram/src/server/api/interpret.post.ts#handler",
+  "commit": "544017b50992bbce064ab8cc39fac59113102b27",
+  "summary": "名前に続柄を入れず、分からなければ空欄にする形に変更。続柄は決まった言葉から選び、父方・母方は書き分けない。記号の上に出す20字以内の特徴（職業＋性格）を追加。"
+ },
+ "b4fd341919caa6760bc326b0e5a4382323bd97b7": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#condensePrintRight",
+  "commit": "225a200fbb43dc5a6dfa54b6cb852782994ca012",
+  "summary": "thinking を disabled → between_tools に変更（Sonnet 5.5 は disabled を受け付けないため。考える時間は0のまま）。"
+ },
+ "b566d1c0a18871d51e734b0a0672ea815230f585": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/osarai-ai.ts#planSet",
+  "commit": "ef0d98dc9dfb4f86196d77433c0eb119f0c3ce4c",
+  "summary": "論点の選び方を「基礎の土台を優先」から「まちがえやすいが知っておくべきことを最優先」に変更。思い込み・取り違えやすいこと・知らないと困ることを選び、当たり前のことや雑学は選ばない。"
+ },
+ "bb43f521b14b05fd8d9091f04928e5f92bfd9297": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/osarai-ai.ts#writeBatch",
+  "commit": "980708d6d2c98fc6ddf6358ff820d5b997c9f446",
+  "summary": "thinking を disabled → between_tools に変更（Sonnet 5.5 は disabled を受け付けないため）。"
+ },
+ "bbe3afd009a55d43c5c8391396cd6c3d742eb97f": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "1be6047de0efb6334ea0f743cc893a4e416d4f5e",
+  "summary": "対象を「地域の会議・活動」から、社内会議・商談などあらゆる会議に広げた。概要は【背景】【話し合いの流れ】【結論・まとめ】のような見出しで章立てし、1000字以内にまとめる決まりを追加。"
+ },
+ "c6aee8a12793b9f0a098dcc956c6641bfbf8fd90": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "fe509aa4d47df05532480aa348f8afdc959c4e4c",
+  "summary": "用語集の節を外し、「録音を取り込んだ日」を「文章を取り込んだ日」に（音声の文字起こしをやめ、文章を貼る形にしたため）。"
+ },
+ "ca4993c7b5869fc612bd1afea55450a3ef1c6f3f": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "49f18cb0f1e59ec9e0b1c1664e0436a4f5a67c77",
+  "summary": "タイトルを15文字以内に収める指示を、会議用・話の記録用の両方に追加。"
+ },
+ "d37970de81c5e32feb3ddd55bd2ca2ec94877bae": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "cb8310e98de49dcb06b46f6c1b4567a5ef64b013",
+  "summary": "出力に「出席者」を追加。発言している・出席が分かる人だけを入れ、話題に出ただけの人は入れない。"
+ },
+ "d388bc1e9479bbb27ed140ca65223a7424541a43": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/api/miyako/keyword.post.ts#handler",
+  "commit": "10073b3967a713e259861e40e59664f2de782ac6",
+  "summary": "頼み方を大きく変更。「関連する議論を最大○件選んで議題ごとにまとめる」形から、「約20年の議論の移り変わりを5つの時期に分けて解説する」形へ。時期は西暦で古い順に並べ、各時期に15字以内の見出しと40〜70字の説明を書かせる。議論が少ない時期は正直に書いてよいとした。"
+ },
+ "d90558b46d5ab4d2b30ffee276cba83a3c384785": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/osarai-ai.ts#writeBatch",
+  "commit": "33f6f8c8438ec445d2b324febbdef79ed204d058",
+  "summary": "子供向けを小学5〜6年生向けに変更。6年生までの漢字は使い、難しい言葉には読みがなを付ける。問題文は60字以内で考えて解く問題にし、紛らわしい誤りの選択肢を入れる。解説は2〜3文。"
+ },
+ "da15224a7b368948e244c85e50513ab414977cee": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/genogram/src/server/api/interpret.post.ts#handler",
+  "commit": "923879be5c610b3368c8749bf792de77df32c49a",
+  "summary": "maxTokens を 4000 → 16000 に増やし、thinking を adaptive（考えてから答える）に変更。"
+ },
+ "fb27ceb013ee2caf84314351b5fcd5a945ff3ff7": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#reviseMinutes",
+  "commit": "fe509aa4d47df05532480aa348f8afdc959c4e4c",
+  "summary": "修正用でも用語集の節を外し、「録音を取り込んだ日」を「文章を取り込んだ日」に。"
+ }
+}

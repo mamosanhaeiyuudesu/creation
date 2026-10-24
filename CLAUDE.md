@@ -33,7 +33,7 @@ apps/
 
 ## どのディレクトリで作業するか
 
-`apps/ai-tools/` → キーワード: **miyako・whisper・hagemashi・task・kouba・deepheart・mlb・kaki・momo・ippon・guesthouse・life-analyzer・kiroku・keiko・旧キキガキ（ai-tools の `/kikigaki` と明示されたときだけ）・news・farm-manager・nikki・ai-tools 全般**
+`apps/ai-tools/` → キーワード: **miyako・whisper・hagemashi・task・kouba・deepheart・mlb・kaki・momo・ippon・guesthouse・life-analyzer・kiroku・keiko・palette（FLUX LoRA 画像生成）・旧キキガキ（ai-tools の `/kikigaki` と明示されたときだけ）・news・farm-manager・nikki・ai-manager（AI管理）・ai-tools 全般**
 
 各ホームページ → 下表のキーワードのディレクトリ
 

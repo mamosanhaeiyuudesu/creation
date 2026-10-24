@@ -15,6 +15,8 @@
     "params": { "kicker": "キキガキ（旧版）", "title": "会議の録音から\n議事録をつくる", "lead": "録音を文字に起こしてAIが議事録に。\n確認してからPDFで保存。", "emoji": "🗒️", "site": "prototype.insightlens.jp", "main": "#2f6f5e", "main2": "#1f4d41", "ink": "#2b3038" } },
   { "id": "ai-tools/news", "out": "apps/ai-tools/src/public/og/news.png",
     "params": { "kicker": "AIニュース", "title": "AIの新着を\n日本語で読む", "lead": "OpenAI・DeepMindなどの新着を要約し、\n大きな潮流ごとに整理する。", "emoji": "📰", "site": "prototype.insightlens.jp", "main": "#6f6a64", "main2": "#3d3a36", "ink": "#1d1f22" } },
+  { "id": "ai-tools/palette", "out": "apps/ai-tools/src/public/og/palette.png",
+    "params": { "kicker": "palette", "title": "LoRAを載せて\n日本語で絵を描く", "lead": "日本語で書くと英語のプロンプトに変換。\nFLUX × LoRA、画像→画像にも対応。", "emoji": "🎨", "site": "prototype.insightlens.jp", "main": "#e0522b", "main2": "#bd3d1a", "ink": "#2a2723" } },
   { "id": "ai-tools/momo", "out": "apps/ai-tools/src/public/og/momo.png",
     "params": { "kicker": "桃 注文管理", "title": "SNSの注文を\nそのまま一覧に", "lead": "会話を貼るとAIが注文を整理。\n選果の集計と発送用CSVまで。", "emoji": "🍑", "site": "prototype.insightlens.jp", "main": "#e07a8a", "main2": "#b8536a", "ink": "#4a2f34" } },
   { "id": "ai-tools/kaki", "out": "apps/ai-tools/src/public/og/kaki.png",

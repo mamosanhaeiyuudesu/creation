@@ -1,0 +1,15 @@
+{
+  "_comment": "フォルダをまたいでコピー・移動したファイルのつながり。git のリネーム検出で追えるもの（osarai→manabi→production/manabi など）は書かなくてよい。type=fork は元のファイルが残ったまま別の場所で育ったもの（派生した時点までの元の履歴を前に足す）。calls は関数名が変わったときだけ { 元の名前: 新しい名前 }",
+  "links": [
+    {
+      "type": "fork",
+      "from": "apps/ai-tools/src/server/utils/kikigaki-ai.ts",
+      "to": "apps/production/kikigaki/src/server/utils/minutes-ai.ts"
+    },
+    {
+      "type": "fork",
+      "from": "apps/ai-tools/src/server/api/kikigaki/transcribe.post.ts",
+      "to": "apps/production/kikigaki/src/server/api/transcribe.post.ts"
+    }
+  ]
+}

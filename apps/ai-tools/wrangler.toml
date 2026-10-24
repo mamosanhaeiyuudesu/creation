@@ -35,6 +35,7 @@ custom_domain = true
 #     x-admin-key ヘッダーで守るための秘密キー。公開ページなのでログインではなくこのキーで守る
 #   wrangler secret put NUXT_MIYAKO_ADMIN_KEY  ← miyako「直近の傾向」の手動実行API（/api/miyako/trends/run）を
 #     x-admin-key ヘッダーで守るための秘密キー（farm-news と同じ方式。キーは別にしている）
+#   wrangler secret put NUXT_FAL_KEY  ← palette（FLUX LoRA 画像生成）の fal.ai API キー
 
 [[d1_databases]]
 binding = "WHISPER_DB"
@@ -53,6 +54,8 @@ database_id = "a89cb679-8a17-4d46-9c90-dada3e35691b"
 #   wrangler d1 execute whisper-db --remote --file src/server/db/063_farm_manager.sql
 # farm-simulation テーブル追加:
 #   wrangler d1 execute whisper-db --remote --file src/server/db/073_farm_simulation.sql
+# palette テーブル追加:
+#   wrangler d1 execute whisper-db --remote --file src/server/db/074_palette.sql
 # manabi は本番サービスへ移した（apps/production/manabi・専用D1 manabi-db）。whisper-db の osarai_sets は2026-10-19にDROP済み
 
 [[d1_databases]]

@@ -10,6 +10,7 @@ export interface OgPage {
 }
 
 export const OG_PAGES: OgPage[] = [
+  { path: '/palette', title: 'palette — FLUX LoRA 画像生成', description: '自分の LoRA を載せて FLUX で画像生成。日本語で書くと英語プロンプトに変換、画像→画像にも対応。', image: 'palette' },
   { path: '/farm-simulation', title: '経営の見直し — 10年先の利益を試す', description: '確定申告書を読み込むだけ。資材費の上昇などの前提を変えながら、10年先の利益と対応策の効果を試せる。', image: 'farm-simulation' },
   { path: '/farm-manager', title: '農園の経営', description: '納品書を撮るとAIが仕訳。畑の中（変動費）と畑の外（固定費）を色で分けて、毎月の利益が5秒で分かる。', image: 'farm-manager' },
   { path: '/farm-news', title: '農業×AI ニュース', description: '海外・国内の農業テックの新着を日本語で要約し、潮流の予測までまとめて読める。', image: 'farm-news' },

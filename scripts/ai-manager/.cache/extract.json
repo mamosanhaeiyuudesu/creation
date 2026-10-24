@@ -1,0 +1,5072 @@
+{
+ "0128dff9e8e60c9bef710548e72a8a8fb999b603": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/utils/kikigaki-ai.ts",
+  "usage": {
+   "input_tokens": 6320,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 192,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こしを議事録JSONに構造化する",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 84,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 86,
+      "endLine": 86
+     }
+    ]
+   }
+  ]
+ },
+ "0793d262c9806c0453843ef41e6c431fcc214656": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/kikigaki/transcribe.post.ts",
+  "usage": {
+   "input_tokens": 5464,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 158,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "音声ファイルを文字起こしする",
+    "provider": "openai",
+    "kind": "stt",
+    "line": 46,
+    "via": null,
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "language",
+      "value": "'ja'"
+     },
+     {
+      "key": "response_format",
+      "value": "'json'"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": "glossaryPromptHint",
+      "startLine": null,
+      "endLine": null
+     }
+    ]
+   }
+  ]
+ },
+ "0d790c8c2de07066d13b213dbaa3a081426cb511": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/auth.ts",
+  "usage": {
+   "input_tokens": 6621,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "0fb51f339f695a8296bc51e5ff37033c3e896b6d": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/keyword.post.ts",
+  "usage": {
+   "input_tokens": 5956,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 205,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "宮古島市議会の議事録からテーマの議論の変遷を解説",
+    "provider": "openai",
+    "kind": "text",
+    "line": 50,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId] }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 20,
+      "endLine": 33
+     },
+     {
+      "ref": null,
+      "startLine": 34,
+      "endLine": 47
+     }
+    ]
+   }
+  ]
+ },
+ "12ee7b975f33b8689ab415ee1dddfe3a880a7cf4": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/keyword.post.ts",
+  "usage": {
+   "input_tokens": 5015,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 179,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "議事録をキーワード検索し議論をJSONで要約",
+    "provider": "openai",
+    "kind": "text",
+    "line": 22,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId] }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 24,
+      "endLine": 31
+     }
+    ]
+   }
+  ]
+ },
+ "138383a1e4b5417946d68e369008bff44716683f": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/anthropic.ts",
+  "usage": {
+   "input_tokens": 5654,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "160e9147690cc95a328b224aec694ce3cf318dec": {
+  "version": 1,
+  "model": "claude-opus-5-5",
+  "path": "apps/ai-tools/src/server/utils/osarai-ai.ts",
+  "usage": {
+   "input_tokens": 9163,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 371,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "planSet",
+    "feature": "テーマから対象レベルと出題論点を設計",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 85,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "400 + count * 80"
+     }
+    ],
+    "system": [
+     {
+      "ref": "PLAN_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 88,
+      "endLine": 88
+     }
+    ]
+   },
+   {
+    "name": "writeBatch",
+    "feature": "論点ごとに4択問題と解説を作成",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 153,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "600 + points.length * 550"
+     }
+    ],
+    "system": [
+     {
+      "ref": "WRITE_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 156,
+      "endLine": 156
+     }
+    ]
+   }
+  ]
+ },
+ "17328130452c4c63270518414b8975f33cd93af9": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/anthropic.ts",
+  "usage": {
+   "input_tokens": 5526,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "1760a399c2b7a3253be5974fa2e0fa93e554c29c": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/member-summary.post.ts",
+  "usage": {
+   "input_tokens": 4955,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 174,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "議員の発言を議事録から検索し要約",
+    "provider": "openai",
+    "kind": "text",
+    "line": 18,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId] }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 20,
+      "endLine": 24
+     }
+    ]
+   }
+  ]
+ },
+ "182966da259bb7cddc4290497050d20b6b8bca1f": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/usage.ts",
+  "usage": {
+   "input_tokens": 5903,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "1da88b9332357915fa4d7d6cf47824666b09a0b7": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/member-summary.post.ts",
+  "usage": {
+   "input_tokens": 4951,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 179,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "議員の発言をベクトル検索して要約JSONを生成",
+    "provider": "openai",
+    "kind": "text",
+    "line": 18,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{type: 'file_search', vector_store_ids: [miyakoVectorStoreId]}]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 20,
+      "endLine": 24
+     }
+    ]
+   }
+  ]
+ },
+ "22fc4a5fea0c8c685b94c4ad793b94a366710d8e": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/utils/nikki-ai.ts",
+  "usage": {
+   "input_tokens": 6214,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 186,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "extractNikkiTopics",
+    "feature": "日記テキストから重要トピックを抽出",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 71,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 73,
+      "endLine": 73
+     }
+    ]
+   }
+  ]
+ },
+ "256d198e7d31af1f44bd2d9c19bcff51553c3334": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/keyword.post.ts",
+  "usage": {
+   "input_tokens": 5185,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 178,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "議事録のキーワード議論を5フェーズで解説",
+    "provider": "openai",
+    "kind": "text",
+    "line": 18,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId] }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 20,
+      "endLine": 32
+     }
+    ]
+   }
+  ]
+ },
+ "26006340e22464f20eaf6b93c8577a05916da1f5": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/usage.ts",
+  "usage": {
+   "input_tokens": 6165,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "2b31ce6dc6d30558f3a452374be28c719070544d": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/api/interpret.post.ts",
+  "usage": {
+   "input_tokens": 8801,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 180,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "説明文からジェノグラムJSONを生成・更新",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 93,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "4000"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 99,
+      "endLine": 99
+     }
+    ]
+   }
+  ]
+ },
+ "36277a11517a94d1070935690f81866049c4d64a": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/minutes-ai.ts",
+  "usage": {
+   "input_tokens": 10501,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 713,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こしを議事録の構造に変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 147,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 149,
+      "endLine": 149
+     }
+    ]
+   },
+   {
+    "name": "reviseMinutes",
+    "feature": "指示に沿って議事録全体を書き換え",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 180,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildReviseSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 185,
+      "endLine": 185
+     }
+    ]
+   },
+   {
+    "name": "condensePrintLeft",
+    "feature": "PDF左側の概要を文字数内に要約",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 228,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 216,
+      "endLine": 222
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 224,
+      "endLine": 226
+     }
+    ]
+   },
+   {
+    "name": "condensePrintRight",
+    "feature": "PDF右側の決定事項等を文字数内に要約",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 260,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 247,
+      "endLine": 254
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 256,
+      "endLine": 258
+     }
+    ]
+   }
+  ]
+ },
+ "362d23b1a48ad16e31f8844e27e98a3e8e8f11a9": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/api/interpret.post.ts",
+  "usage": {
+   "input_tokens": 7782,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 178,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "説明文をジェノグラムJSONへ変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 72,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "4000"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 78,
+      "endLine": 78
+     }
+    ]
+   }
+  ]
+ },
+ "3941d324b66bd6ac29efb568b3ac2cf33c11f7a8": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/api/interpret.post.ts",
+  "usage": {
+   "input_tokens": 9977,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 198,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "説明文をジェノグラムJSONへ変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 135,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "16000"
+     },
+     {
+      "key": "thinking",
+      "value": "'adaptive'"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 142,
+      "endLine": 142
+     }
+    ]
+   }
+  ]
+ },
+ "3a0b0cc1cc1507b5db4f8e080a97715c0b5d8903": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/usage.ts",
+  "usage": {
+   "input_tokens": 6163,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "3cd7798de35e4f16b3852c01f15717cf5ca4b254": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/member-summary.post.ts",
+  "usage": {
+   "input_tokens": 5142,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 173,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "議員の発言をファイル検索で要約",
+    "provider": "openai",
+    "kind": "text",
+    "line": 18,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId] }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 20,
+      "endLine": 30
+     }
+    ]
+   }
+  ]
+ },
+ "46b5b7353809a75f6c4ff136d938e4e79a014c04": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/api/summarize-person.post.ts",
+  "usage": {
+   "input_tokens": 4974,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 181,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "職業・人物像から20文字程度の特徴要約を生成",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 25,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "200"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 31,
+      "endLine": 31
+     }
+    ]
+   }
+  ]
+ },
+ "47a6d35b36f302597ec152bebe6b92edc006a022": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/kikigaki/transcribe.post.ts",
+  "usage": {
+   "input_tokens": 5302,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 164,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "音声ファイルをOpenAIで文字起こしする",
+    "provider": "openai",
+    "kind": "stt",
+    "line": 45,
+    "via": null,
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "language",
+      "value": "'ja'"
+     },
+     {
+      "key": "response_format",
+      "value": "'json'"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": "glossaryPromptHint",
+      "startLine": null,
+      "endLine": null
+     }
+    ]
+   }
+  ]
+ },
+ "48e9eba2067b6a54baa6b6c20c9c03434bfd6802": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/member-summary.post.ts",
+  "usage": {
+   "input_tokens": 4953,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 173,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "議員の発言をファイル検索で要約",
+    "provider": "openai",
+    "kind": "text",
+    "line": 18,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId] }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 20,
+      "endLine": 24
+     }
+    ]
+   }
+  ]
+ },
+ "49ac333c4397365052eff02f817cc6957438e2fe": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/utils/anthropic.ts",
+  "usage": {
+   "input_tokens": 5050,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "4a9a1a6516c8014e3f16f4fcfca225a82d547421": {
+  "version": 1,
+  "model": "claude-opus-5-5",
+  "path": "apps/production/manabi/src/server/utils/anthropic.ts",
+  "usage": {
+   "input_tokens": 5017,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "4c2a4d1b37372ebcde3e0728f219f435d6c947c0": {
+  "version": 1,
+  "model": "claude-opus-5-5",
+  "path": "apps/production/manabi/src/server/utils/manabi-ai.ts",
+  "usage": {
+   "input_tokens": 11138,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 554,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "planSet",
+    "feature": "テーマから出題レベルと論点を設計",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 106,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "400 + count * 80"
+     }
+    ],
+    "system": [
+     {
+      "ref": "PLAN_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 109,
+      "endLine": 109
+     }
+    ]
+   },
+   {
+    "name": "writeBatch",
+    "feature": "論点ごとに4択問題と解説を作問",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 174,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "600 + points.length * 550"
+     }
+    ],
+    "system": [
+     {
+      "ref": "WRITE_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 177,
+      "endLine": 177
+     }
+    ]
+   },
+   {
+    "name": "suggestDeeperThemes",
+    "feature": "解き終えた後に深掘りテーマを3つ提案",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 245,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "400"
+     }
+    ],
+    "system": [
+     {
+      "ref": "DEEPEN_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 248,
+      "endLine": 248
+     }
+    ]
+   }
+  ]
+ },
+ "5310a868aaa7c41ac5083eb33cb535940c405d48": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/minutes-ai.ts",
+  "usage": {
+   "input_tokens": 13798,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 786,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こしを議事録の構造に変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 274,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 273,
+      "endLine": 273
+     },
+     {
+      "ref": null,
+      "startLine": 276,
+      "endLine": 276
+     }
+    ]
+   },
+   {
+    "name": "reviseMinutes",
+    "feature": "指示に沿って議事録を書き換え",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 296,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildReviseSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 301,
+      "endLine": 301
+     }
+    ]
+   },
+   {
+    "name": "condensePrintLeft",
+    "feature": "PDF左側の概要を文字数内に要約",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 350,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 336,
+      "endLine": 344
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 346,
+      "endLine": 348
+     }
+    ]
+   },
+   {
+    "name": "condensePrintRight",
+    "feature": "PDF右側の項目を文字数内に要約",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 395,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 372,
+      "endLine": 387
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 389,
+      "endLine": 393
+     }
+    ]
+   }
+  ],
+  "fixedBy": "claude-code"
+ },
+ "53e9f018695fd464265d27d7412fb10c2d47a8df": {
+  "version": 1,
+  "model": "claude-opus-5-5",
+  "path": "apps/production/manabi/src/server/utils/manabi-ai.ts",
+  "usage": {
+   "input_tokens": 11616,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 554,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "planSet",
+    "feature": "テーマから出題レベルと論点を設計",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 112,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "400 + count * 80"
+     }
+    ],
+    "system": [
+     {
+      "ref": "PLAN_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 115,
+      "endLine": 115
+     }
+    ]
+   },
+   {
+    "name": "writeBatch",
+    "feature": "論点ごとに4択問題と解説を作成",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 185,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "600 + points.length * 550"
+     }
+    ],
+    "system": [
+     {
+      "ref": "WRITE_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 188,
+      "endLine": 188
+     }
+    ]
+   },
+   {
+    "name": "suggestDeeperThemes",
+    "feature": "解き終えた後の深掘りテーマを3つ提案",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 256,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "400"
+     }
+    ],
+    "system": [
+     {
+      "ref": "DEEPEN_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 259,
+      "endLine": 259
+     }
+    ]
+   }
+  ]
+ },
+ "579deccfa271296cbcbdfef2deb710b5be6b3c76": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/search.post.ts",
+  "usage": {
+   "input_tokens": 5860,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 183,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "議事録をファイル検索し議論を要約",
+    "provider": "openai",
+    "kind": "text",
+    "line": 53,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId], filters: sessionFilter }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 55,
+      "endLine": 65
+     }
+    ]
+   }
+  ]
+ },
+ "57c532f6a05ffd554a604f555019deb5f7144757": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/minutes-ai.ts",
+  "usage": {
+   "input_tokens": 9924,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 706,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こしを議事録JSONに構造化",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 126,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 128,
+      "endLine": 128
+     }
+    ]
+   },
+   {
+    "name": "reviseMinutes",
+    "feature": "指示に沿って議事録を修正",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 158,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildReviseSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 163,
+      "endLine": 163
+     }
+    ]
+   },
+   {
+    "name": "condensePrintLeft",
+    "feature": "PDF左側の概要を文字数内に要約",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 206,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 194,
+      "endLine": 200
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 202,
+      "endLine": 204
+     }
+    ]
+   },
+   {
+    "name": "condensePrintRight",
+    "feature": "PDF右側の決定事項等を短縮",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 238,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 225,
+      "endLine": 232
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 234,
+      "endLine": 236
+     }
+    ]
+   }
+  ]
+ },
+ "5b221e7108d7d9ad0cdd7c86e9da3839a631eeba": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/api/interpret.post.ts",
+  "usage": {
+   "input_tokens": 8956,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 182,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "自然文の説明をジェノグラムJSONへ反映する",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 93,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "4000"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 99,
+      "endLine": 99
+     }
+    ]
+   }
+  ]
+ },
+ "5f4bffa7f1a55ae44bf96922a00b79fa66dedd8c": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/search.post.ts",
+  "usage": {
+   "input_tokens": 5669,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 186,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "議事録をファイル検索し議論をJSON要約",
+    "provider": "openai",
+    "kind": "text",
+    "line": 53,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId], filters: sessionFilter }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 55,
+      "endLine": 59
+     }
+    ]
+   }
+  ]
+ },
+ "6278325e35bcd21a6f79984ea71ec920987925b5": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/usage.ts",
+  "usage": {
+   "input_tokens": 5347,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "656e535274da1e2a9b7199143e71c28ebaa29da8": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/minutes-ai.ts",
+  "usage": {
+   "input_tokens": 9969,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 709,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こしを議事録の構造に変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 126,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 128,
+      "endLine": 128
+     }
+    ]
+   },
+   {
+    "name": "reviseMinutes",
+    "feature": "指示に沿って議事録全体を修正",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 158,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildReviseSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 163,
+      "endLine": 163
+     }
+    ]
+   },
+   {
+    "name": "condensePrintLeft",
+    "feature": "PDF概要欄を文字数内に要約",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 206,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 194,
+      "endLine": 200
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 202,
+      "endLine": 204
+     }
+    ]
+   },
+   {
+    "name": "condensePrintRight",
+    "feature": "PDF決定事項・予定・タスクを短縮",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 238,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 225,
+      "endLine": 232
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 234,
+      "endLine": 236
+     }
+    ]
+   }
+  ]
+ },
+ "65ed0ac9da2a41efe81acee03a12a61320575c3e": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/auth.ts",
+  "usage": {
+   "input_tokens": 7416,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "671c066ca1bf64e7b0d7ca6a7d60497a8d44f0a9": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/utils/miyako-trends.ts",
+  "usage": {
+   "input_tokens": 13280,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 878,
+   "output_tokens_details": {
+    "thinking_tokens": 327
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "findSessionInVectorStore",
+    "feature": "Vector Storeのファイル一覧取得",
+    "provider": "openai",
+    "kind": "file",
+    "line": 332,
+    "via": "openAiJson",
+    "model": {
+     "literal": null,
+     "ref": null
+    },
+    "options": [],
+    "system": [],
+    "user": []
+   },
+   {
+    "name": "uploadPdfToVectorStore",
+    "feature": "PDFをOpenAIにアップロード",
+    "provider": "openai",
+    "kind": "file",
+    "line": 350,
+    "via": "openAiJson",
+    "model": {
+     "literal": null,
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "method",
+      "value": "'POST'"
+     }
+    ],
+    "system": [],
+    "user": []
+   },
+   {
+    "name": "uploadPdfToVectorStore #2",
+    "feature": "ファイルをVector Storeに登録",
+    "provider": "openai",
+    "kind": "file",
+    "line": 352,
+    "via": "openAiJson",
+    "model": {
+     "literal": null,
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "method",
+      "value": "'POST'"
+     },
+     {
+      "key": "headers",
+      "value": "{ 'Content-Type': 'application/json' }"
+     }
+    ],
+    "system": [],
+    "user": []
+   },
+   {
+    "name": "getVectorStoreFileStatus",
+    "feature": "Vector Storeファイルの解析状態取得",
+    "provider": "openai",
+    "kind": "file",
+    "line": 361,
+    "via": "openAiJson",
+    "model": {
+     "literal": null,
+     "ref": null
+    },
+    "options": [],
+    "system": [],
+    "user": []
+   },
+   {
+    "name": "fetchVectorStoreFileText",
+    "feature": "Vector Storeの解析済み本文を取得",
+    "provider": "openai",
+    "kind": "file",
+    "line": 372,
+    "via": "openAiJson",
+    "model": {
+     "literal": null,
+     "ref": null
+    },
+    "options": [],
+    "system": [],
+    "user": []
+   }
+  ]
+ },
+ "69dbeb8d1a62110397608528ad0be83eb0ca437f": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/anthropic.ts",
+  "usage": {
+   "input_tokens": 5991,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "6ba7a74240ea561f6b2a1c0ef485b298ee7f92b1": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/utils/nikki-ai.ts",
+  "usage": {
+   "input_tokens": 6216,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 186,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "extractNikkiTopics",
+    "feature": "日記テキストから重要トピックを抽出",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 71,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 73,
+      "endLine": 73
+     }
+    ]
+   }
+  ]
+ },
+ "6bc2b382390914f8d9b2e175320a2a47ee611568": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/minutes-ai.ts",
+  "usage": {
+   "input_tokens": 13800,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 731,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こしを議事録の構造にまとめる",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 274,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 273,
+      "endLine": 273
+     },
+     {
+      "ref": null,
+      "startLine": 276,
+      "endLine": 276
+     }
+    ]
+   },
+   {
+    "name": "reviseMinutes",
+    "feature": "指示に沿って議事録を書き換える",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 296,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildReviseSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 301,
+      "endLine": 301
+     }
+    ]
+   },
+   {
+    "name": "condensePrintLeft",
+    "feature": "PDF左側の概要を文字数内に要約",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 350,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 336,
+      "endLine": 344
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 346,
+      "endLine": 348
+     }
+    ]
+   },
+   {
+    "name": "condensePrintRight",
+    "feature": "PDF右側の項目を文字数内に要約",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 395,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 372,
+      "endLine": 387
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 390,
+      "endLine": 393
+     }
+    ]
+   }
+  ]
+ },
+ "6cb93137c8b1a05bd6d691a3b4cc63eb470e2523": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/search.post.ts",
+  "usage": {
+   "input_tokens": 5671,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 182,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "議事録からキーワードの議論を検索",
+    "provider": "openai",
+    "kind": "text",
+    "line": 53,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId], filters: sessionFilter }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 55,
+      "endLine": 59
+     }
+    ]
+   }
+  ]
+ },
+ "70391c6f64dc5980eb7f64f7b8aa8c6ec711af3c": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/utils/miyako-trends-ai.ts",
+  "usage": {
+   "input_tokens": 8479,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 225,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "extractFromChunk",
+    "feature": "会議録の分割から話題の語句候補を抽出",
+    "provider": "openai",
+    "kind": "text",
+    "line": 102,
+    "via": null,
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "temperature",
+      "value": "0.2"
+     },
+     {
+      "key": "max_output_tokens",
+      "value": "2500"
+     },
+     {
+      "key": "text",
+      "value": "{ format: { type: 'json_schema', name: 'miyako_terms', strict: true, schema: SCHEMA } }"
+     }
+    ],
+    "system": [
+     {
+      "ref": "INSTRUCTIONS",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": []
+   }
+  ]
+ },
+ "7606d21c787eeeabdcdf2a9c85a84008125830db": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/utils/anthropic.ts",
+  "usage": {
+   "input_tokens": 5541,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "77c7207968800a06a2f2cfe51545bfb9713f197b": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/auth.ts",
+  "usage": {
+   "input_tokens": 6546,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "79290b9d5b249b787b5c96236f9feac919e41692": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/api/interpret.post.ts",
+  "usage": {
+   "input_tokens": 9020,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 179,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "自由記述をジェノグラムJSONへ変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 93,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "4000"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 99,
+      "endLine": 99
+     }
+    ]
+   }
+  ]
+ },
+ "81949b603405d5b4c5fdc8736675aa7bb6529a59": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/utils/nikki-ai.ts",
+  "usage": {
+   "input_tokens": 8077,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 401,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "extractNikkiTopics",
+    "feature": "日記テキストから重要トピックを抽出",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 71,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 73,
+      "endLine": 73
+     }
+    ]
+   },
+   {
+    "name": "generateNikkiReview",
+    "feature": "直近の日記から3観点の振り返りを生成",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 146,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "1500"
+     }
+    ],
+    "system": [
+     {
+      "ref": "DEFAULT_REVIEW_PROMPT",
+      "startLine": null,
+      "endLine": null
+     },
+     {
+      "ref": "REVIEW_OUTPUT_RULE",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 148,
+      "endLine": 148
+     }
+    ]
+   }
+  ]
+ },
+ "844018e941e21c98ef3c06de6d9a518ff950ba48": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/utils/anthropic.ts",
+  "usage": {
+   "input_tokens": 5421,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "8fcf0e386cd394d28e58071208fb8ee1cb056736": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/usage.ts",
+  "usage": {
+   "input_tokens": 5873,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "935a5f60aad65e5e2a6864518397ff0e0a3a2d70": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/api/interpret.post.ts",
+  "usage": {
+   "input_tokens": 9961,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 178,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "説明文をジェノグラムJSONへ変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 135,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "4000"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 141,
+      "endLine": 141
+     }
+    ]
+   }
+  ]
+ },
+ "97a4e71986f97f5a36628361143a8a7bd6465063": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/minutes-ai.ts",
+  "usage": {
+   "input_tokens": 13763,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 719,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こし全文を議事録の構造JSONにする",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 274,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 276,
+      "endLine": 276
+     }
+    ]
+   },
+   {
+    "name": "reviseMinutes",
+    "feature": "指示に沿って議事録全体を書き換える",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 296,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildReviseSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 301,
+      "endLine": 301
+     }
+    ]
+   },
+   {
+    "name": "condensePrintLeft",
+    "feature": "PDF左側の概要を文字数内に要約し直す",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 350,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 336,
+      "endLine": 344
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 346,
+      "endLine": 348
+     }
+    ]
+   },
+   {
+    "name": "condensePrintRight",
+    "feature": "PDF右側の項目を文字数内に短縮する",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 395,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 372,
+      "endLine": 387
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 390,
+      "endLine": 393
+     }
+    ]
+   }
+  ]
+ },
+ "9efbbb9347b2fa67d8d36761fa06590dbf8cb37b": {
+  "version": 1,
+  "model": "claude-opus-5-5",
+  "path": "apps/production/manabi/src/server/utils/anthropic.ts",
+  "usage": {
+   "input_tokens": 5054,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "a1519e0ec5a931f7cb8c1f8f340c11019ca9038f": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/minutes-ai.ts",
+  "usage": {
+   "input_tokens": 10019,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 713,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こしを議事録の構造に変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 130,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 132,
+      "endLine": 132
+     }
+    ]
+   },
+   {
+    "name": "reviseMinutes",
+    "feature": "指示に沿って議事録全体を書き換え",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 162,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildReviseSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 167,
+      "endLine": 167
+     }
+    ]
+   },
+   {
+    "name": "condensePrintLeft",
+    "feature": "PDF左側の概要を文字数内に要約",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 210,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 198,
+      "endLine": 204
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 206,
+      "endLine": 208
+     }
+    ]
+   },
+   {
+    "name": "condensePrintRight",
+    "feature": "PDF右側の決定・予定・タスクを短縮",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 242,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 229,
+      "endLine": 236
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 238,
+      "endLine": 240
+     }
+    ]
+   }
+  ]
+ },
+ "a6260eae0e1a47a58922139431fd7ce4a36949f5": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/utils/kikigaki-ai.ts",
+  "usage": {
+   "input_tokens": 10861,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 712,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こしを議事録JSONへ構造化",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 141,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 143,
+      "endLine": 143
+     }
+    ]
+   },
+   {
+    "name": "reviseMinutes",
+    "feature": "指示に沿って議事録JSONを修正",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 181,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildReviseSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 186,
+      "endLine": 186
+     }
+    ]
+   },
+   {
+    "name": "condensePrintLeft",
+    "feature": "PDF左側の概要を文字数内に要約",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 236,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 224,
+      "endLine": 230
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 232,
+      "endLine": 234
+     }
+    ]
+   },
+   {
+    "name": "condensePrintRight",
+    "feature": "PDF右側の決定事項等を短縮要約",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 273,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 260,
+      "endLine": 267
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 269,
+      "endLine": 271
+     }
+    ]
+   }
+  ]
+ },
+ "a66ee61d06fefeb7e401f4051e5c616b6694b61c": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/keyword.post.ts",
+  "usage": {
+   "input_tokens": 5019,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 180,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "議事録をキーワード検索し議論をJSONで抽出",
+    "provider": "openai",
+    "kind": "text",
+    "line": 22,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId] }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 24,
+      "endLine": 31
+     }
+    ]
+   }
+  ]
+ },
+ "aa2617cb446a75367ba9799ce4572e9c33daaee0": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/anthropic.ts",
+  "usage": {
+   "input_tokens": 5990,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "af4bfc86ca09d143b55c4da9cc61340cba2d2e20": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/search.post.ts",
+  "usage": {
+   "input_tokens": 5673,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 186,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "議事録をファイル検索し議論をJSON要約",
+    "provider": "openai",
+    "kind": "text",
+    "line": 53,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId], filters: sessionFilter }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 55,
+      "endLine": 59
+     }
+    ]
+   }
+  ]
+ },
+ "b399f42580361f194210e3cf200ee906a89e3767": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/api/transcribe.post.ts",
+  "usage": {
+   "input_tokens": 5837,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 125,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "音声を文字起こしする",
+    "provider": "openai",
+    "kind": "stt",
+    "line": 67,
+    "via": null,
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "language",
+      "value": "'ja'"
+     },
+     {
+      "key": "response_format",
+      "value": "'json'"
+     }
+    ],
+    "system": [],
+    "user": []
+   }
+  ]
+ },
+ "bd7fe926eda7370da991fe87a90ee81d94b1a66c": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/usage.ts",
+  "usage": {
+   "input_tokens": 6162,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "be270b7cbc7b0f9879ab6f323006b22d0988a497": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/utils/anthropic.ts",
+  "usage": {
+   "input_tokens": 5425,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "c07c5c012e7da96c8b1e10efb66756e6c19f722a": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/api/interpret.post.ts",
+  "usage": {
+   "input_tokens": 6275,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 178,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "説明文をジェノグラムJSONへ変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 39,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "4000"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 45,
+      "endLine": 45
+     }
+    ]
+   }
+  ]
+ },
+ "c340f82a3240a19c4695f839b036a202fb532ab3": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/utils/miyako-trends-ai.ts",
+  "usage": {
+   "input_tokens": 9441,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 226,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "extractFromChunk",
+    "feature": "会議録の分割本文から話題と短い語を抽出",
+    "provider": "openai",
+    "kind": "text",
+    "line": 124,
+    "via": null,
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "temperature",
+      "value": "0.2"
+     },
+     {
+      "key": "max_output_tokens",
+      "value": "3500"
+     },
+     {
+      "key": "text",
+      "value": "{ format: { type: 'json_schema', name: 'miyako_terms', strict: true, schema: SCHEMA } }"
+     }
+    ],
+    "system": [
+     {
+      "ref": "INSTRUCTIONS",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": []
+   }
+  ]
+ },
+ "c663b53bfefbee1206dae137c527ed129088d25e": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/keyword.post.ts",
+  "usage": {
+   "input_tokens": 5263,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 184,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "議事録を検索しテーマの議論変遷を5フェーズで解説",
+    "provider": "openai",
+    "kind": "text",
+    "line": 18,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId] }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 20,
+      "endLine": 33
+     }
+    ]
+   }
+  ]
+ },
+ "c90fb9ca75631b7682365b07f1b78dcddd9b47a1": {
+  "version": 1,
+  "model": "claude-opus-5-5",
+  "path": "apps/production/manabi/src/server/utils/anthropic.ts",
+  "usage": {
+   "input_tokens": 5015,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "c9e877f7408cd6cc0990b515e72249da77ce2366": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/auth.ts",
+  "usage": {
+   "input_tokens": 7431,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 10,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": []
+ },
+ "cbdfb95f59580e98c0a420977a86867e0d131ce7": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/search.post.ts",
+  "usage": {
+   "input_tokens": 6203,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 183,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "議事録をファイル検索し議論を要約",
+    "provider": "openai",
+    "kind": "text",
+    "line": 68,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId], filters: sessionFilter }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 70,
+      "endLine": 80
+     }
+    ]
+   }
+  ]
+ },
+ "cc480d2a8dd95b1d983e62197bad5b5968ba5615": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/kikigaki/transcribe.post.ts",
+  "usage": {
+   "input_tokens": 5104,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 169,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "音声ファイルをgpt-4o-transcribeで文字起こし",
+    "provider": "openai",
+    "kind": "stt",
+    "line": 34,
+    "via": null,
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "language",
+      "value": "'ja'"
+     },
+     {
+      "key": "response_format",
+      "value": "'json'"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": "glossaryPromptHint",
+      "startLine": null,
+      "endLine": null
+     }
+    ]
+   }
+  ]
+ },
+ "cde8b12b556e8e272b5a2227f806a28a0988f30c": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/topics.post.ts",
+  "usage": {
+   "input_tokens": 5087,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 175,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "宮古島市議会議事録のトピック検索",
+    "provider": "openai",
+    "kind": "text",
+    "line": 18,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId] }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 20,
+      "endLine": 30
+     }
+    ]
+   }
+  ]
+ },
+ "d126efc27947ec325f4abe5f143b8f023ff749e1": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/minutes-ai.ts",
+  "usage": {
+   "input_tokens": 13799,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 764,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こしを議事録の構造に変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 274,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 273,
+      "endLine": 273
+     },
+     {
+      "ref": null,
+      "startLine": 276,
+      "endLine": 276
+     }
+    ]
+   },
+   {
+    "name": "reviseMinutes",
+    "feature": "指示に沿って議事録を書き換える",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 296,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildReviseSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 301,
+      "endLine": 301
+     }
+    ]
+   },
+   {
+    "name": "condensePrintLeft",
+    "feature": "PDF概要欄を文字数内に要約",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 350,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 336,
+      "endLine": 344
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 346,
+      "endLine": 348
+     }
+    ]
+   },
+   {
+    "name": "condensePrintRight",
+    "feature": "PDF右側の項目を文字数内に要約",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 395,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 372,
+      "endLine": 387
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 389,
+      "endLine": 393
+     }
+    ]
+   }
+  ],
+  "fixedBy": "claude-code"
+ },
+ "d14a59f54e5a2f6ba04e29b80741900a11d92b6c": {
+  "version": 1,
+  "model": "claude-opus-5-5",
+  "path": "apps/production/manabi/src/server/utils/manabi-ai.ts",
+  "usage": {
+   "input_tokens": 12034,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 556,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "planSet",
+    "feature": "テーマから対象レベルと出題論点を設計",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 121,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "400 + count * 80"
+     }
+    ],
+    "system": [
+     {
+      "ref": "PLAN_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 124,
+      "endLine": 124
+     }
+    ]
+   },
+   {
+    "name": "writeBatch",
+    "feature": "論点ごとに4択問題と解説を作成",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 194,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "600 + points.length * 550"
+     }
+    ],
+    "system": [
+     {
+      "ref": "WRITE_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 197,
+      "endLine": 197
+     }
+    ]
+   },
+   {
+    "name": "suggestDeeperThemes",
+    "feature": "解き終えた後の深掘りテーマを3つ提案",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 266,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "400"
+     }
+    ],
+    "system": [
+     {
+      "ref": "DEEPEN_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 269,
+      "endLine": 269
+     }
+    ]
+   }
+  ]
+ },
+ "d4c4eef683f5243a82f9e90372f5d06bdfd0f282": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/production/kikigaki/src/server/utils/minutes-ai.ts",
+  "usage": {
+   "input_tokens": 13731,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 721,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こしを議事録の構造JSONにまとめる",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 274,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 276,
+      "endLine": 276
+     }
+    ]
+   },
+   {
+    "name": "reviseMinutes",
+    "feature": "指示に沿って議事録全体を書き換える",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 296,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildReviseSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 301,
+      "endLine": 301
+     }
+    ]
+   },
+   {
+    "name": "condensePrintLeft",
+    "feature": "PDF左側の概要を文字数内に要約し直す",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 350,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 336,
+      "endLine": 344
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 346,
+      "endLine": 348
+     }
+    ]
+   },
+   {
+    "name": "condensePrintRight",
+    "feature": "PDF右側の項目を文字数内に要約し直す",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 395,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 372,
+      "endLine": 387
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 390,
+      "endLine": 393
+     }
+    ]
+   }
+  ]
+ },
+ "d54c18ed6347c78bf6728404666f8bde374f80c5": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/api/interpret.post.ts",
+  "usage": {
+   "input_tokens": 8097,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 180,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "自由文の説明をGenogramData JSONへ変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 75,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "4000"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 81,
+      "endLine": 81
+     }
+    ]
+   }
+  ]
+ },
+ "d5532ea2a571d7c1feca86749415719f123b7864": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/keyword.post.ts",
+  "usage": {
+   "input_tokens": 5206,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 179,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "議事録をキーワード検索し議論をJSONで要約",
+    "provider": "openai",
+    "kind": "text",
+    "line": 22,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId] }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 24,
+      "endLine": 37
+     }
+    ]
+   }
+  ]
+ },
+ "dd4b504a2b974e7c48d6a99285108ffc17ba09b1": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/api/interpret.post.ts",
+  "usage": {
+   "input_tokens": 10382,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 200,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "説明文からジェノグラムJSONを生成・更新",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 138,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "16000"
+     },
+     {
+      "key": "thinking",
+      "value": "'adaptive'"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 145,
+      "endLine": 145
+     }
+    ]
+   }
+  ]
+ },
+ "dfb44d09a534950cb0700a9b45656d606d86fec4": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/kikigaki/transcribe.post.ts",
+  "usage": {
+   "input_tokens": 5442,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 154,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "会議音声をOpenAIで文字起こしする",
+    "provider": "openai",
+    "kind": "stt",
+    "line": 46,
+    "via": null,
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "language",
+      "value": "'ja'"
+     },
+     {
+      "key": "response_format",
+      "value": "'json'"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 43,
+      "endLine": 44
+     }
+    ],
+    "user": []
+   }
+  ]
+ },
+ "e1429b297c63bd49808ad7f8545ced77e0fa9f1f": {
+  "version": 1,
+  "model": "claude-opus-5-5",
+  "path": "apps/production/manabi/src/server/utils/manabi-ai.ts",
+  "usage": {
+   "input_tokens": 10790,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 551,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "planSet",
+    "feature": "テーマから出題レベルと論点を設計",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 101,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "400 + count * 80"
+     }
+    ],
+    "system": [
+     {
+      "ref": "PLAN_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 104,
+      "endLine": 104
+     }
+    ]
+   },
+   {
+    "name": "writeBatch",
+    "feature": "論点ごとに4択問題と解説を作成",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 169,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "600 + points.length * 550"
+     }
+    ],
+    "system": [
+     {
+      "ref": "WRITE_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 172,
+      "endLine": 172
+     }
+    ]
+   },
+   {
+    "name": "suggestDeeperThemes",
+    "feature": "解き終えた後の深掘りテーマを提案",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 240,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "400"
+     }
+    ],
+    "system": [
+     {
+      "ref": "DEEPEN_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 243,
+      "endLine": 243
+     }
+    ]
+   }
+  ]
+ },
+ "f58a0c04c67b6acfe2eb3b8618edaba58428259e": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/api/interpret.post.ts",
+  "usage": {
+   "input_tokens": 7007,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 178,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "説明文をジェノグラムJSONへ変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 70,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "4000"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 76,
+      "endLine": 76
+     }
+    ]
+   }
+  ]
+ },
+ "f85e7d2e7602203b3716f690970f101694fe82a9": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/genogram/src/server/api/interpret.post.ts",
+  "usage": {
+   "input_tokens": 5929,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 178,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "自由記述をジェノグラムJSONに変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 38,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "4000"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 44,
+      "endLine": 44
+     }
+    ]
+   }
+  ]
+ },
+ "f88e8239619b3efc0a37b21922af0ea674aad93b": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/api/miyako/keyword.post.ts",
+  "usage": {
+   "input_tokens": 5017,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 175,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "handler",
+    "feature": "議事録からキーワード関連の議論を検索",
+    "provider": "openai",
+    "kind": "text",
+    "line": 22,
+    "via": "callOpenAi",
+    "model": {
+     "literal": "gpt-4.1-mini",
+     "ref": null
+    },
+    "options": [
+     {
+      "key": "tools",
+      "value": "[{ type: 'file_search', vector_store_ids: [miyakoVectorStoreId] }]"
+     }
+    ],
+    "system": [],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 24,
+      "endLine": 31
+     }
+    ]
+   }
+  ]
+ },
+ "fa4466695d991b6e87e0329b0de5d76798bf47dc": {
+  "version": 1,
+  "model": "claude-opus-5-5",
+  "path": "apps/ai-tools/src/server/utils/manabi-ai.ts",
+  "usage": {
+   "input_tokens": 10203,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 551,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "planSet",
+    "feature": "テーマから出題レベルと論点を設計",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 85,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "400 + count * 80"
+     }
+    ],
+    "system": [
+     {
+      "ref": "PLAN_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 88,
+      "endLine": 88
+     }
+    ]
+   },
+   {
+    "name": "writeBatch",
+    "feature": "論点ごとに4択問題と解説を作成",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 153,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "600 + points.length * 550"
+     }
+    ],
+    "system": [
+     {
+      "ref": "WRITE_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 156,
+      "endLine": 156
+     }
+    ]
+   },
+   {
+    "name": "suggestDeeperThemes",
+    "feature": "解き終えた後の深掘りテーマを提案",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 224,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "400"
+     }
+    ],
+    "system": [
+     {
+      "ref": "DEEPEN_SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 227,
+      "endLine": 227
+     }
+    ]
+   }
+  ]
+ },
+ "fc41d13fe4b96b45d2da9e3c36cf3e07c08ba26c": {
+  "version": 1,
+  "model": "claude-sonnet-5-5",
+  "path": "apps/ai-tools/src/server/utils/kikigaki-ai.ts",
+  "usage": {
+   "input_tokens": 10295,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 713,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global",
+   "speed": "standard"
+  },
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こしを議事録JSONに構造化",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 126,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 128,
+      "endLine": 128
+     }
+    ]
+   },
+   {
+    "name": "reviseMinutes",
+    "feature": "指示に沿って議事録JSONを修正",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 166,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildReviseSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 171,
+      "endLine": 171
+     }
+    ]
+   },
+   {
+    "name": "condensePrintLeft",
+    "feature": "PDF左側の概要を文字数内に要約",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 220,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 209,
+      "endLine": 214
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 216,
+      "endLine": 218
+     }
+    ]
+   },
+   {
+    "name": "condensePrintRight",
+    "feature": "PDF右側の決定事項等を文字数内に要約",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 257,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": null,
+      "startLine": 244,
+      "endLine": 251
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 253,
+      "endLine": 255
+     }
+    ]
+   }
+  ]
+ }
+}
