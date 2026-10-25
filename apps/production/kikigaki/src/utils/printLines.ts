@@ -44,7 +44,7 @@ function section(heading: string, lines: PrintLine[]): PrintBlock[] {
  * PDFの左右に載せるブロック。
  *  - 左＝名前・日・参加者、概要、話し合ったこと（聞き取りでは 話の内容）。
  *        古い会議（layout 1）ではここに「決まっていないこと」が「話し合ったこと」の名前で並ぶ
- *  - 右＝会議: 決まったこと・決まっていないこと・やること（古い会議は 決まったこと・次の予定・やること）。
+ *  - 右＝会議: 決まったこと・やること（古い会議は 決まったこと・次の予定・やること）。
  *        聞き取り: 伝えたかったこと・やること（古い記録は伝えたかったことだけ）
  */
 export function buildPrintBlocks(m: Minutes): { left: PrintBlock[]; right: PrintBlock[] } {
@@ -92,7 +92,6 @@ export function buildPrintBlocks(m: Minutes): { left: PrintBlock[]; right: Print
   } else {
     right = [
       ...section('決まったこと', m.decisions.map(point)),
-      ...section('決まっていないこと', m.discussions.map(point)),
       ...section('やること', taskLines),
     ]
   }

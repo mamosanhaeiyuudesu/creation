@@ -647,14 +647,6 @@ const pointGroups = computed(() =>
                 subLabel: '話した中身',
                 items: minutes.topics,
               },
-              {
-                key: 'discussions' as SectionKind,
-                col: 'right',
-                label: 'まだ決まっていないこと',
-                placeholder: '決まっていないこと',
-                subLabel: '補足',
-                items: minutes.discussions,
-              },
             ]),
       ]
 )

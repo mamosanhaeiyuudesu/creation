@@ -20,7 +20,7 @@ const MAX_TOKENS = 8000
  * task_candidates の due_date は、原文の表現（"来月中に"）と確定した日付を別々に持つための欄。
  * 原文側（due）は必ずそのまま残す（カレンダー登録の機能は持っていないが、PDFで確定日付を優先表示するのに使う）。
  *
- * 左＝概要＋話し合ったこと（topics）、右＝決まったこと・決まっていないこと・やること、という並べ方（layout 2）。
+ * 左＝概要＋話し合ったこと（topics。決まったことも決まっていないことも含む）、右＝決まったこと・やること、という並べ方（layout 2）。
  * 次の予定は専用の欄を持たず、「やること」の1件として入れさせる（event_candidates は layout 1 の古い議事録だけが持っている）。
  * 同じ内容を複数の欄に書かせない（決定がそのまま作業なら「やること」だけ）のがこのプロンプトの肝。
  */
@@ -46,13 +46,12 @@ function buildMeetingSystemPrompt(today: string): string {
 - 「話し合ったこと(topics)」は、会議で話題になったことを話した順に、話題ごとに区切る。内容は厚めに書くこと。
   決まったことも決まらなかったことも含めて、論点・出た意見・理由・経緯・具体的な数字や例を、削らずに残す。
   content に話題の短い見出しを、note にその話題で話した中身を書く（note は長くなってよい）。
-  結論が出た話題は note の末尾に結論を一言添えてよい。
+  結論が出た話題は note の末尾に結論を一言添えてよい。結論が出なかった話題・次回に持ち越しになった話題も、
+  その旨（「結論は出ていない」「次回に持ち越し」など）を note の末尾に添えること。
 - 「決まったこと(decisions)」は、会議の中で明確に合意・決定されたことのみを、1件1文で端的に書く。
   理由や経緯は「話し合ったこと」に任せ、note は原則として空にする（但し書きが無いと誤解されるときだけ短く書く）。
   決定がそのまま誰かの作業になるもの（「Aさんが会場を押さえる」など）は、「やること」にだけ書き、ここには書かない。
-- 「決まっていないこと(undecided)」は、検討中・未決定・結論が出ず次回に持ち越しになったことを、1件1文で端的に書く
-  （何が決まっていないのかが分かれば足りる。経緯は「話し合ったこと」に任せ、note は原則として空にする）。
-  決定事項と未決の切り分けに迷う場合は、断定を避け未決の側に入れること。
+  決定かどうか迷う場合は、断定を避け、ここには書かず「話し合ったこと」の中で触れるにとどめること。
 - 「やること(task_candidates)」は「誰が」「何を」「いつまでに」が文字起こし内で分かる場合のみ抽出する。
   主語が不明な場合は担当を「[不明瞭]」とする。
 - 次回の会議や行事など、日時が文字起こし内に明示された「次の予定」も、「やること」の1件として入れる（専用の欄は無い）。
@@ -77,7 +76,6 @@ function buildMeetingSystemPrompt(today: string): string {
   "summary": "",
   "topics": [{ "content": "", "note": "" }],
   "decisions": [{ "content": "", "note": "" }],
-  "undecided": [{ "content": "", "note": "" }],
   "task_candidates": [{ "assignee": "", "task": "", "due": "", "due_date": "" }],
   "unclear_points": [""]
 }
@@ -220,7 +218,6 @@ const MEETING_JSON_SHAPE = `{
   "summary": "",
   "topics": [{ "content": "", "note": "" }],
   "decisions": [{ "content": "", "note": "" }],
-  "undecided": [{ "content": "", "note": "" }],
   "task_candidates": [{ "assignee": "", "task": "", "due": "", "due_date": "" }],
   "unclear_points": [""]
 }`
@@ -299,7 +296,6 @@ function toAiJson(m: Minutes): Record<string, unknown> {
     summary: m.summary,
     topics: m.topics,
     decisions: m.decisions,
-    undecided: m.discussions,
     task_candidates: m.taskCandidates,
     unclear_points: m.unclearPoints,
   }
@@ -310,13 +306,13 @@ function toAiJson(m: Minutes): Record<string, unknown> {
  * そのまとめ方で使わない項目は空にする（AIが余計な項目を返しても画面・PDFに混ざらないように）。
  */
 function fromAiJson(parsed: any, mode: MinutesMode, layout: MinutesLayout): Minutes {
-  // AIに見せる名前は undecided（決まっていないこと）。保存する欄の名前は古い議事録と同じ discussions
+  // discussions（決まっていないこと）は layout 1 の古い議事録だけが持つ。layout 2 では欄ごとやめた
   const m = normalizeMinutes({
     ...parsed,
     mode,
     layout,
     participants: mode === 'talk' ? parsed.speakers ?? parsed.participants : parsed.participants,
-    discussions: layout === 2 ? parsed.undecided : parsed.discussions,
+    discussions: layout === 2 ? [] : parsed.discussions,
   })
   if (mode === 'talk') {
     m.decisions = []
