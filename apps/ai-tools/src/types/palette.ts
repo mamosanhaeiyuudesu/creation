@@ -32,8 +32,8 @@ export interface PaletteParams {
   steps: number
   guidance: number
   numImages: number
-  /** null ならランダム */
-  seed: number | null
+  /** null ならランダム。fal のシードは 20 桁近くあり JS の数値では丸められるので、数字の文字列で持つ */
+  seed: string | null
   format: 'jpeg' | 'png'
   safety: boolean
   acceleration: 'none' | 'regular'
@@ -64,7 +64,8 @@ export interface PaletteGeneration {
   params: Partial<PaletteParams> & { loras?: (PaletteLoraUse & { name?: string })[] }
   status: PaletteStatus
   images: PaletteImage[]
-  seed: number | null
+  /** 結果のシード（数字の文字列） */
+  seed: string | null
   error: string
   createdAt: string
 }

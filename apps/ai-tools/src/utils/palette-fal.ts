@@ -17,6 +17,14 @@ export function isHttpsUrl(s: unknown): s is string {
   }
 }
 
+/** fal のシードは 20 桁近くあり、JS の number では下の桁が丸められる（再現できなくなる）ので文字列で扱う */
+export const SEED_PATTERN = /^\d{1,20}$/
+
+/** fal に送る JSON 文字列にする。シードだけ、文字列のまま数値として書き出す（精度を落とさない）。 */
+export function stringifyFalInput(input: Record<string, unknown>): string {
+  return JSON.stringify(input).replace(/"seed":"(\d+)"/, '"seed":$1')
+}
+
 const SIZE_PRESETS = ['square_hd', 'square', 'portrait_4_3', 'portrait_16_9', 'landscape_4_3', 'landscape_16_9']
 
 /** 画面の入力から fal.ai に渡す入力 JSON を作る。範囲外の値は丸める（課金が膨らむ入力を通さない）。 */
@@ -36,9 +44,8 @@ export function buildFalInput(req: PaletteGenerateRequest): Record<string, unkno
       scale: clamp(l.scale, L.scale.min, L.scale.max, 1),
     })),
   }
-  if (p.seed !== null && p.seed !== undefined && Number.isFinite(Number(p.seed))) {
-    input.seed = Math.round(Number(p.seed))
-  }
+  const seed = p.seed === null || p.seed === undefined ? '' : String(p.seed).trim()
+  if (SEED_PATTERN.test(seed)) input.seed = seed // 文字列のまま持ち、stringifyFalInput で数値として出す
   if (p.imageSize === 'custom') {
     input.image_size = {
       width: Math.round(clamp(p.width, L.size.min, L.size.max, 1024)),

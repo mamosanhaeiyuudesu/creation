@@ -93,15 +93,17 @@ export function toLora(r: any): PaletteLora {
 }
 
 export function toGeneration(r: any): PaletteGeneration {
+  const params = parseJson<PaletteGeneration['params'] & { resultSeed?: string }>(r.params, {})
   return {
     id: r.id,
     mode: r.mode === 'i2i' ? 'i2i' : 't2i',
     promptJa: r.prompt_ja,
     prompt: r.prompt,
-    params: parseJson(r.params, {}),
+    params,
     status: r.status === 'completed' ? 'completed' : r.status === 'failed' ? 'failed' : 'pending',
     images: parseJson<PaletteImage[]>(r.images, []),
-    seed: r.seed === null || r.seed === undefined ? null : Number(r.seed),
+    // シードは 20 桁近くあり INTEGER 列に入らない/丸まるので、結果は params の resultSeed（文字列）に持つ
+    seed: params.resultSeed ?? (r.seed === null || r.seed === undefined ? null : String(r.seed)),
     error: r.error ?? '',
     createdAt: r.created_at,
   }

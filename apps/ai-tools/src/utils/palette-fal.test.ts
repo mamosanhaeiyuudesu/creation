@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildFalInput, clamp, falErrorMessage, isHttpsUrl } from './palette-fal'
+import { buildFalInput, clamp, falErrorMessage, isHttpsUrl, stringifyFalInput } from './palette-fal'
 import type { PaletteGenerateRequest, PaletteParams } from '../types/palette'
 
 const baseParams: PaletteParams = {
@@ -46,10 +46,19 @@ describe('buildFalInput', () => {
     expect(i.num_images).toBe(4)
   })
 
-  it('seed は null なら送らず、数値なら送る（0 も有効）', () => {
+  it('seed は null・不正なら送らず、数字なら文字列のまま通す（0 も有効）', () => {
     expect('seed' in buildFalInput(req())).toBe(false)
-    expect(buildFalInput(req({}, { seed: 0 })).seed).toBe(0)
-    expect(buildFalInput(req({}, { seed: 123 })).seed).toBe(123)
+    expect('seed' in buildFalInput(req({}, { seed: 'abc' }))).toBe(false)
+    expect('seed' in buildFalInput(req({}, { seed: '123456789012345678901' }))).toBe(false)
+    expect(buildFalInput(req({}, { seed: '0' })).seed).toBe('0')
+    expect(buildFalInput(req({}, { seed: '11991183062912421234' })).seed).toBe('11991183062912421234')
+  })
+
+  it('stringifyFalInput はシードを桁を落とさず数値として書き出す', () => {
+    const json = stringifyFalInput(buildFalInput(req({}, { seed: '11991183062912421234' })))
+    expect(json).toContain('"seed":11991183062912421234')
+    expect(json).not.toContain('"seed":"')
+    expect(stringifyFalInput({ prompt: 'a' })).toBe('{"prompt":"a"}')
   })
 
   it('LoRA の強さを 0〜4 に丸め、5 件までにする', () => {

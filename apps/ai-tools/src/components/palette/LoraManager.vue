@@ -26,7 +26,7 @@
           </div>
         </li>
       </ul>
-      <p v-else class="text-[13px] text-[var(--pl-ink-soft)] mb-4">まだ LoRA が保存されていません。下のフォームから追加できます。</p>
+      <p v-else class="text-[13px] text-[var(--pl-ink-soft)] mb-4">まだ LoRA が保存されていません。下のフォームから追加できます。保存したものは、生成画面の「LoRA」から選べます。</p>
 
       <!-- フォーム -->
       <form class="space-y-3 border-t border-[var(--pl-line)] pt-4" @submit.prevent="save">

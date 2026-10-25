@@ -7,7 +7,7 @@ import {
   FAL_QUEUE,
   FAL_ENDPOINTS,
 } from '~/server/utils/palette'
-import { buildFalInput, falErrorMessage, isHttpsUrl } from '~/utils/palette-fal'
+import { buildFalInput, falErrorMessage, isHttpsUrl, stringifyFalInput } from '~/utils/palette-fal'
 import type { PaletteGenerateRequest } from '~/types/palette'
 
 // 生成をキューに投入して、すぐ返す（待ち続けると Workers の時間制限に当たる）。
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const input = buildFalInput({ ...req, mode, prompt })
-  const res = await falFetch(key, `${FAL_QUEUE}/${FAL_ENDPOINTS[mode]}`, { method: 'POST', body: JSON.stringify(input) })
+  const res = await falFetch(key, `${FAL_QUEUE}/${FAL_ENDPOINTS[mode]}`, { method: 'POST', body: stringifyFalInput(input) })
   const data: any = await res.json().catch(() => null)
   if (!res.ok || !data?.request_id) {
     throw createError({ statusCode: res.status === 401 || res.status === 403 ? 502 : res.status || 502, message: falErrorMessage(data, `fal.ai への送信に失敗しました（${res.status}）`) })

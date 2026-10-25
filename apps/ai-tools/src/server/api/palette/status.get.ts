@@ -39,7 +39,15 @@ export default defineEventHandler(async (event): Promise<PaletteStatusResponse> 
   }
 
   const rres = await falFetch(key, responseUrl)
-  const result: any = await rres.json().catch(() => null)
+  const rawText = await rres.text()
+  let result: any = null
+  try {
+    result = JSON.parse(rawText)
+  } catch {
+    // JSON でない応答は下で失敗として扱う
+  }
+  // seed は 20 桁近くあり JSON.parse で丸まるので、本文から文字列のまま取り出す
+  const resultSeed = /"seed"\s*:\s*(\d{1,20})/.exec(rawText)?.[1] ?? null
   if (!rres.ok || !Array.isArray(result?.images)) {
     const error = falErrorMessage(result, `生成に失敗しました（${rres.status}）`)
     await db.prepare("UPDATE palette_generations SET status = 'failed', error = ? WHERE id = ?").bind(error.slice(0, 1000), id).run()
@@ -53,9 +61,16 @@ export default defineEventHandler(async (event): Promise<PaletteStatusResponse> 
     height: i.height,
     contentType: i.content_type ?? 'image/jpeg',
   }))
+  let params: Record<string, unknown> = {}
+  try {
+    params = JSON.parse(String(row.params))
+  } catch {
+    // 壊れていたら空から作り直す
+  }
+  if (resultSeed) params.resultSeed = resultSeed
   await db
-    .prepare("UPDATE palette_generations SET status = 'completed', images = ?, seed = ? WHERE id = ?")
-    .bind(JSON.stringify(images), Number.isFinite(result.seed) ? result.seed : null, id)
+    .prepare("UPDATE palette_generations SET status = 'completed', images = ?, params = ? WHERE id = ?")
+    .bind(JSON.stringify(images), JSON.stringify(params), id)
     .run()
   const done = await db.prepare('SELECT * FROM palette_generations WHERE id = ?').bind(id).first()
   return { status: 'COMPLETED', generation: toGeneration(done) }

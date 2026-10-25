@@ -11,8 +11,8 @@
       </div>
       <div class="flex items-center gap-1.5">
         <button class="pl-btn-ghost" @click="showLoras = true">LoRA を管理</button>
-        <button v-if="isLoggedIn" class="text-[13px] text-[var(--pl-ink-soft)] px-2.5 py-1.5 rounded-full hover:bg-black/[0.05]" @click="showPasswordModal = true">パスワード変更</button>
-        <button v-if="isLoggedIn" class="text-[13px] text-[var(--pl-ink-soft)] px-2.5 py-1.5 rounded-full hover:bg-black/[0.05]" @click="logout">ログアウト</button>
+        <button v-if="isLoggedIn" class="pl-btn-text" @click="showPasswordModal = true">パスワード変更</button>
+        <button v-if="isLoggedIn" class="pl-btn-text" @click="logout">ログアウト</button>
       </div>
     </div>
 
@@ -27,7 +27,7 @@
       <div class="space-y-4">
         <!-- i2i: 入力画像 -->
         <section v-if="tab === 'i2i'" class="pl-card">
-          <ParamField label="入力画像" help="この画像をもとに、プロンプトと LoRA で描き直します。長い辺は 1536px に縮めて送ります。">
+          <ParamField label="入力画像" help="この画像をもとに、プロンプトと LoRA で描き直します。ドロップ・選択のほか、画面を切り取ってコピーした画像は ⌘V（Windows は Ctrl+V）でそのまま貼り付けられます。">
             <div
               class="pl-drop"
               :class="{ 'pl-drop--over': dragOver }"
@@ -37,128 +37,50 @@
               @click="fileInput?.click()"
             >
               <img v-if="inputImage" :src="inputImage" alt="入力画像" class="max-h-[240px] mx-auto rounded-lg" />
-              <p v-else class="text-[13px] text-[var(--pl-ink-soft)]">ここに画像をドロップ、またはクリックして選ぶ</p>
+              <p v-else class="text-[13px] text-[var(--pl-ink-soft)]">ここに画像をドロップ、クリックして選ぶ、または ⌘V で貼り付け</p>
             </div>
             <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onFile" />
             <div v-if="inputImage" class="mt-2 flex items-center gap-2">
-              <span class="text-[12px] text-[var(--pl-ink-soft)]">{{ inputInfo }}</span>
+              <span class="pl-note">{{ inputInfo }}（長い辺は 1536px まで縮めて送ります）</span>
               <button class="pl-btn-ghost" @click="clearInput">外す</button>
             </div>
           </ParamField>
         </section>
 
-        <!-- プロンプト -->
-        <section class="pl-card space-y-3">
-          <ParamField label="日本語で書く" help="描きたい絵を日本語で書くと、英語のプロンプトに変換します。FLUX は英語のプロンプトのほうが意図どおりに描きやすいため、この欄から英語欄に自動で入れます。" for-id="pl-ja">
-            <textarea id="pl-ja" v-model="promptJa" rows="3" class="pl-input" placeholder="例: 夕焼けの海辺で犬と遊ぶ少女、水彩画風、やわらかい光" />
-            <div class="mt-2 flex flex-wrap items-center gap-3">
-              <button class="pl-btn-ghost" :disabled="translating || busy || !promptJa.trim()" @click="translate">
-                {{ translating ? '変換中…' : '英語にする ↓' }}
-              </button>
-              <label class="flex items-center gap-1.5 text-[12.5px] text-[var(--pl-ink-soft)]">
-                <input v-model="autoTranslate" type="checkbox" class="accent-[var(--pl-teal)]" />
-                日本語を直したら、生成時に自動で英語にする
-              </label>
-            </div>
-          </ParamField>
-          <ParamField label="英語のプロンプト（生成に使う）" help="実際に FLUX へ送る文です。変換結果を自由に直せます。日本語欄を使わず、ここに直接英語を書いても構いません。選んだ LoRA のトリガーワードは、入っていなければ生成時に先頭へ足します。" for-id="pl-en">
-            <textarea id="pl-en" v-model="prompt" rows="4" class="pl-input" placeholder="A girl playing with a dog on a beach at sunset, watercolor style, soft light" />
+        <!-- プロンプト（日本語だけ。英語への変換は生成するときに裏で行う） -->
+        <section class="pl-card">
+          <ParamField label="描きたい絵" for-id="pl-ja" help="日本語で書いてください。生成するときに、FLUX 向けの英語に自動で変換して使います（英語で書いても構いません）。">
+            <textarea id="pl-ja" v-model="promptJa" rows="4" class="pl-input" placeholder="例: 夕焼けの海辺で犬と遊ぶ少女、水彩画風、やわらかい光" />
           </ParamField>
         </section>
 
-        <!-- LoRA -->
+        <!-- LoRA（右上の「LoRA を管理」で登録したものから選ぶ） -->
         <section class="pl-card">
-          <div class="flex items-center justify-between mb-2">
-            <ParamField label="LoRA" help="絵柄や特定の人物・物を覚えさせた追加の学習データです。使うものにチェックを入れ、強さを決めます。強さは高いほど LoRA の特徴が強く出ます。出すぎて絵が崩れるときは 0.6〜0.8 に下げます。複数を重ねがけもできます。" />
-            <button class="pl-btn-ghost" @click="showLoras = true">管理</button>
-          </div>
-          <p v-if="!loras.length" class="text-[13px] text-[var(--pl-ink-soft)]">LoRA なしで生成します。「管理」から URL に名前をつけて保存すると、ここで選べます。</p>
-          <ul v-else class="space-y-2">
-            <li v-for="l in loras" :key="l.id" class="rounded-lg border p-2.5" :class="selected[l.id]?.on ? 'border-[var(--pl-teal)] bg-[var(--pl-teal-soft)]' : 'border-[var(--pl-line)] bg-white'">
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input v-model="selected[l.id]!.on" type="checkbox" class="accent-[var(--pl-teal)] w-4 h-4" />
-                <span class="font-bold text-[14px] truncate">{{ l.name }}</span>
-                <span v-if="l.triggerWord" class="pl-chip !py-0.5">{{ l.triggerWord }}</span>
-              </label>
-              <div v-if="selected[l.id]?.on" class="mt-2 flex items-center gap-3">
-                <input v-model.number="selected[l.id]!.scale" type="range" min="0" max="4" step="0.05" class="flex-1 accent-[var(--pl-teal)]" :aria-label="`${l.name}の強さ`" />
-                <input v-model.number="selected[l.id]!.scale" type="number" min="0" max="4" step="0.05" class="pl-input !w-[72px] !py-1 text-center" />
-              </div>
-            </li>
-          </ul>
+          <ParamField label="LoRA" help="絵柄や特定の人物・物を覚えさせた追加の学習データです。使うものにチェックを入れ、強さを決めます。強さは高いほど LoRA の特徴が強く出ます。出すぎて絵が崩れるときは 0.6〜0.8 に下げます。複数の重ねがけもできます。">
+            <p v-if="!loras.length" class="text-[13px] text-[var(--pl-ink-soft)]">LoRA なしで生成します。使うときは、右上の「LoRA を管理」で登録してください。</p>
+            <ul v-else class="space-y-2">
+              <li v-for="l in loras" :key="l.id" class="rounded-lg border p-2.5" :class="selected[l.id]?.on ? 'border-[var(--pl-teal)] bg-[var(--pl-teal-soft)]' : 'border-[var(--pl-line)] bg-white'">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input v-model="selected[l.id]!.on" type="checkbox" class="accent-[var(--pl-teal)] w-4 h-4" />
+                  <span class="font-bold text-[14px] truncate">{{ l.name }}</span>
+                  <span v-if="l.triggerWord" class="pl-chip">{{ l.triggerWord }}</span>
+                </label>
+                <div v-if="selected[l.id]?.on" class="mt-2 flex items-center gap-3">
+                  <input v-model.number="selected[l.id]!.scale" type="range" min="0" max="4" step="0.05" class="flex-1 accent-[var(--pl-teal)]" :aria-label="`${l.name}の強さ`" />
+                  <input v-model.number="selected[l.id]!.scale" type="number" min="0" max="4" step="0.05" class="pl-input !w-[72px] text-center" />
+                </div>
+              </li>
+            </ul>
+          </ParamField>
         </section>
 
-        <!-- パラメータ -->
-        <section class="pl-card">
-          <h2 class="pl-h2 mb-3">パラメータ</h2>
-          <div class="grid sm:grid-cols-2 gap-x-4 gap-y-4">
-            <ParamField label="画像サイズ" for-id="pl-size" :help="tab === 'i2i' ? '生成する絵の縦横の大きさ。「元画像と同じ」は入力画像の大きさのまま描き直します。大きいほど細部が出ますが、時間と料金が増えます。' : '生成する絵の縦横の大きさ。square は正方形、portrait は縦長、landscape は横長です。大きいほど細部が出ますが、時間と料金が増えます。'">
-              <select id="pl-size" v-model="params.imageSize" class="pl-input">
-                <option v-if="tab === 'i2i'" value="auto">元画像と同じ</option>
-                <option value="square_hd">正方形 HD（1024×1024）</option>
-                <option value="square">正方形（512×512）</option>
-                <option value="portrait_4_3">縦長 3:4</option>
-                <option value="portrait_16_9">縦長 9:16</option>
-                <option value="landscape_4_3">横長 4:3</option>
-                <option value="landscape_16_9">横長 16:9</option>
-                <option value="custom">幅×高さを指定</option>
-              </select>
-              <div v-if="params.imageSize === 'custom'" class="mt-2 flex items-center gap-2">
-                <input v-model.number="params.width" type="number" min="256" max="2048" step="64" class="pl-input" aria-label="幅" />
-                <span class="text-[var(--pl-ink-soft)]">×</span>
-                <input v-model.number="params.height" type="number" min="256" max="2048" step="64" class="pl-input" aria-label="高さ" />
-              </div>
-            </ParamField>
-
-            <ParamField label="枚数（1〜4）" for-id="pl-num" help="一度に作る枚数です。料金は枚数に比例して増えます。構図や雰囲気を探りたいときは複数枚、仕上げるときは 1 枚が向いています。">
-              <input id="pl-num" v-model.number="params.numImages" type="number" min="1" max="4" step="1" class="pl-input" />
-            </ParamField>
-
-            <ParamField label="ステップ数（1〜50）" for-id="pl-steps" help="絵をどれだけ丁寧に描き込むか（ノイズを取り除く回数）です。多いほど細部が整いますが、遅くなり料金も増えます。28 前後で十分で、増やしても変化は小さくなります。">
-              <input id="pl-steps" v-model.number="params.steps" type="number" min="1" max="50" step="1" class="pl-input" />
-            </ParamField>
-
-            <ParamField label="ガイダンス（CFG・0〜35）" for-id="pl-guid" help="プロンプトにどれだけ忠実に従うかです。低いと自由で自然な絵に、高いと指示には忠実ですが不自然で派手な絵になりやすくなります。FLUX では 3〜4 が目安です。">
-              <input id="pl-guid" v-model.number="params.guidance" type="number" min="0" max="35" step="0.5" class="pl-input" />
-            </ParamField>
-
-            <ParamField v-if="tab === 'i2i'" label="変化の強さ（0.01〜1）" for-id="pl-str" help="元画像をどれだけ作り変えるかです。小さいほど元画像に近く、1 に近いほど元画像から離れて自由に描き直します。0.5〜0.8 あたりから試すと調整しやすいです。">
-              <div class="flex items-center gap-3">
-                <input v-model.number="params.strength" type="range" min="0.01" max="1" step="0.01" class="flex-1 accent-[var(--pl-teal)]" aria-label="変化の強さ" />
-                <input id="pl-str" v-model.number="params.strength" type="number" min="0.01" max="1" step="0.01" class="pl-input !w-[80px] !py-1 text-center" />
-              </div>
-            </ParamField>
-
-            <ParamField label="シード" for-id="pl-seed" help="乱数の種です。空欄なら毎回ランダム。同じシード・同じ設定なら同じ絵になるので、気に入った構図のまま、プロンプトや LoRA の強さだけを少し変えて比べたいときに固定します。">
-              <input id="pl-seed" v-model="seedText" inputmode="numeric" class="pl-input" placeholder="空欄 = ランダム" />
-            </ParamField>
-
-            <ParamField label="出力形式" for-id="pl-fmt" help="jpeg は軽く、png は劣化がない代わりに大きなファイルになります。普段は jpeg で十分です。">
-              <select id="pl-fmt" v-model="params.format" class="pl-input">
-                <option value="jpeg">jpeg</option>
-                <option value="png">png</option>
-              </select>
-            </ParamField>
-
-            <ParamField label="高速化" for-id="pl-acc" help="regular にすると少し速く生成できます。画質がわずかに変わることがあります。普段は none（しない）のままで構いません。">
-              <select id="pl-acc" v-model="params.acceleration" class="pl-input">
-                <option value="none">none（しない）</option>
-                <option value="regular">regular</option>
-              </select>
-            </ParamField>
-
-            <ParamField label="セーフティチェッカー" help="不適切な画像を検出して、黒塗りにする機能です。オフにすると、誤検知で黒い画像になるのを避けられます。">
-              <label class="flex items-center gap-2 text-[13.5px] mt-1">
-                <input v-model="params.safety" type="checkbox" class="accent-[var(--pl-teal)] w-4 h-4" />
-                有効にする
-              </label>
-            </ParamField>
-          </div>
-        </section>
-
-        <!-- 生成 -->
+        <!-- オプション + 生成 -->
+        <div class="pl-card flex flex-wrap items-center gap-x-4 gap-y-3">
+          <button class="pl-btn-ghost" @click="showOptions = true">⚙ オプション</button>
+          <p class="pl-note flex-1 min-w-[160px]">{{ optionsSummary }}</p>
+        </div>
         <div class="flex flex-wrap items-center gap-3">
-          <button class="pl-btn" :disabled="busy || translating" @click="generate">
+          <button class="pl-btn" :disabled="busy" @click="generate">
             {{ busy ? '生成中…' : '生成する' }}
           </button>
           <p v-if="errorMsg" class="pl-notice pl-notice--error" role="alert">{{ errorMsg }}</p>
@@ -171,7 +93,7 @@
           <h2 class="pl-h2 mb-2">できた絵</h2>
           <div v-if="busy" class="pl-card text-center py-14">
             <p class="pl-pulse font-bold text-[15px]">{{ progressText }}</p>
-            <p class="text-[12px] text-[var(--pl-ink-soft)] mt-2">通常は数秒〜1分ほどです。このまま待てます。</p>
+            <p class="pl-note mt-2">通常は数秒〜1分ほどです。このまま待てます。</p>
           </div>
           <div v-else-if="results.length" class="space-y-3">
             <div class="grid gap-3" :class="results.length > 1 ? 'sm:grid-cols-2' : ''">
@@ -180,39 +102,47 @@
                 <figcaption class="flex flex-wrap gap-1.5 mt-2">
                   <button class="pl-btn-ghost" @click="download(img, i)">保存</button>
                   <button class="pl-btn-ghost" @click="useAsInput(img)">画像→画像の入力にする</button>
-                  <a :href="img.url" target="_blank" rel="noopener" class="pl-btn-ghost inline-flex items-center">開く</a>
+                  <a :href="img.url" target="_blank" rel="noopener" class="pl-btn-ghost">開く</a>
                 </figcaption>
               </figure>
             </div>
-            <p v-if="resultSeed !== null" class="text-[12.5px] text-[var(--pl-ink-soft)]">
+            <p v-if="resultSeed !== null" class="pl-note">
               シード: <b class="text-[var(--pl-ink)]">{{ resultSeed }}</b>
-              <button class="underline ml-2" @click="seedText = String(resultSeed)">このシードを使う</button>
+              <button class="pl-btn-text !min-h-0 !px-2" @click="seedText = resultSeed">このシードを使う</button>
             </p>
           </div>
-          <p v-else class="pl-card text-center text-[13px] text-[var(--pl-ink-soft)] py-14">ここに生成した絵が出ます。</p>
+          <p v-else class="pl-card text-center pl-note py-14">ここに生成した絵が出ます。</p>
         </section>
 
         <section>
           <h2 class="pl-h2 mb-2">履歴</h2>
-          <p v-if="!history.length" class="text-[13px] text-[var(--pl-ink-soft)]">まだ履歴がありません。</p>
+          <p v-if="!history.length" class="pl-note">まだ履歴がありません。</p>
           <ul v-else class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             <li v-for="h in history" :key="h.id" class="pl-card !p-1.5">
-              <button class="block w-full text-left" :aria-label="`この設定を復元（${h.prompt.slice(0, 30)}）`" @click="restore(h)">
+              <button class="block w-full text-left" :aria-label="`この設定を復元（${(h.promptJa || h.prompt).slice(0, 30)}）`" @click="restore(h)">
                 <img v-if="h.images[0]" :src="h.images[0].url" alt="" loading="lazy" class="w-full aspect-square object-cover rounded-md bg-[var(--pl-paper-2)]" />
-                <div v-else class="w-full aspect-square rounded-md bg-[var(--pl-paper-2)] flex items-center justify-center text-[12px] text-[var(--pl-vermilion-deep)] p-2 text-center">失敗</div>
+                <div v-else class="w-full aspect-square rounded-md bg-[var(--pl-paper-2)] flex items-center justify-center text-[12px] text-[var(--pl-danger)] p-2 text-center">失敗</div>
                 <p class="text-[11.5px] mt-1.5 line-clamp-2 text-[var(--pl-ink-soft)]">{{ h.promptJa || h.prompt }}</p>
               </button>
               <div class="flex items-center justify-between mt-1">
-                <span class="pl-chip !py-0 !text-[10.5px]">{{ h.mode === 'i2i' ? '画像→画像' : 'テキスト→画像' }}</span>
+                <span class="pl-chip !text-[10.5px] !py-0">{{ h.mode === 'i2i' ? '画像→画像' : 'テキスト→画像' }}</span>
                 <button class="text-[11px] text-[var(--pl-ink-soft)] underline" @click="removeHistory(h)">削除</button>
               </div>
             </li>
           </ul>
-          <p v-if="history.length" class="text-[11.5px] text-[var(--pl-ink-soft)] mt-2">タップで設定を復元します。画像は fal.ai 側に置かれていて、しばらくすると消えることがあるので、残したい絵は「保存」してください。</p>
+          <p v-if="history.length" class="pl-note mt-2">タップで設定を復元します。画像は fal.ai 側に置かれていて、しばらくすると消えることがあるので、残したい絵は「保存」してください。</p>
         </section>
       </div>
     </div>
 
+    <OptionsSheet
+      v-if="showOptions"
+      v-model:seed-text="seedText"
+      :params="params"
+      :mode="tab"
+      @close="showOptions = false"
+      @reset="resetOptions"
+    />
     <LoraManager v-if="showLoras" :loras="loras" @close="showLoras = false" @changed="loadLoras" />
     <AuthModal v-if="showAuthModal" accent="orange" />
     <PasswordModal v-model:show="showPasswordModal" accent="orange" />
@@ -220,16 +150,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useAuth } from '~/composables/useAuth'
+import { SEED_PATTERN } from '~/utils/palette-fal'
 import AuthModal from '~/components/AuthModal.vue'
 import PasswordModal from '~/components/PasswordModal.vue'
 import ParamField from '~/components/palette/ParamField.vue'
 import LoraManager from '~/components/palette/LoraManager.vue'
+import OptionsSheet from '~/components/palette/OptionsSheet.vue'
 import type {
   PaletteGeneration,
   PaletteGenerateRequest,
   PaletteImage,
+  PaletteImageSize,
   PaletteLora,
   PaletteMode,
   PaletteParams,
@@ -237,20 +170,20 @@ import type {
 } from '~/types/palette'
 
 definePageMeta({ layout: 'palette' })
-useHead({ title: 'palette FLUX LoRA 画像生成' })
+useHead({ title: 'palette | 画像生成' })
 
 const { isLoggedIn, checked, checkAuth, logout } = useAuth()
 const showAuthModal = computed(() => checked.value && !isLoggedIn.value)
 const showPasswordModal = ref(false)
 const showLoras = ref(false)
+const showOptions = ref(false)
 
 // ── 状態 ──────────────────────────────
 const tab = ref<PaletteMode>('t2i')
 const promptJa = ref('')
+/** 英語に変換した結果。画面には出さない。同じ日本語・同じトリガーなら使い回して、変換をやり直さない */
 const prompt = ref('')
-const autoTranslate = ref(true)
-const lastTranslatedJa = ref('')
-const translating = ref(false)
+const translatedKey = ref('')
 
 const defaults = (): PaletteParams => ({
   imageSize: 'landscape_4_3',
@@ -267,6 +200,8 @@ const defaults = (): PaletteParams => ({
 })
 const params = reactive<PaletteParams>(defaults())
 const seedText = ref('')
+/** 画像サイズはタブごとに覚える（画像→画像は「元画像と同じ」が既定） */
+const sizeByMode = reactive<Record<PaletteMode, PaletteImageSize>>({ t2i: 'landscape_4_3', i2i: 'auto' })
 
 const loras = ref<PaletteLora[]>([])
 const selected = reactive<Record<string, { on: boolean; scale: number }>>({})
@@ -280,15 +215,94 @@ const busy = ref(false)
 const progressText = ref('')
 const errorMsg = ref('')
 const results = ref<PaletteImage[]>([])
-const resultSeed = ref<number | null>(null)
+const resultSeed = ref<string | null>(null)
 const history = ref<PaletteGeneration[]>([])
+
+// ── オプションの保存（localStorage）──────────────────────────────
+// 保存するのはオプションと LoRA の選択。シードは毎回ランダムが基本なので保存しない。
+const STORAGE_KEY = 'palette:options:v1'
+const optionsLoaded = ref(false)
+let savedSelected: Record<string, { on: boolean; scale: number }> = {}
+
+const SIZES: PaletteImageSize[] = ['square_hd', 'square', 'portrait_4_3', 'portrait_16_9', 'landscape_4_3', 'landscape_16_9', 'auto', 'custom']
+const num = (v: unknown, min: number, max: number, fallback: number) => {
+  const n = typeof v === 'number' ? v : Number(v)
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback
+}
+
+function loadOptions() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return
+    const s = JSON.parse(raw)
+    const d = defaults()
+    if (SIZES.includes(s?.sizes?.t2i) && s.sizes.t2i !== 'auto') sizeByMode.t2i = s.sizes.t2i
+    if (SIZES.includes(s?.sizes?.i2i)) sizeByMode.i2i = s.sizes.i2i
+    const p = s?.params ?? {}
+    Object.assign(params, {
+      width: num(p.width, 256, 2048, d.width),
+      height: num(p.height, 256, 2048, d.height),
+      steps: num(p.steps, 1, 50, d.steps),
+      guidance: num(p.guidance, 0, 35, d.guidance),
+      numImages: num(p.numImages, 1, 4, d.numImages),
+      strength: num(p.strength, 0.01, 1, d.strength),
+      format: p.format === 'png' ? 'png' : 'jpeg',
+      safety: p.safety !== false,
+      acceleration: p.acceleration === 'regular' ? 'regular' : 'none',
+    })
+    params.imageSize = sizeByMode[tab.value]
+    if (s?.selected && typeof s.selected === 'object') savedSelected = s.selected
+  } catch {
+    // 壊れた保存値は無視して既定値で始める
+  }
+}
+
+function saveOptions() {
+  if (!optionsLoaded.value) return
+  try {
+    const { seed, imageSize, ...rest } = params
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ params: rest, sizes: { ...sizeByMode, [tab.value]: imageSize }, selected })
+    )
+  } catch {
+    // 保存できなくても（プライベートモードなど）使うぶんには困らない
+  }
+}
+watch([params, selected], saveOptions, { deep: true })
+
+function resetOptions() {
+  const d = defaults()
+  Object.assign(params, d)
+  sizeByMode.t2i = 'landscape_4_3'
+  sizeByMode.i2i = 'auto'
+  params.imageSize = sizeByMode[tab.value]
+  seedText.value = ''
+}
+
+const SIZE_LABELS: Record<string, string> = {
+  square_hd: '正方形 HD',
+  square: '正方形',
+  portrait_4_3: '縦長 3:4',
+  portrait_16_9: '縦長 9:16',
+  landscape_4_3: '横長 4:3',
+  landscape_16_9: '横長 16:9',
+  auto: '元画像と同じ',
+}
+const optionsSummary = computed(() => {
+  const size = params.imageSize === 'custom' ? `${params.width}×${params.height}` : SIZE_LABELS[params.imageSize]
+  const parts = [size, `${params.steps}ステップ`, `ガイダンス ${params.guidance}`, `${params.numImages}枚`]
+  if (tab.value === 'i2i') parts.push(`変化の強さ ${params.strength}`)
+  if (seedText.value.trim()) parts.push(`シード ${seedText.value.trim()}`)
+  return parts.join(' ・ ')
+})
 
 // ── タブ ──────────────────────────────
 function setTab(t: PaletteMode) {
+  if (t === tab.value) return
+  sizeByMode[tab.value] = params.imageSize
   tab.value = t
-  // 「元画像と同じ」は画像→画像だけの選択肢
-  if (t === 't2i' && params.imageSize === 'auto') params.imageSize = 'landscape_4_3'
-  if (t === 'i2i' && params.imageSize === 'landscape_4_3') params.imageSize = 'auto'
+  params.imageSize = sizeByMode[t]
 }
 
 // ── LoRA ──────────────────────────────
@@ -303,7 +317,11 @@ watch(
   loras,
   (list) => {
     const ids = new Set(list.map((l) => l.id))
-    for (const l of list) if (!selected[l.id]) selected[l.id] = { on: false, scale: l.scale }
+    for (const l of list) {
+      if (selected[l.id]) continue
+      const s = savedSelected[l.id]
+      selected[l.id] = s ? { on: s.on === true, scale: num(s.scale, 0, 4, l.scale) } : { on: false, scale: l.scale }
+    }
     for (const id of Object.keys(selected)) if (!ids.has(id)) delete selected[id]
   },
   { immediate: true }
@@ -311,26 +329,6 @@ watch(
 const activeLoras = computed(() =>
   loras.value.filter((l) => selected[l.id]?.on).map((l) => ({ lora: l, scale: Number(selected[l.id]!.scale) }))
 )
-
-// ── 日本語 → 英語 ──────────────────────────────
-async function translate(): Promise<boolean> {
-  errorMsg.value = ''
-  translating.value = true
-  try {
-    const r = await $fetch<{ prompt: string }>('/api/palette/translate', {
-      method: 'POST',
-      body: { text: promptJa.value, triggers: activeLoras.value.map((a) => a.lora.triggerWord).filter(Boolean) },
-    })
-    prompt.value = r.prompt
-    lastTranslatedJa.value = promptJa.value
-    return true
-  } catch (e: any) {
-    errorMsg.value = '英語への変換に失敗しました: ' + errText(e)
-    return false
-  } finally {
-    translating.value = false
-  }
-}
 
 function errText(e: any): string {
   return e?.data?.message || e?.data?.statusMessage || e?.statusMessage || e?.message || '不明なエラー'
@@ -389,6 +387,21 @@ function clearInput() {
   inputInfo.value = ''
 }
 
+/** 画面を切り取ってコピーした画像（Mac の ⌘+Ctrl+Shift+4 など）を貼り付ける。画像が無い貼り付け（文字）は邪魔しない。 */
+function onPaste(e: ClipboardEvent) {
+  if (showOptions.value || showLoras.value) return
+  for (const item of Array.from(e.clipboardData?.items ?? [])) {
+    if (item.kind === 'file' && item.type.startsWith('image/')) {
+      const file = item.getAsFile()
+      if (!file) continue
+      e.preventDefault()
+      setTab('i2i') // どのタブで貼っても、画像→画像の入力として扱う
+      loadImageFile(file)
+      return
+    }
+  }
+}
+
 // ── 生成 ──────────────────────────────
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const POLL_MS = 2000
@@ -396,41 +409,48 @@ const POLL_TIMEOUT_MS = 6 * 60 * 1000
 
 async function generate() {
   errorMsg.value = ''
+  if (!promptJa.value.trim()) {
+    errorMsg.value = '描きたい絵を書いてください'
+    return
+  }
   if (tab.value === 'i2i' && !inputImage.value) {
     errorMsg.value = '入力画像を選んでください'
     return
   }
-  // 日本語を直したあとに英語へ反映し忘れていたら、ここで変換する
-  if (autoTranslate.value && promptJa.value.trim() && promptJa.value !== lastTranslatedJa.value) {
-    if (!(await translate())) return
-  }
-  if (!prompt.value.trim()) {
-    errorMsg.value = '英語のプロンプトが空です。日本語を書いて「英語にする」を押すか、英語欄に直接書いてください。'
-    return
-  }
-  prompt.value = withTriggers(prompt.value.trim())
-
   const seedStr = seedText.value.trim()
-  if (seedStr && !/^\d+$/.test(seedStr)) {
-    errorMsg.value = 'シードは数字だけで入力してください（空欄ならランダム）'
+  if (seedStr && !SEED_PATTERN.test(seedStr)) {
+    errorMsg.value = 'シードは数字だけ（20桁まで）で入力してください（空欄ならランダム）。オプションから直せます。'
     return
   }
-  params.seed = seedStr ? Number(seedStr) : null
-
-  const body: PaletteGenerateRequest = {
-    mode: tab.value,
-    promptJa: promptJa.value,
-    prompt: prompt.value,
-    loras: activeLoras.value.map((a) => ({ path: a.lora.url, scale: a.scale, name: a.lora.name })),
-    params: { ...params },
-    imageDataUrl: tab.value === 'i2i' ? inputImage.value : undefined,
-  }
+  params.seed = seedStr || null
 
   busy.value = true
-  progressText.value = '送信しています…'
   results.value = []
   resultSeed.value = null
   try {
+    // 英語への変換は裏で行う。日本語もトリガーワードも前回と同じなら、前回の結果を使い回す
+    const triggers = activeLoras.value.map((a) => a.lora.triggerWord.trim()).filter(Boolean)
+    const key = `${promptJa.value}\u0000${triggers.join(',')}`
+    if (key !== translatedKey.value || !prompt.value) {
+      progressText.value = 'プロンプトを整えています…'
+      const r = await $fetch<{ prompt: string }>('/api/palette/translate', {
+        method: 'POST',
+        body: { text: promptJa.value, triggers },
+      })
+      prompt.value = r.prompt
+      translatedKey.value = key
+    }
+    const finalPrompt = withTriggers(prompt.value)
+
+    progressText.value = '送信しています…'
+    const body: PaletteGenerateRequest = {
+      mode: tab.value,
+      promptJa: promptJa.value,
+      prompt: finalPrompt,
+      loras: activeLoras.value.map((a) => ({ path: a.lora.url, scale: a.scale, name: a.lora.name })),
+      params: { ...params },
+      imageDataUrl: tab.value === 'i2i' ? inputImage.value : undefined,
+    }
     const { id } = await $fetch<{ id: string }>('/api/palette/generate', { method: 'POST', body })
     const started = Date.now()
     while (true) {
@@ -498,13 +518,18 @@ async function loadHistory() {
 
 function restore(h: PaletteGeneration) {
   setTab(h.mode)
-  promptJa.value = h.promptJa
+  promptJa.value = h.promptJa || h.prompt
+  // 履歴の英語はトリガーワードを足したあとの文なので、そのまま使い回す（再変換しない）
   prompt.value = h.prompt
-  lastTranslatedJa.value = h.promptJa // 復元しただけで再翻訳して上書きしない
-  const { loras: usedLoras, ...p } = h.params
-  Object.assign(params, defaults(), p)
-  if (h.mode === 't2i' && params.imageSize === 'auto') params.imageSize = 'landscape_4_3'
-  seedText.value = h.seed !== null ? String(h.seed) : ''
+  translatedKey.value = `${promptJa.value}\u0000${(h.params.loras ?? [])
+    .map((u) => loras.value.find((x) => x.url === u.path)?.triggerWord.trim() ?? '')
+    .filter(Boolean)
+    .join(',')}`
+  const { loras: usedLoras, imageSize, ...p } = h.params
+  Object.assign(params, { ...defaults(), ...p })
+  const size = imageSize && SIZES.includes(imageSize) ? imageSize : defaults().imageSize
+  params.imageSize = h.mode === 't2i' && size === 'auto' ? 'landscape_4_3' : size
+  seedText.value = h.seed ?? ''
   for (const id of Object.keys(selected)) selected[id]!.on = false
   for (const u of usedLoras ?? []) {
     const l = loras.value.find((x) => x.url === u.path)
@@ -524,9 +549,13 @@ async function removeHistory(h: PaletteGeneration) {
 }
 
 onMounted(async () => {
+  loadOptions()
+  optionsLoaded.value = true
+  document.addEventListener('paste', onPaste)
   await checkAuth()
   if (isLoggedIn.value) await Promise.all([loadLoras(), loadHistory()])
 })
+onBeforeUnmount(() => document.removeEventListener('paste', onPaste))
 // ログイン直後は読み込み直す（AuthModal はリロードしない）
 watch(isLoggedIn, (v) => {
   if (v) {
@@ -538,7 +567,7 @@ watch(isLoggedIn, (v) => {
 
 <style scoped>
 .pl-drop {
-  border: 2px dashed var(--pl-line);
+  border: 2px dashed var(--pl-line-strong);
   border-radius: 10px;
   padding: 1.1rem;
   text-align: center;
