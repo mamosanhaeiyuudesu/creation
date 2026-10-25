@@ -1,11 +1,4 @@
 {
- "02d03afc2f9021f82be0a4d70664bd4552339cb2": {
-  "version": 2,
-  "model": "claude-code",
-  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#condensePrintLeft",
-  "commit": "1be6047de0efb6334ea0f743cc893a4e416d4f5e",
-  "summary": "まとめ方を「ひとつながりの文章」から、【背景】【話し合いの流れ】【結論・まとめ】のような見出しで章立てする形に変更。"
- },
  "0801a2341321298d9dd4f923f2d48eaadbfd0814": {
   "version": 2,
   "model": "claude-code",
@@ -40,6 +33,13 @@
   "site": "apps/ai-tools/src/server/utils/miyako-trends-ai.ts#extractFromChunk",
   "commit": "26f6b5112d3c3930257f25bfefda1ec2d8b06b4a",
   "summary": "語を1つ書かせる形から、話題ごとに「話題名（本文どおり・長くてよい）」「短い語（漢字2〜4字、カタカナ6字まで）」「何が議論されたか（中学生にも分かる40字以内）」の3つを書かせる形に変更。選ばないもの（手続きの言葉・議案名・どこでも出る言葉・人名）は整理して残した。max_output_tokens を 2500 → 3500 に。"
+ },
+ "13286273e8de8c6c4503bea9ce57d160e1acc2c0": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "ffc53e798670cc0bd7c2d72a20f1187eddd542b4",
+  "summary": "話し合いの「決まっていないこと」の項目をやめ、結論が出なかった話題や持ち越しは、「話し合ったこと」の各話題の末尾に書く指示に変更。決定かどうか迷うものは「決まったこと」に入れない指示も追加。"
  },
  "1b226bec5d9d161e6f9750e32b38cc3ebd039526": {
   "version": 2,
@@ -104,6 +104,13 @@
   "commit": "980708d6d2c98fc6ddf6358ff820d5b997c9f446",
   "summary": "thinking を disabled → between_tools に変更（Sonnet 5.5 は disabled を受け付けないため）。"
  },
+ "46a160e9018cb96d0c65e40dc2343654b54f7154": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "491c86919eb3023624af6ed0ed9ebbb577e18e1e",
+  "summary": "聞き取り用に「印象に残った言葉」と「次の予定」の項目を追加。話し合いは、概要の末尾に書かせていた次の予定を、再び専用の項目で拾う形に戻した。"
+ },
  "48ba995dc124e9ee896146b4a87adfb8ebf6c4a6": {
   "version": 2,
   "model": "claude-code",
@@ -125,6 +132,13 @@
   "commit": "9f75bd9c492919fc96a068ea70efb1d53813810e",
   "summary": "人物に「本人から見た続柄」と、人物像をくわしく書く欄を追加。上の世代の人を足すときは親子関係として結ぶ（感情の線だけでつながない）決まりと、続柄を家族関係から機械的に付ける決まりを追加。"
  },
+ "4eb60c18614838359b370cf54ad9a631876b153e": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#reviseMinutes",
+  "commit": "182c6007e57deb0624e5af38a3499bc5929c7dba",
+  "summary": "「AIで直す」の指示に、概要の末尾に【次の予定】の見出しがあれば、直す指示に関わらない限りそのまま残す条件を追加。"
+ },
  "4ed10a4707a24cdd9f528b95e40891b3f0ed6b1e": {
   "version": 2,
   "model": "claude-code",
@@ -132,12 +146,19 @@
   "commit": "65c3c3452d6c7353d53c48be85af429b1867f2dc",
   "summary": "モデルを Sonnet 5 から Sonnet 5.5 に変更。"
  },
- "4ef285905c9bbad8c095c2d0fc9a8102320410fd": {
+ "57af3396e499f1b8e55d1803f8ff18104a670209": {
   "version": 2,
   "model": "claude-code",
-  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#condensePrintLeft",
-  "commit": "bb8f66b7ea6da187082a5ddbe85ecd21be94742b",
-  "summary": "話の記録のときは「伝えたかったこと」を材料にまとめ、分析・評価・助言を足さず話し手の言い回しを残す形に切り替えられるように。見出しも記録の種類に合わせる。"
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "0670d398e8fe601a607bc9da9923b23bd4b2a57d",
+  "summary": "次の予定の専用の項目を、話し合い・聞き取りの両方でやめ、次回の日程も「やること」の1件として入れる指示に変更（日時は期限に原文のまま、担当が不明なら「全員」）。日付の確定は期限だけにした。"
+ },
+ "59942537ad3bbbe14f2a51b87ef82f74d12940cb": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#reviseMinutes",
+  "commit": "491c86919eb3023624af6ed0ed9ebbb577e18e1e",
+  "summary": "「AIで直す」から、概要末尾の【次の予定】を残す条件を削除（次の予定を専用の項目に戻したため）。出力形式は、まとめ方と並びの版に応じて切り替える形に整理。"
  },
  "62e8845627bee196b248167cc0e9c39e8cafaedc": {
   "version": 2,
@@ -160,12 +181,12 @@
   "commit": "225a200fbb43dc5a6dfa54b6cb852782994ca012",
   "summary": "thinking を disabled → between_tools に変更（Sonnet 5.5 は disabled を受け付けないため。考える時間は0のまま）。"
  },
- "67a1e40596a5b2c5ff9308618c4dae212065b70e": {
+ "684ab0d6b8322afe3da77a75b6c874e45170eb64": {
   "version": 2,
   "model": "claude-code",
-  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#condensePrintRight",
-  "commit": "5bac1bfbf59261e08e0310b21e5a843f01dad49e",
-  "summary": "本番版として派生。モデルを Sonnet 5.5 に。エラーのときは利用者に「混み合っている」と案内する形に（プロンプトは同じ）。"
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "03a4bad69ab23e8fdc4454dfe1e4a6bfcc3f5b05",
+  "summary": "聞き取りの「印象に残った言葉」を取りやめ、代わりに「やること」を追加（本人が自分から「やる」と言ったことや、はっきり決まった宿題だけを拾い、助言や願望は入れない）。期限の日付の確定も追加。"
  },
  "735cc8aa41ae5129b30c3f80127ec22a33ca232f": {
   "version": 2,
@@ -209,13 +230,6 @@
   "commit": "2fa11111f503e608a77118415e3bd90aba952c64",
   "summary": "文章の書き方の条件を追加。議会・行政の専門用語や略称は普通の言葉に言い換え、言い換えられない制度名は（）で説明を補い、中学生にも通じるやわらかい文章にする。"
  },
- "868ea030bf8d71ee2b862d7835f85166e6d8221a": {
-  "version": 2,
-  "model": "claude-code",
-  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#condensePrintLeft",
-  "commit": "5bac1bfbf59261e08e0310b21e5a843f01dad49e",
-  "summary": "本番版として派生。モデルを Sonnet 5.5 に。エラーのときは利用者に「混み合っている」と案内する形に（プロンプトは同じ）。"
- },
  "88326da10053294f692897ebd8aedc125743c914": {
   "version": 2,
   "model": "claude-code",
@@ -237,6 +251,13 @@
   "commit": "ef0d98dc9dfb4f86196d77433c0eb119f0c3ce4c",
   "summary": "「よくある勘違い」を選択肢に入れる決まりを追加。誤りのうち1つは多くの人が実際にしている思い込みにし、解説でなぜ誤りかに必ず触れる。あわせて、ほかの誤りの候補は5つから4つに。"
  },
+ "8a74d9e7f8ab9e233985111adb73c44581434364": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "182c6007e57deb0624e5af38a3499bc5929c7dba",
+  "summary": "会議の整理を「話し合ったこと（厚め）」「決まったこと」「決まっていないこと」「やること」に分け直し、同じ内容を複数の項目に書かない指示を追加。次の予定は専用の項目をやめ、概要の末尾に書かせる形に変更。"
+ },
  "8e0f2148a00deda75dbd2e770ab6b2e7ab752b21": {
   "version": 2,
   "model": "claude-code",
@@ -257,20 +278,6 @@
   "site": "apps/ai-tools/src/server/utils/osarai-ai.ts#planSet",
   "commit": "5af6b521b50284a3149464fc6f393bd527d609b2",
   "summary": "「博士向け」の対象を追加。専門家の水準で、例外・前提条件・しくみ・似た考え方の厳密な違い・実務の落とし穴を問う。ただし答えが1つに決まる確かな知識に限る。"
- },
- "96fa2ce93181567274e7aece3379e86f7be1ae8c": {
-  "version": 2,
-  "model": "claude-code",
-  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#condensePrintRight",
-  "commit": "bb8f66b7ea6da187082a5ddbe85ecd21be94742b",
-  "summary": "話の記録用（伝えたかったことの一覧を短くまとめる）を追加し、会議用（決定事項・予定・タスク）と切り替える形に。"
- },
- "99f3928c79125b22b4e310e265fe822c4830c3ad": {
-  "version": 2,
-  "model": "claude-code",
-  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#condensePrintLeft",
-  "commit": "225a200fbb43dc5a6dfa54b6cb852782994ca012",
-  "summary": "thinking を disabled → between_tools に変更（Sonnet 5.5 は disabled を受け付けないため。考える時間は0のまま）。"
  },
  "9b80f7e6cdf8032963daafa2116fe6fce888d55d": {
   "version": 2,
@@ -313,13 +320,6 @@
   "site": "apps/genogram/src/server/api/interpret.post.ts#handler",
   "commit": "544017b50992bbce064ab8cc39fac59113102b27",
   "summary": "名前に続柄を入れず、分からなければ空欄にする形に変更。続柄は決まった言葉から選び、父方・母方は書き分けない。記号の上に出す20字以内の特徴（職業＋性格）を追加。"
- },
- "b4fd341919caa6760bc326b0e5a4382323bd97b7": {
-  "version": 2,
-  "model": "claude-code",
-  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#condensePrintRight",
-  "commit": "225a200fbb43dc5a6dfa54b6cb852782994ca012",
-  "summary": "thinking を disabled → between_tools に変更（Sonnet 5.5 は disabled を受け付けないため。考える時間は0のまま）。"
  },
  "b566d1c0a18871d51e734b0a0672ea815230f585": {
   "version": 2,
