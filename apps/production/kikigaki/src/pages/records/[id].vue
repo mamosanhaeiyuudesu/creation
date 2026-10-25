@@ -57,6 +57,10 @@
             </div>
             <!-- 自動保存の状態。直してから少し待つと自動で保存される -->
             <span class="kk-autosave" :class="`is-${autoState}`" role="status" aria-live="polite">{{ autoLabel }}</span>
+            <!-- PDFの文字数。PDFを作るときと同じ数え方。目安を超えると、PDFではAIが短くまとめる（ここの内容は変わらない） -->
+            <span class="kk-pdfcount" :class="{ 'is-over': pdfOver }" :title="pdfCountTitle">
+              PDF {{ pdfCounts.total.toLocaleString() }} / {{ PDF_MAX_CHARS.toLocaleString() }}字<template v-if="pdfOver">（超過）</template>
+            </span>
           </div>
         </div>
 
@@ -399,6 +403,7 @@
 import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
 import { emptyMinutes, isLegacyMeeting, MINUTES_MODES } from '~/types/minutes'
+import { PDF_MAX_CHARS, printCharCounts } from '~/utils/printBudget'
 import type { EventItem, Minutes, MinutesMode, MinutesRecord, SectionKind } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
 import type MinutesSectionPdfType from '~/components/MinutesSectionPdf.vue'
@@ -769,6 +774,15 @@ const lastSavedAt = ref('')
 /** 最後に保存した中身（これと違えば未保存） */
 let lastSavedJson = ''
 let autoTimer: ReturnType<typeof setTimeout> | undefined
+
+/** PDFの文字数（左＝概要＋話し合ったこと、右＝決まったこと など）。目安を超えたぶんはPDFでAIが短くまとめる */
+const pdfCounts = computed(() => printCharCounts(minutes))
+const pdfOver = computed(() => pdfCounts.value.total > PDF_MAX_CHARS)
+const pdfCountTitle = computed(() => {
+  const c = pdfCounts.value
+  const base = `左 ${c.left.toLocaleString()}字・右 ${c.right.toLocaleString()}字（PDFの目安は全体で${PDF_MAX_CHARS.toLocaleString()}字。左右は半分ずつで、片方が短ければ余りをもう片方に使います）`
+  return pdfOver.value ? `${base}。超えているので、PDFでは長い側をAIが短くまとめます（この画面の内容は変わりません）。` : base
+})
 
 const autoLabel = computed(() => {
   switch (autoState.value) {
@@ -1240,6 +1254,19 @@ onUnmounted(() => {
 }
 .kk-autosave.is-saved::before {
   content: '✓ ';
+}
+.kk-pdfcount {
+  margin-left: 0.6rem;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--kk-ink-faint);
+  white-space: nowrap;
+  vertical-align: 0.1em;
+  cursor: help;
+}
+.kk-pdfcount.is-over {
+  color: var(--kk-accent-strong);
+  font-weight: 700;
 }
 /* position: relative は、スマホで「種類を変える」の窓の位置の基準にするため
    （スマホでは .kk-pop-wrap の基準を外して幅いっぱいに出すので、ここが無いと窓がページの下のほうに飛ぶ） */

@@ -82,12 +82,12 @@
 
 <script setup lang="ts">
 import { formatDateLabel } from '~/utils/formatDate'
-import { splitPrintBudget } from '~/utils/printBudget'
+import { PDF_MAX_CHARS, buildPrintLines, splitPrintBudget } from '~/utils/printBudget'
+import type { PrintLine } from '~/utils/printBudget'
 import { emptyMinutes, isLegacyMeeting } from '~/types/minutes'
-import type { EventItem, Minutes } from '~/types/minutes'
+import type { Minutes } from '~/types/minutes'
 
 const { authedFetch } = useAuth()
-const { settings: userSettings, load: loadUserSettings } = useUserSettings()
 
 /** 今PDFにしている議事録 */
 const doc = ref<Minutes>(emptyMinutes())
@@ -104,19 +104,6 @@ const printParticipants = computed(() => doc.value.participants.map((p) => p.tri
 
 const printDateLabel = computed(() => formatDateLabel(doc.value.date) || '日付が入っていません')
 
-function printEventWhen(ev: EventItem): string {
-  if (ev.start) {
-    const fmt = (v: string) => v.replace('T', ' ')
-    return ev.end ? `${fmt(ev.start)} 〜 ${fmt(ev.end)}` : fmt(ev.start)
-  }
-  return ev.datetime || '日時未定'
-}
-
-interface PrintLine {
-  main: string
-  note?: string
-}
-
 const printSummaryMain = ref('')
 const printDiscussionLines = ref<PrintLine[]>([])
 const printDecisionLines = ref<PrintLine[]>([])
@@ -124,53 +111,16 @@ const printUndecidedLines = ref<PrintLine[]>([])
 const printEventLines = ref<PrintLine[]>([])
 const printTaskLines = ref<PrintLine[]>([])
 
-function lineLength(l: PrintLine): number {
-  return l.main.length + (l.note?.length ?? 0)
-}
-
-/** PDFの左右に載せる元の行と、その文字数 */
-function buildPrintSource() {
-  // 左側＝まとめ＋話し合ったこと（1人の話では まとめ＋話の内容）。
-  // 古い会議では、ここに「決まっていないこと」（discussions）が「話し合ったこと」の名前で並ぶ
-  const leftPoints = talk.value || newMeeting.value ? doc.value.topics : doc.value.discussions
-  const discussionLines: PrintLine[] = leftPoints.map((d) => ({ main: d.content, note: d.note }))
-  const leftChars = doc.value.summary.length + discussionLines.reduce((sum, l) => sum + lineLength(l), 0)
-  // 右側＝決まったこと・決まっていないこと・やること（この順で出す）。古い会議は 決まったこと・つぎの予定・やること。
-  // 1人の話では伝えたかったことだけ（やることは空のまま。1人の話では拾っていない）
-  const rightPoints = talk.value ? doc.value.keyMessages : doc.value.decisions
-  const decisionLines: PrintLine[] = rightPoints.map((d) => ({ main: d.content, note: d.note }))
-  const undecidedLines: PrintLine[] = (newMeeting.value ? doc.value.discussions : []).map((d) => ({
-    main: d.content,
-    note: d.note,
-  }))
-  const eventLines: PrintLine[] = (legacyMeeting.value ? doc.value.eventCandidates : []).map((ev) => ({
-    main: ev.title || '（無題）',
-    note: ev.location ? `${printEventWhen(ev)} ・ ${ev.location}` : printEventWhen(ev),
-  }))
-  const taskLines: PrintLine[] = (talk.value ? [] : doc.value.taskCandidates).map((t) => ({
-    main: t.task,
-    note: `担当: ${t.assignee || '未定'}${t.dueDate || t.due ? ` ・ 期限 ${t.dueDate || t.due}` : ''}`,
-  }))
-  const rightChars = [...decisionLines, ...undecidedLines, ...eventLines, ...taskLines].reduce(
-    (sum, l) => sum + lineLength(l),
-    0
-  )
-  return { discussionLines, leftChars, decisionLines, undecidedLines, eventLines, taskLines, rightChars }
-}
-
 /**
  * PDFに載せる内容を組み立てる。
- * 目安文字数（左メニューで設定するアカウント全体の値）に収まっていればAIを呼ばずそのまま出し、
+ * 目安文字数（PDF_MAX_CHARS。固定）に収まっていればAIを呼ばずそのまま出し、
  * 超えたときだけ要約させる。要約に失敗しても元の内容のままPDF化は続ける
  * （画像をページ内に収まるよう縮小して配置するので、必ず1ページには収まる）。
  */
 async function buildPrintContent() {
-  const { discussionLines, leftChars, decisionLines, undecidedLines, eventLines, taskLines, rightChars } = buildPrintSource()
-  // 別のタブで設定を変えたときも最新の値で作るよう、PDFを作るたびに読み直す
-  // （読めなければ手元の値で続ける。PDFが作れなくなるほどのことではない）
-  const settings = await loadUserSettings().catch(() => userSettings.value)
-  // 全体の目安文字数を左右に振り分ける（片方が短ければ、余りをもう片方に回す）
-  const budget = splitPrintBudget(leftChars, rightChars, settings.pdfMaxChars)
+  const { discussionLines, leftChars, decisionLines, undecidedLines, eventLines, taskLines, rightChars } = buildPrintLines(doc.value)
+  // 全体の目安文字数（固定）を左右に振り分ける（片方が短ければ、余りをもう片方に回す）
+  const budget = splitPrintBudget(leftChars, rightChars, PDF_MAX_CHARS)
   const summaryMax = budget.left
 
   if (leftChars <= summaryMax) {

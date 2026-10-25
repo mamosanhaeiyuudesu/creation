@@ -89,24 +89,6 @@
       </template>
     </section>
 
-    <!-- PDFの文字数（アカウント全体。すべての議事録のPDFに効く）。
-         選んだらすぐ保存し、次にPDFを作るときから使われる（PDFは保存しておらず毎回作るので、作り直しは要らない） -->
-    <section v-if="!withdrawn" class="kk-set-sec">
-      <div class="kk-set-pdf-row">
-        <label class="kk-set-title m-0" for="pdf-max-chars">PDFの文字数</label>
-        <span v-if="pdfSaved" class="kk-set-pdf-saved" role="status">✓ 保存しました</span>
-        <select
-          id="pdf-max-chars"
-          :value="userSettings.pdfMaxChars"
-          class="kk-input kk-set-pdf-select"
-          :disabled="pdfBusy"
-          @change="onPdfChange"
-        >
-          <option v-for="n in pdfOptions" :key="n" :value="n">{{ n.toLocaleString() }}字</option>
-        </select>
-      </div>
-    </section>
-
     <!-- お支払い -->
     <section v-if="!withdrawn" class="kk-set-sec">
       <h2 class="kk-set-title">お支払い</h2>
@@ -219,8 +201,6 @@ import { apiMessage } from '~/utils/apiMessage'
 import { parseMonitorMode } from '~/utils/entitlement'
 import type { BillingStatus } from '~/types/billing'
 import type { WithdrawnInfo } from '~/types/auth'
-import { PDF_MAX_CHARS_MAX, PDF_MAX_CHARS_MIN } from '~/types/settings'
-import { normalizeUserSettings } from '~/utils/userSettings'
 import { MAX_TAG_LENGTH, normalizeTag } from '~/utils/tags'
 
 const router = useRouter()
@@ -252,39 +232,6 @@ function trialLabel(days: number): string {
   return days === 30 ? '1か月' : `${days}日間`
 }
 
-// ── PDFの文字数 ──
-const { settings: userSettings, load: loadUserSettings, save: saveUserSettings } = useUserSettings()
-const pdfBusy = ref(false)
-/** 選んだ直後だけ「✓ 保存しました」を出す（何も出ないと、変わったのか分からないため） */
-const pdfSaved = ref(false)
-let pdfSavedTimer: ReturnType<typeof setTimeout> | undefined
-
-/** 選べる文字数（500字刻み）。左右別々に設定していたころの半端な値（合計1700字など）は、それも選択肢に残す */
-const pdfOptions = computed(() => {
-  const list: number[] = []
-  for (let n = PDF_MAX_CHARS_MIN; n <= PDF_MAX_CHARS_MAX; n += 500) list.push(n)
-  const current = userSettings.value.pdfMaxChars
-  if (!list.includes(current)) list.push(current)
-  return list.sort((a, b) => a - b)
-})
-
-async function onPdfChange(e: Event) {
-  const select = e.target as HTMLSelectElement
-  errorMessage.value = ''
-  pdfBusy.value = true
-  try {
-    await saveUserSettings(normalizeUserSettings({ pdfMaxChars: select.value }))
-    pdfSaved.value = true
-    clearTimeout(pdfSavedTimer)
-    pdfSavedTimer = setTimeout(() => (pdfSaved.value = false), 2000)
-  } catch (e) {
-    // 保存できなければ、選択を保存済みの値に戻す
-    select.value = String(userSettings.value.pdfMaxChars)
-    errorMessage.value = apiMessage(e, 'PDFの文字数を保存できませんでした。もう一度お試しください。')
-  }
-  pdfBusy.value = false
-}
-
 async function load() {
   // 最初に /api/me を読む。お休み中の人は議事録も設定も読めない（403）ので、ここで分かれば他は呼ばない
   try {
@@ -304,11 +251,6 @@ async function load() {
     errorMessage.value = apiMessage(e, '設定を読み込めませんでした。画面を開き直してみてください。')
   }
   loadTags().catch(() => {})
-  try {
-    await loadUserSettings()
-  } catch (e) {
-    errorMessage.value = apiMessage(e, '設定を読み込めませんでした。画面を開き直してみてください。')
-  }
 
   // 契約状態はモニター期間中は使わないので、そのときは呼ばない
   if (monitorMode.value) return
@@ -731,25 +673,6 @@ a.kk-set-chip:hover,
 }
 .kk-set-tag-ok:disabled {
   opacity: 0.5;
-}
-.kk-set-pdf-row {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-.kk-set-pdf-saved {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--kk-accent-strong);
-  white-space: nowrap;
-}
-.kk-set-pdf-select {
-  width: auto;
-  margin-left: auto;
-  padding: 0.2rem 0.4rem;
-}
-.kk-set-pdf-saved + .kk-set-pdf-select {
-  margin-left: 0;
 }
 .kk-set-btn {
   margin-top: 0.45rem;

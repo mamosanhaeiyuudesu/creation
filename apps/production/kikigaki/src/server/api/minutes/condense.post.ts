@@ -1,22 +1,22 @@
 // PDFの枠に入り切らないときだけ呼ばれる要約。
-// 目安文字数（アカウント全体の設定。types/settings.ts）に収まっているならクライアントはここを呼ばない。
+// 目安文字数（固定。utils/printBudget.ts の PDF_MAX_CHARS）に収まっているならクライアントはここを呼ばない。
 
 import { requireUser } from '~/server/utils/auth'
 import { requireEntitlement } from '~/server/utils/entitlement'
 import { condensePrintLeft, condensePrintRight, type PrintLineInput } from '~/server/utils/minutes-ai'
-import { PDF_MAX_CHARS_MAX } from '~/types/settings'
+import { normalizeLayout, normalizeMode, type MinutesPoint } from '~/types/minutes'
+import { PDF_MAX_CHARS } from '~/utils/printBudget'
 
 /**
- * 1列あたりの文字数の下限。全体の目安（500字〜）を左右に振り分けたあとの値が来るので、
- * 全体の下限より小さくなりうる（片方が短く、もう片方に多く回したとき）
+ * 1列あたりの文字数の下限。全体の目安（PDF_MAX_CHARS）を左右に振り分けたあとの値が来るので、
+ * 全体の目安より小さくなる（上限は全体の目安。片方が短く、もう片方に多く回したときも超えない）
  */
 const COLUMN_MAX_CHARS_MIN = 100
-import { normalizeLayout, normalizeMode, type MinutesPoint } from '~/types/minutes'
 
 function clampMaxChars(v: unknown): number {
   const n = Number(v)
   if (!Number.isFinite(n)) return COLUMN_MAX_CHARS_MIN
-  return Math.min(PDF_MAX_CHARS_MAX, Math.max(COLUMN_MAX_CHARS_MIN, Math.round(n)))
+  return Math.min(PDF_MAX_CHARS, Math.max(COLUMN_MAX_CHARS_MIN, Math.round(n)))
 }
 
 export default defineEventHandler(async (event) => {

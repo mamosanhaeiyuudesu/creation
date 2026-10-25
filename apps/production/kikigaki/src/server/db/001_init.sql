@@ -90,7 +90,9 @@ CREATE TABLE IF NOT EXISTS stripe_events (
   received_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- 利用者ごとの設定（左メニューの設定欄で変える）。行が無い人は既定値（utils/userSettings.ts）を使う。
+-- ※ 2026-10-25 から使っていない。PDFの文字数を利用者が選ぶ設定をやめ、2000字固定にした（utils/printBudget.ts の PDF_MAX_CHARS）。
+--   既存の行が残っていても害はなく、退会時の削除対象（server/utils/account.ts）には入れたままにしてある。
+-- 利用者ごとの設定（以前は左メニューの設定欄で変えていた）。
 -- 2026-10-16 に追加。CREATE TABLE IF NOT EXISTS なので、このファイルを流し直しても既存の表は壊れない
 -- （本番の D1 には、ログイン時の ensureTables() でも作られる）。
 CREATE TABLE IF NOT EXISTS user_settings (
