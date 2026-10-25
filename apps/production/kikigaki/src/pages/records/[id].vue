@@ -253,7 +253,7 @@
             <button type="button" class="kk-add-row" aria-label="追加" title="追加" @click="group.items.push({ content: '', note: '' })"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
           </section>
 
-          <!-- 右だけ: 次の予定・やること（並びは rightExtras。やること・次の予定は会議と、新しい並べ方の聞き取り） -->
+          <!-- 右だけ: 次の予定・やること（並びは rightExtras。やること＝会議と新しい並べ方の聞き取り、次の予定＝古い会議だけ） -->
           <template v-for="extra in col === 'right' ? rightExtras : []" :key="extra">
             <section v-if="extra === 'events'" class="kk-card kk-review-card">
               <div class="kk-sec-head">
@@ -564,11 +564,11 @@ const legacyMeeting = computed(() => isLegacyMeeting(minutes))
 
 /**
  * 右の列で、グループ（決まったこと など）の下に並べる欄の順。
- * 会議＝やること・次の予定（古い会議は 次の予定・やること）、聞き取り（新しい並べ方）＝やること・次の予定。
+ * 会議＝やること（古い会議だけ 次の予定・やること）、聞き取り（新しい並べ方）＝やること。
  */
 const rightExtras = computed<('events' | 'tasks')[]>(() => {
-  if (minutes.mode === 'talk') return isNewTalk(minutes) ? ['tasks', 'events'] : []
-  return legacyMeeting.value ? ['events', 'tasks'] : ['tasks', 'events']
+  if (minutes.mode === 'talk') return isNewTalk(minutes) ? ['tasks'] : []
+  return legacyMeeting.value ? ['events', 'tasks'] : ['tasks']
 })
 
 /** まとめ方ごとの欄の名前（1人の話では「会議」と書かない） */

@@ -17,11 +17,11 @@ const MAX_TOKENS = 8000
 /**
  * 構造化のシステムプロンプト。
  *
- * task_candidates の due_date / event_candidates の start・end は、原文の表現（"来月中に"）と
- * 確定した日時を別々に持つための欄。原文側は必ずそのまま残す
- * （カレンダー登録の機能は持っていないが、PDFで確定日時を優先表示するのに使う）。
+ * task_candidates の due_date は、原文の表現（"来月中に"）と確定した日付を別々に持つための欄。
+ * 原文側（due）は必ずそのまま残す（カレンダー登録の機能は持っていないが、PDFで確定日付を優先表示するのに使う）。
  *
- * 左＝概要＋話し合ったこと（topics）、右＝決まったこと・決まっていないこと・やること・次の予定（最後）、という並べ方（layout 2）。
+ * 左＝概要＋話し合ったこと（topics）、右＝決まったこと・決まっていないこと・やること、という並べ方（layout 2）。
+ * 次の予定は専用の欄を持たず、「やること」の1件として入れさせる（event_candidates は layout 1 の古い議事録だけが持っている）。
  * 同じ内容を複数の欄に書かせない（決定がそのまま作業なら「やること」だけ）のがこのプロンプトの肝。
  */
 function buildMeetingSystemPrompt(today: string): string {
@@ -55,17 +55,17 @@ function buildMeetingSystemPrompt(today: string): string {
   決定事項と未決の切り分けに迷う場合は、断定を避け未決の側に入れること。
 - 「やること(task_candidates)」は「誰が」「何を」「いつまでに」が文字起こし内で分かる場合のみ抽出する。
   主語が不明な場合は担当を「[不明瞭]」とする。
-- 「次の予定(event_candidates)」は、次回の会議や行事など、「日時」が文字起こし内に明示されている場合のみ抽出する。
-  曖昧な時期表現(「来月中に」など)は日付を確定させず、原文の表現をそのまま残す。
-  作業の期限は「やること」に入れ、ここには入れない。
+- 次回の会議や行事など、日時が文字起こし内に明示された「次の予定」も、「やること」の1件として入れる（専用の欄は無い）。
+  task に「次回の定例会」のように内容（場所が語られていれば添える）を、due に日時の原文をそのまま入れる。
+  担当が語られていなければ、担当は「全員」とする。
 
 【日付の確定について】
 - この文章を取り込んだ日は ${today}（日本時間）である。
 - 「来週の火曜日」のように、この日を基準にすれば一意に定まる表現に限り、
-  due_date / start / end を YYYY-MM-DD、YYYY-MM-DDTHH:mm 形式で埋めてよい。
+  due_date を YYYY-MM-DD 形式で埋めてよい。
 - 少しでも曖昧な場合（「来月中に」「そのうち」「都合のいい日に」など）は、
-  due_date / start / end を空文字 "" のままにすること。迷ったら必ず空にする。
-- due / datetime には常に原文の表現をそのまま入れること（空にしない）。
+  due_date を空文字 "" のままにすること。迷ったら必ず空にする。
+- due には常に原文の表現をそのまま入れること（空にしない）。
 
 【出力形式】
 以下のJSON形式のみを出力すること。前置きや説明文、Markdownのコードフェンスは一切含めないこと。
@@ -79,7 +79,6 @@ function buildMeetingSystemPrompt(today: string): string {
   "decisions": [{ "content": "", "note": "" }],
   "undecided": [{ "content": "", "note": "" }],
   "task_candidates": [{ "assignee": "", "task": "", "due": "", "due_date": "" }],
-  "event_candidates": [{ "datetime": "", "title": "", "location": "", "start": "", "end": "" }],
   "unclear_points": [""]
 }
 
@@ -95,7 +94,7 @@ function buildMeetingSystemPrompt(today: string): string {
  * 「主に1人が話した」記録（講演・インタビュー・カウンセリングなど）の構造化のシステムプロンプト。
  *
  * 会議と違い「決まったこと」は拾わず、その人が伝えたかったことと話の中身を重点的に残す
- * （やること・次の予定は、話の中で出たときだけ拾う）。
+ * （やることは、話の中で出たときだけ拾う。次回の日程も「やること」に入れる）。
  * カウンセリングも対象なので、AIの評価・診断・助言を足さないことを創作の禁止と同じ重さで書いている。
  */
 function buildTalkSystemPrompt(today: string): string {
@@ -139,14 +138,12 @@ function buildTalkSystemPrompt(today: string): string {
   聞き手の助言・提案（「〜するといいですよ」）や、話し手の願望・気持ち（「〜できたらいいな」）はやることではないので入れないこと。
   期限が語られていれば due に原文の表現をそのまま入れ、「来週の火曜日」のように一意に定まるときだけ due_date を埋める
   （曖昧なら due_date は空文字のまま）。
-- event_candidates（次の予定）は、次回の日程や行事など、「日時」が文字起こし内に明示されている場合のみ抽出する。
-  曖昧な時期表現(「来月中に」など)は日付を確定させず、原文の表現をそのまま残す。
-  話し手が「やりたい」と語った願望や、聞き手への助言は予定ではないので入れないこと。
+- 次回の面談・講座の日程など、日時が文字起こし内に明示された「次の予定」も、「やること」の1件として入れる（専用の欄は無い）。
+  task に「次回の面談」のように内容を、due に日時の原文をそのまま入れる。担当が語られていなければ、担当は「全員」とする。
 
 【日付の確定について】
 - 「来週の火曜日」のように、取り込んだ日を基準にすれば一意に定まる表現に限り、
-  due_date / start / end を YYYY-MM-DD、YYYY-MM-DDTHH:mm 形式で埋めてよい。
-  少しでも曖昧な場合は空文字 "" のままにし、due / datetime には常に原文の表現をそのまま入れること。
+  due_date を YYYY-MM-DD 形式で埋めてよい。少しでも曖昧な場合は空文字 "" のままにし、due には常に原文の表現をそのまま入れること。
 
 【出力形式】
 以下のJSON形式のみを出力すること。前置きや説明文、Markdownのコードフェンスは一切含めないこと。
@@ -159,7 +156,6 @@ function buildTalkSystemPrompt(today: string): string {
   "key_messages": [{ "content": "", "note": "" }],
   "topics": [{ "content": "", "note": "" }],
   "task_candidates": [{ "assignee": "", "task": "", "due": "", "due_date": "" }],
-  "event_candidates": [{ "datetime": "", "title": "", "location": "", "start": "", "end": "" }],
   "unclear_points": [""]
 }
 
@@ -226,7 +222,6 @@ const MEETING_JSON_SHAPE = `{
   "decisions": [{ "content": "", "note": "" }],
   "undecided": [{ "content": "", "note": "" }],
   "task_candidates": [{ "assignee": "", "task": "", "due": "", "due_date": "" }],
-  "event_candidates": [{ "datetime": "", "title": "", "location": "", "start": "", "end": "" }],
   "unclear_points": [""]
 }`
 
@@ -251,11 +246,10 @@ const TALK_JSON_SHAPE = `{
   "key_messages": [{ "content": "", "note": "" }],
   "topics": [{ "content": "", "note": "" }],
   "task_candidates": [{ "assignee": "", "task": "", "due": "", "due_date": "" }],
-  "event_candidates": [{ "datetime": "", "title": "", "location": "", "start": "", "end": "" }],
   "unclear_points": [""]
 }`
 
-/** layout 1（古い記録）の聞き取り。やること・次の予定を持たない */
+/** layout 1（古い記録）の聞き取り。やることを持たない */
 const LEGACY_TALK_JSON_SHAPE = `{
   "title": "",
   "date": "",
@@ -281,7 +275,7 @@ function toAiJson(m: Minutes): Record<string, unknown> {
       summary: m.summary,
       key_messages: m.keyMessages,
       topics: m.topics,
-      ...(m.layout === 2 ? { task_candidates: m.taskCandidates, event_candidates: m.eventCandidates } : {}),
+      ...(m.layout === 2 ? { task_candidates: m.taskCandidates } : {}),
       unclear_points: m.unclearPoints,
     }
   }
@@ -307,7 +301,6 @@ function toAiJson(m: Minutes): Record<string, unknown> {
     decisions: m.decisions,
     undecided: m.discussions,
     task_candidates: m.taskCandidates,
-    event_candidates: m.eventCandidates,
     unclear_points: m.unclearPoints,
   }
 }
@@ -328,15 +321,15 @@ function fromAiJson(parsed: any, mode: MinutesMode, layout: MinutesLayout): Minu
   if (mode === 'talk') {
     m.decisions = []
     m.discussions = []
-    // やること・次の予定は layout 2 の聞き取りだけ（layout 1 の古い記録には欄が無い）
-    if (layout !== 2) {
-      m.taskCandidates = []
-      m.eventCandidates = []
-    }
+    // やることは layout 2 の聞き取りだけ（layout 1 の古い記録には欄が無い）。次の予定の欄は聞き取りには無い
+    if (layout !== 2) m.taskCandidates = []
+    m.eventCandidates = []
   } else {
     m.keyMessages = []
-    // 話し合ったこと(topics)は layout 2 の会議だけ。layout 1 では discussions が左に出る
+    // 話し合ったこと(topics)は layout 2 の会議だけ。layout 1 では discussions が左に出る。
+    // 次の予定の欄は layout 1 の会議だけ（layout 2 では「やること」に入れる）
     if (layout !== 2) m.topics = []
+    else m.eventCandidates = []
   }
   return m
 }

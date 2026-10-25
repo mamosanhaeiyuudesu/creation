@@ -6,9 +6,9 @@
 
 /**
  * まとめ方。
- * - meeting: 複数人の会議・話し合い（話し合ったこと・決まったこと・決まっていないこと・やること・次の予定を拾う）
+ * - meeting: 複数人の会議・話し合い（話し合ったこと・決まったこと・決まっていないこと・やることを拾う）
  * - talk:    主に1人が話した記録（講演・インタビュー・カウンセリングなど）。
- *            「決まったこと」は拾わず、その人が伝えたかったこと・話の中身を重点的に残す（やること・次の予定は、話の中で出たときだけ拾う）
+ *            「決まったこと」は拾わず、その人が伝えたかったこと・話の中身を重点的に残す（やることは、話の中で出たときだけ拾う）
  * talk を足す前に作った議事録には mode が無いので、meeting として読む。
  */
 export type MinutesMode = 'meeting' | 'talk'
@@ -36,14 +36,14 @@ export function isLegacyMeeting(m: Pick<Minutes, 'mode' | 'layout'>): boolean {
   return m.mode === 'meeting' && m.layout === 1
 }
 
-/** 新しい並べ方の聞き取りか（右に「やること」「次の予定」を出すもの） */
+/** 新しい並べ方の聞き取りか（右に「やること」を出すもの） */
 export function isNewTalk(m: Pick<Minutes, 'mode' | 'layout'>): boolean {
   return m.mode === 'talk' && m.layout === 2
 }
 
-/** 「次の予定」の欄を出す議事録か（会議と、新しい並べ方の聞き取り） */
+/** 「次の予定」の欄を出す議事録か（古い会議だけ。新しい並べ方では拾わない） */
 export function hasEventsSection(m: Pick<Minutes, 'mode' | 'layout'>): boolean {
-  return m.mode === 'meeting' || isNewTalk(m)
+  return isLegacyMeeting(m)
 }
 
 /**
@@ -76,10 +76,10 @@ export function transcriptOverMessage(length: number): string {
  *  - 1: 古い議事録。discussions は「決まっていないこと」だけで、画面では左に「話し合ったこと」として出す。
  *       右は 決まったこと・次の予定・やること の順。
  *  - 2: 左に「話し合ったこと」（topics。決まったことも決まっていないことも含む論点の全体）、
- *       右に 決まったこと・決まっていないこと（discussions）・やること・次の予定（最後）。
+ *       右に 決まったこと・決まっていないこと（discussions）・やること。次の予定は拾わない。
  * 聞き取り（talk）
  *  - 1: 古い記録。右は「伝えたかったこと」だけ。
- *  - 2: 右に 伝えたかったこと・やること・次の予定（最後）。
+ *  - 2: 右に 伝えたかったこと・やること。
  * 版の無い議事録は 1。discussions の意味を後から変えると古い議事録の中身とずれるため、版で見分ける。
  */
 export type MinutesLayout = 1 | 2
@@ -135,7 +135,7 @@ export interface Minutes {
   topics: MinutesPoint[]
   /** やること */
   taskCandidates: TaskItem[]
-  /** 次の予定。会議と、聞き取りの layout 2 で拾う */
+  /** 次の予定。会議の layout 1（古い議事録）だけが持つ。layout 2 では拾わない（欄ごとやめた） */
   eventCandidates: EventItem[]
   /** AIが自信を持てなかった箇所の自己申告。確認画面の先頭に出す */
   unclearPoints: string[]

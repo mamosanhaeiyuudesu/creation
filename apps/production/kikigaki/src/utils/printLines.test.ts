@@ -6,10 +6,10 @@ import { emptyMinutes } from '~/types/minutes'
 const headings = (blocks: PrintBlock[]) => blocks.filter((b) => b.type === 'heading').map((b) => (b as any).text)
 
 describe('buildPrintBlocks', () => {
-  it('新しい会議: 右は 決まったこと・決まっていないこと・やること・次の予定（最後）', () => {
+  it('新しい会議: 右は 決まったこと・決まっていないこと・やること（次の予定の欄は無い）', () => {
     const { left, right } = buildPrintBlocks(emptyMinutes())
     expect(headings(left)).toEqual(['概要'])
-    expect(headings(right)).toEqual(['決まったこと', '決まっていないこと', 'やること', '次の予定'])
+    expect(headings(right)).toEqual(['決まったこと', '決まっていないこと', 'やること'])
   })
 
   it('左は 概要＋話し合ったこと（あるときだけ見出しを出す）。概要は行ごとに分ける', () => {
@@ -33,10 +33,10 @@ describe('buildPrintBlocks', () => {
     expect(headings(right)).toEqual(['決まったこと', '次の予定', 'やること'])
   })
 
-  it('聞き取り: 新しい並びは 伝えたかったこと・やること・次の予定、古い記録は伝えたかったことだけ', () => {
+  it('聞き取り: 新しい並びは 伝えたかったこと・やること、古い記録は伝えたかったことだけ', () => {
     const m = emptyMinutes()
     m.mode = 'talk'
-    expect(headings(buildPrintBlocks(m).right)).toEqual(['伝えたかったこと', 'やること', '次の予定'])
+    expect(headings(buildPrintBlocks(m).right)).toEqual(['伝えたかったこと', 'やること'])
     expect(headings(buildPrintBlocks(m).left)).toEqual(['概要'])
     m.layout = 1
     expect(headings(buildPrintBlocks(m).right)).toEqual(['伝えたかったこと'])
@@ -44,7 +44,7 @@ describe('buildPrintBlocks', () => {
 
   it('中身が空の欄は「（なし）」を出す', () => {
     const { right } = buildPrintBlocks(emptyMinutes())
-    expect(right.filter((b) => b.type === 'empty')).toHaveLength(4)
+    expect(right.filter((b) => b.type === 'empty')).toHaveLength(3)
   })
 })
 

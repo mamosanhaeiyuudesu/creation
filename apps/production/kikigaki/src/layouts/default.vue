@@ -27,54 +27,57 @@
           @keydown.left.prevent="setSideWidth(sideWidth - 16)"
           @keydown.right.prevent="setSideWidth(sideWidth + 16)"
         />
-        <NuxtLink to="/" class="kk-logo">
-          <span class="kk-logo-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M6 4h9l3 3v13H6z" /><path d="M9 11h6M9 15h6M9 7h3" /></svg>
-          </span>
-          {{ serviceName }}
-        </NuxtLink>
-
-        <nav class="kk-side-nav">
-          <NuxtLink to="/" class="kk-side-link" :class="{ 'is-active': route.path === '/' }">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" /></svg>
-            ホーム
+        <!-- 背景と右の罫線は左メニュー全体（画面の下まで伸びる）に付け、中身はスクロールしても見える位置に固定する -->
+        <div class="kk-side-inner">
+          <NuxtLink to="/" class="kk-logo">
+            <span class="kk-logo-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M6 4h9l3 3v13H6z" /><path d="M9 11h6M9 15h6M9 7h3" /></svg>
+            </span>
+            {{ serviceName }}
           </NuxtLink>
-          <NuxtLink v-if="isAdmin" to="/admin" class="kk-side-link" :class="{ 'is-active': route.path.startsWith('/admin') }">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" /><path d="M9 12l2 2 4-4" /></svg>
-            管理画面
-          </NuxtLink>
-          <!-- 設定。押すと、下に設定の中身（タグ・今月のAI利用量・お支払い・ドライブなど）が開く -->
-          <button
-            type="button"
-            class="kk-side-link"
-            :class="{ 'is-active': settingsOpen }"
-            :aria-expanded="settingsOpen"
-            aria-controls="kk-side-settings"
-            @click="settingsOpen = !settingsOpen"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path :d="GEAR_PATH" /></svg>
-            設定
-          </button>
-        </nav>
 
-        <!-- 設定の中身。閉じていても読み込みは動かす（管理者か・今月の利用量・お休み中かをここで /api/me から入れて、
-             ほかの画面も見ているため）ので、v-if ではなく v-show で隠す。
-             スマホでは、右上の「設定」ボタンから開く、画面の上から出るシートになる
-             （ヘッダーの高さやお知らせの帯に左右されないよう、画面の最上部に固定する。kk-set-backdrop は外側のタップで閉じる用） -->
-        <div v-if="settingsOpen" class="kk-set-backdrop" aria-hidden="true" @click="settingsOpen = false" />
-        <div v-show="settingsOpen" id="kk-side-settings" class="kk-set-sheet">
-          <div class="kk-set-sheet-head">
-            <span>設定</span>
-            <button type="button" class="kk-set-sheet-close" aria-label="設定を閉じる" @click="settingsOpen = false">✕</button>
+          <nav class="kk-side-nav">
+            <NuxtLink to="/" class="kk-side-link" :class="{ 'is-active': route.path === '/' }">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" /></svg>
+              ホーム
+            </NuxtLink>
+            <NuxtLink v-if="isAdmin" to="/admin" class="kk-side-link" :class="{ 'is-active': route.path.startsWith('/admin') }">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" /><path d="M9 12l2 2 4-4" /></svg>
+              管理画面
+            </NuxtLink>
+            <!-- 設定。押すと、下に設定の中身（タグ・今月のAI利用量・お支払い・ドライブなど）が開く -->
+            <button
+              type="button"
+              class="kk-side-link"
+              :class="{ 'is-active': settingsOpen }"
+              :aria-expanded="settingsOpen"
+              aria-controls="kk-side-settings"
+              @click="settingsOpen = !settingsOpen"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path :d="GEAR_PATH" /></svg>
+              設定
+            </button>
+          </nav>
+
+          <!-- 設定の中身。閉じていても読み込みは動かす（管理者か・今月の利用量・お休み中かをここで /api/me から入れて、
+               ほかの画面も見ているため）ので、v-if ではなく v-show で隠す。
+               スマホでは、右上の「設定」ボタンから開く、画面の上から出るシートになる
+               （ヘッダーの高さやお知らせの帯に左右されないよう、画面の最上部に固定する。kk-set-backdrop は外側のタップで閉じる用） -->
+          <div v-if="settingsOpen" class="kk-set-backdrop" aria-hidden="true" @click="settingsOpen = false" />
+          <div v-show="settingsOpen" id="kk-side-settings" class="kk-set-sheet">
+            <div class="kk-set-sheet-head">
+              <span>設定</span>
+              <button type="button" class="kk-set-sheet-close" aria-label="設定を閉じる" @click="settingsOpen = false">✕</button>
+            </div>
+            <SettingsPanel class="kk-side-settings" />
           </div>
-          <SettingsPanel class="kk-side-settings" />
-        </div>
 
-        <nav class="kk-side-legal">
-          <NuxtLink to="/terms">利用規約</NuxtLink>
-          <NuxtLink to="/privacy">プライバシーポリシー</NuxtLink>
-          <NuxtLink to="/legal">特定商取引法に基づく表記</NuxtLink>
-        </nav>
+          <nav class="kk-side-legal">
+            <NuxtLink to="/terms">利用規約</NuxtLink>
+            <NuxtLink to="/privacy">プライバシーポリシー</NuxtLink>
+            <NuxtLink to="/legal">特定商取引法に基づく表記</NuxtLink>
+          </nav>
+        </div>
       </aside>
 
       <!-- 左メニュー表示中（PC・ログイン後）は上の帯が無いので、画面右上に固定で置く -->
@@ -119,7 +122,11 @@
 
         <main
           class="kk-main flex-1 w-full mx-auto px-3 sm:px-5 pt-3"
-          :class="wide ? 'kk-wide-main max-w-[1440px] pb-3' : isLoggedIn ? 'max-w-[1100px] pb-10' : 'max-w-[560px] pb-10'"
+          :class="[
+            wide ? 'kk-wide-main max-w-[1440px] pb-3' : isLoggedIn ? 'max-w-[1100px] pb-10' : 'max-w-[560px] pb-10',
+            // 左メニューがあるPC幅では、本文を残りの幅の真ん中ではなく左メニュー側に寄せる（間が空きすぎないように）
+            isLoggedIn ? 'lg:mx-0' : '',
+          ]"
         >
           <slot />
         </main>
@@ -384,27 +391,34 @@ const wide = computed(() => route.meta.wide === true)
   .kk-shell-body {
     flex-direction: row;
   }
+  /* 左メニュー全体は本文と同じ高さまで伸ばす（背景・罫線が下まで続く） */
   .kk-shell--side .kk-side {
     order: 0;
     width: var(--kk-side-w, 179px);
     flex: none;
+    position: relative;
+    align-self: stretch;
+    padding: 0;
+    background: var(--kk-panel);
+    border-top: 0;
+    border-right: 1px solid var(--kk-line);
+  }
+  /* 中身は、本文をスクロールしても画面の上に付いてくる。設定が入って縦に長いときは、中だけスクロールさせる */
+  .kk-side-inner {
+    position: sticky;
+    top: 0;
+    /* 左メニューと同じ高さにして、利用規約などを一番下に置く（margin-top: auto）。
+       本文が長いときは max-height で画面の高さに抑える（min-height にすると max-height に勝ってしまう） */
+    height: 100%;
+    max-height: 100dvh;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 0.9rem;
     padding: 0.9rem 0.7rem 0.8rem;
-    background: var(--kk-panel);
-    border-top: 0;
-    border-right: 1px solid var(--kk-line);
-    /* 設定が入って縦に長くなったので、本文と別にスクロールさせる */
-    position: sticky;
-    top: 0;
-    align-self: flex-start;
-    max-height: 100dvh;
-    overflow-y: auto;
   }
-  .kk-shell--wide .kk-side {
-    align-self: stretch;
-    max-height: none;
+  .kk-shell--wide .kk-side-inner {
+    max-height: 100%;
   }
   .kk-side .kk-logo {
     display: inline-flex;
