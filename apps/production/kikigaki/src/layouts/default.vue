@@ -164,23 +164,16 @@ const settingsOpen = useState<boolean>('kk-settings-open', () => false)
 const GEAR_PATH =
   'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'
 // ── 左メニューの幅 ──
-// 幅はこのブラウザだけの好みなので localStorage に置く（使えない環境では毎回既定の幅になるだけ）
-// 2026-10-25 に既定を半分（248→124）にしたあと、狭すぎたので1.4倍（174）、さらに5px足して179にした。
-// 以前の幅を覚えていると新しい既定にならないので、変えるたびに保存の名前も変えている
-const SIDE_DEFAULT = 179
+// つまみで変えた幅は覚えない（読み込み直すと、いつも既定の幅に戻る）
+// 2026-10-25 に既定を半分（248→124）にしたあと、狭すぎたので1.4倍（174）、5px足して179、さらに1.5倍して268にした
+const SIDE_DEFAULT = 268
 const SIDE_MIN = 100
 const SIDE_MAX = 440
-const SIDE_KEY = 'kk-side-width-v4'
 const sideWidth = ref(SIDE_DEFAULT)
 const resizing = ref(false)
 
 function setSideWidth(w: number) {
   sideWidth.value = Math.min(SIDE_MAX, Math.max(SIDE_MIN, Math.round(w)))
-  try {
-    localStorage.setItem(SIDE_KEY, String(sideWidth.value))
-  } catch {
-    // プライベートモードなどで保存できなくても、その場の幅は変わる
-  }
 }
 
 function startResize(e: PointerEvent) {
@@ -202,15 +195,6 @@ function startResize(e: PointerEvent) {
   handle.addEventListener('pointerup', onUp)
   handle.addEventListener('pointercancel', onUp)
 }
-
-onMounted(() => {
-  try {
-    const saved = Number(localStorage.getItem(SIDE_KEY))
-    if (saved) sideWidth.value = Math.min(SIDE_MAX, Math.max(SIDE_MIN, saved))
-  } catch {
-    // 読めなければ既定の幅のまま
-  }
-})
 
 // ページが definePageMeta({ wide: true }) したときは、横幅を広げ、広い画面では高さを画面に収める
 const wide = computed(() => route.meta.wide === true)
@@ -394,7 +378,7 @@ const wide = computed(() => route.meta.wide === true)
   /* 左メニュー全体は本文と同じ高さまで伸ばす（背景・罫線が下まで続く） */
   .kk-shell--side .kk-side {
     order: 0;
-    width: var(--kk-side-w, 179px);
+    width: var(--kk-side-w, 268px);
     flex: none;
     position: relative;
     align-self: stretch;
