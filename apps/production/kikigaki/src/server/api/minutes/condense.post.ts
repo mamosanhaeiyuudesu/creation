@@ -11,7 +11,7 @@ import { PDF_MAX_CHARS_MAX } from '~/types/settings'
  * 全体の下限より小さくなりうる（片方が短く、もう片方に多く回したとき）
  */
 const COLUMN_MAX_CHARS_MIN = 100
-import { normalizeMode, type MinutesPoint } from '~/types/minutes'
+import { normalizeLayout, normalizeMode, type MinutesPoint } from '~/types/minutes'
 
 function clampMaxChars(v: unknown): number {
   const n = Number(v)
@@ -26,10 +26,13 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<{
     target?: 'left' | 'right'
     mode?: string
+    layout?: number
     summary?: string
     /** 左側で概要と一緒に載せる項目（会議＝話し合ったこと、1人の話＝話の内容） */
     points?: MinutesPoint[]
     decisions?: PrintLineInput[]
+    /** 決まっていないこと（会議の layout 2 のみ） */
+    undecided?: PrintLineInput[]
     events?: PrintLineInput[]
     tasks?: PrintLineInput[]
     maxChars?: number
@@ -37,11 +40,12 @@ export default defineEventHandler(async (event) => {
 
   const maxChars = clampMaxChars(body?.maxChars)
   const mode = normalizeMode(body?.mode)
+  const layout = normalizeLayout(body?.layout)
 
   if (body?.target === 'left') {
     const text = await condensePrintLeft(
       event,
-      { mode, summary: body?.summary ?? '', points: body?.points ?? [] },
+      { mode, layout, summary: body?.summary ?? '', points: body?.points ?? [] },
       maxChars
     )
     return { text }
@@ -51,7 +55,9 @@ export default defineEventHandler(async (event) => {
     event,
     {
       mode,
+      layout,
       decisions: body?.decisions ?? [],
+      undecided: body?.undecided ?? [],
       events: body?.events ?? [],
       tasks: body?.tasks ?? [],
     },

@@ -90,3 +90,21 @@ describe('normalizeMinutes のまとめ方', () => {
     expect(normalizeMinutes({ keyMessages: m.keyMessages }).keyMessages).toHaveLength(1)
   })
 })
+
+describe('normalizeMinutes の並べ方の版（layout）', () => {
+  it('版が無い議事録は 1（古い並べ方）として読む', () => {
+    expect(normalizeMinutes({ title: '定例会', discussions: [{ content: '予算' }] }).layout).toBe(1)
+    expect(normalizeMinutes({ layout: 'へんな値' }).layout).toBe(1)
+  })
+
+  it('layout 2 はそのまま残り、空の議事録は最新の版で始まる', () => {
+    expect(normalizeMinutes({ layout: 2 }).layout).toBe(2)
+    expect(normalizeMinutes(null).layout).toBe(2)
+  })
+
+  it('古い議事録の予定は消さずに読む（layout 1 の画面が使う）', () => {
+    const m = normalizeMinutes({ event_candidates: [{ title: '秋祭り', datetime: '10月20日' }] })
+    expect(m.layout).toBe(1)
+    expect(m.eventCandidates).toHaveLength(1)
+  })
+})

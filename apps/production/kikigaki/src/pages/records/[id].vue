@@ -253,9 +253,9 @@
             <button type="button" class="kk-add-row" aria-label="追加" title="追加" @click="group.items.push({ content: '', note: '' })"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
           </section>
 
-          <!-- 右だけ: つぎの予定・やること（会議のときだけ。1人の話では拾わない） -->
+          <!-- 右だけ: つぎの予定（古い議事録だけ。新しい会議は概要の末尾に書く）・やること（会議のときだけ。1人の話では拾わない） -->
           <template v-if="col === 'right' && minutes.mode === 'meeting'">
-            <section class="kk-card kk-review-card">
+            <section v-if="legacyMeeting" class="kk-card kk-review-card">
               <div class="kk-sec-head">
                 <h2 class="kk-sec-title">つぎの予定<span class="kk-sec-count">{{ minutes.eventCandidates.length }}</span></h2>
                 <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${'つぎの予定'}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection('events', 'つぎの予定')"><span v-if="sectionPdfBusy === 'events'" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
@@ -398,7 +398,7 @@
 <script setup lang="ts">
 import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
-import { emptyMinutes, MINUTES_MODES } from '~/types/minutes'
+import { emptyMinutes, isLegacyMeeting, MINUTES_MODES } from '~/types/minutes'
 import type { EventItem, Minutes, MinutesMode, MinutesRecord, SectionKind } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
 import type MinutesSectionPdfType from '~/components/MinutesSectionPdf.vue'
@@ -559,6 +559,9 @@ function confirmRemoveRow() {
 /** 画面で編集している議事録。保存・PDFともこれをもとに行う */
 const minutes = reactive<Minutes>(emptyMinutes())
 
+/** 古い並べ方の会議か（次の予定を別の欄で持っている。作り直すと新しい並べ方になる） */
+const legacyMeeting = computed(() => isLegacyMeeting(minutes))
+
 /** まとめ方ごとの欄の名前（1人の話では「会議」と書かない） */
 const labels = computed(() =>
   minutes.mode === 'talk'
@@ -578,7 +581,7 @@ const labels = computed(() =>
         people: '会議の参加者',
         person: '参加者',
         summary: '会議のまとめ',
-        summaryPlaceholder: '会議の流れのまとめ',
+        summaryPlaceholder: legacyMeeting.value ? '会議の流れのまとめ' : '会議の流れと、次の予定のまとめ',
       }
 )
 
@@ -614,19 +617,42 @@ const pointGroups = computed(() =>
           subLabel: '補足',
           items: minutes.decisions,
         },
-        {
-          key: 'discussions' as SectionKind,
-          col: 'left',
-          label: '話し合ったこと',
-          placeholder: '話し合ったこと',
-          subLabel: '補足',
-          items: minutes.discussions,
-        },
+        ...(legacyMeeting.value
+          ? [
+              // 古い議事録: discussions に入っているのは「決まっていないこと」だけだが、これまで通り左に出す
+              {
+                key: 'discussions' as SectionKind,
+                col: 'left',
+                label: '話し合ったこと',
+                placeholder: '話し合ったこと',
+                subLabel: '補足',
+                items: minutes.discussions,
+              },
+            ]
+          : [
+              {
+                key: 'topics' as SectionKind,
+                col: 'left',
+                label: '話し合ったこと',
+                placeholder: '話題',
+                subLabel: '話した中身',
+                items: minutes.topics,
+              },
+              {
+                key: 'discussions' as SectionKind,
+                col: 'right',
+                label: 'まだ決まっていないこと',
+                placeholder: '決まっていないこと',
+                subLabel: '補足',
+                items: minutes.discussions,
+              },
+            ]),
       ]
 )
 
 function applyMinutes(src: Minutes) {
   minutes.mode = src.mode
+  minutes.layout = src.layout
   minutes.title = src.title
   minutes.date = src.date
   minutes.participants = [...src.participants]

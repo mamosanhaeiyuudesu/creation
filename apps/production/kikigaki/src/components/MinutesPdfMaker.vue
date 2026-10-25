@@ -12,7 +12,8 @@
   
         <!-- 概要＝もとのまとめと「話し合ったこと」（1人の話では「話の内容」）を1つの欄にしたもの。文字数内ならそのまま両方出し、
              超えていたらAIがひとつながりの文章に要約し直した printSummaryMain だけを出す
-             （そのときは printDiscussionLines が空になり、小見出しごと消える）。 -->
+             （そのときは printDiscussionLines が空になり、小見出しごと消える）。
+             古い会議（layout 1）では、ここに並ぶのは「決まっていないこと」だけ。 -->
         <div class="kk-print-section">
           <p class="kk-print-heading">概要</p>
           <p class="kk-print-body">{{ printSummaryMain || '（記載なし）' }}</p>
@@ -29,7 +30,8 @@
       </div>
   
       <div class="kk-print-col kk-print-col--right">
-        <!-- 右側。会議＝決まったこと・つぎの予定・やること、1人の話＝伝えたかったことだけ -->
+        <!-- 右側。会議＝決まったこと・決まっていないこと・やること、1人の話＝伝えたかったことだけ。
+             古い会議（layout 1）は 決まったこと・つぎの予定・やること（次の予定は新しい会議では概要の末尾に書く） -->
         <div class="kk-print-section">
           <p class="kk-print-heading">{{ talk ? '伝えたかったこと' : '決まったこと' }}</p>
           <p v-if="!printDecisionLines.length" class="kk-print-empty">（なし）</p>
@@ -40,8 +42,19 @@
             </li>
           </ul>
         </div>
-  
-        <div v-if="!talk" class="kk-print-section">
+
+        <div v-if="newMeeting" class="kk-print-section">
+          <p class="kk-print-heading">決まっていないこと</p>
+          <p v-if="!printUndecidedLines.length" class="kk-print-empty">（なし）</p>
+          <ul v-else class="kk-print-list">
+            <li v-for="(d, i) in printUndecidedLines" :key="i">
+              {{ i + 1 }}. {{ d.main }}
+              <span v-if="d.note" class="kk-print-item-note">{{ d.note }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div v-if="legacyMeeting" class="kk-print-section">
           <p class="kk-print-heading">つぎの予定</p>
           <p v-if="!printEventLines.length" class="kk-print-empty">（なし）</p>
           <ul v-else class="kk-print-list">
@@ -51,7 +64,7 @@
             </li>
           </ul>
         </div>
-  
+
         <div v-if="!talk" class="kk-print-section">
           <p class="kk-print-heading">やること</p>
           <p v-if="!printTaskLines.length" class="kk-print-empty">（なし）</p>
@@ -70,7 +83,7 @@
 <script setup lang="ts">
 import { formatDateLabel } from '~/utils/formatDate'
 import { splitPrintBudget } from '~/utils/printBudget'
-import { emptyMinutes } from '~/types/minutes'
+import { emptyMinutes, isLegacyMeeting } from '~/types/minutes'
 import type { EventItem, Minutes } from '~/types/minutes'
 
 const { authedFetch } = useAuth()
@@ -82,6 +95,10 @@ const printRoot = ref<HTMLElement | null>(null)
 
 /** 主に1人が話した記録か（見出しと載せる項目が変わる） */
 const talk = computed(() => doc.value.mode === 'talk')
+/** 新しい並べ方の会議（左＝話し合ったこと全体、右＝決まったこと・決まっていないこと・やること） */
+const newMeeting = computed(() => doc.value.mode === 'meeting' && doc.value.layout === 2)
+/** 古い並べ方の会議（左＝決まっていないこと、右＝決まったこと・つぎの予定・やること） */
+const legacyMeeting = computed(() => isLegacyMeeting(doc.value))
 
 const printParticipants = computed(() => doc.value.participants.map((p) => p.trim()).filter(Boolean).join('、'))
 
@@ -103,6 +120,7 @@ interface PrintLine {
 const printSummaryMain = ref('')
 const printDiscussionLines = ref<PrintLine[]>([])
 const printDecisionLines = ref<PrintLine[]>([])
+const printUndecidedLines = ref<PrintLine[]>([])
 const printEventLines = ref<PrintLine[]>([])
 const printTaskLines = ref<PrintLine[]>([])
 
@@ -112,15 +130,20 @@ function lineLength(l: PrintLine): number {
 
 /** PDFの左右に載せる元の行と、その文字数 */
 function buildPrintSource() {
-  // 左側＝まとめ＋話し合ったこと（1人の話では まとめ＋話の内容）
-  const leftPoints = talk.value ? doc.value.topics : doc.value.discussions
+  // 左側＝まとめ＋話し合ったこと（1人の話では まとめ＋話の内容）。
+  // 古い会議では、ここに「決まっていないこと」（discussions）が「話し合ったこと」の名前で並ぶ
+  const leftPoints = talk.value || newMeeting.value ? doc.value.topics : doc.value.discussions
   const discussionLines: PrintLine[] = leftPoints.map((d) => ({ main: d.content, note: d.note }))
   const leftChars = doc.value.summary.length + discussionLines.reduce((sum, l) => sum + lineLength(l), 0)
-  // 右側＝決まったこと・つぎの予定・やること（この順で出す）。1人の話では伝えたかったことだけ
-  // （予定・やることは空のまま。1人の話では拾っていない）
+  // 右側＝決まったこと・決まっていないこと・やること（この順で出す）。古い会議は 決まったこと・つぎの予定・やること。
+  // 1人の話では伝えたかったことだけ（やることは空のまま。1人の話では拾っていない）
   const rightPoints = talk.value ? doc.value.keyMessages : doc.value.decisions
   const decisionLines: PrintLine[] = rightPoints.map((d) => ({ main: d.content, note: d.note }))
-  const eventLines: PrintLine[] = (talk.value ? [] : doc.value.eventCandidates).map((ev) => ({
+  const undecidedLines: PrintLine[] = (newMeeting.value ? doc.value.discussions : []).map((d) => ({
+    main: d.content,
+    note: d.note,
+  }))
+  const eventLines: PrintLine[] = (legacyMeeting.value ? doc.value.eventCandidates : []).map((ev) => ({
     main: ev.title || '（無題）',
     note: ev.location ? `${printEventWhen(ev)} ・ ${ev.location}` : printEventWhen(ev),
   }))
@@ -128,8 +151,11 @@ function buildPrintSource() {
     main: t.task,
     note: `担当: ${t.assignee || '未定'}${t.dueDate || t.due ? ` ・ 期限 ${t.dueDate || t.due}` : ''}`,
   }))
-  const rightChars = [...decisionLines, ...eventLines, ...taskLines].reduce((sum, l) => sum + lineLength(l), 0)
-  return { discussionLines, leftChars, decisionLines, eventLines, taskLines, rightChars }
+  const rightChars = [...decisionLines, ...undecidedLines, ...eventLines, ...taskLines].reduce(
+    (sum, l) => sum + lineLength(l),
+    0
+  )
+  return { discussionLines, leftChars, decisionLines, undecidedLines, eventLines, taskLines, rightChars }
 }
 
 /**
@@ -139,7 +165,7 @@ function buildPrintSource() {
  * （画像をページ内に収まるよう縮小して配置するので、必ず1ページには収まる）。
  */
 async function buildPrintContent() {
-  const { discussionLines, leftChars, decisionLines, eventLines, taskLines, rightChars } = buildPrintSource()
+  const { discussionLines, leftChars, decisionLines, undecidedLines, eventLines, taskLines, rightChars } = buildPrintSource()
   // 別のタブで設定を変えたときも最新の値で作るよう、PDFを作るたびに読み直す
   // （読めなければ手元の値で続ける。PDFが作れなくなるほどのことではない）
   const settings = await loadUserSettings().catch(() => userSettings.value)
@@ -157,6 +183,7 @@ async function buildPrintContent() {
         body: {
           target: 'left',
           mode: doc.value.mode,
+          layout: doc.value.layout,
           summary: doc.value.summary,
           points: discussionLines.map((l) => ({ content: l.main, note: l.note ?? '' })),
           maxChars: summaryMax,
@@ -174,22 +201,34 @@ async function buildPrintContent() {
 
   if (rightChars <= rightMax) {
     printDecisionLines.value = decisionLines
+    printUndecidedLines.value = undecidedLines
     printEventLines.value = eventLines
     printTaskLines.value = taskLines
   } else {
     try {
-      const res = await authedFetch<{ decisions: string[]; events: string[]; tasks: string[] }>(
+      const res = await authedFetch<{ decisions: string[]; undecided: string[]; events: string[]; tasks: string[] }>(
         '/api/minutes/condense',
         {
           method: 'POST',
-          body: { target: 'right', mode: doc.value.mode, decisions: decisionLines, events: eventLines, tasks: taskLines, maxChars: rightMax },
+          body: {
+            target: 'right',
+            mode: doc.value.mode,
+            layout: doc.value.layout,
+            decisions: decisionLines,
+            undecided: undecidedLines,
+            events: eventLines,
+            tasks: taskLines,
+            maxChars: rightMax,
+          },
         }
       )
       printDecisionLines.value = res.decisions.map((main) => ({ main }))
+      printUndecidedLines.value = res.undecided.map((main) => ({ main }))
       printEventLines.value = res.events.map((main) => ({ main }))
       printTaskLines.value = res.tasks.map((main) => ({ main }))
     } catch {
       printDecisionLines.value = decisionLines
+      printUndecidedLines.value = undecidedLines
       printEventLines.value = eventLines
       printTaskLines.value = taskLines
     }
