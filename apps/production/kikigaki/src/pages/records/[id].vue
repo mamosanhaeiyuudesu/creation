@@ -84,10 +84,10 @@
               @click="togglePop('unclear')"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16.5v.01" /></svg>
-              不明点
+              {{ lb('unclearPoints') }}
               <span class="kk-badge">{{ minutes.unclearPoints.length }}</span>
             </button>
-            <div v-if="openPop === 'unclear'" class="kk-pop" role="dialog" aria-label="不明点">
+            <div v-if="openPop === 'unclear'" class="kk-pop" role="dialog" :aria-label="lb('unclearPoints')">
               <p class="kk-pop-title">AIが判断しきれなかったところ</p>
               <ul class="kk-pop-list">
                 <li v-for="(p, i) in minutes.unclearPoints" :key="i">{{ p }}</li>
@@ -209,7 +209,7 @@
               </ul>
               </div>
               <div class="kk-meta-tags">
-                <p class="kk-field-label mt-2">タグ<span class="kk-sec-count ml-1">{{ minutes.tags.length }}</span></p>
+                <p class="kk-field-label mt-2">{{ lb('tags') }}<span class="kk-sec-count ml-1">{{ minutes.tags.length }}</span></p>
                 <TagInput v-model="minutes.tags" :suggestions="tagSuggestions" />
               </div>
               </div>
@@ -257,8 +257,8 @@
           <template v-for="extra in col === 'right' ? rightExtras : []" :key="extra">
             <section v-if="extra === 'events'" class="kk-card kk-review-card">
               <div class="kk-sec-head">
-                <h2 class="kk-sec-title">次の予定<span class="kk-sec-count">{{ minutes.eventCandidates.length }}</span></h2>
-                <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${'次の予定'}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection('events', '次の予定')"><span v-if="sectionPdfBusy === 'events'" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
+                <h2 class="kk-sec-title">{{ lb('eventCandidates') }}<span class="kk-sec-count">{{ minutes.eventCandidates.length }}</span></h2>
+                <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${lb('eventCandidates')}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection('events', lb('eventCandidates'))"><span v-if="sectionPdfBusy === 'events'" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
               </div>
 
               <p v-if="!minutes.eventCandidates.length" class="kk-empty">見つかりませんでした。</p>
@@ -302,8 +302,8 @@
 
             <section v-else class="kk-card kk-review-card">
               <div class="kk-sec-head">
-                <h2 class="kk-sec-title">やること<span class="kk-sec-count">{{ minutes.taskCandidates.length }}</span></h2>
-                <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${'やること'}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection('tasks', 'やること')"><span v-if="sectionPdfBusy === 'tasks'" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
+                <h2 class="kk-sec-title">{{ lb('taskCandidates') }}<span class="kk-sec-count">{{ minutes.taskCandidates.length }}</span></h2>
+                <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${lb('taskCandidates')}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection('tasks', lb('taskCandidates'))"><span v-if="sectionPdfBusy === 'tasks'" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
               </div>
 
               <p v-if="!minutes.taskCandidates.length" class="kk-empty">見つかりませんでした。</p>
@@ -398,6 +398,7 @@
 <script setup lang="ts">
 import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
+import { minutesLabel, type LabelKey } from '~/config/minutesLabels'
 import { emptyMinutes, isLegacyMeeting, isNewTalk, MINUTES_MODES } from '~/types/minutes'
 import type { EventItem, Minutes, MinutesMode, MinutesRecord, SectionKind } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
@@ -572,27 +573,23 @@ const rightExtras = computed<('events' | 'tasks')[]>(() => {
 })
 
 /** まとめ方ごとの欄の名前（1人の話では「会議」と書かない） */
-const labels = computed(() =>
-  minutes.mode === 'talk'
+const lb = (key: LabelKey) => minutesLabel(key, minutes.mode)
+const labels = computed(() => ({
+  title: lb('title'),
+  date: lb('date'),
+  people: lb('participants'),
+  person: lb('participants'),
+  summary: lb('summary'),
+  ...(minutes.mode === 'talk'
     ? {
-        title: 'タイトル',
         titlePlaceholder: 'れい: 子育てについての講演',
-        date: '話した日',
-        people: '話し手',
-        person: '話し手',
-        summary: '話のまとめ',
         summaryPlaceholder: 'どんな話だったかのまとめ',
       }
     : {
-        title: '会議の名前',
         titlePlaceholder: 'れい: 青年部の定例会',
-        date: '会議をした日',
-        people: '会議の参加者',
-        person: '参加者',
-        summary: '会議のまとめ',
         summaryPlaceholder: '会議の流れのまとめ',
-      }
-)
+      }),
+}))
 
 /**
  * 「決まったこと」「話し合ったこと」（1人の話では「伝えたかったこと」「話の内容」）は同じ形なので、まとめて描く
@@ -603,15 +600,15 @@ const pointGroups = computed(() =>
         {
           key: 'keyMessages' as SectionKind,
           col: 'right',
-          label: '伝えたかったこと',
-          placeholder: '伝えたかったこと',
+          label: lb('keyMessages'),
+          placeholder: lb('keyMessages'),
           subLabel: '話の要旨',
           items: minutes.keyMessages,
         },
         {
           key: 'topics' as SectionKind,
           col: 'left',
-          label: '話の内容',
+          label: lb('topics'),
           placeholder: '話題',
           subLabel: '中身',
           items: minutes.topics,
@@ -621,8 +618,8 @@ const pointGroups = computed(() =>
         {
           key: 'decisions' as SectionKind,
           col: 'right',
-          label: 'この会で決まったこと',
-          placeholder: '決まったこと',
+          label: lb('decisions'),
+          placeholder: lb('decisions'),
           subLabel: '補足',
           items: minutes.decisions,
         },
@@ -632,8 +629,8 @@ const pointGroups = computed(() =>
               {
                 key: 'discussions' as SectionKind,
                 col: 'left',
-                label: '話し合ったこと',
-                placeholder: '話し合ったこと',
+                label: lb('discussions'),
+                placeholder: lb('discussions'),
                 subLabel: '補足',
                 items: minutes.discussions,
               },
@@ -642,7 +639,7 @@ const pointGroups = computed(() =>
               {
                 key: 'topics' as SectionKind,
                 col: 'left',
-                label: '話し合ったこと',
+                label: lb('topics'),
                 placeholder: '話題',
                 subLabel: '話した中身',
                 items: minutes.topics,

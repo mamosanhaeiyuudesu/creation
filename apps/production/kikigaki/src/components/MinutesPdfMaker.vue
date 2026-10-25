@@ -29,6 +29,7 @@
 </template>
 
 <script setup lang="ts">
+import { minutesLabel } from '~/config/minutesLabels'
 import { formatDateLabel } from '~/utils/formatDate'
 import { buildPrintBlocks, paginateBlocks } from '~/utils/printLines'
 import type { BlockSize, PrintBlock } from '~/utils/printLines'
@@ -48,7 +49,7 @@ const pages = ref<{ left: PrintBlock[]; right: PrintBlock[] }[]>([{ left: [], ri
 const headerInfo = computed(() => ({
   dateLabel: formatDateLabel(doc.value.date) || '日付が入っていません',
   title: doc.value.title || '（名前のない議事録）',
-  peopleLabel: doc.value.mode === 'talk' ? '話し手' : '参加者',
+  peopleLabel: minutesLabel('participants', doc.value.mode),
   people: doc.value.participants.map((p) => p.trim()).filter(Boolean).join('、'),
 }))
 

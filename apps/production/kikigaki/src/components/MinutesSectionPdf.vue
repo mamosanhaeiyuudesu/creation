@@ -7,7 +7,7 @@
         <p class="kk-sp-heading">{{ section.label }}</p>
         <p class="kk-sp-meta">
           {{ doc.title || '（名前のない議事録）' }}<template v-if="doc.date"> ・ {{ formatDateLabel(doc.date) }}</template>
-          <template v-if="people"> ・ {{ doc.mode === 'talk' ? '話し手' : '参加者' }}: {{ people }}</template>
+          <template v-if="people"> ・ {{ minutesLabel('participants', doc.mode) }}: {{ people }}</template>
         </p>
       </div>
 
@@ -29,6 +29,7 @@
 </template>
 
 <script setup lang="ts">
+import { minutesLabel } from '~/config/minutesLabels'
 import { formatDateLabel } from '~/utils/formatDate'
 import { emptyMinutes } from '~/types/minutes'
 import type { EventItem, Minutes, SectionKind } from '~/types/minutes'

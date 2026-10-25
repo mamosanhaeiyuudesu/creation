@@ -3,6 +3,7 @@
 // PDFはA4横。左右2列で、1枚に収まらない分は次のページの同じ列に続ける（縮小も要約もしない）。
 // 左右の列は別々に流れる（左が1枚で済んでも右が2枚目に続くことがある）。
 
+import { minutesLabel } from '~/config/minutesLabels'
 import { isLegacyMeeting, isNewTalk } from '~/types/minutes'
 import type { EventItem, Minutes } from '~/types/minutes'
 
@@ -49,6 +50,7 @@ function section(heading: string, lines: PrintLine[]): PrintBlock[] {
  */
 export function buildPrintBlocks(m: Minutes): { left: PrintBlock[]; right: PrintBlock[] } {
   const talk = m.mode === 'talk'
+  const L = (key: Parameters<typeof minutesLabel>[0]) => minutesLabel(key, m.mode)
   const legacyMeeting = isLegacyMeeting(m)
   const point = (d: { content: string; note: string }): PrintLine => ({ main: d.content, note: d.note })
 
@@ -60,10 +62,10 @@ export function buildPrintBlocks(m: Minutes): { left: PrintBlock[]; right: Print
   const leftPoints = talk || m.layout === 2 ? m.topics : m.discussions
   const left: PrintBlock[] = [
     { type: 'header' },
-    { type: 'heading', text: '概要' },
+    { type: 'heading', text: L('summary') },
     ...(summaryParas.length ? summaryParas.map((text): PrintBlock => ({ type: 'para', text })) : [{ type: 'empty' } as PrintBlock]),
     ...(leftPoints.length
-      ? [{ type: 'heading', text: talk ? '話の内容' : '話し合ったこと', sub: true } as PrintBlock, ...items(leftPoints.map(point))]
+      ? [{ type: 'heading', text: L('topics'), sub: true } as PrintBlock, ...items(leftPoints.map(point))]
       : []),
   ]
 
@@ -80,19 +82,19 @@ export function buildPrintBlocks(m: Minutes): { left: PrintBlock[]; right: Print
   let right: PrintBlock[]
   if (talk) {
     right = [
-      ...section('伝えたかったこと', m.keyMessages.map(point)),
-      ...(isNewTalk(m) ? section('やること', taskLines) : []),
+      ...section(L('keyMessages'), m.keyMessages.map(point)),
+      ...(isNewTalk(m) ? section(L('taskCandidates'), taskLines) : []),
     ]
   } else if (legacyMeeting) {
     right = [
-      ...section('決まったこと', m.decisions.map(point)),
-      ...section('次の予定', eventLines),
-      ...section('やること', taskLines),
+      ...section(L('decisions'), m.decisions.map(point)),
+      ...section(L('eventCandidates'), eventLines),
+      ...section(L('taskCandidates'), taskLines),
     ]
   } else {
     right = [
-      ...section('決まったこと', m.decisions.map(point)),
-      ...section('やること', taskLines),
+      ...section(L('decisions'), m.decisions.map(point)),
+      ...section(L('taskCandidates'), taskLines),
     ]
   }
   return { left, right }
