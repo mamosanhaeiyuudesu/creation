@@ -49,32 +49,12 @@
         </div>
       </section>
 
-      <!-- 受けたあとの変化: 実際の声の言葉をヒーロー直下に引用 -->
-      <section class="k2-quotes" aria-label="受けた方の声から">
-        <div class="k2-wrap">
-          <ul>
-            <li v-for="q in quotes" :key="q">{{ q }}</li>
-          </ul>
-        </div>
-      </section>
-
       <!-- メニュー・料金: 料金は基本の単発のみ。継続コース・特典は問い合わせで案内 -->
       <section id="menu" class="k2-section">
         <div class="k2-wrap">
           <p class="k2-label">MENU</p>
           <h2 class="k2-title">メニュー・料金</h2>
           <p class="k2-lead">迷われたら、ご相談いただければご提案します。</p>
-
-          <div class="k2-choose">
-            <p class="k2-choose-head">あなたに合うのは？</p>
-            <ul>
-              <li v-for="c in choose" :key="c.menu">
-                <span class="k2-choose-when">{{ c.when }}</span>
-                <span class="k2-choose-arrow" aria-hidden="true">→</span>
-                <strong>{{ c.menu }}</strong>
-              </li>
-            </ul>
-          </div>
 
           <div class="k2-grid-3">
             <article v-for="m in menus" :key="m.title" class="k2-card k2-menu">
@@ -126,22 +106,6 @@
         </div>
       </section>
 
-      <!-- 大切にしていること: 旧「セラピーのスタイル」と「在り方」の要点 -->
-      <section id="style" class="k2-section k2-section-tint">
-        <div class="k2-wrap">
-          <p class="k2-label">STYLE</p>
-          <h2 class="k2-title">大切にしていること</h2>
-
-          <div class="k2-grid-3">
-            <div v-for="p in policies" :key="p.title" class="k2-card k2-policy">
-              <span class="k2-policy-num">{{ p.num }}</span>
-              <h3>{{ p.title }}</h3>
-              <p>{{ p.body }}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <!-- お客様の声: 短いものは除き3人。見出し＋要点に絞る -->
       <section id="voices" class="k2-section k2-section-tint">
         <div class="k2-wrap">
@@ -168,7 +132,7 @@
         </div>
       </section>
 
-      <!-- プロフィール: kaito の長い語りを見出し4つ・各2〜3行に絞った -->
+      <!-- プロフィール: kaito の長い語りを見出し4つ・各2〜3行に絞り、最後に「大切にしていること」を添えた -->
       <section id="about" class="k2-section">
         <div class="k2-wrap k2-wrap-narrow">
           <p class="k2-label">PROFILE</p>
@@ -179,6 +143,19 @@
               <h3>{{ a.title }}</h3>
               <p v-if="a.quote" class="k2-quote">{{ a.quote }}</p>
               <p>{{ a.body }}</p>
+            </div>
+
+            <div class="k2-about-block k2-about-policy">
+              <h3>大切にしていること</h3>
+              <ol>
+                <li v-for="p in policies" :key="p.title">
+                  <span class="k2-policy-num">{{ p.num }}</span>
+                  <div>
+                    <strong>{{ p.title }}</strong>
+                    <p>{{ p.body }}</p>
+                  </div>
+                </li>
+              </ol>
             </div>
           </div>
         </div>
@@ -242,24 +219,12 @@
 import { site } from '~/config/site'
 
 const heroValues = [
-  { icon: 'shell', title: '気持ちが整理される', body: 'もやもやを話すうちに、「私、こんなこと思ってたんだ」と本音が見えてきます。' },
-  { icon: 'wave', title: 'くり返す悩みの根っこに触れる', body: '我慢や思い込みをほどき、同じ悩みをくり返しにくくなる方もいます。' },
+  { icon: 'shell', title: '気持ちが整理される', body: 'もやもやした思いを話すうちに、「私、こんなこと思ってたんだ」と本音が見えてきます。' },
+  { icon: 'wave', title: 'くり返す悩みの根っこに触れる', body: '我慢や思い込みが解きほぐされ、同じ悩みをくり返さなくなります。' },
   { icon: 'sun', title: '心と身体がゆるむ', body: '横になって受けるだけ。終わったあと、受け取ったメッセージやビジョンをお伝えします。' },
 ] as const
 
 const chips = ['60分', '初回モニター 5,000円', '1回だけでもOK', '秘密厳守']
-
-const quotes = [
-  '「翌朝には、前日より気持ちが楽になっていました」',
-  '「今は心も身体も軽くスッキリしています」',
-  '「肩の力が抜けて、価値観が書き変わってきているのを感じます」',
-]
-
-const choose = [
-  { when: '誰かに話して整理したい', menu: 'おしゃべりカウンセリング' },
-  { when: '同じ悩みや人間関係をくり返す', menu: 'ブロック解放セラピー' },
-  { when: '話す元気もない、まず休みたい', menu: 'ヒーリング' },
-]
 
 const worries = [
   {

@@ -10,19 +10,19 @@ import type { H3Event } from 'h3'
 import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
 import { normalizeMinutes } from '~/server/utils/minutes'
 import { jstToday } from '~/utils/formatDate'
-import type { Minutes, MinutesLayout, MinutesMode, MinutesPoint } from '~/types/minutes'
+import type { Minutes, MinutesLayout, MinutesMode } from '~/types/minutes'
 
 const MAX_TOKENS = 8000
 
 /**
  * 構造化のシステムプロンプト。
  *
- * task_candidates の due_date は、原文の表現（"来月中に"）と確定した日付を別々に持つための欄。
- * 原文側（due）は必ずそのまま残す（カレンダー登録の機能は持っていないが、PDFで確定日付を優先表示するのに使う）。
+ * task_candidates の due_date / event_candidates の start・end は、原文の表現（"来月中に"）と
+ * 確定した日時を別々に持つための欄。原文側は必ずそのまま残す
+ * （カレンダー登録の機能は持っていないが、PDFで確定日時を優先表示するのに使う）。
  *
- * 左＝概要＋話し合ったこと（topics）、右＝決まったこと・決まっていないこと・やること、という並べ方（layout 2）。
+ * 左＝概要＋話し合ったこと（topics）、右＝決まったこと・決まっていないこと・やること・次の予定（最後）、という並べ方（layout 2）。
  * 同じ内容を複数の欄に書かせない（決定がそのまま作業なら「やること」だけ）のがこのプロンプトの肝。
- * 次の予定は専用の欄を持たず、概要の末尾に【次の予定】として書かせる。
  */
 function buildMeetingSystemPrompt(today: string): string {
   return `あなたは会議・打ち合わせなどの記録を構造化するアシスタントです。
@@ -38,9 +38,6 @@ function buildMeetingSystemPrompt(today: string): string {
   【背景】【話し合いの流れ】【結論・まとめ】のような見出しを立てて章立てした文章にすること
   （内容に応じて見出しの数や名前を変えてよい。別項目に抽出する内容をここでも一字一句書き写す必要はなく、
   経緯や背景の説明に重点を置くこと）。
-- 次回の会議や行事など、日時が文字起こし内に明示された「次の予定」があるときは、最後に【次の予定】の見出しを立てて、
-  日時・内容・場所を書くこと。日時は原文の表現のまま書き、「来月中」のように曖昧なものを具体的な日付に直さないこと。
-  該当するものが無ければ【次の予定】の見出しごと書かないこと（「予定なし」とも書かない）。
 - 見出しは「【見出し】」の形式で書き、見出しと見出しの間は改行で区切ること。
 - 全角・半角を問わず1000文字以内に収めること。
 
@@ -58,14 +55,17 @@ function buildMeetingSystemPrompt(today: string): string {
   決定事項と未決の切り分けに迷う場合は、断定を避け未決の側に入れること。
 - 「やること(task_candidates)」は「誰が」「何を」「いつまでに」が文字起こし内で分かる場合のみ抽出する。
   主語が不明な場合は担当を「[不明瞭]」とする。
+- 「次の予定(event_candidates)」は、次回の会議や行事など、「日時」が文字起こし内に明示されている場合のみ抽出する。
+  曖昧な時期表現(「来月中に」など)は日付を確定させず、原文の表現をそのまま残す。
+  作業の期限は「やること」に入れ、ここには入れない。
 
 【日付の確定について】
 - この文章を取り込んだ日は ${today}（日本時間）である。
 - 「来週の火曜日」のように、この日を基準にすれば一意に定まる表現に限り、
-  due_date を YYYY-MM-DD 形式で埋めてよい。
+  due_date / start / end を YYYY-MM-DD、YYYY-MM-DDTHH:mm 形式で埋めてよい。
 - 少しでも曖昧な場合（「来月中に」「そのうち」「都合のいい日に」など）は、
-  due_date を空文字 "" のままにすること。迷ったら必ず空にする。
-- due には常に原文の表現をそのまま入れること（空にしない）。
+  due_date / start / end を空文字 "" のままにすること。迷ったら必ず空にする。
+- due / datetime には常に原文の表現をそのまま入れること（空にしない）。
 
 【出力形式】
 以下のJSON形式のみを出力すること。前置きや説明文、Markdownのコードフェンスは一切含めないこと。
@@ -79,6 +79,7 @@ function buildMeetingSystemPrompt(today: string): string {
   "decisions": [{ "content": "", "note": "" }],
   "undecided": [{ "content": "", "note": "" }],
   "task_candidates": [{ "assignee": "", "task": "", "due": "", "due_date": "" }],
+  "event_candidates": [{ "datetime": "", "title": "", "location": "", "start": "", "end": "" }],
   "unclear_points": [""]
 }
 
@@ -93,7 +94,8 @@ function buildMeetingSystemPrompt(today: string): string {
 /**
  * 「主に1人が話した」記録（講演・インタビュー・カウンセリングなど）の構造化のシステムプロンプト。
  *
- * 会議と違い「決まったこと」「やること」は拾わず、その人が伝えたかったことと話の中身を重点的に残す。
+ * 会議と違い「決まったこと」「やること」は拾わず、その人が伝えたかったこと・印象に残った言葉・話の中身を重点的に残す
+ * （次の予定だけは、次回の日程などが出たときに拾う）。
  * カウンセリングも対象なので、AIの評価・診断・助言を足さないことを創作の禁止と同じ重さで書いている。
  */
 function buildTalkSystemPrompt(today: string): string {
@@ -131,6 +133,19 @@ function buildTalkSystemPrompt(today: string): string {
 - topics（話の内容）は、話した順に話題ごとに区切る。
   content に話題の短い見出しを、note にその話題で話した中身（エピソード・例・理由など）を書く。
   話の中身をできるだけ漏らさないことを優先し、1件の note が長くなってもよい。
+- quotes（印象に残った言葉）は、話し手の言葉をそのまま引用する欄。3〜5件程度。
+  content に話し手が実際に言った言葉を、言い換えず原文のまま短く書く（長い発言は印象的な一文だけを抜き出す）。
+  note にはその言葉が出た場面を一言で書く（任意。無ければ空）。
+  「印象に残った」かどうかの判断は、話し手が繰り返した・強調した・具体的な例えで語った言葉を基準にし、
+  聞き手の感想や評価を混ぜないこと。
+- event_candidates（次の予定）は、次回の日程や行事など、「日時」が文字起こし内に明示されている場合のみ抽出する。
+  曖昧な時期表現(「来月中に」など)は日付を確定させず、原文の表現をそのまま残す。
+  話し手が「やりたい」と語った願望や、聞き手への助言は予定ではないので入れないこと。
+
+【日付の確定について】
+- 「来週の火曜日」のように、取り込んだ日を基準にすれば一意に定まる表現に限り、
+  start / end を YYYY-MM-DD、YYYY-MM-DDTHH:mm 形式で埋めてよい。
+  少しでも曖昧な場合は空文字 "" のままにし、datetime には常に原文の表現をそのまま入れること。
 
 【出力形式】
 以下のJSON形式のみを出力すること。前置きや説明文、Markdownのコードフェンスは一切含めないこと。
@@ -142,6 +157,8 @@ function buildTalkSystemPrompt(today: string): string {
   "summary": "",
   "key_messages": [{ "content": "", "note": "" }],
   "topics": [{ "content": "", "note": "" }],
+  "quotes": [{ "content": "", "note": "" }],
+  "event_candidates": [{ "datetime": "", "title": "", "location": "", "start": "", "end": "" }],
   "unclear_points": [""]
 }
 
@@ -186,12 +203,7 @@ function buildReviseSystemPrompt(mode: MinutesMode, layout: MinutesLayout, today
 【概要(summary)について】
 - summaryは【見出し】形式で章立てされ、全角・半角問わず1000文字以内に収まっているはずである。
   指示がsummaryの内容に関わるものであっても、この章立てと文字数の制約は維持すること
-  （指示が明示的に長さや形式の変更を求めている場合を除く）。${
-    layout === 2 && mode === 'meeting'
-      ? `
-- summaryの最後に【次の予定】の見出しがあれば、指示に関わらない限りそのまま残すこと（日時は原文の表現のまま）。`
-      : ''
-  }
+  （指示が明示的に長さや形式の変更を求めている場合を除く）。
 
 【参考情報】
 - 文字起こし全文（照合用）と、現在の記録JSONを渡す。指示の実行にあたって事実確認が必要な場合は
@@ -201,7 +213,7 @@ function buildReviseSystemPrompt(mode: MinutesMode, layout: MinutesLayout, today
 【出力形式】
 現在の記録と同じ構造のJSONのみを出力すること。前置きや説明文、Markdownのコードフェンスは一切含めないこと。
 
-${mode === 'talk' ? TALK_JSON_SHAPE : layout === 2 ? MEETING_JSON_SHAPE : LEGACY_MEETING_JSON_SHAPE}`
+${jsonShape(mode, layout)}`
 }
 
 const MEETING_JSON_SHAPE = `{
@@ -213,6 +225,7 @@ const MEETING_JSON_SHAPE = `{
   "decisions": [{ "content": "", "note": "" }],
   "undecided": [{ "content": "", "note": "" }],
   "task_candidates": [{ "assignee": "", "task": "", "due": "", "due_date": "" }],
+  "event_candidates": [{ "datetime": "", "title": "", "location": "", "start": "", "end": "" }],
   "unclear_points": [""]
 }`
 
@@ -236,10 +249,28 @@ const TALK_JSON_SHAPE = `{
   "summary": "",
   "key_messages": [{ "content": "", "note": "" }],
   "topics": [{ "content": "", "note": "" }],
+  "quotes": [{ "content": "", "note": "" }],
+  "event_candidates": [{ "datetime": "", "title": "", "location": "", "start": "", "end": "" }],
   "unclear_points": [""]
 }`
 
-/** AIへ渡す・AIから受け取るJSONの形（まとめ方ごとに持つ項目が違う） */
+/** layout 1（古い記録）の聞き取り。印象に残った言葉・次の予定を持たない */
+const LEGACY_TALK_JSON_SHAPE = `{
+  "title": "",
+  "date": "",
+  "speakers": [""],
+  "summary": "",
+  "key_messages": [{ "content": "", "note": "" }],
+  "topics": [{ "content": "", "note": "" }],
+  "unclear_points": [""]
+}`
+
+function jsonShape(mode: MinutesMode, layout: MinutesLayout): string {
+  if (mode === 'talk') return layout === 2 ? TALK_JSON_SHAPE : LEGACY_TALK_JSON_SHAPE
+  return layout === 2 ? MEETING_JSON_SHAPE : LEGACY_MEETING_JSON_SHAPE
+}
+
+/** AIへ渡す・AIから受け取るJSONの形（まとめ方・並べ方の版ごとに持つ項目が違う） */
 function toAiJson(m: Minutes): Record<string, unknown> {
   if (m.mode === 'talk') {
     return {
@@ -249,6 +280,7 @@ function toAiJson(m: Minutes): Record<string, unknown> {
       summary: m.summary,
       key_messages: m.keyMessages,
       topics: m.topics,
+      ...(m.layout === 2 ? { quotes: m.quotes, event_candidates: m.eventCandidates } : {}),
       unclear_points: m.unclearPoints,
     }
   }
@@ -274,6 +306,7 @@ function toAiJson(m: Minutes): Record<string, unknown> {
     decisions: m.decisions,
     undecided: m.discussions,
     task_candidates: m.taskCandidates,
+    event_candidates: m.eventCandidates,
     unclear_points: m.unclearPoints,
   }
 }
@@ -295,12 +328,16 @@ function fromAiJson(parsed: any, mode: MinutesMode, layout: MinutesLayout): Minu
     m.decisions = []
     m.discussions = []
     m.taskCandidates = []
-    m.eventCandidates = []
+    // 印象に残った言葉・次の予定は layout 2 の聞き取りだけ（layout 1 の古い記録には欄が無い）
+    if (layout !== 2) {
+      m.quotes = []
+      m.eventCandidates = []
+    }
   } else {
     m.keyMessages = []
-    // 次の予定は layout 2 では概要に書く（欄を持たない）。話し合ったこと(topics)は layout 1 には無い
-    if (layout === 2) m.eventCandidates = []
-    else m.topics = []
+    m.quotes = []
+    // 話し合ったこと(topics)は layout 2 の会議だけ。layout 1 では discussions が左に出る
+    if (layout !== 2) m.topics = []
   }
   return m
 }
@@ -361,135 +398,4 @@ export async function reviseMinutes(
   if (!parsed) jsonError()
   // 直すだけなので並べ方は変えない（古い議事録は古いまま。作り直すと新しい並べ方になる）
   return fromAiJson(parsed, minutes.mode, minutes.layout)
-}
-
-/** PDF用の要約入力。表示用に整形済みの1行（本文＋任意の補足）の配列で渡す */
-export interface PrintLineInput {
-  main: string
-  note?: string
-}
-
-function formatPrintLines(lines: PrintLineInput[]): string {
-  if (!lines.length) return '（なし）'
-  return lines.map((l, i) => `${i + 1}. ${l.main}${l.note ? `（${l.note}）` : ''}`).join('\n')
-}
-
-/**
- * PDF左側「概要」用。概要と、その下に並べる項目（会議＝話し合ったこと、1人の話＝話の内容）を、
- * 指定の文字数に収まる1つの文章に要約し直す。
- * 文字数内ならAIを呼ばずにそのまま表示する（呼び出し側の判断）ので、これは超過時のみ使う。
- */
-export async function condensePrintLeft(
-  event: H3Event,
-  input: { mode: MinutesMode; layout: MinutesLayout; summary: string; points: MinutesPoint[] },
-  maxChars: number
-): Promise<string> {
-  const talk = input.mode === 'talk'
-  // layout 1 の会議だけ、ここに並ぶのが「検討事項（決まっていないこと）」。layout 2 は話し合ったこと全体
-  const pointsLabel = talk ? '話の内容' : input.layout === 2 ? '話し合ったこと' : '検討事項'
-  const headings = talk ? '【テーマ】【話の流れ】【伝えたかったこと】' : '【背景】【話し合いの流れ】【結論・まとめ】'
-  // 概要の末尾の【次の予定】は日時が命なので、削らず・丸めずに残させる
-  const keepEvents =
-    !talk && input.layout === 2
-      ? '\n- 概要に【次の予定】の見出しがあるときは、最後の見出しとして必ず残し、日時・場所は原文の表現のまま書くこと（短くしてよいのは言い回しだけ）。'
-      : ''
-  const system = `あなたは${talk ? '話の記録' : '会議'}の概要文をPDFの決まった枠に収めるための編集者です。
-以下のルールを厳守してください。
-- 与えられた「概要」と「${pointsLabel}」に書かれていない情報を追加しないこと。推測や創作は禁止。${
-    talk ? '\n- 話し手の話への分析・評価・助言を足さないこと。話し手の言い回しはできるだけ残すこと。' : ''
-  }${keepEvents}
-- 概要と${pointsLabel}の内容を、【見出し】形式の見出しを立てて章立てした文章としてまとめ直すこと
-  （${headings}など、内容に応じた見出しでよい。見出しの間は改行で区切る）。
-- 全角・半角を問わず${maxChars}文字以内に収めること。超えてはならない。
-- 前置きや説明、Markdown記法は一切含めず、まとめた文章のみを出力すること。`
-
-  const userText = `概要:\n${input.summary || '（なし）'}\n\n${pointsLabel}:\n${formatPrintLines(
-    input.points.map((d) => ({ main: d.content, note: d.note }))
-  )}`
-
-  const raw = await callClaudeText(event, {
-    system,
-    messages: [{ role: 'user', content: userText }],
-    maxTokens: 2000,
-  })
-  // 万一AIが文字数を超えて返しても、PDFのレイアウトが壊れないよう最後の保険として切る。
-  return raw.trim().slice(0, maxChars * 2)
-}
-
-/**
- * PDF右側用。会議（layout 2）＝決まったこと・決まっていないこと・やること、
- * 会議（layout 1）＝決定事項・予定・タスク、1人の話＝伝えたかったこと（decisions に入れて渡す）。
- * 区分ごとの件数は変えず、言い回しだけを短縮して合計が指定の文字数に収まるように要約し直す。
- * 件数が減る/増えるとPDFの表示と食い違うため、返ってきた配列の件数が入力と違う区分は、
- * 要約を諦めて元の表示文字列にフォールバックする。
- */
-export async function condensePrintRight(
-  event: H3Event,
-  input: {
-    mode: MinutesMode
-    layout: MinutesLayout
-    decisions: PrintLineInput[]
-    undecided: PrintLineInput[]
-    events: PrintLineInput[]
-    tasks: PrintLineInput[]
-  },
-  maxChars: number
-): Promise<{ decisions: string[]; undecided: string[]; events: string[]; tasks: string[] }> {
-  const talk = input.mode === 'talk'
-  // 要約させる区分（キー・呼び名・元の行）。使わない区分は空配列のまま返す
-  const sections: { key: 'decisions' | 'undecided' | 'events' | 'tasks'; label: string; lines: PrintLineInput[] }[] = talk
-    ? [{ key: 'decisions', label: '伝えたかったこと', lines: input.decisions }]
-    : input.layout === 2
-      ? [
-          { key: 'decisions', label: '決まったこと', lines: input.decisions },
-          { key: 'undecided', label: '決まっていないこと', lines: input.undecided },
-          { key: 'tasks', label: 'やること', lines: input.tasks },
-        ]
-      : [
-          { key: 'decisions', label: '決定事項', lines: input.decisions },
-          { key: 'events', label: '予定', lines: input.events },
-          { key: 'tasks', label: 'タスク', lines: input.tasks },
-        ]
-
-  const shape = `{ ${sections.map((sec) => `"${sec.key}": [""]`).join(', ')} }`
-  const system = talk
-    ? `あなたは話し手が伝えたかったことの一覧をPDFの決まった枠に収めるための編集者です。
-以下のルールを厳守してください。
-- 書かれていない情報を追加しないこと。推測や創作、分析・評価・助言は禁止。
-- 各項目の言い回しを簡潔にするだけで、項目数は変えない（削除も追加もしない）こと。話し手の言い回しはできるだけ残すこと。
-- 合計して、全角・半角を問わず${maxChars}文字以内に収めること。
-- 出力は以下のJSON形式のみ。前置きや説明、Markdown記法は一切含めないこと。
-
-${shape}`
-    : `あなたは会議の${sections.map((sec) => sec.label).join('・')}をPDFの決まった枠に収めるための編集者です。
-以下のルールを厳守してください。
-- 書かれていない情報を追加しないこと。推測や創作は禁止。
-- 各項目の言い回しを簡潔にするだけで、区分ごとの項目数は変えない（削除も追加もしない）こと。
-- ${sections.map((sec) => sec.label).join('・')}を合計して、全角・半角を問わず${maxChars}文字以内に収めること。
-- 出力は以下のJSON形式のみ。前置きや説明、Markdown記法は一切含めないこと。
-
-${shape}`
-
-  const userText = sections.map((sec) => `${sec.label}（${sec.key}）:\n${formatPrintLines(sec.lines)}`).join('\n\n')
-
-  const raw = await callClaudeText(event, {
-    system,
-    messages: [{ role: 'user', content: userText }],
-    maxTokens: 2000,
-  })
-  const parsed = parseJsonLoose<any>(raw)
-  if (!parsed) jsonError()
-
-  const fallback = (lines: PrintLineInput[]) => lines.map((l) => (l.note ? `${l.main}（${l.note}）` : l.main))
-  const pick = (v: unknown, original: PrintLineInput[]): string[] => {
-    const list = Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []
-    return list.length === original.length ? (list as string[]) : fallback(original)
-  }
-
-  return {
-    decisions: pick(parsed.decisions, input.decisions),
-    undecided: pick(parsed.undecided, input.undecided),
-    events: pick(parsed.events, input.events),
-    tasks: pick(parsed.tasks, input.tasks),
-  }
 }

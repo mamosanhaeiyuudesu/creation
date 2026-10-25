@@ -1,6 +1,6 @@
 <template>
   <!-- 確認画面の各セクションだけをPDFにする（A4縦）。画面には出さず、html2canvas で撮ってPDFにする。
-       1枚目の「全体のPDF」（MinutesPdfMaker）と違い、AIの要約は通さず全文を載せ、長ければ2枚目以降に続ける。 -->
+       「全体のPDF」（MinutesPdfMaker、A4横の左右2列）と違い、1つの欄だけをA4縦に全文載せ、長ければ2枚目以降に続ける。 -->
   <div ref="printRoot" class="kk-sp" aria-hidden="true">
     <template v-if="section">
       <div data-block class="kk-sp-head">
@@ -57,6 +57,7 @@ const lines = computed<Line[]>(() => {
     case 'discussions':
     case 'keyMessages':
     case 'topics':
+    case 'quotes':
       return d[section.value.kind].map((p) => ({ main: p.content, note: p.note }))
     case 'events':
       return d.eventCandidates.map((ev) => ({

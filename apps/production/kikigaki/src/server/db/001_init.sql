@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS stripe_events (
   received_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- ※ 2026-10-25 から使っていない。PDFの文字数を利用者が選ぶ設定をやめ、2000字固定にした（utils/printBudget.ts の PDF_MAX_CHARS）。
+-- ※ 2026-10-25 から使っていない。PDFの文字数を利用者が選ぶ設定をやめた（PDFは文字数で縮めず、収まらない分は次のページに続ける。utils/printLines.ts）。
 --   既存の行が残っていても害はなく、退会時の削除対象（server/utils/account.ts）には入れたままにしてある。
 -- 利用者ごとの設定（以前は左メニューの設定欄で変えていた）。
 -- 2026-10-16 に追加。CREATE TABLE IF NOT EXISTS なので、このファイルを流し直しても既存の表は壊れない

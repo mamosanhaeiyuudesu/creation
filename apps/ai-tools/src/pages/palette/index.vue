@@ -56,7 +56,7 @@
 
         <!-- LoRA（右上の「LoRA を管理」で登録したものから選ぶ） -->
         <section class="pl-card">
-          <ParamField label="LoRA" help="絵柄や特定の人物・物を覚えさせた追加の学習データです。使うものにチェックを入れ、強さを決めます。強さは高いほど LoRA の特徴が強く出ます。出すぎて絵が崩れるときは 0.6〜0.8 に下げます。複数の重ねがけもできます。">
+          <ParamField label="LoRA" help="絵柄や人物などを覚えさせた追加データです。使うものを選び、強さを決めます。高いほど特徴が強く出て、崩れるときは 0.6〜0.8 に下げます。">
             <p v-if="!loras.length" class="text-[13px] text-[var(--pl-ink-soft)]">LoRA なしで生成します。使うときは、右上の「LoRA を管理」で登録してください。</p>
             <ul v-else class="space-y-2">
               <li v-for="l in loras" :key="l.id" class="rounded-lg border p-2.5" :class="selected[l.id]?.on ? 'border-[var(--pl-teal)] bg-[var(--pl-teal-soft)]' : 'border-[var(--pl-line)] bg-white'">

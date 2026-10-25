@@ -100,6 +100,7 @@ export function normalizeMinutes(raw: any): Minutes {
     discussions: normalizePoints(raw.discussions),
     keyMessages: normalizePoints(raw.keyMessages ?? raw.key_messages),
     topics: normalizePoints(raw.topics),
+    quotes: normalizePoints(raw.quotes),
     taskCandidates: normalizeTasks(raw.taskCandidates ?? raw.task_candidates),
     eventCandidates: normalizeEvents(raw.eventCandidates ?? raw.event_candidates),
     unclearPoints: arr(raw.unclearPoints ?? raw.unclear_points).map(str).filter(Boolean),

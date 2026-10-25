@@ -433,66 +433,6 @@ body:has(.k2) {
   border-radius: var(--k2-radius-pill);
 }
 
-/* 声の引用帯 */
-.k2-quotes {
-  background: var(--k2-main);
-  color: #fff;
-  padding: 26px 0;
-}
-
-.k2-quotes ul {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-.k2-quotes li {
-  font-family: var(--k2-font-heading);
-  letter-spacing: var(--k2-heading-spacing);
-  font-weight: 700;
-  font-size: 15px;
-  line-height: 1.7;
-  text-align: center;
-}
-
-/* メニューの選び方 */
-.k2-choose {
-  margin: 32px auto 0;
-  max-width: 760px;
-  background: var(--k2-surface);
-  border-radius: var(--k2-radius);
-  padding: 22px 26px;
-  box-shadow: var(--k2-shadow);
-}
-
-.k2-choose-head {
-  font-family: var(--k2-font-heading);
-  letter-spacing: var(--k2-heading-spacing);
-  font-weight: 700;
-  color: var(--k2-main-deep);
-  margin-bottom: 8px;
-}
-
-.k2-choose li {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 12px;
-  align-items: center;
-  padding: 10px 0;
-  border-top: 1px dashed var(--k2-line);
-  font-size: 15px;
-}
-
-.k2-choose-arrow {
-  color: var(--k2-accent);
-  font-weight: 700;
-}
-
-.k2-choose strong {
-  font-family: var(--k2-font-heading);
-  letter-spacing: var(--k2-heading-spacing);
-}
-
 /* ===== Icon / Avatar ===== */
 
 .k2-icon {
@@ -594,19 +534,35 @@ body:has(.k2) {
   margin-bottom: 4px;
 }
 
-/* 大切にしていること */
+/* 大切にしていること（プロフィール内） */
+.k2-about-policy ol {
+  margin-top: 14px;
+  display: grid;
+  gap: 14px;
+}
+
+.k2-about-policy li {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+}
+
 .k2-policy-num {
   font-family: var(--k2-font-heading);
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--k2-main);
   line-height: 1;
 }
 
-.k2-policy p {
-  margin-top: 10px;
+.k2-about-policy strong {
+  font-family: var(--k2-font-heading);
+  letter-spacing: var(--k2-heading-spacing);
+}
+
+.k2-about-policy li p {
+  margin-top: 2px;
   font-size: 15px;
-  color: var(--k2-text-sub);
 }
 
 /* メニュー */
@@ -1019,13 +975,8 @@ body:has(.k2) {
   }
 
   .k2-hero-inner,
-  .k2-grid-3,
-  .k2-quotes ul {
+  .k2-grid-3 {
     grid-template-columns: 1fr;
-  }
-
-  .k2-quotes ul {
-    gap: 10px;
   }
 
   .k2-hero-inner {
@@ -1052,20 +1003,6 @@ body:has(.k2) {
 
   .k2-price-row {
     grid-template-columns: 1fr;
-  }
-
-  .k2-choose li {
-    grid-template-columns: 1fr;
-    gap: 2px;
-  }
-
-  .k2-choose-arrow {
-    display: none;
-  }
-
-  .k2-choose strong::before {
-    content: '→ ';
-    color: var(--k2-accent);
   }
 
   .k2-hero-cta .k2-btn {

@@ -57,10 +57,6 @@
             </div>
             <!-- 自動保存の状態。直してから少し待つと自動で保存される -->
             <span class="kk-autosave" :class="`is-${autoState}`" role="status" aria-live="polite">{{ autoLabel }}</span>
-            <!-- PDFの文字数。PDFを作るときと同じ数え方。目安を超えると、PDFではAIが短くまとめる（ここの内容は変わらない） -->
-            <span class="kk-pdfcount" :class="{ 'is-over': pdfOver }" :title="pdfCountTitle">
-              PDF {{ pdfCounts.total.toLocaleString() }} / {{ PDF_MAX_CHARS.toLocaleString() }}字<template v-if="pdfOver">（超過）</template>
-            </span>
           </div>
         </div>
 
@@ -257,12 +253,12 @@
             <button type="button" class="kk-add-row" aria-label="追加" title="追加" @click="group.items.push({ content: '', note: '' })"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
           </section>
 
-          <!-- 右だけ: つぎの予定（古い議事録だけ。新しい会議は概要の末尾に書く）・やること（会議のときだけ。1人の話では拾わない） -->
-          <template v-if="col === 'right' && minutes.mode === 'meeting'">
-            <section v-if="legacyMeeting" class="kk-card kk-review-card">
+          <!-- 右だけ: 次の予定・やること（並びは rightExtras。やることは会議のときだけ。次の予定は会議と新しい並べ方の聞き取り） -->
+          <template v-for="extra in col === 'right' ? rightExtras : []" :key="extra">
+            <section v-if="extra === 'events'" class="kk-card kk-review-card">
               <div class="kk-sec-head">
-                <h2 class="kk-sec-title">つぎの予定<span class="kk-sec-count">{{ minutes.eventCandidates.length }}</span></h2>
-                <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${'つぎの予定'}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection('events', 'つぎの予定')"><span v-if="sectionPdfBusy === 'events'" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
+                <h2 class="kk-sec-title">次の予定<span class="kk-sec-count">{{ minutes.eventCandidates.length }}</span></h2>
+                <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${'次の予定'}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection('events', '次の予定')"><span v-if="sectionPdfBusy === 'events'" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
               </div>
 
               <p v-if="!minutes.eventCandidates.length" class="kk-empty">見つかりませんでした。</p>
@@ -304,7 +300,7 @@
               <button type="button" class="kk-add-row" aria-label="追加" title="追加" @click="addEvent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
             </section>
 
-            <section class="kk-card kk-review-card">
+            <section v-else class="kk-card kk-review-card">
               <div class="kk-sec-head">
                 <h2 class="kk-sec-title">やること<span class="kk-sec-count">{{ minutes.taskCandidates.length }}</span></h2>
                 <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${'やること'}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection('tasks', 'やること')"><span v-if="sectionPdfBusy === 'tasks'" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
@@ -402,8 +398,7 @@
 <script setup lang="ts">
 import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
-import { emptyMinutes, isLegacyMeeting, MINUTES_MODES } from '~/types/minutes'
-import { PDF_MAX_CHARS, printCharCounts } from '~/utils/printBudget'
+import { emptyMinutes, isLegacyMeeting, isNewTalk, MINUTES_MODES } from '~/types/minutes'
 import type { EventItem, Minutes, MinutesMode, MinutesRecord, SectionKind } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
 import type MinutesSectionPdfType from '~/components/MinutesSectionPdf.vue'
@@ -564,8 +559,17 @@ function confirmRemoveRow() {
 /** 画面で編集している議事録。保存・PDFともこれをもとに行う */
 const minutes = reactive<Minutes>(emptyMinutes())
 
-/** 古い並べ方の会議か（次の予定を別の欄で持っている。作り直すと新しい並べ方になる） */
+/** 古い並べ方の会議か（右の真ん中に次の予定がある。作り直すと新しい並べ方になる） */
 const legacyMeeting = computed(() => isLegacyMeeting(minutes))
+
+/**
+ * 右の列で、グループ（決まったこと など）の下に並べる欄の順。
+ * 会議＝やること・次の予定（古い会議は 次の予定・やること）、聞き取り（新しい並べ方）＝次の予定。
+ */
+const rightExtras = computed<('events' | 'tasks')[]>(() => {
+  if (minutes.mode === 'talk') return isNewTalk(minutes) ? ['events'] : []
+  return legacyMeeting.value ? ['events', 'tasks'] : ['tasks', 'events']
+})
 
 /** まとめ方ごとの欄の名前（1人の話では「会議」と書かない） */
 const labels = computed(() =>
@@ -586,7 +590,7 @@ const labels = computed(() =>
         people: '会議の参加者',
         person: '参加者',
         summary: '会議のまとめ',
-        summaryPlaceholder: legacyMeeting.value ? '会議の流れのまとめ' : '会議の流れと、次の予定のまとめ',
+        summaryPlaceholder: '会議の流れのまとめ',
       }
 )
 
@@ -604,6 +608,18 @@ const pointGroups = computed(() =>
           subLabel: '話の要旨',
           items: minutes.keyMessages,
         },
+        ...(isNewTalk(minutes)
+          ? [
+              {
+                key: 'quotes' as SectionKind,
+                col: 'right',
+                label: '印象に残った言葉',
+                placeholder: '話し手の言葉をそのまま',
+                subLabel: 'どんな場面の言葉か',
+                items: minutes.quotes,
+              },
+            ]
+          : []),
         {
           key: 'topics' as SectionKind,
           col: 'left',
@@ -667,6 +683,7 @@ function applyMinutes(src: Minutes) {
   minutes.discussions = src.discussions.map((d) => ({ ...d }))
   minutes.keyMessages = src.keyMessages.map((d) => ({ ...d }))
   minutes.topics = src.topics.map((d) => ({ ...d }))
+  minutes.quotes = src.quotes.map((d) => ({ ...d }))
   minutes.taskCandidates = src.taskCandidates.map((t) => ({ ...t }))
   minutes.eventCandidates = src.eventCandidates.map((e) => ({ ...e }))
   minutes.unclearPoints = [...src.unclearPoints]
@@ -774,15 +791,6 @@ const lastSavedAt = ref('')
 /** 最後に保存した中身（これと違えば未保存） */
 let lastSavedJson = ''
 let autoTimer: ReturnType<typeof setTimeout> | undefined
-
-/** PDFの文字数（左＝概要＋話し合ったこと、右＝決まったこと など）。目安を超えたぶんはPDFでAIが短くまとめる */
-const pdfCounts = computed(() => printCharCounts(minutes))
-const pdfOver = computed(() => pdfCounts.value.total > PDF_MAX_CHARS)
-const pdfCountTitle = computed(() => {
-  const c = pdfCounts.value
-  const base = `左 ${c.left.toLocaleString()}字・右 ${c.right.toLocaleString()}字（PDFの目安は全体で${PDF_MAX_CHARS.toLocaleString()}字。左右は半分ずつで、片方が短ければ余りをもう片方に使います）`
-  return pdfOver.value ? `${base}。超えているので、PDFでは長い側をAIが短くまとめます（この画面の内容は変わりません）。` : base
-})
 
 const autoLabel = computed(() => {
   switch (autoState.value) {
@@ -964,7 +972,7 @@ async function remove() {
 }
 
 // ── PDF ────────────────────────────────────────────────
-// 作り方（印刷用の見た目・文字数を超えたときの要約・画像化）は MinutesPdfMaker にまとめてある。
+// 作り方（印刷用の見た目・ページ分け・画像化）は MinutesPdfMaker にまとめてある。
 
 const pdfMaker = ref<InstanceType<typeof MinutesPdfMakerType> | null>(null)
 
@@ -1254,19 +1262,6 @@ onUnmounted(() => {
 }
 .kk-autosave.is-saved::before {
   content: '✓ ';
-}
-.kk-pdfcount {
-  margin-left: 0.6rem;
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--kk-ink-faint);
-  white-space: nowrap;
-  vertical-align: 0.1em;
-  cursor: help;
-}
-.kk-pdfcount.is-over {
-  color: var(--kk-accent-strong);
-  font-weight: 700;
 }
 /* position: relative は、スマホで「種類を変える」の窓の位置の基準にするため
    （スマホでは .kk-pop-wrap の基準を外して幅いっぱいに出すので、ここが無いと窓がページの下のほうに飛ぶ） */
