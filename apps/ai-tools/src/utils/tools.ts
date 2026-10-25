@@ -17,13 +17,19 @@ export type Section = {
   tools: Tool[]
 }
 
+/**
+ * キキガキ（新）のリンク先。本番は別ドメイン、dev のときだけ手元の dev サーバー（apps/production/kikigaki の :3009）。
+ * ※ ai-tools の /kikigaki は旧キキガキなので、そちらへは向けない（一覧の「キキガキ（旧）」がそれ）。
+ */
+const KIKIGAKI_URL = import.meta.dev ? 'http://localhost:3009' : 'https://kikigaki.insightlens.jp'
+
 export const SECTIONS: Section[] = [
   {
     title: '稼働中',
     lead: 'いま使っているもの',
     accent: 'sky',
     tools: [
-      { path: 'https://kikigaki.insightlens.jp', icon: '🗒️', name: 'キキガキ', desc: '会議の録音から議事録をつくり、確認してPDFで保存。Googleでログインして使える一般公開版。', tags: ['要ログイン', '別ドメイン'] },
+      { path: KIKIGAKI_URL, icon: '🗒️', name: 'キキガキ', desc: '会議の録音から議事録をつくり、確認してPDFで保存。Googleでログインして使える一般公開版。', tags: ['要ログイン', '別ドメイン'] },
       { path: '/nikki', icon: '📔', name: '日記', desc: 'カレンダーの日を選んで話すだけ。その日の手応えの残る出来事をAIが拾って横並びに残す。', tags: ['要ログイン', 'Google連携'] },
       { path: 'https://manabi.insightlens.jp', icon: '✅', name: 'マナビー', desc: 'テーマを書くとAIが選択式の問題をつくる学びのドリル。URLで送れば同じ問題を解いてもらえる。みんなの問題や、授業用のA4問題集（PDF）も。', tags: ['ログイン不要', '共有リンク', '別ドメイン'] },
       { path: '/miyako', icon: '🏝️', name: '宮古島市議会 議事録', desc: '最新の定例会でよく議論された言葉をワードクラウドで。全体像・年別・議員別・キーワード検索とAI解説も。' },

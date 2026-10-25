@@ -1,6 +1,7 @@
 <template>
-  <!-- 設定は開くボタンを持たず、左メニュー（スマホではページの下）に常に出しておく。
-       使用量・支払い・ドライブ・ログイン中の人は、いちいち開かなくても目に入るほうが迷わないため -->
+  <!-- 設定の中身。左メニュー（スマホではページの下）の「設定」を押すと開く（開閉は layouts/default.vue）。
+       閉じていても、この部品は読み込みを続ける（管理者か・利用量・お休み中かを /api/me から入れているため）。
+       お知らせ（保存した・お支払いが終わった・エラー）が出たときは、見逃さないよう自動で開く -->
   <div class="kk-set">
     <p v-if="errorMessage" class="kk-notice kk-notice--error kk-msg">
       <span>{{ errorMessage }}</span>
@@ -210,6 +211,8 @@ const { withdrawn } = useWithdrawn()
 const { connected: driveConnected, refresh: refreshDrive, connect, disconnect } = useDrive()
 const driveBusy = ref(false)
 const paidFlag = useState<boolean>('kk-settings-paid', () => false)
+/** 設定の中身を開いているか（layouts/default.vue の「設定」ボタンと同じ値） */
+const settingsOpen = useState<boolean>('kk-settings-open', () => false)
 
 const config = useRuntimeConfig().public
 const monitorMode = computed(() => parseMonitorMode(config.monitorMode))
@@ -217,6 +220,9 @@ const priceLabel = SERVICE.priceLabel
 
 const errorMessage = ref('')
 const savedMessage = ref('')
+watch([errorMessage, savedMessage], ([err, saved]) => {
+  if (err || saved) settingsOpen.value = true
+})
 const usage = ref<{ usedPercent: number; exhausted: boolean } | null>(null)
 const billing = ref<BillingStatus | null>(null)
 const billingBusy = ref(false)

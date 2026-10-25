@@ -45,7 +45,7 @@ function section(heading: string, lines: PrintLine[]): PrintBlock[] {
  *  - 左＝名前・日・参加者、概要、話し合ったこと（聞き取りでは 話の内容）。
  *        古い会議（layout 1）ではここに「決まっていないこと」が「話し合ったこと」の名前で並ぶ
  *  - 右＝会議: 決まったこと・決まっていないこと・やること・次の予定（古い会議は 決まったこと・次の予定・やること）。
- *        聞き取り: 伝えたかったこと・印象に残った言葉・次の予定（古い記録は伝えたかったことだけ）
+ *        聞き取り: 伝えたかったこと・やること・次の予定（古い記録は伝えたかったことだけ）
  */
 export function buildPrintBlocks(m: Minutes): { left: PrintBlock[]; right: PrintBlock[] } {
   const talk = m.mode === 'talk'
@@ -82,7 +82,7 @@ export function buildPrintBlocks(m: Minutes): { left: PrintBlock[]; right: Print
     right = [
       ...section('伝えたかったこと', m.keyMessages.map(point)),
       ...(isNewTalk(m)
-        ? [...section('印象に残った言葉', m.quotes.map(point)), ...section('次の予定', eventLines)]
+        ? [...section('やること', taskLines), ...section('次の予定', eventLines)]
         : []),
     ]
   } else if (legacyMeeting) {

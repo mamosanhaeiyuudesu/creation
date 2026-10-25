@@ -33,10 +33,10 @@ describe('buildPrintBlocks', () => {
     expect(headings(right)).toEqual(['決まったこと', '次の予定', 'やること'])
   })
 
-  it('聞き取り: 新しい並びは 伝えたかったこと・印象に残った言葉・次の予定、古い記録は伝えたかったことだけ', () => {
+  it('聞き取り: 新しい並びは 伝えたかったこと・やること・次の予定、古い記録は伝えたかったことだけ', () => {
     const m = emptyMinutes()
     m.mode = 'talk'
-    expect(headings(buildPrintBlocks(m).right)).toEqual(['伝えたかったこと', '印象に残った言葉', '次の予定'])
+    expect(headings(buildPrintBlocks(m).right)).toEqual(['伝えたかったこと', 'やること', '次の予定'])
     expect(headings(buildPrintBlocks(m).left)).toEqual(['概要'])
     m.layout = 1
     expect(headings(buildPrintBlocks(m).right)).toEqual(['伝えたかったこと'])

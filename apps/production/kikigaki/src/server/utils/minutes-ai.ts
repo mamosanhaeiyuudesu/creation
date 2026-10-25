@@ -94,8 +94,8 @@ function buildMeetingSystemPrompt(today: string): string {
 /**
  * 「主に1人が話した」記録（講演・インタビュー・カウンセリングなど）の構造化のシステムプロンプト。
  *
- * 会議と違い「決まったこと」「やること」は拾わず、その人が伝えたかったこと・印象に残った言葉・話の中身を重点的に残す
- * （次の予定だけは、次回の日程などが出たときに拾う）。
+ * 会議と違い「決まったこと」は拾わず、その人が伝えたかったことと話の中身を重点的に残す
+ * （やること・次の予定は、話の中で出たときだけ拾う）。
  * カウンセリングも対象なので、AIの評価・診断・助言を足さないことを創作の禁止と同じ重さで書いている。
  */
 function buildTalkSystemPrompt(today: string): string {
@@ -133,19 +133,20 @@ function buildTalkSystemPrompt(today: string): string {
 - topics（話の内容）は、話した順に話題ごとに区切る。
   content に話題の短い見出しを、note にその話題で話した中身（エピソード・例・理由など）を書く。
   話の中身をできるだけ漏らさないことを優先し、1件の note が長くなってもよい。
-- quotes（印象に残った言葉）は、話し手の言葉をそのまま引用する欄。3〜5件程度。
-  content に話し手が実際に言った言葉を、言い換えず原文のまま短く書く（長い発言は印象的な一文だけを抜き出す）。
-  note にはその言葉が出た場面を一言で書く（任意。無ければ空）。
-  「印象に残った」かどうかの判断は、話し手が繰り返した・強調した・具体的な例えで語った言葉を基準にし、
-  聞き手の感想や評価を混ぜないこと。
+- task_candidates（やること）は、話の中で誰かが「やる」「やってみる」「次までにやってくる」と**自分から言った**こと、
+  または宿題・次回までの課題として**はっきり決まった**ことだけを抽出する。
+  assignee はそれを言った人（話し手・聞き手）。誰が言ったか分からなければ「[不明瞭]」。
+  聞き手の助言・提案（「〜するといいですよ」）や、話し手の願望・気持ち（「〜できたらいいな」）はやることではないので入れないこと。
+  期限が語られていれば due に原文の表現をそのまま入れ、「来週の火曜日」のように一意に定まるときだけ due_date を埋める
+  （曖昧なら due_date は空文字のまま）。
 - event_candidates（次の予定）は、次回の日程や行事など、「日時」が文字起こし内に明示されている場合のみ抽出する。
   曖昧な時期表現(「来月中に」など)は日付を確定させず、原文の表現をそのまま残す。
   話し手が「やりたい」と語った願望や、聞き手への助言は予定ではないので入れないこと。
 
 【日付の確定について】
 - 「来週の火曜日」のように、取り込んだ日を基準にすれば一意に定まる表現に限り、
-  start / end を YYYY-MM-DD、YYYY-MM-DDTHH:mm 形式で埋めてよい。
-  少しでも曖昧な場合は空文字 "" のままにし、datetime には常に原文の表現をそのまま入れること。
+  due_date / start / end を YYYY-MM-DD、YYYY-MM-DDTHH:mm 形式で埋めてよい。
+  少しでも曖昧な場合は空文字 "" のままにし、due / datetime には常に原文の表現をそのまま入れること。
 
 【出力形式】
 以下のJSON形式のみを出力すること。前置きや説明文、Markdownのコードフェンスは一切含めないこと。
@@ -157,7 +158,7 @@ function buildTalkSystemPrompt(today: string): string {
   "summary": "",
   "key_messages": [{ "content": "", "note": "" }],
   "topics": [{ "content": "", "note": "" }],
-  "quotes": [{ "content": "", "note": "" }],
+  "task_candidates": [{ "assignee": "", "task": "", "due": "", "due_date": "" }],
   "event_candidates": [{ "datetime": "", "title": "", "location": "", "start": "", "end": "" }],
   "unclear_points": [""]
 }
@@ -249,12 +250,12 @@ const TALK_JSON_SHAPE = `{
   "summary": "",
   "key_messages": [{ "content": "", "note": "" }],
   "topics": [{ "content": "", "note": "" }],
-  "quotes": [{ "content": "", "note": "" }],
+  "task_candidates": [{ "assignee": "", "task": "", "due": "", "due_date": "" }],
   "event_candidates": [{ "datetime": "", "title": "", "location": "", "start": "", "end": "" }],
   "unclear_points": [""]
 }`
 
-/** layout 1（古い記録）の聞き取り。印象に残った言葉・次の予定を持たない */
+/** layout 1（古い記録）の聞き取り。やること・次の予定を持たない */
 const LEGACY_TALK_JSON_SHAPE = `{
   "title": "",
   "date": "",
@@ -280,7 +281,7 @@ function toAiJson(m: Minutes): Record<string, unknown> {
       summary: m.summary,
       key_messages: m.keyMessages,
       topics: m.topics,
-      ...(m.layout === 2 ? { quotes: m.quotes, event_candidates: m.eventCandidates } : {}),
+      ...(m.layout === 2 ? { task_candidates: m.taskCandidates, event_candidates: m.eventCandidates } : {}),
       unclear_points: m.unclearPoints,
     }
   }
@@ -327,15 +328,13 @@ function fromAiJson(parsed: any, mode: MinutesMode, layout: MinutesLayout): Minu
   if (mode === 'talk') {
     m.decisions = []
     m.discussions = []
-    m.taskCandidates = []
-    // 印象に残った言葉・次の予定は layout 2 の聞き取りだけ（layout 1 の古い記録には欄が無い）
+    // やること・次の予定は layout 2 の聞き取りだけ（layout 1 の古い記録には欄が無い）
     if (layout !== 2) {
-      m.quotes = []
+      m.taskCandidates = []
       m.eventCandidates = []
     }
   } else {
     m.keyMessages = []
-    m.quotes = []
     // 話し合ったこと(topics)は layout 2 の会議だけ。layout 1 では discussions が左に出る
     if (layout !== 2) m.topics = []
   }

@@ -43,10 +43,32 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" /><path d="M9 12l2 2 4-4" /></svg>
             管理画面
           </NuxtLink>
+          <!-- 設定。押すと、下に設定の中身（タグ・今月のAI利用量・お支払い・ドライブなど）が開く -->
+          <button
+            type="button"
+            class="kk-side-link"
+            :class="{ 'is-active': settingsOpen }"
+            :aria-expanded="settingsOpen"
+            aria-controls="kk-side-settings"
+            @click="settingsOpen = !settingsOpen"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path :d="GEAR_PATH" /></svg>
+            設定
+          </button>
         </nav>
 
-        <!-- 設定は開くボタンを置かず、ここに常に出す（スマホではページの下に回る） -->
-        <SettingsPanel class="kk-side-settings" />
+        <!-- 設定の中身。閉じていても読み込みは動かす（管理者か・今月の利用量・お休み中かをここで /api/me から入れて、
+             ほかの画面も見ているため）ので、v-if ではなく v-show で隠す。
+             スマホでは、右上の「設定」ボタンから開く、画面の上から出るシートになる
+             （ヘッダーの高さやお知らせの帯に左右されないよう、画面の最上部に固定する。kk-set-backdrop は外側のタップで閉じる用） -->
+        <div v-if="settingsOpen" class="kk-set-backdrop" aria-hidden="true" @click="settingsOpen = false" />
+        <div v-show="settingsOpen" id="kk-side-settings" class="kk-set-sheet">
+          <div class="kk-set-sheet-head">
+            <span>設定</span>
+            <button type="button" class="kk-set-sheet-close" aria-label="設定を閉じる" @click="settingsOpen = false">✕</button>
+          </div>
+          <SettingsPanel class="kk-side-settings" />
+        </div>
 
         <nav class="kk-side-legal">
           <NuxtLink to="/terms">利用規約</NuxtLink>
@@ -80,6 +102,19 @@
               管理画面
             </NuxtLink>
           </template>
+          <!-- 設定（スマホは右上。PCは左メニューの「設定」） -->
+          <button
+            v-if="isLoggedIn"
+            type="button"
+            class="kk-head-admin"
+            :class="{ 'is-on': settingsOpen }"
+            :aria-expanded="settingsOpen"
+            aria-controls="kk-side-settings"
+            @click="settingsOpen = !settingsOpen"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path :d="GEAR_PATH" /></svg>
+            設定
+          </button>
         </header>
 
         <main
@@ -116,12 +151,19 @@ const { isLoggedIn } = useAuth()
 // 管理者かどうかは SettingsPanel が /api/me から入れる（表示だけ。守りはサーバー側）
 const isAdmin = useState<boolean>('kk-is-admin', () => false)
 const route = useRoute()
+// 設定の中身を開いているか（SettingsPanel も、お知らせを出すときに開くため同じ値を見る）
+const settingsOpen = useState<boolean>('kk-settings-open', () => false)
+/** 歯車アイコンの輪郭（左メニューと、スマホの右上のボタンで同じ絵を使う） */
+const GEAR_PATH =
+  'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'
 // ── 左メニューの幅 ──
 // 幅はこのブラウザだけの好みなので localStorage に置く（使えない環境では毎回既定の幅になるだけ）
-const SIDE_DEFAULT = 248
-const SIDE_MIN = 200
+// 2026-10-25 に既定を半分（248→124）にしたあと、狭すぎたので1.4倍（174）、さらに5px足して179にした。
+// 以前の幅を覚えていると新しい既定にならないので、変えるたびに保存の名前も変えている
+const SIDE_DEFAULT = 179
+const SIDE_MIN = 100
 const SIDE_MAX = 440
-const SIDE_KEY = 'kk-side-width'
+const SIDE_KEY = 'kk-side-width-v4'
 const sideWidth = ref(SIDE_DEFAULT)
 const resizing = ref(false)
 
@@ -229,11 +271,50 @@ const wide = computed(() => route.meta.wide === true)
   stroke-linejoin: round;
 }
 
-/* ── サイドバー。スマホでは設定の欄だけを本文の下に出す ── */
+/* ── サイドバー。スマホでは左メニュー自体は出さず、設定の欄だけを右上のボタンから開くパネルにする ── */
 .kk-side {
   order: 2;
-  padding: 0.75rem 0.75rem 1rem;
-  border-top: 1px solid var(--kk-line);
+  padding: 0;
+  border: 0;
+}
+.kk-side .kk-set-sheet {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 41;
+  max-height: 85dvh;
+  overflow-y: auto;
+  padding: 0.55rem 0.8rem 0.9rem;
+  background: var(--kk-panel);
+  border-bottom: 1px solid var(--kk-line-strong);
+  border-radius: 0 0 14px 14px;
+  box-shadow: 0 10px 28px rgba(35, 39, 47, 0.2);
+}
+.kk-set-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.45rem;
+  font-size: 14px;
+  font-weight: 700;
+}
+.kk-set-sheet-close {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--kk-ink-soft);
+  cursor: pointer;
+}
+/* パネルの外をタップしたら閉じる。PCでは左メニューに開くので使わない */
+.kk-set-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
 }
 .kk-side .kk-logo,
 .kk-side .kk-side-nav,
@@ -276,6 +357,14 @@ const wide = computed(() => route.meta.wide === true)
   font-weight: 700;
   color: var(--kk-ink-soft);
   text-decoration: none;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+.kk-head-admin.is-on {
+  background: var(--kk-accent-soft);
+  border-color: transparent;
+  color: var(--kk-accent-strong);
 }
 .kk-head-admin svg {
   width: 15px;
@@ -297,7 +386,7 @@ const wide = computed(() => route.meta.wide === true)
   }
   .kk-shell--side .kk-side {
     order: 0;
-    width: var(--kk-side-w, 248px);
+    width: var(--kk-side-w, 179px);
     flex: none;
     display: flex;
     flex-direction: column;
@@ -325,9 +414,25 @@ const wide = computed(() => route.meta.wide === true)
   .kk-side .kk-side-legal {
     display: flex;
   }
+  .kk-side .kk-set-sheet {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .kk-set-sheet-head {
+    display: none;
+  }
   .kk-side .kk-side-settings {
     padding-top: 0.75rem;
     border-top: 1px solid var(--kk-line);
+  }
+  .kk-set-backdrop {
+    display: none;
   }
   .kk-shell--side .kk-mobile-head,
   .kk-shell--side .kk-foot {

@@ -57,7 +57,6 @@ const lines = computed<Line[]>(() => {
     case 'discussions':
     case 'keyMessages':
     case 'topics':
-    case 'quotes':
       return d[section.value.kind].map((p) => ({ main: p.content, note: p.note }))
     case 'events':
       return d.eventCandidates.map((ev) => ({

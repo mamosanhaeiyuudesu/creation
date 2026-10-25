@@ -108,11 +108,3 @@ describe('normalizeMinutes の並べ方の版（layout）', () => {
     expect(m.eventCandidates).toHaveLength(1)
   })
 })
-
-describe('normalizeMinutes の印象に残った言葉（quotes）', () => {
-  it('quotes を読み、空の行は落とす。無い議事録は空配列', () => {
-    const m = normalizeMinutes({ mode: 'talk', layout: 2, quotes: [{ content: 'やってみないと分からない', note: '' }, { content: '' }] })
-    expect(m.quotes).toEqual([{ content: 'やってみないと分からない', note: '' }])
-    expect(normalizeMinutes({ mode: 'talk' }).quotes).toEqual([])
-  })
-})

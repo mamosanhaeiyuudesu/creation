@@ -253,7 +253,7 @@
             <button type="button" class="kk-add-row" aria-label="追加" title="追加" @click="group.items.push({ content: '', note: '' })"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
           </section>
 
-          <!-- 右だけ: 次の予定・やること（並びは rightExtras。やることは会議のときだけ。次の予定は会議と新しい並べ方の聞き取り） -->
+          <!-- 右だけ: 次の予定・やること（並びは rightExtras。やること・次の予定は会議と、新しい並べ方の聞き取り） -->
           <template v-for="extra in col === 'right' ? rightExtras : []" :key="extra">
             <section v-if="extra === 'events'" class="kk-card kk-review-card">
               <div class="kk-sec-head">
@@ -564,10 +564,10 @@ const legacyMeeting = computed(() => isLegacyMeeting(minutes))
 
 /**
  * 右の列で、グループ（決まったこと など）の下に並べる欄の順。
- * 会議＝やること・次の予定（古い会議は 次の予定・やること）、聞き取り（新しい並べ方）＝次の予定。
+ * 会議＝やること・次の予定（古い会議は 次の予定・やること）、聞き取り（新しい並べ方）＝やること・次の予定。
  */
 const rightExtras = computed<('events' | 'tasks')[]>(() => {
-  if (minutes.mode === 'talk') return isNewTalk(minutes) ? ['events'] : []
+  if (minutes.mode === 'talk') return isNewTalk(minutes) ? ['tasks', 'events'] : []
   return legacyMeeting.value ? ['events', 'tasks'] : ['tasks', 'events']
 })
 
@@ -608,18 +608,6 @@ const pointGroups = computed(() =>
           subLabel: '話の要旨',
           items: minutes.keyMessages,
         },
-        ...(isNewTalk(minutes)
-          ? [
-              {
-                key: 'quotes' as SectionKind,
-                col: 'right',
-                label: '印象に残った言葉',
-                placeholder: '話し手の言葉をそのまま',
-                subLabel: 'どんな場面の言葉か',
-                items: minutes.quotes,
-              },
-            ]
-          : []),
         {
           key: 'topics' as SectionKind,
           col: 'left',
@@ -683,7 +671,6 @@ function applyMinutes(src: Minutes) {
   minutes.discussions = src.discussions.map((d) => ({ ...d }))
   minutes.keyMessages = src.keyMessages.map((d) => ({ ...d }))
   minutes.topics = src.topics.map((d) => ({ ...d }))
-  minutes.quotes = src.quotes.map((d) => ({ ...d }))
   minutes.taskCandidates = src.taskCandidates.map((t) => ({ ...t }))
   minutes.eventCandidates = src.eventCandidates.map((e) => ({ ...e }))
   minutes.unclearPoints = [...src.unclearPoints]

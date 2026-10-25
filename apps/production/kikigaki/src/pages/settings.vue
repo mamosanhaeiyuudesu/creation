@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-// 設定は左メニューに常に出ている（components/SettingsPanel.vue）。
+// 設定は左メニューの「設定」から開く（components/SettingsPanel.vue。お知らせが出るときは自動で開く）。
 // Stripe の戻り先など、古い /settings の URL から来た人をトップへ送る。
 const route = useRoute()
 const router = useRouter()

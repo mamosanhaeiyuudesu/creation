@@ -8,7 +8,7 @@
  * まとめ方。
  * - meeting: 複数人の会議・話し合い（話し合ったこと・決まったこと・決まっていないこと・やること・次の予定を拾う）
  * - talk:    主に1人が話した記録（講演・インタビュー・カウンセリングなど）。
- *            決まったことは拾わず、その人が伝えたかったこと・印象に残った言葉・話の中身を重点的に残す
+ *            「決まったこと」は拾わず、その人が伝えたかったこと・話の中身を重点的に残す（やること・次の予定は、話の中で出たときだけ拾う）
  * talk を足す前に作った議事録には mode が無いので、meeting として読む。
  */
 export type MinutesMode = 'meeting' | 'talk'
@@ -36,7 +36,7 @@ export function isLegacyMeeting(m: Pick<Minutes, 'mode' | 'layout'>): boolean {
   return m.mode === 'meeting' && m.layout === 1
 }
 
-/** 新しい並べ方の聞き取りか（右に「印象に残った言葉」「次の予定」を出すもの） */
+/** 新しい並べ方の聞き取りか（右に「やること」「次の予定」を出すもの） */
 export function isNewTalk(m: Pick<Minutes, 'mode' | 'layout'>): boolean {
   return m.mode === 'talk' && m.layout === 2
 }
@@ -79,7 +79,7 @@ export function transcriptOverMessage(length: number): string {
  *       右に 決まったこと・決まっていないこと（discussions）・やること・次の予定（最後）。
  * 聞き取り（talk）
  *  - 1: 古い記録。右は「伝えたかったこと」だけ。
- *  - 2: 右に 伝えたかったこと・印象に残った言葉（quotes）・次の予定（最後）。
+ *  - 2: 右に 伝えたかったこと・やること・次の予定（最後）。
  * 版の無い議事録は 1。discussions の意味を後から変えると古い議事録の中身とずれるため、版で見分ける。
  */
 export type MinutesLayout = 1 | 2
@@ -133,8 +133,6 @@ export interface Minutes {
   keyMessages: MinutesPoint[]
   /** 話題ごとの内容（content＝話題、note＝話した中身）。talk＝話の内容、meeting（layout 2）＝話し合ったこと */
   topics: MinutesPoint[]
-  /** talk（layout 2）のみ: 印象に残った言葉（content＝話し手の言葉をそのまま、note＝どんな場面の言葉か） */
-  quotes: MinutesPoint[]
   /** やること */
   taskCandidates: TaskItem[]
   /** 次の予定。会議と、聞き取りの layout 2 で拾う */
@@ -146,7 +144,7 @@ export interface Minutes {
 }
 
 /** 確認画面でセクションごとにPDFにできる欄（いちばん上の、名前・日・参加者の欄は対象外） */
-export type SectionKind = 'summary' | 'decisions' | 'discussions' | 'keyMessages' | 'topics' | 'quotes' | 'events' | 'tasks'
+export type SectionKind = 'summary' | 'decisions' | 'discussions' | 'keyMessages' | 'topics' | 'events' | 'tasks'
 
 /** 一覧用の軽い行（文字起こし・本文を含まない） */
 export interface RecordSummary {
@@ -181,7 +179,6 @@ export function emptyMinutes(): Minutes {
     discussions: [],
     keyMessages: [],
     topics: [],
-    quotes: [],
     taskCandidates: [],
     eventCandidates: [],
     unclearPoints: [],
