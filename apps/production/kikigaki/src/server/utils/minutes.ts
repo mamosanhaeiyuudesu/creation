@@ -14,7 +14,7 @@ import type {
   Minutes,
   MinutesPoint,
   MinutesRecord,
-  RecordSummary,
+  RecordListItem,
   TaskItem,
 } from '~/types/minutes'
 
@@ -180,13 +180,13 @@ export async function createRecord(
 }
 
 /** 本人の議事録を新しい順に返す */
-export async function listRecords(event: H3Event, userId: string): Promise<RecordSummary[]> {
+export async function listRecords(event: H3Event, userId: string): Promise<RecordListItem[]> {
   const db = requireDb(event)
   await ensureTables(db)
-  // タグは一覧のために別の表（record_tags）に持っている。議事録本体（minutes）を復号しなくて済むように
+  // タグは別の表（record_tags）に持っている。概要を一覧に出すため、議事録本体（minutes）も読む
   const res = await db
     .prepare(
-      `SELECT r.id, r.title, r.meeting_date, r.audio_name, r.mode, r.created_at, COALESCE(t.tags, '') AS tags
+      `SELECT r.id, r.title, r.meeting_date, r.audio_name, r.mode, r.created_at, r.minutes, COALESCE(t.tags, '') AS tags
        FROM records r LEFT JOIN record_tags t ON t.record_id = r.id
        WHERE r.user_id = ? ORDER BY r.created_at DESC LIMIT 200`
     )
@@ -194,15 +194,25 @@ export async function listRecords(event: H3Event, userId: string): Promise<Recor
     .all()
   const rows: (RecordRow & { tags: string })[] = res?.results ?? []
   return await Promise.all(
-    rows.map(async (row) => ({
-      id: row.id,
-      title: await decryptText(event, row.title ?? ''),
-      date: row.meeting_date ?? '',
-      audioName: await decryptText(event, row.audio_name ?? ''),
-      createdAt: row.created_at ?? '',
-      mode: normalizeMode(row.mode),
-      tags: await decryptTags(event, row.tags),
-    }))
+    rows.map(async (row) => {
+      let parsed: any = null
+      try {
+        parsed = JSON.parse(await decryptText(event, row.minutes ?? ''))
+      } catch {
+        parsed = null
+      }
+      const minutes = normalizeMinutes(parsed)
+      return {
+        id: row.id,
+        title: await decryptText(event, row.title ?? ''),
+        date: row.meeting_date ?? '',
+        audioName: await decryptText(event, row.audio_name ?? ''),
+        createdAt: row.created_at ?? '',
+        mode: normalizeMode(row.mode),
+        tags: await decryptTags(event, row.tags),
+        summary: minutes.summary,
+      }
+    })
   )
 }
 

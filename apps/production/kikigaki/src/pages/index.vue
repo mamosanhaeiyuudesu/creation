@@ -211,20 +211,23 @@
 
         <!-- タグで絞り込む（1つだけ選ぶ。既定は「すべて」）。多い順に並べ、入りきらなければ横にスクロール。
              選んだタグは URL（?tag=）に残す＝議事録を開いて戻っても絞り込んだまま -->
-        <div v-if="tagCounts.length" class="kk-tagbar" role="group" aria-label="タグで絞り込む">
-          <button type="button" class="kk-tagbar-chip" :class="{ 'is-on': !activeTag }" @click="setTag('')">
-            すべて<span class="kk-tagbar-count">{{ records.length }}</span>
-          </button>
-          <button
-            v-for="t in tagCounts"
-            :key="t.tag"
-            type="button"
-            class="kk-tagbar-chip"
-            :class="{ 'is-on': activeTag === t.tag }"
-            @click="setTag(t.tag)"
-          >
-            #{{ t.tag }}<span class="kk-tagbar-count">{{ t.count }}</span>
-          </button>
+        <div v-if="records.length" class="kk-tagbar">
+          <div v-if="tagCounts.length" class="kk-tagbar-chips" role="group" aria-label="タグで絞り込む">
+            <button type="button" class="kk-tagbar-chip" :class="{ 'is-on': !activeTag }" @click="setTag('')">
+              すべて<span class="kk-tagbar-count">{{ records.length }}</span>
+            </button>
+            <button
+              v-for="t in tagCounts"
+              :key="t.tag"
+              type="button"
+              class="kk-tagbar-chip"
+              :class="{ 'is-on': activeTag === t.tag }"
+              @click="setTag(t.tag)"
+            >
+              #{{ t.tag }}<span class="kk-tagbar-count">{{ t.count }}</span>
+            </button>
+          </div>
+          <label class="kk-tagbar-toggle"><input v-model="showSummary" type="checkbox"> 概要を表示</label>
         </div>
 
         <p v-if="loadingRecords" class="kk-lead px-4 py-6 m-0">読み込んでいます…</p>
@@ -241,11 +244,6 @@
               <th class="kk-col-date">
                 <button type="button" class="kk-th-sort" :class="{ 'is-on': sortKey === 'date' }" @click="setSort('date')">
                   会議の日<span v-if="sortKey === 'date'" aria-hidden="true"> {{ sortArrow }}</span>
-                </button>
-              </th>
-              <th class="kk-col-created">
-                <button type="button" class="kk-th-sort" :class="{ 'is-on': sortKey === 'created' }" @click="setSort('created')">
-                  作成日<span v-if="sortKey === 'created'" aria-hidden="true"> {{ sortArrow }}</span>
                 </button>
               </th>
               <th class="kk-col-actions"><span class="sr-only">操作</span></th>
@@ -301,6 +299,8 @@
                     #{{ t }}
                   </button>
                 </div>
+                <!-- 名前の下に概要を出す（過去の分も含め、一覧で会議の要点を見渡すため） -->
+                <p v-if="showSummary && r.summary" class="kk-row-summary">{{ r.summary }}</p>
                 <!-- スマホだけ: 名前の下に日付とタグ -->
                 <span class="kk-row-sub">
                   <span>{{ r.dateLabel }}</span>
@@ -317,7 +317,6 @@
                 </span>
               </td>
               <td class="kk-col-date">{{ r.date ? formatDateLabel(r.date) : '—' }}</td>
-              <td class="kk-col-created">{{ r.createdLabel }}</td>
               <!-- 開かずにPDF・ドライブ保存。行を押すと開くので、ここだけ伝わらないよう止める -->
               <td class="kk-col-actions" @click.stop>
                 <!-- スマホ: 操作は「⋯」から下のシートで選ぶ。作っている間はここで回る -->
@@ -385,7 +384,7 @@ import { parseSortKey, parseSortOrder, sortRecords, type RecordSortKey } from '~
 
 /** 会議の名前の上限（サーバーの MAX_TITLE_LENGTH と同じ） */
 const MAX_TITLE_LENGTH = 100
-import type { MinutesRecord, RecordSummary } from '~/types/minutes'
+import type { MinutesRecord, RecordListItem, RecordSummary } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
 
 useHead({ title: `${SERVICE.name} — 会議の文章から議事録を` })
@@ -415,7 +414,7 @@ async function connectDrive() {
   driveBusy.value = false
 }
 
-const records = ref<(RecordSummary & { dateLabel: string; createdLabel: string })[]>([])
+const records = ref<(RecordListItem & { dateLabel: string })[]>([])
 const loadingRecords = ref(false)
 
 const showTextSheet = ref(false)
@@ -431,6 +430,9 @@ const activeTag = computed(() => {
 const filteredRecords = computed(() =>
   activeTag.value ? records.value.filter((r) => r.tags.includes(activeTag.value)) : records.value
 )
+
+// 一覧に概要を出すか（既定は出す）
+const showSummary = ref(true)
 
 // ── 並び順（既定は会議の日の新しい順） ──
 const sortKey = computed<RecordSortKey>(() => parseSortKey(route.query.sort))
@@ -659,12 +661,11 @@ async function onErased() {
 async function loadRecords() {
   loadingRecords.value = true
   try {
-    const res = await authedFetch<{ records: RecordSummary[] }>('/api/records')
+    const res = await authedFetch<{ records: RecordListItem[] }>('/api/records')
     withdrawn.value = null
     records.value = res.records.map((r) => ({
       ...r,
       dateLabel: formatMeetingDate(r.date, r.createdAt),
-      createdLabel: formatDateLabel((r.createdAt ?? '').slice(0, 10)) || '—',
     }))
   } catch (e) {
     records.value = []
@@ -813,11 +814,29 @@ onMounted(async () => {
 /* タグの絞り込み */
 .kk-tagbar {
   display: flex;
-  gap: 0.35rem;
+  align-items: center;
+  gap: 0.75rem;
   padding: 0.5rem 1rem;
   border-bottom: 1px solid var(--kk-line);
+}
+.kk-tagbar-chips {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 0.35rem;
   overflow-x: auto;
   scrollbar-width: thin;
+}
+.kk-tagbar-toggle {
+  flex: none;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  color: var(--kk-ink-soft);
+  cursor: pointer;
+  white-space: nowrap;
 }
 .kk-tagbar-chip {
   flex: none;
@@ -1036,6 +1055,13 @@ onMounted(async () => {
 }
 
 /* スマホでは列を畳み、日付とタグは名前の下に出す */
+.kk-row-summary {
+  margin: 6px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--kk-ink-soft);
+  white-space: pre-line;
+}
 .kk-row-sub {
   display: flex;
   flex-wrap: wrap;
@@ -1092,8 +1118,7 @@ onMounted(async () => {
 .kk-row-actions {
   display: none !important;
 }
-.kk-col-date,
-.kk-col-created {
+.kk-col-date {
   display: none;
 }
 @media (min-width: 640px) {
@@ -1111,12 +1136,6 @@ onMounted(async () => {
     width: 120px;
   }
   .kk-col-date {
-    display: table-cell;
-    width: 190px;
-  }
-}
-@media (min-width: 900px) {
-  .kk-col-created {
     display: table-cell;
     width: 190px;
   }

@@ -161,6 +161,11 @@ export interface RecordSummary {
   tags: string[]
 }
 
+/** 一覧の1行分。要点を一覧で見渡せるよう、概要（summary）を持つ */
+export interface RecordListItem extends RecordSummary {
+  summary: string
+}
+
 /** 確認画面が扱う1件分の全体 */
 export interface MinutesRecord extends RecordSummary {
   transcript: string
