@@ -10,7 +10,7 @@
   { "id": "ai-tools/farm-log", "out": "apps/ai-tools/src/public/og/farm-log.png",
     "params": { "kicker": "農作業ログ", "title": "農作業の動きを\n見える化する", "lead": "スマホのセンサーで記録した作業の動きを、\nグラフで振り返る。", "emoji": "🌿", "site": "prototype.insightlens.jp", "main": "#3f9b6e", "main2": "#256b4a" } },
   { "id": "ai-tools/nikki", "out": "apps/ai-tools/src/public/og/nikki.png",
-    "params": { "kicker": "日記", "title": "話すだけで\n日記が残る", "lead": "カレンダーの日を選んで話すだけ。\n手応えの残る出来事をAIが拾って並べる。", "emoji": "📔", "site": "prototype.insightlens.jp", "main": "#4a6fa5", "main2": "#2f4a75", "ink": "#252c3a" } },
+    "params": { "kicker": "日記", "title": "話すだけで\n日記が残る", "lead": "カレンダーの日を選んで話すだけ。\n手応えの残る出来事をAIが拾って並べる。", "emoji": "🌷", "site": "prototype.insightlens.jp", "main": "#4a6fa5", "main2": "#2f4a75", "ink": "#252c3a" } },
   { "id": "ai-tools/kikigaki", "out": "apps/ai-tools/src/public/og/kikigaki.png",
     "params": { "kicker": "キキガキ（旧版）", "title": "会議の録音から\n議事録をつくる", "lead": "録音を文字に起こしてAIが議事録に。\n確認してからPDFで保存。", "emoji": "🗒️", "site": "prototype.insightlens.jp", "main": "#2f6f5e", "main2": "#1f4d41", "ink": "#2b3038" } },
   { "id": "ai-tools/news", "out": "apps/ai-tools/src/public/og/news.png",

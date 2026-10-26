@@ -30,10 +30,10 @@ export const SECTIONS: Section[] = [
     accent: 'sky',
     tools: [
       { path: KIKIGAKI_URL, icon: '🗒️', name: 'キキガキ', desc: '会議の録音から議事録をつくり、確認してPDFで保存。Googleでログインして使える一般公開版。', tags: ['要ログイン', '別ドメイン'] },
-      { path: '/nikki', icon: '📔', name: '日記', desc: 'カレンダーの日を選んで話すだけ。その日の手応えの残る出来事をAIが拾って横並びに残す。', tags: ['要ログイン', 'Google連携'] },
+      { path: '/nikki', icon: '🌷', name: '日記', desc: 'カレンダーの日を選んで話すだけ。その日の手応えの残る出来事をAIが拾って横並びに残す。', tags: ['要ログイン', 'Google連携'] },
       { path: 'https://manabi.insightlens.jp', icon: '✅', name: 'マナビー', desc: 'テーマを書くとAIが選択式の問題をつくる学びのドリル。URLで送れば同じ問題を解いてもらえる。みんなの問題や、授業用のA4問題集（PDF）も。', tags: ['ログイン不要', '共有リンク', '別ドメイン'] },
       { path: '/miyako', icon: '🏝️', name: '宮古島市議会 議事録', desc: '最新の定例会でよく議論された言葉をワードクラウドで。全体像・年別・議員別・キーワード検索とAI解説も。' },
-      { path: '/ai-manager', icon: '🧭', name: 'AI管理', desc: 'AIを呼んでいる場所ごとに、モデル・オプション・プロンプトがいつどう変わってきたかを履歴で見る。', tags: ['要ログイン'] },
+      { path: '/ai-manager', icon: '🤖', name: 'AI管理', desc: 'AIを呼んでいる場所ごとに、モデル・オプション・プロンプトがいつどう変わってきたかを履歴で見る。', tags: ['要ログイン'] },
       { path: '/palette', icon: '🎨', name: 'palette', desc: 'FLUX に自分の LoRA を載せて画像を生成。日本語で書くと英語プロンプトに変換。画像→画像にも対応。', tags: ['要ログイン'] },
       { path: '/games/panel-de-pon', icon: '🎴', name: 'パネルでポン', desc: 'SFC版パネルでポンをブラウザで。パネルを入れ替えて3つ以上並べて消す。' },
       { path: '/games/kendo2', icon: '🥋', name: '剣道 三本勝負', desc: '親子対戦もCOM対戦もできる剣道ゲーム。' },
