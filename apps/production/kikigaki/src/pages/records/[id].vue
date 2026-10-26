@@ -61,7 +61,39 @@
         </div>
 
         <div ref="toolsRoot" class="kk-head-actions">
-          <!-- 不明点 は普段は小さく畳み、押したときだけ下に開く -->
+          <!-- AIで修正: 指示を1つ書くと、議事録全体を書き換える（保存は自動保存） -->
+          <div class="kk-pop-wrap">
+            <button
+              type="button"
+              class="kk-icon-btn kk-icon-btn--ai"
+              :class="{ 'is-open': openPop === 'revise' }"
+              :aria-expanded="openPop === 'revise'"
+              :disabled="revising || restructuring"
+              @click="togglePop('revise')"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z" /></svg>
+              {{ revising ? 'AIが直しています…' : 'AIで修正' }}
+            </button>
+            <div v-if="openPop === 'revise'" class="kk-pop kk-pop--wide" role="dialog" aria-label="AIで修正">
+              <p class="kk-pop-title">AIに直してほしいこと</p>
+              <textarea
+                ref="reviseInput"
+                v-model="reviseInstruction"
+                rows="3"
+                class="kk-input resize-none"
+                placeholder="れい: 阪中さんを坂中さんに直して"
+                aria-label="AIに直してほしいこと"
+                @keydown.enter.exact="onReviseEnter"
+              />
+              <div class="flex items-center justify-between gap-2 mt-2">
+                <span class="kk-note">Shift+Enter で改行</span>
+                <button type="button" class="kk-pop-run" :disabled="revising || !reviseInstruction.trim()" @click="runRevise">
+                  {{ revising ? '直しています…' : '直してもらう' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- 元の文章（取り込んだ全文）。右からせり出す欄で、左の列を直しながら見比べられる -->
           <button
             type="button"
@@ -75,6 +107,7 @@
             元の文章
           </button>
 
+          <!-- 不明点 は普段は小さく畳み、押したときだけ下に開く -->
           <div v-if="minutes.unclearPoints.length" class="kk-pop-wrap">
             <button
               type="button"
@@ -95,40 +128,6 @@
             </div>
           </div>
 
-          <!-- 「AIに直してもらう」は 2026-10-18 に画面から外した（「作り直す」と並ぶと迷うため。本人の判断）。
-               戻すときはこのコメントを外す。script 側の runRevise と /api/minutes/revise は残してある。
-          <div class="kk-pop-wrap">
-            <button
-              type="button"
-              class="kk-icon-btn kk-icon-btn--ai"
-              :class="{ 'is-open': openPop === 'revise' }"
-              :aria-expanded="openPop === 'revise'"
-              :disabled="revising || restructuring"
-              @click="togglePop('revise')"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z" /></svg>
-              {{ revising ? 'AIが直しています…' : 'AIに直してもらう' }}
-            </button>
-            <div v-if="openPop === 'revise'" class="kk-pop kk-pop--wide" role="dialog" aria-label="AIに直してもらう">
-              <p class="kk-pop-title">AIに直してほしいこと</p>
-              <textarea
-                ref="reviseInput"
-                v-model="reviseInstruction"
-                rows="3"
-                class="kk-input resize-none"
-                placeholder="れい: 阪中さんを坂中さんに直して"
-                aria-label="AIに直してほしいこと"
-                @keydown.enter.exact="onReviseEnter"
-              />
-              <div class="flex items-center justify-between gap-2 mt-2">
-                <span class="kk-note">Shift+Enter で改行</span>
-                <button type="button" class="kk-pop-run" :disabled="revising || !reviseInstruction.trim()" @click="runRevise">
-                  {{ revising ? '直しています…' : '直してもらう' }}
-                </button>
-              </div>
-            </div>
-          </div>
-          -->
 
           <span class="kk-head-sep" aria-hidden="true" />
 
