@@ -1056,7 +1056,9 @@ onMounted(async () => {
 
 /* スマホでは列を畳み、日付とタグは名前の下に出す */
 .kk-row-summary {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--kk-line);
   font-size: 0.8125rem;
   line-height: 1.6;
   color: var(--kk-ink-soft);
