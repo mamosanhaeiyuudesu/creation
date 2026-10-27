@@ -74,6 +74,8 @@ gtag('config', 'G-JRBVTJYCEH');`,
     nikkiGoogleRedirectUri: '',
     // palette（FLUX LoRA 画像生成）。fal.ai の API キー。wrangler secret put NUXT_FAL_KEY
     falKey: '',
+    // 残高の表示用。ADMIN スコープの別の鍵（残高は API スコープの鍵では読めない）。wrangler secret put NUXT_FAL_ADMIN_KEY
+    falAdminKey: '',
   },
   routeRules: {
     // manabi は本番サービスに移った（apps/production/manabi）。LINEなどに共有済みのURLは、

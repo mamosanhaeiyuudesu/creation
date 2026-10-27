@@ -87,6 +87,10 @@ export interface PaletteStatusResponse {
   error?: string
 }
 
+export type PaletteBalanceResponse =
+  | { available: true; balance: number; currency: string }
+  | { available: false; reason: 'no-key' | 'forbidden' | 'error' }
+
 /** 入力の上限（サーバー側でも同じ値で丸める） */
 export const PALETTE_LIMITS = {
   steps: { min: 1, max: 50 },

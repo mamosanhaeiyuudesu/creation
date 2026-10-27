@@ -8,6 +8,7 @@
         </span>
         <h1 class="pl-h1 !text-[17px]">palette</h1>
         <span class="pl-note font-normal hidden sm:inline">FLUX × LoRA の画像生成</span>
+        <span v-if="balanceText" class="pl-chip" title="fal.ai の残りクレジット">残り {{ balanceText }}</span>
       </div>
       <div class="flex items-center gap-1.5">
         <button class="pl-btn-ghost" @click="showLoras = true">LoRA を管理</button>
@@ -167,6 +168,7 @@ import type {
   PaletteMode,
   PaletteParams,
   PaletteStatusResponse,
+  PaletteBalanceResponse,
 } from '~/types/palette'
 
 definePageMeta({ layout: 'palette' })
@@ -471,6 +473,7 @@ async function generate() {
       }
     }
     await loadHistory()
+    loadBalance()
   } catch (e: any) {
     errorMsg.value = '生成できませんでした: ' + errText(e)
     await loadHistory()
@@ -548,12 +551,27 @@ async function removeHistory(h: PaletteGeneration) {
   await loadHistory()
 }
 
+// fal.ai の残り。取れないとき（鍵なし・権限なし）は何も出さない
+const balance = ref<PaletteBalanceResponse | null>(null)
+const balanceText = computed(() => {
+  const b = balance.value
+  if (!b?.available) return ''
+  return b.currency === 'USD' ? `$${b.balance.toFixed(2)}` : `${b.balance.toFixed(2)} ${b.currency}`
+})
+async function loadBalance() {
+  try {
+    balance.value = await $fetch<PaletteBalanceResponse>('/api/palette/balance')
+  } catch {
+    balance.value = null
+  }
+}
+
 onMounted(async () => {
   loadOptions()
   optionsLoaded.value = true
   document.addEventListener('paste', onPaste)
   await checkAuth()
-  if (isLoggedIn.value) await Promise.all([loadLoras(), loadHistory()])
+  if (isLoggedIn.value) await Promise.all([loadLoras(), loadHistory(), loadBalance()])
 })
 onBeforeUnmount(() => document.removeEventListener('paste', onPaste))
 // ログイン直後は読み込み直す（AuthModal はリロードしない）
@@ -561,6 +579,7 @@ watch(isLoggedIn, (v) => {
   if (v) {
     loadLoras()
     loadHistory()
+    loadBalance()
   }
 })
 </script>
