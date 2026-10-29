@@ -32,6 +32,7 @@
           rel="noopener noreferrer"
           class="ar-tip-btn"
         >投げ銭 ¥</a>
+        <FriendsOnlyBadge class="fo-inline" />
       </div>
     </nav>
 
@@ -361,6 +362,15 @@ useHead({
   text-decoration: none;
   touch-action: manipulation;
   transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+/* スマホ幅では「友達限定」の判子まで1行に収めるため、ナビの余白を詰める */
+@media (max-width: 480px) {
+  .ar-nav { padding: 14px 16px; gap: 8px; }
+  .ar-actions { gap: 6px; }
+  .ar-like-btn,
+  .ar-comment-toggle,
+  .ar-tip-btn { padding: 6px 10px; white-space: nowrap; }
 }
 
 .ar-tip-btn:hover {

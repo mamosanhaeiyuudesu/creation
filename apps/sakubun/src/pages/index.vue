@@ -1,5 +1,6 @@
 <template>
   <div class="sk-page">
+    <FriendsOnlyBadge />
 
     <header class="sk-header">
       <div class="sk-header-inner">
