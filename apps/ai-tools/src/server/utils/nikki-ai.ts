@@ -108,8 +108,8 @@ export const DEFAULT_REVIEW_PROMPT = `あなたは、独立しようとしてい
 3つは別々のテーマにする（同じ出来事を言い換えて並べない）。
 
 ## 書き方
-- 3つそれぞれに、内容が一目でわかる短い見出しと、300文字程度（270〜330字）のまとめを書く。
-- 何があったか、どう進んだか、本人はどう感じていたかを、日付や出来事を挙げながら具体的に書く。
+- 3つそれぞれに、短い見出しと、200文字程度（180〜220字）のまとめを書く。
+- 出来事を日ごとに並べない。日付（「10/27は」など）は一切書かない。複数の日にまたがる出来事を束ねて、その底にある本質を分析して書く。何が進んだ・よかったと言えるのか、なぜそれが本人にとって意味があるのか、どんな傾向や変化が見えるのか、を中心にする。
 - 日記に書かれていることだけを根拠にする。書かれていないことを補わない。
 - 本人の言葉づかいを活かし、励ましや一般論は足さない。`
 
@@ -149,7 +149,7 @@ export async function generateNikkiReview(
   const raw = await callClaudeText(anthropicApiKey as string, {
     system: (input.prompt?.trim() || DEFAULT_REVIEW_PROMPT) + REVIEW_OUTPUT_RULE,
     messages: [{ role: 'user', content: `以下は ${input.from} 〜 ${input.to} の日記です。\n\n${picked.join('\n\n')}` }],
-    maxTokens: 2500,
+    maxTokens: 2000,
     model: MODEL,
   })
 

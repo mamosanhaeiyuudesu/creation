@@ -14,8 +14,8 @@
     <p v-else-if="error" class="mt-4 mb-2 text-[12.5px] text-[var(--nk-today)]">{{ error }}</p>
     <ol v-else-if="result" class="mt-3 mb-0 p-0 list-none flex flex-col gap-2.5">
       <li v-for="(it, i) in result.items" :key="i" class="px-3 py-2.5 rounded-lg border border-[var(--nk-line)]">
-        <h3 class="nk-serif m-0 text-[13.5px]">{{ it.heading }}</h3>
-        <p class="mt-1 mb-0 text-[13px] leading-relaxed">{{ it.summary }}</p>
+        <h3 class="nk-serif m-0 text-[27px] leading-snug">{{ it.heading }}</h3>
+        <p class="mt-2 mb-0 text-[19.5px] leading-relaxed">{{ it.summary }}</p>
       </li>
     </ol>
 
