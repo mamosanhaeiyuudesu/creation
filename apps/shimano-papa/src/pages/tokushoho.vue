@@ -17,7 +17,7 @@
             <td>
               <template v-for="p in site.plans" :key="p.short">{{ p.title.split('・')[0] }}・{{ p.short }}：{{ p.price }}円（税込）<br /></template>
               お試しインタビュー：{{ site.trial.price }}円（税込）<br />
-              追加オプション：<NuxtLink to="/#price">料金表</NuxtLink>に記載
+              追加オプション：<NuxtLink to="/#price">料金表</NuxtLink>に記載（追加インタビュー1回 {{ site.options[2].price }}円（税込））
             </td>
           </tr>
           <tr><th scope="row">商品代金以外の必要料金</th><td>製本代・国内送料は料金に含みます。オンラインインタビューの通信費、銀行振込手数料はお客様のご負担です。追加オプションは別途料金がかかります。</td></tr>
@@ -31,12 +31,12 @@
           </tr>
           <tr>
             <th scope="row">サービス提供時期</th>
-            <td>お申込み後、日程調整のうえ開始します。完成までの目安は{{ site.plans.map((p) => `${p.short}で${p.period}`).join('、') }}です。</td>
+            <td>お申込み後、日程調整のうえ開始します。完成までの目安は{{ site.plans[0].period }}です。</td>
           </tr>
           <tr><th scope="row">商品の引渡時期</th><td>原稿の最終承認後、{{ site.terms.deliveryAfterApproval }}で製本し、発送します。</td></tr>
           <tr><th scope="row">キャンセル・返金</th><td><NuxtLink to="/terms">「ご契約・キャンセルについて」</NuxtLink>のとおりです。</td></tr>
           <tr><th scope="row">返品特約</th><td>製本物はオーダーメイドのため、お客様都合による返品・交換はお受けできません。印刷不良・破損・誤字（当方の誤り）は無償で対応します。</td></tr>
-          <tr><th scope="row">特別な条件</th><td>原稿の修正は{{ site.terms.revisions }}回まで。写真は各プランの枚数上限内。内容の最終確認と承認は、ご本人が行います。</td></tr>
+          <tr><th scope="row">特別な条件</th><td>原稿の修正は{{ site.terms.revisions }}回まで。写真は{{ site.plans[0].photos }}枚以内（追加は有料）。内容の最終確認と承認は、ご本人が行います。</td></tr>
           <tr><th scope="row">動作環境</th><td>Google Meetなどのオンライン会議が利用できる環境</td></tr>
         </tbody>
       </table>

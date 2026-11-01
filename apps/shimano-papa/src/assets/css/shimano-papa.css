@@ -716,14 +716,14 @@ html {
 
 .pp-voice-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 
 .pp-voice-point {
   background: var(--pp-base);
   border-radius: 8px;
-  padding: 18px;
+  padding: 22px;
 }
 
 .pp-voice-point h3 {
@@ -1585,7 +1585,10 @@ html {
     width: 100%;
   }
 
-  .pp-voice-grid,
+  .pp-voice-grid {
+    grid-template-columns: 1fr;
+  }
+
   .pp-book-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1729,7 +1732,6 @@ html {
   .pp-for-grid,
   .pp-about-list,
   .pp-book-grid,
-  .pp-voice-grid,
   .pp-maker,
   .pp-price-grid,
   .pp-flow {
