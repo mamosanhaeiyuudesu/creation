@@ -10,7 +10,7 @@
       <button class="nk-btn-ghost !h-8 !px-3 !text-[12px] shrink-0" @click="emit('close')">閉じる</button>
     </div>
 
-    <p v-if="loading" class="mt-4 mb-2 text-[13px] text-[var(--nk-ink-soft)]">直近1ヶ月の日記を読んでいます…</p>
+    <p v-if="loading" class="mt-4 mb-2 text-[13px] text-[var(--nk-ink-soft)]">直近2週間の日記を読んでいます…</p>
     <p v-else-if="error" class="mt-4 mb-2 text-[12.5px] text-[var(--nk-today)]">{{ error }}</p>
     <ol v-else-if="result" class="mt-3 mb-0 p-0 list-none flex flex-col gap-2.5">
       <li v-for="(it, i) in result.items" :key="i" class="px-3 py-2.5 rounded-lg border border-[var(--nk-line)]">

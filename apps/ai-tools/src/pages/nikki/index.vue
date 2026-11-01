@@ -113,7 +113,7 @@
           >📅<span class="hidden sm:inline"> カレンダー</span></button>
           <button
             class="nk-btn-ghost flex-1 sm:flex-none sm:!px-3 sm:whitespace-nowrap"
-            title="直近1ヶ月をAIで振り返る"
+            title="直近2週間をAIで振り返る"
             @click="openReview"
           ><span class="hidden sm:inline">✨ </span>AI</button>
         </div>
@@ -318,7 +318,7 @@ const openCalendarSetup = () => {
   showSetup.value = true
 }
 
-// AI振り返り（直近1ヶ月）と、そのプロンプトの編集
+// AI振り返り（直近2週間）と、そのプロンプトの編集
 const showReview = ref(false)
 const reviewLoading = ref(false)
 const reviewError = ref('')
