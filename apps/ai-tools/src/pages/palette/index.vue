@@ -52,6 +52,20 @@
         <section class="pl-card">
           <ParamField label="描きたい絵" for-id="pl-ja" help="日本語で書いてください。生成するときに、FLUX 向けの英語に自動で変換して使います（英語で書いても構いません）。">
             <textarea id="pl-ja" v-model="promptJa" rows="4" class="pl-input" placeholder="例: 夕焼けの海辺で犬と遊ぶ少女、水彩画風、やわらかい光" />
+            <div class="mt-2 flex items-center gap-2 flex-wrap">
+              <button class="pl-btn-ghost" :disabled="suggesting || busy || !promptJa.trim()" @click="suggest">
+                {{ suggesting ? '考えています…' : '✨ 文章を膨らませる（3案）' }}
+              </button>
+              <span class="pl-note">足りない構図・光・画風などを補った案を出します。選ぶと上の欄に入るので、自由に直せます。</span>
+            </div>
+            <p v-if="suggestError" class="mt-2 text-[13px] text-[var(--pl-vermilion-deep)]">{{ suggestError }}</p>
+            <ul v-if="suggestions.length" class="mt-3 space-y-2">
+              <li v-for="(sg, i) in suggestions" :key="i" class="rounded-lg border border-[var(--pl-line)] bg-white p-2.5">
+                <p class="text-[13.5px] leading-relaxed whitespace-pre-wrap">{{ sg }}</p>
+                <button class="pl-btn-ghost mt-2" @click="applySuggestion(sg)">この案を使う</button>
+              </li>
+              <li><button class="pl-btn-text" @click="suggestions = []">案を閉じる</button></li>
+            </ul>
           </ParamField>
         </section>
 
@@ -402,6 +416,32 @@ function onPaste(e: ClipboardEvent) {
       return
     }
   }
+}
+
+// ── 文章を膨らませる ──────────────────────
+const suggesting = ref(false)
+const suggestions = ref<string[]>([])
+const suggestError = ref('')
+
+async function suggest() {
+  suggestError.value = ''
+  suggesting.value = true
+  try {
+    const r = await $fetch<{ suggestions: string[] }>('/api/palette/suggest', {
+      method: 'POST',
+      body: { text: promptJa.value },
+    })
+    suggestions.value = r.suggestions
+  } catch (e: any) {
+    suggestError.value = e?.data?.message || e?.data?.statusMessage || '案を作れませんでした。もう一度試してください。'
+  } finally {
+    suggesting.value = false
+  }
+}
+
+function applySuggestion(text: string) {
+  promptJa.value = text
+  suggestions.value = []
 }
 
 // ── 生成 ──────────────────────────────
