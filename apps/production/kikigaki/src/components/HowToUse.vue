@@ -1,8 +1,7 @@
 <template>
-  <!-- 基本的な使い方。議事録が1件もない人のホームと、設定の「使い方」（/guide）で見せる。
-       長いマニュアルにせず、1画面に収まる分量にする -->
+  <!-- 基本的な使い方。議事録が1件もない人のホームと、設定の「使い方」（/guide）で見せる。長いマニュアルにせず、1画面に収まる分量にする -->
   <div class="kk-howto">
-    <h2 class="kk-howto-h">使い方</h2>
+    <h2 class="kk-howto-h is-first">使い方</h2>
 
     <ol class="kk-howto-steps">
       <li>
@@ -10,8 +9,7 @@
         <div>
           <p class="kk-howto-title">会議の文章を用意する</p>
           <p class="kk-howto-text">
-            Google Meet・Zoom の文字起こしや、スマホの録音アプリで文字にしたものを使います。
-            テキストファイルでも、コピーした文章でもかまいません。
+            Google Meet・Zoom の文字起こしや、スマホの録音アプリで文字にしたものを使います。テキストファイルでも、コピーした文章でもかまいません。
           </p>
         </div>
       </li>
@@ -20,9 +18,7 @@
         <div>
           <p class="kk-howto-title">文章から議事録を作る</p>
           <p class="kk-howto-text">
-            <span class="kk-howto-pc">左下の「新しく作る」</span><span class="kk-howto-sp">ホームの「文章から議事録を作る」</span>を押し、
-            ファイルを選ぶか文章を貼り付けて、種類を選びます。
-            AIが議事録にまとめます。
+            <span class="kk-howto-pc">左下の「新しく作る」</span><span class="kk-howto-sp">ホームの「文章から議事録を作る」</span>を押し、ファイルを選ぶか文章を貼り付けて、種類を選びます。AIが議事録にまとめます。
           </p>
         </div>
       </li>
@@ -37,7 +33,7 @@
       </li>
     </ol>
 
-    <h3 class="kk-howto-sub">2つの種類</h3>
+    <h3 class="kk-howto-h">2つの種類</h3>
     <dl class="kk-howto-kinds">
       <div>
         <dt><MinutesModeBadge mode="meeting" /></dt>
@@ -49,7 +45,7 @@
       </div>
     </dl>
 
-    <h3 class="kk-howto-sub">直すときのコツ</h3>
+    <h3 class="kk-howto-h">直すときのコツ</h3>
     <ul class="kk-howto-tips">
       <li>「AIで修正」には「阪中さんを坂中さんに直して」のように、一言で頼めます。</li>
       <li>「AIが判断しきれなかったところ」を先に見ると、早く直せます。</li>
@@ -60,13 +56,34 @@
 </template>
 
 <style scoped>
+/* カードにして、見出しは同じ大きさにそろえ、蛍光ペンを引いたような下線を付ける */
 .kk-howto {
+  width: 100%;
   max-width: 640px;
+  margin: 0 auto;
+  padding: 1.6rem 1.8rem 1.5rem;
+  background: var(--kk-panel);
+  border: 1px solid var(--kk-line);
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(20, 60, 120, 0.06);
+}
+@media (max-width: 639px) {
+  .kk-howto {
+    padding: 1.2rem 1.1rem 1.1rem;
+  }
 }
 .kk-howto-h {
-  margin: 0 0 0.75rem;
-  font-size: 17px;
+  width: fit-content;
+  margin: 1.8rem 0 0.8rem;
+  padding: 0 0.2em;
+  font-size: 15.5px;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--kk-ink);
+  background: linear-gradient(transparent 62%, #ffdcae 62%);
+}
+.kk-howto-h.is-first {
+  margin-top: 0;
 }
 .kk-howto-steps {
   margin: 0;
@@ -121,11 +138,6 @@
     display: none;
   }
 }
-.kk-howto-sub {
-  margin: 1.4rem 0 0.5rem;
-  font-size: 14px;
-  font-weight: 700;
-}
 .kk-howto-kinds {
   margin: 0;
   display: flex;
@@ -149,6 +161,8 @@
   list-style: disc;
 }
 .kk-howto-foot {
-  margin: 1.4rem 0 0;
+  margin: 1.6rem 0 0;
+  padding-top: 0.9rem;
+  border-top: 1px dashed var(--kk-line);
 }
 </style>

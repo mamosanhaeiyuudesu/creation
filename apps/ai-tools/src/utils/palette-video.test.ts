@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  addCandidate,
   buildTimeline,
   normalizeVideo,
   sceneAt,
@@ -85,5 +86,31 @@ describe('normalizeVideo', () => {
   it('シーンは20個まで', () => {
     const scenes = Array.from({ length: 30 }, (_, i) => ({ id: `s${i}` }))
     expect(normalizeVideo({ scenes }).scenes).toHaveLength(20)
+  })
+
+  it('候補が無い古い下書きは、今の絵を候補にする', () => {
+    const image = { generationId: 'g', url: 'https://x/a.jpg', seed: '1', key: 'k' }
+    const v = normalizeVideo({ scenes: [{ id: 's1', image }] })
+    expect(v.scenes[0]!.candidates).toEqual([image])
+  })
+
+  it('候補は https だけ・重複なし・上限まで', () => {
+    const c = (n: number) => ({ generationId: `g${n}`, url: `https://x/${n}.jpg`, seed: null, key: '' })
+    const candidates = [c(1), c(1), { url: 'http://x/bad.jpg' }, ...Array.from({ length: 12 }, (_, i) => c(i + 2))]
+    const v = normalizeVideo({ scenes: [{ id: 's1', candidates }] })
+    expect(v.scenes[0]!.candidates).toHaveLength(8)
+    expect(v.scenes[0]!.candidates[0]!.url).toBe('https://x/1.jpg')
+    expect(v.scenes[0]!.candidates[1]!.url).toBe('https://x/2.jpg')
+  })
+})
+
+describe('addCandidate', () => {
+  it('新しい絵を先頭に足し、上限を超えた古いものを捨てる', () => {
+    const c = (n: number) => ({ generationId: `g${n}`, url: `https://x/${n}.jpg`, seed: null, key: '' })
+    const list = Array.from({ length: 8 }, (_, i) => c(i))
+    const next = addCandidate(list, c(99))
+    expect(next).toHaveLength(8)
+    expect(next[0]!.url).toBe('https://x/99.jpg')
+    expect(next.at(-1)!.url).toBe('https://x/6.jpg')
   })
 })

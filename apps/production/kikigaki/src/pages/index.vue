@@ -117,7 +117,7 @@
     <!-- ── ログインしているとき（PC） ─────────────────────────────
          PCでは議事録の一覧も「新しく作る」も左メニューにあるので、ホームは使い方だけ。
          議事録がある人がキキガキを開いた直後は、一番新しく作った議事録へ移る（ホームはほぼ見ない） -->
-    <div v-else-if="isWide" class="pt-2">
+    <div v-else-if="isWide" class="kk-howto-page">
       <p v-if="redirecting" class="kk-lead py-10 text-center">読み込んでいます…</p>
       <template v-else>
         <p v-if="errorMessage" class="kk-notice kk-notice--error mb-3">{{ errorMessage }}</p>
@@ -171,9 +171,7 @@
       </div>
 
       <!-- 議事録が1件もないときは、一覧の代わりに使い方を出す -->
-      <div v-if="recordsLoaded && !records.length" class="kk-card px-4 py-4 mt-4">
-        <HowToUse />
-      </div>
+      <HowToUse v-if="recordsLoaded && !records.length" class="mt-4" />
 
       <MinutesPdfMaker ref="pdfMaker" />
 
@@ -365,6 +363,8 @@ const MAX_TITLE_LENGTH = 100
 import type { MinutesRecord, RecordSummary } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
 
+// PCのホームは使い方だけなので、残りの幅のまん中に置く（スマホは元々まん中）
+definePageMeta({ center: true })
 useHead({ title: `${SERVICE.name} — 会議の文章から議事録を` })
 
 const router = useRouter()
@@ -858,6 +858,16 @@ onUnmounted(() => wideQuery?.removeEventListener('change', onWideChange))
 .kk-tagbar-count {
   font-size: 11px;
   opacity: 0.7;
+}
+
+/* PCのホーム（使い方だけ）は、左メニューを除いた画面のまん中に置く */
+.kk-howto-page {
+  min-height: calc(100dvh - 3rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0 2rem;
 }
 
 /* 月ごとの見出しの行（押しても開かない） */

@@ -121,7 +121,18 @@ export const PALETTE_VIDEO_LIMITS = {
   articleChars: 20000,
   /** 1シーンの読み上げの上限（TTS の音声を D1 の1行に収めるため） */
   narrationChars: 200,
+  /** 1シーンに残す絵の候補の数 */
+  candidates: 8,
 } as const
+
+export interface PaletteVideoImage {
+  /** palette_generations の id（fal の request_id） */
+  generationId: string
+  url: string
+  seed: string | null
+  /** 生成したときの「共通設定＋絵の説明＋LoRA」。今の値と違えば作り直しの対象 */
+  key: string
+}
 
 export interface PaletteVideoScene {
   /** シーンの id（クライアントで振る） */
@@ -130,15 +141,10 @@ export interface PaletteVideoScene {
   narration: string
   /** 絵の説明（日本語） */
   sceneJa: string
-  /** 画像。生成のたびに差し替える */
-  image: {
-    /** palette_generations の id（fal の request_id） */
-    generationId: string
-    url: string
-    seed: string | null
-    /** 生成したときの「共通設定＋絵の説明＋LoRA」。今の値と違えば作り直しの対象 */
-    key: string
-  } | null
+  /** 動画に使う絵（candidates のどれか） */
+  image: PaletteVideoImage | null
+  /** このシーンで作った絵の候補（新しい順・PALETTE_VIDEO_LIMITS.candidates 枚まで）。作り直しても前の絵に戻せるように残す */
+  candidates: PaletteVideoImage[]
   /** 読み上げ。palette_video_audio の id と、作ったときの文・声・長さ（秒） */
   audio: {
     id: string

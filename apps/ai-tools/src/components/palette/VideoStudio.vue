@@ -82,6 +82,20 @@
                     <button class="pl-btn-text !min-h-[28px] !text-[12px]" :disabled="running || busyImage[s.id]" @click="regenImage(s)">絵を作り直す</button>
                     <button class="pl-btn-text !min-h-[28px] !text-[12px]" :disabled="running || busyAudio[s.id]" @click="regenAudio(s)">声を作り直す</button>
                   </div>
+                  <div v-if="s.candidates.length > 1" class="pl-vcands" role="group" :aria-label="`シーン ${i + 1} の絵の候補`">
+                    <button
+                      v-for="(c, ci) in s.candidates"
+                      :key="c.url"
+                      class="pl-vcand"
+                      :class="{ 'pl-vcand--on': c.url === s.image?.url }"
+                      :aria-pressed="c.url === s.image?.url"
+                      :aria-label="`候補 ${ci + 1} を使う`"
+                      :disabled="busyImage[s.id]"
+                      @click="pickCandidate(s, c)"
+                    >
+                      <img :src="c.url" alt="" loading="lazy" />
+                    </button>
+                  </div>
                   <div class="flex items-center gap-1">
                     <button class="pl-btn-text !min-h-[28px] !text-[12px]" :disabled="i === 0" aria-label="上へ" @click="move(i, -1)">↑</button>
                     <button class="pl-btn-text !min-h-[28px] !text-[12px]" :disabled="i === video.scenes.length - 1" aria-label="下へ" @click="move(i, 1)">↓</button>
@@ -162,12 +176,13 @@ import { ref, shallowRef, reactive, computed, watch, onMounted, onBeforeUnmount 
 import ParamField from '~/components/palette/ParamField.vue'
 import LoraPicker from '~/components/palette/LoraPicker.vue'
 import { PALETTE_VIDEO_LIMITS, PALETTE_VIDEO_SIZES, PALETTE_VOICES } from '~/types/palette'
-import { buildTimeline, estimateSpeechSec, splitSubtitle, VIDEO_HEIGHT, VIDEO_WIDTH } from '~/utils/palette-video'
+import { addCandidate, buildTimeline, estimateSpeechSec, splitSubtitle, VIDEO_HEIGHT, VIDEO_WIDTH } from '~/utils/palette-video'
 import type {
   PaletteGenerateRequest,
   PaletteLora,
   PaletteStatusResponse,
   PaletteVideo,
+  PaletteVideoImage,
   PaletteVideoPlan,
   PaletteVideoScene,
   PaletteVideoSummary,
@@ -346,7 +361,7 @@ async function plan() {
     })
     video.title = r.title || video.title
     video.style = r.style
-    video.scenes = r.scenes.map((s) => ({ id: crypto.randomUUID(), narration: s.narration, sceneJa: s.sceneJa, image: null, audio: null }))
+    video.scenes = r.scenes.map((s) => ({ id: crypto.randomUUID(), narration: s.narration, sceneJa: s.sceneJa, image: null, candidates: [], audio: null }))
     await saveNow()
     refreshAssets()
   } catch (e) {
@@ -363,7 +378,7 @@ function move(i: number, d: number) {
   refreshAssets()
 }
 function addScene(i: number) {
-  video.scenes.splice(i + 1, 0, { id: crypto.randomUUID(), narration: '', sceneJa: '', image: null, audio: null })
+  video.scenes.splice(i + 1, 0, { id: crypto.randomUUID(), narration: '', sceneJa: '', image: null, candidates: [], audio: null })
   refreshAssets()
 }
 function removeScene(i: number) {
@@ -423,6 +438,7 @@ async function makeImage(s: PaletteVideoScene) {
       if (st.status === 'COMPLETED' && st.generation?.images[0]) {
         const img = st.generation.images[0]
         s.image = { generationId: id, url: img.url, seed: st.generation.seed, key }
+        s.candidates = addCandidate(s.candidates, s.image)
         video.loras = loraUses.value
         break
       }
@@ -501,6 +517,11 @@ function runAll() {
   if (jobs.length) runJobs(jobs)
 }
 const regenImage = (s: PaletteVideoScene) => runJobs([() => makeImage(s)])
+
+/** 候補から絵を選び直す。選んだ絵は今の設定で使うと決めたものとして扱い、「古い」にはしない（まとめて作るで上書きされないように） */
+function pickCandidate(s: PaletteVideoScene, c: PaletteVideoImage) {
+  s.image = { ...c, key: imageKey(s) }
+}
 const regenAudio = (s: PaletteVideoScene) => runJobs([() => makeAudio(s)])
 
 // ── 声の試聴 ──────────────────────────────
@@ -718,6 +739,36 @@ onBeforeUnmount(() => {
   color: #fff;
   font-size: 11px;
   font-weight: 700;
+}
+/* 絵の候補（作り直した前の絵にも戻せる） */
+.pl-vcands {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.pl-vcand {
+  flex: none;
+  width: 40px;
+  aspect-ratio: 9 / 16;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  background: var(--pl-paper-2);
+  opacity: 0.7;
+  cursor: pointer;
+}
+.pl-vcand img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pl-vcand:hover {
+  opacity: 1;
+}
+.pl-vcand--on {
+  border-color: var(--pl-teal);
+  opacity: 1;
 }
 .pl-vcanvas {
   display: block;

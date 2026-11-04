@@ -134,8 +134,9 @@
           class="kk-main flex-1 w-full mx-auto px-3 sm:px-5 pt-3"
           :class="[
             wide ? 'kk-wide-main max-w-[1440px] pb-3' : isLoggedIn ? 'max-w-[1100px] pb-10' : 'max-w-[560px] pb-10',
-            // 左メニューがあるPC幅では、本文を残りの幅の真ん中ではなく左メニュー側に寄せる（間が空きすぎないように）
-            isLoggedIn ? 'lg:mx-0' : '',
+            // 左メニューがあるPC幅では、本文を残りの幅の真ん中ではなく左メニュー側に寄せる（間が空きすぎないように）。
+            // 使い方のページ（definePageMeta({ center: true })）だけは、残りの幅のまん中に置く
+            isLoggedIn && route.meta.center !== true ? 'lg:mx-0' : '',
           ]"
         >
           <slot />

@@ -1,7 +1,7 @@
 // palette「テキスト → 動画」の純関数（サーバー・画面・テストから使う）。
 // 入力の整形（normalizeVideo）と、書き出し・プレビューで共通のタイムライン（buildTimeline）と字幕の区切り（splitSubtitle）。
 import { PALETTE_VOICES, PALETTE_VIDEO_LIMITS } from '../types/palette'
-import type { PaletteVideo, PaletteVideoScene, PaletteVoice } from '../types/palette'
+import type { PaletteVideo, PaletteVideoImage, PaletteVideoScene, PaletteVoice } from '../types/palette'
 import { clamp, isHttpsUrl } from './palette-fal'
 
 const str = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max)
@@ -10,24 +10,34 @@ export function isVoice(v: unknown): v is PaletteVoice {
   return typeof v === 'string' && (PALETTE_VOICES as readonly string[]).includes(v)
 }
 
+function normalizeImage(img: any): PaletteVideoImage | null {
+  if (!img || !isHttpsUrl(img.url)) return null
+  return {
+    generationId: str(img.generationId, 128),
+    url: img.url,
+    seed: /^\d{1,20}$/.test(String(img.seed ?? '')) ? String(img.seed) : null,
+    key: String(img.key ?? '').slice(0, 4000),
+  }
+}
+
 function normalizeScene(raw: any): PaletteVideoScene | null {
   const id = str(raw?.id, 64)
   if (!id) return null
-  const img = raw?.image
+  const image = normalizeImage(raw?.image)
   const aud = raw?.audio
+  const candidates: PaletteVideoImage[] = []
+  // 候補が無い古い下書きは、今の絵を1枚目の候補にする
+  for (const c of Array.isArray(raw?.candidates) ? raw.candidates : image ? [image] : []) {
+    const n = normalizeImage(c)
+    if (n && !candidates.some((x) => x.url === n.url)) candidates.push(n)
+    if (candidates.length >= PALETTE_VIDEO_LIMITS.candidates) break
+  }
   return {
     id,
     narration: str(raw?.narration, PALETTE_VIDEO_LIMITS.narrationChars),
     sceneJa: str(raw?.sceneJa, 1000),
-    image:
-      img && isHttpsUrl(img.url)
-        ? {
-            generationId: str(img.generationId, 128),
-            url: img.url,
-            seed: /^\d{1,20}$/.test(String(img.seed ?? '')) ? String(img.seed) : null,
-            key: String(img.key ?? '').slice(0, 4000),
-          }
-        : null,
+    image,
+    candidates,
     audio:
       aud && str(aud.id, 64) && isVoice(aud.voice)
         ? {
@@ -38,6 +48,11 @@ function normalizeScene(raw: any): PaletteVideoScene | null {
           }
         : null,
   }
+}
+
+/** 新しく作った絵を候補の先頭に足す（同じ絵は重ねず、古いものから捨てる）。 */
+export function addCandidate(list: PaletteVideoImage[], img: PaletteVideoImage): PaletteVideoImage[] {
+  return [img, ...list.filter((c) => c.url !== img.url)].slice(0, PALETTE_VIDEO_LIMITS.candidates)
 }
 
 /** 画面から来た動画の下書きを検証して整える（保存する形）。id・日時はサーバーが決める。 */
