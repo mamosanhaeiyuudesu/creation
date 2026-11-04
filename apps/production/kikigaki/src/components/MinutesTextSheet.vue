@@ -71,7 +71,7 @@
     <template v-else>
       <div class="py-6 text-center">
         <span class="inline-block w-8 h-8 rounded-full border-[3px] border-[var(--kk-accent)] border-t-transparent animate-spin" />
-        <p class="kk-h2 mt-4">AIが{{ mode === 'talk' ? '話の記録' : '議事録' }}にまとめています…</p>
+        <p class="kk-h2 mt-4">議事録を作成中です…</p>
         <p class="kk-lead mt-3">この画面を閉じずにお待ちください。</p>
       </div>
     </template>
@@ -84,7 +84,7 @@ import { DOCUMENT_ACCEPT, readDocumentText } from '~/utils/readDocumentText'
 import { MAX_TRANSCRIPT_CHARS, MINUTES_MODES, countTranscriptChars, transcriptOverMessage, type MinutesMode } from '~/types/minutes'
 
 const props = defineProps<{ modelValue: boolean }>()
-defineEmits<{ 'update:modelValue': [boolean] }>()
+const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
 
 const { createMinutes } = useCreateMinutes()
 const { prefill } = useTextSheet()
@@ -156,6 +156,8 @@ async function runFromText() {
     // 元の議事録から作るときは、手で直した日付とタグを引き継ぐ（ファイルに差し替えたら引き継がない）
     const carry = !file && prefill.value ? { date: prefill.value.date, tags: prefill.value.tags } : undefined
     await createMinutes(text, file?.name ?? '', mode.value, carry)
+    // この画面はレイアウトに置いてあり、できた議事録へ移っても消えないので、自分で閉じる（閉じると reset される）
+    emit('update:modelValue', false)
   } catch (e) {
     errorMessage.value = apiMessage(e)
     stage.value = 'idle'
