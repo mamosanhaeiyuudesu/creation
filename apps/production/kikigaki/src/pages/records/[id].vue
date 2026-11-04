@@ -1,6 +1,7 @@
 <template>
-  <!-- 欄からカーソルを外したとき・1行の欄で Enter を押したときは、待たずにすぐ保存する -->
-  <div class="kk-review" @focusout="flushSave" @keydown.enter="onEnterSave">
+  <!-- 欄からカーソルを外したとき・1行の欄で Enter を押したときは、待たずにすぐ保存する。
+       1列の議事録（今の版の聞き取り。PDFがA4縦）は、横長で読みにくくならないよう、紙1枚の幅にして真ん中に置く -->
+  <div class="kk-review" :class="{ 'is-doc': record && columns.length === 1 }" @focusout="flushSave" @keydown.enter="onEnterSave">
     <p v-if="loading" class="kk-lead py-10 text-center">読み込んでいます…</p>
 
     <template v-else-if="record">
@@ -331,7 +332,7 @@
       </BottomSheet>
 
       <!-- 削除の確認。外をクリックすれば閉じる -->
-      <BottomSheet v-model="confirmingDelete" title="この議事録を消しますか？" :closable="!deleting">
+      <BottomSheet v-model="confirmingDelete" :title="`この${recordName(minutes.mode)}を消しますか？`" :closable="!deleting">
         <p class="kk-lead">一度消すと元には戻せません。</p>
         <div class="mt-4 flex flex-col gap-2">
           <button class="kk-btn-sub" :disabled="deleting" @click="remove">はい、消します</button>
@@ -387,7 +388,7 @@
 <script setup lang="ts">
 import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
-import { minutesLabel, type LabelKey } from '~/config/minutesLabels'
+import { minutesLabel, recordName, type LabelKey } from '~/config/minutesLabels'
 import { emptyMinutes, hasTasksSection, isCurrentLayout, isLegacyMeeting } from '~/types/minutes'
 import type { EventItem, Minutes, MinutesRecord, SectionKind } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
@@ -1108,6 +1109,12 @@ onUnmounted(() => {
 
 
 /* ── 確認画面: PDFと同じく左右2列。広い画面では高さを画面に収め、列の中だけ動かす ── */
+/* 1列の議事録（聞き取り）は、1行がおよそ45〜50字に収まる幅にする。見出し・AIの欄・本文の左右の端をそろえる */
+.kk-review.is-doc {
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+}
 .kk-review-head {
   display: flex;
   flex-wrap: wrap;
@@ -1904,6 +1911,10 @@ onUnmounted(() => {
     grid-template-columns: 1fr 1fr;
   }
   .kk-review-grid.is-single {
+    grid-template-columns: 1fr;
+  }
+  /* 紙1枚の幅では「AIで修正」と「判断しきれなかったところ」を横に並べると窮屈なので、縦に重ねる */
+  .kk-review.is-doc .kk-assist.has-unclear {
     grid-template-columns: 1fr;
   }
   .kk-review-col {

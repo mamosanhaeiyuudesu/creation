@@ -178,11 +178,11 @@
       <!-- 削除の確認（確認画面と同じ文言）。消している間は閉じられないようにする -->
       <BottomSheet
         :model-value="!!pendingDelete"
-        title="この議事録を消しますか？"
+        :title="`この${recordName(pendingDelete?.mode)}を消しますか？`"
         :closable="!deleting"
         @update:model-value="pendingDelete = null"
       >
-        <p class="kk-lead m-0"><strong>{{ pendingDelete?.title || '（名前のない議事録）' }}</strong></p>
+        <p class="kk-lead m-0"><strong>{{ pendingDelete?.title || `（名前のない${recordName(pendingDelete?.mode)}）` }}</strong></p>
         <p class="kk-lead mt-1">一度消すと元には戻せません。</p>
         <div class="mt-4 flex flex-col gap-2">
           <button class="kk-btn-sub" :disabled="deleting" @click="removeRow">
@@ -259,7 +259,7 @@
                     <NuxtLink :to="`/records/${r.id}`" class="kk-row-title" @click.stop>
                       <!-- 種類（話し合い／聞き取り）。名前の頭に置いて、一覧で見分けられるようにする -->
                       <MinutesModeBadge :mode="r.mode" compact />
-                      <span class="truncate">{{ r.title || '（名前のない議事録）' }}</span>
+                      <span class="truncate">{{ r.title || `（名前のない${recordName(r.mode)}）` }}</span>
                     </NuxtLink>
                     <!-- スマホでは出さない（タイトルに幅を回す。名前は編集画面で変えられる） -->
                     <button
@@ -354,6 +354,7 @@
 
 <script setup lang="ts">
 import { SERVICE } from '~/config/service'
+import { recordName } from '~/config/minutesLabels'
 import { apiMessage } from '~/utils/apiMessage'
 import { formatDateLabel, formatMeetingDate } from '~/utils/formatDate'
 import { countTags } from '~/utils/tags'

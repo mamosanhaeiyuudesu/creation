@@ -53,3 +53,11 @@ const TALK_LABELS: Partial<Record<LabelKey, string>> = {
 export function minutesLabel(key: LabelKey, mode: MinutesMode = 'meeting'): string {
   return (mode === 'talk' ? TALK_LABELS[key] : undefined) ?? MEETING_LABELS[key]
 }
+
+/**
+ * できあがるものの呼び名。話し合いは「議事録」、聞き取りは「聞き取り記録」（講演・面談には「議事」が無いため）。
+ * サービス全体の呼び名（「これまでの議事録」「テキストから議事録を作る」など）は、種類によらず「議事録」のまま
+ */
+export function recordName(mode: MinutesMode = 'meeting'): string {
+  return mode === 'talk' ? '聞き取り記録' : '議事録'
+}

@@ -29,9 +29,9 @@
           :class="{ 'is-active': r.id === activeId, 'is-menu': menu?.id === r.id }"
           :data-id="r.id"
         >
-          <NuxtLink :to="`/records/${r.id}`" class="kk-sl-link" :title="r.title || '（名前のない議事録）'">
+          <NuxtLink :to="`/records/${r.id}`" class="kk-sl-link" :title="r.title || `（名前のない${recordName(r.mode)}）`">
             <MinutesModeBadge :mode="r.mode" icon-only />
-            <span class="kk-sl-title">{{ r.title || '（名前のない議事録）' }}</span>
+            <span class="kk-sl-title">{{ r.title || `（名前のない${recordName(r.mode)}）` }}</span>
           </NuxtLink>
           <button
             type="button"
@@ -75,11 +75,11 @@
 
     <BottomSheet
       :model-value="!!pendingDelete"
-      title="この議事録を消しますか？"
+      :title="`この${recordName(pendingDelete?.mode)}を消しますか？`"
       :closable="!deleting"
       @update:model-value="pendingDelete = null"
     >
-      <p class="kk-lead m-0"><strong>{{ pendingDelete?.title || '（名前のない議事録）' }}</strong></p>
+      <p class="kk-lead m-0"><strong>{{ pendingDelete?.title || `（名前のない${recordName(pendingDelete?.mode)}）` }}</strong></p>
       <p class="kk-lead mt-1">一度消すと元には戻せません。</p>
       <div class="mt-4 flex flex-col gap-2">
         <button class="kk-btn-sub" :disabled="deleting" @click="removeRecord">
@@ -94,6 +94,7 @@
 </template>
 
 <script setup lang="ts">
+import { recordName } from '~/config/minutesLabels'
 import { apiMessage } from '~/utils/apiMessage'
 import { countTags } from '~/utils/tags'
 import { groupByMonth } from '~/utils/sortRecords'

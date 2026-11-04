@@ -6,7 +6,7 @@
       <div data-block class="kk-sp-head">
         <p class="kk-sp-heading">{{ section.label }}</p>
         <p class="kk-sp-meta">
-          {{ doc.title || '（名前のない議事録）' }}<template v-if="doc.date"> ・ {{ formatDateLabel(doc.date) }}</template>
+          {{ doc.title || `（名前のない${recordName(doc.mode)}）` }}<template v-if="doc.date"> ・ {{ formatDateLabel(doc.date) }}</template>
           <template v-if="people"> ・ {{ minutesLabel('participants', doc.mode) }}: {{ people }}</template>
         </p>
       </div>
@@ -29,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { minutesLabel } from '~/config/minutesLabels'
+import { minutesLabel, recordName } from '~/config/minutesLabels'
 import { formatDateLabel } from '~/utils/formatDate'
 import { emptyMinutes } from '~/types/minutes'
 import type { EventItem, Minutes, SectionKind } from '~/types/minutes'
@@ -134,7 +134,7 @@ async function make(
     pdf.addImage(slice.toDataURL('image/png'), 'PNG', 0, MARGIN_Y, PAGE_W, slice.height * mmPerPx)
   })
 
-  const safeTitle = (src.title || (src.mode === 'talk' ? '話の記録' : '議事録')).replace(/[\\/:*?"<>|]/g, '_')
+  const safeTitle = (src.title || recordName(src.mode)).replace(/[\\/:*?"<>|]/g, '_')
   const safeLabel = label.replace(/[\\/:*?"<>|]/g, '_')
   return { pdf, fileName: `${safeTitle}_${safeLabel}${src.date ? `_${src.date}` : ''}.pdf` }
 }

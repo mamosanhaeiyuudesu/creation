@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { minutesLabel } from '~/config/minutesLabels'
+import { minutesLabel, recordName } from '~/config/minutesLabels'
 import { formatDateLabel } from '~/utils/formatDate'
 import { buildPrintBlocks, findFitScale, paginateBlocks, printKind } from '~/utils/printLines'
 import type { BlockSize, PrintBlock, PrintKind, RenderedPages } from '~/utils/printLines'
@@ -62,7 +62,7 @@ const pageStyle = computed(() => ({
 
 const headerInfo = computed(() => ({
   dateLabel: formatDateLabel(doc.value.date) || '日付が入っていません',
-  title: doc.value.title || '（名前のない議事録）',
+  title: doc.value.title || `（名前のない${recordName(doc.value.mode)}）`,
   peopleLabel: minutesLabel('participants', doc.value.mode),
   people: doc.value.participants.map((p) => p.trim()).filter(Boolean).join('、'),
 }))
@@ -170,7 +170,7 @@ async function make(src: Minutes) {
 
 /** ファイル名（ドライブでは同じ名前のPDFを上書きするので、名前の付け方を変えるときは注意） */
 function pdfFileName(m: Minutes): string {
-  const safeTitle = (m.title || (m.mode === 'talk' ? '話の記録' : '議事録')).replace(/[\/:*?"<>|]/g, '_')
+  const safeTitle = (m.title || recordName(m.mode)).replace(/[\/:*?"<>|]/g, '_')
   return m.date ? `${safeTitle}_${m.date}.pdf` : `${safeTitle}.pdf`
 }
 

@@ -64,14 +64,15 @@
       </div>
 
       <button class="kk-btn mt-4" :disabled="!canRunText" @click="runFromText">
-        このテキストから議事録を作る
+        <!-- 選んだ種類で、できあがるものの名前を変える（聞き取りは「聞き取り記録」） -->
+        このテキストから{{ recordName(mode) }}を作る
       </button>
     </template>
 
     <template v-else>
       <div class="py-6 text-center">
         <span class="inline-block w-8 h-8 rounded-full border-[3px] border-[var(--kk-accent)] border-t-transparent animate-spin" />
-        <p class="kk-h2 mt-4">議事録を作成中です…</p>
+        <p class="kk-h2 mt-4">{{ recordName(mode) }}を作成中です…</p>
         <p class="kk-lead mt-3">この画面を閉じずにお待ちください。</p>
       </div>
     </template>
@@ -79,6 +80,7 @@
 </template>
 
 <script setup lang="ts">
+import { recordName } from '~/config/minutesLabels'
 import { apiMessage } from '~/utils/apiMessage'
 import { DOCUMENT_ACCEPT, readDocumentText } from '~/utils/readDocumentText'
 import { MAX_TRANSCRIPT_CHARS, MINUTES_MODES, countTranscriptChars, transcriptOverMessage, type MinutesMode } from '~/types/minutes'
