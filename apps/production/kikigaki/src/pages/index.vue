@@ -225,7 +225,7 @@
                   会議の日<span v-if="sortKey === 'date'" aria-hidden="true"> {{ sortArrow }}</span>
                 </button>
               </th>
-              <th class="kk-col-actions"><span class="sr-only">操作</span></th>
+              <th class="kk-col-actions" :class="{ 'kk-col-actions--narrow': !driveConnected }"><span class="sr-only">操作</span></th>
             </tr>
           </thead>
           <tbody>
@@ -248,7 +248,7 @@
                 <div v-else class="kk-row-head">
                   <!-- 名前と「名前を変える」は離さない（名前が長くても、ボタンだけ次の行に落ちないように） -->
                   <span class="kk-row-name">
-                    <NuxtLink :to="`/view/${r.id}`" class="kk-row-title" @click.stop>
+                    <NuxtLink :to="`/records/${r.id}`" class="kk-row-title" @click.stop>
                       <!-- 種類（話し合い／聞き取り）。名前の頭に置いて、一覧で見分けられるようにする -->
                       <MinutesModeBadge :mode="r.mode" compact />
                       <span class="truncate">{{ r.title || '（名前のない議事録）' }}</span>
@@ -296,10 +296,10 @@
                 </span>
               </td>
               <td class="kk-col-date">{{ r.date ? formatDateLabel(r.date) : '—' }}</td>
-              <!-- PCだけ: 開かずにPDF・ドライブ保存・削除。行を押すと開くので、ここだけ伝わらないよう止める。
-                   スマホは行を押して開く「PDFを見る」画面に同じ操作がある（「⋯」のメニューに隠さない） -->
+              <!-- 開かずにPDF・ドライブ保存・削除（スマホでも出す。「⋯」のメニューに隠さない）。
+                   行を押すと開くので、ここだけ伝わらないよう止める -->
               <td class="kk-col-actions" @click.stop>
-                <!-- PC: アイコンを並べる（1回押すだけで済むように） -->
+                <!-- アイコンを並べる（1回押すだけで済むように） -->
                 <div class="kk-row-actions">
                   <button
                     v-if="driveConnected"
@@ -431,11 +431,11 @@ const titleDraft = ref('')
 const titleSaving = ref(false)
 const titleInput = ref<HTMLInputElement[] | HTMLInputElement | null>(null)
 
-/** 行を押したら、すぐにPDFの見た目で見せる（直すときは、その画面の「編集する」から） */
+/** 行を押したら編集画面を開く */
 function openRow(id: string) {
   // 名前を変えている最中は、行を押しても開かない
   if (editingId.value) return
-  router.push(`/view/${id}`)
+  router.push(`/records/${id}`)
 }
 
 function startTitle(r: RecordSummary) {
@@ -875,7 +875,12 @@ onMounted(async () => {
   min-width: 0;
   max-width: 100%;
 }
+/* 名前は1行に収め、はみ出す分は「…」で省く */
 .kk-row-name .kk-row-title {
+  min-width: 0;
+  overflow: hidden;
+}
+.kk-row-title .truncate {
   min-width: 0;
 }
 /* 名前の右の「名前を変える」。右端の操作より一回り小さくして、名前の邪魔をしない */
@@ -947,11 +952,14 @@ onMounted(async () => {
   color: var(--kk-ink);
   text-decoration: none;
 }
-/* 行の右端の操作（PCだけ。スマホは行を押して開く画面に同じ操作がある） */
+/* 行の右端の操作（スマホでも出す。幅は並ぶアイコンの数に合わせる） */
 .kk-col-actions {
-  display: none;
+  width: 104px;
   padding-left: 0.25rem !important;
-  padding-right: 0.6rem !important;
+  padding-right: 0.5rem !important;
+}
+.kk-col-actions--narrow {
+  width: 72px;
 }
 .kk-row-actions {
   display: flex;
@@ -1042,8 +1050,7 @@ onMounted(async () => {
   font-size: 11.5px;
   color: var(--kk-ink-faint);
 }
-.kk-pc-only,
-.kk-row-actions {
+.kk-pc-only {
   display: none !important;
 }
 .kk-col-date {
@@ -1056,12 +1063,11 @@ onMounted(async () => {
   .kk-pc-only {
     display: inline-flex !important;
   }
-  .kk-row-actions {
-    display: flex !important;
-  }
   .kk-col-actions {
-    display: table-cell;
     width: 120px;
+  }
+  .kk-col-actions--narrow {
+    width: 88px;
   }
   .kk-col-date {
     display: table-cell;

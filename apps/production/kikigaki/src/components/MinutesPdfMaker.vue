@@ -1,6 +1,6 @@
 <template>
   <!-- PDF専用のレイアウト。画面には出さず、html2canvas で撮ってPDFにする。
-       確認画面・一覧画面・PDFを見る画面から使う。形は3つ（utils/printLines.ts の printKind）:
+       確認画面・一覧画面から使う。形は3つ（utils/printLines.ts の printKind）:
          landscape（古い版）＝A4横の左右2列、fit（今の版の話し合い）＝A4横の左右2列を1枚に収める、
          portrait（今の版の聞き取り）＝A4縦の1列。
        2つの入れ物がある:

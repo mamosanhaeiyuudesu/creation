@@ -13,7 +13,7 @@ import type { EventItem, Minutes } from '~/types/minutes'
 
 export type PrintKind = 'landscape' | 'fit' | 'portrait'
 
-/** ページの画像（PNGのデータURL）と形。PDFを見る画面では、これをそのまま並べて見せる */
+/** ページの画像（PNGのデータURL）と形 */
 export interface RenderedPages {
   images: string[]
   kind: PrintKind
