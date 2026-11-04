@@ -24,7 +24,7 @@
           @keydown.esc="open = false"
           @blur="onBlur"
         >
-        <ul v-if="open && candidates.length" class="kk-tagin-menu" role="listbox">
+        <ul v-if="open && candidates.length" ref="menu" class="kk-tagin-menu" role="listbox">
           <li
             v-for="(c, i) in candidates"
             :key="c"
@@ -52,11 +52,13 @@ const draft = ref('')
 const open = ref(false)
 const active = ref(-1)
 const input = ref<HTMLInputElement | null>(null)
+const menu = ref<HTMLElement | null>(null)
 
-/** 候補: まだ付けていないタグのうち、打った文字を含むもの（最大8件。多い順の並びのまま） */
+/** 候補: まだ付けていないタグのうち、打った文字を含むもの（全部。多い順の並びのまま。多いときは候補の欄の中でスクロールする）
+ *  2026-11-04 に最大8件の制限をやめた（作ったばかりのタグは件数が少なく、後ろに回って候補に出なかったため） */
 const candidates = computed(() => {
   const q = draft.value.trim()
-  return props.suggestions.filter((s) => !props.modelValue.includes(s) && (!q || s.includes(q))).slice(0, 8)
+  return props.suggestions.filter((s) => !props.modelValue.includes(s) && (!q || s.includes(q)))
 })
 
 function add(raw: string) {
@@ -77,6 +79,8 @@ function move(step: number) {
   if (!candidates.value.length) return
   open.value = true
   active.value = (active.value + step + candidates.value.length) % candidates.value.length
+  // 矢印キーで選んだ候補が欄の外にあれば、見えるところまでスクロールする
+  nextTick(() => menu.value?.children[active.value]?.scrollIntoView({ block: 'nearest' }))
 }
 
 /** Enter: 候補を選んでいればそれ、なければ打った文字で確定。IMEの変換確定のEnterでは確定しない */
