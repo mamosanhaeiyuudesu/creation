@@ -1,7 +1,7 @@
 <template>
   <div class="kk-shell" :class="{ 'kk-shell--wide': wide, 'kk-shell--side': isLoggedIn }">
     <div class="kk-shell-body">
-      <!-- PC の左メニュー（ログイン後のみ）。上から「ロゴ｜管理画面へ」「新しく作る」「議事録の一覧」「設定｜ご意見」。
+      <!-- PC の左メニュー（ログイン後のみ）。上から「ロゴ｜管理画面へ」「議事録の一覧」「新しく作る」「設定｜ご意見」。
            スマホでは左メニュー自体は出さず、ロゴ等は上の kk-mobile-head、議事録の一覧はホームに任せる -->
       <aside
         v-if="isLoggedIn"
@@ -39,14 +39,31 @@
             <NuxtLink v-if="isAdmin" :to="adminSwitch.to" class="kk-side-admin">{{ adminSwitch.label }}</NuxtLink>
           </div>
 
-          <button type="button" class="kk-side-new" @click="startNew">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-            新しく作る
-          </button>
-
           <div class="kk-side-list">
             <SideRecordList />
           </div>
+
+          <!-- ドライブにつながっていないと、PDFをドライブに残せない。気づかれないと困るので「新しく作る」の上に出す -->
+          <div v-if="!driveConnected" class="kk-side-drive">
+            <span>Googleドライブとつながっていません</span>
+            <button type="button" :disabled="driveBusy" @click="connectDrive">{{ driveBusy ? '開いています…' : 'つなぐ' }}</button>
+          </div>
+          <p v-if="driveError" class="kk-side-reason kk-side-reason--error">{{ driveError }}</p>
+
+          <!-- 作る入口はPCではここだけ（ホームには置かない）。押すと、その場で文章を入れるシートが開く。
+               議事録が1件もないときは、気づいてもらえるよう光らせる -->
+          <button
+            type="button"
+            class="kk-side-new"
+            :class="{ 'is-first': recordsLoaded && !records.length }"
+            :disabled="pendingApproval || usageExhausted"
+            @click="textSheetOpen = true"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            新しく作る
+          </button>
+          <p v-if="pendingApproval" class="kk-side-reason">ただいま利用の準備中です。準備ができしだい作れるようになります。</p>
+          <p v-else-if="usageExhausted" class="kk-side-reason">今月のAI利用量を使い切りました。来月1日から、また作れます。</p>
 
           <!-- 一番下: 設定（押すと上にポップアップで開く）と、右端にご意見 -->
           <div class="kk-side-foot">
@@ -77,6 +94,7 @@
             </div>
             <SettingsPanel />
             <nav class="kk-set-legal">
+              <NuxtLink to="/guide">使い方</NuxtLink>
               <NuxtLink to="/terms">利用規約</NuxtLink>
               <NuxtLink to="/privacy">プライバシーポリシー</NuxtLink>
               <NuxtLink to="/legal">特定商取引法に基づく表記</NuxtLink>
@@ -125,6 +143,9 @@
       </div>
     </div>
 
+    <!-- 文章から議事録を作るシート。左メニューの「新しく作る」（PC）とホームのボタン（スマホ）から開く -->
+    <MinutesTextSheet v-if="isLoggedIn" v-model="textSheetOpen" />
+
     <!-- 利用規約などは、ログイン前だけ画面の下に並べる（ログイン後は設定の中） -->
     <footer v-if="!isLoggedIn" class="kk-foot">
       <nav class="flex flex-wrap justify-center gap-x-4 gap-y-1">
@@ -156,17 +177,33 @@ const adminSwitch = computed(() =>
   route.path.startsWith('/admin') ? { to: '/', label: '通常画面へ' } : { to: '/admin', label: '管理画面へ' }
 )
 
-// 「新しく作る」: ホームへ移って、文章を入れるシートを開く。
-// 承認待ち・今月の利用量を使い切った人は、ホームの案内を見せるだけにする（押してもAIを呼ばない）
-const router = useRouter()
+// 「新しく作る」のシート。承認待ち・今月の利用量を使い切った人は押せない（押してもAIを呼ばない）
 const textSheetOpen = useState<boolean>('kk-text-sheet-open', () => false)
 const pendingApproval = useState<boolean>('kk-pending-approval', () => false)
 const usageExhausted = useState<boolean>('kk-usage-exhausted', () => false)
-async function startNew() {
-  // 確認画面で「保存できていない変更があります」を断ったときは移らないので、シートも開かない
-  if (route.path !== '/' && (await router.push('/'))) return
-  if (!pendingApproval.value && !usageExhausted.value) textSheetOpen.value = true
+const { records, loaded: recordsLoaded } = useRecordList()
+
+// キキガキを開いて最初の画面か（ホームは、開いた直後だけ最新の議事録へ移る。ロゴで戻ってきたときは移らない）
+const landed = useState<boolean>('kk-landed', () => false)
+watch(() => route.fullPath, () => {
+  landed.value = true
+})
+
+// ── ドライブ（左メニューの「つなぐ」） ──
+const { connected: driveConnected, refresh: refreshDrive, connect: connectDriveNow } = useDrive()
+const driveBusy = ref(false)
+const driveError = ref('')
+async function connectDrive() {
+  driveError.value = ''
+  driveBusy.value = true
+  try {
+    await connectDriveNow()
+  } catch (e) {
+    driveError.value = e instanceof Error ? e.message : 'Googleドライブとつなげませんでした。もう一度お試しください。'
+  }
+  driveBusy.value = false
 }
+onMounted(refreshDrive)
 /** 歯車アイコンの輪郭（左メニューと、スマホの右上のボタンで同じ絵を使う） */
 const GEAR_PATH =
   'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'
@@ -307,6 +344,8 @@ const wide = computed(() => route.meta.wide === true)
 .kk-side .kk-side-head,
 .kk-side .kk-side-new,
 .kk-side .kk-side-list,
+.kk-side .kk-side-drive,
+.kk-side .kk-side-reason,
 .kk-side .kk-side-foot {
   display: none;
 }
@@ -411,8 +450,12 @@ const wide = computed(() => route.meta.wide === true)
   .kk-side .kk-side-foot {
     display: flex;
   }
-  .kk-side .kk-side-new {
+  .kk-side .kk-side-new,
+  .kk-side .kk-side-drive {
     display: flex;
+  }
+  .kk-side .kk-side-reason {
+    display: block;
   }
   /* 議事録の一覧は残りの高さを使い、中だけスクロールする */
   .kk-side .kk-side-list {
@@ -521,8 +564,65 @@ const wide = computed(() => route.meta.wide === true)
   font-weight: 700;
   cursor: pointer;
 }
-.kk-side-new:hover {
+.kk-side-new:hover:not(:disabled) {
   background: var(--kk-cta-strong);
+}
+.kk-side-new:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+/* 議事録が1件もないとき: ここから始めることに気づいてもらう */
+.kk-side-new.is-first:not(:disabled) {
+  animation: kk-side-new-glow 1.8s ease-in-out infinite;
+}
+@keyframes kk-side-new-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(240, 140, 30, 0.45); }
+  50% { box-shadow: 0 0 0 6px rgba(240, 140, 30, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kk-side-new.is-first:not(:disabled) {
+    animation: none;
+  }
+}
+.kk-side-reason {
+  margin: -0.25rem 0 0;
+  padding: 0 0.2rem;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--kk-ink-soft);
+}
+.kk-side-reason--error {
+  color: var(--kk-danger);
+}
+.kk-side-drive {
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.4rem 0.5rem 0.4rem 0.6rem;
+  border: 1px solid #f5c58c;
+  border-radius: 8px;
+  background: var(--kk-cta-soft);
+  color: #6b3f06;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.kk-side-drive button {
+  flex: none;
+  height: 24px;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--kk-cta);
+  color: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kk-side-drive button:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 .kk-side-new svg {
   width: 16px;

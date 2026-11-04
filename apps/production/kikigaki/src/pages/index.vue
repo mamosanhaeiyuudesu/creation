@@ -114,7 +114,18 @@
       <WithdrawSheet v-model="eraseOpen" erase-only @done="onErased" />
     </template>
 
-    <!-- ── ログインしているとき ─────────────────────────────── -->
+    <!-- ── ログインしているとき（PC） ─────────────────────────────
+         PCでは議事録の一覧も「新しく作る」も左メニューにあるので、ホームは使い方だけ。
+         議事録がある人がキキガキを開いた直後は、一番新しく作った議事録へ移る（ホームはほぼ見ない） -->
+    <div v-else-if="isWide" class="pt-2">
+      <p v-if="redirecting" class="kk-lead py-10 text-center">読み込んでいます…</p>
+      <template v-else>
+        <p v-if="errorMessage" class="kk-notice kk-notice--error mb-3">{{ errorMessage }}</p>
+        <HowToUse />
+      </template>
+    </div>
+
+    <!-- ── ログインしているとき（スマホ・タブレット。左メニューが無いので、作るボタンと一覧をここに出す） ── -->
     <template v-else>
       <p v-if="errorMessage" class="kk-notice kk-notice--error mb-3">{{ errorMessage }}</p>
       <p v-if="savedMessage" class="kk-notice kk-notice--info kk-msg mb-3">
@@ -159,10 +170,10 @@
         </button>
       </div>
 
-      <MinutesTextSheet v-model="showTextSheet" />
-
-      <!-- PCでは議事録の一覧は左メニューにある（ホームに同じ一覧を2つ並べない） -->
-      <p v-if="records.length" class="kk-note kk-list-hint mt-4 mb-0">これまでの議事録は、左の一覧から開けます。</p>
+      <!-- 議事録が1件もないときは、一覧の代わりに使い方を出す -->
+      <div v-if="recordsLoaded && !records.length" class="kk-card px-4 py-4 mt-4">
+        <HowToUse />
+      </div>
 
       <MinutesPdfMaker ref="pdfMaker" />
 
@@ -183,7 +194,7 @@
         </div>
       </BottomSheet>
 
-      <section class="kk-card kk-list mt-4">
+      <section v-if="!recordsLoaded || records.length" class="kk-card kk-list mt-4">
         <div class="kk-list-head">
           <h2 class="kk-h2 m-0">これまでの議事録</h2>
           <span v-if="records.length" class="kk-note">
@@ -212,12 +223,7 @@
           <label class="kk-tagbar-toggle"><input v-model="showSummary" type="checkbox"> 概要を表示</label>
         </div>
 
-        <p v-if="loadingRecords" class="kk-lead px-4 py-6 m-0">読み込んでいます…</p>
-
-        <p v-else-if="!records.length" class="kk-lead px-4 py-8 m-0 text-center">
-          まだ議事録はありません。<br>
-          上の「文章から議事録を作る」から、会議の文章を選んでください。
-        </p>
+        <p v-if="!records.length" class="kk-lead px-4 py-6 m-0">読み込んでいます…</p>
 
         <table v-else class="kk-table">
           <thead>
@@ -387,13 +393,35 @@ async function connectDrive() {
 }
 
 // 一覧は左メニューと共有する（ここで消した・名前を変えたものは、左メニューにもすぐ映る）
-const { records: sharedRecords, loading: loadingRecords, load: loadShared, removeLocal, patchLocal, reset: resetRecords } = useRecordList()
+const { records: sharedRecords, loaded: recordsLoaded, load: loadShared, removeLocal, patchLocal, reset: resetRecords } = useRecordList()
 const records = computed(() =>
   sharedRecords.value.map((r) => ({ ...r, dateLabel: formatMeetingDate(r.date, r.createdAt) }))
 )
 
-// 「文章から議事録を作る」のシート。左メニューの「新しく作る」からも開く
+// 「文章から議事録を作る」のシート（シート自体はレイアウトにある。PCは左メニューの「新しく作る」から開く）
 const showTextSheet = useState<boolean>('kk-text-sheet-open', () => false)
+
+// ── PC（左メニューがある幅）か。PCのホームは使い方だけにする ──
+const isWide = ref(false)
+let wideQuery: MediaQueryList | null = null
+function onWideChange() {
+  isWide.value = !!wideQuery?.matches
+}
+
+// キキガキを開いた直後（ロゴなどで戻ってきたのではない）にPCでホームを開いたら、一番新しく作った議事録へ移る
+const landed = useState<boolean>('kk-landed', () => false)
+const redirecting = ref(false)
+/** 一覧を読み、開いた直後なら最新の議事録へ移る（ログインの確認は後から終わることがあるので、両方の入口から呼ぶ） */
+async function loadAndLand() {
+  await loadRecords()
+  await openNewestIfLanding()
+  redirecting.value = false
+}
+async function openNewestIfLanding() {
+  if (landed.value || !isWide.value) return
+  const newest = [...sharedRecords.value].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+  if (newest) await router.replace(`/records/${newest.id}`)
+}
 
 // ── タグで絞り込む ──
 const { version: tagsVersion, load: loadTags } = useTags()
@@ -633,7 +661,7 @@ async function loadRecords() {
 
 // ログインが済んだ時点で読み込む（この watch が無いと、ログイン直後に一覧が空のまま見える）
 watch(isLoggedIn, async (v) => {
-  if (v) await loadRecords()
+  if (v) await loadAndLand()
   else {
     resetRecords()
     withdrawn.value = null
@@ -641,6 +669,11 @@ watch(isLoggedIn, async (v) => {
 })
 
 onMounted(async () => {
+  wideQuery = window.matchMedia('(min-width: 1024px)')
+  onWideChange()
+  wideQuery.addEventListener('change', onWideChange)
+  // 移るかどうか決まるまでは、使い方を一瞬見せないよう「読み込んでいます」にしておく
+  redirecting.value = !landed.value && isWide.value
   try {
     showSummary.value = localStorage.getItem(SHOW_SUMMARY_KEY) === '1'
   } catch {
@@ -649,8 +682,10 @@ onMounted(async () => {
   refreshDrive()
   const redirectError = await catchRedirectError()
   if (redirectError) errorMessage.value = redirectError
-  if (isLoggedIn.value) await loadRecords()
+  if (isLoggedIn.value) await loadAndLand()
 })
+
+onUnmounted(() => wideQuery?.removeEventListener('change', onWideChange))
 </script>
 
 <style scoped>
@@ -842,18 +877,6 @@ onMounted(async () => {
   border-bottom: 1px solid var(--kk-line);
 }
 
-/* PC（左メニューがある幅）では一覧は左メニューに出すので、ホームには置かない */
-.kk-list-hint {
-  display: none;
-}
-@media (min-width: 1024px) {
-  .kk-list {
-    display: none;
-  }
-  .kk-list-hint {
-    display: block;
-  }
-}
 
 /* 一覧で名前を変えるときの入力欄 */
 .kk-row-edit-input {
