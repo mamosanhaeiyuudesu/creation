@@ -158,12 +158,19 @@
             AIが判断しきれなかったところ
             <span class="kk-badge">{{ minutes.unclearPoints.length }}</span>
           </p>
-          <ul class="kk-assist-list">
-            <li v-for="(p, i) in minutes.unclearPoints" :key="`${i}-${p}`">
-              <span class="min-w-0">{{ p }}</span>
-              <button type="button" class="kk-assist-done" :aria-label="`「${p}」を確かめたので消す`" title="確かめたので消す" @click="minutes.unclearPoints.splice(i, 1)">✕</button>
-            </li>
-          </ul>
+          <!-- 多いときは中だけスクロールする。続きがあることに気づけるよう、下をぼかし「あと何件」のボタンを出す -->
+          <div class="kk-assist-scroll" :class="{ 'has-more': unclearHidden > 0 }">
+            <ul ref="unclearList" class="kk-assist-list" @scroll.passive="measureUnclear">
+              <li v-for="(p, i) in minutes.unclearPoints" :key="`${i}-${p}`">
+                <span class="min-w-0">{{ p }}</span>
+                <button type="button" class="kk-assist-done" :aria-label="`「${p}」を確かめたので消す`" title="確かめたので消す" @click="minutes.unclearPoints.splice(i, 1)">✕</button>
+              </li>
+            </ul>
+            <button v-if="unclearHidden > 0" type="button" class="kk-assist-more" @click="scrollUnclear">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+              あと{{ unclearHidden }}件
+            </button>
+          </div>
         </div>
       </section>
 
@@ -427,6 +434,7 @@ const revising = ref(false)
 const reviseInstruction = ref('')
 /** 「AIで修正」をかける前の中身。「直す前に戻す」で戻せるのは直前の1回分だけ（何回も戻れると意味が分かりにくいため） */
 const undoMinutes = ref<Minutes | null>(null)
+
 const restructuring = ref(false)
 /** 作り直すときに選ぶまとめ方。開いたときは、いまのまとめ方と違うほうを選んでおく */
 const restructureMode = ref<MinutesMode>('meeting')
@@ -558,6 +566,42 @@ function confirmRemoveRow() {
 
 /** 画面で編集している議事録。保存・PDFともこれをもとに行う */
 const minutes = reactive<Minutes>(emptyMinutes())
+
+// ── AIが判断しきれなかったところ: 下に隠れている件数（スクロールできると分かるように出す） ──
+const unclearList = ref<HTMLElement | null>(null)
+const unclearHidden = ref(0)
+
+/** 見えている範囲より下にある項目（半分以上隠れているもの）を数える */
+function measureUnclear() {
+  const el = unclearList.value
+  if (!el) {
+    unclearHidden.value = 0
+    return
+  }
+  const bottom = el.scrollTop + el.clientHeight
+  unclearHidden.value = [...el.children].filter((li) => {
+    const item = li as HTMLElement
+    return item.offsetTop + item.offsetHeight / 2 > bottom
+  }).length
+}
+
+function scrollUnclear() {
+  const el = unclearList.value
+  el?.scrollBy({ top: el.clientHeight * 0.8, behavior: 'smooth' })
+}
+
+// 件数が変わったとき・欄の幅が変わって折り返しが変わったときに数え直す
+let unclearObserver: ResizeObserver | undefined
+watch(unclearList, (el) => {
+  unclearObserver?.disconnect()
+  if (!el) return measureUnclear()
+  unclearObserver = new ResizeObserver(measureUnclear)
+  unclearObserver.observe(el)
+})
+watch(
+  () => minutes.unclearPoints.join('\n'),
+  () => nextTick(measureUnclear)
+)
 
 /** 古い並べ方の会議か（右の真ん中に次の予定がある。作り直すと新しい並べ方になる） */
 const legacyMeeting = computed(() => isLegacyMeeting(minutes))
@@ -1067,6 +1111,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  unclearObserver?.disconnect()
   clearTimeout(autoTimer)
   window.removeEventListener('beforeunload', onBeforeUnload)
   document.removeEventListener('pointerdown', onDocPointerDown)
@@ -1588,14 +1633,72 @@ onUnmounted(() => {
 }
 .kk-assist-undo:hover:not(:disabled) { background: var(--kk-accent-soft); }
 .kk-assist-undo:disabled { opacity: 0.45; cursor: default; }
+.kk-assist-scroll {
+  position: relative;
+}
 .kk-assist-list {
+  position: relative; /* 項目の offsetTop をこの欄からの位置にする（隠れている件数の計算用） */
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 0.25rem 0 0;
   max-height: 7.5rem;
   overflow-y: auto;
   font-size: 13px;
   line-height: 1.6;
+  /* スクロールバーをいつも見えるようにする（Mac の隠れるスクロールバーだと、続きがあると気づけない） */
+  scrollbar-width: thin;
+  scrollbar-color: #e9b46c transparent;
+}
+.kk-assist-list::-webkit-scrollbar {
+  width: 6px;
+}
+.kk-assist-list::-webkit-scrollbar-thumb {
+  background: #e9b46c;
+  border-radius: 999px;
+}
+/* 続きがあるときは、下の端をぼかして「まだ下にある」ことを見せる */
+.kk-assist-scroll.has-more::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0.5rem;
+  bottom: 0;
+  height: 2.6rem;
+  background: linear-gradient(rgba(255, 244, 229, 0), var(--kk-warn-soft) 85%);
+  pointer-events: none;
+}
+.kk-assist-more {
+  position: absolute;
+  left: 50%;
+  bottom: 0.15rem;
+  z-index: 1;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  height: 24px;
+  padding: 0 0.7rem 0 0.5rem;
+  border: 1px solid #f0c48a;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--kk-warn);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(180, 110, 20, 0.15);
+  cursor: pointer;
+}
+.kk-assist-more:hover {
+  background: #fff3e2;
+}
+.kk-assist-more svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .kk-assist-list li {
   display: flex;

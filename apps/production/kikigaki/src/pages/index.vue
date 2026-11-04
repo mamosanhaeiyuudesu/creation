@@ -198,12 +198,14 @@
           <span v-if="records.length" class="kk-note">
             {{ activeTag ? `${filteredRecords.length} / ${records.length}件` : `${records.length}件` }}
           </span>
+          <!-- 概要の表示は見出しの行の右端に（タグの行はタグがある人だけに出す） -->
+          <label v-if="records.length" class="kk-tagbar-toggle"><input v-model="showSummary" type="checkbox"> 概要を表示</label>
         </div>
 
         <!-- タグで絞り込む（1つだけ選ぶ。既定は「すべて」）。多い順に並べ、入りきらなければ横にスクロール。
              選んだタグは URL（?tag=）に残す＝議事録を開いて戻っても絞り込んだまま -->
-        <div v-if="records.length" class="kk-tagbar">
-          <div v-if="tagCounts.length" class="kk-tagbar-chips" role="group" aria-label="タグで絞り込む">
+        <div v-if="records.length && tagCounts.length" class="kk-tagbar">
+          <div class="kk-tagbar-chips" role="group" aria-label="タグで絞り込む">
             <button type="button" class="kk-tagbar-chip" :class="{ 'is-on': !activeTag }" @click="setTag('')">
               すべて<span class="kk-tagbar-count">{{ records.length }}</span>
             </button>
@@ -218,7 +220,6 @@
               #{{ t.tag }}<span class="kk-tagbar-count">{{ t.count }}</span>
             </button>
           </div>
-          <label class="kk-tagbar-toggle"><input v-model="showSummary" type="checkbox"> 概要を表示</label>
         </div>
 
         <p v-if="!records.length" class="kk-lead px-4 py-6 m-0">読み込んでいます…</p>
