@@ -4,11 +4,13 @@
 import { getSessionUser, getAppDb } from '~/server/utils/auth'
 import { PALETTE_LIMITS } from '~/types/palette'
 import { clamp, isHttpsUrl } from '~/utils/palette-fal'
+import { normalizeVideo } from '~/utils/palette-video'
 import type {
   PaletteGeneration,
   PaletteImage,
   PaletteLora,
   PaletteMode,
+  PaletteVideo,
 } from '~/types/palette'
 
 export interface PaletteUser {
@@ -41,6 +43,26 @@ export async function ensurePaletteTables(db: any): Promise<void> {
     .exec(
       `CREATE INDEX IF NOT EXISTS idx_palette_generations_user ON palette_generations (user_id, created_at)`
     )
+    .catch(() => {})
+}
+
+/** 「記事 → 動画」のテーブル（075_palette_video.sql と同じ）。動画の API だけが呼ぶ。 */
+export async function ensurePaletteVideoTables(db: any): Promise<void> {
+  await db
+    .exec(
+      `CREATE TABLE IF NOT EXISTS palette_videos (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, title TEXT NOT NULL DEFAULT '', data TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')))`
+    )
+    .catch(() => {})
+  await db
+    .exec(`CREATE INDEX IF NOT EXISTS idx_palette_videos_user ON palette_videos (user_id, updated_at)`)
+    .catch(() => {})
+  await db
+    .exec(
+      `CREATE TABLE IF NOT EXISTS palette_video_audio (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, video_id TEXT NOT NULL, data TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now')))`
+    )
+    .catch(() => {})
+  await db
+    .exec(`CREATE INDEX IF NOT EXISTS idx_palette_video_audio_video ON palette_video_audio (video_id)`)
     .catch(() => {})
 }
 
@@ -122,4 +144,10 @@ export function parseLoraBody(body: any): { name: string; url: string; scale: nu
     triggerWord: String(body?.triggerWord ?? '').trim().slice(0, 200),
     memo: String(body?.memo ?? '').trim().slice(0, 500),
   }
+}
+
+/** palette_videos の行 → 動画。data の JSON が壊れていても空の下書きとして返す。 */
+export function toVideo(r: any): PaletteVideo {
+  const data = normalizeVideo(parseJson<Record<string, unknown>>(r.data, {}))
+  return { ...data, id: r.id, title: r.title || data.title, createdAt: r.created_at, updatedAt: r.updated_at }
 }

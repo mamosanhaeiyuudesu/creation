@@ -46,10 +46,13 @@ export default defineEventHandler(async (event) => {
 
   // 履歴に載せる設定（入力画像そのものは保存しない）
   const { imageSize, width, height, steps, guidance, numImages, seed, format, safety, acceleration, strength } = req.params ?? ({} as any)
-  const saved = {
+  const saved: Record<string, unknown> = {
     imageSize, width, height, steps, guidance, numImages, seed, format, safety, acceleration, strength,
     loras: (req.loras ?? []).map((l) => ({ path: l.path, scale: l.scale, name: l.name })),
   }
+  // 動画のシーンの絵は、画像の履歴に混ぜない（history.get.ts がこの印で外す）
+  const videoId = String(req?.videoId ?? '').slice(0, 64)
+  if (videoId) saved.videoId = videoId
   await db
     .prepare('INSERT OR REPLACE INTO palette_generations (id, user_id, mode, prompt_ja, prompt, params, status, status_url, response_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .bind(data.request_id, user.id, mode, String(req.promptJa ?? '').slice(0, 2000), prompt, JSON.stringify(saved), 'pending', data.status_url ?? '', data.response_url ?? '')

@@ -28,7 +28,12 @@ export function normalizeMode(v: unknown): MinutesMode {
 
 /** 版が無い・おかしい値は 1（古い議事録）として読む */
 export function normalizeLayout(v: unknown): MinutesLayout {
-  return v === 2 ? 2 : 1
+  return v === 2 || v === 3 ? v : 1
+}
+
+/** 今の並べ方（layout 3）か。話し合い＝A4横1枚・左に結論、聞き取り＝A4縦1列 */
+export function isCurrentLayout(m: Pick<Minutes, 'layout'>): boolean {
+  return m.layout === 3
 }
 
 /** 古い並べ方の会議か（左に未決の「話し合ったこと」、右の真ん中に「次の予定」を出すもの） */
@@ -36,9 +41,9 @@ export function isLegacyMeeting(m: Pick<Minutes, 'mode' | 'layout'>): boolean {
   return m.mode === 'meeting' && m.layout === 1
 }
 
-/** 新しい並べ方の聞き取りか（右に「やること」を出すもの） */
-export function isNewTalk(m: Pick<Minutes, 'mode' | 'layout'>): boolean {
-  return m.mode === 'talk' && m.layout === 2
+/** 「やること」の欄を持つ議事録か（layout 1 の古い聞き取りだけが持たない） */
+export function hasTasksSection(m: Pick<Minutes, 'mode' | 'layout'>): boolean {
+  return !(m.mode === 'talk' && m.layout === 1)
 }
 
 /** 「次の予定」の欄を出す議事録か（古い会議だけ。新しい並べ方では拾わない） */
@@ -78,12 +83,17 @@ export function transcriptOverMessage(length: number): string {
  *  - 2: 左に「話し合ったこと」（topics。決まったことも決まっていないことも含む論点の全体）、
  *       右に 決まったこと・やること。次の予定・決まっていないこと（discussions）の欄は持たない
  *       （次の予定は「やること」に、決まっていないことは「話し合ったこと」の中に入れる）。
+ *  - 3: 概要は300字以内。PDFはA4横1枚（あふれたら文字を小さくして収める）。
+ *       左に 概要・決まったこと・やること、右に 話し合ったこと（結論を先に読めるように）。
  * 聞き取り（talk）
  *  - 1: 古い記録。右は「伝えたかったこと」だけ。
  *  - 2: 右に 伝えたかったこと・やること。
+ *  - 3: 「伝えたかったこと」をやめ、話の内容（topics）の見出しを要点の一文にする。概要は300字以内。
+ *       PDFはA4縦1列で、ページをまたいでよい（省かずに全体を残す）。
  * 版の無い議事録は 1。discussions の意味を後から変えると古い議事録の中身とずれるため、版で見分ける。
+ * 古い版の議事録は古い並べ方のまま見せる（作り直すと今の版になる）。
  */
-export type MinutesLayout = 1 | 2
+export type MinutesLayout = 1 | 2 | 3
 
 /** この会で決まったこと／話し合ったこと の1件（talk では 伝えたかったこと／話の内容 の1件） */
 export interface MinutesPoint {
@@ -118,7 +128,7 @@ export interface EventItem {
 export interface Minutes {
   /** まとめ方。作るときに選び、あとから「種類を変える」で変えられる */
   mode: MinutesMode
-  /** 並べ方の版。新しく作る議事録は 2、版を持たない古い議事録は 1（MinutesLayout を参照） */
+  /** 並べ方の版。新しく作る議事録は 3、版を持たない古い議事録は 1（MinutesLayout を参照） */
   layout: MinutesLayout
   title: string
   /** 会議の日付（YYYY-MM-DD）。文字起こしから分からなければ空文字 */
@@ -130,9 +140,9 @@ export interface Minutes {
   decisions: MinutesPoint[]
   /** 決まっていないこと。会議の layout 1（古い議事録）だけが持つ（画面には「話し合ったこと」と出していた） */
   discussions: MinutesPoint[]
-  /** talk のみ: その人が伝えたかったこと（content＝要点、note＝それが表れている話の要旨） */
+  /** talk の layout 1・2 のみ: その人が伝えたかったこと（content＝要点、note＝それが表れている話の要旨） */
   keyMessages: MinutesPoint[]
-  /** 話題ごとの内容（content＝話題、note＝話した中身）。talk＝話の内容、meeting（layout 2）＝話し合ったこと */
+  /** 話題ごとの内容（content＝話題、note＝話した中身）。talk＝話の内容（layout 3 では content が要点の一文）、meeting（layout 2・3）＝話し合ったこと */
   topics: MinutesPoint[]
   /** やること */
   taskCandidates: TaskItem[]
@@ -176,7 +186,7 @@ export interface MinutesRecord extends RecordSummary {
 export function emptyMinutes(): Minutes {
   return {
     mode: 'meeting',
-    layout: 2,
+    layout: 3,
     title: '',
     date: '',
     participants: [],

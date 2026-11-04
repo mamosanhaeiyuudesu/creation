@@ -1,5 +1,6 @@
 <template>
-  <!-- PDFのページに並べる最小の単位（MinutesPdfMaker だけが使う）。data-block は高さの計測の目印 -->
+  <!-- PDFのページに並べる最小の単位（MinutesPdfMaker だけが使う）。data-block は高さの計測の目印、
+       data-keep は「次のブロックと同じページに置く」（見出しだけがページの末尾に残らないように）の目印 -->
   <div v-if="block.type === 'header'" data-block class="kk-print-header">
     <span class="kk-print-date">{{ info.dateLabel }}</span>
     <span>〈{{ info.title }}〉</span>
@@ -8,8 +9,11 @@
   <p
     v-else-if="block.type === 'heading'"
     data-block
+    data-keep
     :class="block.sub ? 'kk-print-subheading' : 'kk-print-heading'"
   >{{ block.text }}</p>
+  <p v-else-if="block.type === 'topic'" data-block data-keep class="kk-print-topic">{{ block.n }}. {{ block.text }}</p>
+  <p v-else-if="block.type === 'topicPara'" data-block class="kk-print-topic-para">{{ block.text }}</p>
   <p v-else-if="block.type === 'para'" data-block class="kk-print-body" :class="{ 'kk-print-body--lead': block.text.startsWith('【') }">{{ block.text }}</p>
   <div v-else-if="block.type === 'item'" data-block class="kk-print-item">
     {{ block.n }}. {{ block.main }}

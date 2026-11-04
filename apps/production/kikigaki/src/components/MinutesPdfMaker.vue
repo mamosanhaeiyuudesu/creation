@@ -1,26 +1,28 @@
 <template>
   <!-- PDF専用のレイアウト。画面には出さず、html2canvas で撮ってPDFにする。
-       確認画面と一覧画面の両方から使う（一覧からは開かずにPDF・ドライブ保存ができる）。
+       確認画面・一覧画面・PDFを見る画面から使う。形は3つ（utils/printLines.ts の printKind）:
+         landscape（古い版）＝A4横の左右2列、fit（今の版の話し合い）＝A4横の左右2列を1枚に収める、
+         portrait（今の版の聞き取り）＝A4縦の1列。
        2つの入れ物がある:
-         ① 計測用（measure）: 全ブロックを左右2列に流して、ブロックごとの高さを測る
+         ① 計測用（measure）: 全ブロックを列に流して、ブロックごとの高さを測る
          ② 出力用（pages）  : 計測で決めたページごとに並べ直したもの。1ページ＝1枚の画像＝PDFの1ページ -->
   <div class="kk-print kk-print--measure" aria-hidden="true">
-    <div v-if="measure" ref="measureRoot" class="kk-print-page kk-print-page--measure">
+    <div v-if="measure" ref="measureRoot" class="kk-print-page kk-print-page--measure" :class="pageClass" :style="pageStyle">
       <div class="kk-print-col" data-col="left">
-        <MinutesPrintBlock v-for="(b, i) in measure.left" :key="i" :block="b" :info="headerInfo" />
+        <MinutesPrintBlock v-for="(b, i) in measure.left" :key="i" :block="b" :info="headerInfo" :class="{ 'is-first': i === 0 }" />
       </div>
-      <div class="kk-print-col kk-print-col--right" data-col="right">
-        <MinutesPrintBlock v-for="(b, i) in measure.right" :key="i" :block="b" :info="headerInfo" />
+      <div v-if="kind !== 'portrait'" class="kk-print-col kk-print-col--right" data-col="right">
+        <MinutesPrintBlock v-for="(b, i) in measure.right" :key="i" :block="b" :info="headerInfo" :class="{ 'is-first': i === 0 }" />
       </div>
     </div>
   </div>
 
   <div ref="printRoot" class="kk-print" aria-hidden="true">
-    <div v-for="(pg, pi) in pages" :key="pi" class="kk-print-page">
+    <div v-for="(pg, pi) in pages" :key="pi" class="kk-print-page" :class="pageClass" :style="pageStyle">
       <div class="kk-print-col">
         <MinutesPrintBlock v-for="(b, i) in pg.left" :key="i" :block="b" :info="headerInfo" :class="{ 'is-first': i === 0 }" />
       </div>
-      <div class="kk-print-col kk-print-col--right">
+      <div v-if="kind !== 'portrait'" class="kk-print-col kk-print-col--right">
         <MinutesPrintBlock v-for="(b, i) in pg.right" :key="i" :block="b" :info="headerInfo" :class="{ 'is-first': i === 0 }" />
       </div>
       <p v-if="pages.length > 1" class="kk-print-pageno">{{ pi + 1 }} / {{ pages.length }}</p>
@@ -31,8 +33,8 @@
 <script setup lang="ts">
 import { minutesLabel } from '~/config/minutesLabels'
 import { formatDateLabel } from '~/utils/formatDate'
-import { buildPrintBlocks, paginateBlocks } from '~/utils/printLines'
-import type { BlockSize, PrintBlock } from '~/utils/printLines'
+import { buildPrintBlocks, findFitScale, paginateBlocks, printKind } from '~/utils/printLines'
+import type { BlockSize, PrintBlock, PrintKind, RenderedPages } from '~/utils/printLines'
 import { emptyMinutes } from '~/types/minutes'
 import type { Minutes } from '~/types/minutes'
 
@@ -43,8 +45,20 @@ const measureRoot = ref<HTMLElement | null>(null)
 
 /** 計測中だけ中身が入る（全ブロックを流した状態） */
 const measure = ref<{ left: PrintBlock[]; right: PrintBlock[] } | null>(null)
-/** 出力用。ページごとの左右のブロック */
+/** 出力用。ページごとの左右のブロック（portrait は left だけ） */
 const pages = ref<{ left: PrintBlock[]; right: PrintBlock[] }[]>([{ left: [], right: [] }])
+/** PDFの形 */
+const kind = ref<PrintKind>('landscape')
+/** 文字の倍率。fit で1枚に収めるときだけ 1 より小さくなる（CSS の --kk-pf） */
+const scale = ref(1)
+
+/** 縦1列は1行が長くなるので、横の2列より文字を少し大きくする */
+const PORTRAIT_SCALE = 1.1
+
+const pageClass = computed(() => (kind.value === 'portrait' ? 'kk-print-page--portrait' : ''))
+const pageStyle = computed(() => ({
+  '--kk-pf': String(kind.value === 'portrait' ? PORTRAIT_SCALE : scale.value),
+}))
 
 const headerInfo = computed(() => ({
   dateLabel: formatDateLabel(doc.value.date) || '日付が入っていません',
@@ -53,9 +67,10 @@ const headerInfo = computed(() => ({
   people: doc.value.participants.map((p) => p.trim()).filter(Boolean).join('、'),
 }))
 
-/** 1ページに入る高さ（px）。A4横の高さ210mmから、上下の余白12mmずつを引く（CSSの .kk-print-page と合わせる） */
+/** 1ページに入る高さ（px）。用紙の高さから上下の余白を引く（CSSの .kk-print-page と合わせる）。2pxは計測と描画の誤差の逃げ */
 const MM_TO_PX = 96 / 25.4
-const PAGE_CONTENT_PX = (210 - 12 * 2) * MM_TO_PX - 2 // 2pxは計測と描画の誤差の逃げ
+const LANDSCAPE_CONTENT_PX = (210 - 12 * 2) * MM_TO_PX - 2
+const PORTRAIT_CONTENT_PX = (297 - 14 * 2) * MM_TO_PX - 2
 
 /** 列に流したブロックの高さと上下の余白を測る */
 function measureColumn(col: HTMLElement | null): BlockSize[] {
@@ -63,7 +78,7 @@ function measureColumn(col: HTMLElement | null): BlockSize[] {
   return Array.from(col.querySelectorAll<HTMLElement>('[data-block]')).map((el) => {
     const style = getComputedStyle(el)
     return {
-      heading: el.classList.contains('kk-print-heading') || el.classList.contains('kk-print-subheading'),
+      heading: el.hasAttribute('data-keep'),
       top: parseFloat(style.marginTop) || 0,
       height: el.getBoundingClientRect().height,
       bottom: parseFloat(style.marginBottom) || 0,
@@ -71,19 +86,37 @@ function measureColumn(col: HTMLElement | null): BlockSize[] {
   })
 }
 
+/** 計測用の入れ物で、高い方の列の高さ（px）を測る。fit の倍率を探すのに使う */
+async function tallestColumn(s: number): Promise<number> {
+  scale.value = s
+  await nextTick()
+  const root = measureRoot.value
+  const heights = Array.from(root?.querySelectorAll<HTMLElement>('[data-col]') ?? []).map((c) => c.getBoundingClientRect().height)
+  return Math.max(0, ...heights)
+}
+
 /**
- * 全ブロックを左右の列に流して高さを測り、1枚に入る高さごとにページへ振り分ける。
- * 左右の列は別々に流す（右が長ければ、右だけが2枚目に続く）。縮小も要約もしない。
+ * 全ブロックを列に流して高さを測り、1枚に入る高さごとにページへ振り分ける。
+ * 左右の列は別々に流す（右が長ければ、右だけが2枚目に続く）。
+ * fit は先に文字の倍率を決める（1枚に収まる大きさまで縮める。下限でも入らなければ、その大きさで2枚目へ）。
  */
 async function buildPages(m: Minutes) {
   const blocks = buildPrintBlocks(m)
+  kind.value = printKind(m)
+  scale.value = 1
   measure.value = blocks
   await nextTick()
   // フォントの読み込み前後で行の折り返しが変わるので、読み込みを待ってから測る
   await (document as any).fonts?.ready
+  const limit = kind.value === 'portrait' ? PORTRAIT_CONTENT_PX : LANDSCAPE_CONTENT_PX
+  if (kind.value === 'fit') {
+    // 列の上下の余白（padding）は無いので、列の高さ＝ブロックの高さの合計
+    scale.value = await findFitScale(tallestColumn, limit)
+    await nextTick()
+  }
   const root = measureRoot.value
-  const leftPages = paginateBlocks(measureColumn(root?.querySelector('[data-col="left"]') ?? null), PAGE_CONTENT_PX)
-  const rightPages = paginateBlocks(measureColumn(root?.querySelector('[data-col="right"]') ?? null), PAGE_CONTENT_PX)
+  const leftPages = paginateBlocks(measureColumn(root?.querySelector('[data-col="left"]') ?? null), limit)
+  const rightPages = paginateBlocks(measureColumn(root?.querySelector('[data-col="right"]') ?? null), limit)
   const count = Math.max(leftPages.length, rightPages.length)
   pages.value = Array.from({ length: count }, (_, p) => ({
     left: (leftPages[p] ?? []).map((i) => blocks.left[i]!),
@@ -94,29 +127,45 @@ async function buildPages(m: Minutes) {
 }
 
 /**
- * 議事録からPDFを組み立てる。呼び出し側は保存済みの内容（確認画面なら保存した直後のもの）を渡すこと。
- * html2canvas / jspdf は重いので、ここで初めて読み込む。
- * 1枚に収まらないときは、収まらない分を2枚目以降の同じ列に続ける（文字は縮めない）。
+ * 議事録をページの画像にする。呼び出し側は保存済みの内容（確認画面なら保存した直後のもの）を渡すこと。
+ * 画像にしてから貼るのは、日本語フォントをPDFへ埋め込む手間を避けるため。
  */
-async function make(src: Minutes): Promise<{ pdf: InstanceType<Awaited<typeof import('jspdf')>['jsPDF']>; fileName: string }> {
+async function render(src: Minutes): Promise<RenderedPages> {
   doc.value = src
   await nextTick()
   await buildPages(src)
 
-  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')])
+  const { default: html2canvas } = await import('html2canvas')
   const els = Array.from(printRoot.value?.querySelectorAll<HTMLElement>('.kk-print-page') ?? [])
   if (!els.length) throw new Error('PDFの中身を用意できませんでした。画面を開き直してお試しください。')
-
-  // 画像にしてから貼るのは、日本語フォントをPDFへ埋め込む手間を避けるため。
-  // 1ページの要素はちょうどA4横（297×210mm）の大きさなので、そのまま貼れば縮尺は変わらない。
-  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-  for (let i = 0; i < els.length; i++) {
-    const canvas = await html2canvas(els[i]!, { scale: 2, backgroundColor: '#ffffff' })
-    if (i > 0) pdf.addPage('a4', 'landscape')
-    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 297, 210)
+  const images: string[] = []
+  for (const el of els) {
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' })
+    images.push(canvas.toDataURL('image/png'))
   }
+  return { images, kind: kind.value }
+}
 
+/**
+ * ページの画像をPDFにする。1ページの要素はちょうどA4（横 297×210mm／縦 210×297mm）の大きさなので、
+ * そのまま貼れば縮尺は変わらない。html2canvas / jspdf は重いので、使うときに初めて読み込む。
+ */
+async function toPdf(r: RenderedPages, src: Minutes): Promise<{ pdf: InstanceType<Awaited<typeof import('jspdf')>['jsPDF']>; fileName: string }> {
+  const { jsPDF } = await import('jspdf')
+  const portrait = r.kind === 'portrait'
+  const orientation = portrait ? 'portrait' : 'landscape'
+  const [w, h] = portrait ? [210, 297] : [297, 210]
+  const pdf = new jsPDF({ orientation, unit: 'mm', format: 'a4' })
+  r.images.forEach((img, i) => {
+    if (i > 0) pdf.addPage('a4', orientation)
+    pdf.addImage(img, 'PNG', 0, 0, w, h)
+  })
   return { pdf, fileName: pdfFileName(src) }
+}
+
+/** 議事録からPDFを組み立てる（画像にしてからPDFにする） */
+async function make(src: Minutes) {
+  return await toPdf(await render(src), src)
 }
 
 /** ファイル名（ドライブでは同じ名前のPDFを上書きするので、名前の付け方を変えるときは注意） */
@@ -125,14 +174,15 @@ function pdfFileName(m: Minutes): string {
   return m.date ? `${safeTitle}_${m.date}.pdf` : `${safeTitle}.pdf`
 }
 
-defineExpose({ make })
+defineExpose({ make, render, toPdf })
 </script>
 
 <style>
 /* ── PDF専用テンプレート ──
-   画面外（left: -99999px）に実寸のA4横サイズで置いておき、html2canvas で撮影してPDFへ埋め込む。
+   画面外（left: -99999px）に実寸のA4サイズで置いておき、html2canvas で撮影してPDFへ埋め込む。
    display:none にすると撮影できないため、位置をずらすだけにしている。
-   MinutesPrintBlock の中身にも効かせるため scoped にしていない（クラスは kk-print- で始めて衝突を避ける）。 */
+   MinutesPrintBlock の中身にも効かせるため scoped にしていない（クラスは kk-print- で始めて衝突を避ける）。
+   文字の大きさと上下の余白は --kk-pf（倍率）を掛けて決める。1枚に収める（fit）ときに、ここを小さくして縮める。 */
 .kk-print {
   position: fixed;
   top: 0;
@@ -155,6 +205,13 @@ defineExpose({ make })
   display: grid;
   grid-template-columns: 1fr 1fr;
 }
+/* A4縦の1列（今の版の聞き取り） */
+.kk-print-page--portrait {
+  width: 210mm;
+  height: 297mm;
+  padding: 14mm 16mm;
+  grid-template-columns: 1fr;
+}
 /* 計測用: 高さを固定せず、全ブロックを流した高さをそのまま測る */
 .kk-print-page--measure {
   height: auto;
@@ -168,6 +225,9 @@ defineExpose({ make })
   flex-direction: column;
   min-width: 0;
   padding-right: 8mm;
+}
+.kk-print-page--portrait .kk-print-col {
+  padding-right: 0;
 }
 
 .kk-print-col--right {
@@ -191,10 +251,10 @@ defineExpose({ make })
 }
 
 .kk-print-header {
-  font-size: 15px;
+  font-size: calc(15px * var(--kk-pf, 1));
   font-weight: 700;
-  padding-bottom: 6px;
-  margin-bottom: 10px;
+  padding-bottom: calc(6px * var(--kk-pf, 1));
+  margin-bottom: calc(10px * var(--kk-pf, 1));
   border-bottom: 1.5px solid #23272f;
   letter-spacing: 0.02em;
 }
@@ -204,15 +264,15 @@ defineExpose({ make })
 .kk-print-participants {
   display: block;
   margin-top: 2px;
-  font-size: 11px;
+  font-size: calc(11px * var(--kk-pf, 1));
   font-weight: 500;
   color: #5b6472;
 }
 
 .kk-print-heading {
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--kk-pf, 1));
   font-weight: 700;
-  margin: 12px 0 6px;
+  margin: calc(12px * var(--kk-pf, 1)) 0 calc(6px * var(--kk-pf, 1));
   padding-bottom: 3px;
   border-bottom: 1px solid #23272f;
 }
@@ -222,14 +282,14 @@ defineExpose({ make })
 }
 
 .kk-print-body {
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--kk-pf, 1));
   line-height: 1.8;
   white-space: pre-wrap;
   margin: 0;
 }
 /* 概要の【見出し】の行は、前の段落との間を少し空ける */
 .kk-print-body--lead {
-  margin-top: 6px;
+  margin-top: calc(6px * var(--kk-pf, 1));
 }
 .kk-print-heading + .kk-print-body--lead {
   margin-top: 0;
@@ -238,16 +298,16 @@ defineExpose({ make })
 /* 概要欄の中に「話し合ったこと」を同居させるための小見出し。kk-print-heading より控えめにして
    「概要のなかの一部」に見えるようにする */
 .kk-print-subheading {
-  font-size: 11px;
+  font-size: calc(11px * var(--kk-pf, 1));
   font-weight: 700;
   color: #5b6472;
-  margin: 10px 0 4px;
+  margin: calc(10px * var(--kk-pf, 1)) 0 calc(4px * var(--kk-pf, 1));
 }
 
 .kk-print-item {
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--kk-pf, 1));
   line-height: 1.7;
-  margin: 0 0 6px;
+  margin: 0 0 calc(6px * var(--kk-pf, 1));
   padding-left: 1.1em;
   text-indent: -1.1em;
 }
@@ -255,13 +315,33 @@ defineExpose({ make })
 .kk-print-item-note {
   display: block;
   padding-left: 1.1em;
-  font-size: 10px;
+  font-size: calc(10px * var(--kk-pf, 1));
   color: #5b6472;
   text-indent: 0;
 }
 
+/* 聞き取り（今の版）の話題: 見出し＝要点の一文（太字）、その下に中身の段落（本文と同じ大きさ・色で読ませる） */
+.kk-print-topic {
+  font-size: calc(12.5px * var(--kk-pf, 1));
+  font-weight: 700;
+  line-height: 1.6;
+  margin: calc(12px * var(--kk-pf, 1)) 0 calc(4px * var(--kk-pf, 1));
+  padding-left: 1.4em;
+  text-indent: -1.4em;
+}
+.kk-print-heading + .kk-print-topic {
+  margin-top: 0;
+}
+.kk-print-topic-para {
+  font-size: calc(11.5px * var(--kk-pf, 1));
+  line-height: 1.85;
+  white-space: pre-wrap;
+  margin: 0 0 calc(4px * var(--kk-pf, 1));
+  padding-left: 1.4em;
+}
+
 .kk-print-empty {
-  font-size: 11px;
+  font-size: calc(11px * var(--kk-pf, 1));
   color: #9aa1ab;
   margin: 0;
 }

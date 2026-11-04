@@ -1,19 +1,65 @@
 import { describe, expect, it } from 'vitest'
-import { buildPrintBlocks, paginateBlocks } from '~/utils/printLines'
+import { buildPrintBlocks, findFitScale, MIN_FIT_SCALE, paginateBlocks, printKind } from '~/utils/printLines'
 import type { BlockSize, PrintBlock } from '~/utils/printLines'
 import { emptyMinutes } from '~/types/minutes'
 
 const headings = (blocks: PrintBlock[]) => blocks.filter((b) => b.type === 'heading').map((b) => (b as any).text)
 
-describe('buildPrintBlocks', () => {
-  it('新しい会議: 右は 決まったこと・やること（次の予定・決まっていないことの欄は無い）', () => {
+/** 1つ前の版（layout 2）の議事録 */
+const v2 = () => {
+  const m = emptyMinutes()
+  m.layout = 2
+  return m
+}
+
+describe('buildPrintBlocks（今の版）', () => {
+  it('話し合い: 左に 概要・決まったこと・やること、右に 話し合ったこと', () => {
+    const m = emptyMinutes()
+    m.summary = '予算を決めた'
+    m.decisions = [{ content: '予算は10万円', note: '' }]
+    m.taskCandidates = [{ assignee: '田中さん', task: '見積もり', due: '来週', dueDate: '' }]
+    m.topics = [{ content: '予算', note: '割れたが決まった' }]
+    const { left, right } = buildPrintBlocks(m)
+    expect(left[0]).toEqual({ type: 'header' })
+    expect(headings(left)).toEqual(['概要', '決まったこと', 'やること'])
+    expect(headings(right)).toEqual(['話し合ったこと'])
+  })
+
+  it('話し合い: 中身が空の欄は見出しごと出さない（「（なし）」も出さない）', () => {
     const { left, right } = buildPrintBlocks(emptyMinutes())
+    expect(left).toEqual([{ type: 'header' }])
+    expect(right).toEqual([])
+  })
+
+  it('聞き取り: 1列。話の内容は 見出し＝要点の一文、中身は段落ごとに分ける', () => {
+    const m = emptyMinutes()
+    m.mode = 'talk'
+    m.summary = '担い手の話'
+    m.topics = [{ content: '担い手は地元で育てる', note: '最初の段落\n\n次の段落' }]
+    const { left, right } = buildPrintBlocks(m)
+    expect(right).toEqual([])
+    expect(headings(left)).toEqual(['概要', '話の内容'])
+    expect(left.filter((b) => b.type === 'topic')).toEqual([{ type: 'topic', n: 1, text: '担い手は地元で育てる' }])
+    expect(left.filter((b) => b.type === 'topicPara')).toHaveLength(2)
+  })
+
+  it('PDFの形: 今の版は 話し合い＝1枚に収める横、聞き取り＝縦。古い版は横', () => {
+    expect(printKind({ mode: 'meeting', layout: 3 })).toBe('fit')
+    expect(printKind({ mode: 'talk', layout: 3 })).toBe('portrait')
+    expect(printKind({ mode: 'talk', layout: 2 })).toBe('landscape')
+    expect(printKind({ mode: 'meeting', layout: 1 })).toBe('landscape')
+  })
+})
+
+describe('buildPrintBlocks（古い版）', () => {
+  it('layout 2 の会議: 右は 決まったこと・やること（次の予定・決まっていないことの欄は無い）', () => {
+    const { left, right } = buildPrintBlocks(v2())
     expect(headings(left)).toEqual(['概要'])
     expect(headings(right)).toEqual(['決まったこと', 'やること'])
   })
 
   it('左は 概要＋話し合ったこと（あるときだけ見出しを出す）。概要は行ごとに分ける', () => {
-    const m = emptyMinutes()
+    const m = v2()
     m.summary = '【背景】\nいろいろあった\n\n【結論】\nこうなった'
     m.topics = [{ content: '予算', note: '割れた' }]
     const { left } = buildPrintBlocks(m)
@@ -33,8 +79,8 @@ describe('buildPrintBlocks', () => {
     expect(headings(right)).toEqual(['決まったこと', '次の予定', 'やること'])
   })
 
-  it('聞き取り: 新しい並びは 伝えたかったこと・やること、古い記録は伝えたかったことだけ', () => {
-    const m = emptyMinutes()
+  it('聞き取り: layout 2 は 伝えたかったこと・やること、古い記録は伝えたかったことだけ', () => {
+    const m = v2()
     m.mode = 'talk'
     expect(headings(buildPrintBlocks(m).right)).toEqual(['伝えたかったこと', 'やること'])
     expect(headings(buildPrintBlocks(m).left)).toEqual(['概要'])
@@ -43,7 +89,7 @@ describe('buildPrintBlocks', () => {
   })
 
   it('中身が空の欄は「（なし）」を出す', () => {
-    const { right } = buildPrintBlocks(emptyMinutes())
+    const { right } = buildPrintBlocks(v2())
     expect(right.filter((b) => b.type === 'empty')).toHaveLength(2)
   })
 })
@@ -76,5 +122,25 @@ describe('paginateBlocks', () => {
 
   it('ブロックが無くても1ページ（空）を返す', () => {
     expect(paginateBlocks([], 300)).toEqual([[]])
+  })
+})
+
+describe('findFitScale', () => {
+  // 高さが倍率の2乗に比例する（字が小さいと行数も減る）列のつもり
+  const column = (base: number) => async (s: number) => base * s * s
+
+  it('そのままで入れば縮めない', async () => {
+    expect(await findFitScale(column(500), 600)).toBe(1)
+  })
+
+  it('入らなければ、入るいちばん大きな倍率まで縮める', async () => {
+    const s = await findFitScale(column(1000), 600)
+    expect(1000 * s * s).toBeLessThanOrEqual(600)
+    // 二分探索の刻み（約0.005）の範囲で、入る限界に近い
+    expect(1000 * (s + 0.01) ** 2).toBeGreaterThan(600)
+  })
+
+  it('下限まで縮めても入らなければ下限を返す（2枚目に続ける）', async () => {
+    expect(await findFitScale(column(5000), 600)).toBe(MIN_FIT_SCALE)
   })
 })

@@ -16,12 +16,14 @@ import type { Minutes, MinutesLayout, MinutesMode } from '~/types/minutes'
 const MAX_TOKENS = 8000
 
 /**
- * 構造化のシステムプロンプト。
+ * 構造化のシステムプロンプト（話し合い。layout 3）。
  *
  * task_candidates の due_date は、原文の表現（"来月中に"）と確定した日付を別々に持つための欄。
  * 原文側（due）は必ずそのまま残す（カレンダー登録の機能は持っていないが、PDFで確定日付を優先表示するのに使う）。
  *
- * 左＝概要＋話し合ったこと（topics。決まったことも決まっていないことも含む）、右＝決まったこと・やること、という並べ方（layout 2）。
+ * PDFはA4横1枚に収める（左＝概要・決まったこと・やること、右＝話し合ったこと）。
+ * 会議は脱線が多いので、要点に絞らせ、全体で2000字程度に抑えさせる（あふれた分はPDF側で文字を小さくして収める）。
+ * 概要は一覧で見分けるための300字以内の文章で、章立てはしない。
  * 次の予定は専用の欄を持たず、「やること」の1件として入れさせる（event_candidates は layout 1 の古い議事録だけが持っている）。
  * 同じ内容を複数の欄に書かせない（決定がそのまま作業なら「やること」だけ）のがこのプロンプトの肝。
  */
@@ -36,19 +38,21 @@ function buildMeetingSystemPrompt(today: string): string {
 - 文字起こしに書かれていない情報を絶対に追加しないこと。
 - 文字の誤り（音声の書き起こしの誤変換など）で意味が不明瞭な箇所は、無理に補完せず「[不明瞭]」と記載すること。
 - 推測や一般論で穴埋めしないこと。書かれている内容だけを根拠にすること。
+
+【分量】
+- この議事録はA4横1枚に収めて配る。summary・topics・decisions・task_candidates を合わせて、
+  全角・半角を問わず2000文字程度を目安にすること。
+- 会議には脱線や雑談が多い。議題から外れた話や結論に関係しない雑談は落とし、要点に絞ること。
+
 【概要(summary)の書き方】
-- この会議・打ち合わせが何だったのか全体の流れを把握できるように、
-  【背景】【話し合いの流れ】【結論・まとめ】のような見出しを立てて章立てした文章にすること
-  （内容に応じて見出しの数や名前を変えてよい。別項目に抽出する内容をここでも一字一句書き写す必要はなく、
-  経緯や背景の説明に重点を置くこと）。
-- 見出しは「【見出し】」の形式で書き、見出しと見出しの間は改行で区切ること。
-- 全角・半角を問わず1000文字以内に収めること。
+- 会議の大まかな流れと、決まったことが分かる短い文章にすること。見出しは立てないこと。
+- 全角・半角を問わず300文字以内に収めること。
+- 一覧で会議を見分けるための文章なので、細かい経緯は「${L('topics')}」に任せること。
 
 【構造化のルール】
 - 同じ内容を複数の項目に書かないこと。どの項目に入れるかは次の通り。
-- 「${L('topics')}(topics)」は、会議で話題になったことを話した順に、話題ごとに区切る。内容は厚めに書くこと。
-  決まったことも決まらなかったことも含めて、論点・出た意見・理由・経緯・具体的な数字や例を、削らずに残す。
-  content に話題の短い見出しを、note にその話題で話した中身を書く（note は長くなってよい）。
+- 「${L('topics')}(topics)」は、議題ごとに、話した順に区切る（脱線した話は入れない）。
+  content に話題の短い見出しを、note にその話題の要点（出た意見・理由・具体的な数字や例）を簡潔に書く。
   結論が出た話題は note の末尾に結論を一言添えてよい。結論が出なかった話題・次回に持ち越しになった話題も、
   その旨（「結論は出ていない」「次回に持ち越し」など）を note の末尾に添えること。
 - 「${L('decisions')}(decisions)」は、会議の中で明確に合意・決定されたことのみを、1件1文で端的に書く。
@@ -72,16 +76,7 @@ function buildMeetingSystemPrompt(today: string): string {
 【出力形式】
 以下のJSON形式のみを出力すること。前置きや説明文、Markdownのコードフェンスは一切含めないこと。
 
-{
-  "title": "",
-  "date": "",
-  "participants": [""],
-  "summary": "",
-  "topics": [{ "content": "", "note": "" }],
-  "decisions": [{ "content": "", "note": "" }],
-  "task_candidates": [{ "assignee": "", "task": "", "due": "", "due_date": "" }],
-  "unclear_points": [""]
-}
+${MEETING_JSON_SHAPE}
 
 - date は会議が開かれた日（YYYY-MM-DD）。文字起こしから分からなければ空文字にすること。
 - title は内容が一目で分かる短い日本語にし、全角・半角を問わず15文字以内に収めること（例:「秋祭りの打ち合わせ」）。
@@ -92,10 +87,12 @@ function buildMeetingSystemPrompt(today: string): string {
 }
 
 /**
- * 「主に1人が話した」記録（講演・インタビュー・カウンセリングなど）の構造化のシステムプロンプト。
+ * 「主に1人が話した」記録（講演・インタビュー・カウンセリングなど）の構造化のシステムプロンプト（layout 3）。
  *
- * 会議と違い「決まったこと」は拾わず、その人が伝えたかったことと話の中身を重点的に残す
- * （やることは、話の中で出たときだけ拾う。次回の日程も「やること」に入れる）。
+ * 会議と違い「決まったこと」は拾わず、話の中身を省かずに残す（PDFはA4縦で、ページをまたいでよい）。
+ * 「伝えたかったこと」の欄は持たず、話の内容の見出し（content）を要点の一文にする
+ * （見出しを拾い読みするだけで要点が分かるように。要点と中身を別の欄に書くと同じ内容が2回出るため）。
+ * やることは、話の中で出たときだけ拾う。次回の日程も「やること」に入れる。
  * カウンセリングも対象なので、AIの評価・診断・助言を足さないことを創作の禁止と同じ重さで書いている。
  */
 function buildTalkSystemPrompt(today: string): string {
@@ -116,24 +113,25 @@ function buildTalkSystemPrompt(today: string): string {
 - 話し手の言い回しや大事にしている言葉は、一般的な言葉に丸めず、できるだけそのまま残すこと。
 
 【何を記録するか】
-- 話し合ったことや決まったことではなく、話し手が伝えたかったことを重点的にまとめること。
+- 話し合ったことや決まったことではなく、話し手が伝えたかったことと、その話の中身を残すこと。
 - 聞き手の質問や相づちは、話の流れが分かる程度にとどめ、要点として扱わないこと。
 - 具体的なエピソード・例え・数字は、話し手の伝えたいことを支える大事な中身なので、削らずに残すこと。
 
+【分量】
+- 短く要約するより、あとで話の全体をしっかり振り返れることを優先すること。
+- A4縦で2〜4ページ（全角・半角を問わず4000〜8000文字程度）が目安だが、話の量に応じて増減してよい。
+
 【概要(summary)の書き方】
-- どんな話だったのか全体を把握できるように、
-  【テーマ】【話の流れ】【伝えたかったこと】のような見出しを立てて章立てした文章にすること
-  （内容に応じて見出しの数や名前を変えてよい）。
-- 見出しは「【見出し】」の形式で書き、見出しと見出しの間は改行で区切ること。
-- 全角・半角を問わず1000文字以内に収めること。
+- どんな話だったのかが分かる短い文章にすること。見出しは立てないこと。
+- 全角・半角を問わず300文字以内に収めること。
 
 【構造化のルール】
-- key_messages（${L('keyMessages')}）は、話し手がこの話で一番伝えたかったことを3〜5件程度。
-  content に要点を1〜2文で、note にそれが表れている話の要旨（どんなエピソードや言葉で語っていたか）を書く。
-  話し手が繰り返し語ったこと・強調したことを優先すること。
 - topics（${L('topics')}）は、話した順に話題ごとに区切る。
-  content に話題の短い見出しを、note にその話題で話した中身（エピソード・例・理由など）を書く。
-  話の中身をできるだけ漏らさないことを優先し、1件の note が長くなってもよい。
+  content には、その話題で話し手が伝えたかった要点を一文で書く。見出しとして読むだけで要点が分かるようにし、
+  「〇〇について」「〇〇の話」のような話題の名前にはしないこと（例:「担い手は外から呼ぶより、地元で育てる」）。
+  note には、その話題で話した中身（エピソード・例え・数字・理由・話し手の言葉）を、削らずに書く。
+  長くなるときは、段落ごとに改行で区切ってよい。
+  話し手が繰り返し語ったこと・強調したことは、必ずどこかの content に入れること。
 - task_candidates（${L('taskCandidates')}）は、話の中で誰かが「やる」「やってみる」「次までにやってくる」と**自分から言った**こと、
   または宿題・次回までの課題として**はっきり決まった**ことだけを抽出する。
   assignee はそれを言った人（話し手・聞き手）。誰が言ったか分からなければ「[不明瞭]」。
@@ -150,16 +148,7 @@ function buildTalkSystemPrompt(today: string): string {
 【出力形式】
 以下のJSON形式のみを出力すること。前置きや説明文、Markdownのコードフェンスは一切含めないこと。
 
-{
-  "title": "",
-  "date": "",
-  "speakers": [""],
-  "summary": "",
-  "key_messages": [{ "content": "", "note": "" }],
-  "topics": [{ "content": "", "note": "" }],
-  "task_candidates": [{ "assignee": "", "task": "", "due": "", "due_date": "" }],
-  "unclear_points": [""]
-}
+${TALK_JSON_SHAPE}
 
 - この文章を取り込んだ日は ${today}（日本時間）である。
 - date は話がされた日（YYYY-MM-DD）。文字起こしから分からなければ空文字にすること。
@@ -192,6 +181,10 @@ function buildReviseSystemPrompt(mode: MinutesMode, layout: MinutesLayout, today
       ? `
 - 話し手の話への分析・診断・評価・助言を足さないこと（指示が求めていても、話し手が話していないことは書かない）。`
       : ''
+  const summaryRule =
+    layout === 3
+      ? 'summaryは見出しの無い短い文章で、全角・半角問わず300文字以内に収まっているはずである。'
+      : 'summaryは【見出し】形式で章立てされ、全角・半角問わず1000文字以内に収まっているはずである。'
   return `あなたは${target}
 以下のルールを厳守してください。
 
@@ -200,9 +193,14 @@ function buildReviseSystemPrompt(mode: MinutesMode, layout: MinutesLayout, today
 - 指示された範囲外の内容は、たとえ改善できそうに見えても変更せず元のまま維持すること。
 - 推測や一般論で穴埋めしないこと。${talkRule}
 【概要(summary)について】
-- summaryは【見出し】形式で章立てされ、全角・半角問わず1000文字以内に収まっているはずである。
-  指示がsummaryの内容に関わるものであっても、この章立てと文字数の制約は維持すること
+- ${summaryRule}
+  指示がsummaryの内容に関わるものであっても、この形式と文字数の制約は維持すること
   （指示が明示的に長さや形式の変更を求めている場合を除く）。
+
+【不明点(unclear_points)について】
+- unclear_points は、AIが判断しきれなかった箇所の一覧で、人間がこれを見ながら1つずつ直している。
+- 指示によって解消した不明点（人名の正しい表記が分かった、など）は、unclear_points から取り除くこと。
+- 解消していない不明点は、文言を変えずにそのまま残すこと。新しい不明点は足さないこと。
 
 【参考情報】
 - 文字起こし全文（照合用）と、現在の記録JSONを渡す。指示の実行にあたって事実確認が必要な場合は
@@ -244,6 +242,17 @@ const TALK_JSON_SHAPE = `{
   "date": "",
   "speakers": [""],
   "summary": "",
+  "topics": [{ "content": "", "note": "" }],
+  "task_candidates": [{ "assignee": "", "task": "", "due": "", "due_date": "" }],
+  "unclear_points": [""]
+}`
+
+/** layout 2 の聞き取り。伝えたかったこと（key_messages）を持つ */
+const TALK_V2_JSON_SHAPE = `{
+  "title": "",
+  "date": "",
+  "speakers": [""],
+  "summary": "",
   "key_messages": [{ "content": "", "note": "" }],
   "topics": [{ "content": "", "note": "" }],
   "task_candidates": [{ "assignee": "", "task": "", "due": "", "due_date": "" }],
@@ -262,8 +271,9 @@ const LEGACY_TALK_JSON_SHAPE = `{
 }`
 
 function jsonShape(mode: MinutesMode, layout: MinutesLayout): string {
-  if (mode === 'talk') return layout === 2 ? TALK_JSON_SHAPE : LEGACY_TALK_JSON_SHAPE
-  return layout === 2 ? MEETING_JSON_SHAPE : LEGACY_MEETING_JSON_SHAPE
+  if (mode === 'talk') return layout === 3 ? TALK_JSON_SHAPE : layout === 2 ? TALK_V2_JSON_SHAPE : LEGACY_TALK_JSON_SHAPE
+  // 会議の layout 2 と 3 は項目が同じ（並べ方と分量だけが違う）
+  return layout === 1 ? LEGACY_MEETING_JSON_SHAPE : MEETING_JSON_SHAPE
 }
 
 /** AIへ渡す・AIから受け取るJSONの形（まとめ方・並べ方の版ごとに持つ項目が違う） */
@@ -274,9 +284,9 @@ function toAiJson(m: Minutes): Record<string, unknown> {
       date: m.date,
       speakers: m.participants,
       summary: m.summary,
-      key_messages: m.keyMessages,
+      ...(m.layout < 3 ? { key_messages: m.keyMessages } : {}),
       topics: m.topics,
-      ...(m.layout === 2 ? { task_candidates: m.taskCandidates } : {}),
+      ...(m.layout >= 2 ? { task_candidates: m.taskCandidates } : {}),
       unclear_points: m.unclearPoints,
     }
   }
@@ -316,19 +326,21 @@ function fromAiJson(parsed: any, mode: MinutesMode, layout: MinutesLayout): Minu
     mode,
     layout,
     participants: mode === 'talk' ? parsed.speakers ?? parsed.participants : parsed.participants,
-    discussions: layout === 2 ? [] : parsed.discussions,
+    discussions: layout === 1 ? parsed.discussions : [],
   })
   if (mode === 'talk') {
     m.decisions = []
     m.discussions = []
-    // やることは layout 2 の聞き取りだけ（layout 1 の古い記録には欄が無い）。次の予定の欄は聞き取りには無い
-    if (layout !== 2) m.taskCandidates = []
+    // 伝えたかったことは layout 1・2 だけ（layout 3 では話の内容の見出しが要点になる）
+    if (layout === 3) m.keyMessages = []
+    // やることは layout 2 以降の聞き取りだけ（layout 1 の古い記録には欄が無い）。次の予定の欄は聞き取りには無い
+    if (layout === 1) m.taskCandidates = []
     m.eventCandidates = []
   } else {
     m.keyMessages = []
-    // 話し合ったこと(topics)は layout 2 の会議だけ。layout 1 では discussions が左に出る。
-    // 次の予定の欄は layout 1 の会議だけ（layout 2 では「やること」に入れる）
-    if (layout !== 2) m.topics = []
+    // 話し合ったこと(topics)は layout 2 以降の会議だけ。layout 1 では discussions が左に出る。
+    // 次の予定の欄は layout 1 の会議だけ（layout 2 以降では「やること」に入れる）
+    if (layout === 1) m.topics = []
     else m.eventCandidates = []
   }
   return m
@@ -360,8 +372,8 @@ export async function structureTranscript(
 
   const parsed = parseJsonLoose<any>(raw)
   if (!parsed) jsonError()
-  // 新しく作る・作り直すときは、いつでも最新の並べ方（layout 2）
-  return fromAiJson(parsed, mode, 2)
+  // 新しく作る・作り直すときは、いつでも最新の並べ方（layout 3）
+  return fromAiJson(parsed, mode, 3)
 }
 
 /**

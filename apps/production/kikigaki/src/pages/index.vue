@@ -161,27 +161,6 @@
 
       <MinutesTextSheet v-model="showTextSheet" />
 
-      <!-- スマホの「⋯」から開く操作の一覧 -->
-      <BottomSheet :model-value="!!menuRecord" :title="menuRecord?.title || '（名前のない議事録）'" @update:model-value="menuRecord = null">
-        <div v-if="menuRecord" class="kk-menu">
-          <button type="button" class="kk-menu-item" @click="runMenu('rename')">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16zM13 7l4 4" /></svg>
-            名前を変える
-          </button>
-          <button type="button" class="kk-menu-item" @click="runMenu('pdf')">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg>
-            PDF
-          </button>
-          <button v-if="driveConnected" type="button" class="kk-menu-item" @click="runMenu('drive')">
-            <GoogleDriveIcon />
-            ドライブに保存
-          </button>
-          <button type="button" class="kk-menu-item is-danger" @click="runMenu('delete')">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
-            削除
-          </button>
-        </div>
-      </BottomSheet>
       <MinutesPdfMaker ref="pdfMaker" />
 
       <!-- 削除の確認（確認画面と同じ文言）。消している間は閉じられないようにする -->
@@ -269,12 +248,12 @@
                 <div v-else class="kk-row-head">
                   <!-- 名前と「名前を変える」は離さない（名前が長くても、ボタンだけ次の行に落ちないように） -->
                   <span class="kk-row-name">
-                    <NuxtLink :to="`/records/${r.id}`" class="kk-row-title" @click.stop>
+                    <NuxtLink :to="`/view/${r.id}`" class="kk-row-title" @click.stop>
                       <!-- 種類（話し合い／聞き取り）。名前の頭に置いて、一覧で見分けられるようにする -->
                       <MinutesModeBadge :mode="r.mode" compact />
                       <span class="truncate">{{ r.title || '（名前のない議事録）' }}</span>
                     </NuxtLink>
-                    <!-- スマホでは「⋯」のメニューに入れる（タイトルに幅を回すため） -->
+                    <!-- スマホでは出さない（タイトルに幅を回す。名前は編集画面で変えられる） -->
                     <button
                       type="button"
                       class="kk-row-icon kk-row-rename kk-pc-only"
@@ -299,7 +278,7 @@
                     #{{ t }}
                   </button>
                 </div>
-                <!-- 名前の下に概要を出す（過去の分も含め、一覧で会議の要点を見渡すため） -->
+                <!-- 名前の下に概要を出す（「概要を表示」にチェックを入れたときだけ。既定は日付と名前だけのコンパクトな一覧） -->
                 <p v-if="showSummary && r.summary" class="kk-row-summary">{{ r.summary }}</p>
                 <!-- スマホだけ: 名前の下に日付とタグ -->
                 <span class="kk-row-sub">
@@ -317,19 +296,9 @@
                 </span>
               </td>
               <td class="kk-col-date">{{ r.date ? formatDateLabel(r.date) : '—' }}</td>
-              <!-- 開かずにPDF・ドライブ保存。行を押すと開くので、ここだけ伝わらないよう止める -->
+              <!-- PCだけ: 開かずにPDF・ドライブ保存・削除。行を押すと開くので、ここだけ伝わらないよう止める。
+                   スマホは行を押して開く「PDFを見る」画面に同じ操作がある（「⋯」のメニューに隠さない） -->
               <td class="kk-col-actions" @click.stop>
-                <!-- スマホ: 操作は「⋯」から下のシートで選ぶ。作っている間はここで回る -->
-                <button
-                  type="button"
-                  class="kk-row-icon kk-row-more"
-                  :disabled="!!rowBusy"
-                  :aria-label="`${r.title || '議事録'}の操作`"
-                  @click="menuRecord = r"
-                >
-                  <span v-if="rowBusy?.id === r.id" class="kk-row-spin" />
-                  <svg v-else viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.3" /><circle cx="12" cy="12" r="1.3" /><circle cx="19" cy="12" r="1.3" /></svg>
-                </button>
                 <!-- PC: アイコンを並べる（1回押すだけで済むように） -->
                 <div class="kk-row-actions">
                   <button
@@ -431,8 +400,16 @@ const filteredRecords = computed(() =>
   activeTag.value ? records.value.filter((r) => r.tags.includes(activeTag.value)) : records.value
 )
 
-// 一覧に概要を出すか（既定は出す）
-const showSummary = ref(true)
+// 一覧に概要を出すか。既定は出さない（日付と名前だけのコンパクトな一覧）。チェックはこの端末に覚えておく
+const SHOW_SUMMARY_KEY = 'kk-list-show-summary'
+const showSummary = ref(false)
+watch(showSummary, (v) => {
+  try {
+    localStorage.setItem(SHOW_SUMMARY_KEY, v ? '1' : '0')
+  } catch {
+    // 保存できない環境（プライベートブラウズなど）では、その場だけ切り替わる
+  }
+})
 
 // ── 並び順（既定は会議の日の新しい順） ──
 const sortKey = computed<RecordSortKey>(() => parseSortKey(route.query.sort))
@@ -454,10 +431,11 @@ const titleDraft = ref('')
 const titleSaving = ref(false)
 const titleInput = ref<HTMLInputElement[] | HTMLInputElement | null>(null)
 
+/** 行を押したら、すぐにPDFの見た目で見せる（直すときは、その画面の「編集する」から） */
 function openRow(id: string) {
   // 名前を変えている最中は、行を押しても開かない
   if (editingId.value) return
-  router.push(`/records/${id}`)
+  router.push(`/view/${id}`)
 }
 
 function startTitle(r: RecordSummary) {
@@ -520,21 +498,6 @@ const savedMessage = ref('')
 const pdfMaker = ref<InstanceType<typeof MinutesPdfMakerType> | null>(null)
 /** 今作っている行。PDF作りは画面外の1枚の版を使い回すので、同時には1件だけにする */
 const rowBusy = ref<{ id: string; kind: 'pdf' | 'drive' } | null>(null)
-
-// ── スマホの「⋯」メニュー ──
-type RowRecord = (typeof records.value)[number]
-const menuRecord = ref<RowRecord | null>(null)
-
-/** メニューを閉じてから実行する（名前の欄・確認のシートと重ならないように） */
-function runMenu(kind: 'rename' | 'pdf' | 'drive' | 'delete') {
-  const r = menuRecord.value
-  menuRecord.value = null
-  if (!r) return
-  if (kind === 'rename') startTitle(r)
-  else if (kind === 'pdf') downloadRow(r)
-  else if (kind === 'drive') driveRow(r)
-  else pendingDelete.value = r
-}
 
 /** 保存されている内容でPDFを作る（確認画面で保存していない直しは入らない） */
 async function makeRowPdf(id: string) {
@@ -689,6 +652,11 @@ watch(isLoggedIn, async (v) => {
 })
 
 onMounted(async () => {
+  try {
+    showSummary.value = localStorage.getItem(SHOW_SUMMARY_KEY) === '1'
+  } catch {
+    // 読めなければ既定（出さない）のまま
+  }
   refreshDrive()
   const redirectError = await catchRedirectError()
   if (redirectError) errorMessage.value = redirectError
@@ -979,9 +947,9 @@ onMounted(async () => {
   color: var(--kk-ink);
   text-decoration: none;
 }
-/* 行の右端の操作（PCはアイコンを並べ、スマホは「⋯」1つ） */
+/* 行の右端の操作（PCだけ。スマホは行を押して開く画面に同じ操作がある） */
 .kk-col-actions {
-  width: 44px;
+  display: none;
   padding-left: 0.25rem !important;
   padding-right: 0.6rem !important;
 }
@@ -1074,48 +1042,6 @@ onMounted(async () => {
   font-size: 11.5px;
   color: var(--kk-ink-faint);
 }
-/* スマホの「⋯」と、そこから開くシートの中の操作 */
-.kk-row-more {
-  display: inline-flex;
-}
-.kk-row-more svg circle {
-  fill: currentColor;
-  stroke: none;
-}
-.kk-menu {
-  display: flex;
-  flex-direction: column;
-}
-.kk-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  min-height: 48px;
-  padding: 0 0.25rem;
-  border: 0;
-  border-top: 1px solid var(--kk-line);
-  background: transparent;
-  font-family: inherit;
-  font-size: 15px;
-  color: var(--kk-ink);
-  text-align: left;
-  cursor: pointer;
-}
-.kk-menu-item:first-child {
-  border-top: 0;
-}
-.kk-menu-item svg {
-  width: 19px;
-  height: 19px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.kk-menu-item.is-danger {
-  color: var(--kk-danger);
-}
 .kk-pc-only,
 .kk-row-actions {
   display: none !important;
@@ -1124,8 +1050,7 @@ onMounted(async () => {
   display: none;
 }
 @media (min-width: 640px) {
-  .kk-row-sub,
-  .kk-row-more {
+  .kk-row-sub {
     display: none;
   }
   .kk-pc-only {
@@ -1135,6 +1060,7 @@ onMounted(async () => {
     display: flex !important;
   }
   .kk-col-actions {
+    display: table-cell;
     width: 120px;
   }
   .kk-col-date {

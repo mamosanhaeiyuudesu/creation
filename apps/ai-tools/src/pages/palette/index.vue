@@ -19,11 +19,15 @@
 
     <!-- タブ -->
     <div class="flex gap-1.5 mb-4" role="tablist">
-      <button class="pl-tab" :class="{ 'pl-tab--on': tab === 't2i' }" role="tab" :aria-selected="tab === 't2i'" @click="setTab('t2i')">テキスト → 画像</button>
-      <button class="pl-tab" :class="{ 'pl-tab--on': tab === 'i2i' }" role="tab" :aria-selected="tab === 'i2i'" @click="setTab('i2i')">画像 → 画像</button>
+      <button class="pl-tab" :class="{ 'pl-tab--on': !videoTab && tab === 't2i' }" role="tab" :aria-selected="!videoTab && tab === 't2i'" @click="setTab('t2i')">テキスト → 画像</button>
+      <button class="pl-tab" :class="{ 'pl-tab--on': !videoTab && tab === 'i2i' }" role="tab" :aria-selected="!videoTab && tab === 'i2i'" @click="setTab('i2i')">画像 → 画像</button>
+      <button class="pl-tab" :class="{ 'pl-tab--on': videoTab }" role="tab" :aria-selected="videoTab" @click="videoTab = true">記事 → 動画</button>
     </div>
 
-    <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] items-start">
+    <!-- 記事 → 動画（インスタのリール用）。LoRA の選択は画像のタブと共有する -->
+    <VideoStudio v-if="videoTab" :loras="loras" :selected="selected" @generated="loadBalance" />
+
+    <div v-else class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] items-start">
       <!-- 左: 入力 -->
       <div class="space-y-4">
         <!-- i2i: 入力画像 -->
@@ -71,22 +75,7 @@
 
         <!-- LoRA（右上の「LoRA を管理」で登録したものから選ぶ） -->
         <section class="pl-card">
-          <ParamField label="LoRA" help="絵柄や人物などを覚えさせた追加データです。使うものを選び、強さを決めます。高いほど特徴が強く出て、崩れるときは 0.6〜0.8 に下げます。">
-            <p v-if="!loras.length" class="text-[13px] text-[var(--pl-ink-soft)]">LoRA なしで生成します。使うときは、右上の「LoRA を管理」で登録してください。</p>
-            <ul v-else class="space-y-2">
-              <li v-for="l in loras" :key="l.id" class="rounded-lg border p-2.5" :class="selected[l.id]?.on ? 'border-[var(--pl-teal)] bg-[var(--pl-teal-soft)]' : 'border-[var(--pl-line)] bg-white'">
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input v-model="selected[l.id]!.on" type="checkbox" class="accent-[var(--pl-teal)] w-4 h-4" />
-                  <span class="font-bold text-[14px] truncate">{{ l.name }}</span>
-                  <span v-if="l.triggerWord" class="pl-chip">{{ l.triggerWord }}</span>
-                </label>
-                <div v-if="selected[l.id]?.on" class="mt-2 flex items-center gap-3">
-                  <input v-model.number="selected[l.id]!.scale" type="range" min="0" max="4" step="0.05" class="flex-1 accent-[var(--pl-teal)]" :aria-label="`${l.name}の強さ`" />
-                  <input v-model.number="selected[l.id]!.scale" type="number" min="0" max="4" step="0.05" class="pl-input !w-[72px] text-center" />
-                </div>
-              </li>
-            </ul>
-          </ParamField>
+          <LoraPicker :loras="loras" :selected="selected" />
         </section>
 
         <!-- オプション + 生成 -->
@@ -173,6 +162,8 @@ import PasswordModal from '~/components/PasswordModal.vue'
 import ParamField from '~/components/palette/ParamField.vue'
 import LoraManager from '~/components/palette/LoraManager.vue'
 import OptionsSheet from '~/components/palette/OptionsSheet.vue'
+import LoraPicker from '~/components/palette/LoraPicker.vue'
+import VideoStudio from '~/components/palette/VideoStudio.vue'
 import type {
   PaletteGeneration,
   PaletteGenerateRequest,
@@ -314,7 +305,11 @@ const optionsSummary = computed(() => {
 })
 
 // ── タブ ──────────────────────────────
+/** 「記事 → 動画」タブ。画像の2つのタブ（tab）とは別に持ち、戻ったときは前の画像のタブに戻る */
+const videoTab = ref(false)
+
 function setTab(t: PaletteMode) {
+  videoTab.value = false
   if (t === tab.value) return
   sizeByMode[tab.value] = params.imageSize
   tab.value = t
@@ -405,7 +400,7 @@ function clearInput() {
 
 /** 画面を切り取ってコピーした画像（Mac の ⌘+Ctrl+Shift+4 など）を貼り付ける。画像が無い貼り付け（文字）は邪魔しない。 */
 function onPaste(e: ClipboardEvent) {
-  if (showOptions.value || showLoras.value) return
+  if (showOptions.value || showLoras.value || videoTab.value) return
   for (const item of Array.from(e.clipboardData?.items ?? [])) {
     if (item.kind === 'file' && item.type.startsWith('image/')) {
       const file = item.getAsFile()

@@ -61,39 +61,6 @@
         </div>
 
         <div ref="toolsRoot" class="kk-head-actions">
-          <!-- AIで修正: 指示を1つ書くと、議事録全体を書き換える（保存は自動保存） -->
-          <div class="kk-pop-wrap">
-            <button
-              type="button"
-              class="kk-icon-btn kk-icon-btn--ai"
-              :class="{ 'is-open': openPop === 'revise' }"
-              :aria-expanded="openPop === 'revise'"
-              :disabled="revising || restructuring"
-              @click="togglePop('revise')"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z" /></svg>
-              {{ revising ? 'AIが直しています…' : 'AIで修正' }}
-            </button>
-            <div v-if="openPop === 'revise'" class="kk-pop kk-pop--wide" role="dialog" aria-label="AIで修正">
-              <p class="kk-pop-title">AIに直してほしいこと</p>
-              <textarea
-                ref="reviseInput"
-                v-model="reviseInstruction"
-                rows="3"
-                class="kk-input resize-none"
-                placeholder="れい: 阪中さんを坂中さんに直して"
-                aria-label="AIに直してほしいこと"
-                @keydown.enter.exact="onReviseEnter"
-              />
-              <div class="flex items-center justify-between gap-2 mt-2">
-                <span class="kk-note">Shift+Enter で改行</span>
-                <button type="button" class="kk-pop-run" :disabled="revising || !reviseInstruction.trim()" @click="runRevise">
-                  {{ revising ? '直しています…' : '直してもらう' }}
-                </button>
-              </div>
-            </div>
-          </div>
-
           <!-- 元の文章（取り込んだ全文）。右からせり出す欄で、左の列を直しながら見比べられる -->
           <button
             type="button"
@@ -106,28 +73,6 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 10h16M4 15h10M4 20h7" /></svg>
             元の文章
           </button>
-
-          <!-- 不明点 は普段は小さく畳み、押したときだけ下に開く -->
-          <div v-if="minutes.unclearPoints.length" class="kk-pop-wrap">
-            <button
-              type="button"
-              class="kk-icon-btn kk-icon-btn--warn"
-              :class="{ 'is-open': openPop === 'unclear' }"
-              :aria-expanded="openPop === 'unclear'"
-              @click="togglePop('unclear')"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16.5v.01" /></svg>
-              {{ lb('unclearPoints') }}
-              <span class="kk-badge">{{ minutes.unclearPoints.length }}</span>
-            </button>
-            <div v-if="openPop === 'unclear'" class="kk-pop" role="dialog" :aria-label="lb('unclearPoints')">
-              <p class="kk-pop-title">AIが判断しきれなかったところ</p>
-              <ul class="kk-pop-list">
-                <li v-for="(p, i) in minutes.unclearPoints" :key="i">{{ p }}</li>
-              </ul>
-            </div>
-          </div>
-
 
           <span class="kk-head-sep" aria-hidden="true" />
 
@@ -167,11 +112,57 @@
         <button type="button" class="kk-msg-close" aria-label="閉じる" @click="savedMessage = ''">✕</button>
       </p>
 
+      <!-- AIで修正と、AIが判断しきれなかったところ。よく使うので、押して開く窓にせず、いつも画面の上に出しておく。
+           直すたびに入力欄は閉じず、続けて直せる。解消した不明点は AI が一覧から外す（× で手でも消せる） -->
+      <section class="kk-assist mt-2" :class="{ 'has-unclear': minutes.unclearPoints.length }">
+        <div class="kk-card kk-assist-card">
+          <label class="kk-assist-title" for="revise-input">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z" /></svg>
+            AIで修正
+          </label>
+          <div class="kk-assist-row">
+            <textarea
+              id="revise-input"
+              ref="reviseInput"
+              v-model="reviseInstruction"
+              rows="2"
+              class="kk-input kk-assist-input"
+              placeholder="れい: 阪中さんを坂中さんに直して"
+              @keydown.enter.exact="onReviseEnter"
+            />
+            <button type="button" class="kk-pop-run kk-assist-run" :disabled="revising || restructuring || !reviseInstruction.trim()" @click="runRevise">
+              {{ revising ? '直しています…' : '直してもらう' }}
+            </button>
+          </div>
+          <div class="kk-assist-foot">
+            <span class="kk-note">Enter で送る・Shift+Enter で改行</span>
+            <button v-if="undoMinutes" type="button" class="kk-assist-undo" :disabled="revising" @click="undoRevise">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3" /></svg>
+              直す前に戻す
+            </button>
+          </div>
+        </div>
+
+        <div v-if="minutes.unclearPoints.length" class="kk-card kk-assist-card kk-assist-card--unclear">
+          <p class="kk-assist-title">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16.5v.01" /></svg>
+            AIが判断しきれなかったところ
+            <span class="kk-badge">{{ minutes.unclearPoints.length }}</span>
+          </p>
+          <ul class="kk-assist-list">
+            <li v-for="(p, i) in minutes.unclearPoints" :key="`${i}-${p}`">
+              <span class="min-w-0">{{ p }}</span>
+              <button type="button" class="kk-assist-done" :aria-label="`「${p}」を確かめたので消す`" title="確かめたので消す" @click="minutes.unclearPoints.splice(i, 1)">✕</button>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 欄の並びは版と種類で決まる（columns）。今の版は、左に 名前・概要・決まったこと・やること、右に 話し合ったこと（話の内容） -->
       <div class="kk-review-grid">
-        <div v-for="col in ['left', 'right']" :key="col" class="kk-review-col">
-          <!-- 左だけ: 会議の名前・日・まとめ -->
-          <template v-if="col === 'left'">
-            <section class="kk-card kk-review-card">
+        <div v-for="(col, ci) in columns" :key="ci" class="kk-review-col">
+          <template v-for="key in col" :key="key">
+            <section v-if="key === 'meta'" class="kk-card kk-review-card">
               <!-- 名前は横一行を使う（長い名前でも見切れないように） -->
               <label class="kk-field-label" for="minutes-title">{{ labels.title }}</label>
               <input id="minutes-title" v-model="minutes.title" class="kk-input" :placeholder="labels.titlePlaceholder">
@@ -214,18 +205,17 @@
               </div>
             </section>
 
-            <section class="kk-card kk-review-card">
+            <section v-else-if="key === 'summary'" class="kk-card kk-review-card">
               <div class="kk-sec-head">
                 <h2 class="kk-sec-title">{{ labels.summary }}</h2>
                 <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${labels.summary}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection('summary', labels.summary)"><span v-if="sectionPdfBusy === 'summary'" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
               </div>
               <AutoTextarea v-model="minutes.summary" :placeholder="labels.summaryPlaceholder" />
             </section>
-          </template>
 
-          <!-- 決まったこと・話し合ったこと（1人の話では 伝えたかったこと・話の内容）。
-               同じ形なので部品で回す。左＝話し合い／話の内容、右＝決定／伝えたかったこと -->
-          <section v-for="group in pointGroups.filter((g) => g.col === col)" :key="group.key" class="kk-card kk-review-card">
+          <!-- 決まったこと・話し合ったこと（1人の話では 伝えたかったこと・話の内容）。同じ形なので部品で回す -->
+          <template v-else-if="pointGroups[key]">
+          <section v-for="group in [pointGroups[key]!]" :key="group.key" class="kk-card kk-review-card">
             <div class="kk-sec-head">
               <h2 class="kk-sec-title">{{ group.label }}<span class="kk-sec-count">{{ group.items.length }}</span></h2>
               <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${group.label}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection(group.key, group.label)"><span v-if="sectionPdfBusy === group.key" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
@@ -251,10 +241,10 @@
             <!-- 追加は欄のいちばん下に（見出しの右はPDFのダウンロード） -->
             <button type="button" class="kk-add-row" aria-label="追加" title="追加" @click="group.items.push({ content: '', note: '' })"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
           </section>
+          </template>
 
-          <!-- 右だけ: 次の予定・やること（並びは rightExtras。やること＝会議と新しい並べ方の聞き取り、次の予定＝古い会議だけ） -->
-          <template v-for="extra in col === 'right' ? rightExtras : []" :key="extra">
-            <section v-if="extra === 'events'" class="kk-card kk-review-card">
+            <!-- 次の予定（古い会議だけ） -->
+            <section v-else-if="key === 'events'" class="kk-card kk-review-card">
               <div class="kk-sec-head">
                 <h2 class="kk-sec-title">{{ lb('eventCandidates') }}<span class="kk-sec-count">{{ minutes.eventCandidates.length }}</span></h2>
                 <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${lb('eventCandidates')}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection('events', lb('eventCandidates'))"><span v-if="sectionPdfBusy === 'events'" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
@@ -299,7 +289,7 @@
               <button type="button" class="kk-add-row" aria-label="追加" title="追加" @click="addEvent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
             </section>
 
-            <section v-else class="kk-card kk-review-card">
+            <section v-else-if="key === 'tasks'" class="kk-card kk-review-card">
               <div class="kk-sec-head">
                 <h2 class="kk-sec-title">{{ lb('taskCandidates') }}<span class="kk-sec-count">{{ minutes.taskCandidates.length }}</span></h2>
                 <button type="button" class="kk-sec-pdf" :disabled="!!sectionPdfBusy || generatingPdf" :aria-label="`${lb('taskCandidates')}をPDFでダウンロード`" title="このセクションをPDFでダウンロード" @click="downloadSection('tasks', lb('taskCandidates'))"><span v-if="sectionPdfBusy === 'tasks'" class="kk-sec-pdf-spin" /><svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg></button>
@@ -398,7 +388,7 @@
 import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
 import { minutesLabel, type LabelKey } from '~/config/minutesLabels'
-import { emptyMinutes, isLegacyMeeting, isNewTalk, MINUTES_MODES } from '~/types/minutes'
+import { emptyMinutes, hasTasksSection, isCurrentLayout, isLegacyMeeting, MINUTES_MODES } from '~/types/minutes'
 import type { EventItem, Minutes, MinutesMode, MinutesRecord, SectionKind } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
 import type MinutesSectionPdfType from '~/components/MinutesSectionPdf.vue'
@@ -426,6 +416,8 @@ const savedMessage = ref('')
 const generatingPdf = ref(false)
 const revising = ref(false)
 const reviseInstruction = ref('')
+/** 「AIで修正」をかける前の中身。「直す前に戻す」で戻せるのは直前の1回分だけ（何回も戻れると意味が分かりにくいため） */
+const undoMinutes = ref<Minutes | null>(null)
 const restructuring = ref(false)
 /** 作り直すときに選ぶまとめ方。開いたときは、いまのまとめ方と違うほうを選んでおく */
 const restructureMode = ref<MinutesMode>('meeting')
@@ -437,8 +429,8 @@ const restructureRunLabel = computed(() => {
 })
 const confirmingDelete = ref(false)
 const deleting = ref(false)
-/** ツールバーから開く小さな窓（不明点／作り直す／AIに直してもらう＝いまは画面から外している）。同時に開くのは1つだけ */
-type PopName = 'unclear' | 'restructure' | 'revise'
+/** 見出しの横から開く小さな窓（種類を変える）。AIで修正・不明点は窓にせず、画面の上にいつも出している */
+type PopName = 'restructure'
 const openPop = ref<PopName | null>(null)
 const toolsRoot = ref<HTMLElement | null>(null)
 const modeRoot = ref<HTMLElement | null>(null)
@@ -446,7 +438,6 @@ const reviseInput = ref<HTMLTextAreaElement | null>(null)
 
 function togglePop(name: PopName) {
   openPop.value = openPop.value === name ? null : name
-  if (openPop.value === 'revise') nextTick(() => reviseInput.value?.focus())
   if (openPop.value === 'restructure') restructureMode.value = minutes.mode === 'talk' ? 'meeting' : 'talk'
 }
 
@@ -562,13 +553,22 @@ const minutes = reactive<Minutes>(emptyMinutes())
 /** 古い並べ方の会議か（右の真ん中に次の予定がある。作り直すと新しい並べ方になる） */
 const legacyMeeting = computed(() => isLegacyMeeting(minutes))
 
+/** 画面の欄。meta＝名前・日・参加者・タグ、summary＝概要、残りは議事録の項目 */
+type ColKey = 'meta' | 'summary' | 'decisions' | 'discussions' | 'keyMessages' | 'topics' | 'tasks' | 'events'
+
 /**
- * 右の列で、グループ（決まったこと など）の下に並べる欄の順。
- * 会議＝やること（古い会議だけ 次の予定・やること）、聞き取り（新しい並べ方）＝やること。
+ * 左右の列に並べる欄の順。PDFの並べ方とそろえる（utils/printLines.ts）。
+ *  - 今の版（layout 3）: 左に 名前・概要・決まったこと（話し合いだけ）・やること、右に 話し合ったこと／話の内容（結論を先に）
+ *  - 古い版: これまでの並べ方のまま（左に 概要と話の中身、右に 決まったこと・やること など）
  */
-const rightExtras = computed<('events' | 'tasks')[]>(() => {
-  if (minutes.mode === 'talk') return isNewTalk(minutes) ? ['tasks'] : []
-  return legacyMeeting.value ? ['events', 'tasks'] : ['tasks']
+const columns = computed<ColKey[][]>(() => {
+  const talk = minutes.mode === 'talk'
+  if (isCurrentLayout(minutes)) {
+    return [['meta', 'summary', ...(talk ? [] : (['decisions'] as ColKey[])), 'tasks'], ['topics']]
+  }
+  if (talk) return [['meta', 'summary', 'topics'], hasTasksSection(minutes) ? ['keyMessages', 'tasks'] : ['keyMessages']]
+  if (legacyMeeting.value) return [['meta', 'summary', 'discussions'], ['decisions', 'events', 'tasks']]
+  return [['meta', 'summary', 'topics'], ['decisions', 'tasks']]
 })
 
 /** まとめ方ごとの欄の名前（1人の話では「会議」と書かない） */
@@ -590,62 +590,36 @@ const labels = computed(() => ({
       }),
 }))
 
+interface PointGroup {
+  key: SectionKind
+  label: string
+  placeholder: string
+  subLabel: string
+  items: Minutes['decisions']
+}
+
 /**
- * 「決まったこと」「話し合ったこと」（1人の話では「伝えたかったこと」「話の内容」）は同じ形なので、まとめて描く
+ * 「決まったこと」「話し合ったこと」（1人の話では「伝えたかったこと」「話の内容」）は同じ形なので、まとめて描く。
+ * どの列に出すかは columns が決める
  */
-const pointGroups = computed(() =>
-  minutes.mode === 'talk'
-    ? [
-        {
-          key: 'keyMessages' as SectionKind,
-          col: 'right',
-          label: lb('keyMessages'),
-          placeholder: lb('keyMessages'),
-          subLabel: '話の要旨',
-          items: minutes.keyMessages,
-        },
-        {
-          key: 'topics' as SectionKind,
-          col: 'left',
-          label: lb('topics'),
-          placeholder: '話題',
-          subLabel: '中身',
-          items: minutes.topics,
-        },
-      ]
-    : [
-        {
-          key: 'decisions' as SectionKind,
-          col: 'right',
-          label: lb('decisions'),
-          placeholder: lb('decisions'),
-          subLabel: '補足',
-          items: minutes.decisions,
-        },
-        ...(legacyMeeting.value
-          ? [
-              // 古い議事録: discussions に入っているのは「決まっていないこと」だけだが、これまで通り左に出す
-              {
-                key: 'discussions' as SectionKind,
-                col: 'left',
-                label: lb('discussions'),
-                placeholder: lb('discussions'),
-                subLabel: '補足',
-                items: minutes.discussions,
-              },
-            ]
-          : [
-              {
-                key: 'topics' as SectionKind,
-                col: 'left',
-                label: lb('topics'),
-                placeholder: '話題',
-                subLabel: '話した中身',
-                items: minutes.topics,
-              },
-            ]),
-      ]
-)
+const pointGroups = computed<Partial<Record<ColKey, PointGroup>>>(() => {
+  const talk = minutes.mode === 'talk'
+  const current = isCurrentLayout(minutes)
+  return {
+    decisions: { key: 'decisions', label: lb('decisions'), placeholder: lb('decisions'), subLabel: '補足', items: minutes.decisions },
+    // 古い議事録: discussions に入っているのは「決まっていないこと」だけ
+    discussions: { key: 'discussions', label: lb('discussions'), placeholder: lb('discussions'), subLabel: '補足', items: minutes.discussions },
+    keyMessages: { key: 'keyMessages', label: lb('keyMessages'), placeholder: lb('keyMessages'), subLabel: '話の要旨', items: minutes.keyMessages },
+    topics: {
+      key: 'topics',
+      label: lb('topics'),
+      // 今の版の聞き取りは、見出しが要点の一文
+      placeholder: talk && current ? '要点（一文で）' : '話題',
+      subLabel: talk ? '中身' : '話した中身',
+      items: minutes.topics,
+    },
+  }
+})
 
 function applyMinutes(src: Minutes) {
   minutes.mode = src.mode
@@ -889,25 +863,45 @@ function onBeforeUnload(e: BeforeUnloadEvent) {
 }
 
 async function runRevise() {
-  const instruction = reviseInstruction.value.trim()
-  if (!instruction) return
+  const sent = reviseInstruction.value
+  const instruction = sent.trim()
+  if (!instruction || revising.value) return
   errorMessage.value = ''
   savedMessage.value = ''
   revising.value = true
+  const before: Minutes = JSON.parse(snapshot())
   try {
     const res = await authedFetch<{ minutes: Minutes }>('/api/minutes/revise', {
       method: 'POST',
-      body: { id: id.value, minutes: toRaw(minutes), instruction },
+      body: { id: id.value, minutes: before, instruction },
     })
     applyMinutes(res.minutes)
-    reviseInstruction.value = ''
-    openPop.value = null
+    undoMinutes.value = before
+    // 待っている間に次の指示を書き始めていたら、それは消さない
+    if (reviseInstruction.value === sent) reviseInstruction.value = ''
+    // 続けて直せるよう、入力欄に戻る
+    nextTick(() => reviseInput.value?.focus())
     // 直した結果は自動保存で保存される（watch が拾う）
-    savedMessage.value = 'AIが直しました。内容を確かめてください（自動で保存されます）。'
+    const solved = before.unclearPoints.filter((p) => !res.minutes.unclearPoints.includes(p)).length
+    savedMessage.value = solved
+      ? `AIが直しました。判断しきれなかったところが${solved}つ解消しました。`
+      : 'AIが直しました。内容を確かめてください（自動で保存されます）。'
   } catch (e) {
     errorMessage.value = apiMessage(e, 'AIが直せませんでした。もう一度お試しください。')
   }
   revising.value = false
+}
+
+/** 直前の「AIで修正」をかける前に戻す（1回分だけ） */
+function undoRevise() {
+  if (!undoMinutes.value) return
+  // タグはAIの対象外。戻したあとで付けたタグを消さないよう、今のタグを残す
+  const tags = [...minutes.tags]
+  applyMinutes(undoMinutes.value)
+  minutes.tags = tags
+  undoMinutes.value = null
+  errorMessage.value = ''
+  savedMessage.value = 'AIで直す前に戻しました。'
 }
 
 /** 種類を変えて、元の文章からまとめ直す。結果は自動保存で保存される */
@@ -924,6 +918,8 @@ async function runRestructure() {
     const tags = [...minutes.tags]
     applyMinutes(res.minutes)
     minutes.tags = tags
+    // 中身がまるごと変わったので、「直す前に戻す」は使えない
+    undoMinutes.value = null
     openPop.value = null
     const label = MINUTES_MODES.find((m) => m.value === res.minutes.mode)?.label ?? ''
     savedMessage.value = `「${label}」にまとめ直しました。内容を確かめてください。`
@@ -1356,11 +1352,6 @@ onUnmounted(() => {
 .kk-icon-btn--danger { color: var(--kk-danger); }
 .kk-icon-btn--primary { background: var(--kk-cta); border-color: var(--kk-cta); color: #fff; }
 .kk-icon-btn--primary:hover:not(:disabled) { background: var(--kk-cta-strong); border-color: var(--kk-cta-strong); }
-.kk-icon-btn--warn { color: var(--kk-warn); border-color: #f5d6ad; background: var(--kk-warn-soft); }
-.kk-icon-btn--warn:hover:not(:disabled),
-.kk-icon-btn--warn.is-open { border-color: var(--kk-cta); background: #ffe9cc; }
-.kk-icon-btn--ai { color: var(--kk-accent-strong); border-color: #c5dbf5; background: var(--kk-accent-soft); }
-.kk-icon-btn--ai.is-open { border-color: var(--kk-accent); }
 .kk-badge {
   min-width: 18px;
   height: 18px;
@@ -1463,15 +1454,6 @@ onUnmounted(() => {
   font-size: 13px;
   font-weight: 700;
 }
-.kk-pop-list {
-  margin: 0;
-  padding-left: 1.1rem;
-  font-size: 13px;
-  line-height: 1.7;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
 .kk-pop-run {
   height: 32px;
   padding: 0 1rem;
@@ -1486,6 +1468,126 @@ onUnmounted(() => {
 }
 .kk-pop-run:hover:not(:disabled) { background: var(--kk-accent-strong); }
 .kk-pop-run:disabled { opacity: 0.45; cursor: default; }
+
+/* ── 画面の上の欄: AIで修正・AIが判断しきれなかったところ（広い画面では横に並べる） ── */
+.kk-assist {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+}
+@media (min-width: 1024px) {
+  .kk-assist.has-unclear {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.kk-assist-card {
+  padding: 0.55rem 0.8rem 0.6rem;
+  min-width: 0;
+}
+.kk-assist-card--unclear {
+  border-color: #f5d6ad;
+  background: var(--kk-warn-soft);
+}
+.kk-assist-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.35rem;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--kk-accent-strong);
+}
+.kk-assist-card--unclear .kk-assist-title {
+  color: var(--kk-warn);
+}
+.kk-assist-title svg,
+.kk-assist-undo svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.kk-assist-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+.kk-assist-input {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+}
+.kk-assist-run {
+  flex: none;
+  height: auto;
+  min-height: 40px;
+}
+.kk-assist-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 1.6rem;
+  margin-top: 0.25rem;
+}
+.kk-assist-undo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.4rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--kk-accent-strong);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kk-assist-undo:hover:not(:disabled) { background: var(--kk-accent-soft); }
+.kk-assist-undo:disabled { opacity: 0.45; cursor: default; }
+.kk-assist-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 7.5rem;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.kk-assist-list li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.2rem 0;
+  border-top: 1px dashed #f5d6ad;
+}
+.kk-assist-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.kk-assist-done {
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--kk-ink-faint);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+.kk-assist-done:hover,
+.kk-assist-done:focus-visible {
+  background: #ffe9cc;
+  color: var(--kk-warn);
+}
 
 .kk-review-grid {
   display: grid;

@@ -97,9 +97,11 @@ describe('normalizeMinutes の並べ方の版（layout）', () => {
     expect(normalizeMinutes({ layout: 'へんな値' }).layout).toBe(1)
   })
 
-  it('layout 2 はそのまま残り、空の議事録は最新の版で始まる', () => {
+  it('layout 2・3 はそのまま残り、空の議事録は最新の版（3）で始まる', () => {
     expect(normalizeMinutes({ layout: 2 }).layout).toBe(2)
-    expect(normalizeMinutes(null).layout).toBe(2)
+    expect(normalizeMinutes({ layout: 3 }).layout).toBe(3)
+    expect(normalizeMinutes({ layout: 4 }).layout).toBe(1)
+    expect(normalizeMinutes(null).layout).toBe(3)
   })
 
   it('古い議事録の予定は消さずに読む（layout 1 の画面が使う）', () => {
