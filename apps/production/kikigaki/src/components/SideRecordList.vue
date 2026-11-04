@@ -262,13 +262,16 @@ async function removeRecord() {
 }
 .kk-sl-tags {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
-  overflow-x: auto;
   padding: 0 0.4rem 0.15rem;
-  scrollbar-width: none;
 }
 .kk-sl-tag {
   flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   height: 22px;
   padding: 0 0.5rem;
   border: 1px solid var(--kk-line);

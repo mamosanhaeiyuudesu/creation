@@ -356,7 +356,7 @@ function jsonError(): never {
 
 /**
  * 文字起こし全文を議事録の構造にする。
- * 新しく作るときと、確認画面の「種類を変える」（まとめ方を変えて原文からまとめ直す）の両方で使う。
+ * 新しく作るときに使う（確認画面の「このテキストから新しく作る」も、新しく作るのと同じ）。
  */
 export async function structureTranscript(
   event: H3Event,

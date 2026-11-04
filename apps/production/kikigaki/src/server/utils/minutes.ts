@@ -176,6 +176,8 @@ export async function createRecord(
       minutes.mode
     )
     .run()
+  // 「このテキストから新しく作る」（元の議事録のタグを引き継ぐ）のときだけ入っている
+  if (minutes.tags.length) await (await tagsStatement(db, event, userId, id, minutes.tags)).run()
   return id
 }
 

@@ -12,66 +12,27 @@
           </NuxtLink>
           <div class="kk-review-titlebar">
             <h1 class="kk-review-h1">内容を確かめる</h1>
-            <!-- 種類（話し合い／聞き取り）。押すと、種類を選び直して元の文章から作り直せる -->
-            <div ref="modeRoot" class="kk-pop-wrap">
-              <button
-                type="button"
-                class="kk-mode-btn"
-                :class="{ 'is-open': openPop === 'restructure' }"
-                :aria-expanded="openPop === 'restructure'"
-                :disabled="restructuring"
-                title="種類を変えて、元の文章からまとめ直す"
-                @click="togglePop('restructure')"
-              >
-                <MinutesModeBadge :mode="minutes.mode" />
-                <span v-if="restructuring" class="kk-mode-btn-text">まとめ直しています…</span>
-                <svg v-if="!restructuring" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5" /></svg>
-              </button>
-              <div v-if="openPop === 'restructure'" class="kk-pop kk-pop--wide kk-pop--left" role="dialog" aria-label="種類を変える">
-                <p class="kk-pop-title">種類を変える</p>
-                <div class="kk-mode-choice" role="radiogroup" aria-label="どんな記録か">
-                  <button
-                    v-for="m in MINUTES_MODES"
-                    :key="m.value"
-                    type="button"
-                    role="radio"
-                    class="kk-mode-opt"
-                    :class="{ 'is-on': restructureMode === m.value }"
-                    :aria-checked="restructureMode === m.value"
-                    :disabled="restructuring"
-                    @click="restructureMode = m.value"
-                  >
-                    <span class="kk-mode-opt-label">{{ m.label }}</span>
-                    <span class="kk-mode-opt-desc">{{ m.desc }}</span>
-                  </button>
-                </div>
-                <p class="kk-note mt-2 mb-0">
-                  元の文章から、選んだ種類でAIがまとめ直します。今の内容は置き換わり、手で直したところも元に戻ります（タグは残ります）。
-                </p>
-                <div class="flex justify-end mt-2">
-                  <button type="button" class="kk-pop-run" :disabled="restructuring" @click="runRestructure">
-                    {{ restructuring ? 'まとめ直しています…' : restructureRunLabel }}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <!-- 種類（話し合い／聞き取り）。ラベルだけで押せない（作り直して中身を置き換えると手で直したところが消えるので、
+                 別の種類で作りたいときは、元のテキストの欄の「このテキストから新しく作る」で新しい議事録にする） -->
+            <MinutesModeBadge :mode="minutes.mode" />
             <!-- 自動保存の状態。直してから少し待つと自動で保存される -->
             <span class="kk-autosave" :class="`is-${autoState}`" role="status" aria-live="polite">{{ autoLabel }}</span>
           </div>
         </div>
 
-        <div ref="toolsRoot" class="kk-head-actions">
-          <!-- 元の文章（取り込んだ全文）。右からせり出す欄で、左の列を直しながら見比べられる -->
+        <div class="kk-head-actions">
+          <!-- 元のテキスト（取り込んだ全文）。右からせり出す欄。欄の外を押すと閉じる -->
           <button
+            ref="sourceToggle"
             type="button"
             class="kk-icon-btn"
             :class="{ 'is-open': sourceOpen }"
             :aria-expanded="sourceOpen"
-            title="取り込んだ元の文章を見る"
+            title="取り込んだ元のテキストを見る"
             @click="toggleSource"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 10h16M4 15h10M4 20h7" /></svg>
-            元の文章
+            元のテキスト
           </button>
 
           <span class="kk-head-sep kk-wide-only" aria-hidden="true" />
@@ -125,11 +86,19 @@
            直すたびに入力欄は閉じず、続けて直せる。解消した不明点は AI が一覧から外す（× で手でも消せる） -->
       <section class="kk-assist mt-2" :class="{ 'has-unclear': minutes.unclearPoints.length }">
         <div class="kk-card kk-assist-card">
-          <label class="kk-assist-title" for="revise-input">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z" /></svg>
-            AIで修正
-          </label>
-          <div class="kk-assist-row">
+          <!-- 左の列に見出し（戻すボタンと、右端に操作のヒント）と入力欄、右の列に実行ボタン。ヒントの右端を入力欄の右端にそろえる -->
+          <div class="kk-assist-grid">
+            <div class="kk-assist-titlebar">
+              <label class="kk-assist-title" for="revise-input">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z" /></svg>
+                AIで修正
+              </label>
+              <button v-if="undoMinutes" type="button" class="kk-assist-undo" :disabled="revising" @click="undoRevise">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3" /></svg>
+                直す前に戻す
+              </button>
+              <span class="kk-assist-hint">Enter で送る・Shift+Enter で改行</span>
+            </div>
             <textarea
               id="revise-input"
               ref="reviseInput"
@@ -139,43 +108,53 @@
               placeholder="れい: 阪中さんを坂中さんに直して"
               @keydown.enter.exact="onReviseEnter"
             />
-            <button type="button" class="kk-pop-run kk-assist-run" :disabled="revising || restructuring || !reviseInstruction.trim()" @click="runRevise">
-              {{ revising ? '直しています…' : '直してもらう' }}
-            </button>
-          </div>
-          <div class="kk-assist-foot">
-            <span class="kk-note">Enter で送る・Shift+Enter で改行</span>
-            <button v-if="undoMinutes" type="button" class="kk-assist-undo" :disabled="revising" @click="undoRevise">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3" /></svg>
-              直す前に戻す
+            <button type="button" class="kk-pop-run kk-assist-run" :disabled="revising || !reviseInstruction.trim()" @click="runRevise">
+              {{ revising ? '修正中…' : '修正' }}
             </button>
           </div>
         </div>
 
-        <div v-if="minutes.unclearPoints.length" class="kk-card kk-assist-card kk-assist-card--unclear">
-          <p class="kk-assist-title">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16.5v.01" /></svg>
-            AIが判断しきれなかったところ
-            <span class="kk-badge">{{ minutes.unclearPoints.length }}</span>
-          </p>
-          <!-- 多いときは中だけスクロールする。続きがあることに気づけるよう、下をぼかし「あと何件」のボタンを出す -->
-          <div class="kk-assist-scroll" :class="{ 'has-more': unclearHidden > 0 }">
-            <ul ref="unclearList" class="kk-assist-list" @scroll.passive="measureUnclear">
-              <li v-for="(p, i) in minutes.unclearPoints" :key="`${i}-${p}`">
-                <span class="min-w-0">{{ p }}</span>
+        <!-- AIが判断しきれなかったところ。ふだんは2件まで1行ずつ見せ、下の矢印で全文を開く。
+             開いたときは下の欄（話の内容など）に上からかぶさる（中でスクロールさせない。欄の高さもずらさない） -->
+        <div
+          v-if="minutes.unclearPoints.length"
+          ref="unclearSlot"
+          class="kk-unclear-slot"
+          :style="unclearOpen ? { height: `${unclearSlotHeight}px` } : undefined"
+        >
+          <div class="kk-card kk-assist-card kk-assist-card--unclear" :class="{ 'is-open': unclearOpen }">
+            <div class="kk-assist-titlebar">
+              <p class="kk-assist-title">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16.5v.01" /></svg>
+                AIが判断しきれなかったところ
+                <span class="kk-badge">{{ minutes.unclearPoints.length }}</span>
+              </p>
+            </div>
+            <ul ref="unclearList" class="kk-assist-list">
+              <li v-for="(p, i) in shownUnclear" :key="`${i}-${p}`">
+                <span class="kk-unclear-text">{{ p }}</span>
                 <button type="button" class="kk-assist-done" :aria-label="`「${p}」を確かめたので消す`" title="確かめたので消す" @click="minutes.unclearPoints.splice(i, 1)">✕</button>
               </li>
             </ul>
-            <button v-if="unclearHidden > 0" type="button" class="kk-assist-more" @click="scrollUnclear">
+            <!-- 開く・閉じるは一覧の下の矢印だけ（文字は出さない） -->
+            <button
+              v-if="unclearOpen || unclearMore"
+              type="button"
+              class="kk-unclear-toggle"
+              :aria-expanded="unclearOpen"
+              :aria-label="unclearOpen ? '閉じる' : 'すべて見る'"
+              :title="unclearOpen ? '閉じる' : 'すべて見る'"
+              @click="toggleUnclear"
+            >
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
-              あと{{ unclearHidden }}件
             </button>
           </div>
         </div>
       </section>
 
-      <!-- 欄の並びは版と種類で決まる（columns）。今の版は、左に 名前・概要・決まったこと・やること、右に 話し合ったこと（話の内容） -->
-      <div class="kk-review-grid">
+      <!-- 欄の並びは版と種類で決まる（columns）。今の版の話し合いは、左に 名前・概要・決まったこと・やること、右に 話し合ったこと。
+           今の版の聞き取りはPDFと同じ1列（名前・概要・話の内容・やること） -->
+      <div class="kk-review-grid" :class="{ 'is-single': columns.length === 1 }">
         <div v-for="(col, ci) in columns" :key="ci" class="kk-review-col">
           <template v-for="key in col" :key="key">
             <section v-if="key === 'meta'" class="kk-card kk-review-card">
@@ -362,14 +341,19 @@
 
     </template>
 
-    <!-- 元の文章の欄。背景を暗くしない（左の列を直しながら読めるように）。読むだけで、ここでは直せない -->
+    <!-- 元のテキストの欄。背景は暗くしない（議事録と見比べられるように）。読むだけで、ここでは直せない。欄の外を押すと閉じる -->
     <Transition name="kk-source-t">
-      <aside v-if="sourceOpen && record" class="kk-source" role="complementary" aria-label="元の文章">
+      <aside v-if="sourceOpen && record" ref="sourceAside" class="kk-source" role="complementary" aria-label="元のテキスト">
         <div class="kk-source-head">
           <p class="kk-source-title">
-            元の文章
+            元のテキスト
             <span class="kk-note">{{ transcriptLength.toLocaleString() }}字<template v-if="record.audioName"> ・ {{ record.audioName }}</template></span>
           </p>
+          <!-- 別の種類で作りたいときなど。今の議事録は置き換えず、新しい議事録をもう1つ作る（色は左メニューの「新しく作る」とそろえる） -->
+          <button v-if="record.transcript" type="button" class="kk-source-new" @click="createFromSource">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            このテキストから新しく作る
+          </button>
           <button type="button" class="kk-source-close" aria-label="閉じる" @click="sourceOpen = false">✕</button>
         </div>
         <div class="kk-source-tools">
@@ -378,7 +362,7 @@
             v-model="sourceQuery"
             class="kk-input kk-source-search"
             placeholder="この中を探す（れい: 田中）"
-            aria-label="元の文章の中を探す"
+            aria-label="元のテキストの中を探す"
             @keydown.enter.prevent="onSourceEnter"
           >
           <span v-if="sourceQuery.trim()" class="kk-source-count">{{ matchCount ? `${matchIndex + 1} / ${matchCount}` : '0件' }}</span>
@@ -387,8 +371,8 @@
           <button type="button" class="kk-source-btn kk-source-copy" @click="copyTranscript">{{ copied ? 'コピーしました' : 'コピー' }}</button>
         </div>
         <div ref="sourceBody" class="kk-source-body">
-          <p v-if="!record.transcript" class="kk-note m-0">元の文章は保存されていません。</p>
-          <!-- v-html は使わない（元の文章は利用者が入れたものなので、そのまま文字として出す） -->
+          <p v-if="!record.transcript" class="kk-note m-0">元のテキストは保存されていません。</p>
+          <!-- v-html は使わない（元のテキストは利用者が入れたものなので、そのまま文字として出す） -->
           <p v-else class="kk-source-text"><template v-for="(seg, i) in sourceSegments" :key="i"><mark v-if="seg.hit" class="kk-source-mark" :class="{ 'is-current': seg.hitIndex === matchIndex }" :data-hit="seg.hitIndex">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></p>
         </div>
       </aside>
@@ -404,8 +388,8 @@
 import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
 import { minutesLabel, type LabelKey } from '~/config/minutesLabels'
-import { emptyMinutes, hasTasksSection, isCurrentLayout, isLegacyMeeting, MINUTES_MODES } from '~/types/minutes'
-import type { EventItem, Minutes, MinutesMode, MinutesRecord, SectionKind } from '~/types/minutes'
+import { emptyMinutes, hasTasksSection, isCurrentLayout, isLegacyMeeting } from '~/types/minutes'
+import type { EventItem, Minutes, MinutesRecord, SectionKind } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
 import type MinutesSectionPdfType from '~/components/MinutesSectionPdf.vue'
 
@@ -435,45 +419,20 @@ const reviseInstruction = ref('')
 /** 「AIで修正」をかける前の中身。「直す前に戻す」で戻せるのは直前の1回分だけ（何回も戻れると意味が分かりにくいため） */
 const undoMinutes = ref<Minutes | null>(null)
 
-const restructuring = ref(false)
-/** 作り直すときに選ぶまとめ方。開いたときは、いまのまとめ方と違うほうを選んでおく */
-const restructureMode = ref<MinutesMode>('meeting')
-/** 実行ボタンの文言。押す前に「何に変わるか」が分かるよう種類の名前を入れる。同じ種類なら最初からやり直す */
-const restructureRunLabel = computed(() => {
-  if (restructureMode.value === minutes.mode) return 'もう一度まとめ直す'
-  const label = MINUTES_MODES.find((m) => m.value === restructureMode.value)?.label ?? ''
-  return `「${label}」でまとめ直す`
-})
 const confirmingDelete = ref(false)
 const deleting = ref(false)
-/** 見出しの横から開く小さな窓（種類を変える）。AIで修正・不明点は窓にせず、画面の上にいつも出している */
-type PopName = 'restructure'
-const openPop = ref<PopName | null>(null)
-const toolsRoot = ref<HTMLElement | null>(null)
-const modeRoot = ref<HTMLElement | null>(null)
 const reviseInput = ref<HTMLTextAreaElement | null>(null)
-
-function togglePop(name: PopName) {
-  openPop.value = openPop.value === name ? null : name
-  if (openPop.value === 'restructure') restructureMode.value = minutes.mode === 'talk' ? 'meeting' : 'talk'
-}
-
-// 窓の外を押したら閉じる
-function onDocPointerDown(e: PointerEvent) {
-  if (!openPop.value) return
-  const target = e.target as Node
-  if (toolsRoot.value?.contains(target) || modeRoot.value?.contains(target)) return
-  openPop.value = null
-}
 
 function onDocKeydown(e: KeyboardEvent) {
   if (e.key !== 'Escape') return
-  if (openPop.value) openPop.value = null
+  if (unclearOpen.value) unclearOpen.value = false
   else if (sourceOpen.value) sourceOpen.value = false
 }
 
-// ── 元の文章 ──
+// ── 元のテキスト ──
 const sourceOpen = ref(false)
+const sourceAside = ref<HTMLElement | null>(null)
+const sourceToggle = ref<HTMLElement | null>(null)
 const sourceQuery = ref('')
 const matchIndex = ref(0)
 const copied = ref(false)
@@ -482,13 +441,21 @@ const sourceSearchInput = ref<HTMLInputElement | null>(null)
 
 const transcriptLength = computed(() => record.value?.transcript.length ?? 0)
 
+const { openWith: openTextSheet } = useTextSheet()
+
+/** 作る画面を、このテキスト・日付・タグを入れた状態で開く（種類はいつもの「話し合い」から） */
+function createFromSource() {
+  if (!record.value) return
+  sourceOpen.value = false
+  openTextSheet({ text: record.value.transcript, date: minutes.date, tags: [...minutes.tags] })
+}
+
 function toggleSource() {
   sourceOpen.value = !sourceOpen.value
-  openPop.value = null
   if (sourceOpen.value) nextTick(() => sourceSearchInput.value?.focus())
 }
 
-/** 元の文章を、当たった語とそれ以外に切り分ける（色付けのため。大文字小文字は区別しない） */
+/** 元のテキストを、当たった語とそれ以外に切り分ける（色付けのため。大文字小文字は区別しない） */
 const sourceSegments = computed(() => {
   const text = record.value?.transcript ?? ''
   const q = sourceQuery.value.trim()
@@ -541,7 +508,7 @@ async function copyTranscript() {
     copied.value = true
     setTimeout(() => (copied.value = false), 2000)
   } catch {
-    errorMessage.value = 'コピーできませんでした。文章を選んでコピーしてください。'
+    errorMessage.value = 'コピーできませんでした。テキストを選んでコピーしてください。'
   }
 }
 
@@ -567,41 +534,58 @@ function confirmRemoveRow() {
 /** 画面で編集している議事録。保存・PDFともこれをもとに行う */
 const minutes = reactive<Minutes>(emptyMinutes())
 
-// ── AIが判断しきれなかったところ: 下に隠れている件数（スクロールできると分かるように出す） ──
+// ── AIが判断しきれなかったところ: ふだんは2件まで1行ずつ。開くと全部を全文で、下の欄にかぶせて出す ──
+const UNCLEAR_PREVIEW = 2
+const unclearOpen = ref(false)
+const unclearSlot = ref<HTMLElement | null>(null)
 const unclearList = ref<HTMLElement | null>(null)
-const unclearHidden = ref(0)
+/** 開いている間、欄の場所の高さを閉じていたときのままにする（下の欄がずれないように） */
+const unclearSlotHeight = ref(0)
+/** 閉じた状態で見えていないものがあるか（3件目以降がある・1行に収まらず省いている） */
+const unclearMore = ref(false)
 
-/** 見えている範囲より下にある項目（半分以上隠れているもの）を数える */
+const shownUnclear = computed(() =>
+  unclearOpen.value ? minutes.unclearPoints : minutes.unclearPoints.slice(0, UNCLEAR_PREVIEW)
+)
+
 function measureUnclear() {
-  const el = unclearList.value
-  if (!el) {
-    unclearHidden.value = 0
-    return
-  }
-  const bottom = el.scrollTop + el.clientHeight
-  unclearHidden.value = [...el.children].filter((li) => {
-    const item = li as HTMLElement
-    return item.offsetTop + item.offsetHeight / 2 > bottom
-  }).length
+  if (unclearOpen.value) return
+  const texts = [...(unclearList.value?.querySelectorAll<HTMLElement>('.kk-unclear-text') ?? [])]
+  unclearMore.value =
+    minutes.unclearPoints.length > UNCLEAR_PREVIEW || texts.some((el) => el.scrollWidth > el.clientWidth + 1)
 }
 
-function scrollUnclear() {
-  const el = unclearList.value
-  el?.scrollBy({ top: el.clientHeight * 0.8, behavior: 'smooth' })
+function toggleUnclear() {
+  if (!unclearOpen.value) unclearSlotHeight.value = unclearSlot.value?.offsetHeight ?? 0
+  unclearOpen.value = !unclearOpen.value
+  if (!unclearOpen.value) nextTick(measureUnclear)
 }
 
-// 件数が変わったとき・欄の幅が変わって折り返しが変わったときに数え直す
+// 件数が変わったとき・欄の幅が変わって省くかどうかが変わったときに見直す
 let unclearObserver: ResizeObserver | undefined
 watch(unclearList, (el) => {
   unclearObserver?.disconnect()
-  if (!el) return measureUnclear()
+  if (!el) return
   unclearObserver = new ResizeObserver(measureUnclear)
   unclearObserver.observe(el)
 })
 watch(
   () => minutes.unclearPoints.join('\n'),
-  () => nextTick(measureUnclear)
+  () => {
+    if (!minutes.unclearPoints.length) unclearOpen.value = false
+    nextTick(measureUnclear)
+  }
 )
+
+// 開いた欄（判断しきれなかったところ・元のテキスト）の外を押したら閉じる
+function onDocPointerDown(e: PointerEvent) {
+  const target = e.target as Node
+  if (unclearOpen.value && !unclearSlot.value?.contains(target)) unclearOpen.value = false
+  // 「元のテキスト」ボタン自体は開け閉めを受け持つので除く（ここで閉じると、押した直後にまた開いてしまう）
+  if (sourceOpen.value && !sourceAside.value?.contains(target) && !sourceToggle.value?.contains(target)) {
+    sourceOpen.value = false
+  }
+}
 
 /** 古い並べ方の会議か（右の真ん中に次の予定がある。作り直すと新しい並べ方になる） */
 const legacyMeeting = computed(() => isLegacyMeeting(minutes))
@@ -611,13 +595,15 @@ type ColKey = 'meta' | 'summary' | 'decisions' | 'discussions' | 'keyMessages' |
 
 /**
  * 左右の列に並べる欄の順。PDFの並べ方とそろえる（utils/printLines.ts）。
- *  - 今の版（layout 3）: 左に 名前・概要・決まったこと（話し合いだけ）・やること、右に 話し合ったこと／話の内容（結論を先に）
+ *  - 今の版（layout 3）の話し合い: 左に 名前・概要・決まったこと・やること、右に 話し合ったこと（結論を先に）
+ *  - 今の版（layout 3）の聞き取り: PDFがA4縦の1列なので、画面も1列で 名前・概要・話の内容・やること
  *  - 古い版: これまでの並べ方のまま（左に 概要と話の中身、右に 決まったこと・やること など）
  */
 const columns = computed<ColKey[][]>(() => {
   const talk = minutes.mode === 'talk'
   if (isCurrentLayout(minutes)) {
-    return [['meta', 'summary', ...(talk ? [] : (['decisions'] as ColKey[])), 'tasks'], ['topics']]
+    if (talk) return [['meta', 'summary', 'topics', 'tasks']]
+    return [['meta', 'summary', 'decisions', 'tasks'], ['topics']]
   }
   if (talk) return [['meta', 'summary', 'topics'], hasTasksSection(minutes) ? ['keyMessages', 'tasks'] : ['keyMessages']]
   if (legacyMeeting.value) return [['meta', 'summary', 'discussions'], ['decisions', 'events', 'tasks']]
@@ -835,7 +821,6 @@ async function autoSave(): Promise<boolean> {
     generatingPdf.value ||
     driveSaving.value ||
     revising.value ||
-    restructuring.value ||
     autoState.value === 'saving'
   ) {
     scheduleAutoSave()
@@ -968,31 +953,6 @@ function undoRevise() {
   savedMessage.value = 'AIで直す前に戻しました。'
 }
 
-/** 種類を変えて、元の文章からまとめ直す。結果は自動保存で保存される */
-async function runRestructure() {
-  errorMessage.value = ''
-  savedMessage.value = ''
-  restructuring.value = true
-  try {
-    const res = await authedFetch<{ minutes: Minutes }>('/api/minutes/restructure', {
-      method: 'POST',
-      body: { id: id.value, mode: restructureMode.value },
-    })
-    // タグは画面で付けたばかりのもの（まだ保存していないもの）も残す
-    const tags = [...minutes.tags]
-    applyMinutes(res.minutes)
-    minutes.tags = tags
-    // 中身がまるごと変わったので、「直す前に戻す」は使えない
-    undoMinutes.value = null
-    openPop.value = null
-    const label = MINUTES_MODES.find((m) => m.value === res.minutes.mode)?.label ?? ''
-    savedMessage.value = `「${label}」にまとめ直しました。内容を確かめてください。`
-  } catch (e) {
-    errorMessage.value = apiMessage(e, 'まとめ直せませんでした。もう一度お試しください。')
-  }
-  restructuring.value = false
-}
-
 async function remove() {
   clearTimeout(autoTimer)
   deleting.value = true
@@ -1114,8 +1074,8 @@ onUnmounted(() => {
   unclearObserver?.disconnect()
   clearTimeout(autoTimer)
   window.removeEventListener('beforeunload', onBeforeUnload)
-  document.removeEventListener('pointerdown', onDocPointerDown)
   document.removeEventListener('keydown', onDocKeydown)
+  document.removeEventListener('pointerdown', onDocPointerDown)
 })
 </script>
 
@@ -1162,7 +1122,7 @@ onUnmounted(() => {
   min-width: 0;
   flex: 1 1 260px;
 }
-/* 元の文章の欄（右からせり出す。背景は暗くしない） */
+/* 元のテキストの欄（右からせり出す。背景は暗くしない） */
 .kk-source {
   position: fixed;
   top: 0;
@@ -1179,7 +1139,6 @@ onUnmounted(() => {
 .kk-source-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.5rem;
   padding: 0.6rem 0.9rem 0.4rem;
 }
@@ -1198,6 +1157,7 @@ onUnmounted(() => {
 }
 .kk-source-close {
   flex: none;
+  margin-left: auto;
   width: 32px;
   height: 32px;
   border: 0;
@@ -1208,6 +1168,34 @@ onUnmounted(() => {
 }
 .kk-source-close:hover {
   background: var(--kk-accent-soft);
+}
+.kk-source-new {
+  flex: none;
+  margin-left: 10px;
+  height: 30px;
+  padding: 0 0.7rem 0 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 0;
+  border-radius: 8px;
+  background: var(--kk-cta);
+  color: #fff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kk-source-new:hover {
+  background: var(--kk-cta-strong);
+}
+.kk-source-new svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
 }
 .kk-source-tools {
   display: flex;
@@ -1300,51 +1288,13 @@ onUnmounted(() => {
 .kk-autosave.is-saved::before {
   content: '✓ ';
 }
-/* position: relative は、スマホで「種類を変える」の窓の位置の基準にするため
-   （スマホでは .kk-pop-wrap の基準を外して幅いっぱいに出すので、ここが無いと窓がページの下のほうに飛ぶ） */
 .kk-review-titlebar {
-  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.25rem 0.5rem;
   min-width: 0;
-}
-/* 見出しの横の種類ラベル。押せることが分かるよう、下向きの矢印と枠を付ける */
-.kk-mode-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.15rem;
-  padding: 2px 4px 2px 2px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  font-family: inherit;
-  color: var(--kk-ink-faint);
-  cursor: pointer;
-}
-.kk-mode-btn:hover:not(:disabled),
-.kk-mode-btn.is-open {
-  border-color: var(--kk-line-strong);
-  background: var(--kk-panel);
-}
-.kk-mode-btn:disabled {
-  cursor: default;
-}
-.kk-mode-btn > svg {
-  width: 14px;
-  height: 14px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.kk-mode-btn-text {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--kk-ink-soft);
 }
 .kk-review-h1 {
   margin: 0;
@@ -1430,35 +1380,6 @@ onUnmounted(() => {
   text-align: center;
 }
 
-/* ツールバーから下に開く小さな窓 */
-.kk-pop-wrap {
-  position: relative;
-}
-.kk-pop {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 60;
-  width: 340px;
-  max-width: calc(100vw - 24px);
-  max-height: 60vh;
-  overflow-y: auto;
-  padding: 0.7rem 0.85rem;
-  background: var(--kk-panel);
-  border: 1px solid var(--kk-line);
-  border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(20, 60, 120, 0.18);
-}
-.kk-pop--wide {
-  width: 400px;
-}
-/* 画面の左側（見出しの横）から開く窓は、左端をそろえる（右にそろえると画面の外にはみ出す） */
-.kk-pop--left {
-  left: 0;
-  right: auto;
-  /* 左端が見出しの分だけ右にずれているので、スマホでも右にはみ出さない幅にする */
-  max-width: calc(100vw - 72px);
-}
 .kk-save-bar {
   display: contents;
 }
@@ -1498,7 +1419,7 @@ onUnmounted(() => {
   .kk-wide-only {
     display: none !important;
   }
-  /* 「元の文章」は見出しの行の右端に置く（削除は下の列へ移した） */
+  /* 「元のテキスト」は見出しの行の右端に置く（削除は下の列へ移した） */
   .kk-review-head {
     flex-wrap: nowrap;
   }
@@ -1521,21 +1442,6 @@ onUnmounted(() => {
   .kk-head-actions {
     width: 100%;
   }
-  .kk-pop-wrap {
-    position: static;
-  }
-  .kk-pop,
-  .kk-pop--wide {
-    left: 0;
-    right: 0;
-    width: auto;
-    max-width: none;
-  }
-}
-.kk-pop-title {
-  margin: 0 0 0.4rem;
-  font-size: 13px;
-  font-weight: 700;
 }
 .kk-pop-run {
   height: 32px;
@@ -1594,38 +1500,58 @@ onUnmounted(() => {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.kk-assist-row {
-  display: flex;
-  align-items: stretch;
-  gap: 0.5rem;
+.kk-assist-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'title .'
+    'input run';
+  gap: 0.3rem 0.5rem;
+  align-items: center;
 }
-.kk-assist-input {
-  flex: 1;
-  min-width: 0;
-  resize: none;
-}
-.kk-assist-run {
-  flex: none;
-  height: auto;
-  min-height: 40px;
-}
-.kk-assist-foot {
+.kk-assist-titlebar {
+  grid-area: title;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.5rem;
-  min-height: 1.6rem;
-  margin-top: 0.25rem;
+  min-width: 0;
+}
+.kk-assist-titlebar .kk-assist-title {
+  margin: 0;
+}
+.kk-assist-hint {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--kk-ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kk-assist-input {
+  grid-area: input;
+  min-width: 0;
+  resize: none;
+  align-self: stretch;
+}
+.kk-assist-run {
+  grid-area: run;
+  /* 大きさは見出しの PDF などのボタンとそろえる */
+  align-self: center;
+  height: 32px;
+  padding: 0 0.85rem;
+  border-radius: 8px;
 }
 .kk-assist-undo {
+  flex: none;
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.15rem 0.4rem;
+  padding: 0 0.4rem;
   border: 0;
   border-radius: 6px;
   background: transparent;
   color: var(--kk-accent-strong);
+  white-space: nowrap;
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 700;
@@ -1633,72 +1559,73 @@ onUnmounted(() => {
 }
 .kk-assist-undo:hover:not(:disabled) { background: var(--kk-accent-soft); }
 .kk-assist-undo:disabled { opacity: 0.45; cursor: default; }
-.kk-assist-scroll {
-  position: relative;
-}
 .kk-assist-list {
-  position: relative; /* 項目の offsetTop をこの欄からの位置にする（隠れている件数の計算用） */
   list-style: none;
   margin: 0;
-  padding: 0 0.25rem 0 0;
-  max-height: 7.5rem;
-  overflow-y: auto;
+  padding: 0;
   font-size: 13px;
   line-height: 1.6;
-  /* スクロールバーをいつも見えるようにする（Mac の隠れるスクロールバーだと、続きがあると気づけない） */
-  scrollbar-width: thin;
-  scrollbar-color: #e9b46c transparent;
 }
-.kk-assist-list::-webkit-scrollbar {
-  width: 6px;
+.kk-unclear-slot {
+  position: relative;
+  min-width: 0;
 }
-.kk-assist-list::-webkit-scrollbar-thumb {
-  background: #e9b46c;
-  border-radius: 999px;
+.kk-unclear-slot .kk-assist-card {
+  height: 100%;
 }
-/* 続きがあるときは、下の端をぼかして「まだ下にある」ことを見せる */
-.kk-assist-scroll.has-more::after {
-  content: '';
+.kk-assist-card--unclear .kk-assist-titlebar {
+  margin-bottom: 0.35rem;
+}
+/* 開いたら下の欄にかぶさる */
+.kk-assist-card--unclear.is-open {
   position: absolute;
+  top: 0;
   left: 0;
-  right: 0.5rem;
-  bottom: 0;
-  height: 2.6rem;
-  background: linear-gradient(rgba(255, 244, 229, 0), var(--kk-warn-soft) 85%);
-  pointer-events: none;
+  right: 0;
+  z-index: 30;
+  height: auto;
+  min-height: 100%;
+  box-shadow: 0 12px 32px rgba(120, 70, 10, 0.18);
 }
-.kk-assist-more {
-  position: absolute;
-  left: 50%;
-  bottom: 0.15rem;
-  z-index: 1;
-  transform: translateX(-50%);
-  display: inline-flex;
+/* 閉じているときは1件1行。収まらない分は「…」で省く */
+.kk-unclear-text {
+  flex: 1;
+  min-width: 0;
+}
+.kk-assist-card--unclear:not(.is-open) .kk-unclear-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kk-unclear-toggle {
+  display: flex;
   align-items: center;
-  gap: 0.2rem;
-  height: 24px;
-  padding: 0 0.7rem 0 0.5rem;
-  border: 1px solid #f0c48a;
-  border-radius: 999px;
-  background: #fff;
+  justify-content: center;
+  width: 100%;
+  height: 18px;
+  margin-top: 0.1rem;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
   color: var(--kk-warn);
-  font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(180, 110, 20, 0.15);
   cursor: pointer;
 }
-.kk-assist-more:hover {
+.kk-unclear-toggle:hover {
   background: #fff3e2;
 }
-.kk-assist-more svg {
-  width: 13px;
-  height: 13px;
+.kk-unclear-toggle svg {
+  width: 18px;
+  height: 18px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
+  transition: transform 0.15s;
+}
+.kk-unclear-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
 }
 .kk-assist-list li {
   display: flex;
@@ -1975,6 +1902,9 @@ onUnmounted(() => {
     flex: 1;
     min-height: 0;
     grid-template-columns: 1fr 1fr;
+  }
+  .kk-review-grid.is-single {
+    grid-template-columns: 1fr;
   }
   .kk-review-col {
     overflow-y: auto;

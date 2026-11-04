@@ -7,18 +7,18 @@
       <li>
         <span class="kk-howto-num">1</span>
         <div>
-          <p class="kk-howto-title">会議の文章を用意する</p>
+          <p class="kk-howto-title">会議のテキストを用意する</p>
           <p class="kk-howto-text">
-            Google Meet・Zoom の文字起こしや、スマホの録音アプリで文字にしたものを使います。テキストファイルでも、コピーした文章でもかまいません。
+            Google Meet・Zoom の文字起こしや、スマホの録音アプリで文字にしたものを使います。ファイルでも、コピーしたテキストでもかまいません。
           </p>
         </div>
       </li>
       <li>
         <span class="kk-howto-num">2</span>
         <div>
-          <p class="kk-howto-title">文章から議事録を作る</p>
+          <p class="kk-howto-title">テキストから議事録を作る</p>
           <p class="kk-howto-text">
-            <span class="kk-howto-pc">左下の「新しく作る」</span><span class="kk-howto-sp">ホームの「文章から議事録を作る」</span>を押し、ファイルを選ぶか文章を貼り付けて、種類を選びます。AIが議事録にまとめます。
+            <span class="kk-howto-pc">左下の「新しく作る」</span><span class="kk-howto-sp">ホームの「テキストから議事録を作る」</span>を押し、ファイルを選ぶかテキストを貼り付けて、種類を選びます。AIが議事録にまとめます。
           </p>
         </div>
       </li>
@@ -34,24 +34,44 @@
     </ol>
 
     <h3 class="kk-howto-h">2つの種類</h3>
-    <dl class="kk-howto-kinds">
-      <div>
-        <dt><MinutesModeBadge mode="meeting" /></dt>
-        <dd>会議・打ち合わせなど、何人かで話し合ったもの。決まったこと・やることを、A4横1枚にまとめます。</dd>
-      </div>
-      <div>
-        <dt><MinutesModeBadge mode="talk" /></dt>
-        <dd>講演・面談など、一人が多く話したもの。話の要点ごとに、A4縦で数ページにまとめます。</dd>
-      </div>
-    </dl>
+    <!-- 2つの違いを見比べられるよう、表にする（行＝見るところ、列＝種類） -->
+    <table class="kk-howto-kinds">
+      <thead>
+        <tr>
+          <th scope="col"><span class="sr-only">見るところ</span></th>
+          <th scope="col"><MinutesModeBadge mode="meeting" /></th>
+          <th scope="col"><MinutesModeBadge mode="talk" /></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">向いているもの</th>
+          <td>会議・打ち合わせ・相談など、何人かで話し合ったもの</td>
+          <td>講演・インタビュー・面談など、一人が多く話したもの</td>
+        </tr>
+        <tr>
+          <th scope="row">中心にまとめること</th>
+          <td>決まったこと・やること</td>
+          <td>話し手が伝えたかったこと</td>
+        </tr>
+        <tr>
+          <th scope="row">載る項目</th>
+          <td>概要・決まったこと・やること・話し合ったこと</td>
+          <td>概要・話の内容・やること</td>
+        </tr>
+        <tr>
+          <th scope="row">PDF</th>
+          <td>A4横 1枚</td>
+          <td>A4縦</td>
+        </tr>
+      </tbody>
+    </table>
 
     <h3 class="kk-howto-h">直すときのコツ</h3>
     <ul class="kk-howto-tips">
       <li>「AIで修正」には「阪中さんを坂中さんに直して」のように、一言で頼めます。</li>
       <li>「AIが判断しきれなかったところ」を先に見ると、早く直せます。</li>
     </ul>
-
-    <p class="kk-howto-foot">困ったことや、こうしてほしいことがあれば「ご意見」から送ってください。</p>
   </div>
 </template>
 
@@ -116,9 +136,7 @@
   font-weight: 700;
 }
 .kk-howto-text,
-.kk-howto-kinds dd,
-.kk-howto-tips,
-.kk-howto-foot {
+.kk-howto-tips {
   font-size: 13px;
   line-height: 1.75;
   color: var(--kk-ink-soft);
@@ -139,30 +157,53 @@
   }
 }
 .kk-howto-kinds {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12.5px;
+  line-height: 1.6;
 }
-.kk-howto-kinds div {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
+.kk-howto-kinds th,
+.kk-howto-kinds td {
+  padding: 0.45rem 0.55rem;
+  border-bottom: 1px solid var(--kk-line);
+  text-align: left;
+  vertical-align: top;
 }
-.kk-howto-kinds dt {
-  flex: none;
+.kk-howto-kinds thead th {
+  padding-top: 0;
+  border-bottom-width: 2px;
 }
-.kk-howto-kinds dd {
-  margin: 0;
+.kk-howto-kinds thead th:first-child {
+  width: 10em;
+}
+.kk-howto-kinds tbody th {
+  font-weight: 700;
+  color: var(--kk-ink);
+  white-space: nowrap;
+}
+.kk-howto-kinds td {
+  color: var(--kk-ink-soft);
+}
+.kk-howto-kinds tbody tr:last-child th,
+.kk-howto-kinds tbody tr:last-child td {
+  border-bottom: 0;
+}
+@media (max-width: 639px) {
+  .kk-howto-kinds thead th:first-child {
+    width: 5.2em;
+  }
+  .kk-howto-kinds tbody th {
+    white-space: normal;
+  }
+  .kk-howto-kinds th,
+  .kk-howto-kinds td {
+    padding: 0.4rem 0.35rem;
+  }
 }
 .kk-howto-tips {
   margin: 0;
   padding-left: 1.2rem;
   list-style: disc;
-}
-.kk-howto-foot {
-  margin: 1.6rem 0 0;
-  padding-top: 0.9rem;
-  border-top: 1px dashed var(--kk-line);
 }
 </style>

@@ -11,7 +11,7 @@ export const DOCUMENT_ACCEPT =
   '.txt,.md,.markdown,.csv,.tsv,.json,.log,.srt,.vtt,.html,.htm,.xml,.rtf,.docx,.pptx,.xlsx,.odt,.odp,.ods,text/*'
 
 export const UNREADABLE_MESSAGE =
-  'このファイルは読み込めませんでした。Word（.docx）やテキストファイルをお試しいただくか、文章を貼り付けてください。'
+  'このファイルは読み込めませんでした。Word（.docx）やテキストファイルをお試しいただくか、テキストを貼り付けてください。'
 
 const ENTITIES: Record<string, string> = { lt: '<', gt: '>', amp: '&', quot: '"', apos: "'" }
 

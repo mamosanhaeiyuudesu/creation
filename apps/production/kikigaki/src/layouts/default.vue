@@ -50,7 +50,7 @@
           </div>
           <p v-if="driveError" class="kk-side-reason kk-side-reason--error">{{ driveError }}</p>
 
-          <!-- 作る入口はPCではここだけ（ホームには置かない）。押すと、その場で文章を入れるシートが開く。
+          <!-- 作る入口はPCではここだけ（ホームには置かない）。押すと、その場でテキストを入れるシートが開く。
                議事録が1件もないときは、気づいてもらえるよう光らせる -->
           <button
             type="button"
@@ -110,7 +110,7 @@
               <svg viewBox="0 0 24 24"><path d="M6 4h9l3 3v13H6z" /><path d="M9 11h6M9 15h6M9 7h3" /></svg>
             </span>
             {{ serviceName }}
-            <span class="kk-note font-normal hidden sm:inline">会議の文章から議事録を</span>
+            <span class="kk-note font-normal hidden sm:inline">会議のテキストから議事録を</span>
           </NuxtLink>
           <div class="kk-fb-head"><FeedbackButton service="キキガキ" /></div>
           <!-- スマホでは左メニューが出ないので、管理画面との行き来はこの帯のボタンで行う（管理者だけ） -->
@@ -144,7 +144,7 @@
       </div>
     </div>
 
-    <!-- 文章から議事録を作るシート。左メニューの「新しく作る」（PC）とホームのボタン（スマホ）から開く -->
+    <!-- テキストから議事録を作るシート。左メニューの「新しく作る」（PC）とホームのボタン（スマホ）から開く -->
     <MinutesTextSheet v-if="isLoggedIn" v-model="textSheetOpen" />
 
     <!-- 利用規約などは、ログイン前だけ画面の下に並べる（ログイン後は設定の中） -->
@@ -211,8 +211,8 @@ const GEAR_PATH =
 // ── 左メニューの幅 ──
 // つまみで変えた幅は覚えない（読み込み直すと、いつも既定の幅に戻る）
 // 2026-10-25 に既定を半分（248→124）にしたあと、狭すぎたので1.4倍（174）、5px足して179、さらに1.5倍して268にした。
-// 2026-11-04 に議事録の一覧を入れたので、1.3倍して348にした
-const SIDE_DEFAULT = 348
+// 2026-11-04 に議事録の一覧を入れたので、1.3倍して348にし、そこから少し詰めて338にした
+const SIDE_DEFAULT = 338
 const SIDE_MIN = 100
 const SIDE_MAX = 440
 const sideWidth = ref(SIDE_DEFAULT)
@@ -423,7 +423,7 @@ const wide = computed(() => route.meta.wide === true)
   /* 左メニュー全体は本文と同じ高さまで伸ばす（背景・罫線が下まで続く） */
   .kk-shell--side .kk-side {
     order: 0;
-    width: var(--kk-side-w, 348px);
+    width: var(--kk-side-w, 338px);
     flex: none;
     position: relative;
     align-self: stretch;

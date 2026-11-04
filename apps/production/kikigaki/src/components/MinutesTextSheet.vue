@@ -9,11 +9,11 @@
 
     <template v-if="stage === 'idle'">
       <p class="kk-lead">
-        文字にした会議や話の文章から議事録を作ります。
-        文章のファイルをアップロードするか、文章を貼り付けてください。
+        文字にした会議や話から議事録を作ります。
+        テキストのファイルをアップロードするか、テキストを貼り付けてください。
       </p>
 
-      <label class="kk-field-label mt-3" for="transcript-file">文章のファイルを選ぶ</label>
+      <label class="kk-field-label mt-3" for="transcript-file">ファイルを選ぶ</label>
       <input
         id="transcript-file"
         ref="textFileInput"
@@ -24,12 +24,12 @@
       >
       <p class="kk-note mt-2">テキスト・Word（.docx）・Markdown（.md）・字幕（.srt）などが使えます。PDFは未対応です。</p>
 
-      <p class="kk-field-label mt-4">または、文章を貼り付ける</p>
+      <p class="kk-field-label mt-4">または、テキストを貼り付ける</p>
       <textarea
         id="transcript-text"
         v-model="pastedText"
         rows="8"
-        placeholder="会議の内容を書き写した文章を、ここに貼り付けてください"
+        placeholder="会議の内容を書き写したテキストを、ここに貼り付けてください"
         class="kk-input resize-y"
         @input="clearTextFile"
       />
@@ -64,7 +64,7 @@
       </div>
 
       <button class="kk-btn mt-4" :disabled="!canRunText" @click="runFromText">
-        この文章から議事録を作る
+        このテキストから議事録を作る
       </button>
     </template>
 
@@ -87,12 +87,13 @@ const props = defineProps<{ modelValue: boolean }>()
 defineEmits<{ 'update:modelValue': [boolean] }>()
 
 const { createMinutes } = useCreateMinutes()
+const { prefill } = useTextSheet()
 
 type Stage = 'idle' | 'structuring'
 const stage = ref<Stage>('idle')
 const errorMessage = ref('')
 const pastedText = ref('')
-/** まとめ方。閉じても覚えておく（続けて同じ種類の記録を作ることが多いので） */
+/** まとめ方。開くたびに左の「話し合い」から始める（どこから開いても同じ見た目にする） */
 const mode = ref<MinutesMode>('meeting')
 const textFile = ref<File | null>(null)
 const textFileInput = ref<HTMLInputElement | null>(null)
@@ -102,7 +103,7 @@ const pastedLength = computed(() => countTranscriptChars(pastedText.value))
 const pastedOver = computed(() => Math.max(0, pastedLength.value - MAX_TRANSCRIPT_CHARS))
 const fmt = (n: number) => n.toLocaleString('ja-JP')
 
-/** ファイルを選んでいるか、上限内の文章を貼り付けているかのどちらかなら進める */
+/** ファイルを選んでいるか、上限内のテキストを貼り付けているかのどちらかなら進める */
 const canRunText = computed(
   () => !!textFile.value || (pastedLength.value > 0 && pastedOver.value === 0)
 )
@@ -124,14 +125,17 @@ function reset() {
   stage.value = 'idle'
   errorMessage.value = ''
   pastedText.value = ''
+  mode.value = 'meeting'
+  prefill.value = null
   clearTextFile()
 }
 
-// 閉じたら次に開いたとき真っ白から始められるようにする
+// 開くときは入れておく中身があれば入れ、閉じたら次に開いたとき真っ白から始められるようにする
 watch(
   () => props.modelValue,
   (open) => {
     if (!open) reset()
+    else if (prefill.value) pastedText.value = prefill.value.text
   }
 )
 
@@ -144,12 +148,14 @@ async function runFromText() {
     stage.value = 'structuring'
     const text = file ? (await readDocumentText(file)).trim() : pastedText.value.trim()
     if (!text) {
-      throw new Error('文章が空でした。中身のあるファイルか、貼り付けた文章でお試しください。')
+      throw new Error('テキストが空でした。中身のあるファイルか、貼り付けたテキストでお試しください。')
     }
     // ファイルは読むまで長さが分からないので、ここで先に断る（AIに送る前に数字つきで伝える）
     const over = transcriptOverMessage(countTranscriptChars(text))
     if (over) throw new Error(over)
-    await createMinutes(text, file?.name ?? '', mode.value)
+    // 元の議事録から作るときは、手で直した日付とタグを引き継ぐ（ファイルに差し替えたら引き継がない）
+    const carry = !file && prefill.value ? { date: prefill.value.date, tags: prefill.value.tags } : undefined
+    await createMinutes(text, file?.name ?? '', mode.value, carry)
   } catch (e) {
     errorMessage.value = apiMessage(e)
     stage.value = 'idle'

@@ -5,9 +5,9 @@
 
     <!-- ── ログインしていないとき ───────────────────────────── -->
     <template v-else-if="!isLoggedIn">
-      <h1 class="kk-h1 mt-6">会議の文章から<br>議事録を作ります</h1>
+      <h1 class="kk-h1 mt-6">会議のテキストから<br>議事録を作ります</h1>
       <p class="kk-lead mt-2">
-        会議の内容を書いた文章をアップロードするか貼り付けるだけ。AIが話し合いの内容を1枚にまとめます。
+        会議の内容を書いたテキストをアップロードするか貼り付けるだけ。AIが話し合いの内容を1枚にまとめます。
         できた議事録はその場で直せて、PDFにして配れます。
       </p>
 
@@ -164,8 +164,8 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
           </span>
           <span class="min-w-0">
-            <span class="kk-action-title">文章から議事録を作る</span>
-            <span class="kk-action-desc">テキストファイルをアップロードするか、文章を貼り付け</span>
+            <span class="kk-action-title">テキストから議事録を作る</span>
+            <span class="kk-action-desc">ファイルをアップロードするか、テキストを貼り付け</span>
           </span>
         </button>
       </div>
@@ -366,7 +366,7 @@ import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
 
 // PCのホームは使い方だけなので、残りの幅のまん中に置く（スマホは元々まん中）
 definePageMeta({ center: true })
-useHead({ title: `${SERVICE.name} — 会議の文章から議事録を` })
+useHead({ title: `${SERVICE.name} — 会議のテキストから議事録を` })
 
 const router = useRouter()
 const route = useRoute()

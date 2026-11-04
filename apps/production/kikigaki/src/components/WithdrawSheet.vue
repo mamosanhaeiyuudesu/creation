@@ -35,7 +35,7 @@
         <ul class="kk-lead mt-3 mb-0 pl-5 list-disc">
           <li>{{ DELETION_GRACE_DAYS }}日のあいだ、議事録は使えない状態で残ります。</li>
           <li>その間にログインして「取り消す」を押せば、元どおり使えます。</li>
-          <li>{{ DELETION_GRACE_DAYS }}日を過ぎると、これまでの議事録と元の文章（{{ recordCountLabel }}）、設定がすべて消え、<strong>元には戻せません</strong>。</li>
+          <li>{{ DELETION_GRACE_DAYS }}日を過ぎると、これまでの議事録と元のテキスト（{{ recordCountLabel }}）、設定がすべて消え、<strong>元には戻せません</strong>。</li>
         </ul>
         <p class="kk-note mt-2 mb-0">
           消えるまでの間に消したいときは、ログインして「今すぐ消す」を選べます。
@@ -62,7 +62,7 @@
         <strong>{{ user?.email }}</strong> のデータをいますぐすべて消します。次のものが消え、<strong>元には戻せません</strong>。
       </p>
       <ul class="kk-lead mt-2 mb-0 pl-5 list-disc">
-        <li>預かっている議事録と、元の文章</li>
+        <li>預かっている議事録と、元のテキスト</li>
         <li>PDFの文字数などの設定</li>
       </ul>
       <p class="kk-note mt-2 mb-0">

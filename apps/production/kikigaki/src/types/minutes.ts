@@ -72,7 +72,7 @@ export function countTranscriptChars(text: string): number {
 export function transcriptOverMessage(length: number): string {
   if (length <= MAX_TRANSCRIPT_CHARS) return ''
   const f = (n: number) => n.toLocaleString('ja-JP')
-  return `文章が長すぎて一度にまとめられません（${f(MAX_TRANSCRIPT_CHARS)}文字まで／今は${f(length)}文字で${f(length - MAX_TRANSCRIPT_CHARS)}文字オーバー）。会議を前半・後半に分けてお試しください。`
+  return `テキストが長すぎて一度にまとめられません（${f(MAX_TRANSCRIPT_CHARS)}文字まで／今は${f(length)}文字で${f(length - MAX_TRANSCRIPT_CHARS)}文字オーバー）。会議を前半・後半に分けてお試しください。`
 }
 
 /**
@@ -126,7 +126,7 @@ export interface EventItem {
 
 /** AIが文字起こしから組み立てる議事録の構造。確認画面で人が直す対象そのもの */
 export interface Minutes {
-  /** まとめ方。作るときに選び、あとから「種類を変える」で変えられる */
+  /** まとめ方。作るときに選ぶ（あとから変えるときは、元のテキストから別の議事録として作る） */
   mode: MinutesMode
   /** 並べ方の版。新しく作る議事録は 3、版を持たない古い議事録は 1（MinutesLayout を参照） */
   layout: MinutesLayout
