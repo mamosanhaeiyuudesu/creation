@@ -81,7 +81,7 @@
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
-  padding: 1.6rem 1.8rem 1.5rem;
+  padding: 1.28rem 1.8rem 1.5rem;
   background: var(--kk-panel);
   border: 1px solid var(--kk-line);
   border-radius: 16px;
@@ -89,12 +89,12 @@
 }
 @media (max-width: 639px) {
   .kk-howto {
-    padding: 1.2rem 1.1rem 1.1rem;
+    padding: 0.96rem 1.1rem 1.1rem;
   }
 }
 .kk-howto-h {
   width: fit-content;
-  margin: 1.8rem 0 0.8rem;
+  margin: 1.44rem 0 0.8rem;
   padding: 0 0.2em;
   font-size: 15.5px;
   font-weight: 700;
