@@ -39,3 +39,30 @@ export function parseSortOrder(value: unknown): RecordSortOrder {
 export function parseSortKey(value: unknown): RecordSortKey {
   return value === 'created' ? 'created' : 'date'
 }
+
+export interface MonthGroup<T> {
+  /** 'none'（会議の日が無いもの）か 'YYYY-MM' */
+  key: string
+  /** 「日付なし」「2026年11月」 */
+  label: string
+  items: T[]
+}
+
+/**
+ * 会議の日の新しい順に並べ、月ごとの見出しで区切る（左メニューの一覧とスマホの一覧で共通）。
+ * 会議の日が無いものは先頭の「日付なし」にまとめる（sortRecords と同じ考え方）。
+ */
+export function groupByMonth<T extends Sortable>(records: T[]): MonthGroup<T>[] {
+  const groups: MonthGroup<T>[] = []
+  for (const r of sortRecords(records, 'date')) {
+    const key = /^\d{4}-\d{2}/.test(r.date) ? r.date.slice(0, 7) : 'none'
+    let g = groups[groups.length - 1]
+    if (!g || g.key !== key) {
+      const label = key === 'none' ? '日付なし' : `${key.slice(0, 4)}年${Number(key.slice(5, 7))}月`
+      g = { key, label, items: [] }
+      groups.push(g)
+    }
+    g.items.push(r)
+  }
+  return groups
+}

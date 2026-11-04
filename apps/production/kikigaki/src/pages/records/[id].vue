@@ -74,16 +74,21 @@
             元の文章
           </button>
 
-          <span class="kk-head-sep" aria-hidden="true" />
+          <span class="kk-head-sep kk-wide-only" aria-hidden="true" />
 
-          <button type="button" class="kk-icon-btn kk-icon-btn--danger" title="削除" @click="confirmingDelete = true">
+          <button type="button" class="kk-icon-btn kk-icon-btn--danger kk-wide-only" title="削除" @click="confirmingDelete = true">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
             削除
           </button>
           <!-- ドライブ・PDF。PCでは見出しの右に並べ、スマホでは画面の下に固定する（ai-tools 版と同じ置き方。
                長い議事録を下まで読んでも、上に戻らずに押せるように）。
+               スマホの下の列は「戻る・ドライブ・PDF・削除」を同じ幅で並べる（戻る・削除はスマホだけ）。
                保存ボタンは置かない（自動保存＋欄を離れたとき・一覧へ戻るときにも保存される） -->
           <div class="kk-save-bar">
+          <NuxtLink to="/" class="kk-icon-btn kk-narrow-only" title="一覧へ戻る">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+            戻る
+          </NuxtLink>
           <button
             v-if="driveConnected"
             type="button"
@@ -98,6 +103,10 @@
           <button type="button" class="kk-icon-btn kk-icon-btn--primary" :disabled="generatingPdf || driveSaving" title="PDFのダウンロード" @click="downloadPdf">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg>
             {{ generatingPdf ? 'PDF作成中…' : 'PDF' }}
+          </button>
+          <button type="button" class="kk-icon-btn kk-icon-btn--danger kk-narrow-only" title="削除" @click="confirmingDelete = true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+            削除
           </button>
           </div>
         </div>
@@ -847,6 +856,17 @@ watch(
   { deep: true }
 )
 
+// 名前・日付・種類・タグを直したら、左メニューの一覧にもすぐ映す（保存を待たない。一覧の読み直しもしない）
+const { patchLocal, removeLocal } = useRecordList()
+watch(
+  () => [record.value?.id, minutes.title, minutes.date, minutes.mode, minutes.tags.join('\n')],
+  () => {
+    // 左の一覧で別の議事録へ移った直後は、まだ前の中身が残っているので、読み込んだ議事録の id で合わせる
+    if (!record.value) return
+    patchLocal(record.value.id, { title: minutes.title, date: minutes.date, mode: minutes.mode, tags: [...minutes.tags] })
+  }
+)
+
 // 一覧へ戻るときは、残っている直しを保存してから移る。保存できなければ確かめる
 onBeforeRouteLeave(async () => {
   if (deleting.value || !record.value || snapshot() === lastSavedJson) return true
@@ -935,6 +955,7 @@ async function remove() {
   errorMessage.value = ''
   try {
     await authedFetch(`/api/records/${id.value}`, { method: 'DELETE' })
+    removeLocal(id.value)
     await router.push('/')
   } catch (e) {
     errorMessage.value = apiMessage(e, '消せませんでした。もう一度お試しください。')
@@ -1396,6 +1417,9 @@ onUnmounted(() => {
 .kk-save-bar {
   display: contents;
 }
+.kk-narrow-only {
+  display: none !important;
+}
 /* スマホ・タブレット（1列表示）では、ドライブ・PDFを画面の下に固定する */
 @media (max-width: 1023px) {
   .kk-review {
@@ -1423,8 +1447,22 @@ onUnmounted(() => {
     padding: 0 0.4rem;
     font-size: 12.5px;
   }
-  .kk-save-bar .kk-icon-btn--primary {
-    flex-grow: 1.4;
+  .kk-narrow-only {
+    display: inline-flex !important;
+  }
+  .kk-wide-only {
+    display: none !important;
+  }
+  /* 「元の文章」は見出しの行の右端に置く（削除は下の列へ移した） */
+  .kk-review-head {
+    flex-wrap: nowrap;
+  }
+  .kk-review-title {
+    flex: 1 1 auto;
+  }
+  .kk-head-actions {
+    flex: none;
+    width: auto !important;
   }
   .kk-save-bar .kk-icon-btn svg {
     width: 17px;

@@ -1,4 +1,4 @@
-// palette「記事 → 動画」の描画と書き出し（ブラウザ専用）。
+// palette「テキスト → 動画」の描画と書き出し（ブラウザ専用）。
 // プレビューも書き出しも同じ drawFrame で1コマずつ描く＝見たとおりに書き出される。
 // 書き出しは mediabunny（WebCodecs）で H.264＋AAC の MP4 をブラウザの中で組み立てる（Workers では ffmpeg が使えないため）。
 // AAC の音声エンコーダを持たないブラウザには、mediabunny の AAC 拡張（WebAssembly）を足して補う。

@@ -56,7 +56,7 @@ database_id = "a89cb679-8a17-4d46-9c90-dada3e35691b"
 #   wrangler d1 execute whisper-db --remote --file src/server/db/073_farm_simulation.sql
 # palette テーブル追加:
 #   wrangler d1 execute whisper-db --remote --file src/server/db/074_palette.sql
-# palette「記事 → 動画」テーブル追加:
+# palette「テキスト → 動画」テーブル追加:
 #   wrangler d1 execute whisper-db --remote --file src/server/db/075_palette_video.sql
 # manabi は本番サービスへ移した（apps/production/manabi・専用D1 manabi-db）。whisper-db の osarai_sets は2026-10-19にDROP済み
 

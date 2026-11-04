@@ -1,7 +1,7 @@
 <template>
   <!-- まとめ方（話し合い／聞き取り）のラベル。一覧の行と確認画面の見出しで同じ見た目にして、
        一覧から開いたときに「同じ種類だ」とすぐ分かるようにする -->
-  <span class="kk-mode-badge" :class="[`is-${mode}`, { 'is-compact': compact }]" :title="label">
+  <span class="kk-mode-badge" :class="[`is-${mode}`, { 'is-compact': compact, 'is-icon': iconOnly }]" :title="label">
     <svg v-if="mode === 'talk'" viewBox="0 0 24 24" aria-hidden="true">
       <!-- 耳（聞き取り） -->
       <path d="M7 9a5 5 0 0 1 10 0c0 3-2.5 4-3 6s-1 4-3.5 4A2.5 2.5 0 0 1 8 16.5" />
@@ -19,8 +19,9 @@
 <script setup lang="ts">
 import { MINUTES_MODES, type MinutesMode } from '~/types/minutes'
 
-/** compact: スマホではアイコンだけにする（一覧でタイトルに幅を回すため。色で見分けられる） */
-const props = defineProps<{ mode: MinutesMode; compact?: boolean }>()
+/** compact: スマホではアイコンだけにする（一覧でタイトルに幅を回すため。色で見分けられる）
+ *  iconOnly: どの幅でもアイコンだけ（PCの左メニューの一覧） */
+const props = defineProps<{ mode: MinutesMode; compact?: boolean; iconOnly?: boolean }>()
 
 const label = computed(() => MINUTES_MODES.find((m) => m.value === props.mode)?.label ?? '')
 </script>
@@ -56,6 +57,14 @@ const label = computed(() => MINUTES_MODES.find((m) => m.value === props.mode)?.
 .kk-mode-badge.is-talk {
   background: #e3f4ec;
   color: #1d6b4a;
+}
+.kk-mode-badge.is-icon {
+  width: 22px;
+  padding: 0;
+  justify-content: center;
+}
+.kk-mode-badge.is-icon .kk-mode-badge-label {
+  display: none;
 }
 @media (max-width: 639px) {
   .kk-mode-badge.is-compact {

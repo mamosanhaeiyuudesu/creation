@@ -1,4 +1,4 @@
-// palette「記事 → 動画」の純関数（サーバー・画面・テストから使う）。
+// palette「テキスト → 動画」の純関数（サーバー・画面・テストから使う）。
 // 入力の整形（normalizeVideo）と、書き出し・プレビューで共通のタイムライン（buildTimeline）と字幕の区切り（splitSubtitle）。
 import { PALETTE_VOICES, PALETTE_VIDEO_LIMITS } from '../types/palette'
 import type { PaletteVideo, PaletteVideoScene, PaletteVoice } from '../types/palette'

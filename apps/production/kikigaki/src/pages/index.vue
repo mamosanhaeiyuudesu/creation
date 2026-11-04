@@ -161,6 +161,9 @@
 
       <MinutesTextSheet v-model="showTextSheet" />
 
+      <!-- PCでは議事録の一覧は左メニューにある（ホームに同じ一覧を2つ並べない） -->
+      <p v-if="records.length" class="kk-note kk-list-hint mt-4 mb-0">これまでの議事録は、左の一覧から開けます。</p>
+
       <MinutesPdfMaker ref="pdfMaker" />
 
       <!-- 削除の確認（確認画面と同じ文言）。消している間は閉じられないようにする -->
@@ -220,16 +223,16 @@
           <thead>
             <tr>
               <th>会議の名前</th>
-              <th class="kk-col-date">
-                <button type="button" class="kk-th-sort" :class="{ 'is-on': sortKey === 'date' }" @click="setSort('date')">
-                  会議の日<span v-if="sortKey === 'date'" aria-hidden="true"> {{ sortArrow }}</span>
-                </button>
-              </th>
+              <th class="kk-col-date">会議の日</th>
               <th class="kk-col-actions" :class="{ 'kk-col-actions--narrow': !driveConnected }"><span class="sr-only">操作</span></th>
             </tr>
           </thead>
-          <tbody>
-            <tr v-for="r in sortedRecords" :key="r.id" @click="openRow(r.id)">
+          <!-- 会議の日の新しい順で、月ごとに見出しを入れる（日付が無いものは先頭の「日付なし」。PCの左メニューと同じ並び） -->
+          <tbody v-for="g in groupedRecords" :key="g.key">
+            <tr class="kk-group-row">
+              <th colspan="3" scope="colgroup">{{ g.label }}</th>
+            </tr>
+            <tr v-for="r in g.items" :key="r.id" @click="openRow(r.id)">
               <td>
                 <!-- 名前を変えている行は入力欄にする（Enter・欄を離れると保存、Esc でやめる） -->
                 <div v-if="editingId === r.id" class="kk-row-edit" @click.stop>
@@ -349,11 +352,11 @@ import { SERVICE } from '~/config/service'
 import { apiMessage } from '~/utils/apiMessage'
 import { formatDateLabel, formatMeetingDate } from '~/utils/formatDate'
 import { countTags } from '~/utils/tags'
-import { parseSortKey, parseSortOrder, sortRecords, type RecordSortKey } from '~/utils/sortRecords'
+import { groupByMonth } from '~/utils/sortRecords'
 
 /** 会議の名前の上限（サーバーの MAX_TITLE_LENGTH と同じ） */
 const MAX_TITLE_LENGTH = 100
-import type { MinutesRecord, RecordListItem, RecordSummary } from '~/types/minutes'
+import type { MinutesRecord, RecordSummary } from '~/types/minutes'
 import type MinutesPdfMakerType from '~/components/MinutesPdfMaker.vue'
 
 useHead({ title: `${SERVICE.name} — 会議の文章から議事録を` })
@@ -383,10 +386,14 @@ async function connectDrive() {
   driveBusy.value = false
 }
 
-const records = ref<(RecordListItem & { dateLabel: string })[]>([])
-const loadingRecords = ref(false)
+// 一覧は左メニューと共有する（ここで消した・名前を変えたものは、左メニューにもすぐ映る）
+const { records: sharedRecords, loading: loadingRecords, load: loadShared, removeLocal, patchLocal, reset: resetRecords } = useRecordList()
+const records = computed(() =>
+  sharedRecords.value.map((r) => ({ ...r, dateLabel: formatMeetingDate(r.date, r.createdAt) }))
+)
 
-const showTextSheet = ref(false)
+// 「文章から議事録を作る」のシート。左メニューの「新しく作る」からも開く
+const showTextSheet = useState<boolean>('kk-text-sheet-open', () => false)
 
 // ── タグで絞り込む ──
 const { version: tagsVersion, load: loadTags } = useTags()
@@ -411,19 +418,8 @@ watch(showSummary, (v) => {
   }
 })
 
-// ── 並び順（既定は会議の日の新しい順） ──
-const sortKey = computed<RecordSortKey>(() => parseSortKey(route.query.sort))
-const sortOrder = computed(() => parseSortOrder(route.query.order))
-const sortedRecords = computed(() => sortRecords(filteredRecords.value, sortKey.value, sortOrder.value))
-const sortArrow = computed(() => (sortOrder.value === 'asc' ? '↑' : '↓'))
-
-// 別の列を押したら新しい順から、今の列をもう一度押したら昇順（古い順）⇄降順を切り替える
-function setSort(key: RecordSortKey) {
-  const order = key === sortKey.value && sortOrder.value === 'desc' ? 'asc' : 'desc'
-  router.replace({
-    query: { ...route.query, sort: key === 'date' ? undefined : key, order: order === 'asc' ? 'asc' : undefined },
-  })
-}
+// ── 並び順: 会議の日の新しい順で月ごとに区切る（PCの左メニューと同じ。並べ替えの切り替えは置かない） ──
+const groupedRecords = computed(() => groupByMonth(filteredRecords.value))
 
 // ── 一覧から会議の名前を変える ──
 const editingId = ref('')
@@ -473,7 +469,7 @@ async function saveTitle() {
   titleSaving.value = true
   try {
     const res = await authedFetch<{ title: string }>(`/api/records/${id}/title`, { method: 'PATCH', body: { title: next } })
-    row.title = res.title
+    patchLocal(id, { title: res.title })
     editingId.value = ''
   } catch (e) {
     errorMessage.value = apiMessage(e, '会議の名前を変えられませんでした。もう一度お試しください。')
@@ -518,7 +514,7 @@ async function removeRow() {
   deleting.value = true
   try {
     await authedFetch(`/api/records/${r.id}`, { method: 'DELETE' })
-    records.value = records.value.filter((x) => x.id !== r.id)
+    removeLocal(r.id)
     // 左メニューのタグの件数を合わせる
     loadTags().catch(() => {})
     savedMessage.value = `「${r.title || '議事録'}」を消しました。`
@@ -617,21 +613,15 @@ async function resume() {
 
 async function onErased() {
   withdrawn.value = null
-  records.value = []
+  resetRecords()
   await router.push('/')
 }
 
 async function loadRecords() {
-  loadingRecords.value = true
   try {
-    const res = await authedFetch<{ records: RecordListItem[] }>('/api/records')
+    await loadShared()
     withdrawn.value = null
-    records.value = res.records.map((r) => ({
-      ...r,
-      dateLabel: formatMeetingDate(r.date, r.createdAt),
-    }))
   } catch (e) {
-    records.value = []
     // 退会中の人は一覧が読めない（403）。エラーにせず「おかえりなさい」の画面に切り替える
     if (isWithdrawnError(e)) {
       await refreshWithdrawn().catch(() => {})
@@ -639,14 +629,13 @@ async function loadRecords() {
       errorMessage.value = apiMessage(e, '議事録の一覧を読み込めませんでした。画面を開き直してみてください。')
     }
   }
-  loadingRecords.value = false
 }
 
 // ログインが済んだ時点で読み込む（この watch が無いと、ログイン直後に一覧が空のまま見える）
 watch(isLoggedIn, async (v) => {
   if (v) await loadRecords()
   else {
-    records.value = []
+    resetRecords()
     withdrawn.value = null
   }
 })
@@ -836,21 +825,34 @@ onMounted(async () => {
   opacity: 0.7;
 }
 
-/* 並び順の切り替え */
-.kk-th-sort {
-  border: 0;
-  padding: 0;
+/* 月ごとの見出しの行（押しても開かない） */
+.kk-table tbody tr.kk-group-row {
+  cursor: default;
+}
+.kk-table tbody tr.kk-group-row:hover {
   background: transparent;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
 }
-.kk-th-sort:hover,
-.kk-th-sort.is-on {
-  color: var(--kk-accent-strong);
-}
-.kk-th-sort.is-on {
+.kk-table .kk-group-row th {
+  padding: 0.55rem 1rem 0.3rem;
+  font-size: 12px;
   font-weight: 700;
+  color: var(--kk-ink-soft);
+  text-align: left;
+  background: transparent;
+  border-bottom: 1px solid var(--kk-line);
+}
+
+/* PC（左メニューがある幅）では一覧は左メニューに出すので、ホームには置かない */
+.kk-list-hint {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .kk-list {
+    display: none;
+  }
+  .kk-list-hint {
+    display: block;
+  }
 }
 
 /* 一覧で名前を変えるときの入力欄 */
@@ -939,7 +941,7 @@ onMounted(async () => {
 .kk-table tbody tr:hover {
   background: var(--kk-accent-soft);
 }
-.kk-table tbody tr:last-child td {
+.kk-table tbody:last-child tr:last-child td {
   border-bottom: 0;
 }
 .kk-row-title {
@@ -1053,8 +1055,18 @@ onMounted(async () => {
 .kk-pc-only {
   display: none !important;
 }
-.kk-col-date {
-  display: none;
+/* スマホでは日付の列を幅0にして見せない（display: none にすると、月の見出しの行（3列ぶん）と列の数が合わず、
+   右に空の列ができる） */
+@media (max-width: 639px) {
+  .kk-table .kk-col-date {
+    width: 0;
+    padding: 0;
+    border-left: 0;
+    border-right: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 0;
+  }
 }
 @media (min-width: 640px) {
   .kk-row-sub {
@@ -1070,7 +1082,6 @@ onMounted(async () => {
     width: 88px;
   }
   .kk-col-date {
-    display: table-cell;
     width: 190px;
   }
 }

@@ -21,10 +21,10 @@
     <div class="flex gap-1.5 mb-4" role="tablist">
       <button class="pl-tab" :class="{ 'pl-tab--on': !videoTab && tab === 't2i' }" role="tab" :aria-selected="!videoTab && tab === 't2i'" @click="setTab('t2i')">テキスト → 画像</button>
       <button class="pl-tab" :class="{ 'pl-tab--on': !videoTab && tab === 'i2i' }" role="tab" :aria-selected="!videoTab && tab === 'i2i'" @click="setTab('i2i')">画像 → 画像</button>
-      <button class="pl-tab" :class="{ 'pl-tab--on': videoTab }" role="tab" :aria-selected="videoTab" @click="videoTab = true">記事 → 動画</button>
+      <button class="pl-tab" :class="{ 'pl-tab--on': videoTab }" role="tab" :aria-selected="videoTab" @click="videoTab = true">テキスト → 動画</button>
     </div>
 
-    <!-- 記事 → 動画（インスタのリール用）。LoRA の選択は画像のタブと共有する -->
+    <!-- テキスト → 動画（インスタのリール用）。LoRA の選択は画像のタブと共有する -->
     <VideoStudio v-if="videoTab" :loras="loras" :selected="selected" @generated="loadBalance" />
 
     <div v-else class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] items-start">
@@ -305,7 +305,7 @@ const optionsSummary = computed(() => {
 })
 
 // ── タブ ──────────────────────────────
-/** 「記事 → 動画」タブ。画像の2つのタブ（tab）とは別に持ち、戻ったときは前の画像のタブに戻る */
+/** 「テキスト → 動画」タブ。画像の2つのタブ（tab）とは別に持ち、戻ったときは前の画像のタブに戻る */
 const videoTab = ref(false)
 
 function setTab(t: PaletteMode) {

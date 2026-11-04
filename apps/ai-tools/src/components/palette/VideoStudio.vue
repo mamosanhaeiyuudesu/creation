@@ -1,10 +1,10 @@
 <template>
   <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] items-start">
-    <!-- 左: 記事・設定・シーン -->
+    <!-- 左: テキスト・設定・シーン -->
     <div class="space-y-4">
       <section class="pl-card">
-        <ParamField label="記事" for-id="pl-article" help="動画にしたい記事を貼り付けます。AI が耳で聞いてわかる長さにまとめ直し、絵とナレーションのシーンに分けます（シーンの数は記事に合わせて 3〜20。ふつうは 3〜6）。">
-          <textarea id="pl-article" v-model="video.article" rows="7" class="pl-input" placeholder="ここに記事を貼り付け" />
+        <ParamField label="テキスト" for-id="pl-article" help="動画にしたい文章（記事・メモ・台本など）を貼り付けます。AI が耳で聞いてわかる長さにまとめ直し、絵とナレーションのシーンに分けます（シーンの数は文章に合わせて 3〜20。ふつうは 3〜6）。">
+          <textarea id="pl-article" v-model="video.article" rows="7" class="pl-input" placeholder="ここに文章を貼り付け" />
           <div class="mt-2 flex flex-wrap items-center gap-2">
             <select v-model="sceneCount" class="pl-input !w-auto" aria-label="シーンの数">
               <option :value="null">シーンの数: AI におまかせ</option>
@@ -18,6 +18,11 @@
         </ParamField>
       </section>
 
+      <!-- LoRA はシーンに分ける前から選べるようにする（絵を作る前に決めておくもの） -->
+      <section class="pl-card">
+        <LoraPicker :loras="loras" :selected="selected" help="全シーンに同じ LoRA を使います。選ばなければ LoRA なしの FLUX で描きます。あとで変えると、全シーンの絵が作り直しの対象になります。" />
+      </section>
+
       <template v-if="video.scenes.length">
         <section class="pl-card space-y-4">
           <ParamField label="タイトル" for-id="pl-vtitle" help="下書きの一覧に出す名前です（動画には入りません）。">
@@ -26,7 +31,6 @@
           <ParamField label="全シーン共通の設定" for-id="pl-style" help="画風・色・何度も出てくる人物の外見など、どのシーンの絵にも効かせたいことです。各シーンの絵の説明の前に付けて描きます。変えると、全シーンの絵が作り直しの対象になります。">
             <textarea id="pl-style" v-model="video.style" rows="3" class="pl-input" />
           </ParamField>
-          <LoraPicker :loras="loras" :selected="selected" help="全シーンに同じ LoRA を使います。変えると、全シーンの絵が作り直しの対象になります。" />
           <div class="grid gap-4 sm:grid-cols-2">
             <ParamField label="読み上げの声" for-id="pl-voice" help="変えると、全シーンの読み上げが作り直しの対象になります。">
               <div class="flex items-center gap-2">

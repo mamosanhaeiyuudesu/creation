@@ -103,7 +103,7 @@ export const PALETTE_LIMITS = {
   size: { min: 256, max: 2048 },
 } as const
 
-// ── 記事 → 動画（インスタのリール用） ──────────────────────────────
+// ── テキスト → 動画（インスタのリール用） ──────────────────────────────
 
 /** 読み上げの声（OpenAI gpt-4o-mini-tts） */
 export const PALETTE_VOICES = ['coral', 'nova', 'shimmer', 'sage', 'alloy', 'ballad', 'verse', 'ash', 'echo', 'fable', 'onyx'] as const

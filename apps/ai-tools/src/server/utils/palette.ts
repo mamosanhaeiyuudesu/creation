@@ -46,7 +46,7 @@ export async function ensurePaletteTables(db: any): Promise<void> {
     .catch(() => {})
 }
 
-/** 「記事 → 動画」のテーブル（075_palette_video.sql と同じ）。動画の API だけが呼ぶ。 */
+/** 「テキスト → 動画」のテーブル（075_palette_video.sql と同じ）。動画の API だけが呼ぶ。 */
 export async function ensurePaletteVideoTables(db: any): Promise<void> {
   await db
     .exec(

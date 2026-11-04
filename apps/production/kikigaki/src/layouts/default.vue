@@ -1,10 +1,8 @@
 <template>
   <div class="kk-shell" :class="{ 'kk-shell--wide': wide, 'kk-shell--side': isLoggedIn }">
-    <!-- モニター期間のお知らせ。常時表示。文言と時期は src/config/service.ts で変える -->
-    <p v-if="monitorMode" class="kk-topband">{{ monitorText }}</p>
-
     <div class="kk-shell-body">
-      <!-- PC の左サイドバー（ログイン後のみ）。スマホではロゴ等を上の kk-mobile-head に任せ、設定だけページの下に出す -->
+      <!-- PC の左メニュー（ログイン後のみ）。上から「ロゴ｜管理画面へ」「新しく作る」「議事録の一覧」「設定｜ご意見」。
+           スマホでは左メニュー自体は出さず、ロゴ等は上の kk-mobile-head、議事録の一覧はホームに任せる -->
       <aside
         v-if="isLoggedIn"
         class="kk-side"
@@ -27,25 +25,31 @@
           @keydown.left.prevent="setSideWidth(sideWidth - 16)"
           @keydown.right.prevent="setSideWidth(sideWidth + 16)"
         />
-        <!-- 背景と右の罫線は左メニュー全体（画面の下まで伸びる）に付け、中身はスクロールしても見える位置に固定する -->
+        <!-- 背景と右の罫線は左メニュー全体（画面の下まで伸びる）に付け、中身はスクロールしても見える位置に固定する。
+             議事録の一覧だけが中でスクロールする -->
         <div class="kk-side-inner">
-          <NuxtLink to="/" class="kk-logo">
-            <span class="kk-logo-mark" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M6 4h9l3 3v13H6z" /><path d="M9 11h6M9 15h6M9 7h3" /></svg>
-            </span>
-            {{ serviceName }}
-          </NuxtLink>
+          <div class="kk-side-head">
+            <NuxtLink to="/" class="kk-logo">
+              <span class="kk-logo-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M6 4h9l3 3v13H6z" /><path d="M9 11h6M9 15h6M9 7h3" /></svg>
+              </span>
+              {{ serviceName }}
+            </NuxtLink>
+            <!-- 管理画面との行き来（管理者だけ）。いる画面に合わせて「管理画面へ」「通常画面へ」を入れ替える -->
+            <NuxtLink v-if="isAdmin" :to="adminSwitch.to" class="kk-side-admin">{{ adminSwitch.label }}</NuxtLink>
+          </div>
 
-          <nav class="kk-side-nav">
-            <NuxtLink to="/" class="kk-side-link" :class="{ 'is-active': route.path === '/' }">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" /></svg>
-              ホーム
-            </NuxtLink>
-            <NuxtLink v-if="isAdmin" to="/admin" class="kk-side-link" :class="{ 'is-active': route.path.startsWith('/admin') }">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" /><path d="M9 12l2 2 4-4" /></svg>
-              管理画面
-            </NuxtLink>
-            <!-- 設定。押すと、下に設定の中身（タグ・今月のAI利用量・お支払い・ドライブなど）が開く -->
+          <button type="button" class="kk-side-new" @click="startNew">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            新しく作る
+          </button>
+
+          <div class="kk-side-list">
+            <SideRecordList />
+          </div>
+
+          <!-- 一番下: 設定（押すと上にポップアップで開く）と、右端にご意見 -->
+          <div class="kk-side-foot">
             <button
               type="button"
               class="kk-side-link"
@@ -57,31 +61,29 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path :d="GEAR_PATH" /></svg>
               設定
             </button>
-          </nav>
+            <FeedbackButton service="キキガキ" />
+          </div>
 
           <!-- 設定の中身。閉じていても読み込みは動かす（管理者か・今月の利用量・お休み中かをここで /api/me から入れて、
                ほかの画面も見ているため）ので、v-if ではなく v-show で隠す。
-               スマホでは、右上の「設定」ボタンから開く、画面の上から出るシートになる
-               （ヘッダーの高さやお知らせの帯に左右されないよう、画面の最上部に固定する。kk-set-backdrop は外側のタップで閉じる用） -->
+               PCは左下の「設定」から上に開くポップアップ、スマホは右上の「設定」から画面の上に出るシート。
+               利用規約などのリンクも、この中の一番下に置く（ログイン後は画面の下に並べない）。
+               kk-set-backdrop は外側を押して閉じる用 -->
           <div v-if="settingsOpen" class="kk-set-backdrop" aria-hidden="true" @click="settingsOpen = false" />
-          <div v-show="settingsOpen" id="kk-side-settings" class="kk-set-sheet">
+          <div v-show="settingsOpen" id="kk-side-settings" class="kk-set-sheet" role="dialog" aria-label="設定">
             <div class="kk-set-sheet-head">
               <span>設定</span>
               <button type="button" class="kk-set-sheet-close" aria-label="設定を閉じる" @click="settingsOpen = false">✕</button>
             </div>
-            <SettingsPanel class="kk-side-settings" />
+            <SettingsPanel />
+            <nav class="kk-set-legal">
+              <NuxtLink to="/terms">利用規約</NuxtLink>
+              <NuxtLink to="/privacy">プライバシーポリシー</NuxtLink>
+              <NuxtLink to="/legal">特定商取引法に基づく表記</NuxtLink>
+            </nav>
           </div>
-
-          <nav class="kk-side-legal">
-            <NuxtLink to="/terms">利用規約</NuxtLink>
-            <NuxtLink to="/privacy">プライバシーポリシー</NuxtLink>
-            <NuxtLink to="/legal">特定商取引法に基づく表記</NuxtLink>
-          </nav>
         </div>
       </aside>
-
-      <!-- 左メニュー表示中（PC・ログイン後）は上の帯が無いので、画面右上に固定で置く -->
-      <div v-if="isLoggedIn" class="kk-fb-fixed"><FeedbackButton service="キキガキ" /></div>
 
       <div class="kk-shell-main">
         <header class="kk-mobile-head">
@@ -93,19 +95,9 @@
             <span class="kk-note font-normal hidden sm:inline">会議の文章から議事録を</span>
           </NuxtLink>
           <div class="kk-fb-head"><FeedbackButton service="キキガキ" /></div>
-          <!-- スマホでは左メニューが出ないので、管理画面との行き来はこの帯の右端のボタンで行う（管理者だけ）。
-               管理画面にいるときは「議事録」（一覧へ戻る）、それ以外では「管理画面」に入れ替える -->
-          <template v-if="isAdmin">
-            <NuxtLink v-if="route.path.startsWith('/admin')" to="/" class="kk-head-admin">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l3 3v13H6z" /><path d="M9 11h6M9 15h6" /></svg>
-              議事録
-            </NuxtLink>
-            <NuxtLink v-else to="/admin" class="kk-head-admin">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" /><path d="M9 12l2 2 4-4" /></svg>
-              管理画面
-            </NuxtLink>
-          </template>
-          <!-- 設定（スマホは右上。PCは左メニューの「設定」） -->
+          <!-- スマホでは左メニューが出ないので、管理画面との行き来はこの帯のボタンで行う（管理者だけ） -->
+          <NuxtLink v-if="isAdmin" :to="adminSwitch.to" class="kk-head-admin">{{ adminSwitch.label }}</NuxtLink>
+          <!-- 設定（スマホは右上。PCは左メニューの左下の「設定」） -->
           <button
             v-if="isLoggedIn"
             type="button"
@@ -130,11 +122,11 @@
         >
           <slot />
         </main>
-
       </div>
     </div>
 
-    <footer class="kk-foot">
+    <!-- 利用規約などは、ログイン前だけ画面の下に並べる（ログイン後は設定の中） -->
+    <footer v-if="!isLoggedIn" class="kk-foot">
       <nav class="flex flex-wrap justify-center gap-x-4 gap-y-1">
         <NuxtLink to="/terms" class="kk-note underline">利用規約</NuxtLink>
         <NuxtLink to="/privacy" class="kk-note underline">プライバシーポリシー</NuxtLink>
@@ -145,14 +137,8 @@
 </template>
 
 <script setup lang="ts">
-import { SERVICE, monitorNotice } from '~/config/service'
-import { parseMonitorMode } from '~/utils/entitlement'
+import { SERVICE } from '~/config/service'
 
-const config = useRuntimeConfig().public
-// 環境変数は文字列で来るので "false" を取りこぼさないようにする
-// （NUXT_PUBLIC_MONITOR_MODE=false で有料モードに切り替わる）
-const monitorMode = computed(() => parseMonitorMode(config.monitorMode))
-const monitorText = monitorNotice()
 const serviceName = SERVICE.name
 const { isLoggedIn } = useAuth()
 // 管理者かどうかは SettingsPanel が /api/me から入れる（表示だけ。守りはサーバー側）
@@ -160,6 +146,27 @@ const isAdmin = useState<boolean>('kk-is-admin', () => false)
 const route = useRoute()
 // 設定の中身を開いているか（SettingsPanel も、お知らせを出すときに開くため同じ値を見る）
 const settingsOpen = useState<boolean>('kk-settings-open', () => false)
+// 設定の中のリンク（利用規約など）で別の画面へ移ったら閉じる
+watch(() => route.path, () => {
+  settingsOpen.value = false
+})
+
+/** 管理画面との切り替え（管理者だけに出す） */
+const adminSwitch = computed(() =>
+  route.path.startsWith('/admin') ? { to: '/', label: '通常画面へ' } : { to: '/admin', label: '管理画面へ' }
+)
+
+// 「新しく作る」: ホームへ移って、文章を入れるシートを開く。
+// 承認待ち・今月の利用量を使い切った人は、ホームの案内を見せるだけにする（押してもAIを呼ばない）
+const router = useRouter()
+const textSheetOpen = useState<boolean>('kk-text-sheet-open', () => false)
+const pendingApproval = useState<boolean>('kk-pending-approval', () => false)
+const usageExhausted = useState<boolean>('kk-usage-exhausted', () => false)
+async function startNew() {
+  // 確認画面で「保存できていない変更があります」を断ったときは移らないので、シートも開かない
+  if (route.path !== '/' && (await router.push('/'))) return
+  if (!pendingApproval.value && !usageExhausted.value) textSheetOpen.value = true
+}
 /** 歯車アイコンの輪郭（左メニューと、スマホの右上のボタンで同じ絵を使う） */
 const GEAR_PATH =
   'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'
@@ -205,16 +212,6 @@ const wide = computed(() => route.meta.wide === true)
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-}
-.kk-topband {
-  margin: 0;
-  padding: 0.35rem 1rem;
-  text-align: center;
-  font-size: 12.5px;
-  line-height: 1.6;
-  background: var(--kk-accent-soft);
-  color: var(--kk-accent-strong);
-  border-bottom: 1px solid #c5dbf5;
 }
 /* スマホは縦積み（本文 → 設定）、PCは横並び（左メニュー｜本文） */
 .kk-shell-body {
@@ -307,10 +304,29 @@ const wide = computed(() => route.meta.wide === true)
   inset: 0;
   z-index: 40;
 }
-.kk-side .kk-logo,
-.kk-side .kk-side-nav,
-.kk-side .kk-side-legal {
+.kk-side .kk-side-head,
+.kk-side .kk-side-new,
+.kk-side .kk-side-list,
+.kk-side .kk-side-foot {
   display: none;
+}
+/* 設定の一番下の利用規約など */
+.kk-set-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.9rem;
+  margin-top: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--kk-line);
+}
+.kk-set-legal a {
+  font-size: 11.5px;
+  color: var(--kk-ink-faint);
+  text-decoration: none;
+}
+.kk-set-legal a:hover {
+  color: var(--kk-ink-soft);
+  text-decoration: underline;
 }
 .kk-mobile-head {
   padding: 0.6rem 0.9rem;
@@ -323,18 +339,6 @@ const wide = computed(() => route.meta.wide === true)
 }
 .kk-fb-head {
   margin-left: auto;
-}
-.kk-fb-fixed {
-  display: none;
-}
-@media (min-width: 1024px) {
-  .kk-fb-fixed {
-    display: block;
-    position: fixed;
-    top: 12px;
-    right: 16px;
-    z-index: 30;
-  }
 }
 .kk-head-admin {
   display: inline-flex;
@@ -395,45 +399,39 @@ const wide = computed(() => route.meta.wide === true)
        本文が長いときは max-height で画面の高さに抑える（min-height にすると max-height に勝ってしまう） */
     height: 100%;
     max-height: 100dvh;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 0.9rem;
-    padding: 0.9rem 0.7rem 0.8rem;
+    gap: 0.6rem;
+    padding: 0.9rem 0.7rem 0.6rem;
   }
   .kk-shell--wide .kk-side-inner {
     max-height: 100%;
   }
-  .kk-side .kk-logo {
-    display: inline-flex;
-    padding: 0 0.5rem;
-  }
-  .kk-side .kk-side-nav,
-  .kk-side .kk-side-legal {
+  .kk-side .kk-side-head,
+  .kk-side .kk-side-foot {
     display: flex;
   }
+  .kk-side .kk-side-new {
+    display: flex;
+  }
+  /* 議事録の一覧は残りの高さを使い、中だけスクロールする */
+  .kk-side .kk-side-list {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+  /* 設定は左下の「設定」の上に開くポップアップ */
   .kk-side .kk-set-sheet {
-    position: static;
-    max-height: none;
-    overflow-y: visible;
-    padding: 0;
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
+    top: auto;
+    left: 10px;
+    right: auto;
+    bottom: 54px;
+    width: 360px;
+    max-height: calc(100dvh - 72px);
+    border: 1px solid var(--kk-line-strong);
+    border-radius: 12px;
   }
-  .kk-set-sheet-head {
-    display: none;
-  }
-  .kk-side .kk-side-settings {
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--kk-line);
-  }
-  .kk-set-backdrop {
-    display: none;
-  }
-  .kk-shell--side .kk-mobile-head,
-  .kk-shell--side .kk-foot {
+  .kk-shell--side .kk-mobile-head {
     display: none;
   }
   .kk-shell--side .kk-main {
@@ -485,9 +483,64 @@ const wide = computed(() => route.meta.wide === true)
   }
 }
 
-.kk-side-nav {
-  flex-direction: column;
-  gap: 2px;
+.kk-side-head {
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0 0.2rem 0 0.5rem;
+}
+.kk-side-admin {
+  flex: none;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.55rem;
+  border: 1px solid var(--kk-line-strong);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--kk-ink-soft);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.kk-side-admin:hover {
+  border-color: var(--kk-accent);
+  color: var(--kk-accent-strong);
+}
+.kk-side-new {
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--kk-cta);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kk-side-new:hover {
+  background: var(--kk-cta-strong);
+}
+.kk-side-new svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+.kk-side-foot {
+  align-items: center;
+  gap: 0.3rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--kk-line);
+}
+.kk-side-foot .kk-side-link {
+  flex: 1;
+  width: auto;
 }
 .kk-side-link {
   display: flex;
@@ -521,20 +574,5 @@ const wide = computed(() => route.meta.wide === true)
   background: var(--kk-accent-soft);
   color: var(--kk-accent-strong);
   font-weight: 700;
-}
-.kk-side-legal {
-  margin-top: auto;
-  flex-direction: column;
-  gap: 0.15rem;
-  padding: 0 0.6rem;
-}
-.kk-side-legal a {
-  font-size: 11px;
-  color: var(--kk-ink-faint);
-  text-decoration: none;
-}
-.kk-side-legal a:hover {
-  color: var(--kk-ink-soft);
-  text-decoration: underline;
 }
 </style>

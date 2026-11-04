@@ -34,7 +34,7 @@ export const SECTIONS: Section[] = [
       { path: 'https://manabi.insightlens.jp', icon: '✅', name: 'マナビー', desc: 'テーマを書くとAIが選択式の問題をつくる学びのドリル。URLで送れば同じ問題を解いてもらえる。みんなの問題や、授業用のA4問題集（PDF）も。', tags: ['ログイン不要', '共有リンク', '別ドメイン'] },
       { path: '/miyako', icon: '🏝️', name: '宮古島市議会 議事録', desc: '最新の定例会でよく議論された言葉をワードクラウドで。全体像・年別・議員別・キーワード検索とAI解説も。' },
       { path: '/ai-manager', icon: '🤖', name: 'AI管理', desc: 'AIを呼んでいる場所ごとに、モデル・オプション・プロンプトがいつどう変わってきたかを履歴で見る。', tags: ['要ログイン'] },
-      { path: '/palette', icon: '🎨', name: 'palette', desc: 'FLUX に自分の LoRA を載せて画像を生成。日本語で書くと英語プロンプトに変換。画像→画像、記事からインスタ用の読み上げ動画づくりにも対応。', tags: ['要ログイン'] },
+      { path: '/palette', icon: '🎨', name: 'palette', desc: 'FLUX に自分の LoRA を載せて画像を生成。日本語で書くと英語プロンプトに変換。画像→画像、テキストからインスタ用の読み上げ動画づくりにも対応。', tags: ['要ログイン'] },
       { path: '/games/panel-de-pon', icon: '🎴', name: 'パネルでポン', desc: 'SFC版パネルでポンをブラウザで。パネルを入れ替えて3つ以上並べて消す。' },
       { path: '/games/kendo2', icon: '🥋', name: '剣道 三本勝負', desc: '親子対戦もCOM対戦もできる剣道ゲーム。' },
       { path: 'https://genogram.insightlens.jp', icon: '🧬', name: 'ジェノグラム', desc: '家族構成をAIに伝えると、家系図(ジェノグラム)と感情関係図をその場に描画する。', tags: ['別ドメイン'] },

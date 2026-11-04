@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseSortKey, parseSortOrder, sortRecords } from './sortRecords'
+import { groupByMonth, parseSortKey, parseSortOrder, sortRecords } from './sortRecords'
 
 const rows = [
   { id: 'a', date: '2026-10-01', createdAt: '2026-10-10 09:00:00' },
@@ -45,5 +45,25 @@ describe('parseSortOrder', () => {
     expect(parseSortOrder('asc')).toBe('asc')
     expect(parseSortOrder('desc')).toBe('desc')
     expect(parseSortOrder(undefined)).toBe('desc')
+  })
+})
+
+describe('groupByMonth', () => {
+  const r = (id: string, date: string, createdAt = '2026-11-01 00:00:00') => ({ id, date, createdAt })
+
+  it('会議の日の新しい順に、月ごとにまとめる。日付が無いものは先頭の「日付なし」', () => {
+    const groups = groupByMonth([
+      r('a', '2026-10-09'),
+      r('b', ''),
+      r('c', '2026-11-03'),
+      r('d', '2026-10-20'),
+      r('e', '2025-12-01'),
+    ])
+    expect(groups.map((g) => g.label)).toEqual(['日付なし', '2026年11月', '2026年10月', '2025年12月'])
+    expect(groups.map((g) => g.items.map((x) => x.id))).toEqual([['b'], ['c'], ['d', 'a'], ['e']])
+  })
+
+  it('空なら見出しも出さない', () => {
+    expect(groupByMonth([])).toEqual([])
   })
 })

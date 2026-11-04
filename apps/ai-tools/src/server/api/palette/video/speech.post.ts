@@ -7,7 +7,7 @@ import { PALETTE_VIDEO_LIMITS } from '~/types/palette'
 // videoId があれば D1（palette_video_audio）に保存して { id } を返す。無ければ声の試聴用に mp3 をそのまま返す（保存しない）。
 const MODEL = 'gpt-4o-mini-tts'
 const INSTRUCTIONS = '日本語のナレーションです。落ち着いた、聞き取りやすい自然な速さで、短い動画の語りとして読み上げてください。'
-const SAMPLE = 'こんにちは。この声で、記事を読み上げます。'
+const SAMPLE = 'こんにちは。この声で、文章を読み上げます。'
 
 function toBase64(bytes: Uint8Array): string {
   let bin = ''
