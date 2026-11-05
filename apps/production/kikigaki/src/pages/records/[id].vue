@@ -154,7 +154,7 @@
       </section>
 
       <!-- 欄の並びは版と種類で決まる（columns）。今の版の話し合いは、左に 名前・概要・決まったこと・やること、右に 話し合ったこと。
-           今の版の聞き取りはPDFと同じ1列（名前・概要・話の内容・やること） -->
+           今の版の聞き取りはPDFと同じ1列（名前・概要・やること・話の内容） -->
       <div class="kk-review-grid" :class="{ 'is-single': columns.length === 1 }">
         <div v-for="(col, ci) in columns" :key="ci" class="kk-review-col">
           <template v-for="key in col" :key="key">
@@ -597,13 +597,13 @@ type ColKey = 'meta' | 'summary' | 'decisions' | 'discussions' | 'keyMessages' |
 /**
  * 左右の列に並べる欄の順。PDFの並べ方とそろえる（utils/printLines.ts）。
  *  - 今の版（layout 3）の話し合い: 左に 名前・概要・決まったこと・やること、右に 話し合ったこと（結論を先に）
- *  - 今の版（layout 3）の聞き取り: PDFがA4縦の1列なので、画面も1列で 名前・概要・話の内容・やること
+ *  - 今の版（layout 3）の聞き取り: PDFがA4縦の1列なので、画面も1列で 名前・概要・やること・話の内容（やることを概要の下に置くのは話し合いとそろえるため）
  *  - 古い版: これまでの並べ方のまま（左に 概要と話の中身、右に 決まったこと・やること など）
  */
 const columns = computed<ColKey[][]>(() => {
   const talk = minutes.mode === 'talk'
   if (isCurrentLayout(minutes)) {
-    if (talk) return [['meta', 'summary', 'topics', 'tasks']]
+    if (talk) return [['meta', 'summary', 'tasks', 'topics']]
     return [['meta', 'summary', 'decisions', 'tasks'], ['topics']]
   }
   if (talk) return [['meta', 'summary', 'topics'], hasTasksSection(minutes) ? ['keyMessages', 'tasks'] : ['keyMessages']]

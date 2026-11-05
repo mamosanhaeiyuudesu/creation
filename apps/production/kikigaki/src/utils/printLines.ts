@@ -84,7 +84,7 @@ function taskLinesOf(m: Minutes): PrintLine[] {
 /**
  * 今の版（layout 3）のブロック。
  *  - 話し合い: 左＝名前・日・参加者、概要、決まったこと、やること。右＝話し合ったこと（結論を先に読めるように）
- *  - 聞き取り: 1列（left だけ）。名前・日・話し手、概要、話の内容（見出し＝要点の一文、その下に中身の段落）、やること
+ *  - 聞き取り: 1列（left だけ）。名前・日・話し手、概要、やること、話の内容（見出し＝要点の一文、その下に中身の段落）。やることを概要の下に置くのは話し合いとそろえるため
  */
 function buildCurrentBlocks(m: Minutes): { left: PrintBlock[]; right: PrintBlock[] } {
   const L = (key: Parameters<typeof minutesLabel>[0]) => minutesLabel(key, m.mode)
@@ -104,7 +104,7 @@ function buildCurrentBlocks(m: Minutes): { left: PrintBlock[]; right: PrintBlock
           ]),
         ]
       : []
-    return { left: [...head, ...topics, ...sectionIfAny(L('taskCandidates'), taskLinesOf(m))], right: [] }
+    return { left: [...head, ...sectionIfAny(L('taskCandidates'), taskLinesOf(m)), ...topics], right: [] }
   }
   return {
     left: [

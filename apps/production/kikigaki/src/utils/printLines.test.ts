@@ -43,6 +43,15 @@ describe('buildPrintBlocks（今の版）', () => {
     expect(left.filter((b) => b.type === 'topicPara')).toHaveLength(2)
   })
 
+  it('聞き取り: やることは概要のすぐ下（話し合いとそろえる）', () => {
+    const m = emptyMinutes()
+    m.mode = 'talk'
+    m.summary = '担い手の話'
+    m.taskCandidates = [{ assignee: '田中さん', task: '次回の準備', due: '', dueDate: '' }]
+    m.topics = [{ content: '担い手は地元で育てる', note: '中身' }]
+    expect(headings(buildPrintBlocks(m).left)).toEqual(['概要', 'やること', '話の内容'])
+  })
+
   it('PDFの形: 今の版は 話し合い＝1枚に収める横、聞き取り＝縦。古い版は横', () => {
     expect(printKind({ mode: 'meeting', layout: 3 })).toBe('fit')
     expect(printKind({ mode: 'talk', layout: 3 })).toBe('portrait')
