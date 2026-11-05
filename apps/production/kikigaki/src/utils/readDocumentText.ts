@@ -1,14 +1,16 @@
 import { unzipSync, strFromU8 } from 'fflate'
+import { readPdfText } from '~/utils/readPdfText'
 
 /**
  * 文章ファイルから文字を取り出す（ブラウザ内で完結。ファイルはここでは送信しない）。
  * 対応: テキスト系（.txt .md .csv .json .srt .vtt .html .rtf など、拡張子を問わず文字のファイルならそのまま）
  *       Word（.docx）／PowerPoint（.pptx）／Excel（.xlsx）／OpenDocument（.odt .odp .ods）
- * 非対応: PDF・旧形式の Word（.doc）など。専用のエラーで知らせる。
+ *       PDF（文字のデータが入っているものだけ。readPdfText.ts）
+ * 非対応: 画像だけの PDF・旧形式の Word（.doc）など。専用のエラーで知らせる。
  */
 
 export const DOCUMENT_ACCEPT =
-  '.txt,.md,.markdown,.csv,.tsv,.json,.log,.srt,.vtt,.html,.htm,.xml,.rtf,.docx,.pptx,.xlsx,.odt,.odp,.ods,text/*'
+  '.txt,.md,.markdown,.csv,.tsv,.json,.log,.srt,.vtt,.html,.htm,.xml,.rtf,.docx,.pptx,.xlsx,.odt,.odp,.ods,.pdf,application/pdf,text/*'
 
 export const UNREADABLE_MESSAGE =
   'このファイルは読み込めませんでした。Word（.docx）やテキストファイルをお試しいただくか、テキストを貼り付けてください。'
@@ -110,12 +112,15 @@ export async function readDocumentText(file: File): Promise<string> {
     }
   }
 
-  // PDF（%PDF）や旧 Word などの中身が文字でないファイルは、文字化けした議事録になる前に止める
+  // PDF は拡張子ではなく中身（%PDF）で見分ける（拡張子の無いPDFも読めるように）
   const head = bytes.subarray(0, 8)
-  const isZip = head[0] === 0x50 && head[1] === 0x4b
   const isPdf = head[0] === 0x25 && head[1] === 0x50 && head[2] === 0x44 && head[3] === 0x46
+  if (isPdf) return readPdfText(bytes)
+
+  // 旧 Word などの中身が文字でないファイルは、文字化けした議事録になる前に止める
+  const isZip = head[0] === 0x50 && head[1] === 0x4b
   const isOle = head[0] === 0xd0 && head[1] === 0xcf // .doc .xls .ppt
-  if (isZip || isPdf || isOle) throw new Error(UNREADABLE_MESSAGE)
+  if (isZip || isOle) throw new Error(UNREADABLE_MESSAGE)
 
   const text = decodeBytes(bytes)
   // 制御文字だらけ（画像など）は読めないファイルとして扱う

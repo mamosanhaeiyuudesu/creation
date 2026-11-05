@@ -22,7 +22,7 @@
         class="block w-full text-[14px] file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[13px] file:font-bold file:bg-[var(--kk-accent-soft)] file:text-[var(--kk-accent-strong)] file:cursor-pointer"
         @change="onPickText"
       >
-      <p class="kk-note mt-2">テキスト・Word（.docx）・Markdown（.md）・字幕（.srt）などが使えます。PDFは未対応です。</p>
+      <p class="kk-note mt-2">テキスト・Word（.docx）・PDF・Markdown（.md）・字幕（.srt）などが使えます。スキャンや写真から作ったPDFは読めません。</p>
 
       <p class="kk-field-label mt-4">または、テキストを貼り付ける</p>
       <textarea
