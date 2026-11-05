@@ -4,7 +4,7 @@
 export type AiManagerApp = 'ai-tools' | 'kikigaki' | 'manabi' | 'genogram' | 'other'
 
 /** 画面に出すツール。並び順もこのとおり（scripts/ai-manager/build.mjs の TARGETS と同じ） */
-export const AI_MANAGER_TOOLS = ['kikigaki', 'manabi', 'nikki', 'miyako', 'genogram'] as const
+export const AI_MANAGER_TOOLS = ['kikigaki', 'manabi', 'nikki', 'miyako', 'genogram', 'palette'] as const
 export type AiManagerTool = (typeof AI_MANAGER_TOOLS)[number]
 
 export const AI_MANAGER_TOOL_LABELS: Record<AiManagerTool, string> = {
@@ -13,6 +13,7 @@ export const AI_MANAGER_TOOL_LABELS: Record<AiManagerTool, string> = {
   nikki: '日記',
   miyako: 'miyako',
   genogram: 'ジェノグラム',
+  palette: 'palette',
 }
 
 export type AiManagerChangeType = 'new' | 'model' | 'options' | 'prompt' | 'moved' | 'forked' | 'removed'

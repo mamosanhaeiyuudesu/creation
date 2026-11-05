@@ -68,6 +68,32 @@ export function countTranscriptChars(text: string): number {
   return n
 }
 
+/** 聞き取り記録の全体の分量の上限（2時間の話でおおよそA4縦3枚） */
+export const TALK_MAX_CHARS = 6000
+/** 短い話でも、話の要点が残るようにする下限 */
+const TALK_MIN_CHARS = 500
+/** ここまでは元のテキストの2割にする（約1時間の話で4000字） */
+const TALK_STEEP_UNTIL_CHARS = 20_000
+/** 話題1個あたりの字数の目安（2000字で5個、4000字で10個、6000字で15個） */
+const TALK_CHARS_PER_TOPIC = 400
+
+/**
+ * 聞き取り記録の目標の字数（100字単位）。約1時間（20,000字）までは元のテキストの2割、
+ * そこから先はゆるやかに増やし、上限の50,000字（約2時間）で6000字にする
+ * （2026-11-05〜。それまでは「2〜4ページ、増減してよい」だけで、3〜4ページに伸びがちだった）
+ */
+export function talkTargetChars(transcriptChars: number): number {
+  const steep = Math.min(transcriptChars, TALK_STEEP_UNTIL_CHARS) * 0.2
+  const gentle = Math.max(0, transcriptChars - TALK_STEEP_UNTIL_CHARS) / 15
+  const target = Math.round((steep + gentle) / 100) * 100
+  return Math.min(TALK_MAX_CHARS, Math.max(TALK_MIN_CHARS, target))
+}
+
+/** 聞き取り記録の話題の数の上限。目標の字数から決める（字数が多ければ話題も多くてよい） */
+export function talkMaxTopics(targetChars: number): number {
+  return Math.ceil(targetChars / TALK_CHARS_PER_TOPIC)
+}
+
 /** 「50,000文字まで／今は62,345文字で12,345文字オーバー」の形の案内。超えていないときは空 */
 export function transcriptOverMessage(length: number): string {
   if (length <= MAX_TRANSCRIPT_CHARS) return ''

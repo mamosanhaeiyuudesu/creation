@@ -49,6 +49,7 @@ const TARGETS = [
   { id: 'nikki', match: (p) => /^apps\/ai-tools\/src\/.*\bnikki/.test(p) },
   { id: 'miyako', match: (p) => /^apps\/ai-tools\/src\/.*\bmiyako/.test(p) },
   { id: 'genogram', match: (p) => p.startsWith('apps/genogram/src/') },
+  { id: 'palette', match: (p) => /^apps\/ai-tools\/src\/.*\bpalette/.test(p) },
 ]
 const targetOf = (p) => TARGETS.find((t) => t.match(p))?.id ?? null
 

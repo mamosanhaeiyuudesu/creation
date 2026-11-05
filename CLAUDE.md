@@ -100,6 +100,13 @@ ai-tools の各ツールと、genogram・kaito・sakubun・shimano-papa・shugor
 - 各ホームページは `pages/index.vue` の useHead に og:image を**絶対URL**で書く（相対URLだとSNSが読めない。hareruya が以前そうなっていた）。
 - prototyper・data-vis・kaito2・hareruya・キキガキ・まなびは、それぞれ自前の画像を使っている（このスクリプトの対象外）。
 
+### AI のプロンプトを変えたら AI管理も更新する
+
+`/ai-manager` の対象ツール（キキガキ本番版・まなび・日記・miyako・ジェノグラム・palette）で、AI を呼ぶ箇所を足したとき、
+またはプロンプト・モデル・オプションを変えたときは、スキル `ai-manager-update` で AI管理のデータを更新する。
+データは git の履歴から作るので、**コミットしたあとに流す**（未コミットの変更は載らない）。
+まだコミットしていないときは、コミット後に更新が要ることを伝える。
+
 ### ⚠️ dev 起動中に build を実行しないこと
 
 `yarn dev` が動いている間に `yarn build` を走らせると Nuxt が壊れ、**以降ファイルを編集するたびに**

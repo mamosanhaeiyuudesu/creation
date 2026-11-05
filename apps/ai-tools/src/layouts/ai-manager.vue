@@ -269,6 +269,7 @@ const activeTab = computed(() => (route.path !== '/ai-manager' ? null : route.qu
 .am-root .am-app[data-tool='nikki'] { background: #fef3c7; color: #92400e; }
 .am-root .am-app[data-tool='miyako'] { background: #cffafe; color: #155e75; }
 .am-root .am-app[data-tool='genogram'] { background: #fce7f3; color: #9d174d; }
+.am-root .am-app[data-tool='palette'] { background: #ede9fe; color: #5b21b6; }
 
 /* ── 詳細の歴史 ── */
 .am-root .am-dot { left: -23px; }

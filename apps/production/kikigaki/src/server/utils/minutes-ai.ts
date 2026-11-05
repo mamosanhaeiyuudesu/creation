@@ -11,9 +11,11 @@ import { callClaudeText, parseJsonLoose } from '~/server/utils/anthropic'
 import { minutesLabel } from '~/config/minutesLabels'
 import { normalizeMinutes } from '~/server/utils/minutes'
 import { jstToday } from '~/utils/formatDate'
+import { countTranscriptChars, talkMaxTopics, talkTargetChars } from '~/types/minutes'
 import type { Minutes, MinutesLayout, MinutesMode } from '~/types/minutes'
 
-const MAX_TOKENS = 8000
+// 聞き取りの目標は最大6000字。少し書きすぎても途中で切れて作成に失敗しないよう、余裕を持たせる
+const MAX_TOKENS = 12000
 
 /**
  * 構造化のシステムプロンプト（話し合い。layout 3）。
@@ -95,7 +97,8 @@ ${MEETING_JSON_SHAPE}
  * やることは、話の中で出たときだけ拾う。次回の日程も「やること」に入れる。
  * カウンセリングも対象なので、AIの評価・診断・助言を足さないことを創作の禁止と同じ重さで書いている。
  */
-function buildTalkSystemPrompt(today: string): string {
+function buildTalkSystemPrompt(today: string, transcriptChars: number): string {
+  const target = talkTargetChars(transcriptChars)
   const L = (key: Parameters<typeof minutesLabel>[0]) => minutesLabel(key, 'talk')
   return `あなたは、主に1人の人が話した内容の記録を構造化するアシスタントです。
 講演会・インタビュー・カウンセリング・面談・語りなど、1人の話し手の話が中心の記録が対象です。
@@ -115,21 +118,22 @@ function buildTalkSystemPrompt(today: string): string {
 【何を記録するか】
 - 話し合ったことや決まったことではなく、話し手が伝えたかったことと、その話の中身を残すこと。
 - 聞き手の質問や相づちは、話の流れが分かる程度にとどめ、要点として扱わないこと。
-- 具体的なエピソード・例え・数字は、話し手の伝えたいことを支える大事な中身なので、削らずに残すこと。
+- 具体的なエピソード・例え・数字は、話し手の伝えたいことを支えるものを選んで残すこと。
 
 【分量】
-- 短く要約するより、あとで話の全体をしっかり振り返れることを優先すること。
-- A4縦で2〜4ページ（全角・半角を問わず4000〜8000文字程度）が目安だが、話の量に応じて増減してよい。
+- 元のテキストは全角・半角を問わず${transcriptChars}文字である。記録全体（概要・${L('topics')}・${L('taskCandidates')}の合計）は、全角・半角を問わず${target}文字程度に収めること。
+- この字数は超えないこと。元のテキストより長くしないこと。
+- 字数に収めるために、同じ内容の繰り返しや、要点を支えていない細部を省くこと。元のテキストにない言葉で薄めないこと。
 
 【概要(summary)の書き方】
 - どんな話だったのかが分かる短い文章にすること。見出しは立てないこと。
 - 全角・半角を問わず300文字以内に収めること。
 
 【構造化のルール】
-- topics（${L('topics')}）は、話した順に話題ごとに区切る。
+- topics（${L('topics')}）は、話した順に話題ごとに区切る。${talkMaxTopics(target)}個まで分けてよいが、無理に増やさないこと。
   content には、その話題で話し手が伝えたかった要点を一文で書く。見出しとして読むだけで要点が分かるようにし、
   「〇〇について」「〇〇の話」のような話題の名前にはしないこと（例:「担い手は外から呼ぶより、地元で育てる」）。
-  note には、その話題で話した中身（エピソード・例え・数字・理由・話し手の言葉）を、削らずに書く。
+  note には、その話題で話した中身（エピソード・例え・数字・理由・話し手の言葉）を、全体の字数に収まるように書く。
   長くなるときは、段落ごとに改行で区切ってよい。
   話し手が繰り返し語ったこと・強調したことは、必ずどこかの content に入れること。
 - task_candidates（${L('taskCandidates')}）は、話の中で誰かが「やる」「やってみる」「次までにやってくる」と**自分から言った**こと、
@@ -159,8 +163,8 @@ ${TALK_JSON_SHAPE}
   人間が優先的に確認するために使うので、無いと言い切れる場合を除き省略しないこと。`
 }
 
-function buildSystemPrompt(mode: MinutesMode, today: string): string {
-  return mode === 'talk' ? buildTalkSystemPrompt(today) : buildMeetingSystemPrompt(today)
+function buildSystemPrompt(mode: MinutesMode, today: string, transcriptChars: number): string {
+  return mode === 'talk' ? buildTalkSystemPrompt(today, transcriptChars) : buildMeetingSystemPrompt(today)
 }
 
 /**
@@ -365,7 +369,7 @@ export async function structureTranscript(
 ): Promise<Minutes> {
   const lead = mode === 'talk' ? '以下は話の文字起こし全文です。' : '以下は会議の文字起こし全文です。'
   const raw = await callClaudeText(event, {
-    system: buildSystemPrompt(mode, jstToday()),
+    system: buildSystemPrompt(mode, jstToday(), countTranscriptChars(transcript)),
     messages: [{ role: 'user', content: `${lead}\n\n${transcript}` }],
     maxTokens: MAX_TOKENS,
   })

@@ -205,6 +205,84 @@
   },
   "calls": []
  },
+ "0dd64849cb8c150f939d136a9644a57efe7ea097": {
+  "version": 1,
+  "model": "claude-code",
+  "path": "apps/ai-tools/src/server/api/palette/translate.post.ts",
+  "calls": [
+   {
+    "name": "handler",
+    "provider": "anthropic",
+    "kind": "text",
+    "via": "callClaudeText",
+    "feature": "日本語の説明をFLUX向けの英語に変換",
+    "line": 38,
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "500"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 34,
+      "endLine": 36
+     }
+    ]
+   }
+  ]
+ },
+ "0e9393e3be10ed3ba7a9323ef3ca59eda44c9b19": {
+  "version": 1,
+  "model": "claude-code",
+  "path": "apps/ai-tools/src/server/api/palette/translate.post.ts",
+  "calls": [
+   {
+    "name": "handler",
+    "provider": "anthropic",
+    "kind": "text",
+    "via": "callClaudeText",
+    "feature": "日本語の説明をFLUX向けの英語に変換",
+    "line": 37,
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "500"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 33,
+      "endLine": 35
+     }
+    ]
+   }
+  ]
+ },
  "0fb51f339f695a8296bc51e5ff37033c3e896b6d": {
   "version": 1,
   "model": "claude-sonnet-5-5",
@@ -559,6 +637,82 @@
    }
   ]
  },
+ "2116a25b93b373d856d9a64ee9206e726c7840c8": {
+  "version": 1,
+  "model": "claude-code",
+  "path": "apps/ai-tools/src/server/utils/nikki-ai.ts",
+  "calls": [
+   {
+    "name": "extractNikkiTopics",
+    "feature": "日記テキストから重要トピックを抽出",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 71,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 73,
+      "endLine": 73
+     }
+    ]
+   },
+   {
+    "name": "generateNikkiReview",
+    "feature": "直近の日記から3観点の振り返りを生成",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 149,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2000"
+     }
+    ],
+    "system": [
+     {
+      "ref": "DEFAULT_REVIEW_PROMPT",
+      "startLine": null,
+      "endLine": null
+     },
+     {
+      "ref": "REVIEW_OUTPUT_RULE",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 151,
+      "endLine": 151
+     }
+    ]
+   }
+  ]
+ },
  "22fc4a5fea0c8c685b94c4ad793b94a366710d8e": {
   "version": 1,
   "model": "claude-sonnet-5-5",
@@ -684,6 +838,43 @@
    "speed": "standard"
   },
   "calls": []
+ },
+ "282f20cf657920ab5b020907ddfadacfb232f243": {
+  "version": 1,
+  "model": "claude-code",
+  "path": "apps/ai-tools/src/server/api/palette/video/speech.post.ts",
+  "calls": [
+   {
+    "name": "handler",
+    "provider": "openai",
+    "kind": "tts",
+    "via": null,
+    "feature": "シーンの読み上げ音声を作る",
+    "line": 38,
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "voice",
+      "value": "voice"
+     },
+     {
+      "key": "response_format",
+      "value": "'mp3'"
+     }
+    ],
+    "system": [
+     {
+      "ref": "INSTRUCTIONS",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": []
+   }
+  ]
  },
  "2b31ce6dc6d30558f3a452374be28c719070544d": {
   "version": 1,
@@ -1927,6 +2118,39 @@
    }
   ]
  },
+ "5cf43cb2ad4fecb0652ed92b4be5e94763a7d474": {
+  "version": 1,
+  "model": "claude-code",
+  "path": "apps/ai-tools/src/server/api/palette/suggest.post.ts",
+  "calls": [
+   {
+    "name": "handler",
+    "provider": "anthropic",
+    "kind": "text",
+    "via": "callClaudeText",
+    "feature": "描きたい絵を具体化した3案を提案",
+    "line": 32,
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "1200"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": []
+   }
+  ]
+ },
  "5f4bffa7f1a55ae44bf96922a00b79fa66dedd8c": {
   "version": 1,
   "model": "claude-sonnet-5-5",
@@ -2705,6 +2929,82 @@
    }
   ]
  },
+ "6e5552798b50aea6ba0135c9732632866811de2c": {
+  "version": 1,
+  "model": "claude-code",
+  "path": "apps/production/kikigaki/src/server/utils/minutes-ai.ts",
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こしを議事録の構造に変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 355,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 354,
+      "endLine": 354
+     },
+     {
+      "ref": null,
+      "startLine": 357,
+      "endLine": 357
+     }
+    ]
+   },
+   {
+    "name": "reviseMinutes",
+    "feature": "指示に沿って議事録を書き換える",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 378,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildReviseSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 383,
+      "endLine": 383
+     }
+    ]
+   }
+  ]
+ },
  "70391c6f64dc5980eb7f64f7b8aa8c6ec711af3c": {
   "version": 1,
   "model": "claude-sonnet-5-5",
@@ -2759,6 +3059,45 @@
      }
     ],
     "user": []
+   }
+  ]
+ },
+ "74797d3f548646cdd262d3d60198ffd4bd8d3c52": {
+  "version": 1,
+  "model": "claude-code",
+  "path": "apps/ai-tools/src/server/api/palette/video/plan.post.ts",
+  "calls": [
+   {
+    "name": "handler",
+    "provider": "anthropic",
+    "kind": "text",
+    "via": "callClaudeText",
+    "feature": "文章をリール動画のシーンに分ける",
+    "line": 55,
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "6000"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 54,
+      "endLine": 54
+     }
+    ]
    }
   ]
  },
@@ -2974,6 +3313,82 @@
    "speed": "standard"
   },
   "calls": []
+ },
+ "8db233d6653629b168d62ee17a90d9579ec957fe": {
+  "version": 1,
+  "model": "claude-code",
+  "path": "apps/production/kikigaki/src/server/utils/minutes-ai.ts",
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こしを議事録の構造に変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 367,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 366,
+      "endLine": 366
+     },
+     {
+      "ref": null,
+      "startLine": 369,
+      "endLine": 369
+     }
+    ]
+   },
+   {
+    "name": "reviseMinutes",
+    "feature": "指示に沿って議事録を書き換える",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 390,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildReviseSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 395,
+      "endLine": 395
+     }
+    ]
+   }
+  ]
  },
  "8fcf0e386cd394d28e58071208fb8ee1cb056736": {
   "version": 1,
@@ -3674,6 +4089,45 @@
   },
   "calls": []
  },
+ "abee5d688427ce9f9ea95e528aec09e84ca5bb8e": {
+  "version": 1,
+  "model": "claude-code",
+  "path": "apps/ai-tools/src/server/api/palette/video/plan.post.ts",
+  "calls": [
+   {
+    "name": "handler",
+    "provider": "anthropic",
+    "kind": "text",
+    "via": "callClaudeText",
+    "feature": "文章をリール動画のシーンに分ける",
+    "line": 55,
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "6000"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 54,
+      "endLine": 54
+     }
+    ]
+   }
+  ]
+ },
  "af4bfc86ca09d143b55c4da9cc61340cba2d2e20": {
   "version": 1,
   "model": "claude-sonnet-5-5",
@@ -3718,6 +4172,82 @@
       "ref": null,
       "startLine": 55,
       "endLine": 59
+     }
+    ]
+   }
+  ]
+ },
+ "b140709b049ec2d17dc3e98d3f00f2867912a086": {
+  "version": 1,
+  "model": "claude-code",
+  "path": "apps/ai-tools/src/server/utils/nikki-ai.ts",
+  "calls": [
+   {
+    "name": "extractNikkiTopics",
+    "feature": "日記テキストから重要トピックを抽出",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 71,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 73,
+      "endLine": 73
+     }
+    ]
+   },
+   {
+    "name": "generateNikkiReview",
+    "feature": "直近の日記から3観点の振り返りを生成",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 149,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "2500"
+     }
+    ],
+    "system": [
+     {
+      "ref": "DEFAULT_REVIEW_PROMPT",
+      "startLine": null,
+      "endLine": null
+     },
+     {
+      "ref": "REVIEW_OUTPUT_RULE",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 151,
+      "endLine": 151
      }
     ]
    }
@@ -3866,6 +4396,39 @@
       "endLine": 45
      }
     ]
+   }
+  ]
+ },
+ "c10343357438ad7187de88a735a65226ff7e6189": {
+  "version": 1,
+  "model": "claude-code",
+  "path": "apps/ai-tools/src/server/api/palette/suggest.post.ts",
+  "calls": [
+   {
+    "name": "handler",
+    "provider": "anthropic",
+    "kind": "text",
+    "via": "callClaudeText",
+    "feature": "描きたい絵を具体化した3案を提案",
+    "line": 33,
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "1200"
+     }
+    ],
+    "system": [
+     {
+      "ref": "SYSTEM",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": []
    }
   ]
  },
@@ -4165,6 +4728,82 @@
       "ref": null,
       "startLine": 20,
       "endLine": 30
+     }
+    ]
+   }
+  ]
+ },
+ "cf1bde6eac942078e3d361c65ca7f7f27d4d1945": {
+  "version": 1,
+  "model": "claude-code",
+  "path": "apps/production/kikigaki/src/server/utils/minutes-ai.ts",
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こしを議事録の構造に変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 367,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 366,
+      "endLine": 366
+     },
+     {
+      "ref": null,
+      "startLine": 369,
+      "endLine": 369
+     }
+    ]
+   },
+   {
+    "name": "reviseMinutes",
+    "feature": "指示に沿って議事録を書き換える",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 390,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildReviseSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 395,
+      "endLine": 395
      }
     ]
    }
@@ -5005,6 +5644,43 @@
       "endLine": 391
      }
     ]
+   }
+  ]
+ },
+ "edfcf93abcd96c4e8c0d088e3441e38094ed345f": {
+  "version": 1,
+  "model": "claude-code",
+  "path": "apps/ai-tools/src/server/api/palette/video/speech.post.ts",
+  "calls": [
+   {
+    "name": "handler",
+    "provider": "openai",
+    "kind": "tts",
+    "via": null,
+    "feature": "シーンの読み上げ音声を作る",
+    "line": 38,
+    "model": {
+     "literal": null,
+     "ref": "MODEL"
+    },
+    "options": [
+     {
+      "key": "voice",
+      "value": "voice"
+     },
+     {
+      "key": "response_format",
+      "value": "'mp3'"
+     }
+    ],
+    "system": [
+     {
+      "ref": "INSTRUCTIONS",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": []
    }
   ]
  },

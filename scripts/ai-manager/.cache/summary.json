@@ -1,4 +1,11 @@
 {
+ "043deab88699bb569c33f237447482c2514ebcca": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/api/palette/video/plan.post.ts#handler",
+  "commit": "e71b71b375535c02cfcfaec380c2e0209dee6fdd",
+  "summary": "入力の呼び方を「記事」から「文章」に変更（プロンプト全体とユーザーメッセージの見出し）。シーン分けの決まりなど指示の中身は同じ。"
+ },
  "0801a2341321298d9dd4f923f2d48eaadbfd0814": {
   "version": 2,
   "model": "claude-code",
@@ -27,6 +34,13 @@
   "commit": "65c3c3452d6c7353d53c48be85af429b1867f2dc",
   "summary": "モデルを Sonnet 5 から Sonnet 5.5 に変更。"
  },
+ "114730bf147f0baf6296ad7504230e9e04befbe0": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/api/palette/suggest.post.ts#handler",
+  "commit": "4ab4f5fcdffa2566b77c089a38931ed363ecbbfd",
+  "summary": "人物が登場するとき、国籍・人種の指定がなければ日本人として描写する指示を追加（指定があるときや人間以外には付けない）。"
+ },
  "1232ffd83e159b0bc6ffedf39562db0d07781e9d": {
   "version": 2,
   "model": "claude-code",
@@ -40,6 +54,20 @@
   "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
   "commit": "ffc53e798670cc0bd7c2d72a20f1187eddd542b4",
   "summary": "話し合いの「決まっていないこと」の項目をやめ、結論が出なかった話題や持ち越しは、「話し合ったこと」の各話題の末尾に書く指示に変更。決定かどうか迷うものは「決まったこと」に入れない指示も追加。"
+ },
+ "1a8e650c47a6954e31a3102585a8a8f82ad3ce21": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/api/palette/translate.post.ts#handler",
+  "commit": "4ab4f5fcdffa2566b77c089a38931ed363ecbbfd",
+  "summary": "人物の扱いの例外を追加。国籍・人種の指定がなければ日本人として扱い、英語の人物名詞の前に Japanese を付ける（指定があるときや人間以外には付けない）。"
+ },
+ "1ade269d8ec3b9aa5ba2cbb2a7eb649ea57c5ff6": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#reviseMinutes",
+  "commit": "e91fd3483ec50c88e3dd0e5dc0b100b7935573ca",
+  "summary": "不明点の扱いを追加（指示で解消したものは取り除き、それ以外は文言を変えず残し、新しくは足さない）。概要の決まりを新しい並びでは見出しなし・300字以内、古い並びでは従来の章立て・1000字以内と切り替える形に変更。"
  },
  "1b226bec5d9d161e6f9750e32b38cc3ebd039526": {
   "version": 2,
@@ -96,6 +124,13 @@
   "site": "apps/ai-tools/src/server/api/miyako/keyword.post.ts#handler",
   "commit": "f6b398b35c00093f9b0187d9884a473511b9589b",
   "summary": "2つの言葉の関係を扱う形を追加。「AとBが関連してどう議論されてきたか」を5つの時期で解説させ、共通点・交わるところ・影響し合いに注目させる。2つが直接絡まない時期は正直に書いてよいとした。"
+ },
+ "3fdc46020aff26b169662de7685b8bbd811d0a18": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/nikki-ai.ts#generateNikkiReview",
+  "commit": "bf0ab845b83fe0072e759be29d0bb7552c6ee32e",
+  "summary": "まとめを300字程度→200字程度に短縮し、最大出力を2500→2000に。出来事を日ごとに並べず日付も書かない指示を追加し、複数の日を束ねて本質・意味・傾向を分析する書き方に変更。"
  },
  "44519fd7bc7d79b2ea26c784a3f100a86ed3ea45": {
   "version": 2,
@@ -187,6 +222,13 @@
   "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
   "commit": "03a4bad69ab23e8fdc4454dfe1e4a6bfcc3f5b05",
   "summary": "聞き取りの「印象に残った言葉」を取りやめ、代わりに「やること」を追加（本人が自分から「やる」と言ったことや、はっきり決まった宿題だけを拾い、助言や願望は入れない）。期限の日付の確定も追加。"
+ },
+ "733dd82de3ec761cebe113c11ec50eadbc4dcf52": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "21c5848a4c0b2078a6d106d7a250cad39c9d1432",
+  "summary": "指示の中の項目名（話し合ったこと・やること など）を、画面やPDFと同じ名前の表から取る形に変更。出来上がる文面は同じで、指示の中身の変更はなし。"
  },
  "735cc8aa41ae5129b30c3f80127ec22a33ca232f": {
   "version": 2,
@@ -342,6 +384,13 @@
   "commit": "1be6047de0efb6334ea0f743cc893a4e416d4f5e",
   "summary": "対象を「地域の会議・活動」から、社内会議・商談などあらゆる会議に広げた。概要は【背景】【話し合いの流れ】【結論・まとめ】のような見出しで章立てし、1000字以内にまとめる決まりを追加。"
  },
+ "be8f458e6eec2aa231b67e5185e64d8e463661b5": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/ai-tools/src/server/utils/nikki-ai.ts#generateNikkiReview",
+  "commit": "8a00652691846c1489f0f762a89e58d048c14a00",
+  "summary": "振り返りの範囲を直近1ヶ月→直近2週間に変更。決まった3項目（楽しさ・苦手分野・自分軸）をやめ、実際に起きた「前に進んだこと」から別々のテーマで3つ選ぶ形に。まとめを50字程度→300字程度に増やし、最大出力を1500→2500に。"
+ },
  "c6aee8a12793b9f0a098dcc956c6641bfbf8fd90": {
   "version": 2,
   "model": "claude-code",
@@ -383,6 +432,13 @@
   "site": "apps/genogram/src/server/api/interpret.post.ts#handler",
   "commit": "923879be5c610b3368c8749bf792de77df32c49a",
   "summary": "maxTokens を 4000 → 16000 に増やし、thinking を adaptive（考えてから答える）に変更。"
+ },
+ "decc15cbeeb5d79d7a2ec294bff7f1d24bb2ecd7": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "e91fd3483ec50c88e3dd0e5dc0b100b7935573ca",
+  "summary": "話し合いはA4横1枚に収めるため全体2000字程度・脱線は落とす指示を追加。概要は両方とも章立てをやめ、1000字→300字以内に。聞き取りは「伝えたかったこと」の欄をなくし、話の内容の見出しを要点の一文にして、中身は削らず4000〜8000字程度を目安に。"
  },
  "fb27ceb013ee2caf84314351b5fcd5a945ff3ff7": {
   "version": 2,

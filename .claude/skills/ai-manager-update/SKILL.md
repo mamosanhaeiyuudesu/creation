@@ -5,7 +5,7 @@ description: ai-tools の /ai-manager（AI管理）のデータを最新のコ�
 
 # ai-manager の更新
 
-`/ai-manager` は、5つのツール（キキガキ本番版・まなび・日記・miyako・ジェノグラム。この順に並べる）で AI を呼んでいる場所ごとに、
+`/ai-manager` は、6つのツール（キキガキ本番版・まなび・日記・miyako・ジェノグラム・palette。この順に並べる）で AI を呼んでいる場所ごとに、
 モデル・オプション・プロンプトの変遷を git の履歴から見せる画面。データは
 `apps/ai-tools/src/server/data/ai-manager.json` で、`scripts/ai-manager/build.mjs` が作る。
 
@@ -25,7 +25,7 @@ description: ai-tools の /ai-manager（AI管理）のデータを最新のコ�
 3. もう一度 1 を流すと、抜き出した版の**要約**（`pending.summary`）が出てくる。各件の `diff` を読み、
    下の「要約の決まり」に従って `pending.summary[].cache` のパス（`.cache/inbox/summary-<鍵>.json`）に書く:
    ```json
-   { "version": 1, "model": "claude-code", "site": "<site>", "commit": "<commit>", "summary": "<一文>" }
+   { "version": 2, "model": "claude-code", "site": "<site>", "commit": "<commit>", "summary": "<一文>" }
    ```
    `diff` を読んで中身が変わっていない（抜き出しの書き方が揺れただけ）と分かったら、要約を書かずに
    抜き出しのほうを前の版にそろえて直し、1 からやり直す。
