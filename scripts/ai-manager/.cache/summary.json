@@ -34,6 +34,13 @@
   "commit": "65c3c3452d6c7353d53c48be85af429b1867f2dc",
   "summary": "モデルを Sonnet 5 から Sonnet 5.5 に変更。"
  },
+ "0faf2346066d5ecbf354202a2aed70825797f8ea": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#structureTranscript",
+  "commit": "f95ae55b5030ebf6a2a77a942e71afc3d176d0e6",
+  "summary": "聞き取りの分量を「A4縦2〜4ページで削らずに残す」から、元の文章の長さに応じた目標字数に収める指示へ変更し、超えない・元より長くしない・繰り返しや細部を省くことを追加。話題の数に上限を設け、エピソードは要点を支えるものを選ぶ形に。最大出力を 8000→12000 に。"
+ },
  "114730bf147f0baf6296ad7504230e9e04befbe0": {
   "version": 2,
   "model": "claude-code",
@@ -103,6 +110,13 @@
   "site": "apps/ai-tools/src/server/utils/nikki-ai.ts#extractNikkiTopics",
   "commit": "e74c41d9e1e85047af189ea2452415a51113e196",
   "summary": "モデルを Sonnet 5 から Sonnet 5.5 に変更。"
+ },
+ "298182fee9fb04c7d99f4cd4dc8d5e83ae65ac9a": {
+  "version": 2,
+  "model": "claude-code",
+  "site": "apps/production/kikigaki/src/server/utils/minutes-ai.ts#reviseMinutes",
+  "commit": "f95ae55b5030ebf6a2a77a942e71afc3d176d0e6",
+  "summary": "最大出力を 8000→12000 に（プロンプトは同じ）。"
  },
  "2e4372e7184786316bc3790c9c6b86383b3a349f": {
   "version": 2,

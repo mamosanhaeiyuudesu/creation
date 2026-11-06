@@ -2151,6 +2151,82 @@
    }
   ]
  },
+ "5dc723d497c3d36a612fa4301ab19939a71ac85c": {
+  "version": 1,
+  "model": "claude-code",
+  "path": "apps/production/kikigaki/src/server/utils/minutes-ai.ts",
+  "calls": [
+   {
+    "name": "structureTranscript",
+    "feature": "文字起こしを議事録の構造に変換",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 371,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 370,
+      "endLine": 370
+     },
+     {
+      "ref": null,
+      "startLine": 373,
+      "endLine": 373
+     }
+    ]
+   },
+   {
+    "name": "reviseMinutes",
+    "feature": "指示に沿って議事録を書き換える",
+    "provider": "anthropic",
+    "kind": "text",
+    "line": 394,
+    "via": "callClaudeText",
+    "model": {
+     "literal": null,
+     "ref": "DEFAULT_MODEL"
+    },
+    "options": [
+     {
+      "key": "maxTokens",
+      "value": "MAX_TOKENS"
+     }
+    ],
+    "system": [
+     {
+      "ref": "buildReviseSystemPrompt",
+      "startLine": null,
+      "endLine": null
+     }
+    ],
+    "user": [
+     {
+      "ref": null,
+      "startLine": 399,
+      "endLine": 399
+     }
+    ]
+   }
+  ]
+ },
  "5f4bffa7f1a55ae44bf96922a00b79fa66dedd8c": {
   "version": 1,
   "model": "claude-sonnet-5-5",
