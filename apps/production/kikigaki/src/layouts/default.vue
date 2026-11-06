@@ -139,6 +139,8 @@
             isLoggedIn && route.meta.center !== true ? 'lg:mx-0' : '',
           ]"
         >
+          <!-- スマホでは左メニューが無いので、裏で作っている議事録はここ（画面の上）に出す -->
+          <MinuteJobsStatus v-if="isLoggedIn" class="lg:hidden" />
           <slot />
         </main>
       </div>
@@ -183,6 +185,9 @@ const textSheetOpen = useState<boolean>('kk-text-sheet-open', () => false)
 const pendingApproval = useState<boolean>('kk-pending-approval', () => false)
 const usageExhausted = useState<boolean>('kk-usage-exhausted', () => false)
 const { records, loaded: recordsLoaded } = useRecordList()
+
+// 議事録を作る仕事の見張り（できたら開く・スマホで戻ってきたらすぐ見直す）。ここで1つだけ持つ
+useMinuteJobs().init()
 
 // キキガキを開いて最初の画面か（ホームは、開いた直後だけ最新の議事録へ移る。ロゴで戻ってきたときは移らない）
 const landed = useState<boolean>('kk-landed', () => false)

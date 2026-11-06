@@ -56,7 +56,7 @@ async function cancelSubscriptionIfAny(event: H3Event, userId: string): Promise<
 }
 
 /** 本人のデータの表（user_id で持っているもの）。users の行は別に消す */
-const USER_TABLES = ['records', 'record_tags', 'user_settings', 'user_grants', 'user_approvals', 'ai_usage_monthly', 'subscriptions']
+const USER_TABLES = ['records', 'record_tags', 'minute_jobs', 'user_settings', 'user_grants', 'user_approvals', 'ai_usage_monthly', 'subscriptions']
 
 /**
  * 本人のデータをすべて消す。extra には同じまとまり（batch）で流したい文（管理画面の操作の記録など）を渡す。

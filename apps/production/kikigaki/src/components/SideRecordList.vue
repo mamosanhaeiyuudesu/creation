@@ -18,6 +18,7 @@
     </div>
 
     <div ref="scroller" class="kk-sl-scroll">
+      <MinuteJobsStatus side />
       <p v-if="loading && !records.length" class="kk-sl-empty">読み込んでいます…</p>
       <p v-else-if="!records.length" class="kk-sl-empty">まだ議事録はありません。</p>
       <section v-for="g in groups" :key="g.key" class="kk-sl-group">

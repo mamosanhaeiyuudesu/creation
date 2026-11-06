@@ -64,6 +64,20 @@ export async function ensureTables(db: any): Promise<void> {
       tags TEXT NOT NULL DEFAULT ''
     )`,
     `CREATE INDEX IF NOT EXISTS idx_record_tags_user ON record_tags (user_id)`,
+    `CREATE TABLE IF NOT EXISTS minute_jobs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      mode TEXT NOT NULL DEFAULT 'meeting',
+      payload TEXT NOT NULL DEFAULT '',
+      record_id TEXT NOT NULL DEFAULT '',
+      error TEXT NOT NULL DEFAULT '',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      seen INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_minute_jobs_user ON minute_jobs (user_id, created_at DESC)`,
     `CREATE TABLE IF NOT EXISTS subscriptions (
       user_id TEXT PRIMARY KEY,
       stripe_customer_id TEXT NOT NULL DEFAULT '',

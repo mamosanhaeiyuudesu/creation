@@ -50,6 +50,26 @@ CREATE TABLE IF NOT EXISTS records (
 
 CREATE INDEX IF NOT EXISTS idx_records_user ON records (user_id, created_at DESC);
 
+-- 議事録を作る仕事（2026-11-06 追加）。作るボタンで1行でき、AIの処理はキュー（kikigaki-minutes）が裏で行う。
+-- ブラウザを閉じても・スマホで別のアプリに移っても作り続け、次に開いた画面がこの表を見てできた議事録を開く。
+-- status: pending（待ち）→ running（AIに頼んでいる）→ done（record_id にできた議事録）／ failed（error に理由）
+-- payload は元の文章など（暗号化したJSON）。終わったら空にする。seen=1 は画面に知らせ終えたもの
+CREATE TABLE IF NOT EXISTS minute_jobs (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  mode TEXT NOT NULL DEFAULT 'meeting',
+  payload TEXT NOT NULL DEFAULT '',
+  record_id TEXT NOT NULL DEFAULT '',
+  error TEXT NOT NULL DEFAULT '',
+  attempts INTEGER NOT NULL DEFAULT 0,
+  seen INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_minute_jobs_user ON minute_jobs (user_id, created_at DESC);
+
 -- 議事録のタグ（一覧の表示と絞り込み用）。議事録本体の minutes にも同じものが入っているが、
 -- 一覧のたびに minutes 全体を復号しなくて済むよう、ここに短く持つ。tags は暗号化した JSON 配列。
 -- records に列を足す（ALTER）と本番で一度しか流せず扱いにくいので、表を分けた（2026-10-17）。

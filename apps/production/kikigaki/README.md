@@ -23,7 +23,11 @@
 ```
 テキストのファイル(.txt .docx .pdf など)をえらぶ／テキストを貼り付ける
   （文字の取り出しはブラウザ内。PDFは文字のデータが入っているものだけ。画像だけのPDFは断る。src/utils/readPdfText.ts）
-  → POST /api/minutes      Claude が構造化して D1 に保存（暗号化）
+  → POST /api/minutes      仕事（minute_jobs）を作ってキュー kikigaki-minutes に入れ、すぐ返す
+  → キューの受け手          Claude が構造化して D1 に保存（暗号化）。server/utils/minuteJobs.ts
+  → 画面が GET /api/minutes/jobs で様子を見て、できたら開く
+    （ブラウザを閉じても・スマホで別のアプリに移っても作り続け、開き直したらできた議事録を開く。
+      ローカルの nuxt dev ではキューが動かないので、その場で裏で作る）
   → /records/[id] で確認・修正（「AIで直す」もここ）
   → PDF（ブラウザで生成してダウンロード。サーバーにPDFは置かない）
 
@@ -125,6 +129,14 @@ wrangler d1 create kikigaki-db
 # 出力された database_id を wrangler.toml に書く
 wrangler d1 execute kikigaki-db --remote --file src/server/db/001_init.sql
 ```
+
+### 2-2. キュー（議事録を裏で作る。2026-11-06〜）
+
+```bash
+wrangler queues create kikigaki-minutes
+```
+
+minute_jobs の表は、無ければ最初の作成時に `ensureTables` が作る（手でSQLを流さなくてよい）。
 
 ### 3. Stripe
 

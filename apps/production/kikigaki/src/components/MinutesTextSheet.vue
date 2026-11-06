@@ -2,7 +2,7 @@
   <BottomSheet
     :model-value="modelValue"
     title="テキストから議事録を作る"
-    :closable="stage === 'idle'"
+    :closable="stage !== 'sending'"
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <p v-if="errorMessage" class="kk-notice kk-notice--error mb-5">{{ errorMessage }}</p>
@@ -73,7 +73,11 @@
       <div class="py-6 text-center">
         <span class="inline-block w-8 h-8 rounded-full border-[3px] border-[var(--kk-accent)] border-t-transparent animate-spin" />
         <p class="kk-h2 mt-4">{{ recordName(mode) }}を作成中です…</p>
-        <p class="kk-lead mt-3">この画面を閉じずにお待ちください。</p>
+        <!-- 作る処理はサーバーの裏で続くので、閉じても・ブラウザを閉じても・別のアプリに移ってもよい -->
+        <p v-if="stage === 'sending'" class="kk-lead mt-3">送っています。少しお待ちください。</p>
+        <p v-else class="kk-lead mt-3">
+          この画面を閉じても、作成は続きます。<br>できあがったら自動で開きます。
+        </p>
       </div>
     </template>
   </BottomSheet>
@@ -88,10 +92,11 @@ import { MAX_TRANSCRIPT_CHARS, MINUTES_MODES, countTranscriptChars, transcriptOv
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
 
-const { createMinutes } = useCreateMinutes()
+const { start: startJob, watching, jobs, dismiss } = useMinuteJobs()
 const { prefill } = useTextSheet()
 
-type Stage = 'idle' | 'structuring'
+/** sending＝ファイルを読んで送っているところ（まだ閉じられない）、waiting＝サーバーの裏で作っている */
+type Stage = 'idle' | 'sending' | 'waiting'
 const stage = ref<Stage>('idle')
 const errorMessage = ref('')
 const pastedText = ref('')
@@ -124,6 +129,8 @@ function clearTextFile() {
 }
 
 function reset() {
+  // 閉じても仕事は裏で続く。できたら useMinuteJobs が開き、作成中は一覧の上に出る
+  watching.value = ''
   stage.value = 'idle'
   errorMessage.value = ''
   pastedText.value = ''
@@ -147,7 +154,7 @@ async function runFromText() {
   try {
     const file = textFile.value
     // 読み込みの待ち時間が出るので、先に「まとめています」の画面に切り替えてから読む
-    stage.value = 'structuring'
+    stage.value = 'sending'
     const text = file ? (await readDocumentText(file)).trim() : pastedText.value.trim()
     if (!text) {
       throw new Error('テキストが空でした。中身のあるファイルか、貼り付けたテキストでお試しください。')
@@ -157,14 +164,24 @@ async function runFromText() {
     if (over) throw new Error(over)
     // 元の議事録から作るときは、手で直した日付とタグを引き継ぐ（ファイルに差し替えたら引き継がない）
     const carry = !file && prefill.value ? { date: prefill.value.date, tags: prefill.value.tags } : undefined
-    await createMinutes(text, file?.name ?? '', mode.value, carry)
-    // この画面はレイアウトに置いてあり、できた議事録へ移っても消えないので、自分で閉じる（閉じると reset される）
-    emit('update:modelValue', false)
+    // できたら useMinuteJobs がこの画面を閉じて、できた議事録を開く
+    watching.value = await startJob({ transcript: text, audioName: file?.name ?? '', mode: mode.value, ...carry })
+    stage.value = 'waiting'
   } catch (e) {
     errorMessage.value = apiMessage(e)
     stage.value = 'idle'
   }
 }
+
+// 待っている仕事が失敗したら、入れた文章はそのままで理由を出す（もう一度押せる）
+watch(jobs, (list) => {
+  const j = watching.value ? list.find((x) => x.id === watching.value) : undefined
+  if (j?.status !== 'failed') return
+  errorMessage.value = j.error || '議事録を作れませんでした。少し時間をおいて、もう一度お試しください。'
+  stage.value = 'idle'
+  watching.value = ''
+  dismiss(j.id)
+})
 </script>
 
 <style scoped>
