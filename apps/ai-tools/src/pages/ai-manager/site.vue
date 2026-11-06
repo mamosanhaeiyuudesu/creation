@@ -1,7 +1,7 @@
 <template>
   <div class="am-page">
     <div class="am-page-head">
-      <NuxtLink to="/ai-manager" class="am-btn-text" style="font-size: 12.5px">← 全体タイムラインへ</NuxtLink>
+      <NuxtLink to="/ai-manager" class="am-btn-text" style="font-size: 12.5px">← 一覧へ</NuxtLink>
       <template v-if="site">
         <h1 class="am-h1 mt-2 flex flex-wrap items-center gap-2">
           <span class="am-app" :data-tool="site.tool">{{ AI_MANAGER_TOOL_LABELS[site.tool] }}</span>
@@ -46,9 +46,9 @@
           <li v-if="item.appChange" class="ml-4 my-3 am-note">
             ── {{ AI_MANAGER_APP_LABELS[item.appChange.from] }} から {{ AI_MANAGER_APP_LABELS[item.appChange.to] }} へ{{ item.types.includes('forked') ? '派生' : '移動' }} ──
           </li>
-          <li :id="`v-${item.version.commit.slice(0, 12)}`" class="ml-4 mb-4 relative">
+          <li class="ml-4 mb-4 relative">
             <span class="absolute am-dot top-4 w-3 h-3 rounded-full border-2 border-white" :style="{ background: dotColor(item.types) }" />
-            <div class="am-card px-4 py-3" :style="highlight === item.version.commit.slice(0, 12) ? 'border-color: var(--am-accent); box-shadow: 0 0 0 3px var(--am-accent-soft)' : ''">
+            <div class="am-card px-4 py-3">
               <div class="flex flex-wrap items-center gap-1.5">
                 <span class="tabular-nums font-bold">{{ formatDate(item.version.date) }}</span>
                 <span v-for="t in item.types" :key="t" class="am-badge" :data-type="t">{{ AI_MANAGER_CHANGE_LABELS[t] }}</span>
@@ -102,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import AuthModal from '~/components/AuthModal.vue'
 import ProseDiffView from '~/components/ai-manager/ProseDiffView.vue'
 import {
@@ -133,7 +133,6 @@ const showAuthModal = computed(() => checked.value && !isLoggedIn.value)
 const site = ref<AiManagerSite | null>(null)
 const loading = ref(true)
 const error = ref('')
-const highlight = ref('')
 
 async function load() {
   loading.value = true
@@ -141,7 +140,6 @@ async function load() {
   try {
     site.value = await $fetch<AiManagerSite>('/api/ai-manager/site', { query: { id: String(route.query.id ?? '') } })
     useHead({ title: `${site.value.feature} | AI管理` })
-    await focusHash()
   } catch (err: any) {
     const status = err?.statusCode ?? err?.response?.status
     error.value =
@@ -155,16 +153,6 @@ async function load() {
   } finally {
     loading.value = false
   }
-}
-
-/** 全体タイムラインから来たときは、その修正の位置まで送って枠を色付けする */
-async function focusHash() {
-  const m = route.hash.match(/^#v-([0-9a-f]+)$/)
-  if (!m || !site.value) return
-  highlight.value = m[1]!
-  loading.value = false
-  await nextTick()
-  document.getElementById(`v-${m[1]}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
 }
 
 watch(isLoggedIn, (v) => {

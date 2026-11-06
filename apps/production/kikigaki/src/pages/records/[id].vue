@@ -85,7 +85,7 @@
 
       <!-- AIで修正と、AIが判断しきれなかったところ。よく使うので、押して開く窓にせず、いつも画面の上に出しておく。
            直すたびに入力欄は閉じず、続けて直せる。解消した不明点は AI が一覧から外す（× で手でも消せる） -->
-      <section class="kk-assist mt-2" :class="{ 'has-unclear': minutes.unclearPoints.length }">
+      <section class="kk-assist mt-2" :class="{ 'has-unclear': minutes.unclearPoints.length, 'is-assist-collapsed': assistCollapsed }">
         <div class="kk-card kk-assist-card">
           <!-- 左の列に見出し（戻すボタンと、右端に操作のヒント）と入力欄、右の列に実行ボタン。ヒントの右端を入力欄の右端にそろえる -->
           <div class="kk-assist-grid">
@@ -94,22 +94,35 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z" /></svg>
                 AIで修正
               </label>
-              <button v-if="undoMinutes" type="button" class="kk-assist-undo" :disabled="revising" @click="undoRevise">
+              <button v-if="undoMinutes" type="button" class="kk-assist-undo kk-assist-collapsible" :disabled="revising" @click="undoRevise">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3" /></svg>
                 直す前に戻す
               </button>
-              <span class="kk-assist-hint">Enter で送る・Shift+Enter で改行</span>
+              <span class="kk-assist-hint kk-assist-collapsible">Enter で送る・Shift+Enter で改行</span>
+              <!-- 閉じる・開くはPC版の横並び表示だけ（狭い画面では常に開いたまま。入れ替えはCSSだけで行い、
+                   開くボタン自体を消さないようにする。幅を縮めている途中でも迷子にならないように） -->
+              <button
+                type="button"
+                class="kk-assist-toggle kk-wide-only"
+                :aria-expanded="!assistCollapsed"
+                :aria-label="assistCollapsed ? 'AIで修正を開く' : 'AIで修正を閉じる'"
+                :title="assistCollapsed ? 'AIで修正を開く' : 'AIで修正を閉じる'"
+                @click="assistCollapsed = !assistCollapsed"
+              >
+                <svg v-if="assistCollapsed" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+                <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+              </button>
             </div>
             <textarea
               id="revise-input"
               ref="reviseInput"
               v-model="reviseInstruction"
               rows="2"
-              class="kk-input kk-assist-input"
+              class="kk-input kk-assist-input kk-assist-collapsible"
               placeholder="れい: 阪中さんを坂中さんに直して"
               @keydown.enter.exact="onReviseEnter"
             />
-            <button type="button" class="kk-pop-run kk-assist-run" :disabled="revising || !reviseInstruction.trim()" @click="runRevise">
+            <button type="button" class="kk-pop-run kk-assist-run kk-assist-collapsible" :disabled="revising || !reviseInstruction.trim()" @click="runRevise">
               {{ revising ? '修正中…' : '修正' }}
             </button>
           </div>
@@ -534,6 +547,9 @@ function confirmRemoveRow() {
 
 /** 画面で編集している議事録。保存・PDFともこれをもとに行う */
 const minutes = reactive<Minutes>(emptyMinutes())
+
+/** 「AIで修正」欄を帯に折りたたんでいるか（PC版だけ。覚えておかず、開くたびに毎回表示に戻る） */
+const assistCollapsed = ref(false)
 
 // ── AIが判断しきれなかったところ: ふだんは2件まで1行ずつ。開くと全部を全文で、下の欄にかぶせて出す ──
 const UNCLEAR_PREVIEW = 2
@@ -1475,6 +1491,14 @@ onUnmounted(() => {
   .kk-assist.has-unclear {
     grid-template-columns: 1fr 1fr;
   }
+  /* 「AIで修正」を帯に折りたたんだとき、横の「判断しきれなかったところ」の高さに引き伸ばされないように */
+  .kk-assist.is-assist-collapsed {
+    align-items: start;
+  }
+  /* 折りたたんでいる間は見出し以外を隠す（狭い画面では開くボタンごと出さないので、このルールも効かせない） */
+  .kk-assist.is-assist-collapsed .kk-assist-collapsible {
+    display: none;
+  }
 }
 .kk-assist-card {
   padding: 0.55rem 0.8rem 0.6rem;
@@ -1566,6 +1590,30 @@ onUnmounted(() => {
 }
 .kk-assist-undo:hover:not(:disabled) { background: var(--kk-accent-soft); }
 .kk-assist-undo:disabled { opacity: 0.45; cursor: default; }
+.kk-assist-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--kk-ink-faint);
+  cursor: pointer;
+}
+.kk-assist-toggle svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.kk-assist-toggle:hover { background: var(--kk-accent-soft); color: var(--kk-accent-strong); }
 .kk-assist-list {
   list-style: none;
   margin: 0;

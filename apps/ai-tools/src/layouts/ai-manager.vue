@@ -8,12 +8,6 @@
         </span>
         AI管理
       </NuxtLink>
-      <nav class="am-side-nav">
-        <NuxtLink v-for="n in NAV" :key="n.tab" :to="n.to" class="am-side-link" :class="{ 'is-active': activeTab === n.tab }">
-          <svg viewBox="0 0 24 24" aria-hidden="true" v-html="n.icon" />
-          {{ n.label }}
-        </NuxtLink>
-      </nav>
       <p class="am-note am-side-foot">どこで・どのモデルとプロンプトでAIを使ってきたか。git の履歴から作成。</p>
     </aside>
 
@@ -25,9 +19,6 @@
           </span>
           AI管理
         </NuxtLink>
-        <nav class="am-mobile-tabs">
-          <NuxtLink v-for="n in NAV" :key="n.tab" :to="n.to" class="am-chip" :class="{ 'is-on': activeTab === n.tab }">{{ n.label }}</NuxtLink>
-        </nav>
       </header>
       <slot />
     </div>
@@ -46,13 +37,6 @@ useHead({
   ],
 })
 
-const route = useRoute()
-const NAV = [
-  { tab: 'timeline', label: '全体タイムライン', to: '/ai-manager', icon: '<path d="M12 7v5l3 2" /><circle cx="12" cy="12" r="8" />' },
-  { tab: 'list', label: '一覧', to: '/ai-manager?tab=list', icon: '<path d="M8 6h12M8 12h12M8 18h12" /><path d="M4 6h.01M4 12h.01M4 18h.01" />' },
-] as const
-// 詳細ページ（/ai-manager/site）ではどちらも選ばない
-const activeTab = computed(() => (route.path !== '/ai-manager' ? null : route.query.tab === 'list' ? 'list' : 'timeline'))
 </script>
 
 <style>
@@ -125,7 +109,6 @@ const activeTab = computed(() => (route.path !== '/ai-manager' ? null : route.qu
   background: var(--am-panel);
   border-bottom: 1px solid var(--am-line);
 }
-.am-mobile-tabs { display: flex; gap: 0.4rem; margin-left: auto; }
 @media (min-width: 1024px) {
   .am-shell { flex-direction: row; }
   .am-side {
@@ -144,20 +127,6 @@ const activeTab = computed(() => (route.path !== '/ai-manager' ? null : route.qu
   .am-side .am-logo { padding: 0.15rem 0.5rem; }
   .am-mobile-head { display: none; }
 }
-.am-side-nav { display: flex; flex-direction: column; gap: 2px; }
-.am-side-link {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.45rem 0.6rem;
-  border-radius: 8px;
-  font-size: 13.5px;
-  color: var(--am-ink);
-  text-decoration: none;
-}
-.am-side-link svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.am-side-link:hover { background: var(--am-bg); }
-.am-side-link.is-active { background: var(--am-accent-soft); color: var(--am-accent-strong); font-weight: 700; }
 .am-side-foot { margin-top: auto; padding: 0 0.6rem; }
 
 /* ── ページの中身 ── */
@@ -187,24 +156,6 @@ const activeTab = computed(() => (route.path !== '/ai-manager' ? null : route.qu
   text-decoration: none;
 }
 .am-root .am-btn-text:hover { text-decoration: underline; }
-.am-root .am-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 0 0.85rem;
-  border: 1px solid var(--am-line-strong);
-  border-radius: 999px;
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 700;
-  background: var(--am-panel);
-  color: var(--am-ink-soft);
-  text-decoration: none;
-  cursor: pointer;
-  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
-}
-.am-root .am-chip:hover { border-color: var(--am-accent); color: var(--am-accent-strong); }
-.am-root .am-chip.is-on { background: var(--am-accent); border-color: var(--am-accent); color: #fff; }
 .am-root .am-btn {
   display: inline-flex;
   align-items: center;
@@ -274,17 +225,6 @@ const activeTab = computed(() => (route.path !== '/ai-manager' ? null : route.qu
 /* ── 詳細の歴史 ── */
 .am-root .am-dot { left: -23px; }
 .am-root .am-opt-w { max-width: 220px; }
-.am-root .am-day {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--am-bg);
-  padding: 0.3rem 0;
-  margin-bottom: 0.4rem;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--am-ink-soft);
-}
 
 /* プロンプト。コードではなく文章として読めるように、等幅にせず折り返す */
 .am-prose {
