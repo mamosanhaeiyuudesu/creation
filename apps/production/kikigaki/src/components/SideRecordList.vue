@@ -31,7 +31,7 @@
           :data-id="r.id"
         >
           <NuxtLink :to="`/records/${r.id}`" class="kk-sl-link" :title="r.title || `（名前のない${recordName(r.mode)}）`">
-            <MinutesModeBadge :mode="r.mode" icon-only />
+            <span class="kk-sl-date">{{ shortDate(r.date) }}</span>
             <span class="kk-sl-title">{{ r.title || `（名前のない${recordName(r.mode)}）` }}</span>
           </NuxtLink>
           <button
@@ -118,6 +118,12 @@ const groups = computed(() =>
 watch(tagCounts, (list) => {
   if (tag.value && !list.some((t) => t.tag === tag.value)) tag.value = ''
 })
+
+/** 会議の日を「6/21」の形に（月の見出しの下なので年は出さない）。日付が無ければ空 */
+function shortDate(date: string) {
+  const m = /^\d{4}-(\d{2})-(\d{2})/.exec(date ?? '')
+  return m ? `${Number(m[1])}/${Number(m[2])}` : ''
+}
 
 /** 開いている議事録（確認画面にいるとき） */
 const activeId = computed(() => (route.path.startsWith('/records/') ? String(route.params.id ?? '') : ''))
@@ -344,6 +350,18 @@ async function removeRecord() {
 .kk-sl-row.is-active .kk-sl-link {
   color: var(--kk-accent-strong);
   font-weight: 700;
+}
+/* 会議の日。幅をそろえて名前の頭が縦にそろうようにする */
+.kk-sl-date {
+  flex: none;
+  min-width: 2.6em;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--kk-ink-faint);
+}
+.kk-sl-row.is-active .kk-sl-date {
+  color: var(--kk-accent-strong);
+  font-weight: 400;
 }
 /* 名前は1行に収め、はみ出す分は「…」で省く */
 .kk-sl-title {
