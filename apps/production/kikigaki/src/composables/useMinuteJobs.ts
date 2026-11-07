@@ -42,6 +42,7 @@ export function useMinuteJobs() {
     mode: MinutesMode
     date?: string
     tags?: string[]
+    onePage?: boolean
   }): Promise<string> {
     const { jobId } = await authedFetch<{ jobId: string }>('/api/minutes', { method: 'POST', body })
     jobs.value = [

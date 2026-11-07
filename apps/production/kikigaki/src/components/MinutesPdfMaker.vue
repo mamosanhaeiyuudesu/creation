@@ -1,7 +1,8 @@
 <template>
   <!-- PDF専用のレイアウト。画面には出さず、html2canvas で撮ってPDFにする。
-       確認画面・一覧画面から使う。形は3つ（utils/printLines.ts の printKind）:
+       確認画面・一覧画面から使う。形は4つ（utils/printLines.ts の printKind）:
          landscape（古い版）＝A4横の左右2列、fit（今の版の話し合い）＝A4横の左右2列を1枚に収める、
+         multi（話し合いで「1枚にまとめる」を外したもの）＝A4横の左右2列で、2枚目・3枚目へ左→右の順に続ける、
          portrait（今の版の聞き取り）＝A4縦の1列。
        2つの入れ物がある:
          ① 計測用（measure）: 全ブロックを列に流して、ブロックごとの高さを測る
@@ -33,7 +34,7 @@
 <script setup lang="ts">
 import { minutesLabel, recordName } from '~/config/minutesLabels'
 import { formatDateLabel } from '~/utils/formatDate'
-import { buildPrintBlocks, findFitScale, paginateBlocks, printKind } from '~/utils/printLines'
+import { buildPrintBlocks, findFitScale, flowSlots, paginateBlocks, printKind } from '~/utils/printLines'
 import type { BlockSize, PrintBlock, PrintKind, RenderedPages } from '~/utils/printLines'
 import { emptyMinutes } from '~/types/minutes'
 import type { Minutes } from '~/types/minutes'
@@ -98,6 +99,7 @@ async function tallestColumn(s: number): Promise<number> {
 /**
  * 全ブロックを列に流して高さを測り、1枚に入る高さごとにページへ振り分ける。
  * 左右の列は別々に流す（右が長ければ、右だけが2枚目に続く）。
+ * multi は、左右を1本につなげて 1枚目の左→右→2枚目の左→右… と埋める。
  * fit は先に文字の倍率を決める（1枚に収まる大きさまで縮める。下限でも入らなければ、その大きさで2枚目へ）。
  */
 async function buildPages(m: Minutes) {
@@ -117,11 +119,19 @@ async function buildPages(m: Minutes) {
   const root = measureRoot.value
   const leftPages = paginateBlocks(measureColumn(root?.querySelector('[data-col="left"]') ?? null), limit)
   const rightPages = paginateBlocks(measureColumn(root?.querySelector('[data-col="right"]') ?? null), limit)
-  const count = Math.max(leftPages.length, rightPages.length)
-  pages.value = Array.from({ length: count }, (_, p) => ({
-    left: (leftPages[p] ?? []).map((i) => blocks.left[i]!),
-    right: (rightPages[p] ?? []).map((i) => blocks.right[i]!),
-  }))
+  if (kind.value === 'multi') {
+    // 左（概要・決まったこと・やること）は1枚目の左半分、右（話し合ったこと）はその次の半分から、左→右の順に続ける
+    pages.value = flowSlots(
+      leftPages.map((s) => s.map((i) => blocks.left[i]!)),
+      rightPages.map((s) => s.map((i) => blocks.right[i]!))
+    )
+  } else {
+    const count = Math.max(leftPages.length, rightPages.length)
+    pages.value = Array.from({ length: count }, (_, p) => ({
+      left: (leftPages[p] ?? []).map((i) => blocks.left[i]!),
+      right: (rightPages[p] ?? []).map((i) => blocks.right[i]!),
+    }))
+  }
   measure.value = null
   await nextTick()
 }

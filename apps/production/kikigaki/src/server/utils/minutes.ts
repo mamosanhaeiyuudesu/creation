@@ -7,7 +7,7 @@
 import type { H3Event } from 'h3'
 import { requireDb, ensureTables } from '~/server/utils/db'
 import { encryptText, decryptText } from '~/server/utils/encrypt'
-import { emptyMinutes, normalizeLayout, normalizeMode } from '~/types/minutes'
+import { emptyMinutes, normalizeLayout, normalizeMode, normalizeOnePage } from '~/types/minutes'
 import { normalizeTags } from '~/utils/tags'
 import type {
   EventItem,
@@ -92,6 +92,7 @@ export function normalizeMinutes(raw: any): Minutes {
   return {
     mode: normalizeMode(raw.mode),
     layout: normalizeLayout(raw.layout),
+    onePage: normalizeOnePage(raw.onePage),
     title: str(raw.title),
     date: normalizeDate(raw.date),
     participants: normalizeParticipants(raw.participants),

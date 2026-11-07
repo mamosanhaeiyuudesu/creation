@@ -26,6 +26,11 @@ export function normalizeMode(v: unknown): MinutesMode {
   return v === 'talk' ? 'talk' : 'meeting'
 }
 
+/** 会議を1枚にまとめるか。値が無い（この項目を足す前の）議事録は 1枚 */
+export function normalizeOnePage(v: unknown): boolean {
+  return v !== false
+}
+
 /** 版が無い・おかしい値は 1（古い議事録）として読む */
 export function normalizeLayout(v: unknown): MinutesLayout {
   return v === 2 || v === 3 ? v : 1
@@ -156,6 +161,12 @@ export interface Minutes {
   mode: MinutesMode
   /** 並べ方の版。新しく作る議事録は 3、版を持たない古い議事録は 1（MinutesLayout を参照） */
   layout: MinutesLayout
+  /**
+   * 会議（layout 3）をA4横1枚にまとめたか。false なら話し合ったことを聞き取りと同じ量で書き、
+   * PDFは2枚目・3枚目へ左右に続ける（決まったこと・やることは1枚目の左半分）。
+   * 聞き取りと、この項目を持つ前の議事録では true として読む（意味を持つのは layout 3 の会議だけ）
+   */
+  onePage: boolean
   title: string
   /** 会議の日付（YYYY-MM-DD）。文字起こしから分からなければ空文字 */
   date: string
@@ -213,6 +224,7 @@ export function emptyMinutes(): Minutes {
   return {
     mode: 'meeting',
     layout: 3,
+    onePage: true,
     title: '',
     date: '',
     participants: [],

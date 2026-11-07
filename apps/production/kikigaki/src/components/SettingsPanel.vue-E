@@ -1,0 +1,708 @@
+<template>
+  <!-- 設定の中身。左メニュー（スマホではページの下）の「設定」を押すと開く（開閉は layouts/default.vue）。
+       閉じていても、この部品は読み込みを続ける（管理者か・利用量・お休み中かを /api/me から入れているため）。
+       お知らせ（保存した・お支払いが終わった・エラー）が出たときは、見逃さないよう自動で開く -->
+  <div class="kk-set">
+    <p v-if="errorMessage" class="kk-notice kk-notice--error kk-msg">
+      <span>{{ errorMessage }}</span>
+      <button type="button" class="kk-msg-close" aria-label="閉じる" @click="errorMessage = ''">✕</button>
+    </p>
+    <p v-if="savedMessage" class="kk-notice kk-notice--info kk-msg">
+      <span>{{ savedMessage }}</span>
+      <button type="button" class="kk-msg-close" aria-label="閉じる" @click="savedMessage = ''">✕</button>
+    </p>
+
+    <!-- タグ。ふだんは横に並べ、押すとそのタグで一覧を絞り込む。
+         「編集」を押したときだけ、名前の変更（既にあるタグにすると1つにまとまる）と削除（全部の議事録から外す）ができる -->
+    <section v-if="!withdrawn" class="kk-set-sec">
+      <h2 class="kk-set-title">
+        タグ<span v-if="allTags.length" class="kk-set-tag-total">{{ allTags.length }}</span>
+        <button v-if="allTags.length" type="button" class="kk-set-tag-mode" @click="toggleTagEditMode">
+          {{ tagEditMode ? '完了' : '編集' }}
+        </button>
+      </h2>
+      <p v-if="!allTags.length" class="kk-set-text">まだありません。</p>
+      <ul v-else class="kk-set-tags">
+        <li v-for="t in allTags" :key="t.tag" class="kk-set-tag" :class="{ 'is-editing': editingTag === t.tag }">
+          <!-- 名前を変えている途中（その行いっぱいの幅に広げる） -->
+          <template v-if="editingTag === t.tag">
+            <input
+              ref="tagEditInput"
+              v-model="tagDraft"
+              class="kk-input kk-set-tag-input"
+              :maxlength="MAX_TAG_LENGTH"
+              aria-label="新しいタグの名前"
+              @keydown.enter="onTagEditEnter"
+              @keydown.esc="editingTag = ''"
+            >
+            <button type="button" class="kk-set-tag-ok" :disabled="tagBusy" @click="saveTagRename">保存</button>
+            <button type="button" class="kk-set-tag-icon" :disabled="tagBusy" aria-label="やめる" @click="editingTag = ''">✕</button>
+          </template>
+          <!-- 編集中: 名前を押すと名前を変える、ゴミ箱で消す（絞り込みはしない） -->
+          <span v-else-if="tagEditMode" class="kk-set-chip is-edit">
+            <button type="button" class="kk-set-chip-name" :title="`「${t.tag}」の名前を変える`" @click="startTagEdit(t.tag)">
+              #{{ t.tag }}<span class="kk-set-chip-count">{{ t.count }}</span>
+            </button>
+            <button type="button" class="kk-set-chip-del" :aria-label="`タグ「${t.tag}」を消す`" title="消す" @click="deletingTag = t.tag">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+            </button>
+          </span>
+          <!-- ふだん: 押すとそのタグで一覧を絞り込む（もう一度押すと「すべて」に戻る） -->
+          <NuxtLink
+            v-else
+            :to="tagLink(t.tag)"
+            class="kk-set-chip"
+            :class="{ 'is-on': isActiveTag(t.tag) }"
+            :aria-current="isActiveTag(t.tag) ? 'true' : undefined"
+            :title="isActiveTag(t.tag) ? '絞り込みを外す' : `「${t.tag}」で絞り込む`"
+            @click="scrollToTop"
+          >
+            #{{ t.tag }}<span class="kk-set-chip-count">{{ t.count }}</span>
+          </NuxtLink>
+        </li>
+      </ul>
+      <p v-if="editingTag && tagMergeTarget" class="kk-set-note">「{{ tagMergeTarget }}」は既にあるので、1つのタグにまとまります。</p>
+    </section>
+
+    <!-- タグの削除の確認 -->
+    <BottomSheet :model-value="!!deletingTag" title="タグを消しますか？" :closable="!tagBusy" @update:model-value="deletingTag = ''">
+      <p class="kk-lead m-0">
+        <strong>#{{ deletingTag }}</strong> を、付いている議事録（{{ allTags.find((t) => t.tag === deletingTag)?.count ?? 0 }}件）から外します。議事録そのものは消えません。
+      </p>
+      <div class="mt-4 flex flex-col gap-2">
+        <button class="kk-btn-sub" :disabled="tagBusy" @click="confirmTagDelete">{{ tagBusy ? '消しています…' : 'はい、消します' }}</button>
+        <button class="kk-btn-text" :disabled="tagBusy" @click="deletingTag = ''">やめる</button>
+      </div>
+    </BottomSheet>
+
+    <!-- 今月の利用量 -->
+    <section v-if="!withdrawn" class="kk-set-sec">
+      <h2 class="kk-set-title">
+        今月のAI利用量
+        <span v-if="usage" class="kk-set-num">{{ usage.usedPercent }}%</span>
+      </h2>
+      <p v-if="!usage" class="kk-set-text">読み込んでいます…</p>
+      <template v-else>
+        <div class="kk-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="usage.usedPercent">
+          <div class="kk-meter-fill" :class="{ 'kk-meter-fill--warn': usage.usedPercent >= 80 }" :style="{ width: usage.usedPercent + '%' }" />
+        </div>
+        <p v-if="!usage.exhausted && usage.usedPercent >= 80" class="kk-set-note">もうすぐ今月のAI利用量を使い切ります。</p>
+      </template>
+    </section>
+
+    <!-- お支払い -->
+    <section v-if="!withdrawn" class="kk-set-sec">
+      <h2 class="kk-set-title">お支払い</h2>
+
+      <template v-if="monitorMode">
+        <p class="kk-set-text">モニター期間中のため、今はお支払いの手続きは必要ありません。</p>
+      </template>
+
+      <!-- 管理者・運営者が支払い不要にした人。契約が残っていれば解約できるようポータルは出す -->
+      <template v-else-if="billing?.freeAccess">
+        <p class="kk-set-text">運営者の設定により、お支払いなしでお使いいただけます。</p>
+        <button v-if="billing.status" class="kk-set-btn" :disabled="billingBusy" @click="openPortal">
+          {{ billingBusy ? '画面を開いています…' : 'お支払い方法の変更・解約' }}
+        </button>
+      </template>
+
+      <template v-else-if="billing">
+        <!-- 引き落としに失敗している。Stripe が請求し直している間は使えるが、カードの更新をお願いする -->
+        <p v-if="billing.paymentProblem" class="kk-notice kk-notice--warn">
+          お支払いが確認できていません。カードの期限切れなどが考えられます。下のボタンからカードを更新してください。
+        </p>
+        <p class="kk-set-text" :class="{ 'mt-2': billing.paymentProblem }">
+          <template v-if="billing.status === 'trialing'">
+            無料期間中です。<template v-if="billing.currentPeriodEnd">{{ billing.currentPeriodEnd }} から{{ priceLabel }}のお支払いが始まります。</template>
+          </template>
+          <template v-else-if="billing.active">
+            ご利用中です（{{ priceLabel }}）。
+            <template v-if="billing.currentPeriodEnd && !billing.paymentProblem">次回のお支払いは {{ billing.currentPeriodEnd }} です。</template>
+          </template>
+          <template v-else-if="billing.trialEligible">
+            最初の{{ trialLabel(billing.trialDays) }}は無料です。そのあと{{ priceLabel }}で、毎月自動でお支払いになります。いつでも解約できます。
+          </template>
+          <template v-else>
+            お支払いの手続きがまだです。手続きをすると、すべての機能が使えます（{{ priceLabel }}）。
+          </template>
+        </p>
+        <p v-if="billing.active && billing.cancelAtPeriodEnd" class="kk-notice kk-notice--warn mt-2">
+          解約の手続きがされています。{{ billing.currentPeriodEnd || '期間の終わり' }}までお使いいただけます。
+        </p>
+
+        <button v-if="!billing.active" class="kk-set-btn kk-set-btn--cta" :disabled="billingBusy" @click="startCheckout">
+          {{ billingBusy ? '画面を開いています…' : billing.trialEligible ? `${trialLabel(billing.trialDays)}無料で始める` : 'お支払いの手続きをする' }}
+        </button>
+        <button
+          v-else
+          class="kk-set-btn"
+          :class="{ 'kk-set-btn--cta': billing.paymentProblem }"
+          :disabled="billingBusy"
+          @click="openPortal"
+        >
+          {{ billingBusy ? '画面を開いています…' : billing.paymentProblem ? 'カードを更新する' : 'お支払い方法の変更・解約' }}
+        </button>
+        <p class="kk-set-note">お支払いの画面は Stripe（決済の会社）のページが開きます。</p>
+      </template>
+
+      <p v-else class="kk-set-text">読み込んでいます…</p>
+    </section>
+
+    <!-- Googleドライブ。つながっているかだけ分かればよいので、説明文は置かない -->
+    <section v-if="!withdrawn" class="kk-set-sec">
+      <h2 class="kk-set-title m-0">
+        <span class="inline-flex items-center gap-1.5"><GoogleDriveIcon class="w-[14px] h-[14px]" />Googleドライブ</span>
+        <span v-if="driveConnected" class="kk-set-drive-on">
+          <span class="kk-set-state is-on">連携済み</span>
+          <button
+            type="button"
+            class="kk-set-tag-icon is-danger"
+            :disabled="driveBusy"
+            aria-label="Googleドライブとの連携を解除"
+            title="連携を解除"
+            @click="confirmingDriveOff = true"
+          >
+            <!-- 切れた鎖（連携の解除） -->
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 14.5l-1.8 1.8a3 3 0 0 1-4.2-4.2l2.6-2.6a3 3 0 0 1 4.2 0M14.5 9.5l1.8-1.8a3 3 0 0 1 4.2 4.2l-2.6 2.6a3 3 0 0 1-4.2 0M4 4l2 2M18 18l2 2M9 3v2M3 9h2M15 21v-2M21 15h-2" /></svg>
+          </button>
+        </span>
+      </h2>
+      <button v-if="!driveConnected" class="kk-set-btn kk-set-btn--accent" :disabled="driveBusy" @click="connectDrive">
+        {{ driveBusy ? '画面を開いています…' : 'Googleドライブとつなぐ' }}
+      </button>
+    </section>
+
+    <!-- ドライブの連携を解除する前の確認（アイコン1つで押せるので、押し間違えで切れないように） -->
+    <BottomSheet v-model="confirmingDriveOff" title="Googleドライブとの連携を解除しますか？" :closable="!driveBusy">
+      <p class="kk-lead m-0">議事録の画面から、ドライブにPDFを保存できなくなります。ドライブに保存済みのPDFは消えません。</p>
+      <div class="mt-4 flex flex-col gap-2">
+        <button class="kk-btn-sub" :disabled="driveBusy" @click="confirmDriveOff">
+          {{ driveBusy ? '解除しています…' : 'はい、解除します' }}
+        </button>
+        <button class="kk-btn-text" :disabled="driveBusy" @click="confirmingDriveOff = false">やめる</button>
+      </div>
+    </BottomSheet>
+
+    <!-- アカウント -->
+    <section class="kk-set-sec">
+      <h2 class="kk-set-title">ログインしている人</h2>
+      <p class="kk-set-text kk-set-email" :title="user?.email || ''">{{ user?.email || '（メールアドレスなし）' }}</p>
+      <button class="kk-set-btn" @click="doLogout">ログアウトする</button>
+      <button v-if="!withdrawn" type="button" class="kk-set-danger-link" @click="leaveOpen = true">退会する</button>
+    </section>
+
+    <!-- 退会の確認（お休み／すべて消してやめる） -->
+    <WithdrawSheet v-model="leaveOpen" @done="onLeft" />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { SERVICE } from '~/config/service'
+import { apiMessage } from '~/utils/apiMessage'
+import { parseMonitorMode } from '~/utils/entitlement'
+import type { BillingStatus } from '~/types/billing'
+import type { WithdrawnInfo } from '~/types/auth'
+import { MAX_TAG_LENGTH, normalizeTag } from '~/utils/tags'
+
+const router = useRouter()
+const route = useRoute()
+const { user, isLoggedIn, authedFetch, logout } = useAuth()
+const { withdrawn } = useWithdrawn()
+const { connected: driveConnected, refresh: refreshDrive, connect, disconnect } = useDrive()
+const driveBusy = ref(false)
+const paidFlag = useState<boolean>('kk-settings-paid', () => false)
+/** 設定の中身を開いているか（layouts/default.vue の「設定」ボタンと同じ値） */
+const settingsOpen = useState<boolean>('kk-settings-open', () => false)
+
+const config = useRuntimeConfig().public
+const monitorMode = computed(() => parseMonitorMode(config.monitorMode))
+const priceLabel = SERVICE.priceLabel
+
+const errorMessage = ref('')
+const savedMessage = ref('')
+watch([errorMessage, savedMessage], ([err, saved]) => {
+  if (err || saved) settingsOpen.value = true
+})
+const usage = ref<{ usedPercent: number; exhausted: boolean } | null>(null)
+const billing = ref<BillingStatus | null>(null)
+const billingBusy = ref(false)
+/** 左メニュー（スマホは上の帯）に「管理画面」を出すか（表示だけ。守りは /api/admin/* の入口で行う） */
+const isAdmin = useState<boolean>('kk-is-admin', () => false)
+/** 承認待ちか（トップに「準備中」の案内を出すため。止めるのはサーバー側） */
+const pendingApproval = useState<boolean>('kk-pending-approval', () => false)
+/** 今月の分を使い切ったか（トップの「議事録を作る」ボタンを止めるため。止めるのはサーバー側も同じ） */
+const usageExhausted = useState<boolean>('kk-usage-exhausted', () => false)
+
+/** 30日 → 「1か月」。それ以外は「◯日間」 */
+function trialLabel(days: number): string {
+  return days === 30 ? '1か月' : `${days}日間`
+}
+
+async function load() {
+  // 最初に /api/me を読む。お休み中の人は議事録も設定も読めない（403）ので、ここで分かれば他は呼ばない
+  try {
+    const me = await authedFetch<{
+      usage: typeof usage.value
+      isAdmin: boolean
+      pendingApproval: boolean
+      withdrawn: WithdrawnInfo | null
+    }>('/api/me')
+    withdrawn.value = me.withdrawn ?? null
+    usage.value = me.usage
+    usageExhausted.value = !!me.usage?.exhausted
+    isAdmin.value = !!me.isAdmin
+    pendingApproval.value = !!me.pendingApproval
+    if (me.withdrawn) return
+  } catch (e) {
+    errorMessage.value = apiMessage(e, '設定を読み込めませんでした。画面を開き直してみてください。')
+  }
+  loadTags().catch(() => {})
+
+  // 契約状態はモニター期間中は使わないので、そのときは呼ばない
+  if (monitorMode.value) return
+  try {
+    billing.value = await authedFetch<BillingStatus>('/api/billing/status')
+  } catch (e) {
+    errorMessage.value = apiMessage(e, 'お支払いの状態を読み込めませんでした。少し時間をおいてお試しください。')
+  }
+}
+
+/** Stripe の支払い画面へ送る（自前で決済画面は作らない） */
+async function startCheckout() {
+  errorMessage.value = ''
+  billingBusy.value = true
+  try {
+    const res = await authedFetch<{ url: string }>('/api/billing/checkout', { method: 'POST' })
+    window.location.href = res.url
+  } catch (e) {
+    errorMessage.value = apiMessage(e, 'お支払いの画面をひらけませんでした。少し時間をおいてお試しください。')
+    billingBusy.value = false
+  }
+}
+
+/** 解約・支払い方法の変更は Stripe のポータルに任せる */
+async function openPortal() {
+  errorMessage.value = ''
+  billingBusy.value = true
+  try {
+    const res = await authedFetch<{ url: string }>('/api/billing/portal', { method: 'POST' })
+    window.location.href = res.url
+  } catch (e) {
+    errorMessage.value = apiMessage(e, '手続きの画面をひらけませんでした。少し時間をおいてお試しください。')
+    billingBusy.value = false
+  }
+}
+
+async function connectDrive() {
+  errorMessage.value = ''
+  driveBusy.value = true
+  try {
+    await connect()
+    savedMessage.value = 'Googleドライブとつながりました。'
+  } catch (e) {
+    errorMessage.value = apiMessage(e)
+  }
+  driveBusy.value = false
+}
+
+const confirmingDriveOff = ref(false)
+
+async function confirmDriveOff() {
+  driveBusy.value = true
+  await disconnect()
+  driveBusy.value = false
+  confirmingDriveOff.value = false
+}
+
+// ── タグの管理 ──
+const { tags: allTags, load: loadTags, rename: renameTag, remove: removeTag } = useTags()
+const editingTag = ref('')
+const tagDraft = ref('')
+const deletingTag = ref('')
+/** 「編集」を押している間だけ、名前の変更と削除ができる */
+const tagEditMode = ref(false)
+
+function toggleTagEditMode() {
+  tagEditMode.value = !tagEditMode.value
+  if (!tagEditMode.value) editingTag.value = ''
+}
+const tagBusy = ref(false)
+const tagEditInput = ref<HTMLInputElement[] | HTMLInputElement | null>(null)
+/** 変えた先が既にあるタグなら、その名前（まとまることを知らせる） */
+const tagMergeTarget = computed(() => {
+  const to = normalizeTag(tagDraft.value)
+  return to && to !== editingTag.value && allTags.value.some((t) => t.tag === to) ? to : ''
+})
+
+/** 今、一覧をこのタグで絞り込んでいるか */
+function isActiveTag(tag: string): boolean {
+  return route.path === '/' && route.query.tag === tag
+}
+
+/** 一覧をそのタグで絞り込むリンク。絞り込み中なら外す。並び順（?sort=）は引き継ぐ */
+function tagLink(tag: string) {
+  const sort = route.path === '/' ? route.query.sort : undefined
+  return { path: '/', query: { ...(sort ? { sort } : {}), ...(isActiveTag(tag) ? {} : { tag }) } }
+}
+
+/** スマホでは左メニューがページの下にあるので、押したら一覧の先頭へ戻す */
+function scrollToTop() {
+  window.scrollTo({ top: 0 })
+}
+
+function startTagEdit(tag: string) {
+  editingTag.value = tag
+  tagDraft.value = tag
+  nextTick(() => {
+    const el = Array.isArray(tagEditInput.value) ? tagEditInput.value[0] : tagEditInput.value
+    el?.focus()
+    el?.select()
+  })
+}
+
+function onTagEditEnter(e: KeyboardEvent) {
+  if (e.isComposing || e.keyCode === 229) return
+  e.preventDefault()
+  saveTagRename()
+}
+
+async function saveTagRename() {
+  const from = editingTag.value
+  const to = normalizeTag(tagDraft.value)
+  if (!to || to === from) {
+    editingTag.value = ''
+    return
+  }
+  errorMessage.value = ''
+  savedMessage.value = ''
+  tagBusy.value = true
+  try {
+    const n = await renameTag(from, to)
+    savedMessage.value = `タグ「${from}」を「${to}」に変えました（${n}件）。`
+    editingTag.value = ''
+  } catch (e) {
+    errorMessage.value = apiMessage(e, 'タグの名前を変えられませんでした。もう一度お試しください。')
+  }
+  tagBusy.value = false
+}
+
+async function confirmTagDelete() {
+  const tag = deletingTag.value
+  errorMessage.value = ''
+  savedMessage.value = ''
+  tagBusy.value = true
+  try {
+    const n = await removeTag(tag)
+    savedMessage.value = `タグ「${tag}」を消しました（${n}件の議事録から外しました）。`
+  } catch (e) {
+    errorMessage.value = apiMessage(e, 'タグを消せませんでした。もう一度お試しください。')
+  }
+  deletingTag.value = ''
+  tagBusy.value = false
+}
+
+// ── 退会（お休み／すべて消してやめる＝削除予約） ──
+const leaveOpen = ref(false)
+async function onLeft(kind: 'rest' | 'schedule' | 'erase') {
+  // 今すぐ消したときだけ、この端末に残っている目印も消す（ドライブの連携・PDFの設定など）。
+  // お休み・削除予約は通常のログアウトと同じで、端末の設定はそのまま（取り消して戻ったときに困らない）
+  if (kind === 'erase') await disconnect()
+  isAdmin.value = false
+  pendingApproval.value = false
+  usageExhausted.value = false
+  withdrawn.value = null
+  await router.push('/')
+}
+
+async function doLogout() {
+  withdrawn.value = null
+  isAdmin.value = false
+  pendingApproval.value = false
+  usageExhausted.value = false
+  await logout()
+  await router.push('/')
+}
+
+async function refreshAll() {
+  if (!isLoggedIn.value) return
+  errorMessage.value = ''
+  refreshDrive()
+  // Stripe の支払い画面から戻ってきたとき（/settings?paid=1 → トップ）。契約状態は webhook が
+  // 届いてから反映されるので、まだ切り替わっていないことがある旨も添える
+  if (paidFlag.value) {
+    savedMessage.value = 'お支払いの手続きが終わりました。反映に少し時間がかかることがあります。'
+    paidFlag.value = false
+  }
+  await load()
+}
+
+// 常に出ている欄なので、ログインしたときと画面を移ったときに読み直す
+// （議事録を作ると使用量が変わるため。開きっぱなしで古い数字が残らないように）
+watch(isLoggedIn, refreshAll, { immediate: true })
+watch(() => route.path, refreshAll)
+</script>
+
+<style scoped>
+.kk-set {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.kk-set-sec {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--kk-line);
+  border-radius: 10px;
+  background: var(--kk-panel);
+}
+.kk-set-title {
+  margin: 0 0 0.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.kk-set-state {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  color: var(--kk-warn);
+  background: var(--kk-warn-soft);
+}
+.kk-set-state.is-on {
+  color: var(--kk-accent-strong);
+  background: var(--kk-accent-soft);
+}
+.kk-set-drive-on {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+.kk-set-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--kk-ink-soft);
+}
+.kk-set-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kk-set-num {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--kk-accent-strong);
+}
+.kk-set-note {
+  margin: 0.3rem 0 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--kk-ink-faint);
+}
+.kk-set-danger-link {
+  display: block;
+  margin: 0.5rem auto 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 11.5px;
+  color: var(--kk-ink-faint);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.kk-set-danger-link:hover {
+  color: var(--kk-danger);
+}
+.kk-set-tag-total {
+  margin-right: auto;
+  margin-left: 0.3rem;
+  font-size: 10.5px;
+  color: var(--kk-accent-strong);
+  background: var(--kk-accent-soft);
+  border-radius: 999px;
+  padding: 0 0.4rem;
+}
+.kk-set-tags {
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+.kk-set-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 0;
+  max-width: 100%;
+}
+/* 名前を変えている行だけは、打ちやすいよう幅いっぱいに広げる */
+.kk-set-tag.is-editing {
+  flex-basis: 100%;
+}
+.kk-set-tag-mode {
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--kk-accent-strong);
+  cursor: pointer;
+  padding: 0 0.2rem;
+}
+.kk-set-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  height: 24px;
+  padding: 0 0.55rem;
+  border-radius: 999px;
+  background: var(--kk-accent-soft);
+  color: var(--kk-accent-strong);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+a.kk-set-chip:hover,
+.kk-set-chip.is-on {
+  background: var(--kk-accent);
+  color: #fff;
+}
+.kk-set-chip-count {
+  font-size: 10.5px;
+  font-weight: 400;
+  opacity: 0.75;
+}
+/* 編集中のタグ: 押せる見た目（点線の枠）にして、ふだんの絞り込みと区別する */
+.kk-set-chip.is-edit {
+  padding: 0 0.15rem 0 0.55rem;
+  background: var(--kk-panel);
+  box-shadow: inset 0 0 0 1px var(--kk-line-strong);
+}
+.kk-set-chip-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.kk-set-chip-del {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--kk-ink-faint);
+  cursor: pointer;
+}
+.kk-set-chip-del:hover {
+  background: var(--kk-danger-soft);
+  color: var(--kk-danger);
+}
+.kk-set-chip-del svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.kk-set-tag-icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--kk-ink-faint);
+  font-size: 11px;
+  cursor: pointer;
+}
+.kk-set-tag-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.kk-set-tag-icon:hover {
+  background: var(--kk-accent-soft);
+  color: var(--kk-accent-strong);
+}
+.kk-set-tag-icon.is-danger:hover {
+  background: var(--kk-danger-soft);
+  color: var(--kk-danger);
+}
+.kk-set-tag-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.15rem 0.4rem;
+}
+.kk-set-tag-ok {
+  flex: none;
+  height: 26px;
+  padding: 0 0.55rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--kk-accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kk-set-tag-ok:disabled {
+  opacity: 0.5;
+}
+.kk-set-btn {
+  margin-top: 0.45rem;
+  width: 100%;
+  height: 30px;
+  padding: 0 0.6rem;
+  border: 1px solid var(--kk-line-strong);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--kk-ink);
+  cursor: pointer;
+}
+.kk-set-btn:hover:not(:disabled) { border-color: var(--kk-accent); background: var(--kk-accent-soft); color: var(--kk-accent-strong); }
+.kk-set-btn:disabled { opacity: 0.45; cursor: default; }
+.kk-set-btn--accent { border-color: var(--kk-accent); background: var(--kk-accent); color: #fff; }
+.kk-set-btn--accent:hover:not(:disabled) { background: var(--kk-accent-strong); color: #fff; }
+.kk-set-btn--cta { border-color: var(--kk-cta); background: var(--kk-cta); color: #fff; }
+.kk-set-btn--cta:hover:not(:disabled) { border-color: var(--kk-cta-strong); background: var(--kk-cta-strong); color: #fff; }
+.kk-msg { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; margin: 0; font-size: 12px; }
+.kk-msg-close { flex-shrink: 0; border: 0; background: transparent; color: inherit; font-size: 13px; line-height: 1; cursor: pointer; padding: 0.1rem 0.2rem; }
+.kk-meter { margin-top: 0.2rem; height: 6px; border-radius: 999px; background: var(--kk-accent-soft); overflow: hidden; }
+.kk-meter-fill { height: 100%; border-radius: 999px; background: var(--kk-accent); }
+.kk-meter-fill--warn { background: var(--kk-cta); }
+</style>

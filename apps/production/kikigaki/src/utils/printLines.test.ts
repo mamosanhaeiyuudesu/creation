@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildPrintBlocks, findFitScale, MIN_FIT_SCALE, paginateBlocks, printKind } from '~/utils/printLines'
+import { buildPrintBlocks, findFitScale, flowSlots, MIN_FIT_SCALE, paginateBlocks, printKind } from '~/utils/printLines'
 import type { BlockSize, PrintBlock } from '~/utils/printLines'
 import { emptyMinutes } from '~/types/minutes'
 
@@ -151,5 +151,47 @@ describe('findFitScale', () => {
 
   it('下限まで縮めても入らなければ下限を返す（2枚目に続ける）', async () => {
     expect(await findFitScale(column(5000), 600)).toBe(MIN_FIT_SCALE)
+  })
+})
+
+describe('話し合いを複数枚にまとめる（onePage=false）', () => {
+  const multi = () => {
+    const m = emptyMinutes()
+    m.onePage = false
+    m.summary = '概要'
+    m.decisions = [{ content: '決定', note: '' }]
+    m.topics = [{ content: '予算の話', note: '一段落目\n二段落目' }]
+    return m
+  }
+
+  it('PDFの形は multi。聞き取りは onePage に関わらず縦、1枚にまとめるは fit のまま', () => {
+    expect(printKind({ mode: 'meeting', layout: 3, onePage: false })).toBe('multi')
+    expect(printKind({ mode: 'meeting', layout: 3, onePage: true })).toBe('fit')
+    expect(printKind({ mode: 'talk', layout: 3, onePage: false })).toBe('portrait')
+    expect(printKind({ mode: 'meeting', layout: 2, onePage: false })).toBe('landscape')
+  })
+
+  it('左は今までどおり、右の話し合ったことは聞き取りと同じ形（見出し＝話題、中身は段落）', () => {
+    const { left, right } = buildPrintBlocks(multi())
+    expect(headings(left)).toEqual(['概要', '決まったこと'])
+    expect(headings(right)).toEqual(['話し合ったこと'])
+    expect(right.filter((b) => b.type === 'topic')).toHaveLength(1)
+    expect(right.filter((b) => b.type === 'topicPara')).toHaveLength(2)
+  })
+
+  it('flowSlots: 話し合ったことは1枚目の右から始まり、2枚目は左→右の順に続く', () => {
+    expect(flowSlots([['a']], [['t1'], ['t2'], ['t3']])).toEqual([
+      { left: ['a'], right: ['t1'] },
+      { left: ['t2'], right: ['t3'] },
+    ])
+    expect(flowSlots([['a']], [['t1']])).toEqual([{ left: ['a'], right: ['t1'] }])
+    expect(flowSlots([['a']], [])).toEqual([{ left: ['a'], right: [] }])
+  })
+
+  it('flowSlots: 左が1枠に入りきらないときは、話し合ったことはその次の枠から', () => {
+    expect(flowSlots([['a1'], ['a2']], [['t1']])).toEqual([
+      { left: ['a1'], right: ['a2'] },
+      { left: ['t1'], right: [] },
+    ])
   })
 })

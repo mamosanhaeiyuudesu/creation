@@ -1,9 +1,11 @@
 // PDFに載せる内容の組み立てと、ページへの振り分け。純粋な関数だけ（DOMの計測は MinutesPdfMaker が行う）。
 //
-// PDFの形は議事録の版（layout）と種類で3つ（printKind）:
+// PDFの形は議事録の版（layout）と種類で4つ（printKind）:
 //  - landscape: 古い版（layout 1・2）。A4横の左右2列で、1枚に収まらない分は次のページの同じ列に続ける（縮小も要約もしない）。
 //               左右の列は別々に流れる（左が1枚で済んでも右が2枚目に続くことがある）。
 //  - fit:       今の版の話し合い。A4横の左右2列を1枚に収める（あふれたら文字を小さくする。縮めても入らなければ2枚目へ）。
+//  - multi:     今の版の話し合いで「A4の1枚にまとめる」を外したもの。A4横の左右2列で、1枚目の左半分に
+//               概要・決まったこと・やること、話し合ったことは1枚目の右半分から 2枚目の左・右… と続ける（flowSlots）。
 //  - portrait:  今の版の聞き取り。A4縦の1列で、ページをまたいでよい。
 // 今の版では、中身が空の欄は見出しごと出さない。
 
@@ -11,7 +13,7 @@ import { minutesLabel } from '~/config/minutesLabels'
 import { hasTasksSection, isCurrentLayout, isLegacyMeeting } from '~/types/minutes'
 import type { EventItem, Minutes } from '~/types/minutes'
 
-export type PrintKind = 'landscape' | 'fit' | 'portrait'
+export type PrintKind = 'landscape' | 'fit' | 'multi' | 'portrait'
 
 /** ページの画像（PNGのデータURL）と形 */
 export interface RenderedPages {
@@ -19,9 +21,10 @@ export interface RenderedPages {
   kind: PrintKind
 }
 
-export function printKind(m: Pick<Minutes, 'mode' | 'layout'>): PrintKind {
+export function printKind(m: Pick<Minutes, 'mode' | 'layout'> & { onePage?: boolean }): PrintKind {
   if (!isCurrentLayout(m)) return 'landscape'
-  return m.mode === 'talk' ? 'portrait' : 'fit'
+  if (m.mode === 'talk') return 'portrait'
+  return m.onePage === false ? 'multi' : 'fit'
 }
 
 /** PDFの1行（本文＋任意の補足） */
@@ -83,7 +86,8 @@ function taskLinesOf(m: Minutes): PrintLine[] {
 
 /**
  * 今の版（layout 3）のブロック。
- *  - 話し合い: 左＝名前・日・参加者、概要、決まったこと、やること。右＝話し合ったこと（結論を先に読めるように）
+ *  - 話し合い: 左＝名前・日・参加者、概要、決まったこと、やること。右＝話し合ったこと（結論を先に読めるように）。
+ *              「1枚にまとめる」を外したもの（multi）は、話し合ったことを聞き取りと同じ形（見出し＝話題、その下に中身の段落）で並べる
  *  - 聞き取り: 1列（left だけ）。名前・日・話し手、概要、やること、話の内容（見出し＝要点の一文、その下に中身の段落）。やることを概要の下に置くのは話し合いとそろえるため
  */
 function buildCurrentBlocks(m: Minutes): { left: PrintBlock[]; right: PrintBlock[] } {
@@ -106,14 +110,24 @@ function buildCurrentBlocks(m: Minutes): { left: PrintBlock[]; right: PrintBlock
       : []
     return { left: [...head, ...sectionIfAny(L('taskCandidates'), taskLinesOf(m)), ...topics], right: [] }
   }
-  return {
-    left: [
-      ...head,
-      ...sectionIfAny(L('decisions'), m.decisions.map(point)),
-      ...sectionIfAny(L('taskCandidates'), taskLinesOf(m)),
-    ],
-    right: sectionIfAny(L('topics'), m.topics.map(point)),
+  const left = [
+    ...head,
+    ...sectionIfAny(L('decisions'), m.decisions.map(point)),
+    ...sectionIfAny(L('taskCandidates'), taskLinesOf(m)),
+  ]
+  if (m.onePage === false) {
+    const topics: PrintBlock[] = m.topics.length
+      ? [
+          { type: 'heading', text: L('topics') },
+          ...m.topics.flatMap((t, i): PrintBlock[] => [
+            { type: 'topic', n: i + 1, text: t.content },
+            ...paras(t.note).map((text): PrintBlock => ({ type: 'topicPara', text })),
+          ]),
+        ]
+      : []
+    return { left, right: topics }
   }
+  return { left, right: sectionIfAny(L('topics'), m.topics.map(point)) }
 }
 
 /**
@@ -230,4 +244,24 @@ export async function findFitScale(measure: (scale: number) => Promise<number>, 
     else hi = mid
   }
   return lo
+}
+
+/**
+ * 「1枚にまとめる」を外した話し合い（multi）の並べ方。ページの半分（左・右）を「枠」と呼び、
+ * 1枚目の左→右→2枚目の左→右… の順に埋めていく。
+ *  - fixed（概要・決まったこと・やること）は1枚目の左の枠から。多くて入りきらなければ、次の枠へ続ける
+ *  - flow（話し合ったこと）は、fixed が終わった次の枠から（fixed が左で終われば、1枚目の右の枠から）
+ * 引数は、paginateBlocks で振り分けた枠ごとのブロック。戻り値はページごとの左・右。
+ */
+export function flowSlots<T>(fixed: T[][], flow: T[][]): { left: T[]; right: T[] }[] {
+  const fixedSlots = fixed.filter((s) => s.length)
+  const flowSlotsOnly = flow.filter((s) => s.length)
+  const slots: T[][] = [...fixedSlots]
+  // 話し合ったては、左（fixed の最初の枠）の次＝1枚目の右から始める（fixed が空でも右から）
+  while (slots.length < 1) slots.push([])
+  slots.push(...flowSlotsOnly)
+  return Array.from({ length: Math.ceil(slots.length / 2) }, (_, p) => ({
+    left: slots[p * 2] ?? [],
+    right: slots[p * 2 + 1] ?? [],
+  }))
 }

@@ -43,6 +43,8 @@ interface JobPayload {
   audioName: string
   date: string
   tags: string[]
+  /** 会議をA4横1枚にまとめるか。この項目を足す前に受け付けた仕事は無いので、無ければ 1枚 */
+  onePage?: boolean
 }
 
 /**
@@ -137,7 +139,7 @@ export async function runJob(env: any, jobId: string): Promise<'done' | 'failed'
   const event = jobEvent(env, row.user_id)
   try {
     const p = JSON.parse(await decryptText(event, row.payload)) as JobPayload
-    const minutes = await structureTranscript(event, p.transcript, normalizeMode(row.mode))
+    const minutes = await structureTranscript(event, p.transcript, normalizeMode(row.mode), p.onePage !== false)
     // 元の議事録で手で直した日付を優先する（AIが読み取る日付より確か）
     if (/^\d{4}-\d{2}-\d{2}$/.test(p.date ?? '')) minutes.date = p.date
     minutes.tags = normalizeTags(p.tags)

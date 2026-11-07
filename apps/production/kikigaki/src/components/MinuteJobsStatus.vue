@@ -51,7 +51,7 @@ const { running, failed, dismiss } = useMinuteJobs()
 }
 .kk-job--error {
   align-items: flex-start;
-  border-color: #f2c4c4;
+  border-color: var(--kk-danger-line);
   background: var(--kk-danger-soft);
   color: var(--kk-danger);
   font-weight: 400;

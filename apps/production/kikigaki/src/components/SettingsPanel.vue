@@ -64,6 +64,25 @@
       <p v-if="editingTag && tagMergeTarget" class="kk-set-note">「{{ tagMergeTarget }}」は既にあるので、1つのタグにまとまります。</p>
     </section>
 
+    <!-- 背景色。この端末のブラウザに覚えさせる（PDFは、どちらでも白地のまま） -->
+    <section class="kk-set-sec">
+      <h2 class="kk-set-title">背景色</h2>
+      <div class="kk-set-theme" role="radiogroup" aria-label="背景色">
+        <button
+          v-for="o in themeOptions"
+          :key="o.value"
+          type="button"
+          role="radio"
+          class="kk-set-theme-opt"
+          :class="{ 'is-on': theme === o.value }"
+          :aria-checked="theme === o.value"
+          @click="setTheme(o.value)"
+        >
+          <span class="kk-set-theme-dot" :class="`is-${o.value}`" aria-hidden="true" />{{ o.label }}
+        </button>
+      </div>
+    </section>
+
     <!-- タグの削除の確認 -->
     <BottomSheet :model-value="!!deletingTag" title="タグを消しますか？" :closable="!tagBusy" @update:model-value="deletingTag = ''">
       <p class="kk-lead m-0">
@@ -205,6 +224,12 @@ import type { WithdrawnInfo } from '~/types/auth'
 import { MAX_TAG_LENGTH, normalizeTag } from '~/utils/tags'
 
 const router = useRouter()
+const { theme, init: initTheme, setTheme } = useTheme()
+const themeOptions = [
+  { value: 'light', label: 'ふつう' },
+  { value: 'dark', label: 'ダーク' },
+] as const
+onMounted(initTheme)
 const route = useRoute()
 const { user, isLoggedIn, authedFetch, logout } = useAuth()
 const { withdrawn } = useWithdrawn()
@@ -680,6 +705,27 @@ a.kk-set-chip:hover,
 .kk-set-tag-ok:disabled {
   opacity: 0.5;
 }
+.kk-set-theme { display: flex; gap: 0.3rem; margin-top: 0.2rem; }
+.kk-set-theme-opt {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: 28px;
+  border: 1px solid var(--kk-line-strong);
+  border-radius: 999px;
+  background: var(--kk-panel);
+  color: var(--kk-ink);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kk-set-theme-opt.is-on { border-color: var(--kk-accent); background: var(--kk-accent-soft); color: var(--kk-accent-strong); }
+.kk-set-theme-dot { width: 12px; height: 12px; border-radius: 999px; border: 1px solid var(--kk-line-strong); }
+.kk-set-theme-dot.is-light { background: #f1f6fc; }
+.kk-set-theme-dot.is-dark { background: #12171e; }
 .kk-set-btn {
   margin-top: 0.45rem;
   width: 100%;
@@ -687,7 +733,7 @@ a.kk-set-chip:hover,
   padding: 0 0.6rem;
   border: 1px solid var(--kk-line-strong);
   border-radius: 999px;
-  background: #fff;
+  background: var(--kk-panel);
   font-family: inherit;
   font-size: 12px;
   font-weight: 700;

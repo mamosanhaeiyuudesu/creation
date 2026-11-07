@@ -698,9 +698,9 @@ onUnmounted(() => wideQuery?.removeEventListener('change', onWideChange))
   gap: 0.5rem 0.75rem;
   padding: 0.55rem 0.8rem;
   border-radius: 8px;
-  border: 1px solid #f5c58c;
+  border: 1px solid var(--kk-cta-line);
   background: var(--kk-cta-soft);
-  color: #6b3f06;
+  color: var(--kk-cta-ink);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -841,7 +841,7 @@ onUnmounted(() => wideQuery?.removeEventListener('change', onWideChange))
   padding: 0 0.7rem;
   border: 1px solid var(--kk-line);
   border-radius: 999px;
-  background: #fff;
+  background: var(--kk-panel);
   font-family: inherit;
   font-size: 12.5px;
   color: var(--kk-ink-soft);
@@ -1018,13 +1018,13 @@ onUnmounted(() => wideQuery?.removeEventListener('change', onWideChange))
 }
 .kk-row-icon:hover:not(:disabled) {
   border-color: var(--kk-line);
-  background: #fff;
+  background: var(--kk-panel);
   color: var(--kk-accent-strong);
 }
 .kk-row-icon--danger:hover:not(:disabled) {
   color: var(--kk-danger);
   background: var(--kk-danger-soft);
-  border-color: #f0c2c2;
+  border-color: var(--kk-danger-line);
 }
 .kk-row-icon:disabled {
   opacity: 0.4;

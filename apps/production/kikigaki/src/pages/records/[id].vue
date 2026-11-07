@@ -680,6 +680,7 @@ const pointGroups = computed<Partial<Record<ColKey, PointGroup>>>(() => {
 function applyMinutes(src: Minutes) {
   minutes.mode = src.mode
   minutes.layout = src.layout
+  minutes.onePage = src.onePage
   minutes.title = src.title
   minutes.date = src.date
   minutes.participants = [...src.participants]
@@ -1246,7 +1247,7 @@ onUnmounted(() => {
   padding: 0 0.45rem;
   border: 1px solid var(--kk-line);
   border-radius: 7px;
-  background: #fff;
+  background: var(--kk-panel);
   font-family: inherit;
   font-size: 12px;
   color: var(--kk-ink-soft);
@@ -1278,7 +1279,7 @@ onUnmounted(() => {
   color: var(--kk-ink);
 }
 .kk-source-mark {
-  background: #fff1b8;
+  background: var(--kk-mark);
   color: inherit;
   border-radius: 2px;
 }
@@ -1368,7 +1369,7 @@ onUnmounted(() => {
   padding: 0 0.65rem;
   border-radius: 8px;
   border: 1px solid var(--kk-line);
-  background: #fff;
+  background: var(--kk-panel);
   color: var(--kk-ink);
   font-family: inherit;
   font-size: 12.5px;
@@ -1505,7 +1506,7 @@ onUnmounted(() => {
   min-width: 0;
 }
 .kk-assist-card--unclear {
-  border-color: #f5d6ad;
+  border-color: var(--kk-warn-line);
   background: var(--kk-warn-soft);
 }
 .kk-assist-title {
@@ -1667,7 +1668,7 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .kk-unclear-toggle:hover {
-  background: #fff3e2;
+  background: var(--kk-cta-soft);
 }
 .kk-unclear-toggle svg {
   width: 18px;
@@ -1688,7 +1689,7 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 0.4rem;
   padding: 0.2rem 0;
-  border-top: 1px dashed #f5d6ad;
+  border-top: 1px dashed var(--kk-warn-line);
 }
 .kk-assist-list li:first-child {
   border-top: 0;
@@ -1708,7 +1709,7 @@ onUnmounted(() => {
 }
 .kk-assist-done:hover,
 .kk-assist-done:focus-visible {
-  background: #ffe9cc;
+  background: var(--kk-cta-soft);
   color: var(--kk-warn);
 }
 
@@ -1825,7 +1826,7 @@ onUnmounted(() => {
 }
 .kk-sec-pdf:hover:not(:disabled) {
   border-color: var(--kk-line);
-  background: #fff;
+  background: var(--kk-panel);
   color: var(--kk-accent-strong);
 }
 .kk-sec-pdf:disabled {

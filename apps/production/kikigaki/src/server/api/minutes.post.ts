@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   // 裏で作り始めてから断ると気づきにくいので、使い切っていたらここで先に断る（作るときにも確かめる）
   await requireAiAllowance(event, user.id)
 
-  const body = await readBody<{ transcript?: string; audioName?: string; mode?: string; date?: string; tags?: unknown }>(event)
+  const body = await readBody<{ transcript?: string; audioName?: string; mode?: string; date?: string; tags?: unknown; onePage?: boolean }>(event)
   const transcript = (body?.transcript ?? '').trim()
 
   if (!transcript) {
@@ -40,6 +40,8 @@ export default defineEventHandler(async (event) => {
     audioName: (body?.audioName ?? '').slice(0, 200),
     date: /^\d{4}-\d{2}-\d{2}$/.test(body?.date ?? '') ? body!.date! : '',
     tags: normalizeTags(body?.tags),
+    // 会議を1枚にまとめるか（聞き取りでは使わない）。送られてこなければ 1枚
+    onePage: body?.onePage !== false,
   })
   await enqueueJob(event, jobId)
 

@@ -32,6 +32,46 @@
   --kk-danger: #c62828;
   --kk-danger-soft: #fdf1f1;
   --kk-shadow: 0 2px 10px rgba(20, 60, 120, 0.06);
+  --kk-sunken: #f8fafd;
+  --kk-panel-glass: rgba(255, 255, 255, 0.96);
+  --kk-cta-line: #f5c58c;
+  --kk-cta-ink: #6b3f06;
+  --kk-warn-line: #f5d6ad;
+  --kk-danger-line: #f0c2c2;
+  --kk-accent-line: #c5dbf5;
+  --kk-mark: #fff1b8;
+  color-scheme: light;
+}
+
+/* ダーク（設定の「背景色」で選ぶ。<html data-theme="dark">） */
+:root[data-theme='dark'] {
+  --kk-bg: #12171e;
+  --kk-panel: #1b222b;
+  --kk-line: #2c3541;
+  --kk-line-strong: #425163;
+  --kk-ink: #e6ebf1;
+  --kk-ink-soft: #b3bfcc;
+  --kk-ink-faint: #8091a3;
+  --kk-accent: #4a90e2;
+  --kk-accent-strong: #8dbcf4;
+  --kk-accent-soft: #1f3249;
+  --kk-cta: #f08c1e;
+  --kk-cta-strong: #f7a24a;
+  --kk-cta-soft: #3a2a14;
+  --kk-warn: #f0b469;
+  --kk-warn-soft: #3a2a14;
+  --kk-danger: #f08080;
+  --kk-danger-soft: #3b2024;
+  --kk-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --kk-sunken: #151b23;
+  --kk-panel-glass: rgba(27, 34, 43, 0.96);
+  --kk-cta-line: #6b4a1f;
+  --kk-cta-ink: #f5c58c;
+  --kk-warn-line: #5a4220;
+  --kk-danger-line: #6b2f35;
+  --kk-accent-line: #2f4d70;
+  --kk-mark: #5c4d12;
+  color-scheme: dark;
 }
 
 html {
@@ -94,19 +134,19 @@ body {
 
 .kk-notice--warn {
   background: var(--kk-warn-soft);
-  border: 1px solid #f5d6ad;
+  border: 1px solid var(--kk-warn-line);
   color: var(--kk-warn);
 }
 
 .kk-notice--error {
   background: var(--kk-danger-soft);
-  border: 1px solid #f0c2c2;
+  border: 1px solid var(--kk-danger-line);
   color: var(--kk-danger);
 }
 
 .kk-notice--info {
   background: var(--kk-accent-soft);
-  border: 1px solid #c5dbf5;
+  border: 1px solid var(--kk-accent-line);
   color: var(--kk-accent-strong);
 }
 
@@ -217,7 +257,7 @@ body {
 
 .kk-input {
   width: 100%;
-  background: #fff;
+  background: var(--kk-panel);
   border: 1px solid var(--kk-line);
   border-radius: 6px;
   padding: 0.4rem 0.6rem;

@@ -606,10 +606,10 @@ const wide = computed(() => route.meta.wide === true)
   justify-content: space-between;
   gap: 0.4rem;
   padding: 0.4rem 0.5rem 0.4rem 0.6rem;
-  border: 1px solid #f5c58c;
+  border: 1px solid var(--kk-cta-line);
   border-radius: 8px;
   background: var(--kk-cta-soft);
-  color: #6b3f06;
+  color: var(--kk-cta-ink);
   font-size: 11.5px;
   font-weight: 700;
   line-height: 1.5;

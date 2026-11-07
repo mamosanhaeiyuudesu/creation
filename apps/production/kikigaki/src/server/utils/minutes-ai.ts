@@ -29,9 +29,28 @@ const MAX_TOKENS = 12000
  * 次の予定は専用の欄を持たず、「やること」の1件として入れさせる（event_candidates は layout 1 の古い議事録だけが持っている）。
  * 同じ内容を複数の欄に書かせない（決定がそのまま作業なら「やること」だけ）のがこのプロンプトの肝。
  */
-function buildMeetingSystemPrompt(today: string): string {
+function buildMeetingSystemPrompt(today: string, onePage: boolean, transcriptChars: number): string {
   // 項目の日本語の名前は config/minutesLabels.ts の表から取る（画面・PDFと同じ名前にそろえるため）
   const L = (key: Parameters<typeof minutesLabel>[0]) => minutesLabel(key, 'meeting')
+  // 複数枚にまとめるときは、話し合ったことを聞き取りと同じ量（元の長さから決まる字数）で書く
+  const topicsTarget = talkTargetChars(transcriptChars)
+  const volumeRule = onePage
+    ? `【分量】
+- この議事録はA4横1枚に収めて配る。summary・topics・decisions・task_candidates を合わせて、
+  全角・半角を問わず2000文字程度を目安にすること。
+- 会議には脱線や雑談が多い。議題から外れた話や結論に関係しない雑談は落とし、要点に絞ること。`
+    : `【分量】
+- この議事録はA4横の複数枚にまとめて配る。「決まったこと・やること」は1枚目の左半分に収まるよう簡潔に書き、
+  「${L('topics')}」は聞き取り記録と同じように、話の中身を省かずに詳しく残すこと。
+- 元のテキストは全角・半角を問わず${transcriptChars}文字である。「${L('topics')}(topics)」全体は、全角・半角を問わず${topicsTarget}文字程度に収めること。
+  この字数は超えないこと。元のテキストより長くしないこと。
+- 字数に収めるために、同じ内容の繰り返しや、結論に関係しない雑談・脱線を省くこと。元のテキストにない言葉で薄めないこと。`
+  const topicsRule = onePage
+    ? `- 「${L('topics')}(topics)」は、議題ごとに、話した順に区切る（脱線した話は入れない）。
+  content に話題の短い見出しを、note にその話題の要点（出た意見・理由・具体的な数字や例）を簡潔に書く。`
+    : `- 「${L('topics')}(topics)」は、議題ごとに、話した順に区切る（脱線した話は入れない）。${talkMaxTopics(topicsTarget)}個まで分けてよいが、無理に増やさないこと。
+  content に話題の短い見出しを、note にその話題で話した中身（出た意見・理由・具体的な数字や例・発言者ごとの考え）を、
+  全体の字数に収まるように詳しく書く。長くなるときは、段落ごとに改行で区切ってよい。`
   return `あなたは会議・打ち合わせなどの記録を構造化するアシスタントです。
 地域の会合に限らず、社内会議・商談・打ち合わせなど、あらゆる種類の会議・活動の記録が対象です。
 以下のルールを厳守してください。
@@ -41,10 +60,7 @@ function buildMeetingSystemPrompt(today: string): string {
 - 文字の誤り（音声の書き起こしの誤変換など）で意味が不明瞭な箇所は、無理に補完せず「[不明瞭]」と記載すること。
 - 推測や一般論で穴埋めしないこと。書かれている内容だけを根拠にすること。
 
-【分量】
-- この議事録はA4横1枚に収めて配る。summary・topics・decisions・task_candidates を合わせて、
-  全角・半角を問わず2000文字程度を目安にすること。
-- 会議には脱線や雑談が多い。議題から外れた話や結論に関係しない雑談は落とし、要点に絞ること。
+${volumeRule}
 
 【概要(summary)の書き方】
 - 会議の大まかな流れと、決まったことが分かる短い文章にすること。見出しは立てないこと。
@@ -53,8 +69,7 @@ function buildMeetingSystemPrompt(today: string): string {
 
 【構造化のルール】
 - 同じ内容を複数の項目に書かないこと。どの項目に入れるかは次の通り。
-- 「${L('topics')}(topics)」は、議題ごとに、話した順に区切る（脱線した話は入れない）。
-  content に話題の短い見出しを、note にその話題の要点（出た意見・理由・具体的な数字や例）を簡潔に書く。
+${topicsRule}
   結論が出た話題は note の末尾に結論を一言添えてよい。結論が出なかった話題・次回に持ち越しになった話題も、
   その旨（「結論は出ていない」「次回に持ち越し」など）を note の末尾に添えること。
 - 「${L('decisions')}(decisions)」は、会議の中で明確に合意・決定されたことのみを、1件1文で端的に書く。
@@ -163,8 +178,8 @@ ${TALK_JSON_SHAPE}
   人間が優先的に確認するために使うので、無いと言い切れる場合を除き省略しないこと。`
 }
 
-function buildSystemPrompt(mode: MinutesMode, today: string, transcriptChars: number): string {
-  return mode === 'talk' ? buildTalkSystemPrompt(today, transcriptChars) : buildMeetingSystemPrompt(today)
+function buildSystemPrompt(mode: MinutesMode, today: string, transcriptChars: number, onePage: boolean): string {
+  return mode === 'talk' ? buildTalkSystemPrompt(today, transcriptChars) : buildMeetingSystemPrompt(today, onePage, transcriptChars)
 }
 
 /**
@@ -323,12 +338,14 @@ function toAiJson(m: Minutes): Record<string, unknown> {
  * AIの応答を議事録の形にする。まとめ方は AI に決めさせず呼び出し側の値で固定し、
  * そのまとめ方で使わない項目は空にする（AIが余計な項目を返しても画面・PDFに混ざらないように）。
  */
-function fromAiJson(parsed: any, mode: MinutesMode, layout: MinutesLayout): Minutes {
+function fromAiJson(parsed: any, mode: MinutesMode, layout: MinutesLayout, onePage = true): Minutes {
   // discussions（決まっていないこと）は layout 1 の古い議事録だけが持つ。layout 2 では欄ごとやめた
   const m = normalizeMinutes({
     ...parsed,
     mode,
     layout,
+    // 1枚にまとめるかは AI に決めさせない（聞き取りは常に true。意味を持つのは layout 3 の会議だけ）
+    onePage: mode === 'talk' ? true : onePage,
     participants: mode === 'talk' ? parsed.speakers ?? parsed.participants : parsed.participants,
     discussions: layout === 1 ? parsed.discussions : [],
   })
@@ -365,11 +382,13 @@ function jsonError(): never {
 export async function structureTranscript(
   event: H3Event,
   transcript: string,
-  mode: MinutesMode
+  mode: MinutesMode,
+  /** 会議をA4横1枚にまとめるか。false なら話し合ったことを聞き取りと同じ量で書き、PDFは複数枚になる */
+  onePage = true
 ): Promise<Minutes> {
   const lead = mode === 'talk' ? '以下は話の文字起こし全文です。' : '以下は会議の文字起こし全文です。'
   const raw = await callClaudeText(event, {
-    system: buildSystemPrompt(mode, jstToday(), countTranscriptChars(transcript)),
+    system: buildSystemPrompt(mode, jstToday(), countTranscriptChars(transcript), onePage),
     messages: [{ role: 'user', content: `${lead}\n\n${transcript}` }],
     maxTokens: MAX_TOKENS,
   })
@@ -377,7 +396,7 @@ export async function structureTranscript(
   const parsed = parseJsonLoose<any>(raw)
   if (!parsed) jsonError()
   // 新しく作る・作り直すときは、いつでも最新の並べ方（layout 3）
-  return fromAiJson(parsed, mode, 3)
+  return fromAiJson(parsed, mode, 3, onePage)
 }
 
 /**
@@ -405,5 +424,5 @@ export async function reviseMinutes(
   const parsed = parseJsonLoose<any>(raw)
   if (!parsed) jsonError()
   // 直すだけなので並べ方は変えない（古い議事録は古いまま。作り直すと新しい並べ方になる）
-  return fromAiJson(parsed, minutes.mode, minutes.layout)
+  return fromAiJson(parsed, minutes.mode, minutes.layout, minutes.onePage)
 }

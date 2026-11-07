@@ -48,20 +48,33 @@
       <!-- まとめ方。会議なら決まったこと・やることを、1人の話ならその人が伝えたかったことを中心にまとめる -->
       <p class="kk-field-label mt-4">どんな記録ですか？</p>
       <div class="kk-mode-choice" role="radiogroup" aria-label="どんな記録か">
-        <button
-          v-for="m in MINUTES_MODES"
-          :key="m.value"
-          type="button"
-          role="radio"
-          class="kk-mode-opt"
-          :class="{ 'is-on': mode === m.value }"
-          :aria-checked="mode === m.value"
-          @click="mode = m.value"
-        >
-          <span class="kk-mode-opt-label">{{ m.label }}</span>
-          <span class="kk-mode-opt-desc">{{ m.desc }}</span>
-        </button>
+        <div v-for="m in MINUTES_MODES" :key="m.value" class="kk-mode-cell">
+          <button
+            type="button"
+            role="radio"
+            class="kk-mode-opt"
+            :class="{ 'is-on': mode === m.value, 'has-check': m.value === 'meeting' }"
+            :aria-checked="mode === m.value"
+            @click="mode = m.value"
+          >
+            <span class="kk-mode-opt-label">{{ m.label }}</span>
+            <span class="kk-mode-opt-desc">{{ m.desc }}</span>
+          </button>
+          <!-- 話し合いのボタンの右がわ。入れておくとA4横1枚に収め、外すと聞き取りと同じように詳しく書いて2枚目・3枚目へ続ける
+               （チェックの印はボタンの中に入れられないので、重ねて置いている） -->
+          <label
+            v-if="m.value === 'meeting'"
+            class="kk-onepage"
+            title="外すと、話し合ったことを詳しく書いて2枚目・3枚目へ続けます（決まったこと・やることは1枚目の左半分）"
+          >
+            <input v-model="onePage" type="checkbox" @click="mode = 'meeting'">
+            <span>A4 1枚</span>
+          </label>
+        </div>
       </div>
+      <p v-if="mode === 'meeting'" class="kk-note mt-1">
+        {{ onePage ? '会議の内容をA4横1枚にまとめます。' : '話し合ったことを詳しく書き、2枚目・3枚目へ続けます（決まったこと・やることは1枚目の左半分）。' }}
+      </p>
 
       <button class="kk-btn mt-4" :disabled="!canRunText" @click="runFromText">
         <!-- 選んだ種類で、できあがるものの名前を変える（聞き取りは「聞き取り記録」） -->
@@ -102,6 +115,8 @@ const errorMessage = ref('')
 const pastedText = ref('')
 /** まとめ方。開くたびに左の「話し合い」から始める（どこから開いても同じ見た目にする） */
 const mode = ref<MinutesMode>('meeting')
+/** 話し合いをA4の1枚にまとめるか。開くたびに入れた状態から始める */
+const onePage = ref(true)
 const textFile = ref<File | null>(null)
 const textFileInput = ref<HTMLInputElement | null>(null)
 
@@ -135,6 +150,7 @@ function reset() {
   errorMessage.value = ''
   pastedText.value = ''
   mode.value = 'meeting'
+  onePage.value = true
   prefill.value = null
   clearTextFile()
 }
@@ -165,7 +181,7 @@ async function runFromText() {
     // 元の議事録から作るときは、手で直した日付とタグを引き継ぐ（ファイルに差し替えたら引き継がない）
     const carry = !file && prefill.value ? { date: prefill.value.date, tags: prefill.value.tags } : undefined
     // できたら useMinuteJobs がこの画面を閉じて、できた議事録を開く
-    watching.value = await startJob({ transcript: text, audioName: file?.name ?? '', mode: mode.value, ...carry })
+    watching.value = await startJob({ transcript: text, audioName: file?.name ?? '', mode: mode.value, onePage: onePage.value, ...carry })
     stage.value = 'waiting'
   } catch (e) {
     errorMessage.value = apiMessage(e)
@@ -185,6 +201,35 @@ watch(jobs, (list) => {
 </script>
 
 <style scoped>
+.kk-mode-cell {
+  position: relative;
+  display: flex;
+}
+.kk-mode-cell .kk-mode-opt {
+  flex: 1;
+}
+/* 右がわにチェックの欄を置くので、文字がかぶらないよう右を空ける */
+.kk-mode-opt.has-check {
+  padding-right: 4.6rem;
+}
+.kk-onepage {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.55rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--kk-ink);
+  cursor: pointer;
+}
+.kk-onepage input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--kk-accent);
+}
 .kk-count--over {
   color: var(--kk-danger);
   font-weight: 700;

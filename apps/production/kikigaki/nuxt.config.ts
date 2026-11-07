@@ -18,6 +18,13 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'ja' },
+      // 背景色（ダーク）を、画面が出る前に付ける（ちらつき防止）。選び方は composables/useTheme.ts
+      script: [
+        {
+          key: 'kk-theme',
+          innerHTML: "try{if(localStorage.getItem('kk-theme')==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}",
+        },
+      ],
       link: [
         { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
         { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
