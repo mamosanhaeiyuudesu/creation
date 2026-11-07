@@ -7,6 +7,8 @@
 <script setup lang="ts">
 useHead({
   link: [
+    { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: '/icon-news.svg' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon-news.png' },
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
     // 見出しは明朝。朝刊を読む感じに寄せる。

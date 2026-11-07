@@ -7,6 +7,8 @@
 <script setup lang="ts">
 useHead({
   link: [
+    { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: '/icon-farm-news.svg' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon-farm-news.png' },
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
     { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@500;700&display=swap' },

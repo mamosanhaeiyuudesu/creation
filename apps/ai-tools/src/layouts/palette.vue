@@ -10,6 +10,8 @@
 // 色だけは palette 独自のまま（紙色の地・朱の主役ボタン・青緑の差し色）。クラス接頭辞は pl-。
 useHead({
   link: [
+    { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: '/icon-palette.svg' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon-palette.png' },
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
     { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap' },

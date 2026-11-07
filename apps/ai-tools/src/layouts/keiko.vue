@@ -10,6 +10,8 @@
 <script setup lang="ts">
 useHead({
   link: [
+    { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: '/icon-keiko.svg' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon-keiko.png' },
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
     // 子どもが読みやすい丸ゴシック。見出しはポップ体（Mochiy Pop One）で楽しく。

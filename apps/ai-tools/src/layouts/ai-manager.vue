@@ -31,6 +31,8 @@
 // （apps/production/kikigaki の kikigaki.css・layouts/default.vue）に合わせている（2026-10-24 の本人指示）。
 useHead({
   link: [
+    { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: '/icon-ai-manager.svg' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon-ai-manager.png' },
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
     { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap' },

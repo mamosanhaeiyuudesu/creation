@@ -7,6 +7,8 @@
 <script setup lang="ts">
 useHead({
   link: [
+    { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: '/icon-kikigaki.svg' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon-kikigaki.png' },
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
     {

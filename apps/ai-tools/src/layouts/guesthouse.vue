@@ -14,6 +14,8 @@
 // 里山・木のぬくもりトーン。柿畑／高野口の宿の落ち着いた自然色でまとめる。
 useHead({
   link: [
+    { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: '/icon-guesthouse.svg' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon-guesthouse.png' },
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
     {

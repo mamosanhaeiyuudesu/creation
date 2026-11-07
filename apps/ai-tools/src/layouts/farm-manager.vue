@@ -12,6 +12,8 @@
 <script setup lang="ts">
 useHead({
   link: [
+    { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: '/icon-farm-manager.svg' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon-farm-manager.png' },
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
     {

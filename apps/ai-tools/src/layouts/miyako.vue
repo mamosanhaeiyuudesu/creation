@@ -6,7 +6,8 @@ useHead({
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
     { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
     { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap' },
-    { rel: 'icon', type: 'image/svg+xml', href: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏝️</text></svg>` },
+    { key: 'icon', rel: 'icon', type: 'image/svg+xml', href: '/icon-miyako.svg' },
+    { rel: 'apple-touch-icon', href: '/apple-touch-icon-miyako.png' },
   ],
   meta: [
     { property: 'og:type', content: 'website' },
