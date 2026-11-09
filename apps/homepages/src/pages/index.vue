@@ -40,6 +40,7 @@ const pages = [
   { url: 'http://localhost:3013', icon: '🐈', name: 'kaito2', desc: '月ノ瀬 直のページ（リニューアル版・kaito.insightlens.jp）' },
   { url: 'http://localhost:3007', icon: '🌸', name: '晴レルヤ鍼灸院', desc: '内臓鍼灸・ソフトカイロ矯正' },
   { url: 'http://localhost:3012', icon: '📖', name: '島のパパ', desc: 'インタビューで自伝本をつくる' },
+  { url: 'http://localhost:3017', icon: '🎙️', name: 'ライフインタビュー', desc: 'まもりんの人生インタビュー（interview.insightlens.jp）' },
   { url: 'http://localhost:3014', icon: '🖋️', name: '自分のための本', desc: '島のパパ派生LP（自分のために）' },
   { url: 'http://localhost:3015', icon: '🎁', name: '祖父母へ贈る本', desc: '島のパパ派生LP（祖父母へ）' },
   { url: 'http://localhost:3016', icon: '👔', name: '夫へ贈る本', desc: '島のパパ派生LP（夫へ）' },
