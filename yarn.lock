@@ -11963,6 +11963,30 @@ __metadata:
   languageName: node
   linkType: hard
 
+"shimano-papa-grandparents@workspace:apps/shimano-papa-grandparents":
+  version: 0.0.0-use.local
+  resolution: "shimano-papa-grandparents@workspace:apps/shimano-papa-grandparents"
+  dependencies:
+    nuxt: "npm:^4.5.2"
+  languageName: unknown
+  linkType: soft
+
+"shimano-papa-husband@workspace:apps/shimano-papa-husband":
+  version: 0.0.0-use.local
+  resolution: "shimano-papa-husband@workspace:apps/shimano-papa-husband"
+  dependencies:
+    nuxt: "npm:^4.5.2"
+  languageName: unknown
+  linkType: soft
+
+"shimano-papa-self@workspace:apps/shimano-papa-self":
+  version: 0.0.0-use.local
+  resolution: "shimano-papa-self@workspace:apps/shimano-papa-self"
+  dependencies:
+    nuxt: "npm:^4.5.2"
+  languageName: unknown
+  linkType: soft
+
 "shimano-papa@workspace:apps/shimano-papa":
   version: 0.0.0-use.local
   resolution: "shimano-papa@workspace:apps/shimano-papa"

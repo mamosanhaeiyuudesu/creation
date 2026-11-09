@@ -18,6 +18,9 @@ apps/
 ├── hareruya/
 ├── data-vis/       # データ可視化の受託制作LP（data-vis.insightlens.jp。miyako を事例に紹介）
 ├── shimano-papa/   # 人生のインタビュー（自伝本づくり）のLP（shimano-papa.insightlens.jp）
+├── shimano-papa-self/         # shimano-papa の入口別LP①自分のための本（jibun-no-hon.insightlens.jp）
+├── shimano-papa-grandparents/ # 同②祖父母へ贈る本（sofubo-no-hon.insightlens.jp）
+├── shimano-papa-husband/      # 同③夫へ贈る本（otto-no-hon.insightlens.jp）
 ├── genogram/       # ジェノグラム作成ツール（Cloudflare Workers。AIテキスト解釈の1APIルートのみ持つ）
 └── production/     # 一般ユーザー向けの本番サービス（専用D1・専用ドメイン）
     ├── kikigaki/   # キキガキ本番版（Firebase Auth + Stripe + D1。Cloudflare Workers）
@@ -59,6 +62,9 @@ apps/
 | genogram | 3008 | ジェノグラム作成ツール（家族構成をAIに伝えるとJSONを作成・更新しSVG描画。AI解釈のみCloudflare Workers上のAPIルートを使う） |
 | shimano-papa | 3012 | 人生のインタビュー（聞き手「島のパパ」がインタビューして自伝本にする）のLP（shimano-papa.insightlens.jp）。参考サイトは jinsei-interview.pages.dev。料金・note のURLは `src/config/site.ts` に集約。カウンセリング的な効果はメインで訴求しない（補足の枠だけ） |
 | kaito2 | 3013 | 月ノ瀬 直のページのリニューアル版（kaito.insightlens.jp）。kaito の内容を要点に絞り直したもの。宮古ブルー（#00A3AF）＋サンセット（#FF6F61）、見出し=やさしさゴシック／本文=Noto Sans JP。料金・フォームURLは `src/config/site.ts` に集約 |
+| jibun-no-hon | 3014 | shimano-papa-self。「自分のための本」LP（jibun-no-hon.insightlens.jp）。shimano-papa の派生で、入口ごとの導入文・FAQ・色だけが違う。体験者の声はこのLPだけ |
+| sofubo-no-hon | 3015 | shimano-papa-grandparents。「祖父母へ贈る本」LP（sofubo-no-hon.insightlens.jp）。贈る側の不安に答える構成 |
+| otto-no-hon | 3016 | shimano-papa-husband。「夫へ贈る本」LP（otto-no-hon.insightlens.jp）。申し込みは妻、語り手は夫 |
 
 ### 本番サービス一覧
 
@@ -66,6 +72,9 @@ apps/
 |---|---|---|
 | kikigaki（本番） | 3009 | キキガキ本番版（`apps/production/kikigaki`）。会議の文章（テキスト）→議事録→PDF（音声の文字起こしは2026-10-13にやめた）。Firebase Auth（Google／メールのリンク）＋ Stripe の月額1プラン。**当面はモニター期間として無料で提供**（`src/config/service.ts` の `monitorMode`、環境変数 `NUXT_PUBLIC_MONITOR_MODE=false` で有料化）。詳細は `apps/production/kikigaki/README.md` |
 | manabi | 3010 | まなび本番版（`apps/production/manabi`）。テーマ→AIが4択問題→URL共有。ログイン・課金なし。詳細は `apps/production/manabi/README.md` |
+
+**shimano-papa の派生3LP（jibun / sofubo / otto）の注意点**: 料金・お試し・事業者情報は `src/config/site.ts` が shimano-papa 本体と同じ値のコピー。
+料金などを変えるときは**本体＋3LPの4か所**をそろえる。規約・プライバシー・特商法は本体（shimano-papa.insightlens.jp）へリンクしていて、3LPにはページを持たない。
 
 **hareruya の注意点**: 未確定の掲載情報（料金・LINE URL・詳細住所・地図）は
 `src/config/site.ts` に集約している。値が空/仮のときはページ側が自動で案内文

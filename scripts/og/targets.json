@@ -52,6 +52,12 @@
     "params": { "kicker": "心の作文", "title": "本当の思いだけを\n綴っていきます", "lead": "", "emoji": "✍️", "site": "sakubun.insightlens.jp", "main": "#7a4f2e", "main2": "#3c2814", "ink": "#1e1208", "paper": "#fdf3ea", "font": "serif" } },
   { "id": "shimano-papa", "out": "apps/shimano-papa/src/public/og.jpg",
     "params": { "kicker": "人生のインタビュー", "title": "あなたの人生を、\n1冊の本に", "lead": "聞き手「島のパパ」がお話をうかがい、\n自伝本にまとめます。", "photo": "apps/shimano-papa/src/public/papa.jpg", "site": "shimano-papa.insightlens.jp", "main": "#8cc63f", "main2": "#2e4a32", "ink": "#223826", "font": "maru" } },
+  { "id": "jibun-no-hon", "out": "apps/shimano-papa-self/src/public/og.jpg",
+    "params": { "kicker": "自分のための本", "title": "自分の人生を、\n自分の言葉で残す。", "lead": "聞き手「島のパパ」がお話をうかがい、\n自伝本にまとめます。", "photo": "apps/shimano-papa/src/public/papa.jpg", "site": "jibun-no-hon.insightlens.jp", "main": "#8fb3d9", "main2": "#243b5a", "ink": "#182a42", "font": "maru" } },
+  { "id": "sofubo-no-hon", "out": "apps/shimano-papa-grandparents/src/public/og.jpg",
+    "params": { "kicker": "祖父母へ贈る本", "title": "「聴いておきたかった」が、\nまだ間に合ううちに。", "lead": "お子さん・お孫さんから贈る、\n祖父母の自伝本。", "photo": "apps/shimano-papa/src/public/papa.jpg", "site": "sofubo-no-hon.insightlens.jp", "main": "#f3c98b", "main2": "#5a3b22", "ink": "#3f2915", "font": "maru" } },
+  { "id": "otto-no-hon", "out": "apps/shimano-papa-husband/src/public/og.jpg",
+    "params": { "kicker": "夫へ贈る本", "title": "家では見せない顔を、\n子どもたちへ。", "lead": "奥さまから贈る、\n夫の自伝本。", "photo": "apps/shimano-papa/src/public/papa.jpg", "site": "otto-no-hon.insightlens.jp", "main": "#7fb8a4", "main2": "#1f3b3a", "ink": "#14292a", "font": "maru" } },
   { "id": "shugorin", "out": "apps/shugorin/src/public/og.jpg",
     "params": { "kicker": "親子問題専門のカウンセリング", "title": "生きづらさの根っこに\n向き合う", "lead": "自由な対話で、思考パターンや生い立ちの\n理解を深めるオンラインカウンセリング。", "photo": "apps/shugorin/src/public/images/counselor-portrait.jpg", "site": "shugorin.insightlens.jp", "main": "#007686", "main2": "#005b69" } }
 ]
