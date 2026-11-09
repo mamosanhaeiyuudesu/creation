@@ -479,6 +479,17 @@
                 <a href="https://note.com/nijiironohane/n/n5ec127974633" target="_blank" rel="noopener noreferrer">ヒーリングの記録の全文を note で読む</a>
               </p>
             </article>
+
+            <article class="testimonial-card">
+              <h3 class="testimonial-name">
+                <TherapistKaitoAvatar :variant="1" />
+                <span>SJさん</span>
+              </h3>
+              <p>
+                「私の今まで吐き出さなかったドロドロした気持ちや感情や聞きずらいことも丁寧に聞いて貰い、セッションして貰いました。自分で良く分からなかったことも言葉にしてくれて解説して貰った！という気持ちになりました。<br />
+                その後、自分の感情に今までと違う向き合い方が出来るようになった気がします。それは自分のネガティブな部分を話せたこと（開示出来た事）とそれを聞いて貰ったことで、それを受け入れて認められたからなのかもしれません。」
+              </p>
+            </article>
           </div>
 
           <p class="note-text">
