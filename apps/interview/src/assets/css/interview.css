@@ -1,0 +1,159 @@
+/*
+ * interview.insightlens.jp（ライフインタビュー）
+ * 色は manabi（紙色 #f7f5ef・紺 #252c3a・赤 #e2463a）、フォントと情報設計は shimano-papa に合わせている。
+ * 赤は白地の小さな文字には使わない。ボタン・マーカー・濃い帯の上でだけ使う。
+ */
+
+.iv-page {
+  --iv-paper: #f7f5ef;
+  --iv-navy: #252c3a;
+  --iv-navy-deep: #1a202c;
+  --iv-accent: #e2463a;
+  --iv-accent-deep: #c23328;
+  --iv-accent-soft: #fde8e5;
+  --iv-line: #e2e0d8;
+  --iv-text: #252c3a;
+  --iv-text-sub: #5a6272;
+  --iv-radius: 10px;
+  --iv-shadow: 0 4px 18px rgba(37, 44, 58, 0.08);
+  --iv-font: 'Noto Sans JP', 'メイリオ', sans-serif;
+  --iv-font-head: 'Shippori Mincho', 'Noto Serif JP', serif;
+  --iv-font-num: 'Cormorant Garamond', 'Shippori Mincho', serif;
+
+  font-family: var(--iv-font);
+  color: var(--iv-text);
+  background: #fff;
+  font-size: 16px;
+  line-height: 1.9;
+  -webkit-font-smoothing: antialiased;
+}
+
+.iv-page *, .iv-page *::before, .iv-page *::after { box-sizing: border-box; }
+
+:where(.iv-page) :where(h1, h2, h3, h4, p, ul, ol, dl, dd, figure) { margin: 0; padding: 0; }
+:where(.iv-page) :where(ul, ol) { list-style: none; }
+.iv-page a { color: inherit; text-decoration: none; }
+
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+
+.iv-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+.iv-wrap-narrow { max-width: 820px; }
+.iv-num { font-family: var(--iv-font-num); }
+.iv-sp { display: none; }
+.iv-nb { display: inline-block; }
+.iv-marker { background: linear-gradient(transparent 58%, rgba(226, 70, 58, 0.28) 58%); font-weight: 700; }
+
+/* ---------- ボタン ---------- */
+.iv-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+  padding: 12px 26px; border-radius: 999px; font-weight: 700; font-size: 15px; line-height: 1.4;
+  transition: background 0.2s, transform 0.2s;
+}
+.iv-btn:hover { transform: translateY(-2px); }
+.iv-page .iv-btn-accent { background: var(--iv-accent); color: #fff; box-shadow: 0 4px 14px rgba(226, 70, 58, 0.3); }
+.iv-btn-accent:hover { background: var(--iv-accent-deep); }
+.iv-btn-lg { padding: 18px 40px; font-size: 18px; }
+.iv-btn-arrow {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%; background: #fff; color: var(--iv-accent-deep); font-size: 15px;
+}
+
+/* ---------- ヘッダー ---------- */
+.iv-header { position: sticky; top: 0; z-index: 50; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--iv-line); }
+.iv-header-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+.iv-logo { display: flex; align-items: center; gap: 10px; }
+.iv-logo-text { display: flex; flex-direction: column; line-height: 1.2; }
+.iv-logo-name { font-family: var(--iv-font-head); font-weight: 800; font-size: 18px; }
+.iv-logo-sub { font-size: 11px; color: var(--iv-text-sub); letter-spacing: 0.08em; }
+.iv-nav { display: flex; align-items: center; gap: 22px; font-size: 14px; font-weight: 500; }
+.iv-nav a:not(.iv-btn):hover { color: var(--iv-accent-deep); }
+.iv-nav-cta { padding: 9px 20px; font-size: 14px; }
+.iv-menu-btn { display: none; background: none; border: 0; padding: 8px; cursor: pointer; flex-direction: column; gap: 5px; }
+.iv-menu-btn span { display: block; width: 24px; height: 2px; background: var(--iv-navy); }
+
+/* ---------- ヒーロー ---------- */
+.iv-hero { background: var(--iv-paper); border-bottom: 1px solid var(--iv-line); padding: 96px 0 104px; text-align: center; }
+.iv-hero-tag { font-family: var(--iv-font-num); font-weight: 700; letter-spacing: 0.3em; color: var(--iv-accent-deep); font-size: 15px; margin-bottom: 20px; }
+.iv-hero-catch { font-family: var(--iv-font-head); font-weight: 800; font-size: clamp(34px, 6vw, 58px); line-height: 1.5; color: var(--iv-navy); }
+.iv-hero-em { background: linear-gradient(transparent 62%, rgba(226, 70, 58, 0.3) 62%); }
+.iv-hero-sub { margin: 32px auto 40px; color: var(--iv-text-sub); font-size: 17px; }
+
+/* ---------- セクション共通 ---------- */
+.iv-section { padding: 88px 0; }
+.iv-section-tint { background: var(--iv-paper); }
+.iv-label { font-family: var(--iv-font-num); font-weight: 700; letter-spacing: 0.28em; color: var(--iv-accent-deep); font-size: 14px; text-align: center; }
+.iv-title { font-family: var(--iv-font-head); font-weight: 800; font-size: clamp(26px, 4vw, 36px); line-height: 1.5; text-align: center; margin: 6px 0 40px; }
+.iv-lead { text-align: center; color: var(--iv-text-sub); margin-bottom: 20px; }
+.iv-sub { font-family: var(--iv-font-head); font-weight: 700; font-size: 22px; text-align: center; margin: 48px 0 22px; }
+.iv-sub::after { content: ''; display: block; width: 36px; height: 3px; background: var(--iv-accent); margin: 10px auto 0; border-radius: 2px; }
+
+/* ---------- 物語 ---------- */
+.iv-story p { margin-bottom: 1.8em; }
+.iv-story-end { background: var(--iv-paper); border-left: 4px solid var(--iv-accent); border-radius: 0 var(--iv-radius) var(--iv-radius) 0; padding: 24px 28px; margin: 0; }
+
+/* ---------- こんな方に・メリット ---------- */
+.iv-for-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.iv-for { background: #fff; border: 1px solid var(--iv-line); border-radius: var(--iv-radius); padding: 22px 22px 22px 52px; position: relative; font-weight: 500; line-height: 1.7; box-shadow: var(--iv-shadow); }
+.iv-for::before { content: '✓'; position: absolute; left: 20px; top: 20px; width: 22px; height: 22px; border-radius: 50%; background: var(--iv-accent); color: #fff; font-size: 13px; line-height: 22px; text-align: center; font-weight: 700; }
+.iv-about-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.iv-about { background: #fff; border-radius: var(--iv-radius); padding: 28px 24px; box-shadow: var(--iv-shadow); }
+.iv-about-num { display: block; font-size: 40px; font-weight: 700; line-height: 1; color: var(--iv-accent); margin-bottom: 10px; }
+.iv-about h4 { font-family: var(--iv-font-head); font-size: 19px; line-height: 1.5; margin-bottom: 10px; }
+.iv-about p { font-size: 14.5px; color: var(--iv-text-sub); line-height: 1.8; }
+
+/* ---------- 流れ ---------- */
+.iv-flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; counter-reset: none; }
+.iv-flow-item { border: 1px solid var(--iv-line); border-top: 4px solid var(--iv-navy); border-radius: var(--iv-radius); padding: 24px 20px; background: #fff; }
+.iv-flow-num { display: inline-flex; width: 38px; height: 38px; align-items: center; justify-content: center; border-radius: 50%; background: var(--iv-navy); color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 12px; }
+.iv-flow-item h3 { font-family: var(--iv-font-head); font-size: 19px; margin-bottom: 8px; line-height: 1.5; }
+.iv-flow-item p { font-size: 14.5px; color: var(--iv-text-sub); line-height: 1.8; }
+
+/* ---------- 料金 ---------- */
+.iv-price-cards { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; }
+.iv-price-card { background: #fff; border: 2px solid var(--iv-navy); border-radius: var(--iv-radius); padding: 32px 28px; text-align: center; box-shadow: var(--iv-shadow); }
+.iv-price-card-sub { border-color: var(--iv-line); }
+.iv-price-name { font-family: var(--iv-font-head); font-weight: 800; font-size: 20px; }
+.iv-price-note { font-size: 13.5px; color: var(--iv-text-sub); margin: 4px 0 12px; }
+.iv-price-big { font-weight: 700; font-size: 20px; color: var(--iv-accent-deep); }
+.iv-price-big .iv-num { font-size: 52px; line-height: 1.1; margin-right: 2px; }
+.iv-details { margin-top: 28px; background: #fff; border: 1px solid var(--iv-line); border-radius: var(--iv-radius); overflow: hidden; }
+.iv-detail { display: grid; grid-template-columns: 160px 1fr; border-bottom: 1px solid var(--iv-line); }
+.iv-detail:last-child { border-bottom: 0; }
+.iv-detail dt { background: var(--iv-paper); padding: 14px 20px; font-weight: 700; font-size: 14.5px; }
+.iv-detail dd { padding: 14px 20px; font-size: 14.5px; color: var(--iv-text-sub); }
+
+/* ---------- 聞き手 ---------- */
+.iv-maker { text-align: center; background: var(--iv-paper); border-radius: var(--iv-radius); padding: 36px 28px; }
+.iv-maker-name { font-family: var(--iv-font-head); font-weight: 800; font-size: 28px; }
+.iv-maker-tag { color: var(--iv-text-sub); font-size: 14px; }
+.iv-maker-body { margin-top: 18px; text-align: left; white-space: pre-line; }
+
+/* ---------- お問い合わせ ---------- */
+.iv-contact { background: var(--iv-navy); color: #fff; padding: 88px 0; text-align: center; }
+.iv-label-light { color: #ff9a90; }
+.iv-contact-title { font-family: var(--iv-font-head); font-weight: 800; font-size: clamp(24px, 4vw, 34px); line-height: 1.5; margin: 6px 0 20px; }
+.iv-contact-lead { color: #d6d9e0; margin-bottom: 36px; }
+.iv-contact-pending { display: inline-block; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 999px; padding: 12px 28px; font-size: 15px; }
+
+/* ---------- フッター ---------- */
+.iv-footer { background: var(--iv-navy-deep); color: #aab0bd; font-size: 13px; padding: 22px 0; }
+.iv-footer-inner { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+/* ---------- スマホ ---------- */
+@media (max-width: 860px) {
+  .iv-sp { display: inline; }
+  .iv-pc { display: none; }
+  .iv-menu-btn { display: flex; }
+  .iv-nav { display: none; position: absolute; top: 64px; left: 0; right: 0; flex-direction: column; align-items: stretch; gap: 0; background: #fff; border-bottom: 1px solid var(--iv-line); padding: 8px 24px 20px; }
+  .iv-nav.is-open { display: flex; }
+  .iv-nav a { padding: 12px 0; border-bottom: 1px solid var(--iv-line); }
+  .iv-nav .iv-nav-cta { margin-top: 14px; border-bottom: 0; }
+  .iv-hero { padding: 64px 0 72px; }
+  .iv-hero-sub { font-size: 15.5px; }
+  .iv-section, .iv-contact { padding: 64px 0; }
+  .iv-for-grid, .iv-about-list, .iv-flow, .iv-price-cards { grid-template-columns: 1fr; }
+  .iv-detail { grid-template-columns: 1fr; }
+  .iv-detail dt { padding-bottom: 4px; }
+  .iv-detail dd { padding-top: 10px; }
+  .iv-story-end { padding: 20px; }
+}

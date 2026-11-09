@@ -8181,6 +8181,14 @@ __metadata:
   languageName: node
   linkType: hard
 
+"interview@workspace:apps/interview":
+  version: 0.0.0-use.local
+  resolution: "interview@workspace:apps/interview"
+  dependencies:
+    nuxt: "npm:^4.5.2"
+  languageName: unknown
+  linkType: soft
+
 "iobuffer@npm:^5.3.2":
   version: 5.4.0
   resolution: "iobuffer@npm:5.4.0"
