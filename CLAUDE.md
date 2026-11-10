@@ -21,7 +21,7 @@ apps/
 ├── shimano-papa-self/         # shimano-papa の入口別LP①自分のための本（jibun-no-hon.insightlens.jp）
 ├── shimano-papa-grandparents/ # 同②祖父母へ贈る本（sofubo-no-hon.insightlens.jp）
 ├── shimano-papa-husband/      # 同③夫へ贈る本（otto-no-hon.insightlens.jp）
-├── interview/      # ライフインタビュー（まもりんの自伝インタビュー）のLP（interview.insightlens.jp）
+├── interview/      # ライフインタビュー（しゅごりんの自伝インタビュー）のLP（interview.insightlens.jp）
 ├── genogram/       # ジェノグラム作成ツール（Cloudflare Workers。AIテキスト解釈の1APIルートのみ持つ）
 └── production/     # 一般ユーザー向けの本番サービス（専用D1・専用ドメイン）
     ├── kikigaki/   # キキガキ本番版（Firebase Auth + Stripe + D1。Cloudflare Workers）
@@ -65,7 +65,7 @@ apps/
 | kaito2 | 3013 | 月ノ瀬 直のページのリニューアル版（kaito.insightlens.jp）。kaito の内容を要点に絞り直したもの。宮古ブルー（#00A3AF）＋サンセット（#FF6F61）、見出し=やさしさゴシック／本文=Noto Sans JP。料金・フォームURLは `src/config/site.ts` に集約 |
 | jibun-no-hon | 3014 | shimano-papa-self。「自分のための本」LP（jibun-no-hon.insightlens.jp）。shimano-papa の派生で、入口ごとの導入文・FAQ・色だけが違う。体験者の声はこのLPだけ |
 | sofubo-no-hon | 3015 | shimano-papa-grandparents。「祖父母へ贈る本」LP（sofubo-no-hon.insightlens.jp）。贈る側の不安に答える構成 |
-| interview | 3017 | ライフインタビュー（聞き手まもりん）のLP（interview.insightlens.jp）。色は manabi（紙色・紺・赤）、フォント・構成は shimano-papa 準拠。未確定の問い合わせ先・実施方法・プロフィールは `src/config/site.ts` に集約（空なら自動で案内文） |
+| interview | 3017 | ライフインタビュー（聞き手しゅごりん）のLP（interview.insightlens.jp）。色は manabi（紙色・紺・赤）、フォント・構成は shimano-papa 準拠。未確定の問い合わせ先・実施方法・プロフィールは `src/config/site.ts` に集約（空なら自動で案内文） |
 | otto-no-hon | 3016 | shimano-papa-husband。「夫へ贈る本」LP（otto-no-hon.insightlens.jp）。申し込みは妻、語り手は夫 |
 
 ### 本番サービス一覧

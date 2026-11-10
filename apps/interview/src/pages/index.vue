@@ -12,12 +12,10 @@
           </span>
           <span class="iv-logo-text">
             <span class="iv-logo-name">ライフインタビュー</span>
-            <span class="iv-logo-sub">by {{ site.makerName }}</span>
+            <span class="iv-logo-sub">LIFE INTERVIEW</span>
           </span>
         </a>
         <nav class="iv-nav" :class="{ 'is-open': isMenuOpen }">
-          <a href="#why" @click="isMenuOpen = false">なぜ、この仕事を</a>
-          <a href="#about" @click="isMenuOpen = false">インタビューとは</a>
           <a href="#flow" @click="isMenuOpen = false">ご利用の流れ</a>
           <a href="#price" @click="isMenuOpen = false">料金</a>
           <a href="#maker" @click="isMenuOpen = false">聞き手</a>
@@ -38,67 +36,14 @@
           <span class="iv-nb iv-hero-em">一冊の本に。</span>
         </h1>
         <p class="iv-hero-sub">
-          話したいことを、話したいだけ話してもらう。<br />
-          聞き手は、ただ聞いて、追いかけて、記録します。<br />
-          新しい一歩を踏み出す前に、人生を一度棚卸しする。
+          人生を振り返り、話したいテーマを気の向くままに語っていただきます。<br />
+          聞き手はひたすら聴くのみです。<br />
+          良し悪しを判断せず、ありのままに記録していきます。
         </p>
         <a href="#contact" class="iv-btn iv-btn-accent iv-btn-lg">
           {{ site.ctaLabel }}
           <span class="iv-btn-arrow" aria-hidden="true">→</span>
         </a>
-      </div>
-    </section>
-
-    <!-- なぜ、この仕事をするのか -->
-    <section id="why" class="iv-section">
-      <div class="iv-wrap iv-wrap-narrow">
-        <p class="iv-label">WHY</p>
-        <h2 class="iv-title">なぜ、この仕事をするのか</h2>
-        <div class="iv-story">
-          <p>私はずっと、本音を言えない場所で生きてきました。<br />
-            家でも、学校でも、会社でも、本当に感じていることを口にすると、否定されるか、なかったことにされる。<br />
-            だから気持ちを飲み込み、他人の物差しに合わせて、敷かれたレールの上を歩いてきました。<br />
-            外から見れば順調な人生でも、内側には、言葉にならない劣等感や怒り、満たされなさが、ずっと残っていました。</p>
-          <p>それが少しずつほどけたのは、話を聞いてもらえたときです。<br />
-            言えなかった思いを言葉にし、誰かに受け止めてもらい、形に残す。<br />
-            そうして初めて、自分の感じてきたことは間違っていなかったと思えるようになりました。</p>
-          <p>人生の本当の物語は、成功や功績の中だけにあるのではありません。<br />
-            むしろ、誰にも言えなかった後悔や嫉妬、恨みや弱さの中にこそ、その人らしさがあると思っています。</p>
-          <p class="iv-story-end">
-            <span class="iv-marker">大した功績はいりません。</span><br />
-            消されてきた気持ちを、じっくり聞いて、言葉にして、二度と消えない一冊にする。<br />
-            あなたが感じてきたことは、確かにあった。<br />
-            そう言える場所をつくるために、この仕事をしています。
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- 話すのは、あなた -->
-    <section id="about" class="iv-section iv-section-tint">
-      <div class="iv-wrap">
-        <p class="iv-label">ABOUT</p>
-        <h2 class="iv-title">話すのは、あなた。<br class="iv-sp" />聞くのが、私の仕事。</h2>
-        <p class="iv-lead">
-          インタビューは、話す時間のほとんどがあなたのものです。<br class="iv-pc" />
-          私はアドバイスや誘導はせず、聞くことに徹して、要所で気になったところを追いかけます。<br class="iv-pc" />
-          カウンセリングやコーチングと比べても、聞く割合が圧倒的に多いのが特徴です。
-        </p>
-        <p class="iv-lead">話したいことを話したいだけ話すことで、自分の中にあった思いが自然と整理されていきます。</p>
-
-        <h3 class="iv-sub">こんな方に</h3>
-        <ul class="iv-for-grid">
-          <li v-for="f in forYou" :key="f" class="iv-for">{{ f }}</li>
-        </ul>
-
-        <h3 class="iv-sub">メリット</h3>
-        <ol class="iv-about-list">
-          <li v-for="(a, i) in merits" :key="a.title" class="iv-about">
-            <span class="iv-about-num iv-num">{{ String(i + 1).padStart(2, '0') }}</span>
-            <h4>{{ a.title }}</h4>
-            <p>{{ a.body }}</p>
-          </li>
-        </ol>
       </div>
     </section>
 
@@ -153,6 +98,24 @@
           <p class="iv-maker-tag">{{ site.makerTagline }}</p>
           <p v-if="site.profile" class="iv-maker-body">{{ site.profile }}</p>
         </div>
+        <h3 class="iv-sub">なぜ、この仕事をするのか</h3>
+        <div class="iv-story">
+          <p>私はずっと、本音を言えない場所で生きてきました。<br />
+            家でも、学校でも、会社でも、本当に感じていることを口にすると、否定されるか、なかったことにされる。<br />
+            だから気持ちを飲み込み、他人の物差しに合わせて、敷かれたレールの上を歩いてきました。<br />
+            外から見れば順調な人生でも、内側には、言葉にならない劣等感や怒り、満たされなさが、ずっと残っていました。</p>
+          <p>それが少しずつほどけたのは、話を聞いてもらえたときです。<br />
+            言えなかった思いを言葉にし、誰かに受け止めてもらい、形に残す。<br />
+            そうして初めて、自分の感じてきたことは間違っていなかったと思えるようになりました。</p>
+          <p>人生の本当の物語は、成功や功績の中だけにあるのではありません。<br />
+            むしろ、誰にも言えなかった後悔や嫉妬、恨みや弱さの中にこそ、その人らしさがあると思っています。</p>
+          <p class="iv-story-end">
+            <span class="iv-marker">大した功績はいりません。</span><br />
+            消されてきた気持ちを、じっくり聞いて、言葉にして、二度と消えない一冊にする。<br />
+            あなたが感じてきたことは、確かにあった。<br />
+            そう言える場所をつくるために、この仕事をしています。
+          </p>
+        </div>
       </div>
     </section>
 
@@ -188,7 +151,7 @@ import { site } from '~/config/site'
 definePageMeta({ layout: 'interview' })
 
 const title = 'ライフインタビュー｜言えなかった思いを、一冊の本に'
-const description = '話したいことを、話したいだけ。聞き手は、ただ聞いて、追いかけて、記録します。人生を一度棚卸しして、一冊の本に。'
+const description = '人生を振り返り、話したいテーマを気の向くままに語る。聞き手はひたすら聴き、善悪を判断せず、ありのままに記録して一冊の本にします。'
 useHead({
   title,
   meta: [
@@ -202,18 +165,6 @@ useHead({
 })
 
 const isMenuOpen = ref(false)
-
-const forYou = [
-  '新しい一歩を踏み出そうとしていて、これまでを一度整理したい方',
-  '40代・子育て世代で、人生を振り返って棚卸ししたい方',
-  'お孫さんやお子さんに、自分の人生を残したい方',
-]
-
-const merits = [
-  { title: '自己理解が深まる', body: '人生を語ることで、普段は意識しない領域まで考えが及びます。思ってもみなかった親への感謝が湧くこともあります。' },
-  { title: '自分の言葉を、いろんな角度から読み返せる', body: '文字起こししてまとめた内容を読み返し、自分の発言を見直せます。' },
-  { title: '一冊の本として手元に残る', body: 'ご希望なら製本します。' },
-]
 
 const steps = [
   { title: '最初の30分', body: 'どんなことを話したいかを一緒に整理します。' },

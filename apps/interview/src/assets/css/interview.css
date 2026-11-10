@@ -89,6 +89,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 72px; }
 
 /* ---------- 物語 ---------- */
 .iv-story p { margin-bottom: 1.8em; }
+.iv-maker + .iv-sub { margin-top: 56px; }
 .iv-story-end { background: var(--iv-paper); border-left: 4px solid var(--iv-accent); border-radius: 0 var(--iv-radius) var(--iv-radius) 0; padding: 24px 28px; margin: 0; }
 
 /* ---------- こんな方に・メリット ---------- */

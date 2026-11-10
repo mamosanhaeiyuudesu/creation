@@ -597,7 +597,9 @@ watch(
 // 開いた欄（判断しきれなかったところ・元のテキスト）の外を押したら閉じる
 function onDocPointerDown(e: PointerEvent) {
   const target = e.target as Node
-  if (unclearOpen.value && !unclearSlot.value?.contains(target)) unclearOpen.value = false
+  // 「AIで修正」の欄（入力・修正ボタン）を触っても閉じない。開いたまま続けて直せるように
+  const inRevise = !!(target as HTMLElement).closest?.('.kk-assist-card:not(.kk-assist-card--unclear)')
+  if (unclearOpen.value && !inRevise && !unclearSlot.value?.contains(target)) unclearOpen.value = false
   // 「元のテキスト」ボタン自体は開け閉めを受け持つので除く（ここで閉じると、押した直後にまた開いてしまう）
   if (sourceOpen.value && !sourceAside.value?.contains(target) && !sourceToggle.value?.contains(target)) {
     sourceOpen.value = false

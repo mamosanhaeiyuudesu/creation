@@ -4,7 +4,7 @@
  */
 export const site = {
   domain: 'interview.insightlens.jp',
-  makerName: 'まもりん',
+  makerName: 'しゅごりん',
   /** 聞き手の肩書き */
   makerTagline: 'ライフインタビュアー',
   /** お問い合わせ先（Googleフォームなど）。決まったらURLを入れる */
