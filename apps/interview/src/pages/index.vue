@@ -79,6 +79,12 @@
             <p class="iv-price-big"><span class="iv-num">+{{ site.prices.book }}</span>円</p>
           </div>
         </div>
+        <div class="iv-price-card iv-price-trial">
+          <p class="iv-price-tag">単発のお試し</p>
+          <p class="iv-price-name">1時間のインタビュー＋記事1本</p>
+          <p class="iv-price-note">noteやブログにそのまま使える記事に仕上げてお渡しします。まずは1回だけ試したい方に。</p>
+          <p class="iv-price-big"><span class="iv-num">{{ site.prices.trial }}</span>円</p>
+        </div>
         <dl class="iv-details">
           <div v-for="d in details" :key="d.label" class="iv-detail">
             <dt>{{ d.label }}</dt>

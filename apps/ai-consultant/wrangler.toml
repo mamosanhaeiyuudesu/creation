@@ -1,0 +1,15 @@
+name = "ai-consultant"
+compatibility_date = "2026-03-12"
+
+# カスタムドメイン（insightlens.jp は同一 Cloudflare アカウントの Zone である必要あり）
+routes = [
+  { pattern = "ai-consultant.insightlens.jp", custom_domain = true }
+]
+
+[build]
+command = "yarn build"
+
+# nuxt generate による完全な静的サイト。アセット配信のみの Worker
+[assets]
+directory = ".output/public"
+not_found_handling = "404-page"
