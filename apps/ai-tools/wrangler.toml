@@ -54,6 +54,9 @@ database_id = "a89cb679-8a17-4d46-9c90-dada3e35691b"
 #   wrangler d1 execute whisper-db --remote --file src/server/db/063_farm_manager.sql
 # farm-simulation テーブル追加:
 #   wrangler d1 execute whisper-db --remote --file src/server/db/073_farm_simulation.sql
+# farm-simulator（収穫・出荷の見通し）の天気キャッシュ:
+#   wrangler d1 execute whisper-db --remote --file src/server/db/076_farm_simulator.sql
+#   （予報は cron ではなく開いたときに取り直す。下の「cronトリガーは5個まで」のため）
 # palette テーブル追加:
 #   wrangler d1 execute whisper-db --remote --file src/server/db/074_palette.sql
 # palette「テキスト → 動画」テーブル追加:

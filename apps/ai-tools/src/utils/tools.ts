@@ -38,6 +38,7 @@ export const SECTIONS: Section[] = [
       { path: '/games/panel-de-pon', icon: '🎴', name: 'パネルでポン', desc: 'SFC版パネルでポンをブラウザで。パネルを入れ替えて3つ以上並べて消す。' },
       { path: '/games/kendo2', icon: '🥋', name: '剣道 三本勝負', desc: '親子対戦もCOM対戦もできる剣道ゲーム。' },
       { path: 'https://genogram.insightlens.jp', icon: '🧬', name: 'ジェノグラム', desc: '家族構成をAIに伝えると、家系図(ジェノグラム)と感情関係図をその場に描画する。', tags: ['別ドメイン'] },
+      { path: '/farm-simulator', icon: '🍑', name: '収穫・出荷の見通し', desc: '過去の収穫・出荷の記録と気象庁の天気（かつらぎ）から、これからの量と時期を幅つきで見通す。気温や単価を変えて試せる。', tags: ['要ログイン'] },
       { path: '/farm-simulation', icon: '🔭', name: '経営の見直し', desc: '確定申告書を読み込むだけ。資材費の上昇などの前提を変えながら、10年先の利益と対応策の効果を試せる。', tags: ['要ログイン'] },
     ],
   },
