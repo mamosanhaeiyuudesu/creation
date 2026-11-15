@@ -1991,8 +1991,7 @@ onUnmounted(() => {
   padding: 0.1rem 0.3rem;
 }
 /* 行の削除はゴミ箱アイコン（一覧・見出しの「削除」とそろえる）。左の列のいちばん下に置く。
-   PCではその項目に乗せたとき・入力中のときだけ出し、並んだ項目の邪魔をしない。
-   スマホは乗せる操作が無いので、常に薄く出しておく */
+   乗せなくても常に薄く出しておく（乗せたとき・フォーカス時に濃くなる） */
 .kk-row-del {
   flex: none;
   width: 1.6rem;
@@ -2016,15 +2015,6 @@ onUnmounted(() => {
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-@media (hover: hover) {
-  .kk-row-del {
-    opacity: 0;
-  }
-  .kk-item:hover .kk-row-del,
-  .kk-item:focus-within .kk-row-del {
-    opacity: 0.7;
-  }
 }
 .kk-row-del:hover,
 .kk-row-del:focus-visible {
