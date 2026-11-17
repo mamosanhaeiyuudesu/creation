@@ -163,8 +163,8 @@ useHead({
   ],
 })
 
-// モニター期間中の無料告知は、有料化の切り替えに合わせて見直すこと（apps/production/kikigaki/src/config/service.ts の monitorMode）
-const heroNote = '今はモニター期間として、無料でお使いいただけます。'
+// 無料枠の告知。本体の料金・無料枠を変えたら合わせること（apps/production/kikigaki/src/config/service.ts の priceLabel / limits.freeMonthlyBudgetUsd）
+const heroNote = '毎月、一定の範囲までは無料。たくさん使いたい方は月額490円（税込）です。'
 
 const isMenuOpen = ref(false)
 const zoom = ref<{ img: string, alt: string } | null>(null)

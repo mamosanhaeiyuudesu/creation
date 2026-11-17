@@ -6,7 +6,7 @@
       <aside
         v-if="isLoggedIn"
         class="kk-side"
-        :class="{ 'is-resizing': resizing }"
+        :class="{ 'is-resizing': resizing, 'is-settings-open': settingsOpen }"
         :style="{ '--kk-side-w': `${sideWidth}px` }"
       >
         <!-- 右端をドラッグして幅を変える（PCのみ）。ダブルクリックで元の幅に戻す -->
@@ -454,6 +454,11 @@ const wide = computed(() => route.meta.wide === true)
   }
   .kk-shell--wide .kk-side-inner {
     max-height: 100%;
+  }
+  /* sticky の中身は独立した重なりの枠になり、設定ポップアップの z-index が外のつまみ(z-index:5)に勝てない。
+     設定を開いている間だけ、中身ごとつまみより上に出す */
+  .kk-side.is-settings-open .kk-side-inner {
+    z-index: 6;
   }
   .kk-side .kk-side-head,
   .kk-side .kk-side-foot {
