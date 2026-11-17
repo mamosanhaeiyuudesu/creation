@@ -154,7 +154,8 @@
       </p>
 
       <p v-if="usageExhausted && !pendingApproval" class="kk-notice kk-notice--warn mt-3 mb-0">
-        今月のAI利用量を使い切りました。来月1日から、またお使いいただけます。
+        <template v-if="usageFreeTier">今月の無料の分を使い切りました。続けるには「設定」からお支払いの手続きをしてください。来月1日にはまた無料の分が戻ります。</template>
+        <template v-else>今月のAI利用量を使い切りました。来月1日から、またお使いいただけます。</template>
       </p>
 
       <!-- 始める操作。押しても画面は変わらず、下のシートで入力する -->
@@ -518,6 +519,7 @@ watch(tagsVersion, () => {
 })
 const pendingApproval = useState<boolean>('kk-pending-approval', () => false)
 const usageExhausted = useState<boolean>('kk-usage-exhausted', () => false)
+const usageFreeTier = useState<boolean>('kk-usage-free-tier', () => false)
 
 // ── 一覧から開かずにPDF・ドライブ保存 ──
 const savedMessage = ref('')

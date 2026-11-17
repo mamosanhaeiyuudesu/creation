@@ -97,7 +97,7 @@
     <!-- 今月の利用量 -->
     <section v-if="!withdrawn" class="kk-set-sec">
       <h2 class="kk-set-title">
-        今月のAI利用量
+        {{ usage?.freeTier ? '今月の無料でお使いいただける分' : '今月のAI利用量' }}
         <span v-if="usage" class="kk-set-num">{{ usage.usedPercent }}%</span>
       </h2>
       <p v-if="!usage" class="kk-set-text">読み込んでいます…</p>
@@ -105,7 +105,10 @@
         <div class="kk-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="usage.usedPercent">
           <div class="kk-meter-fill" :class="{ 'kk-meter-fill--warn': usage.usedPercent >= 80 }" :style="{ width: usage.usedPercent + '%' }" />
         </div>
-        <p v-if="!usage.exhausted && usage.usedPercent >= 80" class="kk-set-note">もうすぐ今月のAI利用量を使い切ります。</p>
+        <p v-if="!usage.exhausted && usage.usedPercent >= 80" class="kk-set-note">
+          {{ usage.freeTier ? 'もうすぐ今月の無料の分を使い切ります。続けるにはお支払いの手続きが必要です。' : 'もうすぐ今月のAI利用量を使い切ります。' }}
+        </p>
+        <p v-else-if="usage.exhausted && usage.freeTier" class="kk-set-note">今月の無料の分を使い切りました。続けるには下のお支払いの手続きをしてください。</p>
       </template>
     </section>
 
@@ -142,7 +145,7 @@
             最初の{{ trialLabel(billing.trialDays) }}は無料です。そのあと{{ priceLabel }}で、毎月自動でお支払いになります。いつでも解約できます。
           </template>
           <template v-else>
-            お支払いの手続きがまだです。手続きをすると、すべての機能が使えます（{{ priceLabel }}）。
+            毎月、一定の量までは無料でお使いいただけます。それを超えて使うには、{{ priceLabel }}のお支払いの手続きが必要です（毎月同じ日に自動でお支払いになります。いつでも解約できます）。
           </template>
         </p>
         <p v-if="billing.active && billing.cancelAtPeriodEnd" class="kk-notice kk-notice--warn mt-2">
@@ -248,7 +251,7 @@ const savedMessage = ref('')
 watch([errorMessage, savedMessage], ([err, saved]) => {
   if (err || saved) settingsOpen.value = true
 })
-const usage = ref<{ usedPercent: number; exhausted: boolean } | null>(null)
+const usage = ref<{ usedPercent: number; exhausted: boolean; freeTier?: boolean } | null>(null)
 const billing = ref<BillingStatus | null>(null)
 const billingBusy = ref(false)
 /** 左メニュー（スマホは上の帯）に「管理画面」を出すか（表示だけ。守りは /api/admin/* の入口で行う） */
@@ -257,6 +260,7 @@ const isAdmin = useState<boolean>('kk-is-admin', () => false)
 const pendingApproval = useState<boolean>('kk-pending-approval', () => false)
 /** 今月の分を使い切ったか（トップの「議事録を作る」ボタンを止めるため。止めるのはサーバー側も同じ） */
 const usageExhausted = useState<boolean>('kk-usage-exhausted', () => false)
+const usageFreeTier = useState<boolean>('kk-usage-free-tier', () => false)
 
 /** 30日 → 「1か月」。それ以外は「◯日間」 */
 function trialLabel(days: number): string {
@@ -275,6 +279,7 @@ async function load() {
     withdrawn.value = me.withdrawn ?? null
     usage.value = me.usage
     usageExhausted.value = !!me.usage?.exhausted
+    usageFreeTier.value = !!me.usage?.freeTier
     isAdmin.value = !!me.isAdmin
     pendingApproval.value = !!me.pendingApproval
     if (me.withdrawn) return

@@ -11,7 +11,7 @@ routes = [
 [vars]
 # モニター期間のフラグ。コードを変えずに有料化へ切り替えるためここに置く
 # （既定値は src/config/service.ts。"false" にすると契約状態で利用可否を判定するようになる）
-NUXT_PUBLIC_MONITOR_MODE = "true"
+NUXT_PUBLIC_MONITOR_MODE = "false"
 
 # Firebase のウェブ設定（公開前提の値＝ブラウザに出るものなので、秘密扱いにしない）
 NUXT_PUBLIC_FIREBASE_API_KEY = "AIzaSyDRgUbxwkBSP4alI-Kk3M22P-gSWXsjRQ8"

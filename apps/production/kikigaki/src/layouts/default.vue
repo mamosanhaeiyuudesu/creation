@@ -63,6 +63,7 @@
             新しく作る
           </button>
           <p v-if="pendingApproval" class="kk-side-reason">ただいま利用の準備中です。準備ができしだい作れるようになります。</p>
+          <p v-else-if="usageExhausted && usageFreeTier" class="kk-side-reason">今月の無料の分を使い切りました。続けるには「設定」からお支払いの手続きをしてください。</p>
           <p v-else-if="usageExhausted" class="kk-side-reason">今月のAI利用量を使い切りました。来月1日から、また作れます。</p>
 
           <!-- 一番下: 設定（押すと上にポップアップで開く）と、右端にご意見 -->
@@ -184,6 +185,7 @@ const adminSwitch = computed(() =>
 const textSheetOpen = useState<boolean>('kk-text-sheet-open', () => false)
 const pendingApproval = useState<boolean>('kk-pending-approval', () => false)
 const usageExhausted = useState<boolean>('kk-usage-exhausted', () => false)
+const usageFreeTier = useState<boolean>('kk-usage-free-tier', () => false)
 const { records, loaded: recordsLoaded } = useRecordList()
 
 // 議事録を作る仕事の見張り（できたら開く・スマホで戻ってきたらすぐ見直す）。ここで1つだけ持つ

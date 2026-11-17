@@ -4,7 +4,7 @@
 import { requireDb, ensureTables } from '~/server/utils/db'
 import { adminOf, isAdminId } from '~/server/utils/admin'
 import { isMonitorMode } from '~/server/utils/entitlement'
-import { toStatus } from '~/server/utils/usage'
+import { budgetUnits, freeBudgetUnits, toStatus } from '~/server/utils/usage'
 import { canUseFeatures, isPendingApproval } from '~/utils/entitlement'
 import { SERVICE } from '~/config/service'
 import { jstYearMonth, utcToJstLabel } from '~/utils/formatDate'
@@ -70,6 +70,8 @@ export default defineEventHandler(async (event) => {
     const isAdmin = isAdminId(event, r.id)
     const freeAccess = !!r.free_access
     const units = Number(r.cost_units) || 0
+    const fullAccess = canUseFeatures({ monitorMode, status: r.status ?? '', freeAccess: freeAccess || isAdmin })
+    const usage = toStatus(units, fullAccess ? budgetUnits() : freeBudgetUnits())
     const pending = isPendingApproval({ approvalRequired: SERVICE.approvalRequired, isAdmin, approved: !!r.approved })
     return {
       id: r.id,
@@ -78,7 +80,7 @@ export default defineEventHandler(async (event) => {
       createdAt: utcToJstLabel(r.created_at ?? ''),
       lastLoginAt: utcToJstLabel(r.last_login_at ?? ''),
       recordCount: Number(r.record_count) || 0,
-      usedPercent: toStatus(units).usedPercent,
+      usedPercent: usage.usedPercent,
       costYen: Math.round((units / UNITS_PER_USD) * JPY_PER_USD),
       status: r.status ?? '',
       currentPeriodEnd: r.current_period_end ?? '',
@@ -90,7 +92,7 @@ export default defineEventHandler(async (event) => {
       withdrawn: !r.withdrawn_at ? '' : withdrawnKindOf(r.delete_after ?? ''),
       deleteAfter: deleteAfterLabel(r.delete_after ?? ''),
       deletionDue: !!r.withdrawn_at && isDeletionDue(r.delete_after ?? ''),
-      canUse: !r.withdrawn_at && !pending && canUseFeatures({ monitorMode, status: r.status ?? '', freeAccess: freeAccess || isAdmin }),
+      canUse: !r.withdrawn_at && !pending && (fullAccess || !usage.exhausted),
     }
   })
 

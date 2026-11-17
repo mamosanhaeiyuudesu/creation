@@ -14,6 +14,7 @@
 import type { H3Event } from 'h3'
 import { requireDb, ensureTables } from '~/server/utils/db'
 import { SERVICE } from '~/config/service'
+import { hasFullAccess } from '~/server/utils/entitlement'
 import { jstYearMonth } from '~/utils/formatDate'
 
 /**
@@ -47,10 +48,17 @@ export interface UsageStatus {
   usedPercent: number
   /** 上限に達しているか */
   exhausted: boolean
+  /** 無料枠の人か（true なら上限は無料枠。使い切ったら月額プランの契約が要る） */
+  freeTier?: boolean
 }
 
 export function budgetUnits(): number {
   return Math.round(SERVICE.limits.monthlyBudgetUsd * UNITS_PER_USD)
+}
+
+/** 無料枠の上限（契約していない人） */
+export function freeBudgetUnits(): number {
+  return Math.round(SERVICE.limits.freeMonthlyBudgetUsd * UNITS_PER_USD)
 }
 
 /** 割合の計算（純粋関数。テスト用に切り出している） */
@@ -70,17 +78,28 @@ async function loadUsedUnits(event: H3Event, userId: string): Promise<number> {
 }
 
 export async function loadUsageStatus(event: H3Event, userId: string): Promise<UsageStatus> {
-  return toStatus(await loadUsedUnits(event, userId))
+  const freeTier = !(await hasFullAccess(event, userId))
+  const status = toStatus(await loadUsedUnits(event, userId), freeTier ? freeBudgetUnits() : budgetUnits())
+  return { ...status, freeTier }
 }
 
-/** AIを呼んでよいか。上限に達していたら 429 */
+/**
+ * AIを呼んでよいか。
+ * 無料枠を使い切った人には 402（月額プランの契約をご案内）、契約中の人が月の上限に達したら 429。
+ */
 export async function requireAiAllowance(event: H3Event, userId: string): Promise<void> {
-  if ((await loadUsageStatus(event, userId)).exhausted) {
+  const status = await loadUsageStatus(event, userId)
+  if (!status.exhausted) return
+  if (status.freeTier) {
     throw createError({
-      statusCode: 429,
-      message: '今月のAI利用量を使い切りました。来月1日から、またお使いいただけます。',
+      statusCode: 402,
+      message: '今月の無料でお使いいただける分を使い切りました。続けるには「設定」からお支払いの手続きをしてください。来月1日にはまた無料分が戻ります。',
     })
   }
+  throw createError({
+    statusCode: 429,
+    message: '今月のAI利用量を使い切りました。来月1日から、またお使いいただけます。',
+  })
 }
 
 /** 使ったぶんを足す。行が無ければ作る */

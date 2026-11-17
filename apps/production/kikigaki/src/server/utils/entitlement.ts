@@ -18,30 +18,25 @@ export function isMonitorMode(event: H3Event): boolean {
   return parseMonitorMode((useRuntimeConfig(event).public as any).monitorMode)
 }
 
+/** 契約なしでも広く使える人か（モニター期間中・管理者・支払い不要の指定・契約が有効な人）。それ以外は無料枠の人 */
+export async function hasFullAccess(event: H3Event, userId: string): Promise<boolean> {
+  if (isMonitorMode(event)) return true
+  if (await hasFreeAccess(event, userId)) return true
+  const row = await loadSubscription(event, userId)
+  return canUseFeatures({ monitorMode: false, status: row?.status ?? '' })
+}
+
 /**
- * 有料モードのとき、契約が有効でなければ 402 で断る。
- * モニター期間中は契約状態を読みに行かない（D1へのアクセスを1回節約できる）。
+ * 使い始めてよいか。承認制のときだけ止める。
+ * 契約が無い人も、無料枠（SERVICE.limits.freeMonthlyBudgetUsd）のあいだは使える。
+ * 無料枠を使い切ったかどうかは、AIを呼ぶ前に requireAiAllowance（utils/usage.ts）が 402 で断る。
  */
 export async function requireEntitlement(event: H3Event, userId: string): Promise<void> {
-  // 承認制の間は、承認されるまで止める（モニター期間中でも。URLを知っていれば誰でも登録できるため）
+  // 承認制の間は、承認されるまで止める（URLを知っていれば誰でも登録できるため）
   if (await isPending(event, userId)) {
     throw createError({
       statusCode: 403,
       message: 'ただいま利用の準備中です。準備ができしだい、お使いいただけるようになります。',
     })
   }
-
-  const monitorMode = isMonitorMode(event)
-  if (monitorMode) return
-
-  // 管理者・運営者が支払い不要にした人は、契約を見ずに通す
-  if (await hasFreeAccess(event, userId)) return
-
-  const row = await loadSubscription(event, userId)
-  if (canUseFeatures({ monitorMode, status: row?.status ?? '' })) return
-
-  throw createError({
-    statusCode: 402,
-    message: 'お使いいただくには、お支払いの手続きが必要です。「設定」からお手続きください。',
-  })
 }
