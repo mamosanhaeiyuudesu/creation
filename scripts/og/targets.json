@@ -59,5 +59,7 @@
   { "id": "otto-no-hon", "out": "apps/shimano-papa-husband/src/public/og.jpg",
     "params": { "kicker": "夫へ贈る本", "title": "家では見せない顔を、\n子どもたちへ。", "lead": "奥さまから贈る、\n夫の自伝本。", "photo": "apps/shimano-papa/src/public/papa.jpg", "site": "otto-no-hon.insightlens.jp", "main": "#7fb8a4", "main2": "#1f3b3a", "ink": "#14292a", "font": "maru" } },
   { "id": "shugorin", "out": "apps/shugorin/src/public/og.jpg",
-    "params": { "kicker": "親子問題専門のカウンセリング", "title": "生きづらさの根っこに\n向き合う", "lead": "自由な対話で、思考パターンや生い立ちの\n理解を深めるオンラインカウンセリング。", "photo": "apps/shugorin/src/public/images/counselor-portrait.jpg", "site": "shugorin.insightlens.jp", "main": "#007686", "main2": "#005b69" } }
+    "params": { "kicker": "親子問題専門のカウンセリング", "title": "生きづらさの根っこに\n向き合う", "lead": "自由な対話で、思考パターンや生い立ちの\n理解を深めるオンラインカウンセリング。", "photo": "apps/shugorin/src/public/images/counselor-portrait.jpg", "site": "shugorin.insightlens.jp", "main": "#007686", "main2": "#005b69" } },
+  { "id": "kikigaki-promotion", "out": "apps/kikigaki-promotion/src/public/og.jpg",
+    "params": { "kicker": "キキガキ", "title": "大切な会話を、\n記録して読み返す", "lead": "会話の文章を貼るだけで、議事録とPDFに。\n一枚で見れる・履歴一覧・NotebookLM連携。", "emoji": "📝", "site": "kikigaki-promotion.insightlens.jp", "main": "#f08c1e", "main2": "#d97606", "ink": "#1f2a37" } }
 ]
