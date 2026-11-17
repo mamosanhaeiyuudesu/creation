@@ -21,6 +21,7 @@ apps/
 ├── shimano-papa-self/         # shimano-papa の入口別LP①自分のための本（jibun-no-hon.insightlens.jp）
 ├── shimano-papa-grandparents/ # 同②祖父母へ贈る本（sofubo-no-hon.insightlens.jp）
 ├── shimano-papa-husband/      # 同③夫へ贈る本（otto-no-hon.insightlens.jp）
+├── kikigaki-promotion/ # キキガキのプロモーションLP（kikigaki-promotion.insightlens.jp。たたき段階）
 ├── interview/      # ライフインタビュー（しゅごりんの自伝インタビュー）のLP（interview.insightlens.jp）
 ├── ai-consultant/  # AI活用相談（1on1・10回10万円）のLP（ai-consultant.insightlens.jp）
 ├── genogram/       # ジェノグラム作成ツール（Cloudflare Workers。AIテキスト解釈の1APIルートのみ持つ）
@@ -68,6 +69,7 @@ apps/
 | sofubo-no-hon | 3015 | shimano-papa-grandparents。「祖父母へ贈る本」LP（sofubo-no-hon.insightlens.jp）。贈る側の不安に答える構成 |
 | interview | 3017 | ライフインタビュー（聞き手しゅごりん）のLP（interview.insightlens.jp）。色は manabi（紙色・紺・赤）、フォント・構成は shimano-papa 準拠。未確定の問い合わせ先・実施方法・プロフィールは `src/config/site.ts` に集約（空なら自動で案内文） |
 | ai-consultant | 3018 | AI活用相談のLP（ai-consultant.insightlens.jp）。個人でAIを仕事に使いたい人向けに、要望を事前に聞いて1on1で教える10回コース（10万円・1回60分）＋単発お試し60分5,000円。担当は prototyper と同じまもりん（問い合わせフォームも同じ）。interview と同じ構成で、アクセントだけ青緑。料金・問い合わせ先・実施方法・プロフィールは `src/config/site.ts` に集約 |
+| kikigaki-promotion | 3019 | キキガキのプロモーションLP（kikigaki-promotion.insightlens.jp）。**たたき段階**（`site.draft` が true の間は noindex）。生成り＋オレンジのあたたかい見た目。訴求は「大切な会話を記録して読み返す」・強みは一枚で見れる／履歴一覧／ドライブ→NotebookLM。URL・無料告知は `src/config/site.ts` と `pages/index.vue` |
 | otto-no-hon | 3016 | shimano-papa-husband。「夫へ贈る本」LP（otto-no-hon.insightlens.jp）。申し込みは妻、語り手は夫 |
 
 ### 本番サービス一覧

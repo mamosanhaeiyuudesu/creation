@@ -42,6 +42,7 @@ const pages = [
   { url: 'http://localhost:3012', icon: '📖', name: '島のパパ', desc: 'インタビューで自伝本をつくる' },
   { url: 'http://localhost:3017', icon: '🎙️', name: 'ライフインタビュー', desc: 'しゅごりんの人生インタビュー（interview.insightlens.jp）' },
   { url: 'http://localhost:3018', icon: '💡', name: 'AI活用相談', desc: 'AIの使い方を1on1でレクチャー（ai-consultant.insightlens.jp）' },
+  { url: 'http://localhost:3019', icon: '📒', name: 'キキガキ プロモーション', desc: 'キキガキの紹介LP・たたき（kikigaki-promotion.insightlens.jp）' },
   { url: 'http://localhost:3014', icon: '🖋️', name: '自分のための本', desc: '島のパパ派生LP（自分のために）' },
   { url: 'http://localhost:3015', icon: '🎁', name: '祖父母へ贈る本', desc: '島のパパ派生LP（祖父母へ）' },
   { url: 'http://localhost:3016', icon: '👔', name: '夫へ贈る本', desc: '島のパパ派生LP（夫へ）' },

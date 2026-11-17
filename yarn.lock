@@ -8802,6 +8802,14 @@ __metadata:
   languageName: node
   linkType: hard
 
+"kikigaki-promotion@workspace:apps/kikigaki-promotion":
+  version: 0.0.0-use.local
+  resolution: "kikigaki-promotion@workspace:apps/kikigaki-promotion"
+  dependencies:
+    nuxt: "npm:^4.5.2"
+  languageName: unknown
+  linkType: soft
+
 "kikigaki@workspace:apps/production/kikigaki":
   version: 0.0.0-use.local
   resolution: "kikigaki@workspace:apps/production/kikigaki"

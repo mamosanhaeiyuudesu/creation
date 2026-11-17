@@ -1,0 +1,118 @@
+/*
+ * kikigaki-promotion.insightlens.jp（キキガキのプロモーションLP）
+ * あたたかみ重視：生成り色の紙＋インク紺。アクセントはキキガキ本体のCTAと同じオレンジ。
+ */
+
+.kp-page {
+  --kp-paper: #fbf6ec;
+  --kp-warm: #fdeedb;
+  --kp-ink: #2a2f3a;
+  --kp-ink-sub: #5d6472;
+  --kp-cta: #f08c1e;
+  --kp-cta-deep: #d97606;
+  --kp-blue: #1d6fd6;
+  --kp-line: #eadfcb;
+  --kp-radius: 14px;
+  --kp-shadow: 0 4px 18px rgba(80, 55, 20, 0.08);
+  --kp-font: 'Noto Sans JP', 'メイリオ', sans-serif;
+  --kp-font-head: 'Shippori Mincho', 'Noto Serif JP', serif;
+
+  font-family: var(--kp-font);
+  color: var(--kp-ink);
+  background: #fff;
+  font-size: 17px;
+  line-height: 1.95;
+  -webkit-font-smoothing: antialiased;
+}
+
+.kp-page *, .kp-page *::before, .kp-page *::after { box-sizing: border-box; }
+:where(.kp-page) :where(h1, h2, h3, h4, p, ul, ol, dl, dd) { margin: 0; padding: 0; }
+:where(.kp-page) :where(ul, ol) { list-style: none; }
+.kp-page a { color: inherit; text-decoration: none; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+
+.kp-wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+.kp-wrap-narrow { max-width: 780px; }
+.kp-num { font-family: var(--kp-font-head); }
+.kp-nb { display: inline-block; }
+.kp-marker { background: linear-gradient(transparent 58%, rgba(240, 140, 30, 0.3) 58%); font-weight: 700; }
+
+.kp-draft { background: #2a2f3a; color: #fff; text-align: center; font-size: 13px; padding: 6px 12px; }
+
+/* ボタン */
+.kp-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+  padding: 12px 26px; border-radius: 999px; font-weight: 700; font-size: 15px; line-height: 1.4;
+  transition: background 0.2s, transform 0.2s;
+}
+.kp-btn:hover { transform: translateY(-2px); }
+.kp-page .kp-btn-cta { background: var(--kp-cta); color: #fff; box-shadow: 0 4px 14px rgba(240, 140, 30, 0.35); }
+.kp-btn-cta:hover { background: var(--kp-cta-deep); }
+.kp-btn-lg { padding: 18px 40px; font-size: 18px; min-height: 56px; }
+.kp-btn-arrow { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: #fff; color: var(--kp-cta-deep); font-size: 15px; }
+
+/* ヘッダー */
+.kp-header { position: sticky; top: 0; z-index: 50; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--kp-line); }
+.kp-header-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+.kp-logo { display: flex; align-items: center; gap: 10px; }
+.kp-logo-mark { font-size: 24px; line-height: 1; }
+.kp-logo-name { font-family: var(--kp-font-head); font-weight: 800; font-size: 20px; }
+.kp-header-cta { padding: 9px 20px; font-size: 14px; }
+
+/* ヒーロー */
+.kp-hero { background: var(--kp-paper); border-bottom: 1px solid var(--kp-line); padding: 88px 0 96px; text-align: center; }
+.kp-hero-tag { color: var(--kp-cta-deep); font-weight: 700; letter-spacing: 0.12em; font-size: 15px; margin-bottom: 20px; }
+.kp-hero-catch { font-family: var(--kp-font-head); font-weight: 800; font-size: clamp(30px, 5.6vw, 54px); line-height: 1.55; }
+.kp-hero-em { background: linear-gradient(transparent 62%, rgba(240, 140, 30, 0.3) 62%); }
+.kp-hero-sub { margin: 28px auto 36px; color: var(--kp-ink-sub); font-size: 18px; }
+.kp-hero-note { margin-top: 18px; font-size: 14px; color: var(--kp-ink-sub); }
+
+/* セクション共通 */
+.kp-section { padding: 84px 0; }
+.kp-section-tint { background: var(--kp-paper); }
+.kp-section-warm { background: var(--kp-warm); }
+.kp-label { font-family: var(--kp-font-head); font-weight: 700; letter-spacing: 0.25em; color: var(--kp-cta-deep); font-size: 14px; margin-bottom: 8px; }
+.kp-title { font-family: var(--kp-font-head); font-weight: 800; font-size: clamp(24px, 3.6vw, 34px); line-height: 1.6; margin-bottom: 28px; }
+.kp-lead { color: var(--kp-ink-sub); margin-bottom: 28px; }
+.kp-note { margin-top: 24px; font-size: 14px; color: var(--kp-ink-sub); }
+.kp-story p + p { margin-top: 20px; }
+.kp-story-end { font-size: 18px; }
+
+/* こんな方に */
+.kp-for-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.kp-for { background: #fff; border: 1px solid var(--kp-line); border-radius: var(--kp-radius); padding: 18px 20px 18px 48px; position: relative; box-shadow: var(--kp-shadow); }
+.kp-for::before { content: '✓'; position: absolute; left: 18px; top: 16px; color: var(--kp-cta-deep); font-weight: 700; }
+
+/* 使い方・強み */
+.kp-flow, .kp-strengths { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.kp-flow-item, .kp-strength { background: #fff; border: 1px solid var(--kp-line); border-radius: var(--kp-radius); padding: 28px 24px; box-shadow: var(--kp-shadow); }
+.kp-flow-num, .kp-strength-num {
+  display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px;
+  border-radius: 50%; background: var(--kp-cta); color: #fff; font-weight: 700; font-size: 18px; margin-bottom: 12px;
+}
+.kp-flow-item h3, .kp-strength h3 { font-size: 18px; line-height: 1.6; margin-bottom: 8px; }
+.kp-flow-item p, .kp-strength p { font-size: 15.5px; color: var(--kp-ink-sub); line-height: 1.85; }
+
+/* 場面 */
+.kp-scenes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.kp-scene { border-left: 4px solid var(--kp-cta); background: var(--kp-paper); border-radius: 0 var(--kp-radius) var(--kp-radius) 0; padding: 16px 20px; }
+.kp-scene h4 { font-size: 17px; margin-bottom: 2px; }
+.kp-scene p { font-size: 15px; color: var(--kp-ink-sub); line-height: 1.8; }
+
+/* CTA */
+.kp-cta { background: var(--kp-ink); color: #fff; padding: 84px 0; text-align: center; }
+.kp-cta-title { font-family: var(--kp-font-head); font-weight: 800; font-size: clamp(24px, 3.6vw, 34px); margin-bottom: 14px; }
+.kp-cta-lead { color: rgba(255, 255, 255, 0.8); margin-bottom: 32px; }
+
+/* フッター */
+.kp-footer { background: #1d2029; color: rgba(255, 255, 255, 0.7); font-size: 13px; padding: 22px 0; }
+.kp-footer-inner { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+@media (max-width: 760px) {
+  .kp-page { font-size: 16.5px; }
+  .kp-hero { padding: 64px 0 72px; }
+  .kp-section, .kp-cta { padding: 60px 0; }
+  .kp-for-grid, .kp-flow, .kp-strengths, .kp-scenes { grid-template-columns: 1fr; }
+  .kp-pc { display: none; }
+  .kp-btn-lg { padding: 16px 28px; font-size: 17px; }
+}
