@@ -2,13 +2,7 @@
 
 export const NIKKI_REVIEW_RANGES = [
   { id: '1w', label: '1週間', days: 7 },
-  { id: '2w', label: '2週間', days: 14 },
-  { id: '1m', label: '1ヶ月', days: 30 },
-  { id: '3m', label: '3ヶ月', days: 91 },
-  { id: '6m', label: '半年', days: 182 },
-  { id: '1y', label: '1年', days: 365 },
   { id: 'all', label: '全期間', days: 0 },
-  { id: 'custom', label: '自由選択', days: 0 },
 ] as const
 
 export type NikkiReviewRangeId = (typeof NIKKI_REVIEW_RANGES)[number]['id']

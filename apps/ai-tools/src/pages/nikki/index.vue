@@ -350,9 +350,10 @@ const runReview = async (id?: NikkiReviewRangeId) => {
   }
 }
 const openReview = () => {
+  // 開くたびに期間（1週間／全期間）を選んでもらい、選んだら分析を始める
+  reviewResult.value = null
+  reviewError.value = ''
   showReview.value = true
-  // 閉じて開き直しただけなら、作り済みの結果を見せる（APIの呼び直しで待たせない）
-  if (!reviewResult.value) runReview()
 }
 
 const showReviewPrompt = ref(false)

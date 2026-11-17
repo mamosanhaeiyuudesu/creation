@@ -10,23 +10,17 @@
       <button class="nk-btn-ghost !h-8 !px-3 !text-[12px] shrink-0" @click="emit('close')">閉じる</button>
     </div>
 
+    <p v-if="!started" class="mt-3 mb-1 text-[13px] text-[var(--nk-ink-soft)]">どの期間を振り返りますか？</p>
     <div class="mt-3 flex flex-wrap gap-1.5">
       <button
         v-for="r in NIKKI_REVIEW_RANGES"
         :key="r.id"
         class="nk-btn-ghost !h-8 !px-3 !text-[12px]"
-        :class="range === r.id ? '!border-[var(--nk-indigo)] !bg-[var(--nk-indigo-soft)]' : ''"
+        :class="started && range === r.id ? '!border-[var(--nk-indigo)] !bg-[var(--nk-indigo-soft)]' : ''"
         :disabled="loading"
         @click="pick(r.id)"
       >{{ r.label }}</button>
     </div>
-    <div v-if="range === 'custom'" class="mt-2 flex flex-wrap items-center gap-2 text-[12.5px]">
-      <input v-model="customFrom" type="date" class="nk-input !h-8 !text-[12.5px]" :max="customTo || undefined" />
-      <span>〜</span>
-      <input v-model="customTo" type="date" class="nk-input !h-8 !text-[12.5px]" :min="customFrom || undefined" />
-      <button class="nk-btn-ghost !h-8 !px-3 !text-[12px]" :disabled="loading || !customFrom || !customTo" @click="runCustom">この期間で作る</button>
-    </div>
-
     <p v-if="loading" class="mt-4 mb-2 text-[13px] text-[var(--nk-ink-soft)]">{{ rangeLabel }}の日記を読んでいます…</p>
     <p v-else-if="error" class="mt-4 mb-2 text-[12.5px] text-[var(--nk-today)]">{{ error }}</p>
     <ol v-else-if="result" class="mt-3 mb-0 p-0 list-none flex flex-col gap-2.5">
@@ -36,7 +30,7 @@
       </li>
     </ol>
 
-    <div v-if="!loading" class="mt-3">
+    <div v-if="started && !loading" class="mt-3">
       <button class="nk-btn-ghost !h-8 !px-3 !text-[12px]" @click="emit('retry')">もう一度作る</button>
     </div>
   </section>
@@ -71,17 +65,15 @@ const emit = defineEmits<{
   run: [id: NikkiReviewRangeId]
 }>()
 
-const customFrom = computed({ get: () => props.from, set: (v) => emit('update:from', v) })
-const customTo = computed({ get: () => props.to, set: (v) => emit('update:to', v) })
+// 期間を選ぶまでは何も作らない（開くたびに選び直す）
+const started = computed(() => props.loading || !!props.result || !!props.error)
 const rangeLabel = computed(() => {
   const r = NIKKI_REVIEW_RANGES.find((x) => x.id === props.range)
-  return !r || r.id === 'custom' ? '選んだ期間' : r.label
+  return r ? r.label : '選んだ期間'
 })
 
 const pick = (id: NikkiReviewRangeId) => {
   emit('update:range', id)
-  // 自由選択は日付を入れてから「この期間で作る」を押す。それ以外は選んだ時点で作る
-  if (id !== 'custom') emit('run', id)
+  emit('run', id)
 }
-const runCustom = () => emit('run', 'custom')
 </script>
