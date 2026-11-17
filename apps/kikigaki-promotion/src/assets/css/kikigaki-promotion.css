@@ -110,6 +110,11 @@ html { scroll-behavior: smooth; scroll-padding-top: 72px; }
 .kp-cta-title { font-family: var(--kp-font-head); font-weight: 800; font-size: clamp(24px, 3.6vw, 34px); margin-bottom: 14px; }
 .kp-cta-lead { color: rgba(255, 255, 255, 0.8); margin-bottom: 32px; }
 
+/* 開発のご依頼リンク */
+.kp-dev-link { margin-top: 20px; font-size: 14px; }
+.kp-dev-link a { color: var(--kp-blue); text-decoration: underline; text-underline-offset: 3px; }
+.kp-dev-link-on-dark a { color: rgba(255, 255, 255, 0.9); }
+
 /* フッター */
 .kp-footer { background: #0e3672; color: rgba(255, 255, 255, 0.7); font-size: 13px; padding: 22px 0; }
 .kp-footer-inner { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }

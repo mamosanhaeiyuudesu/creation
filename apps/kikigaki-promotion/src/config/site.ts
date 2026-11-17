@@ -8,6 +8,9 @@ export const site = {
   /** キキガキ本体（本番版） */
   appUrl: 'https://kikigaki.insightlens.jp/',
   ctaLabel: 'キキガキを使ってみる',
+  /** ウェブアプリ・ホームページ開発の依頼先（prototyper） */
+  prototyperUrl: 'https://prototyper.insightlens.jp',
+  prototyperLabel: 'ウェブアプリやホームページ開発のご依頼はこちら',
   /** たたき（下書き）のあいだは true。検索に載らないようにする。公開するときに false */
   draft: true,
 }

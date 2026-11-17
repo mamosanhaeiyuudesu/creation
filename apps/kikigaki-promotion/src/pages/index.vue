@@ -33,6 +33,7 @@
           <span class="kp-btn-arrow" aria-hidden="true">→</span>
         </a>
         <p class="kp-hero-note">{{ heroNote }}</p>
+        <p class="kp-dev-link"><a :href="site.prototyperUrl">{{ site.prototyperLabel }} →</a></p>
       </div>
     </section>
 
@@ -119,6 +120,7 @@
           {{ site.ctaLabel }}
           <span class="kp-btn-arrow" aria-hidden="true">→</span>
         </a>
+        <p class="kp-dev-link kp-dev-link-on-dark"><a :href="site.prototyperUrl">{{ site.prototyperLabel }} →</a></p>
       </div>
     </section>
 
