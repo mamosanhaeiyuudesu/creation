@@ -11,7 +11,6 @@ import { requireDb, ensureTables } from '~/server/utils/db'
 import { requireUser, type AuthUser } from '~/server/utils/auth'
 import { isPendingApproval, parseAdminIds } from '~/utils/entitlement'
 import { SERVICE } from '~/config/service'
-import { jstYearMonth } from '~/utils/formatDate'
 import { isDeletionDue } from '~/utils/withdrawal'
 import { deleteAccount } from '~/server/utils/account'
 
@@ -130,24 +129,6 @@ export async function saveGrant(
     db
       .prepare('INSERT INTO admin_audit (admin_id, action, target_user_id, detail) VALUES (?, ?, ?, ?)')
       .bind(adminId, grant.freeAccess ? 'grant_free_access' : 'revoke_free_access', userId, note),
-  ])
-}
-
-/** 今月のAI利用量を0に戻す（行は消さず 0 にする）。操作の記録も同時に残す */
-export async function resetAiUsage(event: H3Event, adminId: string, userId: string): Promise<void> {
-  const db = requireDb(event)
-  await ensureTables(db)
-  const exists = await db.prepare('SELECT id FROM users WHERE id = ?').bind(userId).first()
-  if (!exists) throw createError({ statusCode: 404, message: 'その利用者は見つかりませんでした。' })
-
-  const ym = jstYearMonth()
-  await db.batch([
-    db
-      .prepare("UPDATE ai_usage_monthly SET cost_units = 0, updated_at = datetime('now') WHERE user_id = ? AND ym = ?")
-      .bind(userId, ym),
-    db
-      .prepare('INSERT INTO admin_audit (admin_id, action, target_user_id, detail) VALUES (?, ?, ?, ?)')
-      .bind(adminId, 'reset_ai_usage', userId, ym),
   ])
 }
 

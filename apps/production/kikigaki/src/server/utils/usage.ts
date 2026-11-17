@@ -15,6 +15,7 @@ import type { H3Event } from 'h3'
 import { requireDb, ensureTables } from '~/server/utils/db'
 import { SERVICE } from '~/config/service'
 import { hasFullAccess } from '~/server/utils/entitlement'
+import { hasFreeAccess } from '~/server/utils/admin'
 import { jstYearMonth } from '~/utils/formatDate'
 
 /**
@@ -50,6 +51,8 @@ export interface UsageStatus {
   exhausted: boolean
   /** 無料枠の人か（true なら上限は無料枠。使い切ったら月額プランの契約が要る） */
   freeTier?: boolean
+  /** 上限なし（管理者・運営者が支払い不要にした人）。メーターは通常の上限に対する割合で出す（100%で止まる） */
+  unlimited?: boolean
 }
 
 export function budgetUnits(): number {
@@ -78,6 +81,12 @@ async function loadUsedUnits(event: H3Event, userId: string): Promise<number> {
 }
 
 export async function loadUsageStatus(event: H3Event, userId: string): Promise<UsageStatus> {
+  // 管理者・支払い不要の人は上限なし（2026-11-17）。使った分は数え続ける（管理画面で費用が見える）
+  // メーターは通常の月の上限（monthlyBudgetUsd）に対する割合で出し、100%を超えても100%で止める（止めはしない）
+  if (await hasFreeAccess(event, userId)) {
+    const { usedPercent } = toStatus(await loadUsedUnits(event, userId), budgetUnits())
+    return { usedPercent, exhausted: false, freeTier: false, unlimited: true }
+  }
   const freeTier = !(await hasFullAccess(event, userId))
   const status = toStatus(await loadUsedUnits(event, userId), freeTier ? freeBudgetUnits() : budgetUnits())
   return { ...status, freeTier }

@@ -92,7 +92,7 @@ export default defineEventHandler(async (event) => {
       withdrawn: !r.withdrawn_at ? '' : withdrawnKindOf(r.delete_after ?? ''),
       deleteAfter: deleteAfterLabel(r.delete_after ?? ''),
       deletionDue: !!r.withdrawn_at && isDeletionDue(r.delete_after ?? ''),
-      canUse: !r.withdrawn_at && !pending && (fullAccess || !usage.exhausted),
+      canUse: !r.withdrawn_at && !pending && (freeAccess || isAdmin || fullAccess || !usage.exhausted),
     }
   })
 

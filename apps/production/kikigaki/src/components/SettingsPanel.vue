@@ -105,7 +105,8 @@
         <div class="kk-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="usage.usedPercent">
           <div class="kk-meter-fill" :class="{ 'kk-meter-fill--warn': usage.usedPercent >= 80 }" :style="{ width: usage.usedPercent + '%' }" />
         </div>
-        <p v-if="!usage.exhausted && usage.usedPercent >= 80" class="kk-set-note">
+        <p v-if="usage.unlimited" class="kk-set-note">上限はありません（100%を超えても、メーターは100%のままです）。</p>
+        <p v-else-if="!usage.exhausted && usage.usedPercent >= 80" class="kk-set-note">
           {{ usage.freeTier ? 'もうすぐ今月の無料の分を使い切ります。続けるにはお支払いの手続きが必要です。' : 'もうすぐ今月のAI利用量を使い切ります。' }}
         </p>
         <p v-else-if="usage.exhausted && usage.freeTier" class="kk-set-note">今月の無料の分を使い切りました。続けるには下のお支払いの手続きをしてください。</p>
@@ -251,7 +252,7 @@ const savedMessage = ref('')
 watch([errorMessage, savedMessage], ([err, saved]) => {
   if (err || saved) settingsOpen.value = true
 })
-const usage = ref<{ usedPercent: number; exhausted: boolean; freeTier?: boolean } | null>(null)
+const usage = ref<{ usedPercent: number; exhausted: boolean; freeTier?: boolean; unlimited?: boolean } | null>(null)
 const billing = ref<BillingStatus | null>(null)
 const billingBusy = ref(false)
 /** 左メニュー（スマホは上の帯）に「管理画面」を出すか（表示だけ。守りは /api/admin/* の入口で行う） */

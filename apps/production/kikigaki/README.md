@@ -70,7 +70,7 @@ PCのホームは使い方（`components/HowToUse.vue`）だけ。議事録が�
   判定は `src/utils/entitlement.ts`（純粋関数・テストあり）→ `src/server/utils/entitlement.ts`。
 - **無料枠（2026-11-17〜）**: 有料モード（`monitorMode: false`）では、契約していない人も毎月 `SERVICE.limits.freeMonthlyBudgetUsd`
   （100円ぶん）までAIを使える。使い切ると `requireAiAllowance` が 402 で断り、設定から月額プランへ。
-  管理者（`NUXT_ADMIN_UIDS`）・管理画面で「支払い不要」にした人・契約中の人は無料枠の対象外（上限は `monthlyBudgetUsd`）。
+  管理者（`NUXT_ADMIN_UIDS`）・管理画面で「支払い不要」にした人は**上限なし**（使った分は数える）。契約中の人は無料枠の対象外で、上限は `monthlyBudgetUsd`。
   無料期間（`trialDays`）は 0、承認制（`approvalRequired`）は false にした。
 - **契約状態を書き込むのは Stripe の webhook だけ**。画面の操作では書き換えない。
   webhook は署名を検証し、イベントIDを `stripe_events` に記録して二重処理を防ぐ。
