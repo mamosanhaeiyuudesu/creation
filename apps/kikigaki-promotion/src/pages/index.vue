@@ -48,6 +48,36 @@
       </div>
     </section>
 
+    <!-- お客様の声 -->
+    <section id="voice" class="kp-section">
+      <div class="kp-wrap">
+        <p class="kp-label">VOICE ／ お客様の声</p>
+        <h2 class="kp-title">貼るだけで、整って、共有しやすい。</h2>
+        <p class="kp-lead">会議や視察で日本中を飛び回る、Mさんの場合。使う前と、使ったあとで、会議のあとの時間がこう変わりました。</p>
+        <div class="kp-voice-list">
+          <article v-for="v in voices" :key="v.scene" class="kp-voice">
+            <h3 class="kp-voice-scene">{{ v.scene }}</h3>
+            <div class="kp-voice-ba">
+              <div class="kp-voice-before">
+                <span class="kp-voice-tag">BEFORE</span>
+                <p>{{ v.before }}</p>
+              </div>
+              <span class="kp-voice-arrow" aria-hidden="true">→</span>
+              <div class="kp-voice-after">
+                <span class="kp-voice-tag">AFTER</span>
+                <p>{{ v.after }}</p>
+              </div>
+            </div>
+          </article>
+        </div>
+        <blockquote class="kp-voice-quote">
+          <p>「共有のしやすさがすごくいい。要約だけなら他のAIでもできる。でも、毎回同じ形にきれいに整って、PDFになって、Googleに自動で残っていく。その手早さと楽さが、キキガキのいいところです」</p>
+          <footer>― Mさん</footer>
+        </blockquote>
+        <p class="kp-note">※ 「利用前」は、Mさんが他のAI録音ツールなどについて話した不満をもとに、場面を想像して書いたものです。</p>
+      </div>
+    </section>
+
     <!-- 使い方 -->
     <section id="how" class="kp-section">
       <div class="kp-wrap">
@@ -174,6 +204,7 @@ onMounted(() => {
 
 const navItems = [
   { href: '#for', label: 'こんな方に' },
+  { href: '#voice', label: 'お客様の声' },
   { href: '#how', label: '使い方' },
   { href: '#strengths', label: '良いところ' },
   { href: '#wish', label: '思い' },
@@ -184,7 +215,24 @@ const forList = [
   'Google Meet・Zoom・音声アプリで文字起こしは出ているのに、そのまま眠っている',
   '会議のあと、「結局なにが決まったんだっけ」となりがち',
   'カウンセリングやコーチングで話した内容を、あとから振り返りたい',
-  '自分が話したこと、聴いたことを、もっと大事にしたい',
+]
+
+const voices = [
+  {
+    scene: '出張先の会議・視察のあとも、貼るだけで整う',
+    before: '会議や視察が終わって新幹線に乗ってから、文字起こしやメモをChatGPTに貼って要約。できた文章は並びが見づらく、報告用の書類にするには、結局、自分で整え直していました。',
+    after: '終わったら、文字起こしや要点のメモを取り込むだけ。概要・決まったこと・今後の流れ・やることが毎回同じ形で並び、そのまま提出できる見やすい書類になります。',
+  },
+  {
+    scene: '共有はPDFをLINEに貼るだけ',
+    before: 'まとめた文章をコピーして、長いメッセージで送っていました。読む側も、どこが大事なのか探すのが大変でした。',
+    after: 'A4横1枚のPDFを、そのままLINEに貼るだけ。急ぎの人は左側の「概要」と「決まったこと」、全体を詳しく知りたい人は、右側の「話し合ったこと」を見れば伝わります。',
+  },
+  {
+    scene: '保存先が一か所で、見返しやすい',
+    before: '記録のファイルがスマホの中でばらばら。「あの会議、どこに保存したっけ」と探す時間がありました。',
+    after: '毎回同じ形で整って、Googleドライブの同じフォルダに自動で保存。数か月前の会議も、すぐ見つかります。',
+  },
 ]
 
 const steps = [
@@ -195,8 +243,8 @@ const steps = [
 ]
 
 const strengths = [
-  { title: 'PDF1枚で、要点が見える', body: '要点がまとまったPDF1枚に、やること・次の予定・話した内容が収まります。長い会話も、ぱっと見て思い出せます。' },
+  { title: 'PDF1枚で要点が見える', body: '要点がまとまったPDF1枚に、やること・次の予定・話した内容が収まります。長い会話も、ぱっと見て思い出せます。' },
   { title: '履歴をタグで管理できる', body: 'これまでの記録は一覧で見返せて、タグを付けて整理できます。数か月前の会話にも、すぐ戻れます。' },
-  { title: 'ドライブからNotebookLMへ', body: 'Googleドライブに保存しておけば、NotebookLMへの共有もかんたん。たまった記録を横断して、問いかけられます。' },
+  { title: 'Googleのアプリと連携できる', body: 'Googleドライブに保存しておけば、記録が一か所にたまります。さらにNotebookLMなどのGoogleのAIアプリで、Googleドライブにたまった記録を横断して分析したり、問いかけたりもできます。' },
 ]
 </script>

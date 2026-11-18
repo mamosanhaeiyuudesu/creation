@@ -151,3 +151,24 @@ html { scroll-behavior: smooth; scroll-padding-top: 72px; }
 .kp-lightbox { position: fixed; inset: 0; z-index: 100; background: rgba(15, 25, 40, 0.88); display: flex; align-items: center; justify-content: center; padding: 24px; overflow: auto; cursor: zoom-out; }
 .kp-lightbox img { max-width: min(1280px, 100%); max-height: 100%; width: auto; height: auto; border-radius: 8px; background: #fff; cursor: default; }
 .kp-lightbox-close { position: fixed; top: 14px; right: 18px; width: 48px; height: 48px; border: 0; border-radius: 50%; background: #fff; color: var(--kp-ink); font-size: 28px; line-height: 1; cursor: pointer; }
+
+/* お客様の声 */
+.kp-voice-list { display: grid; gap: 18px; }
+.kp-voice { background: #fff; border: 1px solid var(--kp-line); border-radius: var(--kp-radius); padding: 22px 24px; box-shadow: var(--kp-shadow); }
+.kp-voice-scene { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
+.kp-voice-ba { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: stretch; }
+.kp-voice-before, .kp-voice-after { border-radius: 10px; padding: 14px 16px; }
+.kp-voice-before { background: #f3f4f6; }
+.kp-voice-after { background: var(--kp-warm); border: 1px solid var(--kp-blue); }
+.kp-voice-tag { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.15em; margin-bottom: 6px; color: var(--kp-ink-sub); }
+.kp-voice-after .kp-voice-tag { color: var(--kp-blue); }
+.kp-voice-ba p { font-size: 15px; line-height: 1.85; color: var(--kp-ink-sub); }
+.kp-voice-after p { color: var(--kp-ink); }
+.kp-voice-arrow { align-self: center; color: var(--kp-cta-deep); font-weight: 700; font-size: 22px; }
+.kp-voice-quote { margin: 28px 0 0; padding: 22px 26px; border-left: 4px solid var(--kp-cta); background: var(--kp-paper); border-radius: 0 var(--kp-radius) var(--kp-radius) 0; }
+.kp-voice-quote p { font-family: var(--kp-font-head); font-weight: 700; font-size: 17px; line-height: 1.9; }
+.kp-voice-quote footer { margin-top: 10px; font-size: 14px; color: var(--kp-ink-sub); text-align: right; }
+@media (max-width: 760px) {
+  .kp-voice-ba { grid-template-columns: 1fr; }
+  .kp-voice-arrow { justify-self: center; transform: rotate(90deg); }
+}
