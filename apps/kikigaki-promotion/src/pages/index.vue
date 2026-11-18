@@ -53,28 +53,31 @@
       <div class="kp-wrap">
         <p class="kp-label">VOICE ／ お客様の声</p>
         <h2 class="kp-title">貼るだけで、整って、共有しやすい。</h2>
-        <p class="kp-lead">会議や視察で日本中を飛び回る、Mさんの場合。使う前と、使ったあとで、会議のあとの時間がこう変わりました。</p>
-        <div class="kp-voice-list">
-          <article v-for="v in voices" :key="v.scene" class="kp-voice">
-            <h3 class="kp-voice-scene">{{ v.scene }}</h3>
-            <div class="kp-voice-ba">
-              <div class="kp-voice-before">
-                <span class="kp-voice-tag">BEFORE</span>
-                <p>{{ v.before }}</p>
+        <div v-for="p in people" :key="p.name" class="kp-voice-person">
+          <h3 class="kp-voice-name"><span class="kp-marker">{{ p.name }}</span><span class="kp-voice-job">{{ p.job }}</span></h3>
+          <p class="kp-lead">{{ p.lead }}</p>
+          <div class="kp-voice-list">
+            <article v-for="v in p.items" :key="v.scene" class="kp-voice">
+              <h4 class="kp-voice-scene">{{ v.scene }}</h4>
+              <div class="kp-voice-ba">
+                <div class="kp-voice-before">
+                  <span class="kp-voice-tag">BEFORE</span>
+                  <p>{{ v.before }}</p>
+                </div>
+                <span class="kp-voice-arrow" aria-hidden="true">→</span>
+                <div class="kp-voice-after">
+                  <span class="kp-voice-tag">AFTER</span>
+                  <p>{{ v.after }}</p>
+                </div>
               </div>
-              <span class="kp-voice-arrow" aria-hidden="true">→</span>
-              <div class="kp-voice-after">
-                <span class="kp-voice-tag">AFTER</span>
-                <p>{{ v.after }}</p>
-              </div>
-            </div>
-          </article>
+            </article>
+          </div>
+          <blockquote class="kp-voice-quote">
+            <p>{{ p.quote }}</p>
+            <footer>― {{ p.name }}</footer>
+          </blockquote>
         </div>
-        <blockquote class="kp-voice-quote">
-          <p>「共有のしやすさがすごくいい。要約だけなら他のAIでもできる。でも、毎回同じ形にきれいに整って、PDFになって、Googleに自動で残っていく。その手早さと楽さが、キキガキのいいところです」</p>
-          <footer>― Mさん</footer>
-        </blockquote>
-        <p class="kp-note">※ 「利用前」は、Mさんが他のAI録音ツールなどについて話した不満をもとに、場面を想像して書いたものです。</p>
+        <p class="kp-note">※ Mさんの「利用前」は、他のAI録音ツールなどについて話した不満をもとに、場面を想像して書いたものです。</p>
       </div>
     </section>
 
@@ -217,7 +220,13 @@ const forList = [
   'カウンセリングやコーチングで話した内容を、あとから振り返りたい',
 ]
 
-const voices = [
+const people = [
+  {
+    name: 'Mさん',
+    job: '農家',
+    lead: '会議や視察で、各地へ出向くことの多いMさんの場合。使う前と、使ったあとで、会議のあとの時間がこう変わりました。',
+    quote: '「共有のしやすさがすごくいい。要約だけなら他のAIでもできる。でも、毎回同じ形にきれいに整って、PDFになって、Googleに自動で残っていく。その手早さと楽さが、キキガキのいいところです」',
+    items: [
   {
     scene: '出張先の会議・視察のあとも、貼るだけで整う',
     before: '会議や視察が終わって新幹線に乗ってから、文字起こしやメモをChatGPTに貼って要約。できた文章は並びが見づらく、報告用の書類にするには、結局、自分で整え直していました。',
@@ -232,6 +241,26 @@ const voices = [
     scene: '保存先が一か所で、見返しやすい',
     before: '記録のファイルがスマホの中でばらばら。「あの会議、どこに保存したっけ」と探す時間がありました。',
     after: '毎回同じ形で整って、Googleドライブの同じフォルダに自動で保存。数か月前の会議も、すぐ見つかります。',
+  },
+    ],
+  },
+  {
+    name: 'Uさん',
+    job: 'ITエンジニア',
+    lead: 'お客様へのヒアリングが多いUさんの場合。記録を読み返す習慣ができて、仕事の進め方が変わりました。',
+    quote: '「最近は、昔の議事録を読むのが趣味というか、楽しみになっています。話し合った内容が、宝物のように思えてくるんです」',
+    items: [
+      {
+        scene: '会議・講演の文字起こしを、そのままにしない',
+        before: '会議や講演・レクチャーは、別のツールで文字起こしをしても、そのまま置きっぱなし。やりっ放しで、読み返すことはほとんどありませんでした。',
+        after: 'その文字起こしをキキガキに貼って、記録に。あとから振り返る習慣ができました。タグで絞り込めば、求める議事録にすぐたどり着けます。',
+      },
+      {
+        scene: 'お客様へのヒアリング',
+        before: '何度ヒアリングをしても、結局ニーズが分からない。お客様の手も、何度も煩わせていました。',
+        after: '昔の記録を読むと「お客様、こんなことを言っていたんだ」という本当のニーズが見つかります。二度手間がなくなり、ニーズの把握がすごく楽になりました。',
+      },
+    ],
   },
 ]
 

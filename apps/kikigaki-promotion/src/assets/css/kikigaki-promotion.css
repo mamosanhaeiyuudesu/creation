@@ -155,6 +155,10 @@ html { scroll-behavior: smooth; scroll-padding-top: 72px; }
 /* お客様の声 */
 .kp-voice-list { display: grid; gap: 18px; }
 .kp-voice { background: #fff; border: 1px solid var(--kp-line); border-radius: var(--kp-radius); padding: 22px 24px; box-shadow: var(--kp-shadow); }
+.kp-voice-person + .kp-voice-person { margin-top: 56px; }
+.kp-voice-name { font-family: var(--kp-font-head); font-weight: 800; font-size: 22px; margin-bottom: 8px; }
+.kp-voice-name .kp-marker { padding: 0 4px; text-decoration: underline; text-decoration-color: var(--kp-cta); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.kp-voice-job { margin-left: 10px; font-size: 15px; font-weight: 500; color: var(--kp-blue); }
 .kp-voice-scene { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
 .kp-voice-ba { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: stretch; }
 .kp-voice-before, .kp-voice-after { border-radius: 10px; padding: 14px 16px; }
