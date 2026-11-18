@@ -90,7 +90,8 @@
             </button>
           </template>
 
-          <input ref="fileInput" type="file" accept="audio/*,video/*" class="hidden" @change="onFileSelected" />
+          <!-- iOS はボイスメモ等の m4a を accept="audio/*" だとグレーアウトして選べないことがあるため、accept は付けない。読めない形式は splitAndTranscribeBlob のエラーで案内する -->
+<input ref="fileInput" type="file" class="hidden" @change="onFileSelected" />
         </div>
 
         <div v-if="isRecording || duration > 0" class="text-xl text-red-500 font-mono font-semibold">
