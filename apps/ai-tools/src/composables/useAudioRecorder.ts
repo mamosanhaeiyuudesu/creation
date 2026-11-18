@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import type { TranscriptionModel } from './useTranscriptionModel'
+import { prepareTrimmedSplit } from '~/utils/audio-trim-split'
 
 interface AudioRecorderOptions {
   onTranscribed: (text: string) => Promise<void> | void
@@ -150,6 +151,41 @@ export async function splitAndTranscribeBlob(
     if (prompt) fd.append('prompt', prompt)
     const res = await $fetch<{ text: string }>(endpoint, { method: 'POST', body: fd })
     return res.text
+  }
+
+  // 長さに関係なく、サイズが API の上限に収まるならデコードせずそのまま送る。
+  // 60分の m4a（ボイスメモで20〜30MB程度）を decodeAudioData で展開すると PCM で600MB以上になり、
+  // iPhone の Safari ではタブがメモリ不足で落ちて、エラーも出ずに終わる。
+  // Whisper は25MB、Gemini（inline）は約20MBまで。
+  const directLimit = model === 'gemini' ? DIRECT_UPLOAD_MAX_BYTES : 24 * 1024 * 1024
+  if (blob.size <= directLimit) {
+    return await post(blob, filename)
+  }
+
+  // 大きいm4a（ボイスメモ等）は、展開せずパケットのまま時間で切り分けて送る。
+  // 切れない形式（mp3・wav・webm等）は null が返るので、下の「展開して分割」へ進む。
+  const trimmed = await prepareTrimmedSplit(blob)
+  if (trimmed) {
+    const results: string[] = new Array(trimmed.count)
+    let nextIdx = 0
+    let finished = 0
+    onProgress?.(0, trimmed.count)
+    const trimWorkers = Array.from({ length: Math.min(CHUNK_CONCURRENCY, trimmed.count) }, async () => {
+      for (let idx = nextIdx++; idx < trimmed.count; idx = nextIdx++) {
+        results[idx] = await post(await trimmed.makePart(idx), `part_${idx}.m4a`)
+        onProgress?.(++finished, trimmed.count)
+      }
+    })
+    await Promise.all(trimWorkers)
+    const joined = results.filter(Boolean).join('\n').trim()
+    const mins = trimmed.duration / 60
+    if (mins >= 3 && joined.length < mins * 20) {
+      throw new Error(
+        `文字起こしがほとんど取れませんでした（約${Math.round(mins)}分の音声に対して${joined.length}文字）。` +
+          '録音の音量が小さすぎないか、ファイルが壊れていないかご確認ください。'
+      )
+    }
+    return joined
   }
 
   // 展開する前に、ファイルが本来何分あるのかをメタデータから読んでおく
