@@ -739,6 +739,32 @@ html {
   font-weight: 500;
 }
 
+.pp-voice-covers {
+  margin: 28px 0 0;
+}
+
+.pp-voice-covers-list {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+
+.pp-voice-covers img {
+  width: calc(50% - 12px);
+  max-width: 240px;
+  height: auto;
+  align-self: flex-start;
+  border: 1px solid var(--pp-line);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.pp-voice-covers figcaption {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--pp-text-sub);
+}
+
 .pp-voice-close {
   margin-top: 28px;
   text-align: center;
