@@ -45,6 +45,7 @@ const selectedCategory = ref<string>(
   CATEGORY_OPTIONS.includes(_initCat) ? _initCat : '暮らし・福祉'
 )
 const initNodeLabel = ref((route.query.node as string) ?? '')
+const initNode2Label = ref((route.query.node2 as string) ?? '') // 線（2語の関係）を開いたURLの、もう一方の語
 
 const selectedWord = ref<string | null>(null)
 const selectedEdge = ref<{ source: string; target: string } | null>(null)
@@ -55,10 +56,11 @@ const allExpanded = ref(false)
 
 let cy: any = null
 
-watch([selectedCategory, selectedWord], () => {
+watch([selectedCategory, selectedWord, selectedEdge], () => {
   const query: Record<string, string> = {}
   if (selectedCategory.value !== '暮らし・福祉') query.cat = selectedCategory.value
   if (selectedWord.value) query.node = selectedWord.value
+  if (selectedEdge.value) query.node2 = selectedEdge.value.target
   router.replace({ query })
 })
 
@@ -237,9 +239,18 @@ async function renderGraph() {
       const node = cy.getElementById(initNodeLabel.value)
       if (node.length > 0) {
         node.addClass('selected')
-        fetchKeyword(initNodeLabel.value)
+        const other = initNode2Label.value ? cy.getElementById(initNode2Label.value) : null
+        const edge = other?.length ? node.edgesWith(other) : null
+        if (other && edge?.length) {
+          other.addClass('selected')
+          edge.addClass('edge-selected')
+          fetchKeywordPair(initNodeLabel.value, initNode2Label.value)
+        } else {
+          fetchKeyword(initNodeLabel.value)
+        }
       }
       initNodeLabel.value = ''
+      initNode2Label.value = ''
     }
   })
 
@@ -389,7 +400,7 @@ function closePopup() {
 
 onMounted(async () => {
   if (window.innerWidth < 768) {
-    router.replace('/miyako/yearly')
+    router.replace('/miyako')
     return
   }
   pairs.value = await $fetch<Pair[]>('/data/pairs.json')

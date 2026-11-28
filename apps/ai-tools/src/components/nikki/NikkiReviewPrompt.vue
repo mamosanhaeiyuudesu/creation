@@ -4,7 +4,7 @@
       <div>
         <h2 class="nk-serif m-0 text-[14px] leading-none">AI振り返りのプロンプト</h2>
         <p class="mt-1 mb-0 text-[11px] text-[var(--nk-ink-soft)] leading-relaxed">
-          「AI」ボタンの振り返りに使う指示文です。見る観点や書き方を自由に直せます（出力の形式は自動で付きます）。
+          「AI」ボタンの「前に進んだこと」に使う指示文です（「時系列の変化分析」には使いません）。見る観点や書き方を自由に直せます（出力の形式は自動で付きます）。
         </p>
       </div>
       <button class="nk-btn-ghost !h-8 !px-3 !text-[12px] shrink-0" @click="emit('close')">閉じる</button>

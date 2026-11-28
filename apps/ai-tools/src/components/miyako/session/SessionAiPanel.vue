@@ -1,8 +1,9 @@
 <script setup lang="ts">
 interface AiTopic {
   title: string
-  conclusion: string
-  flow: string[]
+  body?: string // 文章でまとめた形（/api/miyako/search）
+  conclusion?: string // 結論＋流れの形（/api/miyako/member-summary）
+  flow?: string[]
 }
 
 defineProps<{
@@ -15,7 +16,7 @@ defineProps<{
   hintSub?: string
 }>()
 
-function breakAtKuten(text: string): string {
+function breakAtKuten(text = ''): string {
   if (!text) return ''
   return text.replace(/。(?!\n)/g, '。\n')
 }
@@ -43,8 +44,9 @@ function breakAtKuten(text: string): string {
         <div v-else class="ai-body">
           <div v-for="(topic, ti) in aiTopics" :key="ti" :class="ti > 0 ? 'mt-4 pt-4 border-t border-[#dbe4ef]' : ''">
             <div class="topic-title">{{ topic.title }}</div>
-            <div class="conclusion">{{ breakAtKuten(topic.conclusion) }}</div>
-            <div v-if="topic.flow.length" class="flow-list">
+            <p v-if="topic.body" class="topic-body">{{ topic.body }}</p>
+            <div v-if="topic.conclusion" class="conclusion">{{ breakAtKuten(topic.conclusion) }}</div>
+            <div v-if="topic.flow?.length" class="flow-list">
               <div v-for="(step, si) in topic.flow" :key="si" class="flow-step">
                 <span class="step-num">{{ String(si + 1).padStart(2, '0') }}</span>
                 <span>{{ breakAtKuten(step) }}</span>
@@ -109,6 +111,12 @@ function breakAtKuten(text: string): string {
   color: #1f2a37;
   border-left: 3px solid #1d6fd6;
   padding-left: 8px;
+}
+
+.topic-body {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.85;
 }
 
 .conclusion {

@@ -374,13 +374,15 @@ export const useAudioRecorder = ({ onTranscribed, onError, getPrompt, getModel }
 
   const transcribeRecording = () => {
     if (!mediaRecorder) return
+    // 停止を待たずに状態を切り替える（isRecording が残ると、呼び出し側の録音中の表示が消えない）
+    isRecording.value = false
     isPaused.value = false
+    isProcessing.value = true
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null }
 
     mediaRecorder.onstop = async () => {
       stopLevelMeter()
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
-      isProcessing.value = true
       try {
         const text = await splitAndTranscribeBlob(audioBlob, 'recording.webm', { prompt: getPrompt?.(), model: getModel?.() })
         await onTranscribed(text)

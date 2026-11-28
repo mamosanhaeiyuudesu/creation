@@ -67,11 +67,16 @@ export default defineEventHandler(async (event) => {
   try {
     const data = await callOpenAi(apiKey, {
       model: 'gpt-4.1-mini',
-      input: `${contextLabel}から「${word}」に関する議論を、議会に詳しくない一般市民でも理解できるよう以下のJSON形式のみで回答してください。前置き・説明文・マークダウン記法・JSONブロック以外のテキストは一切出力しないでください。約${maxChars}文字で。
+      input: `${contextLabel}から「${word}」に関する議論を、議会に詳しくない一般市民でも理解できるよう以下のJSON形式のみで回答してください。前置き・説明文・マークダウン記法・JSONブロック以外のテキストは一切出力しないでください。
 
-{"topics":[{"title":"議題名（具体的かつ簡潔に）","conclusion":"結論を1〜2文で簡潔に","flow":["最初の論点・発端","次の展開","最終的な到達点"]}]}
+{"topics":[{"title":"15文字程度の見出し","body":"このまとまりの内容を書いた文章"}]}
 
-議題が複数ある場合はtopics配列に追加する。flowは議論の流れを順番に配列で表す（3〜5要素）。
+まとめ方の条件（重要）：
+- 議論の内容は、近いもの同士をまとめて、topics配列を2〜4件にする。質問者や場面ごとに細かく分けず、5件以上にしない
+- 話題が1つしかないように見える場合も、論点で分けて2件にする。ただし議事録に無い内容は足さない
+- titleは、その内容がひと目でわかる15文字程度の見出しにする
+- 各topicのbodyには、発端、議論の展開、結論をひと続きの文章で書く。箇条書き、番号、小見出し、改行は使わず、文と文を自然につなげる
+- 約${maxChars}文字は、全topicの合計の目安とする
 
 文章の書き方の条件（重要）：
 - 議会・行政の専門用語や略称（例：一般質問、答弁、附帯決議、補正予算、条例の号数など）はそのまま使わず、
@@ -89,7 +94,7 @@ export default defineEventHandler(async (event) => {
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw createError({ statusCode: 500, statusMessage: 'AI応答のJSON解析に失敗しました。' })
     const parsed = JSON.parse(jsonMatch[0])
-    return { topics: parsed.topics as { title: string; conclusion: string; flow: string[] }[] }
+    return { topics: parsed.topics as { title: string; body: string }[] }
   } catch (e: any) {
     wrapApiError(e, '議事録の検索に失敗しました。')
   }

@@ -8,8 +8,7 @@ import { eraToWestern } from '~/utils/miyako/formatters'
 
 interface AiTopic {
   title: string
-  conclusion: string
-  flow: string[]
+  body: string
 }
 
 /** 前回の定例会でこの回数未満なら「新しく出てきた話題」として色を変える。 */
@@ -69,15 +68,6 @@ const period = computed(() => {
   return c.heldFrom === c.heldTo ? fmtMD(c.heldFrom) : `${fmtMD(c.heldFrom)}〜${fmtMD(c.heldTo)}`
 })
 
-/**
- * 過去3年の頻度のまま今回と同じ長さの会期だったら何回出ていたか。倍率（「約255倍」）は
- * 過去にほぼ出ていない語で極端な数字になり読みにくいので、回数で「今回・前回」と並べる。
- */
-function usualCount(t: MiyakoTrendTerm): string {
-  const n = t.rate > 0 ? (t.baseRate * t.count) / t.rate : 0
-  return n < 10 ? String(Math.round(n * 10) / 10) : String(Math.round(n))
-}
-
 // ── 読み込み ──────────────────────────────────────
 
 async function load() {
@@ -133,7 +123,8 @@ async function fetchAi(word: string) {
   aiWord.value = word
   aiTopics.value = []
 
-  const cacheKey = `miyako_trend_ai:${c.key}:${word}`
+  // AIへの指示を変えたら v を上げる（上げないと、一度見た語は前の形の結果が出続ける）
+  const cacheKey = `miyako_trend_ai:v3:${c.key}:${word}`
   const cached = localStorage.getItem(cacheKey)
   if (cached) {
     try {
@@ -153,7 +144,7 @@ async function fetchAi(word: string) {
     aiTopics.value = data.topics
     localStorage.setItem(cacheKey, JSON.stringify(data.topics))
   } catch {
-    aiTopics.value = [{ title: 'エラー', conclusion: '取得に失敗しました。', flow: [] }]
+    aiTopics.value = [{ title: 'エラー', body: '取得に失敗しました。' }]
   } finally {
     aiLoading.value = false
   }
@@ -175,7 +166,15 @@ onMounted(async () => {
 
   await load()
   if (!sessionKey.value && current.value) sessionKey.value = current.value.key
-  if (selectedWord.value && !selectedTerm.value) selectedWord.value = null
+  // ?word= 付きで開いたときは、その語を押したのと同じ状態（AI分析まで実行）にする
+  if (selectedWord.value) {
+    if (selectedTerm.value) {
+      fetchAi(selectedWord.value)
+      if (isStacked.value) nextTick(() => detailRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+    } else {
+      selectedWord.value = null
+    }
+  }
 })
 </script>
 
@@ -232,7 +231,9 @@ onMounted(async () => {
                 <button class="hint-popup-close" @click="showHint = false">✕</button>
                 <p class="hint-popup-item">
                   <span class="hint-popup-label">文字の大きさについて</span>
-                  大きいほど、いつもより多く話題になった言葉です。<template v-if="current.baseSessions">過去3年の定例会（{{ current.baseSessions }}回分）と比べています。</template>
+                  今回よく出て、いつもより多い言葉ほど大きく表示します。<template v-if="current.baseSessions">「いつも」は過去3年の定例会（{{ current.baseSessions }}回分）です。</template>
+                  <span class="hint-formula">点数 ＝ 今回 × log<sub>2</sub>{ (今回＋1) ÷ (いつも＋1) }</span>
+                  「今回」「いつも」は、10万字あたりに出た回数です。文字の大きさは、点数の平方根をもとに決めています（長い言葉は小さくすることがあります）。
                 </p>
                 <p class="hint-popup-item">
                   <span class="hint-popup-label">データについて</span>
@@ -292,10 +293,6 @@ onMounted(async () => {
               <div>
                 <dt>前回</dt>
                 <dd>{{ selectedTerm.prevCount }}<span>回</span></dd>
-              </div>
-              <div>
-                <dt>いつもの定例会</dt>
-                <dd><span class="stats-approx">約</span>{{ usualCount(selectedTerm) }}<span>回</span></dd>
               </div>
             </dl>
           </div>
@@ -392,7 +389,7 @@ onMounted(async () => {
 .stats {
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 .stats > div {
@@ -415,9 +412,6 @@ onMounted(async () => {
   font-size: 11px;
   font-weight: 500;
   margin-left: 2px;
-}
-.stats dd .stats-approx {
-  margin: 0 2px 0 0;
 }
 
 
@@ -477,6 +471,17 @@ onMounted(async () => {
   margin: 0 0 8px;
 }
 .hint-popup-item:last-child { margin-bottom: 0; }
+.hint-formula {
+  display: block;
+  margin: 6px 0;
+  padding: 6px 8px;
+  background: #f5f8fc;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #1f2a37;
+}
+.hint-formula sub { line-height: 0; }
 .hint-popup-label {
   display: block;
   font-weight: 700;

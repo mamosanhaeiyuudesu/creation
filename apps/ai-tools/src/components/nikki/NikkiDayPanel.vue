@@ -66,34 +66,24 @@
           <section>
             <h3 class="text-[12px] font-bold text-[var(--nk-ink-soft)] tracking-wide mb-2">この日のことを話す・書く</h3>
 
-            <div class="flex flex-wrap items-center gap-2 mb-2">
-              <button v-if="!isRecording && !isPaused" class="nk-btn" :disabled="isProcessing || saving" @click="startRecording">
+            <div class="mb-2">
+              <button class="nk-btn" :disabled="isRecording || isPaused || isProcessing || saving" @click="startRecording">
                 🎤 録音する
               </button>
-              <template v-else>
-                <span class="text-[13px] font-bold tabular-nums text-[var(--nk-today)]">● {{ formatTime(duration) }}</span>
-                <!-- マイクが生きているかを録音中に見せる（無音のまま話し続けるのを防ぐ） -->
-                <span class="flex items-center gap-1" :title="`入力レベル ${Math.round(level * 100)}%`">
-                  <span
-                    v-for="i in 8"
-                    :key="i"
-                    class="w-[3px] rounded-full transition-[height,background-color] duration-100"
-                    :class="level * 8 >= i ? 'bg-[var(--nk-indigo)]' : 'bg-[var(--nk-line)]'"
-                    :style="{ height: `${6 + i * 2}px` }"
-                  />
-                </span>
-                <button v-if="isRecording" class="nk-btn-ghost" @click="pauseRecording">一時停止</button>
-                <button v-else class="nk-btn-ghost" @click="resumeRecording">再開</button>
-                <button class="nk-btn" @click="transcribeRecording">文字起こしする</button>
-                <button class="nk-btn-ghost" @click="cancelRecording">やめる</button>
-              </template>
-
             </div>
 
-            <p v-if="micSeemsDead" class="mb-2 text-[12px] text-[var(--nk-today)]">
-              マイクが音を拾えていないようです。入力デバイスやブラウザのマイク許可を確認してください（このまま録っても文字起こしできません）。
-            </p>
-            <p v-if="isProcessing" class="mb-2 text-[12px] text-[var(--nk-indigo)]">文字起こし中…</p>
+            <!-- 録音中と文字起こし中は、専用のポップアップを重ねる -->
+            <NikkiRecordingPopup
+              v-if="isRecording || isPaused || isProcessing"
+              :paused="isPaused"
+              :processing="isProcessing"
+              :level="level"
+              :mic-dead="micSeemsDead"
+              @pause="pauseRecording"
+              @resume="resumeRecording"
+              @transcribe="transcribeRecording"
+              @cancel="cancelRecording"
+            />
 
             <!-- 文字起こしはそのまま保存せず、いちど直せるようにテキスト欄へ入れる -->
             <textarea
@@ -218,6 +208,7 @@ import { NIKKI_PHOTO_MAX } from '~/types/nikki'
 import type { NikkiEntry, NikkiEvent, NikkiTopic } from '~/types/nikki'
 import NikkiPhotoAdd from '~/components/nikki/NikkiPhotoAdd.vue'
 import NikkiPhotoStrip from '~/components/nikki/NikkiPhotoStrip.vue'
+import NikkiRecordingPopup from '~/components/nikki/NikkiRecordingPopup.vue'
 import { buildDictionaryPrompt } from '~/utils/nikki-dictionary'
 import type { NikkiDictionaryEntry } from '~/utils/nikki-dictionary'
 
@@ -267,7 +258,7 @@ const transcriptionPrompt = computed(() => {
 })
 
 // 文字起こしは下書き欄に足す（続けて録音したときに前の文章を消さない）
-const { isRecording, isPaused, isProcessing, duration, level, formatTime, startRecording, pauseRecording, resumeRecording, transcribeRecording, cancelRecording } =
+const { isRecording, isPaused, isProcessing, duration, level, startRecording, pauseRecording, resumeRecording, transcribeRecording, cancelRecording } =
   useAudioRecorder({
     onTranscribed: (text: string) => {
       const t = text.trim()

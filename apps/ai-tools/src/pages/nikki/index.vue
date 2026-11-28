@@ -87,6 +87,7 @@
           :loading="reviewLoading"
           :error="reviewError"
           :result="reviewResult"
+          v-model:kind="reviewKind"
           v-model:range="reviewRange"
           v-model:from="reviewFrom"
           v-model:to="reviewTo"
@@ -230,8 +231,8 @@ import NikkiTimeline from '~/components/nikki/NikkiTimeline.vue'
 import NikkiDictionary from '~/components/nikki/NikkiDictionary.vue'
 import NikkiReview from '~/components/nikki/NikkiReview.vue'
 import type { NikkiReviewResult } from '~/components/nikki/NikkiReview.vue'
-import { NIKKI_REVIEW_DEFAULT_RANGE } from '~/utils/nikki-review-range'
-import type { NikkiReviewRangeId } from '~/utils/nikki-review-range'
+import { NIKKI_REVIEW_DEFAULT_KIND, NIKKI_REVIEW_DEFAULT_RANGE } from '~/utils/nikki-review-range'
+import type { NikkiReviewKindId, NikkiReviewRangeId } from '~/utils/nikki-review-range'
 import NikkiReviewPrompt from '~/components/nikki/NikkiReviewPrompt.vue'
 import NikkiModal from '~/components/nikki/NikkiModal.vue'
 // import NikkiBrainCloud from '~/components/nikki/NikkiBrainCloud.vue'
@@ -329,6 +330,7 @@ const showReview = ref(false)
 const reviewLoading = ref(false)
 const reviewError = ref('')
 const reviewResult = ref<NikkiReviewResult | null>(null)
+const reviewKind = ref<NikkiReviewKindId>(NIKKI_REVIEW_DEFAULT_KIND)
 const reviewRange = ref<NikkiReviewRangeId>(NIKKI_REVIEW_DEFAULT_RANGE)
 const reviewFrom = ref('')
 const reviewTo = ref('')
@@ -340,7 +342,7 @@ const runReview = async (id?: NikkiReviewRangeId) => {
   try {
     reviewResult.value = await $fetch<NikkiReviewResult>('/api/nikki/review', {
       method: 'POST',
-      body: { range, from: reviewFrom.value, to: reviewTo.value },
+      body: { kind: reviewKind.value, range, from: reviewFrom.value, to: reviewTo.value },
     })
   } catch (e: any) {
     reviewResult.value = null
@@ -350,7 +352,8 @@ const runReview = async (id?: NikkiReviewRangeId) => {
   }
 }
 const openReview = () => {
-  // 開くたびに期間（1週間／全期間）を選んでもらい、選んだら分析を始める
+  // 開くたびに期間（1週間／全期間）を選んでもらい、選んだら分析を始める。種類は既定に戻す
+  reviewKind.value = NIKKI_REVIEW_DEFAULT_KIND
   reviewResult.value = null
   reviewError.value = ''
   showReview.value = true

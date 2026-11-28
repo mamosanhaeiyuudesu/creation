@@ -12,14 +12,15 @@ const base = computed(() => {
   return '/miyako'
 })
 
-// 全体像（ネットワーク図）はスマホでは開けない（network.vue が年で見るへ飛ばす）のでスマホのタブには出さない。
-// タブが5つになり、1279px以下ではタブを詰めて短い表記（mobileLabel）にしないと右端がはみ出す（実測: 1024pxでもはみ出した）
+// 全体像（ネットワーク図）はスマホでは開けない（network.vue が直近の傾向へ飛ばす）のでスマホのタブには出さない。
+// 1279px以下ではタブを詰めて短い表記（mobileLabel）にする（5タブのとき、1024pxでも右端がはみ出した）。
+// 「年で見る」「議員で見る」はナビから外している（ページ自体は残っていて、URLを直接開けば見られる）
 const tabs = computed(() => [
   { page: 'trend' as const, label: '直近の傾向', mobileLabel: '直近の傾向', to: base.value },
   { page: 'network' as const, label: '全体像で見る', mobileLabel: '', to: `${base.value}/network` },
   { page: 'keyword' as const, label: 'キーワードで見る', mobileLabel: 'キーワード', to: `${base.value}/keyword` },
-  { page: 'session' as const, label: '年で見る', mobileLabel: '年で見る', to: `${base.value}/yearly` },
-  { page: 'member' as const, label: '議員で見る', mobileLabel: '議員で見る', to: `${base.value}/member` },
+  // { page: 'session' as const, label: '年で見る', mobileLabel: '年で見る', to: `${base.value}/yearly` },
+  // { page: 'member' as const, label: '議員で見る', mobileLabel: '議員で見る', to: `${base.value}/member` },
 ])
 const mobileTabs = computed(() => tabs.value.filter(t => t.mobileLabel))
 const isActive = (page: MiyakoPage) => props.activePage === page

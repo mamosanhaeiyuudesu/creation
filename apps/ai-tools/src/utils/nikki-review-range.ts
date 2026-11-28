@@ -1,4 +1,17 @@
-// 日記のAI振り返りの期間（画面とAPIで共用）。
+// 日記のAI振り返りの期間と種類（画面とAPIで共用）。
+
+/** 振り返りの種類（＝使うプロンプト）。label はセレクトボックスの表示名 */
+export const NIKKI_REVIEW_KINDS = [
+  { id: 'progress', label: '前に進んだこと' },
+  { id: 'trend', label: '時系列の変化分析' },
+] as const
+
+export type NikkiReviewKindId = (typeof NIKKI_REVIEW_KINDS)[number]['id']
+export const NIKKI_REVIEW_DEFAULT_KIND: NikkiReviewKindId = 'progress'
+
+export function isNikkiReviewKindId(v: unknown): v is NikkiReviewKindId {
+  return NIKKI_REVIEW_KINDS.some((k) => k.id === v)
+}
 
 export const NIKKI_REVIEW_RANGES = [
   { id: '1w', label: '1週間', days: 7 },

@@ -10,6 +10,14 @@
       <button class="nk-btn-ghost !h-8 !px-3 !text-[12px] shrink-0" @click="emit('close')">閉じる</button>
     </div>
 
+    <label class="mt-3 flex items-center gap-2">
+      <span class="shrink-0 text-[12px] text-[var(--nk-ink-soft)]">分析の種類</span>
+      <!-- 16px 未満だと iPhone でタップしたときに画面が拡大する -->
+      <select :value="kind" class="nk-input !w-auto !py-1.5 !text-[16px]" :disabled="loading" @change="pickKind">
+        <option v-for="k in NIKKI_REVIEW_KINDS" :key="k.id" :value="k.id">{{ k.label }}</option>
+      </select>
+    </label>
+
     <p v-if="!started" class="mt-3 mb-1 text-[13px] text-[var(--nk-ink-soft)]">どの期間を振り返りますか？</p>
     <div class="mt-3 flex flex-wrap gap-1.5">
       <button
@@ -37,8 +45,8 @@
 </template>
 
 <script setup lang="ts">
-import { NIKKI_REVIEW_RANGES } from '~/utils/nikki-review-range'
-import type { NikkiReviewRangeId } from '~/utils/nikki-review-range'
+import { NIKKI_REVIEW_KINDS, NIKKI_REVIEW_RANGES } from '~/utils/nikki-review-range'
+import type { NikkiReviewKindId, NikkiReviewRangeId } from '~/utils/nikki-review-range'
 
 export interface NikkiReviewResult {
   from: string
@@ -51,6 +59,7 @@ const props = defineProps<{
   loading: boolean
   error: string
   result: NikkiReviewResult | null
+  kind: NikkiReviewKindId
   range: NikkiReviewRangeId
   from: string
   to: string
@@ -59,6 +68,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   retry: []
   close: []
+  'update:kind': [id: NikkiReviewKindId]
   'update:range': [id: NikkiReviewRangeId]
   'update:from': [v: string]
   'update:to': [v: string]
@@ -71,6 +81,12 @@ const rangeLabel = computed(() => {
   const r = NIKKI_REVIEW_RANGES.find((x) => x.id === props.range)
   return r ? r.label : '選んだ期間'
 })
+
+// 結果を出したあとに種類を変えたら、同じ期間で作り直す（表示と選択がずれないように）
+const pickKind = (e: Event) => {
+  emit('update:kind', (e.target as HTMLSelectElement).value as NikkiReviewKindId)
+  if (started.value) emit('retry')
+}
 
 const pick = (id: NikkiReviewRangeId) => {
   emit('update:range', id)
