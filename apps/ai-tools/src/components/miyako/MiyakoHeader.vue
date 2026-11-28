@@ -17,8 +17,8 @@ const base = computed(() => {
 // 「年で見る」「議員で見る」はナビから外している（ページ自体は残っていて、URLを直接開けば見られる）
 const tabs = computed(() => [
   { page: 'trend' as const, label: '直近の傾向', mobileLabel: '直近の傾向', to: base.value },
-  { page: 'network' as const, label: '全体像で見る', mobileLabel: '', to: `${base.value}/network` },
-  { page: 'keyword' as const, label: 'キーワードで見る', mobileLabel: 'キーワード', to: `${base.value}/keyword` },
+  { page: 'network' as const, label: '全体像を見る', mobileLabel: '', to: `${base.value}/network` },
+  { page: 'keyword' as const, label: '検索して見る', mobileLabel: '検索して見る', to: `${base.value}/keyword` },
   // { page: 'session' as const, label: '年で見る', mobileLabel: '年で見る', to: `${base.value}/yearly` },
   // { page: 'member' as const, label: '議員で見る', mobileLabel: '議員で見る', to: `${base.value}/member` },
 ])

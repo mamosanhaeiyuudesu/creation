@@ -35,13 +35,13 @@ const CATEGORY_OPTIONS = [...CATEGORIES]
 
 const _initCat = (route.query.cat as string) ?? ''
 const selectedCategory = ref<string>(
-  CATEGORY_OPTIONS.includes(_initCat) ? _initCat : '暮らし・福祉'
+  CATEGORY_OPTIONS.includes(_initCat) ? _initCat : '健康・福祉'
 )
 
 // state → URL 同期
 watch([selectedCategory, selectedSession, selectedWord], () => {
   const query: Record<string, string> = {}
-  if (selectedCategory.value !== '暮らし・福祉') query.cat = selectedCategory.value
+  if (selectedCategory.value !== '健康・福祉') query.cat = selectedCategory.value
   if (selectedSession.value) query.year = selectedSession.value
   if (selectedWord.value) query.word = selectedWord.value
   router.replace({ query })

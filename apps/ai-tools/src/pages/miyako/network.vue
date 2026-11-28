@@ -42,7 +42,7 @@ const CATEGORY_OPTIONS = [...CATEGORIES] as string[]
 
 const _initCat = (route.query.cat as string) ?? ''
 const selectedCategory = ref<string>(
-  CATEGORY_OPTIONS.includes(_initCat) ? _initCat : '暮らし・福祉'
+  CATEGORY_OPTIONS.includes(_initCat) ? _initCat : '健康・福祉'
 )
 const initNodeLabel = ref((route.query.node as string) ?? '')
 const initNode2Label = ref((route.query.node2 as string) ?? '') // 線（2語の関係）を開いたURLの、もう一方の語
@@ -52,13 +52,14 @@ const selectedEdge = ref<{ source: string; target: string } | null>(null)
 const phases = ref<AiPhase[]>([])
 const aiLoading = ref(false)
 const popupOpen = ref(false)
+const showLegendHelp = ref(false) // 凡例の「?」（円と線の意味）
 const allExpanded = ref(false)
 
 let cy: any = null
 
 watch([selectedCategory, selectedWord, selectedEdge], () => {
   const query: Record<string, string> = {}
-  if (selectedCategory.value !== '暮らし・福祉') query.cat = selectedCategory.value
+  if (selectedCategory.value !== '健康・福祉') query.cat = selectedCategory.value
   if (selectedWord.value) query.node = selectedWord.value
   if (selectedEdge.value) query.node2 = selectedEdge.value.target
   router.replace({ query })
@@ -468,9 +469,42 @@ watch(selectedCategory, () => {
         </div>
 
         <div class="legend">
+          <button
+            type="button"
+            class="legend-help-btn"
+            :class="{ 'is-active': showLegendHelp }"
+            aria-label="円と線の意味"
+            :aria-expanded="showLegendHelp"
+            @click="showLegendHelp = !showLegendHelp"
+          >?</button>
+
+          <div v-if="showLegendHelp" class="legend-help">
+            <button type="button" class="legend-help-close" aria-label="閉じる" @click="showLegendHelp = false">✕</button>
+
+            <p class="legend-help-title">円（単語）</p>
+            <ul>
+              <li>円1つが、会議録に出てくる単語1つです。</li>
+              <li><b>大きさ</b>は、その円から出ている線の回数を合計した値で決まります。ほかの語とよく一緒に使われる語ほど大きくなります。単語そのものが出た回数ではありません。</li>
+              <li>円にマウスを合わせると、その合計（共起の回数）と、つながっている語の数が出ます。</li>
+            </ul>
+
+            <p class="legend-help-title">線（共起関係）</p>
+            <ul>
+              <li>線は、2つの単語が文の中で隣り合って使われたこと（共起）を表します。</li>
+              <li><b>太い</b>ほど、その回数が多い組み合わせです。太さは、表示中の図で一番多い線と比べて決まります。分類が違う図どうしでは比べられません。</li>
+              <li>線は意味の近さや、賛成・反対を表すものではありません。</li>
+            </ul>
+
+            <p class="legend-help-title">クリックすると</p>
+            <ul>
+              <li><b>円</b>：その単語の議論の移り変わりをAIが分析します。</li>
+              <li><b>線</b>：2つの単語に関する議論の移り変わりをAIが分析します。</li>
+            </ul>
+          </div>
+
           <div class="legend-row">
             <span class="legend-dot" />
-            <span>単語（大きさ＝出現頻度）</span>
+            <span>単語（大きさ＝つながりの回数）</span>
           </div>
           <div class="legend-row">
             <span class="legend-line" />
@@ -480,7 +514,7 @@ watch(selectedCategory, () => {
 
         <div class="zoom-hint">
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 opacity-70"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-          スクロール / ピンチで拡大縮小・円をクリックで議論を分析
+          <span>スクロール / ピンチで拡大縮小<br>円や線をクリックで議論を分析</span>
         </div>
       </div>
     </template>
@@ -617,9 +651,71 @@ watch(selectedCategory, () => {
   backdrop-filter: blur(4px);
   border: 1px solid #dbe4ef;
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 10px 36px 10px 12px;
   font-size: 10.5px;
   color: #6b7888;
+}
+
+.legend-help-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid #b9c8da;
+  background: #fff;
+  color: #4b5868;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.legend-help-btn:hover,
+.legend-help-btn.is-active {
+  border-color: #1d6fd6;
+  background: #e6f0fb;
+  color: #134c9c;
+}
+
+/* 凡例は左下にあるので、説明は上に開く */
+.legend-help {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  width: 360px;
+  max-height: min(480px, calc(100vh - 240px));
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #dbe4ef;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(20,60,120,0.14);
+  padding: 14px 16px;
+  font-size: 12px;
+  line-height: 1.72;
+  color: #4b5868;
+}
+.legend-help-title {
+  margin: 10px 0 2px;
+  font-weight: 700;
+  color: #1f2a37;
+}
+.legend-help-title:first-of-type { margin-top: 0; }
+.legend-help ul {
+  margin: 0;
+  padding-left: 1.2em;
+  list-style: disc;
+}
+.legend-help-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: #8593a3;
+  font-size: 12px;
+  cursor: pointer;
 }
 
 .legend-row {
@@ -661,7 +757,8 @@ watch(selectedCategory, () => {
   font-size: 11.5px;
   font-weight: 500;
   padding: 7px 12px;
-  border-radius: 20px;
+  border-radius: 12px;
+  line-height: 1.6;
   letter-spacing: 0.01em;
   box-shadow: 0 2px 10px rgba(20,60,120, 0.25);
 }

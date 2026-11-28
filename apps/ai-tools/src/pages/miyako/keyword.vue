@@ -7,6 +7,21 @@ const HISTORY_KEY = 'miyako_recent_keywords'
 const CACHE_PREFIX = 'miyako_keyword_evolution:'
 const MAX_HISTORY = 5
 
+// 検索欄の下に出すおすすめ。全体像の分類ごとに、宮古島ならではの話題を2つ。
+// 会議録（2023年以降の定例会の本文）で繰り返し出てくることを確かめて選んでいる
+const SUGGESTIONS = [
+  { category: '健康・福祉', words: ['宮古病院', '南静園'] },
+  { category: '子育て・教育', words: ['結の橋学園', '学校統廃合'] },
+  { category: '農林水産', words: ['サトウキビ', '地下ダム'] },
+  { category: '観光・商工', words: ['クルーズ船', '宿泊税'] },
+  { category: 'まち・住まい', words: ['伊良部大橋', '下地島空港'] },
+  { category: '防災・安全', words: ['停電', '水難事故'] },
+  { category: '環境', words: ['地下水', 'サンゴ'] },
+  { category: '文化・地域', words: ['トライアスロン', 'クイチャー'] },
+  { category: '基地・安保', words: ['陸上自衛隊', '弾薬庫'] },
+  { category: '行政・財政', words: ['ふるさと納税', '総合庁舎'] },
+]
+
 interface AiPhase {
   era: string
   title: string
@@ -141,6 +156,24 @@ onMounted(() => {
         >検索</button>
       </div>
 
+      <!-- おすすめのキーワード -->
+      <div class="suggest-grid">
+        <div v-for="g in SUGGESTIONS" :key="g.category" class="suggest-group">
+          <span class="suggest-label">{{ g.category }}</span>
+          <div class="suggest-words">
+            <button
+              v-for="w in g.words"
+              :key="w"
+              type="button"
+              class="recent-chip"
+              :class="{ 'recent-chip-active': w === searchedWord }"
+              :disabled="loading"
+              @click="search(w)"
+            >{{ w }}</button>
+          </div>
+        </div>
+      </div>
+
       <!-- 最近の検索 -->
       <div v-if="recentSearches.length" class="flex items-center gap-2 justify-center flex-wrap mb-6">
         <span class="text-[12px] font-bold text-[#4b5868] shrink-0">最近の検索</span>
@@ -224,6 +257,38 @@ onMounted(() => {
 <style scoped>
 .page-bg {
   background-color: #f1f6fc;
+}
+
+.suggest-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 8px;
+  max-width: 1000px;
+  margin: 0 auto 14px;
+}
+@media (min-width: 768px) {
+  .suggest-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+.suggest-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.suggest-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7888;
+}
+.suggest-words {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.recent-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .recent-chip {
