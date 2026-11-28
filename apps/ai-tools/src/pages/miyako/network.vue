@@ -13,8 +13,7 @@ interface Pair {
 
 interface TooltipState {
   label: string
-  totalCount: number
-  edgeCount: number
+  stat: string
   x: number
   y: number
 }
@@ -36,6 +35,7 @@ const pairs = ref<Pair[]>([])
 const loading = ref(true)
 const rendering = ref(false)
 const cyContainer = ref<HTMLElement | null>(null)
+const wordCounts = ref<Record<string, number>>({})
 const tooltip = ref<TooltipState | null>(null)
 const graphStats = ref({ nodes: 0, edges: 0 })
 const CATEGORY_OPTIONS = [...CATEGORIES] as string[]
@@ -90,22 +90,18 @@ function buildElements(categoryWords: Set<string> | null) {
     }
   }
 
-  const nodeTotalCount = new Map<string, number>()
-  for (const edge of selectedEdges) {
-    nodeTotalCount.set(edge.source, (nodeTotalCount.get(edge.source) ?? 0) + edge.count)
-    nodeTotalCount.set(edge.target, (nodeTotalCount.get(edge.target) ?? 0) + edge.count)
-  }
+  const nodeIds = [...new Set(selectedEdges.flatMap(e => [e.source, e.target]))]
+  const countOf = (word: string) => wordCounts.value[word] ?? 0
 
-  const maxCount = Math.max(...nodeTotalCount.values(), 1)
+  const maxCount = Math.max(...nodeIds.map(countOf), 1)
   const maxEdgeCount = Math.max(...selectedEdges.map(e => e.count), 1)
 
-  const nodes = [...nodeTotalCount.keys()].map(id => ({
+  const nodes = nodeIds.map(id => ({
     data: {
       id,
       label: id,
-      totalCount: nodeTotalCount.get(id)!,
-      edgeCount: nodeEdgeCount.get(id)!,
-      size: 20 + Math.pow(nodeTotalCount.get(id)! / maxCount, 0.4) * 36,
+      count: countOf(id),
+      size: 20 + Math.pow(countOf(id) / maxCount, 0.4) * 36,
     }
   }))
 
@@ -268,8 +264,7 @@ async function renderGraph() {
     const pos = node.renderedPosition()
     tooltip.value = {
       label: node.data('label'),
-      totalCount: node.data('totalCount'),
-      edgeCount: node.data('edgeCount'),
+      stat: `出現した回数: ${node.data('count').toLocaleString()} 回`,
       x: pos.x,
       y: pos.y,
     }
@@ -289,9 +284,16 @@ async function renderGraph() {
     const group = edge.connectedNodes().add(edge)
     cy!.elements().not('.selected, .edge-selected').addClass('dimmed')
     group.removeClass('dimmed').addClass('highlighted')
+    tooltip.value = {
+      label: `${edge.data('source')} × ${edge.data('target')}`,
+      stat: `一緒に出現した回数: ${edge.data('count').toLocaleString()} 回`,
+      x: evt.renderedPosition.x,
+      y: evt.renderedPosition.y,
+    }
   })
 
   cy.on('mouseout', 'edge', () => {
+    tooltip.value = null
     cy!.elements().removeClass('dimmed highlighted')
   })
 
@@ -404,7 +406,12 @@ onMounted(async () => {
     router.replace('/miyako')
     return
   }
-  pairs.value = await $fetch<Pair[]>('/data/pairs.json')
+  const [pairData, countData] = await Promise.all([
+    $fetch<Pair[]>('/data/pairs.json'),
+    $fetch<Record<string, number>>('/data/word_counts.json'),
+  ])
+  wordCounts.value = countData
+  pairs.value = pairData
   loading.value = false
   await nextTick()
   renderGraph()
@@ -464,8 +471,7 @@ watch(selectedCategory, () => {
           :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
         >
           <div class="tooltip-label">{{ tooltip.label }}</div>
-          <div class="tooltip-stat">共起: {{ tooltip.totalCount.toLocaleString() }} 回</div>
-          <div class="tooltip-stat">接続: {{ tooltip.edgeCount }} 語</div>
+          <div class="tooltip-stat">{{ tooltip.stat }}</div>
         </div>
 
         <div class="legend">
@@ -484,13 +490,14 @@ watch(selectedCategory, () => {
             <p class="legend-help-title">円（単語）</p>
             <ul>
               <li>円1つが、会議録に出てくる単語1つです。</li>
-              <li><b>大きさ</b>は、その円から出ている線の回数を合計した値で決まります。ほかの語とよく一緒に使われる語ほど大きくなります。単語そのものが出た回数ではありません。</li>
-              <li>円にマウスを合わせると、その合計（共起の回数）と、つながっている語の数が出ます。</li>
+              <li><b>大きい</b>ほど、会議録によく出た単語です。大きさは、表示中の図で一番多い単語と比べて決まります。分類が違う図どうしでは比べられません。</li>
+              <li>円にマウスを合わせると、出現した回数が出ます。長い言葉（例：「〇〇施設」）の中に含まれる分は、短い単語の回数に入れていません。回数は自動で単語に区切って数えた目安です。</li>
             </ul>
 
-            <p class="legend-help-title">線（共起関係）</p>
+            <p class="legend-help-title">線（一緒に出現）</p>
             <ul>
-              <li>線は、2つの単語が文の中で隣り合って使われたこと（共起）を表します。</li>
+              <li>線は、2つの単語が文の中で一緒に（すぐ近くに並んで）使われたことを表します。</li>
+              <li>線にマウスを合わせると、一緒に出現した回数が出ます。</li>
               <li><b>太い</b>ほど、その回数が多い組み合わせです。太さは、表示中の図で一番多い線と比べて決まります。分類が違う図どうしでは比べられません。</li>
               <li>線は意味の近さや、賛成・反対を表すものではありません。</li>
             </ul>
@@ -504,11 +511,11 @@ watch(selectedCategory, () => {
 
           <div class="legend-row">
             <span class="legend-dot" />
-            <span>単語（大きさ＝つながりの回数）</span>
+            <span>単語（大きさ＝出現した回数）</span>
           </div>
           <div class="legend-row">
             <span class="legend-line" />
-            <span>共起関係（太さ＝文中の隣接頻度）</span>
+            <span>線（太さ＝一緒に出現した回数）</span>
           </div>
         </div>
 
